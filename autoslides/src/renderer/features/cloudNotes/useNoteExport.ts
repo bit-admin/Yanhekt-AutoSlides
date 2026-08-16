@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { managedNoteDisplayName, managedNoteIdentity } from '@common/notesTypes'
-import { noteImageUrls, readNoteMetadata } from '@common/notesContent'
+import { exportSlideFilenames, noteImageUrls, readNoteMetadata } from '@common/notesContent'
 import { useBackgroundQueue } from './useBackgroundQueue'
 import type { useCloudNotes } from './useCloudNotes'
 
@@ -70,11 +70,10 @@ export function useNoteExport(cn: CloudNotesApi) {
 
     item.status = 'downloading'
     item.downloaded = 0
-    const width = Math.max(3, String(urls.length).length)
+    const names = exportSlideFilenames(urls.length, timeline)
     for (let i = 0; i < urls.length; i += 1) {
       if (cancelRequested.value) { item.status = 'error'; item.error = 'cancelled'; return }
-      const name = `Slide_${String(i + 1).padStart(width, '0')}.png`
-      const dl = await window.electronAPI.cloudNotes.downloadImageToFolder(urls[i], prep.data.dir, name)
+      const dl = await window.electronAPI.cloudNotes.downloadImageToFolder(urls[i], prep.data.dir, names[i])
       if (!dl.ok) { item.status = 'error'; item.error = dl.error; return }
       item.downloaded += 1
     }

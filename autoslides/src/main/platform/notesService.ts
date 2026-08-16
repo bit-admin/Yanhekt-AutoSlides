@@ -14,7 +14,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
-import { buildLectureIdSuffix, type LectureIdentity } from '@common/lectureNaming';
+import { buildSlideFolderName, type LectureIdentity } from '@common/lectureNaming';
 import type { ConfigService } from './configService';
 import { sharpService } from '@main/infra/sharpService';
 import type {
@@ -26,13 +26,14 @@ import type {
   UploadedImage,
   ExportFolderInfo,
   ShareImportResult,
+  ShareLectureMeta,
   IndexStats,
   IndexLecture,
   IndexVersion,
   IndexLectureDetail,
   IndexRemovalResult,
 } from '@common/notesTypes';
-import { NOTE_GROUP_NAME_MAX, buildManagedNoteTitle } from '@common/notesTypes';
+import { NOTE_GROUP_NAME_MAX, buildShareImportTitle, splitNoteDisplayName } from '@common/notesTypes';
 import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink } from '@common/shareLink';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
@@ -293,8 +294,14 @@ export class NotesService {
    * offline origins) fall back to the ` (N)` uniquifier in prepareExportFolder.
    */
   private slidesFolderPath(displayName: string, identity: LectureIdentity = {}): string {
-    const safe = displayName.replace(/[/\\]/g, '_');
-    return path.join(this.exportBaseDir(), `slides_${safe}${buildLectureIdSuffix(identity)}`);
+    const { course, session } = splitNoteDisplayName(displayName);
+    return path.join(
+      this.exportBaseDir(),
+      buildSlideFolderName(
+        { courseTitle: course || undefined, sessionTitle: session || undefined },
+        identity,
+      ),
+    );
   }
 
   /** Whether the base export folder for this display name already exists on disk. */
@@ -501,34 +508,65 @@ export class NotesService {
     if (!parsed) throw new Error('invalid-share-link');
 
     let fragment = parsed.fragment;
+    let shortMeta: ShareLectureMeta | null = null;
     if (!fragment && parsed.shortId) {
-      fragment = await this.fetchShortFragment(parsed.shortId);
+      const got = await this.fetchShortLink(parsed.shortId);
+      fragment = got.fragment;
+      shortMeta = got.meta;
     }
     if (!fragment) throw new Error('invalid-share-link');
 
     const payload = decodeSharePayload(fragment);
     if (!payload) throw new Error('invalid-share-link');
 
-    const resolved = await resolveShareImages(payload, (prefix) => this.listCossFolder(prefix));
-    const urls = resolved.filter((r) => r.url !== null).map((r) => r.url as string);
     const identity = { courseId: payload.c, sessionId: payload.s, liveId: payload.l };
+    const [resolved, lectureMeta] = await Promise.all([
+      resolveShareImages(payload, (prefix) => this.listCossFolder(prefix)),
+      shortMeta ? Promise.resolve(shortMeta) : this.fetchShareMeta(identity.courseId, identity.sessionId),
+    ]);
+    const urls = resolved.filter((r) => r.url !== null).map((r) => r.url as string);
     return {
-      title: buildManagedNoteTitle('', identity),
+      title: buildShareImportTitle(identity, lectureMeta),
       identity,
       urls,
       missing: resolved.length - urls.length,
+      lectureMeta,
     };
   }
 
-  /** Look up a short-link id's stored fragment via the public share Worker. */
-  private async fetchShortFragment(id: string): Promise<string> {
+  /**
+   * Look up a short-link id via the public share Worker. `/v1/api/get` returns
+   * `{ fragment, meta }` so the folder title can be rebuilt without a second hop.
+   */
+  private async fetchShortLink(id: string): Promise<{ fragment: string; meta: ShareLectureMeta | null }> {
     const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/get?id=${encodeURIComponent(id)}`, {
       headers: { 'User-Agent': appUserAgent() },
     });
     if (!res.ok) throw new Error(`Short-link lookup failed (${res.status})`);
-    const data = (await res.json()) as { fragment?: string };
+    const data = (await res.json()) as { fragment?: string; meta?: ShareLectureMeta | null };
     if (!data.fragment) throw new Error('Short link not found');
-    return data.fragment;
+    return { fragment: data.fragment, meta: data.meta ?? null };
+  }
+
+  /** Long-link path: one Worker hop that fans out to Yanhekt course + session. */
+  private async fetchShareMeta(
+    courseId?: string,
+    sessionId?: string,
+  ): Promise<ShareLectureMeta | null> {
+    if (!courseId && !sessionId) return null;
+    const params = new URLSearchParams();
+    if (courseId) params.set('courseId', courseId);
+    if (sessionId) params.set('sessionId', sessionId);
+    try {
+      const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/meta?${params}`, {
+        headers: { 'User-Agent': appUserAgent() },
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { meta?: ShareLectureMeta | null };
+      return data.meta ?? null;
+    } catch {
+      return null;
+    }
   }
 
   /**

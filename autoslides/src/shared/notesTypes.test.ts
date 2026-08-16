@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildManagedNoteTitle,
+  buildShareImportTitle,
   isManagedNoteTitle,
   managedNoteDisplayName,
   managedNoteIdentity,
+  shareImportDisplayName,
   splitNoteDisplayName,
 } from './notesTypes';
 
@@ -48,5 +50,24 @@ describe('managed note titles', () => {
   it('does not treat a user note as managed', () => {
     expect(isManagedNoteTitle('My shopping list')).toBe(false);
     expect(isManagedNoteTitle('AutoSlides Cloud Storage README')).toBe(false);
+  });
+
+  it('builds a share-import title from hydrated Yanhekt names', () => {
+    expect(
+      buildShareImportTitle(
+        { courseId: '61841', sessionId: '751112' },
+        { courseTitle: '操作系统', sessionTitle: '第1周 星期二 第5大节' },
+      ),
+    ).toBe('c61841s751112 · 操作系统 · 第1周 星期二 第5大节');
+  });
+
+  it('turns a hydrated share result into the on-disk folder stem', () => {
+    expect(
+      shareImportDisplayName({
+        title: 'c61841s751112',
+        identity: { courseId: '61841', sessionId: '751112' },
+        lectureMeta: { courseTitle: '操作系统', sessionTitle: '第1周 星期二 第5大节' },
+      }),
+    ).toBe('操作系统_第1周_星期二_第5大节');
   });
 });

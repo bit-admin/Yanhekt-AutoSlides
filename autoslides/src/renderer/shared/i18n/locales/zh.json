@@ -40,6 +40,7 @@
     "untitledSession": "未命名课节",
     "slidesOrd": "幻灯片 #{n}",
     "slideCountShared": "{n} 张幻灯片 · 通过 AutoSlides 分享",
+    "sharedVia": "通过 AutoSlides 分享",
     "edited": "已编辑",
     "reviewed": "人工审核",
     "loadingFiles": "加载中…",

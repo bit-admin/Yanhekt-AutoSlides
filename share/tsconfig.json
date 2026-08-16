@@ -21,6 +21,7 @@
     "apex",
     "vite.apex.config.ts",
     "../autoslides/src/shared/shareLink.ts",
-    "../autoslides/src/shared/slideMetadataTypes.ts"
+    "../autoslides/src/shared/slideMetadataTypes.ts",
+    "../autoslides/src/shared/academicTerm.ts"
   ]
 }

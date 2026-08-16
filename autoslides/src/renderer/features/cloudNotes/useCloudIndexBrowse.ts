@@ -16,7 +16,8 @@
 
 import { computed, ref, watch } from 'vue'
 import { SHARE_ORIGIN } from '@common/shareLink'
-import { splitNoteDisplayName } from '@common/notesTypes'
+import { buildShareImportTitle, splitNoteDisplayName } from '@common/notesTypes'
+import type { ShareLectureMeta } from '@common/notesTypes'
 import { overrides } from '@shared/overrideRegistry'
 import type {
   IndexLecture,
@@ -43,6 +44,10 @@ export interface IndexTermOption {
 export interface IndexViewerDetail {
   courseTitle: string
   sessionTitle: string
+  instructor?: string
+  college?: string
+  schoolYear?: string
+  semester?: string
   imageCount: number
   urls: string[]
   /** Best-effort slide metadata (identity + review) threaded into import/export. */
@@ -73,6 +78,27 @@ const SEARCH_DEBOUNCE_MS = 400
  */
 export function parseShareTitle(raw: string): { course: string; session: string } {
   return splitNoteDisplayName(raw)
+}
+
+function firstInstructor(meta?: ShareLectureMeta | IndexLecture | null): string {
+  if (!meta) return ''
+  return meta.instructor || (meta.professors ?? []).join(', ')
+}
+
+/** Prefer Index lecture fields (already fetched) over the share-link Worker meta. */
+function lectureMetaFrom(
+  lecture?: IndexLecture | null,
+  fallback?: ShareLectureMeta | null,
+): ShareLectureMeta {
+  return {
+    courseTitle: lecture?.courseTitle || fallback?.courseTitle,
+    sessionTitle: lecture?.sessionTitle || fallback?.sessionTitle,
+    instructor: firstInstructor(lecture) || firstInstructor(fallback) || undefined,
+    professors: lecture?.professors ?? fallback?.professors,
+    college: lecture?.college || fallback?.college,
+    schoolYear: lecture?.schoolYear || fallback?.schoolYear,
+    semester: lecture?.semester || fallback?.semester,
+  }
 }
 
 export function useCloudIndexBrowse() {
@@ -306,15 +332,31 @@ export function useCloudIndexBrowse() {
     }
     const metadata =
       lecture && version ? buildIndexMetadata({ lecture, versions: [version] }, shareId) : null
+    const lectureMeta = lectureMetaFrom(lecture, res.data.lectureMeta)
+    const identity = {
+      courseId: lecture?.courseId ?? res.data.identity?.courseId,
+      sessionId: lecture?.sessionId ?? res.data.identity?.sessionId,
+      liveId: res.data.identity?.liveId,
+    }
     const parsed = parseShareTitle(fallbackTitle ?? res.data.title)
     viewer.value = {
-      courseTitle: lecture?.courseTitle || parsed.course,
-      sessionTitle: lecture?.sessionTitle || parsed.session,
+      courseTitle: lectureMeta.courseTitle || parsed.course,
+      sessionTitle: lectureMeta.sessionTitle || parsed.session,
+      instructor: lectureMeta.instructor,
+      college: lectureMeta.college,
+      schoolYear: lectureMeta.schoolYear,
+      semester: lectureMeta.semester,
       imageCount: res.data.urls.length,
       urls: res.data.urls,
       metadata,
       sourceUrl: link,
-      resolved: { ...res.data, metadata },
+      resolved: {
+        ...res.data,
+        metadata,
+        identity,
+        lectureMeta,
+        title: buildShareImportTitle(identity, lectureMeta),
+      },
     }
   }
 
@@ -371,15 +413,24 @@ export function useCloudIndexBrowse() {
       viewerError.value = true
       return
     }
+    const lectureMeta = lectureMetaFrom(null, res.data.lectureMeta)
     const parsed = parseShareTitle(res.data.title)
     viewer.value = {
-      courseTitle: parsed.course,
-      sessionTitle: parsed.session,
+      courseTitle: lectureMeta.courseTitle || parsed.course,
+      sessionTitle: lectureMeta.sessionTitle || parsed.session,
+      instructor: lectureMeta.instructor,
+      college: lectureMeta.college,
+      schoolYear: lectureMeta.schoolYear,
+      semester: lectureMeta.semester,
       imageCount: res.data.urls.length,
       urls: res.data.urls,
       metadata: res.data.metadata ?? null,
       sourceUrl: link,
-      resolved: res.data,
+      resolved: {
+        ...res.data,
+        lectureMeta,
+        title: buildShareImportTitle(res.data.identity ?? {}, lectureMeta),
+      },
     }
   }
 

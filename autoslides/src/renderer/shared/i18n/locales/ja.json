@@ -40,6 +40,7 @@
     "untitledSession": "無題の回",
     "slidesOrd": "スライド #{n}",
     "slideCountShared": "{n} 枚のスライド · AutoSlides で共有",
+    "sharedVia": "AutoSlides で共有",
     "edited": "編集済み",
     "reviewed": "人手で確認済み",
     "loadingFiles": "読み込み中…",

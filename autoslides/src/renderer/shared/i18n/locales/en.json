@@ -40,6 +40,7 @@
     "untitledSession": "Untitled session",
     "slidesOrd": "Slides #{n}",
     "slideCountShared": "{n} slides · shared via AutoSlides",
+    "sharedVia": "shared via AutoSlides",
     "edited": "Edited",
     "reviewed": "Human reviewed",
     "loadingFiles": "Loading…",

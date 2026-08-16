@@ -89,9 +89,24 @@ export interface ExportFolderInfo {
   folderName: string;
 }
 
+/**
+ * Yanhekt titles hydrated by the share Worker (`/v1/api/get` or `/v1/api/meta`).
+ * Used to rebuild a managed note title / on-disk folder stem after v2 payloads
+ * dropped the human `t` field.
+ */
+export interface ShareLectureMeta {
+  courseTitle?: string;
+  sessionTitle?: string;
+  instructor?: string;
+  professors?: string[];
+  college?: string;
+  schoolYear?: string;
+  semester?: string;
+}
+
 /** Result of resolving a pasted share link into importable image URLs. */
 export interface ShareImportResult {
-  /** Managed note title built from the payload's course/session/live ids. */
+  /** Managed note title (`c…s… · course · session`) after Yanhekt hydration. */
   title: string;
   /** Identity recorded in the share payload (may be empty for untitled captures). */
   identity?: LectureIdentity;
@@ -107,6 +122,8 @@ export interface ShareImportResult {
    * `slides` group and the exported folder's metadata.json.
    */
   metadata?: SlideMetadata | null;
+  /** Course/session titles + byline fields from Yanhekt (or the Index lecture). */
+  lectureMeta?: ShareLectureMeta | null;
 }
 
 // ── AutoSlides Index (v2 read + removal) ───────────────────────────────────
@@ -321,4 +338,33 @@ export function managedNoteIdentity(title: string): LectureIdentity {
   const fromToken = parseLectureToken(title);
   if (fromToken.courseId || fromToken.liveId) return fromToken;
   return parseLectureIds(title);
+}
+
+/**
+ * Managed title from Yanhekt-hydrated names + payload ids.
+ * `操作系统` + `第1周 星期二 第5大节` + c61841/s751112 →
+ * `c61841s751112 · 操作系统 · 第1周 星期二 第5大节`.
+ */
+export function buildShareImportTitle(
+  identity: LectureIdentity,
+  meta?: ShareLectureMeta | null,
+): string {
+  const display = [meta?.courseTitle?.trim(), meta?.sessionTitle?.trim()].filter(Boolean).join(' · ');
+  return buildManagedNoteTitle(display, identity);
+}
+
+/**
+ * Folder stem for a resolved share: prefer hydrated course/session titles,
+ * else invert the managed title. Token-only titles (meta missing) yield ''.
+ */
+export function shareImportDisplayName(result: {
+  title: string;
+  identity?: LectureIdentity;
+  lectureMeta?: ShareLectureMeta | null;
+}): string {
+  const meta = result.lectureMeta;
+  if (meta?.courseTitle || meta?.sessionTitle) {
+    return managedNoteDisplayName(buildShareImportTitle(result.identity ?? {}, meta));
+  }
+  return managedNoteDisplayName(result.title);
 }

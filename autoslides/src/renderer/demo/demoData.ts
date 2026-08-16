@@ -786,9 +786,11 @@ export function demoResolveIndexShare(link: string): ShareImportResult | null {
     const count = Math.min(s.versions[i].imageCount, SLIDE_TITLES.length)
     return {
       title: `${c.title} - Lecture ${s.week}`,
+      identity: { courseId: s.courseId, sessionId: `${s.courseId}-session-${s.week}` },
       urls: SLIDE_TITLES.slice(0, count).map(([title, page]) => slideDataUri(title, page)),
       missing: 0,
       metadata: null,
+      lectureMeta: { courseTitle: c.title, sessionTitle: `Lecture ${s.week}` },
     }
   }
   return null

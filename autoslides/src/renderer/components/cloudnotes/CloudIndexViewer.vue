@@ -15,7 +15,7 @@
       <div class="ci-viewer-head">
         <h1 class="ci-viewer-title">{{ detail.courseTitle }}</h1>
         <p v-if="detail.sessionTitle" class="ci-viewer-session">{{ detail.sessionTitle }}</p>
-        <p class="ci-viewer-meta">{{ $t('cloudIndex.slideCountShared', { n: detail.imageCount }) }}</p>
+        <p class="ci-viewer-meta">{{ byline }}</p>
       </div>
       <div class="ci-viewer-scroll custom-scrollbar">
         <div class="ci-viewer-stack">
@@ -41,14 +41,31 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { formatAcademicTerm } from '@common/academicTerm'
 import type { IndexViewerDetail } from '@features/cloudNotes/useCloudIndexBrowse'
 
-defineProps<{
+const props = defineProps<{
   detail: IndexViewerDetail | null
   loading: boolean
   error: boolean
 }>()
+
+const { t } = useI18n()
+
+/** Matches the /v1 share viewer: "N slides · instructor · college · 2025-2026 Fall · shared via AutoSlides". */
+const byline = computed(() => {
+  const d = props.detail
+  if (!d) return ''
+  return [
+    t('cloudIndex.slideCount', { n: d.imageCount }),
+    d.instructor,
+    d.college,
+    formatAcademicTerm(d.schoolYear, d.semester),
+    t('cloudIndex.sharedVia'),
+  ].filter(Boolean).join(' · ')
+})
 
 const zoomUrl = ref<string | null>(null)
 

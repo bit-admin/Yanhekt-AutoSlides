@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { shareImportDisplayName } from '@common/notesTypes'
 import type { ShareImportResult } from '@common/notesTypes'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 import type { LectureIdentity } from '@common/lectureNaming'
@@ -8,6 +9,9 @@ export type ShareExportStatus = 'pending' | 'downloading' | 'done' | 'conflict' 
 /** The single in-flight share-link → local folder export. */
 export interface ShareExportItem {
   title: string
+  /** Folder stem (`操作系统_第1周_星期二_第5大节`), never the id token. */
+  displayName: string
+  identity: LectureIdentity
   urls: string[]
   status: ShareExportStatus
   /** Images written so far. */
@@ -62,13 +66,19 @@ export function useShareIndexExport() {
    * DataCloneError (see CLAUDE.md).
    */
   function identityOf(row: ShareExportItem): LectureIdentity {
+    // Always a fresh plain object — `row` is inside a ref, so returning a nested
+    // reactive identity would throw DataCloneError on the IPC hop (CLAUDE.md).
     const source = row.metadata?.source
-    return { courseId: source?.courseId, sessionId: source?.sessionId }
+    return {
+      courseId: row.identity.courseId ?? source?.courseId,
+      sessionId: row.identity.sessionId ?? source?.sessionId,
+      liveId: row.identity.liveId ?? source?.liveId,
+    }
   }
 
   /** Resolve the destination folder, then download every image in order. */
   async function processItem(row: ShareExportItem, mode: 'fresh' | 'create' = 'fresh'): Promise<void> {
-    const prep = await window.electronAPI.cloudNotes.prepareExportFolder(row.title, mode, identityOf(row))
+    const prep = await window.electronAPI.cloudNotes.prepareExportFolder(row.displayName, mode, identityOf(row))
     if (!prep.ok) { row.status = 'error'; row.error = prep.error; return }
     row.dir = prep.data.dir
     row.folderName = prep.data.folderName
@@ -100,8 +110,15 @@ export function useShareIndexExport() {
     cancelRequested.value = false
     running.value = true
     try {
+      const identity: LectureIdentity = {
+        courseId: result.identity?.courseId ?? result.metadata?.source?.courseId,
+        sessionId: result.identity?.sessionId ?? result.metadata?.source?.sessionId,
+        liveId: result.identity?.liveId ?? result.metadata?.source?.liveId,
+      }
       const row: ShareExportItem = {
         title: result.title,
+        displayName: shareImportDisplayName(result),
+        identity,
         urls: result.urls,
         status: 'pending',
         downloaded: 0,
@@ -112,7 +129,7 @@ export function useShareIndexExport() {
 
       if (row.urls.length === 0) { row.status = 'error'; row.error = 'empty'; return }
 
-      const statusRes = await window.electronAPI.cloudNotes.exportFolderStatus(row.title, identityOf(row))
+      const statusRes = await window.electronAPI.cloudNotes.exportFolderStatus(row.displayName, identityOf(row))
       if (statusRes.ok && statusRes.data.exists) {
         row.status = 'conflict'
         row.dir = statusRes.data.dir

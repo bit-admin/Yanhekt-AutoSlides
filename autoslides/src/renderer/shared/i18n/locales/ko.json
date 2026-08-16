@@ -40,6 +40,7 @@
     "untitledSession": "제목 없는 회차",
     "slidesOrd": "슬라이드 #{n}",
     "slideCountShared": "슬라이드 {n}개 · AutoSlides로 공유됨",
+    "sharedVia": "AutoSlides로 공유됨",
     "edited": "편집됨",
     "reviewed": "사람이 검토함",
     "loadingFiles": "불러오는 중…",
