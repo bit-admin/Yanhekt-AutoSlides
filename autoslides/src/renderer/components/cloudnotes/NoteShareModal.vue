@@ -87,7 +87,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { buildSharePayload, buildShareUrl, encodeSharePayload, parseCossImageUrl } from '@common/shareLink'
 import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata } from '@common/notesContent'
-import { managedNoteDisplayName } from '@common/notesTypes'
+import { managedNoteIdentity } from '@common/notesTypes'
 import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 import type { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import type { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
@@ -134,7 +134,7 @@ async function open(): Promise<void> {
   const content = await props.getContent()
   const urls = noteImageUrls(content)
   const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
-  const payload = buildSharePayload(managedNoteDisplayName(note.title), urls)
+  const payload = buildSharePayload(managedNoteIdentity(note.title), urls)
   shareMode.value = isASnoteGroup(note.note_group_id) ? 'full' : 'link-only'
   shareFragment.value = encodeSharePayload(payload)
   shareLongUrl.value = buildShareUrl(payload)

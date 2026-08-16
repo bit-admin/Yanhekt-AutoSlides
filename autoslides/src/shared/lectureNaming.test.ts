@@ -9,14 +9,38 @@ import {
   extractCourseName,
   extractSessionLabel,
   formatLectureDisplayName,
+  formatLectureToken,
   lectureLabel,
   parseLectureIds,
+  parseLectureToken,
   parseSessionInfo,
   parseSessionTitle,
   stripLectureIds,
 } from './lectureNaming';
 
 const SESSION = '第1周 星期三 第2大节';
+
+describe('formatLectureToken / parseLectureToken', () => {
+  it('emits recorded and live tokens without the folder __ prefix', () => {
+    expect(formatLectureToken({ courseId: '62313', sessionId: '751843' })).toBe('c62313s751843');
+    expect(formatLectureToken({ courseId: '71736', liveId: '761952' })).toBe('c71736l761952');
+    expect(formatLectureToken({ liveId: '761952' })).toBe('l761952');
+    expect(formatLectureToken({})).toBe('');
+  });
+
+  it('parses a token at the start of a note title', () => {
+    expect(parseLectureToken('c62313s751843 · 泛函分析 · 第1周 星期三 第2大节')).toEqual({
+      courseId: '62313',
+      sessionId: '751843',
+      liveId: undefined,
+    });
+    expect(parseLectureToken('c71736l761952 · x')).toEqual({
+      courseId: '71736',
+      sessionId: undefined,
+      liveId: '761952',
+    });
+  });
+});
 
 describe('buildLectureIdSuffix', () => {
   it('emits both ids when both are numeric', () => {

@@ -4,6 +4,7 @@ import { EDITORJS_DOC_VERSION, buildManagedNoteTitle } from '@common/notesTypes'
 import { parseLectureIds, type LectureIdentity } from '@common/lectureNaming'
 import { buildNoteMetadataBlock, NOTE_METADATA_VERSION } from '@common/notesContent'
 import type { NoteCloudMetadata } from '@common/notesContent'
+import type { SlideTimeline } from '@common/sidecars'
 import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 import { isWatchExtraction } from '@common/slideMetadataTypes'
@@ -37,6 +38,8 @@ export interface ImportItem {
   missing?: number
   /** Slide metadata from AutoSlides Index (share imports only; null if un-indexed). */
   metadata?: SlideMetadata | null
+  /** Ids from the share payload (share imports). */
+  identity?: LectureIdentity
   /** The share (short) link imported (share imports only) — recorded on the note. */
   shareUrl?: string
   /** AutoSlides Index lecture URL, if the share was indexed (share imports only). */
@@ -122,6 +125,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     urls: string[],
     slides: SlideMetadata | null,
     noteExtra?: Partial<NoteCloudMetadata>,
+    timeline?: SlideTimeline | null,
   ): string {
     // `heading` is the full display name (course + session, e.g.
     // "<course> 第N周 星期X 第N大节" or "<course> - Lecture N").
@@ -142,6 +146,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       buildNoteMetadataBlock({
         v: NOTE_METADATA_VERSION,
         slides,
+        timeline: timeline ?? null,
         note: {
           displayName: heading,
           imageCount: urls.length,
@@ -186,9 +191,15 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     }
 
     item.status = 'building'
-    // Carry the originating folder's metadata.json into the note (null if absent).
-    const slidesMeta = await window.electronAPI.slideMetadata.get(item.path)
-    const contentRes = await window.electronAPI.cloudNotes.updateContent(noteId, buildContent(item.displayName, urls, slidesMeta))
+    // Carry the originating folder's metadata.json + timeline.json into the note.
+    const [slidesMeta, timeline] = await Promise.all([
+      window.electronAPI.slideMetadata.get(item.path),
+      window.electronAPI.slideTimeline.get(item.path),
+    ])
+    const contentRes = await window.electronAPI.cloudNotes.updateContent(
+      noteId,
+      buildContent(item.displayName, urls, slidesMeta, undefined, timeline),
+    )
     if (!contentRes.ok) { item.status = 'error'; item.error = contentRes.error; return }
     item.status = 'done'
   }
@@ -257,7 +268,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     // session ids (omitted when the share isn't indexed).
     const src = metadata?.source
     const indexUrl = src?.courseId && src?.sessionId
-      ? `${SHARE_ORIGIN}/?l=${encodeURIComponent(src.courseId)}.${encodeURIComponent(src.sessionId)}`
+      ? `${SHARE_ORIGIN}/?c=${encodeURIComponent(src.courseId)}&s=${encodeURIComponent(src.sessionId)}`
       : undefined
 
     const item: ImportItem = {
@@ -279,8 +290,9 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       const res = await window.electronAPI.cloudNotes.resolveShareLink(trimmed)
       if (!res.ok) { item.status = 'error'; item.error = res.error; return }
 
-      const { title, urls, missing } = res.data
+      const { title, urls, missing, identity } = res.data
       item.displayName = title
+      item.identity = identity
       item.urls = urls
       item.total = urls.length
       item.missing = missing
@@ -395,11 +407,12 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
    * share's metadata. Empty for folders that never had a lecture (web capture,
    * offline) and for pre-v4.4.1 folders.
    */
-  function lectureIdentityOf(item: Pick<ImportItem, 'folderName' | 'metadata'>): LectureIdentity {
+  function lectureIdentityOf(item: Pick<ImportItem, 'folderName' | 'metadata' | 'identity'>): LectureIdentity {
     const fromName = parseLectureIds(item.folderName)
     if (fromName.courseId) return fromName
     const source = item.metadata?.source
-    return { courseId: source?.courseId, sessionId: source?.sessionId }
+    if (source?.courseId) return { courseId: source.courseId, sessionId: source.sessionId, liveId: source.liveId }
+    return item.identity ?? {}
   }
 
   /**

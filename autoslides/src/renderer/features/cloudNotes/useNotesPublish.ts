@@ -43,8 +43,11 @@ export function useNotesPublish(cn: CloudNotesApi) {
     const urls = noteImageUrls(content)
     if (urls.length === 0) return { ok: false, reason: 'no-images' }
 
-    const displayName = meta?.note.displayName ?? ''
-    const fragment = encodeSharePayload(buildSharePayload(displayName, urls))
+    const fragment = encodeSharePayload(buildSharePayload({
+      courseId: source.courseId,
+      sessionId: source.sessionId,
+      liveId: source.liveId,
+    }, urls))
 
     // source/review came from JSON metadata, but de-proxy defensively so IPC
     // structured-clone never sees a Vue reactive Proxy ("could not be cloned").

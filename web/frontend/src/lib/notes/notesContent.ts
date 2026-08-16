@@ -44,6 +44,8 @@ export interface NoteCloudMetadata {
 export interface NoteMetadata {
   v: number;
   slides: SlideMetadata | null;
+  /** Full timeline.json when the note was imported from Electron; omitted on web-only notes. */
+  timeline?: unknown | null;
   note: NoteCloudMetadata;
 }
 
@@ -92,6 +94,7 @@ function normalizeMeta(raw: Partial<NoteMetadata> | undefined): NoteMetadata {
   return {
     v: typeof raw?.v === 'number' ? raw.v : NOTE_METADATA_VERSION,
     slides: (raw?.slides ?? null) as SlideMetadata | null,
+    timeline: raw?.timeline ?? null,
     note: (raw?.note ?? {}) as NoteCloudMetadata,
   };
 }
@@ -129,7 +132,7 @@ export function buildNoteMetadataBlock(meta: NoteMetadata): EditorJsBlock {
  */
 export function upsertNoteMetadata(
   content: string,
-  patch: { slides?: SlideMetadata | null; note?: Partial<NoteCloudMetadata> },
+  patch: { slides?: SlideMetadata | null; timeline?: unknown | null; note?: Partial<NoteCloudMetadata> },
 ): string {
   const doc = parseContent(content) ?? {
     time: Date.now(),
@@ -141,6 +144,7 @@ export function upsertNoteMetadata(
   const next: NoteMetadata = {
     v: NOTE_METADATA_VERSION,
     slides: patch.slides !== undefined ? patch.slides : (existing?.slides ?? null),
+    timeline: patch.timeline !== undefined ? patch.timeline : (existing?.timeline ?? null),
     note: { ...(existing?.note ?? {}), ...(patch.note ?? {}) },
   };
   const block = buildNoteMetadataBlock(next);

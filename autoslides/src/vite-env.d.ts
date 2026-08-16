@@ -938,6 +938,7 @@ interface ElectronAPI {
 
   slideTimeline: {
     get: (folderPath: string) => Promise<SlideTimeline | null>;
+    write: (folderPath: string, timeline: SlideTimeline) => Promise<{ success: boolean }>;
     recordCaptureConfirmed: (
       folderPath: string,
       payload: RecordCaptureConfirmedPayload

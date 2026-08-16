@@ -84,6 +84,8 @@ export const slideMetadata = {
 export const slideTimeline = {
   get: (folderPath: string) =>
     ipcRenderer.invoke('slideTimeline:get', folderPath) as Promise<import('@common/sidecars').SlideTimeline | null>,
+  write: (folderPath: string, timeline: import('@common/sidecars').SlideTimeline) =>
+    ipcRenderer.invoke('slideTimeline:write', folderPath, timeline) as Promise<{ success: boolean }>,
   recordCaptureConfirmed: (
     folderPath: string,
     payload: import('@common/sidecars').RecordCaptureConfirmedPayload

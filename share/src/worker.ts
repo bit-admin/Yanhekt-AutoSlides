@@ -6,9 +6,10 @@
  * invoking this Worker. So the Worker runs only for the genuinely dynamic paths,
  * to keep Worker usage near zero for ordinary viewing:
  *
- *   v1 (unchanged — short links):
- *     POST /v1/api/shorten { fragment }  -> { id, url }   (idempotent, KV write)
- *     GET  /v1/api/get?id=<id>           -> { fragment }   (KV read)
+ *   v1 (short links + Yanhekt meta):
+ *     POST /v1/api/shorten { fragment }  -> { id, url }
+ *     GET  /v1/api/get?id=<id>           -> { fragment, meta }
+ *     GET  /v1/api/meta?courseId&sessionId -> { meta }  (long-link SPA)
  *     GET  /v1/s/<id>                     -> the /v1 SPA shell
  *
  *   v2 (AutoSlides Index — see v2.ts):
@@ -27,11 +28,13 @@ import { decodeSharePayload } from '../../autoslides/src/shared/shareLink';
 import {
   CORS_HEADERS,
   MAX_FRAGMENT_BYTES,
+  cached,
   ensureShortLink,
   json,
   type Env,
   type ExecutionContext,
 } from './lib/runtime';
+import { fetchLectureMeta } from './lib/yanhekt';
 import { refreshStats, routeV2 } from './v2';
 
 async function handleShorten(req: Request, env: Env, origin: string): Promise<Response> {
@@ -55,12 +58,31 @@ async function handleShorten(req: Request, env: Env, origin: string): Promise<Re
   return json({ id, url: `${origin}/v1/s/${id}` });
 }
 
+async function metaForFragment(fragment: string) {
+  const payload = decodeSharePayload(fragment);
+  if (!payload) return null;
+  if (!payload.c && !payload.s) return null;
+  return fetchLectureMeta(payload.c ?? '', payload.s);
+}
+
 async function handleGet(url: URL, env: Env): Promise<Response> {
   const id = url.searchParams.get('id');
   if (!id) return json({ error: 'missing-id' }, 400);
   const fragment = await env.SHARE_KV.get(id);
   if (fragment === null) return json({ error: 'not-found' }, 404);
-  return json({ fragment });
+  const meta = await metaForFragment(fragment);
+  return json({ fragment, meta });
+}
+
+async function handleMeta(req: Request, url: URL, ctx: ExecutionContext): Promise<Response> {
+  return cached(req, ctx, 3600, async () => {
+    const courseId = url.searchParams.get('courseId') ?? url.searchParams.get('c') ?? '';
+    const sessionId = url.searchParams.get('sessionId') ?? url.searchParams.get('s') ?? '';
+    if (!courseId && !sessionId) return json({ error: 'missing-ids' }, 400);
+    const meta = await fetchLectureMeta(courseId, sessionId || undefined);
+    if (!meta) return json({ error: 'not-found' }, 404);
+    return json({ ok: true, meta });
+  });
 }
 
 const SHORT_LINK = /^\/v1\/s\/[A-Za-z0-9]+\/?$/;
@@ -83,6 +105,9 @@ export default {
     }
     if (pathname === '/v1/api/get' && req.method === 'GET') {
       return handleGet(url, env);
+    }
+    if (pathname === '/v1/api/meta' && req.method === 'GET') {
+      return handleMeta(req, url, ctx);
     }
 
     // Short-link view: serve the versioned SPA shell (a real static asset); the

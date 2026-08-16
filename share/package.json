@@ -9,8 +9,8 @@
     "build": "vite build && vite build -c vite.apex.config.ts",
     "typecheck": "tsc --noEmit",
     "preview": "wrangler dev",
-    "db:migrate": "wrangler d1 migrations apply autoslides-index",
-    "db:migrate:local": "wrangler d1 migrations apply autoslides-index --local",
+    "db:migrate": "wrangler d1 migrations apply autoslides-index-v2",
+    "db:migrate:local": "wrangler d1 migrations apply autoslides-index-v2 --local",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {

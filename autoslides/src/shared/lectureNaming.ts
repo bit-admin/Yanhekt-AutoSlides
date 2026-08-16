@@ -103,6 +103,35 @@ export function parseLectureIds(name: string): ParsedLectureIds {
 }
 
 /**
+ * Leading id token used in managed note titles and share payloads (no `__`):
+ *   recorded → `c62313s751843`
+ *   live     → `c71736l761952`
+ *   live, no course → `l761952`
+ * Empty when no usable id exists. Session is only emitted with a course.
+ */
+export function formatLectureToken(identity: LectureIdentity): string {
+  const courseId = normalizeId(identity.courseId);
+  const liveId = normalizeId(identity.liveId);
+  const sessionId = courseId ? normalizeId(identity.sessionId) : undefined;
+  if (courseId && sessionId) return `c${courseId}s${sessionId}`;
+  if (courseId && liveId) return `c${courseId}l${liveId}`;
+  if (courseId) return `c${courseId}`;
+  if (liveId) return `l${liveId}`;
+  return '';
+}
+
+// `c<course>[s<session>|l<live>]` or bare `l<live>`, anchored at the start.
+const LECTURE_TOKEN_PATTERN = /^(?:c(\d+)(?:s(\d+)|l(\d+))?|l(\d+))/;
+
+/** Parse a leading `c…s…` / `c…l…` / `l…` token. Empty when none. */
+export function parseLectureToken(text: string): ParsedLectureIds {
+  const match = text.trim().match(LECTURE_TOKEN_PATTERN);
+  if (!match) return {};
+  if (match[4]) return { liveId: match[4] };
+  return { courseId: match[1], sessionId: match[2], liveId: match[3] };
+}
+
+/**
  * Drop the id block. Every user-facing surface renders through this — the ids
  * are an on-disk identity mechanism, never something a person should read.
  */

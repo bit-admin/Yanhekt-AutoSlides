@@ -14,20 +14,27 @@ export const SHARE_PATH = '/v1';
 /** Default number of leading md5 hex chars stored per image. */
 export const DEFAULT_SHORT_HASH_LEN = 7;
 
-/** Compact, URL-fragment-friendly description of a shared note. */
 export interface SharePayload {
-  /** Schema version. */
-  v: 1;
-  /** Title (course + session display name). */
-  t: string;
-  /** Default object prefix, e.g. "2026/6". */
+  v: 2;
+  c?: string;
+  s?: string;
+  l?: string;
   p: string;
-  /** Short-hash length: how many leading md5 hex chars `h` stores per image. */
   n: number;
-  /** Concatenated n-char md5 prefixes for ALL images, in slide order. */
   h: string;
-  /** Sparse override: slide index (as string) → prefix, when it differs from `p`. */
   o?: Record<string, string>;
+}
+
+export interface ShareIdentity {
+  courseId?: string | number | null;
+  sessionId?: string | number | null;
+  liveId?: string | number | null;
+}
+
+function digitId(value: string | number | null | undefined): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const text = String(value).trim();
+  return /^\d+$/.test(text) ? text : undefined;
 }
 
 /** A parsed coss image URL. */
@@ -78,15 +85,20 @@ export function decodeSharePayload(fragment: string): SharePayload | null {
     const obj = JSON.parse(json) as Partial<SharePayload>;
     if (
       !obj ||
-      obj.v !== 1 ||
-      typeof obj.t !== 'string' ||
+      obj.v !== 2 ||
       typeof obj.p !== 'string' ||
       typeof obj.n !== 'number' ||
       typeof obj.h !== 'string'
     ) {
       return null;
     }
-    return obj as SharePayload;
+    const c = obj.c === undefined ? undefined : digitId(obj.c);
+    const s = obj.s === undefined ? undefined : digitId(obj.s);
+    const l = obj.l === undefined ? undefined : digitId(obj.l);
+    if (obj.c !== undefined && !c) return null;
+    if (obj.s !== undefined && !s) return null;
+    if (obj.l !== undefined && !l) return null;
+    return { ...obj, c, s, l } as SharePayload;
   } catch {
     return null;
   }
@@ -148,7 +160,7 @@ export function parseCossImageUrl(url: string): CossImageRef | null {
  * `o` override. Non-coss URLs are skipped.
  */
 export function buildSharePayload(
-  title: string,
+  identity: ShareIdentity,
   urls: string[],
   n: number = DEFAULT_SHORT_HASH_LEN,
 ): SharePayload {
@@ -174,7 +186,13 @@ export function buildSharePayload(
     if (r.prefix !== p) o[String(i)] = r.prefix;
   });
 
-  const payload: SharePayload = { v: 1, t: title, p, n, h };
+  const payload: SharePayload = { v: 2, p, n, h };
+  const courseId = digitId(identity.courseId);
+  const liveId = digitId(identity.liveId);
+  const sessionId = courseId ? digitId(identity.sessionId) : undefined;
+  if (courseId) payload.c = courseId;
+  if (sessionId) payload.s = sessionId;
+  if (liveId) payload.l = liveId;
   if (Object.keys(o).length > 0) payload.o = o;
   return payload;
 }

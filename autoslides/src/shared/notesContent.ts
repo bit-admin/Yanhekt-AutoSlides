@@ -8,6 +8,7 @@
 import type { EditorJsContent, EditorJsBlock } from './notesTypes';
 import { EDITORJS_DOC_VERSION } from './notesTypes';
 import type { SlideMetadata } from './slideMetadataTypes';
+import type { SlideTimeline } from './sidecars/timeline';
 
 // A single managed metadata block (an Editor.js `code` block) lives at the end of
 // every AutoSlides-imported note. Its JSON is namespaced under this sentinel key
@@ -15,6 +16,8 @@ import type { SlideMetadata } from './slideMetadataTypes';
 //   - `slides`: the originating folder's metadata.json (identity + provenance +
 //     review), or null for notes with no local folder origin (share-link imports,
 //     manually created notes).
+//   - `timeline`: the originating folder's timeline.json (event log + resolutions),
+//     or null when the folder has no timeline (live/offline/web-capture).
 //   - `note`: cloud-note-side metadata that only exists once the note is on the
 //     server (display name, image count, import timestamp, share link).
 export const NOTE_METADATA_KEY = 'autoslides';
@@ -45,6 +48,8 @@ export interface NoteCloudMetadata {
 export interface NoteMetadata {
   v: number;
   slides: SlideMetadata | null;
+  /** Full timeline.json, or null when the source folder had none. */
+  timeline?: SlideTimeline | null;
   note: NoteCloudMetadata;
 }
 
@@ -93,6 +98,7 @@ function normalizeMeta(raw: Partial<NoteMetadata> | undefined): NoteMetadata {
   return {
     v: typeof raw?.v === 'number' ? raw.v : NOTE_METADATA_VERSION,
     slides: (raw?.slides ?? null) as SlideMetadata | null,
+    timeline: (raw?.timeline ?? null) as SlideTimeline | null,
     note: (raw?.note ?? {}) as NoteCloudMetadata,
   };
 }
@@ -130,7 +136,11 @@ export function buildNoteMetadataBlock(meta: NoteMetadata): EditorJsBlock {
  */
 export function upsertNoteMetadata(
   content: string,
-  patch: { slides?: SlideMetadata | null; note?: Partial<NoteCloudMetadata> },
+  patch: {
+    slides?: SlideMetadata | null;
+    timeline?: SlideTimeline | null;
+    note?: Partial<NoteCloudMetadata>;
+  },
 ): string {
   const doc = parseContent(content) ?? {
     time: Date.now(),
@@ -142,6 +152,7 @@ export function upsertNoteMetadata(
   const next: NoteMetadata = {
     v: NOTE_METADATA_VERSION,
     slides: patch.slides !== undefined ? patch.slides : (existing?.slides ?? null),
+    timeline: patch.timeline !== undefined ? patch.timeline : (existing?.timeline ?? null),
     note: { ...(existing?.note ?? {}), ...(patch.note ?? {}) },
   };
   const block = buildNoteMetadataBlock(next);

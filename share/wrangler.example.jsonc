@@ -21,10 +21,10 @@
   ],
 
   // D1 for the AutoSlides Index (v2). Create with:
-  //   wrangler d1 create autoslides-index
-  // then apply migrations with:  wrangler d1 migrations apply autoslides-index
+  //   wrangler d1 create autoslides-index-v2
+  // then apply migrations with:  wrangler d1 migrations apply autoslides-index-v2
   "d1_databases": [
-    { "binding": "INDEX_DB", "database_name": "autoslides-index", "database_id": "<YOUR_D1_DATABASE_ID>" }
+    { "binding": "INDEX_DB", "database_name": "autoslides-index-v2", "database_id": "<YOUR_D1_DATABASE_ID>" }
   ],
 
   // Cron: recompute the v2 homepage aggregates into KV (one KV write/run).

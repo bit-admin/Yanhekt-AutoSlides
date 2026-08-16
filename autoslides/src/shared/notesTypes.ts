@@ -7,7 +7,13 @@
  */
 
 import type { SlideMetadata } from './slideMetadataTypes';
-import { buildLectureIdSuffix, parseLectureIds, stripLectureIds, type LectureIdentity } from './lectureNaming';
+import {
+  formatLectureToken,
+  parseLectureIds,
+  parseLectureToken,
+  stripLectureIds,
+  type LectureIdentity,
+} from './lectureNaming';
 
 /** A single Editor.js content block. */
 export interface EditorJsBlock {
@@ -85,8 +91,10 @@ export interface ExportFolderInfo {
 
 /** Result of resolving a pasted share link into importable image URLs. */
 export interface ShareImportResult {
-  /** Note display title (course + session) carried in the share payload. */
+  /** Managed note title built from the payload's course/session/live ids. */
   title: string;
+  /** Identity recorded in the share payload (may be empty for untitled captures). */
+  identity?: LectureIdentity;
   /** Resolved public image URLs, in slide order (unresolvable ones dropped). */
   urls: string[];
   /** How many referenced images couldn't be resolved on the server. */
@@ -229,48 +237,80 @@ export function isAutoSlidesGroupName(name: string): boolean {
 }
 
 /**
- * Prefix marking a note as AutoSlides-managed. This prefix makes managed
- * slide-notes identifiable and title-searchable, and the full built title
- * doubles as the dedup key.
- *
- * The title also carries the lecture's id block, for the same reason folder
- * names do: course titles are not unique, so two distinct lectures would
- * otherwise produce the same title and collapse into one note. The list
- * endpoint returns titles but not content, so the id has to live in the title
- * for dedup to stay a single request. It is always stripped for display —
- * see managedNoteDisplayName.
+ * @deprecated Titles no longer use an `AS ·` prefix (id token is first). Kept so
+ * callers that still mention the constant compile; do not emit this on new notes.
  */
 export const MANAGED_NOTE_PREFIX = 'AS ·';
 
+const MANAGED_TOKEN_AT_START = /^(?:c\d+(?:s\d+|l\d+)?|l\d+)(?:\s*·|$)/;
+
 /**
- * Build a managed note title from a folder's human-readable display name plus
- * the lecture identity. Pass the identity wherever it is known; without it the
- * title degrades to the display name alone (web-capture/offline folders).
+ * Split a folder-style display name (`泛函分析_第1周_星期三_第2大节` or
+ * `Real Analysis - Lecture 11`) into course + session for the note title.
+ */
+export function splitNoteDisplayName(displayName: string): { course: string; session: string } {
+  const stripped = stripLectureIds(displayName.replace(/^AS ·\s*/, '')).trim();
+  const name = stripped.startsWith('slides_') ? stripped.slice('slides_'.length) : stripped;
+
+  const zh = name.match(/^(.+)_第(\d+)周_星期([一二三四五六日])_第(\d+)大节$/);
+  if (zh) {
+    return { course: zh[1].replace(/_/g, ' '), session: `第${zh[2]}周 星期${zh[3]} 第${zh[4]}大节` };
+  }
+  const en = name.match(/^(.+) - Lecture (\d+)$/);
+  if (en) return { course: en[1].trim(), session: `Lecture ${en[2]}` };
+
+  const parts = name.split(' · ').map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2 && /^(?:c\d+(?:s\d+|l\d+)?|l\d+)$/.test(parts[0])) {
+    return { course: parts[1] ?? '', session: parts.slice(2).join(' · ') };
+  }
+  if (parts.length >= 2) return { course: parts[0], session: parts.slice(1).join(' · ') };
+  return { course: name.replace(/_/g, ' '), session: '' };
+}
+
+/**
+ * Managed note title. Recorded: `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节`.
+ * Live: `c71736l761952 · <course> · <section>`. The leading token is the dedup
+ * key (list endpoint returns titles, not content). Missing identity degrades to
+ * the human parts only (web-capture / offline).
  */
 export function buildManagedNoteTitle(displayName: string, identity: LectureIdentity = {}): string {
-  return `${MANAGED_NOTE_PREFIX} ${displayName}${buildLectureIdSuffix(identity)}`;
+  const token = formatLectureToken(identity);
+  const { course, session } = splitNoteDisplayName(displayName);
+  const coursePart = token && course === token ? '' : course;
+  return [token, coursePart, session].filter(Boolean).join(' · ');
 }
 
-/** Whether a note title was produced by AutoSlides (carries the managed prefix). */
+/** Whether a note title was produced by AutoSlides (leading id token). */
 export function isManagedNoteTitle(title: string): boolean {
-  return title.startsWith(MANAGED_NOTE_PREFIX);
+  const trimmed = title.trim();
+  return MANAGED_TOKEN_AT_START.test(trimmed) || trimmed.startsWith(MANAGED_NOTE_PREFIX);
 }
 
 /**
- * Recover the folder display name from a managed note title — the inverse of
- * buildManagedNoteTitle. Strips the id block as well as the prefix, so this is
- * the only thing that should ever reach the UI. Non-managed titles are returned
- * unchanged (minus any id block). Used by the export flow to reconstruct the
- * `slides_<displayName>` output folder.
+ * Folder-stem inverse of `buildManagedNoteTitle` for export: underscores, no
+ * token. `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节` →
+ * `泛函分析_第1周_星期三_第2大节`.
  */
 export function managedNoteDisplayName(title: string): string {
-  const withoutPrefix = isManagedNoteTitle(title)
-    ? title.slice(MANAGED_NOTE_PREFIX.length).trim()
-    : title;
-  return stripLectureIds(withoutPrefix);
+  const trimmed = title.trim();
+  const token = parseLectureToken(trimmed);
+  let rest = trimmed;
+  if (token.courseId || token.liveId) {
+    rest = trimmed.replace(MANAGED_TOKEN_AT_START, '').replace(/^\s*·\s*/, '').trim();
+  } else if (trimmed.startsWith(MANAGED_NOTE_PREFIX)) {
+    rest = stripLectureIds(trimmed.slice(MANAGED_NOTE_PREFIX.length).trim());
+  } else {
+    rest = stripLectureIds(trimmed);
+  }
+  const { course, session } = splitNoteDisplayName(rest);
+  if (session.startsWith('Lecture ')) return session ? `${course} - ${session}` : course;
+  if (session) return `${course.replace(/\s+/g, '_')}_${session.replace(/\s+/g, '_')}`;
+  return course.replace(/\s+/g, '_');
 }
 
 /** The lecture identity embedded in a managed note title, if any. */
 export function managedNoteIdentity(title: string): LectureIdentity {
+  const fromToken = parseLectureToken(title);
+  if (fromToken.courseId || fromToken.liveId) return fromToken;
   return parseLectureIds(title);
 }

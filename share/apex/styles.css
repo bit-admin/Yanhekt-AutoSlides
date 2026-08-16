@@ -108,6 +108,23 @@ a { color: inherit; text-decoration: none; }
 .home--results .wordmark { font-size: 22px; margin-bottom: 16px; }
 
 .search-shell { width: 100%; max-width: 600px; }
+.semester-filter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.semester-filter__select {
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
 
 .search {
   display: flex;

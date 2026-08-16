@@ -14,6 +14,16 @@ const log = createLogger('SlideTimelineIpc');
 export function registerSlideTimelineIpcHandlers(services: IpcServices): void {
   const { slideTimelineService } = services;
 
+  ipcMain.handle('slideTimeline:write', async (_event, folderPath: string, timeline: import('@common/sidecars').SlideTimeline) => {
+    try {
+      await slideTimelineService.write(folderPath, timeline);
+      return { success: true };
+    } catch (error) {
+      log.error('Failed to write slide timeline:', error);
+      return { success: false };
+    }
+  });
+
   ipcMain.handle('slideTimeline:get', async (_event, folderPath: string) => {
     try {
       return await slideTimelineService.read(folderPath);

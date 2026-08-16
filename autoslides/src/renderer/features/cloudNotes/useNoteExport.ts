@@ -50,9 +50,9 @@ export function useNoteExport(cn: CloudNotesApi) {
     if (!detailRes.ok) { item.status = 'error'; item.error = detailRes.error; return }
 
     const urls = noteImageUrls(detailRes.data.content)
-    // Restore the folder's metadata.json from the note's managed metadata block
-    // (the `slides` group), if the note carried one.
-    const slidesMeta = readNoteMetadata(detailRes.data.content)?.slides ?? null
+    const noteMeta = readNoteMetadata(detailRes.data.content)
+    const slidesMeta = noteMeta?.slides ?? null
+    const timeline = noteMeta?.timeline ?? null
     item.total = urls.length
     if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
 
@@ -82,6 +82,9 @@ export function useNoteExport(cn: CloudNotesApi) {
     // pipeline with its original identity/provenance/review state.
     if (slidesMeta) {
       try { await window.electronAPI.slideMetadata.write(prep.data.dir, slidesMeta) } catch { /* best-effort */ }
+    }
+    if (timeline) {
+      try { await window.electronAPI.slideTimeline.write(prep.data.dir, timeline) } catch { /* best-effort */ }
     }
     item.status = 'done'
   }

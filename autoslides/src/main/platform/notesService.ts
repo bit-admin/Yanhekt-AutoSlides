@@ -32,7 +32,7 @@ import type {
   IndexLectureDetail,
   IndexRemovalResult,
 } from '@common/notesTypes';
-import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes';
+import { NOTE_GROUP_NAME_MAX, buildManagedNoteTitle } from '@common/notesTypes';
 import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink } from '@common/shareLink';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
@@ -511,7 +511,13 @@ export class NotesService {
 
     const resolved = await resolveShareImages(payload, (prefix) => this.listCossFolder(prefix));
     const urls = resolved.filter((r) => r.url !== null).map((r) => r.url as string);
-    return { title: payload.t, urls, missing: resolved.length - urls.length };
+    const identity = { courseId: payload.c, sessionId: payload.s, liveId: payload.l };
+    return {
+      title: buildManagedNoteTitle('', identity),
+      identity,
+      urls,
+      missing: resolved.length - urls.length,
+    };
   }
 
   /** Look up a short-link id's stored fragment via the public share Worker. */

@@ -139,6 +139,27 @@ export function buildLectureIdSuffix(identity: LectureIdentity): string {
   return `__${course ? `c${course}` : ''}${session ? `s${session}` : ''}${live ? `l${live}` : ''}`;
 }
 
+/** Leading id token for managed note titles / share payloads (no `__`). */
+export function formatLectureToken(identity: LectureIdentity): string {
+  const course = numericId(identity.courseId);
+  const live = numericId(identity.liveId);
+  const session = course ? numericId(identity.sessionId) : undefined;
+  if (course && session) return `c${course}s${session}`;
+  if (course && live) return `c${course}l${live}`;
+  if (course) return `c${course}`;
+  if (live) return `l${live}`;
+  return '';
+}
+
+const LECTURE_TOKEN_PATTERN = /^(?:c(\d+)(?:s(\d+)|l(\d+))?|l(\d+))/;
+
+export function parseLectureToken(text: string): ParsedLectureIds {
+  const match = text.trim().match(LECTURE_TOKEN_PATTERN);
+  if (!match) return {};
+  if (match[4]) return { liveId: match[4] };
+  return { courseId: match[1], sessionId: match[2], liveId: match[3] };
+}
+
 export function formatToolFolderName(name: string): string {
   const stripped = name.startsWith('slides_') ? name.slice(7) : name;
   return stripLectureIds(stripped);

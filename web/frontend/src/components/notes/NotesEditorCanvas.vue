@@ -334,7 +334,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import type { NoteGroup } from '../../lib/notes/notesTypes'
-import { managedNoteDisplayName } from '../../lib/notes/notesTypes'
+import { managedNoteDisplayName, managedNoteIdentity } from '../../lib/notes/notesTypes'
 import {
   NOTES_FONT_FALLBACKS,
   NOTES_FONT_SETS,
@@ -441,8 +441,7 @@ async function toggleShare(): Promise<void> {
     const content = await props.getContent()
     const urls = noteImageUrls(content)
     const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
-    const title = managedNoteDisplayName(props.title || t('cloudNotes.untitled'))
-    const payload = buildSharePayload(title, urls)
+    const payload = buildSharePayload(managedNoteIdentity(props.title || ''), urls)
     shareImageCount.value = cossCount
     shareLongUrl.value = cossCount > 0 ? buildShareUrl(payload) : ''
   } catch {

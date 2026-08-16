@@ -4,12 +4,12 @@ The public web viewer for AutoSlides cloud-note slides, deployed as a Cloudflare
 Worker with Static Assets. It renders a managed note's slides as a continuous,
 Notion-style document and offers Download-all (zip) and Save-as-PDF.
 
-A share link encodes, in its URL `#fragment`, the note title plus each slide
-image's `YYYY/M` prefix and a short md5 prefix. The viewer resolves the short
-hashes to full object keys by listing the public `coss.yanhekt.cn/images` bucket.
-The share-link codec is the single source of truth in
-`../autoslides/src/shared/shareLink.ts`, imported by both the app (encode) and
-this site (decode).
+A share link encodes, in its URL `#fragment`, course/session (or live) ids plus
+each slide image's `YYYY/M` prefix and a short md5 prefix. The viewer asks this
+Worker once for Yanhekt metadata (`GET /v1/api/meta`, or bundled on
+`GET /v1/api/get` for short links) and resolves image hashes by listing the
+public `coss.yanhekt.cn/images` bucket. The share-link codec is
+`../autoslides/src/shared/shareLink.ts`.
 
 ## Routing & Worker usage
 

@@ -87,6 +87,11 @@ export class SlideTimelineService {
     await next;
   }
 
+  /** Replace a folder's timeline.json (export reconstitution). */
+  async write(folderPath: string, timeline: SlideTimeline): Promise<void> {
+    await this.mutate(folderPath, () => timeline);
+  }
+
   /** Append a confirmed capture. Creates timeline.json if absent. */
   async recordCaptureConfirmed(
     folderPath: string,

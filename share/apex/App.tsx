@@ -61,7 +61,7 @@ interface Stats {
 const API = '/v2/api';
 
 function lectureUrl(l: Pick<Lecture, 'courseId' | 'sessionId'>): string {
-  return `/?l=${encodeURIComponent(l.courseId)}.${encodeURIComponent(l.sessionId)}`;
+  return `/?c=${encodeURIComponent(l.courseId)}&s=${encodeURIComponent(l.sessionId)}`;
 }
 
 function semesterLabel(semester?: string): string {
@@ -89,13 +89,13 @@ function termOptionLabel(l: Lecture): string {
   return [l.schoolYear, semesterLabel(l.semester)].filter(Boolean).join(' · ');
 }
 
-/** Resolve the lecture id from the URL (?l=<courseId>.<sessionId>), if present. */
+/** Resolve the lecture id from the URL (?c=&s=). */
 function readRoute(): { courseId: string; sessionId: string } | null {
-  const l = new URLSearchParams(window.location.search).get('l');
-  if (!l) return null;
-  const dot = l.indexOf('.');
-  if (dot < 0) return null;
-  return { courseId: l.slice(0, dot), sessionId: l.slice(dot + 1) };
+  const params = new URLSearchParams(window.location.search);
+  const courseId = params.get('c') ?? '';
+  const sessionId = params.get('s') ?? '';
+  if (!courseId || !sessionId) return null;
+  return { courseId, sessionId };
 }
 
 export function App() {
@@ -155,6 +155,8 @@ function Home({
   openSession: (sessions: Lecture[], lecture: Lecture) => void;
 }) {
   const [q, setQ] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '');
+  const [semesterId, setSemesterId] = useState(() => new URLSearchParams(window.location.search).get('semesterId') ?? '');
+  const [semesters, setSemesters] = useState<Array<{ id: number; label: string }>>([]);
   const [results, setResults] = useState<Lecture[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -170,16 +172,23 @@ function Home({
       .then((r) => r.json())
       .then((d) => setStats(d.stats ?? null))
       .catch(() => setStats(null));
+    fetch(`${API}/semesters`)
+      .then((r) => r.json())
+      .then((d) => setSemesters(Array.isArray(d.semesters) ? d.semesters : []))
+      .catch(() => setSemesters([]));
   }, []);
 
-  const runSearch = useCallback(async (term: string) => {
+  const runSearch = useCallback(async (term: string, sem = semesterId) => {
     setSearching(true);
     setCollegeFilter(null);
     setTermFilter(null);
     setInstructorFilter(null);
     setSelectedCourseId(null);
     try {
-      const r = await fetch(`${API}/search?q=${encodeURIComponent(term)}`);
+      const params = new URLSearchParams();
+      if (term.trim()) params.set('q', term.trim());
+      if (sem) params.set('semesterId', sem);
+      const r = await fetch(`${API}/search?${params}`);
       const d = await r.json();
       setResults(Array.isArray(d.results) ? d.results : []);
     } catch {
@@ -187,7 +196,7 @@ function Home({
     } finally {
       setSearching(false);
     }
-  }, []);
+  }, [semesterId]);
 
   // Honor a ?q=<term> URL param on load (e.g. the desktop app deep-links here to
   // pre-search a course name). runSearch is a stable useCallback.
@@ -343,7 +352,7 @@ function Home({
               <SearchIcon className="search-icon" />
               <input
                 className="search-input"
-                placeholder="Search by course, session, instructor, or college…"
+                placeholder="Search courses on Yanhekt…"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 autoFocus
@@ -352,6 +361,23 @@ function Home({
                 {searching ? <SpinnerIcon /> : <SearchIcon />}
               </button>
             </div>
+            {semesters.length > 0 && (
+              <label className="semester-filter">
+                <span className="semester-filter__label">Semester</span>
+                <select
+                  className="semester-filter__select"
+                  value={semesterId}
+                  onChange={(e) => setSemesterId(e.target.value)}
+                >
+                  <option value="">All semesters</option>
+                  {semesters.map((s) => (
+                    <option key={s.id} value={String(s.id)}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </form>
         )}
 

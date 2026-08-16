@@ -16,7 +16,7 @@
 
 import { computed, ref, watch } from 'vue'
 import { SHARE_ORIGIN } from '@common/shareLink'
-import { formatLectureDisplayName, parseSessionInfo } from '@common/lectureNaming'
+import { splitNoteDisplayName } from '@common/notesTypes'
 import { overrides } from '@shared/overrideRegistry'
 import type {
   IndexLecture,
@@ -72,13 +72,7 @@ const SEARCH_DEBOUNCE_MS = 400
  * pasted link, where we have no lecture context to read the titles from.
  */
 export function parseShareTitle(raw: string): { course: string; session: string } {
-  const info = parseSessionInfo(raw)
-  if (info) {
-    const zh = formatLectureDisplayName(raw).match(/_第(\d+)周_星期([一二三四五六日])_第(\d+)大节$/)
-    if (zh) return { course: info.courseName, session: `第${zh[1]}周 · 星期${zh[2]} · 第${zh[3]}大节` }
-    return { course: info.courseName, session: `Lecture ${info.session}` }
-  }
-  return { course: formatLectureDisplayName(raw).replace(/_/g, ' '), session: '' }
+  return splitNoteDisplayName(raw)
 }
 
 export function useCloudIndexBrowse() {
