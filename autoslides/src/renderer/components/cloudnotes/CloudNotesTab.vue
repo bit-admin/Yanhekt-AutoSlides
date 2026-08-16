@@ -1463,16 +1463,10 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
   gap: 2px;
 }
 
-/* Note row — wraps the item button + hover-reveal delete (matches .cn-group-item-row) */
-.cn-note-item-row {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
+/* Standalone note / index file item — full width, no flex-grow */
 .cn-note-item {
-  flex: 1 1 0%;
-  min-width: 0;
+  flex: 0 0 auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1481,10 +1475,24 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
   border: none;
   border-radius: 6px;
   padding: 8px 10px;
-  padding-right: 28px;
   cursor: pointer;
   box-sizing: border-box;
   transition: all 0.15s;
+}
+
+/* Note row — wraps the item button + hover-reveal delete (matches .cn-group-item-row) */
+.cn-note-item-row {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.cn-note-item-row .cn-note-item {
+  flex: 1 1 0%;
+  width: auto;
+  min-width: 0;
+  /* Reserve room so text never sits under the action button */
+  padding-right: 28px;
 }
 
 .cn-note-item:hover {
