@@ -442,11 +442,8 @@ a { color: inherit; text-decoration: none; }
 .version-list { display: flex; flex-direction: column; }
 .version {
   display: flex;
-  /* flex-end (not center): every child's bottom edge lands on the same line
-     regardless of its own height, so the per-child hover borders line up flat
-     instead of stair-stepping between the text rows and the taller icon. */
-  align-items: flex-end;
-  padding: 12px 2px;
+  align-items: center;
+  padding: 10px 2px;
   border-bottom: 1px solid var(--border-color);
   color: inherit;
   font-size: 14px;
@@ -462,8 +459,11 @@ a { color: inherit; text-decoration: none; }
 .version-timeline,
 .version-verified {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  box-sizing: border-box;
   border-bottom: 1px solid transparent;
-  padding-bottom: 2px;
 }
 .version:hover .version-ord,
 .version:hover .version-date,
@@ -482,11 +482,26 @@ a { color: inherit; text-decoration: none; }
   padding-right: 10px;
   color: var(--verified-reviewed);
   font-size: 13px;
+  font-weight: 500;
   white-space: nowrap;
 }
-.version-verified { color: var(--verified-color); }
+.version-timeline-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--verified-reviewed);
+}
+.version-verified {
+  display: inline-flex;
+  align-items: center;
+  color: var(--verified-color);
+}
 .version-verified--reviewed { color: var(--verified-reviewed); }
 .version-verified--edited { color: var(--verified-color); }
+.version-verified svg,
+.version-timeline-icon svg {
+  display: block;
+  flex: none;
+}
 
 /* Course view: master–detail. Left = session list; right = the selected session's files. */
 .course-split { display: flex; gap: 28px; align-items: flex-start; }

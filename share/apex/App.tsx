@@ -579,7 +579,7 @@ function FilePanel({
               {v.hasTimeline && (
                 <span className="version-timeline" title="Has timeline">
                   Timeline
-                  <VerifiedIcon className="version-verified version-verified--reviewed" label="Has timeline" />
+                  <VerifiedIcon className="version-timeline-icon" label="Has timeline" />
                 </span>
               )}
               {v.reviewed && (
@@ -986,28 +986,30 @@ function FlagIcon() {
 
 function VerifiedIcon({ className = 'version-verified', label = 'Human reviewed' }: { className?: string; label?: string }) {
   return (
-    <svg className={className} width="16" height="16" viewBox="0 0 24 24" aria-label={label}>
-      {/* Scalloped badge (a ring of overlapping circles), not a plain circle. */}
-      <g fill="currentColor">
-        <circle cx="20.2" cy="12" r="3.3" />
-        <circle cx="17.8" cy="17.8" r="3.3" />
-        <circle cx="12" cy="20.2" r="3.3" />
-        <circle cx="6.2" cy="17.8" r="3.3" />
-        <circle cx="3.8" cy="12" r="3.3" />
-        <circle cx="6.2" cy="6.2" r="3.3" />
-        <circle cx="12" cy="3.8" r="3.3" />
-        <circle cx="17.8" cy="6.2" r="3.3" />
-        <circle cx="12" cy="12" r="7.2" />
-      </g>
-      <path
-        d="M7.9 12.4 10.5 15 16.3 9"
-        stroke="#fff"
-        strokeWidth="2.3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
+    <span className={className} title={label}>
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-label={label}>
+        {/* Scalloped badge (a ring of overlapping circles), not a plain circle. */}
+        <g fill="currentColor">
+          <circle cx="20.2" cy="12" r="3.3" />
+          <circle cx="17.8" cy="17.8" r="3.3" />
+          <circle cx="12" cy="20.2" r="3.3" />
+          <circle cx="6.2" cy="17.8" r="3.3" />
+          <circle cx="3.8" cy="12" r="3.3" />
+          <circle cx="6.2" cy="6.2" r="3.3" />
+          <circle cx="12" cy="3.8" r="3.3" />
+          <circle cx="17.8" cy="6.2" r="3.3" />
+          <circle cx="12" cy="12" r="7.2" />
+        </g>
+        <path
+          d="M7.9 12.4 10.5 15 16.3 9"
+          stroke="#fff"
+          strokeWidth="2.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    </span>
   );
 }
 
