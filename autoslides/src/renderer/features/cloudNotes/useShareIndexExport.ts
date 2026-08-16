@@ -3,6 +3,7 @@ import { shareImportDisplayName } from '@common/notesTypes'
 import type { ShareImportResult } from '@common/notesTypes'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 import type { LectureIdentity } from '@common/lectureNaming'
+import type { SlideTimeline } from '@common/sidecars'
 
 export type ShareExportStatus = 'pending' | 'downloading' | 'done' | 'conflict' | 'error'
 
@@ -24,6 +25,8 @@ export interface ShareExportItem {
   folderName?: string
   /** Slide metadata from AutoSlides Index, written as metadata.json (null if un-indexed). */
   metadata?: SlideMetadata | null
+  /** Reconstructed timeline.json from a v3 share payload. */
+  timeline?: SlideTimeline | null
   error?: string
 }
 
@@ -98,6 +101,11 @@ export function useShareIndexExport() {
     if (row.metadata) {
       try { await window.electronAPI.slideMetadata.write(prep.data.dir, row.metadata) } catch { /* best-effort */ }
     }
+    if (row.timeline) {
+      try {
+        await window.electronAPI.slideTimeline.write(prep.data.dir, JSON.parse(JSON.stringify(row.timeline)))
+      } catch { /* best-effort */ }
+    }
     row.status = 'done'
   }
 
@@ -124,6 +132,7 @@ export function useShareIndexExport() {
         downloaded: 0,
         total: result.urls.length,
         metadata: result.metadata ?? null,
+        timeline: result.timeline ?? null,
       }
       item.value = row
 

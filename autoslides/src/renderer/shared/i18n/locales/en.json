@@ -43,6 +43,10 @@
     "sharedVia": "shared via AutoSlides",
     "edited": "Edited",
     "reviewed": "Human reviewed",
+    "timeline": "Timeline",
+    "hasTimeline": "Has timeline",
+    "importToASnote": "Import to ASnote",
+    "exportToLocal": "Export to local",
     "loadingFiles": "Loading…",
     "noFilesIndexed": "No files indexed.",
     "requestRemoval": "Request removal",
@@ -191,7 +195,10 @@
       "autoRepublishDescription": "Applies to auto resync only, not to manual imports.",
       "watchSyncTitle": "Watch-mode notes",
       "watchSyncDescription": "When you watch a live stream or a recorded session and start slide extraction, AutoSlides creates a personal note in the ASuser group and appends each captured slide. Edit it live from the right-panel Notes tab.",
-      "watchSyncEnable": "Auto sync slide capture from live streams and recorded sessions in watch mode"
+      "watchSyncEnable": "Auto sync slide capture from live streams and recorded sessions in watch mode",
+      "shareTimelineTitle": "Share timeline",
+      "shareTimelineDescription": "Include slide appearance times in share links so a player can sync the slide strip with the lecture video.",
+      "shareTimelineEnable": "Embed slide timeline when sharing"
     },
     "authentication": "Authentication",
     "appearance": "Appearance",

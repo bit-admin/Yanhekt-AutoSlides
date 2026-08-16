@@ -4,8 +4,13 @@ import { safeName, triggerDownload, urlExt } from './files';
 /**
  * Fetch every resolved image and bundle them into a zip of ordered
  * `Slide_NNN.<ext>` files. Unresolved images are skipped.
+ * When `timelineJson` is set, also writes `timeline.json` next to the slides.
  */
-export async function downloadAllZip(urls: (string | null)[], title: string): Promise<void> {
+export async function downloadAllZip(
+  urls: (string | null)[],
+  title: string,
+  timelineJson?: string | null,
+): Promise<void> {
   const present = urls.filter((u): u is string => !!u);
   if (present.length === 0) return;
 
@@ -20,6 +25,7 @@ export async function downloadAllZip(urls: (string | null)[], title: string): Pr
     const blob = await res.blob();
     zip.file(`Slide_${String(n).padStart(width, '0')}.${urlExt(url)}`, blob);
   }
+  if (timelineJson) zip.file('timeline.json', timelineJson);
 
   const out = await zip.generateAsync({ type: 'blob' });
   triggerDownload(out, `${safeName(title)}.zip`);

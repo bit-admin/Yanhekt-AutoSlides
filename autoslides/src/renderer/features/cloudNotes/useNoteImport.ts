@@ -44,6 +44,8 @@ export interface ImportItem {
   shareUrl?: string
   /** AutoSlides Index lecture URL, if the share was indexed (share imports only). */
   indexUrl?: string
+  /** Reconstructed timeline from a v3 share payload (share imports only). */
+  timeline?: SlideTimeline | null
   /** Note created for this row (on success). */
   noteId?: number
   /** Existing managed note(s) with the same title (on conflict). */
@@ -234,7 +236,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       buildContent(item.displayName, urls, item.metadata ?? null, {
         shareUrl: item.shareUrl,
         indexUrl: item.indexUrl,
-      }),
+      }, item.timeline ?? null),
     )
     if (!contentRes.ok) { item.status = 'error'; item.error = contentRes.error; return }
     item.status = 'done'
@@ -296,6 +298,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       item.urls = urls
       item.total = urls.length
       item.missing = missing
+      item.timeline = res.data.timeline ?? null
       if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
 
       const ids = sameLectureNoteIds(item)

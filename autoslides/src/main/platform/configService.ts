@@ -186,6 +186,7 @@ export class ConfigService {
       cloudAutoResyncMode: this.store.get('cloudAutoResyncMode') ?? 'disabled',
       cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
       cloudWatchSyncEnabled: this.store.get('cloudWatchSyncEnabled') ?? false,
+      cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
       localRelayPort: this.store.get('localRelayPort') ?? 8787,
@@ -234,6 +235,10 @@ export class ConfigService {
 
   setCloudWatchSyncEnabled(enabled: boolean): void {
     this.store.set('cloudWatchSyncEnabled', enabled);
+  }
+
+  setCloudShareEmbedTimeline(enabled: boolean): void {
+    this.store.set('cloudShareEmbedTimeline', enabled);
   }
 
   getPreferAnonymousApiRequests(): boolean {

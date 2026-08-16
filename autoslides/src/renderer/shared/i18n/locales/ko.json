@@ -43,6 +43,10 @@
     "sharedVia": "AutoSlides로 공유됨",
     "edited": "편집됨",
     "reviewed": "사람이 검토함",
+    "timeline": "타임라인",
+    "hasTimeline": "타임라인 있음",
+    "importToASnote": "ASnote로 가져오기",
+    "exportToLocal": "로컬로 보내기",
     "loadingFiles": "불러오는 중…",
     "noFilesIndexed": "색인된 파일이 없습니다.",
     "requestRemoval": "삭제 요청",
@@ -191,7 +195,10 @@
       "autoRepublishDescription": "자동 재동기화에만 적용되며 수동 가져오기에는 적용되지 않습니다.",
       "watchSyncTitle": "시청 모드 노트",
       "watchSyncDescription": "라이브 스트림이나 녹화 세션을 시청하며 슬라이드 추출을 시작하면 AutoSlides가 ASuser 그룹에 개인 노트를 만들고 캡처한 슬라이드를 추가합니다. 오른쪽 패널의 '노트' 탭에서 실시간으로 편집할 수 있습니다.",
-      "watchSyncEnable": "라이브 스트림 및 녹화 세션 시청 중 캡처한 슬라이드 자동 동기화"
+      "watchSyncEnable": "라이브 스트림 및 녹화 세션 시청 중 캡처한 슬라이드 자동 동기화",
+      "shareTimelineTitle": "타임라인 공유",
+      "shareTimelineDescription": "공유 링크에 슬라이드 등장 시각을 넣어 플레이어가 슬라이드 바와 강의 영상을 동기화할 수 있게 합니다.",
+      "shareTimelineEnable": "공유할 때 슬라이드 타임라인 포함"
     },
     "authentication": "인증",
     "appearance": "외관",

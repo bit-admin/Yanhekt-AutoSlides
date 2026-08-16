@@ -32,6 +32,7 @@ interface Version {
   imageCount?: number;
   reviewed: boolean;
   edited: boolean;
+  hasTimeline?: boolean;
   createdAt?: string;
 }
 
@@ -575,8 +576,18 @@ function FilePanel({
               <span className="version-ord">Slides #{i + 1}</span>
               {v.createdAt && <span className="version-date">{new Date(v.createdAt).toLocaleDateString()}</span>}
               <span className="version-count">{v.imageCount ?? '?'} slides</span>
-              {v.edited && <span className="version-edited">Edited</span>}
-              {v.reviewed && <VerifiedIcon />}
+              {v.hasTimeline && (
+                <span className="version-timeline" title="Has timeline">
+                  Timeline
+                  <VerifiedIcon className="version-verified version-verified--reviewed" label="Has timeline" />
+                </span>
+              )}
+              {v.reviewed && (
+                <VerifiedIcon
+                  className={`version-verified ${v.edited ? 'version-verified--edited' : 'version-verified--reviewed'}`}
+                  label={v.edited ? 'Edited' : 'Human reviewed'}
+                />
+              )}
             </a>
           ))}
         </div>
@@ -973,9 +984,9 @@ function FlagIcon() {
   );
 }
 
-function VerifiedIcon() {
+function VerifiedIcon({ className = 'version-verified', label = 'Human reviewed' }: { className?: string; label?: string }) {
   return (
-    <svg className="version-verified" width="16" height="16" viewBox="0 0 24 24" aria-label="Human reviewed">
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" aria-label={label}>
       {/* Scalloped badge (a ring of overlapping circles), not a plain circle. */}
       <g fill="currentColor">
         <circle cx="20.2" cy="12" r="3.3" />

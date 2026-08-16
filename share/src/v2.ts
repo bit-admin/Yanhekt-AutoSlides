@@ -10,7 +10,7 @@
  * Search/lecture GETs are Cache-API wrapped.
  */
 
-import { decodeSharePayload, type SharePayload } from '../../autoslides/src/shared/shareLink';
+import { decodeSharePayload, payloadHasTimeline, type SharePayload } from '../../autoslides/src/shared/shareLink';
 import {
   cached,
   ensureShortLink,
@@ -155,6 +155,7 @@ async function handlePublish(req: Request, env: Env, origin: string): Promise<Re
   const fingerprint = await fingerprintPayload(payload);
   const shareId = await ensureShortLink(env, body.fragment);
   const indexUrl = indexUrlFor(origin, courseId, sessionId);
+  const hasTimeline = payloadHasTimeline(payload) ? 1 : 0;
   const db = env.INDEX_DB;
 
   const existing = await db
@@ -162,7 +163,18 @@ async function handlePublish(req: Request, env: Env, origin: string): Promise<Re
     .bind(fingerprint)
     .first<{ share_id: string }>();
   if (existing) {
-    return json({ ok: true, duplicate: true, shareId, indexUrl });
+    // Same image identity: refresh the fragment, timeline flag, and publisher.
+    // created_at and lectures.version_count stay put.
+    await db
+      .prepare(
+        `UPDATE versions
+            SET share_id = ?, has_timeline = ?, uploader_id = ?, uploader_name = ?,
+                reviewed = ?, edited = ?
+          WHERE fingerprint = ?`,
+      )
+      .bind(shareId, hasTimeline, user.id, user.name, reviewed, edited, fingerprint)
+      .run();
+    return json({ ok: true, duplicate: true, updated: true, shareId, indexUrl });
   }
 
   const now = new Date().toISOString();
@@ -170,8 +182,8 @@ async function handlePublish(req: Request, env: Env, origin: string): Promise<Re
     .prepare(
       `INSERT INTO versions
          (fingerprint, course_id, session_id, share_id, image_count,
-          reviewed, edited, uploader_id, uploader_name, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          reviewed, edited, has_timeline, uploader_id, uploader_name, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       fingerprint,
@@ -181,6 +193,7 @@ async function handlePublish(req: Request, env: Env, origin: string): Promise<Re
       imageCountOf(payload),
       reviewed,
       edited,
+      hasTimeline,
       user.id,
       user.name,
       now,
@@ -337,7 +350,7 @@ async function handleLecture(req: Request, env: Env, url: URL, ctx: ExecutionCon
     if (!lecture) return json({ error: 'not-found' }, 404);
     const versions = await db
       .prepare(
-        `SELECT share_id, image_count, reviewed, edited, created_at
+        `SELECT share_id, image_count, reviewed, edited, has_timeline, created_at
          FROM versions WHERE course_id = ? AND session_id = ?
          ORDER BY created_at ASC`,
       )
@@ -355,6 +368,7 @@ async function handleLecture(req: Request, env: Env, url: URL, ctx: ExecutionCon
         imageCount: v.image_count,
         reviewed: !!v.reviewed,
         edited: !!v.edited,
+        hasTimeline: !!v.has_timeline,
         createdAt: v.created_at,
       })),
     });

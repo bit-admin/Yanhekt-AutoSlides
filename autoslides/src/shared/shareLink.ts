@@ -26,10 +26,11 @@ export const DEFAULT_SHORT_HASH_LEN = 7;
  *
  * v2 drops the human title (`t`) — course/session names are resolved from
  * Yanhekt via the share Worker using `c` + `s` (or `l` for a live broadcast).
+ * v3 is v2 plus an optional compact slide timeline (`t` as a delta-string).
  */
 export interface SharePayload {
-  /** Schema version. */
-  v: 2;
+  /** Schema version. v3 carries `t`; v2 is images + ids only. */
+  v: 2 | 3;
   /** Course id (digits). */
   c?: string;
   /** Session id (digits). Recorded lectures. */
@@ -44,6 +45,57 @@ export interface SharePayload {
   h: string;
   /** Sparse override: slide index (as string) → prefix, when it differs from `p`. */
   o?: Record<string, string>;
+  /**
+   * v3 only. Compact chapter list: `idx:delta,idx:delta,…` where `idx` is the
+   * 0-based image index in `h` and `delta` is integer seconds since the previous
+   * cue (first delta is the absolute start). Reappearances reuse `idx`.
+   */
+  t?: string;
+}
+
+/** One coalesced chapter: [slideIndex, startTimeSeconds]. */
+export type ShareTimelineCue = [number, number];
+
+/**
+ * Encode coalesced (slideIndex, startSeconds) cues as a delta-string.
+ * Times are rounded to integer seconds; deltas are non-negative.
+ */
+export function encodeShareTimeline(cues: ReadonlyArray<readonly [number, number]>): string {
+  let prev = 0;
+  const parts: string[] = [];
+  for (const [idx, start] of cues) {
+    if (!Number.isFinite(idx) || idx < 0 || !Number.isInteger(idx)) continue;
+    const abs = Math.round(start);
+    if (!Number.isFinite(abs) || abs < prev) continue;
+    parts.push(`${idx}:${abs - prev}`);
+    prev = abs;
+  }
+  return parts.join(',');
+}
+
+/**
+ * Decode a delta-string back to absolute [slideIndex, startSeconds] cues.
+ * Returns null when the string is empty or malformed.
+ */
+export function decodeShareTimeline(t: string): ShareTimelineCue[] | null {
+  if (typeof t !== 'string' || t.length === 0) return null;
+  const parts = t.split(',');
+  const out: ShareTimelineCue[] = [];
+  let abs = 0;
+  for (const part of parts) {
+    const m = /^(\d+):(\d+)$/.exec(part);
+    if (!m) return null;
+    const idx = Number(m[1]);
+    const delta = Number(m[2]);
+    abs += delta;
+    out.push([idx, abs]);
+  }
+  return out.length > 0 ? out : null;
+}
+
+/** True when the payload carries a usable v3 timeline. */
+export function payloadHasTimeline(payload: SharePayload): boolean {
+  return payload.v === 3 && typeof payload.t === 'string' && payload.t.length > 0;
 }
 
 /** Ids recorded in a share payload. Kept local so this file stays dependency-free. */
@@ -112,7 +164,7 @@ export function decodeSharePayload(fragment: string): SharePayload | null {
     const obj = JSON.parse(json) as Partial<SharePayload>;
     if (
       !obj ||
-      obj.v !== 2 ||
+      (obj.v !== 2 && obj.v !== 3) ||
       typeof obj.p !== 'string' ||
       typeof obj.n !== 'number' ||
       typeof obj.h !== 'string'
@@ -125,7 +177,23 @@ export function decodeSharePayload(fragment: string): SharePayload | null {
     if (obj.c !== undefined && !c) return null;
     if (obj.s !== undefined && !s) return null;
     if (obj.l !== undefined && !l) return null;
-    return { ...obj, c, s, l } as SharePayload;
+
+    const count = obj.n > 0 ? Math.floor(obj.h.length / obj.n) : 0;
+    let t: string | undefined;
+    if (obj.v === 3) {
+      if (typeof obj.t !== 'string') return null;
+      const cues = decodeShareTimeline(obj.t);
+      if (!cues || cues.some(([idx]) => idx >= count)) return null;
+      t = obj.t;
+    }
+
+    const payload: SharePayload = { v: obj.v, p: obj.p, n: obj.n, h: obj.h };
+    if (c) payload.c = c;
+    if (s) payload.s = s;
+    if (l) payload.l = l;
+    if (obj.o && typeof obj.o === 'object') payload.o = obj.o;
+    if (t) payload.t = t;
+    return payload;
   } catch {
     return null;
   }
@@ -190,6 +258,7 @@ export function buildSharePayload(
   identity: ShareIdentity,
   urls: string[],
   n: number = DEFAULT_SHORT_HASH_LEN,
+  opts?: { t?: string },
 ): SharePayload {
   const refs = urls
     .map(parseCossImageUrl)
@@ -221,6 +290,15 @@ export function buildSharePayload(
   if (sessionId) payload.s = sessionId;
   if (liveId) payload.l = liveId;
   if (Object.keys(o).length > 0) payload.o = o;
+
+  const delta = opts?.t;
+  if (delta) {
+    const cues = decodeShareTimeline(delta);
+    if (cues && cues.length > 0 && cues.every(([idx]) => idx < refs.length)) {
+      payload.v = 3;
+      payload.t = delta;
+    }
+  }
   return payload;
 }
 

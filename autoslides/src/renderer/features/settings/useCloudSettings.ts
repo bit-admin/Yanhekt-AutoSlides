@@ -22,6 +22,8 @@ export function useCloudSettings() {
   const tempCloudAutoRepublishAfterResync = ref(false)
   const cloudWatchSyncEnabled = ref(false)
   const tempCloudWatchSyncEnabled = ref(false)
+  const cloudShareEmbedTimeline = ref(true)
+  const tempCloudShareEmbedTimeline = ref(true)
 
   const load = async () => {
     const cfg = await window.electronAPI.config.get()
@@ -30,6 +32,7 @@ export function useCloudSettings() {
     cloudAutoResyncMode.value = cfg.cloudAutoResyncMode ?? 'disabled'
     cloudAutoRepublishAfterResync.value = cfg.cloudAutoRepublishAfterResync ?? false
     cloudWatchSyncEnabled.value = cfg.cloudWatchSyncEnabled ?? false
+    cloudShareEmbedTimeline.value = cfg.cloudShareEmbedTimeline !== false
     resetTemp()
   }
 
@@ -39,6 +42,7 @@ export function useCloudSettings() {
     tempCloudAutoResyncMode.value = cloudAutoResyncMode.value
     tempCloudAutoRepublishAfterResync.value = cloudAutoRepublishAfterResync.value
     tempCloudWatchSyncEnabled.value = cloudWatchSyncEnabled.value
+    tempCloudShareEmbedTimeline.value = cloudShareEmbedTimeline.value
   }
 
   const save = async () => {
@@ -62,6 +66,10 @@ export function useCloudSettings() {
       await window.electronAPI.config.setCloudWatchSyncEnabled(tempCloudWatchSyncEnabled.value)
       cloudWatchSyncEnabled.value = tempCloudWatchSyncEnabled.value
     }
+    if (tempCloudShareEmbedTimeline.value !== cloudShareEmbedTimeline.value) {
+      await window.electronAPI.config.setCloudShareEmbedTimeline(tempCloudShareEmbedTimeline.value)
+      cloudShareEmbedTimeline.value = tempCloudShareEmbedTimeline.value
+    }
   }
 
   return {
@@ -70,6 +78,7 @@ export function useCloudSettings() {
     tempCloudAutoResyncMode,
     tempCloudAutoRepublishAfterResync,
     tempCloudWatchSyncEnabled,
+    tempCloudShareEmbedTimeline,
     load,
     resetTemp,
     save,

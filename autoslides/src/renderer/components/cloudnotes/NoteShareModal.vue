@@ -86,7 +86,9 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { buildSharePayload, buildShareUrl, encodeSharePayload, parseCossImageUrl } from '@common/shareLink'
+import { shareTimelineDeltaFromNote } from '@common/shareTimeline'
 import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata } from '@common/notesContent'
+import { configStore } from '@shared/services/configStore'
 import { managedNoteIdentity } from '@common/notesTypes'
 import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 import type { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
@@ -134,7 +136,10 @@ async function open(): Promise<void> {
   const content = await props.getContent()
   const urls = noteImageUrls(content)
   const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
-  const payload = buildSharePayload(managedNoteIdentity(note.title), urls)
+  const metaForShare = readNoteMetadata(content)
+  const embed = configStore.cloudShareEmbedTimeline !== false
+  const t = embed ? shareTimelineDeltaFromNote(metaForShare?.timeline ?? null, urls.length) : undefined
+  const payload = buildSharePayload(managedNoteIdentity(note.title), urls, undefined, t ? { t } : undefined)
   shareMode.value = isASnoteGroup(note.note_group_id) ? 'full' : 'link-only'
   shareFragment.value = encodeSharePayload(payload)
   shareLongUrl.value = buildShareUrl(payload)
@@ -145,7 +150,7 @@ async function open(): Promise<void> {
   shareCopied.value = null
   // Index publish state: identity + review come from the embedded slides metadata.
   if (shareMode.value === 'full') {
-    const meta = readNoteMetadata(content)
+    const meta = metaForShare
     shareIndexUrl.value = meta?.note.indexUrl ?? null
     shareIndexSource.value = meta?.slides?.source ?? null
     const rev = meta?.slides?.review

@@ -201,6 +201,7 @@ export const defaultConfig: AppConfig = {
   cloudAutoResyncMode: 'disabled',
   cloudAutoRepublishAfterResync: false,
   cloudWatchSyncEnabled: false,
+  cloudShareEmbedTimeline: true,
   preferAnonymousApiRequests: false,
   localRelayEnabled: false,
   localRelayPort: 8787,

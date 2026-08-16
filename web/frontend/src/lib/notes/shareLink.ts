@@ -15,7 +15,7 @@ export const SHARE_PATH = '/v1';
 export const DEFAULT_SHORT_HASH_LEN = 7;
 
 export interface SharePayload {
-  v: 2;
+  v: 2 | 3;
   c?: string;
   s?: string;
   l?: string;
@@ -23,6 +23,86 @@ export interface SharePayload {
   n: number;
   h: string;
   o?: Record<string, string>;
+  /** v3 only. `idx:delta,idx:delta,…` (integer seconds). */
+  t?: string;
+}
+
+export type ShareTimelineCue = [number, number];
+
+export function encodeShareTimeline(cues: ReadonlyArray<readonly [number, number]>): string {
+  let prev = 0;
+  const parts: string[] = [];
+  for (const [idx, start] of cues) {
+    if (!Number.isFinite(idx) || idx < 0 || !Number.isInteger(idx)) continue;
+    const abs = Math.round(start);
+    if (!Number.isFinite(abs) || abs < prev) continue;
+    parts.push(`${idx}:${abs - prev}`);
+    prev = abs;
+  }
+  return parts.join(',');
+}
+
+export function decodeShareTimeline(t: string): ShareTimelineCue[] | null {
+  if (typeof t !== 'string' || t.length === 0) return null;
+  const parts = t.split(',');
+  const out: ShareTimelineCue[] = [];
+  let abs = 0;
+  for (const part of parts) {
+    const m = /^(\d+):(\d+)$/.exec(part);
+    if (!m) return null;
+    const idx = Number(m[1]);
+    const delta = Number(m[2]);
+    abs += delta;
+    out.push([idx, abs]);
+  }
+  return out.length > 0 ? out : null;
+}
+
+export function payloadHasTimeline(payload: SharePayload): boolean {
+  return payload.v === 3 && typeof payload.t === 'string' && payload.t.length > 0;
+}
+
+/**
+ * Duck-typed encode from a note's embedded timeline.json (web has no sidecar
+ * module). Indices follow first appearance of each resolved file, which matches
+ * share image order for AutoSlides-managed notes.
+ */
+export function timelineDeltaFromUnknown(raw: unknown): string | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const events = (raw as { events?: unknown }).events;
+  const resolutions = (raw as { resolutions?: unknown }).resolutions;
+  if (!Array.isArray(events) || !resolutions || typeof resolutions !== 'object') return undefined;
+
+  const sorted = [...events]
+    .filter((e): e is { id?: unknown; changeAt?: unknown; initialFile?: unknown } => !!e && typeof e === 'object')
+    .sort((a, b) => Number(a.changeAt) - Number(b.changeAt));
+
+  const fileOf = (event: { id?: unknown; initialFile?: unknown }): string | null => {
+    const id = typeof event.id === 'string' ? event.id : '';
+    const res = (resolutions as Record<string, { state?: unknown; file?: unknown; duplicateOf?: unknown }>)[id];
+    if (!res) return typeof event.initialFile === 'string' ? event.initialFile : null;
+    if (res.state === 'canonical' && typeof res.file === 'string') return res.file;
+    if (res.state === 'duplicate' && typeof res.duplicateOf === 'string') return res.duplicateOf;
+    return null;
+  };
+
+  const indexOf = new Map<string, number>();
+  const pairs: Array<[number, number]> = [];
+  let last: string | null = null;
+  for (const event of sorted) {
+    const file = fileOf(event);
+    if (!file) {
+      last = null;
+      continue;
+    }
+    if (file === last) continue;
+    last = file;
+    if (!indexOf.has(file)) indexOf.set(file, indexOf.size);
+    const start = Math.round(Number(event.changeAt));
+    if (!Number.isFinite(start)) continue;
+    pairs.push([indexOf.get(file)!, start]);
+  }
+  return pairs.length > 0 ? encodeShareTimeline(pairs) : undefined;
 }
 
 export interface ShareIdentity {
@@ -85,7 +165,7 @@ export function decodeSharePayload(fragment: string): SharePayload | null {
     const obj = JSON.parse(json) as Partial<SharePayload>;
     if (
       !obj ||
-      obj.v !== 2 ||
+      (obj.v !== 2 && obj.v !== 3) ||
       typeof obj.p !== 'string' ||
       typeof obj.n !== 'number' ||
       typeof obj.h !== 'string'
@@ -98,7 +178,23 @@ export function decodeSharePayload(fragment: string): SharePayload | null {
     if (obj.c !== undefined && !c) return null;
     if (obj.s !== undefined && !s) return null;
     if (obj.l !== undefined && !l) return null;
-    return { ...obj, c, s, l } as SharePayload;
+
+    const count = obj.n > 0 ? Math.floor(obj.h.length / obj.n) : 0;
+    let t: string | undefined;
+    if (obj.v === 3) {
+      if (typeof obj.t !== 'string') return null;
+      const cues = decodeShareTimeline(obj.t);
+      if (!cues || cues.some(([idx]) => idx >= count)) return null;
+      t = obj.t;
+    }
+
+    const payload: SharePayload = { v: obj.v, p: obj.p, n: obj.n, h: obj.h };
+    if (c) payload.c = c;
+    if (s) payload.s = s;
+    if (l) payload.l = l;
+    if (obj.o && typeof obj.o === 'object') payload.o = obj.o;
+    if (t) payload.t = t;
+    return payload;
   } catch {
     return null;
   }
@@ -163,6 +259,7 @@ export function buildSharePayload(
   identity: ShareIdentity,
   urls: string[],
   n: number = DEFAULT_SHORT_HASH_LEN,
+  opts?: { t?: string },
 ): SharePayload {
   const refs = urls
     .map(parseCossImageUrl)
@@ -194,6 +291,15 @@ export function buildSharePayload(
   if (sessionId) payload.s = sessionId;
   if (liveId) payload.l = liveId;
   if (Object.keys(o).length > 0) payload.o = o;
+
+  const delta = opts?.t;
+  if (delta) {
+    const cues = decodeShareTimeline(delta);
+    if (cues && cues.length > 0 && cues.every(([idx]) => idx < refs.length)) {
+      payload.v = 3;
+      payload.t = delta;
+    }
+  }
   return payload;
 }
 

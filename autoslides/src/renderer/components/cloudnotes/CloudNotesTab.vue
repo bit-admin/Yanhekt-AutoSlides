@@ -381,8 +381,17 @@
                 >
                   <span class="cn-index-version-ord">{{ $t('cloudIndex.slidesOrd', { n: i + 1 }) }}</span>
                   <span class="cn-index-version-count">{{ $t('cloudIndex.slideCount', { n: v.imageCount ?? 0 }) }}</span>
-                  <span v-if="v.edited" class="cn-index-badge cn-index-badge--edited">{{ $t('cloudIndex.edited') }}</span>
-                  <svg v-if="v.reviewed" class="cn-index-verified" :title="$t('cloudIndex.reviewed')" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1.2 14.4l-4-4 1.4-1.4 2.6 2.6 5.4-5.4 1.4 1.4z"/></svg>
+                  <span v-if="v.hasTimeline" class="cn-index-timeline" :title="$t('cloudIndex.hasTimeline')">
+                    {{ $t('cloudIndex.timeline') }}
+                    <svg class="cn-index-verified cn-index-verified--reviewed" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1.2 14.4l-4-4 1.4-1.4 2.6 2.6 5.4-5.4 1.4 1.4z"/></svg>
+                  </span>
+                  <svg
+                    v-if="v.reviewed"
+                    class="cn-index-verified"
+                    :class="v.edited ? 'cn-index-verified--edited' : 'cn-index-verified--reviewed'"
+                    :title="v.edited ? $t('cloudIndex.edited') : $t('cloudIndex.reviewed')"
+                    width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+                  ><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1.2 14.4l-4-4 1.4-1.4 2.6 2.6 5.4-5.4 1.4 1.4z"/></svg>
                 </button>
               </div>
             </div>
@@ -391,57 +400,27 @@
 
         </template>
 
-        <!-- Footer: Import / Export (mode-aware; keeps its position) -->
+        <!-- Footer: Import / Export (notes mode only; index actions live on the viewer). -->
         <div v-if="footerVisible" class="cn-list-footer">
-          <template v-if="viewMode === 'notes'">
-            <button
-              class="cn-tool-btn"
-              :disabled="cloudStorageStore.blocked.value"
-              :title="cloudStorageStore.blocked.value ? $t('cloudNotes.storageNotInitialized') : $t('cloudNotes.importTip')"
-              @click="openImportModal"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
-              </svg>
-              <span v-if="imp.importing.value">{{ imp.overall.value.done }}/{{ imp.overall.value.total }}</span>
-              <span v-else>{{ $t('cloudNotes.importButton') }}</span>
-            </button>
-            <button class="cn-tool-btn" :title="$t('cloudNotes.exportTip')" @click="exportModalRef?.openFromFooter()">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
-              </svg>
-              <span v-if="exp.exporting.value">{{ exp.overall.value.done }}/{{ exp.overall.value.total }}</span>
-              <span v-else>{{ $t('cloudNotes.exportButton') }}</span>
-            </button>
-          </template>
-          <template v-else>
-            <!-- Both buttons stay clickable while a run is active/unread so they
-                 can reopen the progress modal (mirrors the notes-mode buttons). -->
-            <button
-              class="cn-tool-btn"
-              :disabled="cloudStorageStore.blocked.value || (!idx.viewer.value && imp.queue.value.length === 0)"
-              :title="cloudStorageStore.blocked.value ? $t('cloudNotes.storageNotInitialized') : $t('cloudNotes.importTip')"
-              @click="onImportVersion"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
-              </svg>
-              <span v-if="imp.importing.value">{{ imp.overall.value.done }}/{{ imp.overall.value.total }}</span>
-              <span v-else>{{ $t('cloudNotes.importButton') }}</span>
-            </button>
-            <button
-              class="cn-tool-btn"
-              :disabled="!idx.viewer.value && !idxExp.item.value"
-              :title="$t('cloudNotes.exportTip')"
-              @click="onExportVersion"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
-              </svg>
-              <span v-if="idxExp.exporting.value && idxExp.item.value">{{ idxExp.item.value.downloaded }}/{{ idxExp.item.value.total }}</span>
-              <span v-else>{{ $t('cloudNotes.exportButton') }}</span>
-            </button>
-          </template>
+          <button
+            class="cn-tool-btn"
+            :disabled="cloudStorageStore.blocked.value"
+            :title="cloudStorageStore.blocked.value ? $t('cloudNotes.storageNotInitialized') : $t('cloudNotes.importTip')"
+            @click="openImportModal"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
+            </svg>
+            <span v-if="imp.importing.value">{{ imp.overall.value.done }}/{{ imp.overall.value.total }}</span>
+            <span v-else>{{ $t('cloudNotes.importButton') }}</span>
+          </button>
+          <button class="cn-tool-btn" :title="$t('cloudNotes.exportTip')" @click="exportModalRef?.openFromFooter()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+            </svg>
+            <span v-if="exp.exporting.value">{{ exp.overall.value.done }}/{{ exp.overall.value.total }}</span>
+            <span v-else>{{ $t('cloudNotes.exportButton') }}</span>
+          </button>
         </div>
       </section>
         </div><!-- /.cn-sidebar-panes -->
@@ -503,6 +482,12 @@
         :detail="idx.viewer.value"
         :loading="idx.viewerLoading.value"
         :error="idx.viewerError.value"
+        :import-disabled="cloudStorageStore.blocked.value || (!idx.viewer.value && imp.queue.value.length === 0)"
+        :export-disabled="!idx.viewer.value && !idxExp.item.value"
+        :import-progress="imp.importing.value ? `${imp.overall.value.done}/${imp.overall.value.total}` : ''"
+        :export-progress="idxExp.exporting.value && idxExp.item.value ? `${idxExp.item.value.downloaded}/${idxExp.item.value.total}` : ''"
+        @import="onImportVersion"
+        @export="onExportVersion"
       />
 
       <!-- Request-removal modal (index mode) -->
@@ -587,8 +572,8 @@ const INDEX_LIST_MIN = 280
 const INDEX_LIST_MAX = 720
 const indexListWidth = ref(360)
 
-// Footer Import/Export always show (notes mode + index mode).
-const footerVisible = computed(() => true)
+// Footer Import/Export is notes-mode only; index actions sit on the viewer head.
+const footerVisible = computed(() => viewMode.value === 'notes')
 
 async function enterIndexMode(): Promise<void> {
   viewMode.value = 'index'
@@ -1752,18 +1737,25 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
   font-size: 12px;
   color: var(--text-secondary);
 }
-.cn-index-badge--edited {
-  font-size: 10px;
+.cn-index-timeline {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  font-size: 11px;
   font-weight: 600;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--badge-cropped-bg);
-  color: var(--badge-cropped-text);
+  color: var(--success);
+}
+.cn-index-timeline .cn-index-verified {
+  margin-left: 0;
 }
 .cn-index-verified {
   color: var(--accent);
   margin-left: auto;
 }
+.cn-index-timeline + .cn-index-verified { margin-left: 0; }
+.cn-index-verified--reviewed { color: var(--success); }
+.cn-index-verified--edited { color: var(--accent); }
 
 /* Downloading progress colored like the modal's other in-flight statuses. */
 </style>

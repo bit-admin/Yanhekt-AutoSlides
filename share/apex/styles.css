@@ -17,6 +17,7 @@
 
   /* Status — brand-consistent like Twitter's blue check, stays the same in both themes */
   --verified-color: #1d9bf0;
+  --verified-reviewed: #1a7f37;
   --danger: #d93025;
   --danger-strong: #b3271d;
 
@@ -458,7 +459,7 @@ a { color: inherit; text-decoration: none; }
 .version-ord,
 .version-date,
 .version-count,
-.version-edited,
+.version-timeline,
 .version-verified {
   flex: none;
   border-bottom: 1px solid transparent;
@@ -467,15 +468,25 @@ a { color: inherit; text-decoration: none; }
 .version:hover .version-ord,
 .version:hover .version-date,
 .version:hover .version-count,
-.version:hover .version-edited,
+.version:hover .version-timeline,
 .version:hover .version-verified {
   border-bottom-color: var(--text-primary);
 }
 .version-ord { width: 90px; color: var(--text-primary); font-weight: 600; white-space: nowrap; }
 .version-date { width: 110px; color: var(--text-secondary); white-space: nowrap; }
 .version-count { padding-right: 20px; color: var(--text-secondary); white-space: nowrap; }
-.version-edited { padding-right: 8px; color: var(--text-secondary); font-size: 13px; }
+.version-timeline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 10px;
+  color: var(--verified-reviewed);
+  font-size: 13px;
+  white-space: nowrap;
+}
 .version-verified { color: var(--verified-color); }
+.version-verified--reviewed { color: var(--verified-reviewed); }
+.version-verified--edited { color: var(--verified-color); }
 
 /* Course view: master–detail. Left = session list; right = the selected session's files. */
 .course-split { display: flex; gap: 28px; align-items: flex-start; }

@@ -1,6 +1,8 @@
 import { readNoteMetadata, upsertNoteMetadata, noteImageUrls } from '@common/notesContent'
 import { buildSharePayload, encodeSharePayload } from '@common/shareLink'
+import { shareTimelineDeltaFromNote } from '@common/shareTimeline'
 import type { SlideMetadataSource } from '@common/slideMetadataTypes'
+import { configStore } from '@shared/services/configStore'
 import type { useCloudNotes } from './useCloudNotes'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
@@ -11,8 +13,7 @@ type CloudNotesApi = ReturnType<typeof useCloudNotes>
  *   is the note's write-back content (metadata block updated with the index URL),
  *   present only from `publishNote` after persistence.
  * - `reason`: a non-error early exit — the note isn't a recorded session
- *   (`not-indexable`), has no images (`no-images`), or already carries an index
- *   URL in its metadata (`already`, with that `indexUrl`).
+ *   (`not-indexable`) or has no images (`no-images`).
  * - `error`: the publish request failed (server/network).
  */
 export type PublishResult =
@@ -34,20 +35,19 @@ export function useNotesPublish(cn: CloudNotesApi) {
   /** Build the payload and publish from a note's stringified content (no persistence). */
   async function publishFromContent(content: string): Promise<PublishResult> {
     const meta = readNoteMetadata(content)
-    // Already published — surface the recorded URL rather than minting a new one.
-    if (meta?.note.indexUrl) return { ok: false, reason: 'already', indexUrl: meta.note.indexUrl }
-
     const source = meta?.slides?.source
     if (!source?.courseId || !source?.sessionId) return { ok: false, reason: 'not-indexable' }
 
     const urls = noteImageUrls(content)
     if (urls.length === 0) return { ok: false, reason: 'no-images' }
 
+    const embed = configStore.cloudShareEmbedTimeline !== false
+    const t = embed ? shareTimelineDeltaFromNote(meta?.timeline ?? null, urls.length) : undefined
     const fragment = encodeSharePayload(buildSharePayload({
       courseId: source.courseId,
       sessionId: source.sessionId,
       liveId: source.liveId,
-    }, urls))
+    }, urls, undefined, t ? { t } : undefined))
 
     // source/review came from JSON metadata, but de-proxy defensively so IPC
     // structured-clone never sees a Vue reactive Proxy ("could not be cloned").

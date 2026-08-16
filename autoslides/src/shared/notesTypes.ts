@@ -7,6 +7,8 @@
  */
 
 import type { SlideMetadata } from './slideMetadataTypes';
+import type { SlideTimeline } from './sidecars/timeline';
+
 import {
   formatLectureToken,
   parseLectureIds,
@@ -124,6 +126,8 @@ export interface ShareImportResult {
   metadata?: SlideMetadata | null;
   /** Course/session titles + byline fields from Yanhekt (or the Index lecture). */
   lectureMeta?: ShareLectureMeta | null;
+  /** Reconstructed timeline.json from a v3 share payload, if present. */
+  timeline?: SlideTimeline | null;
 }
 
 // ── AutoSlides Index (v2 read + removal) ───────────────────────────────────
@@ -156,6 +160,8 @@ export interface IndexVersion {
   imageCount?: number;
   reviewed: boolean;
   edited: boolean;
+  /** True when this version's share payload embeds a v3 slide timeline. */
+  hasTimeline?: boolean;
   createdAt?: string;
 }
 

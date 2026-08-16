@@ -8,6 +8,9 @@ import {
   parseShareLink,
   shareImageRefs,
   sharePayloadIdentity,
+  encodeShareTimeline,
+  decodeShareTimeline,
+  payloadHasTimeline,
   type SharePayload,
 } from './shareLink';
 
@@ -103,5 +106,51 @@ describe('shareLink codec', () => {
     const frag = url.split('#')[1];
     expect(decodeSharePayload(frag)?.c).toBe('62313');
     expect(decodeSharePayload(frag)?.s).toBe('751843');
+  });
+
+  it('round-trips a v3 payload with a delta timeline', () => {
+    const payload: SharePayload = {
+      v: 3,
+      c: '61841',
+      s: '751112',
+      p: '2026/8',
+      n: 7,
+      h: 'abc1234def5678ghi9012',
+      t: '0:0,1:165,2:475,1:12',
+    };
+    const decoded = decodeSharePayload(encodeSharePayload(payload));
+    expect(decoded).toEqual(payload);
+    expect(payloadHasTimeline(decoded!)).toBe(true);
+  });
+
+  it('rejects v3 with a malformed or out-of-range timeline', () => {
+    const base = { v: 3 as const, p: '2026/8', n: 7, h: 'abc1234def5678' };
+    expect(decodeSharePayload(encodeSharePayload({ ...base, t: 'nope' }))).toBeNull();
+    expect(decodeSharePayload(encodeSharePayload({ ...base, t: '' }))).toBeNull();
+    expect(decodeSharePayload(encodeSharePayload({ ...base, t: '9:0' }))).toBeNull();
+  });
+
+  it('ignores t on a v2 payload and builds v3 only when t is valid', () => {
+    const v2: SharePayload = { v: 2, p: '2026/6', n: 7, h: 'abc1234', t: '0:0' };
+    const decoded = decodeSharePayload(encodeSharePayload(v2));
+    expect(decoded?.v).toBe(2);
+    expect(decoded?.t).toBeUndefined();
+    expect(payloadHasTimeline(decoded!)).toBe(false);
+
+    const built = buildSharePayload(IDS, [hash('e'.repeat(32))], 7, { t: '0:0,0:10' });
+    expect(built.v).toBe(3);
+    expect(built.t).toBe('0:0,0:10');
+    const skipped = buildSharePayload(IDS, [hash('e'.repeat(32))], 7, { t: '3:0' });
+    expect(skipped.v).toBe(2);
+    expect(skipped.t).toBeUndefined();
+  });
+
+  it('encodes and decodes timeline deltas to absolute cues', () => {
+    const cues: Array<[number, number]> = [[0, 0], [1, 165], [2, 640], [1, 652]];
+    const t = encodeShareTimeline(cues);
+    expect(t).toBe('0:0,1:165,2:475,1:12');
+    expect(decodeShareTimeline(t)).toEqual(cues);
+    expect(decodeShareTimeline('')).toBeNull();
+    expect(decodeShareTimeline('1:-4')).toBeNull();
   });
 });

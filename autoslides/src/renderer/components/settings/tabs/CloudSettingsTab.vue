@@ -119,6 +119,17 @@
         </label>
       </div>
     </div>
+
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.cloudStorage.shareTimelineTitle') }}</label>
+      <div class="setting-description">{{ $t('advanced.cloudStorage.shareTimelineDescription') }}</div>
+      <div class="auto-post-processing-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempCloudShareEmbedTimeline" />
+          {{ $t('advanced.cloudStorage.shareTimelineEnable') }}
+        </label>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -143,6 +154,7 @@ const {
   tempCloudAutoResyncMode,
   tempCloudAutoRepublishAfterResync,
   tempCloudWatchSyncEnabled,
+  tempCloudShareEmbedTimeline,
 } = advanced.cloud
 
 // Resync replaces a note that auto-sync created, so it's meaningless without

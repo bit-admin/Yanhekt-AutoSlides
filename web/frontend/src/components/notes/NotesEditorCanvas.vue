@@ -342,9 +342,9 @@ import {
   isNotesFontSetId,
   type NotesFontSetId,
 } from '../../lib/notes/notesFontSets'
-import { noteImageUrls } from '../../lib/notes/notesContent'
+import { noteImageUrls, readNoteMetadata } from '../../lib/notes/notesContent'
 import { exportNote, noteContentToMarkdown, type NoteExportFormat } from '../../lib/notes/noteExportWeb'
-import { buildSharePayload, buildShareUrl, parseCossImageUrl } from '../../lib/notes/shareLink'
+import { buildSharePayload, buildShareUrl, parseCossImageUrl, timelineDeltaFromUnknown } from '../../lib/notes/shareLink'
 import { configStore, persistConfig } from '../../stores/configStore'
 
 const props = defineProps<{
@@ -441,7 +441,8 @@ async function toggleShare(): Promise<void> {
     const content = await props.getContent()
     const urls = noteImageUrls(content)
     const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
-    const payload = buildSharePayload(managedNoteIdentity(props.title || ''), urls)
+    const t = timelineDeltaFromUnknown(readNoteMetadata(content)?.timeline)
+    const payload = buildSharePayload(managedNoteIdentity(props.title || ''), urls, undefined, t ? { t } : undefined)
     shareImageCount.value = cossCount
     shareLongUrl.value = cossCount > 0 ? buildShareUrl(payload) : ''
   } catch {

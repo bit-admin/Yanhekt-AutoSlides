@@ -89,6 +89,7 @@ export const config = {
   setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => ipcRenderer.invoke('config:setCloudAutoResyncMode', mode),
   setCloudAutoRepublishAfterResync: (enabled: boolean) => ipcRenderer.invoke('config:setCloudAutoRepublishAfterResync', enabled),
   setCloudWatchSyncEnabled: (enabled: boolean) => ipcRenderer.invoke('config:setCloudWatchSyncEnabled', enabled),
+  setCloudShareEmbedTimeline: (enabled: boolean) => ipcRenderer.invoke('config:setCloudShareEmbedTimeline', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => ipcRenderer.invoke('config:setPreferAnonymousApiRequests', enabled),
   getPreferAnonymousApiRequests: () => ipcRenderer.invoke('config:getPreferAnonymousApiRequests'),
   setLocalRelayConfig: (patch: {

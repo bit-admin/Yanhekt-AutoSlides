@@ -43,6 +43,10 @@
     "sharedVia": "AutoSlides で共有",
     "edited": "編集済み",
     "reviewed": "人手で確認済み",
+    "timeline": "タイムライン",
+    "hasTimeline": "タイムラインあり",
+    "importToASnote": "ASnote に取り込む",
+    "exportToLocal": "ローカルに書き出す",
     "loadingFiles": "読み込み中…",
     "noFilesIndexed": "収録済みのファイルはありません。",
     "requestRemoval": "削除を申請",
@@ -191,7 +195,10 @@
       "autoRepublishDescription": "自動再同期にのみ適用され、手動インポートには適用されません。",
       "watchSyncTitle": "視聴モードのノート",
       "watchSyncDescription": "ライブ配信や録画を視聴しながらスライド抽出を開始すると、AutoSlides が ASuser グループに個人用ノートを作成し、取得した各スライドを追記します。右パネルの「ノート」タブでリアルタイムに編集できます。",
-      "watchSyncEnable": "ライブ配信・録画の視聴中に取得したスライドを自動同期する"
+      "watchSyncEnable": "ライブ配信・録画の視聴中に取得したスライドを自動同期する",
+      "shareTimelineTitle": "タイムラインを共有",
+      "shareTimelineDescription": "共有リンクにスライドの出現時刻を含め、プレーヤーがスライド帯を講義動画と同期できるようにします。",
+      "shareTimelineEnable": "共有時にスライドタイムラインを埋め込む"
     },
     "authentication": "認証",
     "appearance": "外観",

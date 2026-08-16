@@ -239,6 +239,9 @@ export interface AppConfig {
   // in the ASuser group and append each captured slide to it. Gates the whole
   // right-panel Notes flow. Default off; only meaningful once cloud storage is ready.
   cloudWatchSyncEnabled: boolean;
+  // When true (default), share links / Index publishes embed a compact v3
+  // slide timeline so players can sync. Off falls back to a v2 image-only link.
+  cloudShareEmbedTimeline: boolean;
   // When true, omit Authorization on Yanhekt endpoints that work without a
   // login (public catalog, public live list, course detail, video token).
   // Session list, personal lists, notes, and account APIs still send the token.

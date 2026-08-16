@@ -16,6 +16,26 @@
         <h1 class="ci-viewer-title">{{ detail.courseTitle }}</h1>
         <p v-if="detail.sessionTitle" class="ci-viewer-session">{{ detail.sessionTitle }}</p>
         <p class="ci-viewer-meta">{{ byline }}</p>
+        <div class="ci-viewer-actions">
+          <button
+            class="btn"
+            type="button"
+            :disabled="importDisabled"
+            :title="importDisabled && !detail ? $t('cloudIndex.selectFile') : $t('cloudIndex.importToASnote')"
+            @click="emit('import')"
+          >
+            {{ importProgress || $t('cloudIndex.importToASnote') }}
+          </button>
+          <button
+            class="btn"
+            type="button"
+            :disabled="exportDisabled"
+            :title="$t('cloudIndex.exportToLocal')"
+            @click="emit('export')"
+          >
+            {{ exportProgress || $t('cloudIndex.exportToLocal') }}
+          </button>
+        </div>
       </div>
       <div class="ci-viewer-scroll custom-scrollbar">
         <div class="ci-viewer-stack">
@@ -50,6 +70,15 @@ const props = defineProps<{
   detail: IndexViewerDetail | null
   loading: boolean
   error: boolean
+  importDisabled?: boolean
+  exportDisabled?: boolean
+  importProgress?: string
+  exportProgress?: string
+}>()
+
+const emit = defineEmits<{
+  import: []
+  export: []
 }>()
 
 const { t } = useI18n()
@@ -136,6 +165,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   margin: 8px 0 0;
   font-size: 13px;
   color: var(--text-secondary);
+}
+
+.ci-viewer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .ci-viewer-scroll {

@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import type { SharePayload } from '../../../autoslides/src/shared/shareLink';
+import { payloadHasTimeline, type SharePayload } from '../../../autoslides/src/shared/shareLink';
+import { timelineFromSharePayload } from '../../../autoslides/src/shared/shareTimeline';
 import type { ResolvedImage } from '../resolver';
 import { formatAcademicTerm } from '../lib/term';
+import { triggerDownload } from '../lib/files';
 import { Lightbox } from './Lightbox';
 
 export interface ViewerMeta {
@@ -22,7 +24,7 @@ interface ShareDocumentProps {
   meta: ViewerMeta | null;
 }
 
-type Busy = null | 'zip' | 'pdf';
+type Busy = null | 'zip' | 'pdf' | 'timeline';
 
 function fileStem(payload: SharePayload, meta: ViewerMeta | null): string {
   const token = [payload.c && `c${payload.c}`, payload.s && `s${payload.s}`, payload.l && `l${payload.l}`]
@@ -38,6 +40,11 @@ export function ShareDocument({ payload, images, meta }: ShareDocumentProps) {
 
   const urls = useMemo(() => images.map((i) => i.url), [images]);
   const resolvedCount = useMemo(() => urls.filter(Boolean).length, [urls]);
+  const timelineJson = useMemo(() => {
+    if (!payloadHasTimeline(payload)) return null;
+    const tl = timelineFromSharePayload(payload);
+    return tl ? JSON.stringify(tl, null, 2) : null;
+  }, [payload]);
   const course = meta?.courseTitle || 'Shared slides';
   const session = meta?.sessionTitle || '';
   const term = formatAcademicTerm(meta?.schoolYear, meta?.semester);
@@ -75,7 +82,7 @@ export function ShareDocument({ payload, images, meta }: ShareDocumentProps) {
             onClick={() =>
               run('zip', async () => {
                 const { downloadAllZip } = await import('../lib/zip');
-                await downloadAllZip(urls, stem);
+                await downloadAllZip(urls, stem, timelineJson);
               })
             }
           >
@@ -92,6 +99,19 @@ export function ShareDocument({ payload, images, meta }: ShareDocumentProps) {
             }
           >
             {busy === 'pdf' ? 'Building PDF…' : 'Save as PDF'}
+          </button>
+          <button
+            className="btn"
+            disabled={busy !== null || !timelineJson}
+            title={timelineJson ? 'Download timeline.json' : 'This share has no slide timeline'}
+            onClick={() =>
+              run('timeline', async () => {
+                if (!timelineJson) return;
+                triggerDownload(new Blob([timelineJson], { type: 'application/json' }), `${stem}-timeline.json`);
+              })
+            }
+          >
+            {busy === 'timeline' ? 'Saving…' : 'Download timeline'}
           </button>
         </div>
       </header>

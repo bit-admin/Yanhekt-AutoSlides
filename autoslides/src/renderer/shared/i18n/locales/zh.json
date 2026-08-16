@@ -43,6 +43,10 @@
     "sharedVia": "通过 AutoSlides 分享",
     "edited": "已编辑",
     "reviewed": "人工审核",
+    "timeline": "时间轴",
+    "hasTimeline": "含时间轴",
+    "importToASnote": "导入到 ASnote",
+    "exportToLocal": "导出到本地",
     "loadingFiles": "加载中…",
     "noFilesIndexed": "尚无已收录的文件。",
     "requestRemoval": "申请移除",
@@ -191,7 +195,10 @@
       "autoRepublishDescription": "仅适用于自动重新同步，不适用于手动导入。",
       "watchSyncTitle": "观看模式笔记",
       "watchSyncDescription": "当你观看直播或录播并开始提取幻灯片时，AutoSlides 会在 ASuser 分组中创建一条个人笔记，并将每张捕获的幻灯片追加进去。可在右侧栏的“笔记”标签页中实时编辑。",
-      "watchSyncEnable": "自动同步观看直播和录播时捕获的幻灯片"
+      "watchSyncEnable": "自动同步观看直播和录播时捕获的幻灯片",
+      "shareTimelineTitle": "分享时间轴",
+      "shareTimelineDescription": "在分享链接中写入幻灯片出现时间，以便播放器将幻灯片条与课程视频同步。",
+      "shareTimelineEnable": "分享时嵌入幻灯片时间轴"
     },
     "authentication": "身份验证",
     "appearance": "外观",

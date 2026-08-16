@@ -36,6 +36,7 @@ import type {
 import { NOTE_GROUP_NAME_MAX, buildShareImportTitle, splitNoteDisplayName } from '@common/notesTypes';
 import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink } from '@common/shareLink';
+import { timelineFromSharePayload } from '@common/shareTimeline';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
 import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
@@ -531,6 +532,7 @@ export class NotesService {
       urls,
       missing: resolved.length - urls.length,
       lectureMeta,
+      timeline: timelineFromSharePayload(payload),
     };
   }
 
