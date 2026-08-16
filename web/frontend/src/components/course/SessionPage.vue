@@ -193,13 +193,12 @@ const toggleSubscribe = () => {
   toggleSubscribedCourse(c)
 }
 
-// Open Public Index (share.ruc.edu.kg) pre-searched for this course title.
-// Electron jumps in-app to Drive index mode; web has no embedded index UI, so
-// deep-link the share site's ?q= search instead.
+// Open Public Index pre-searched by course id (all semesters). Yanhekt's
+// /v2/course/list?keyword=<id> returns that exact course.
 const searchInIndex = () => {
-  const title = courseDetails.value?.title || props.course?.title
-  if (!title) return
-  const url = `${SHARE_ORIGIN}/?q=${encodeURIComponent(title)}`
+  const courseId = String(props.course?.id || courseDetails.value?.id || '')
+  if (!courseId) return
+  const url = `${SHARE_ORIGIN}/?q=${encodeURIComponent(courseId)}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 

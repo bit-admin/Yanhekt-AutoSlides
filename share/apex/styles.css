@@ -21,9 +21,15 @@
   --danger-strong: #b3271d;
 
   /* Shadows */
+  --bg-hover: #e8eaed;
+  --bg-modal: #ffffff;
+  --text-muted: #80868b;
+  --accent-deep: #1a56db;
   --shadow-sm: rgba(60, 64, 67, 0.16);
   --shadow-md: rgba(60, 64, 67, 0.28);
+  --shadow-lg: rgba(60, 64, 67, 0.22);
   --focus-ring: rgba(59, 111, 224, 0.18);
+  --z-dropdown: 10;
 
   --radius: 14px;
   color-scheme: light;
@@ -35,9 +41,13 @@
     --bg-page: #0f1115;
     --bg-surface: #181b22;
     --bg-elevated: #1f232c;
+    --bg-hover: #2a2f3a;
+    --bg-modal: #181b22;
 
     --text-primary: #e8eaed;
     --text-secondary: #9aa3b2;
+    --text-muted: #7a8494;
+    --accent-deep: #8bb4ff;
 
     --border-color: #2a2f3a;
 
@@ -48,6 +58,7 @@
 
     --shadow-sm: rgba(0, 0, 0, 0.3);
     --shadow-md: rgba(0, 0, 0, 0.45);
+    --shadow-lg: rgba(0, 0, 0, 0.5);
     --focus-ring: rgba(110, 168, 254, 0.25);
 
     color-scheme: dark;
@@ -107,24 +118,7 @@ a { color: inherit; text-decoration: none; }
 }
 .home--results .wordmark { font-size: 22px; margin-bottom: 16px; }
 
-.search-shell { width: 100%; max-width: 600px; }
-.semester-filter {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 14px;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-.semester-filter__select {
-  border: 1px solid var(--border-color);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 13px;
-}
+.search-shell { width: 100%; max-width: 720px; }
 
 .search {
   display: flex;
@@ -153,6 +147,94 @@ a { color: inherit; text-decoration: none; }
   padding: 14px 4px;
 }
 .search-input::placeholder { color: var(--text-secondary); }
+
+.semester-select {
+  position: relative;
+  flex: none;
+  margin-right: 2px;
+}
+.semester-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 11.75rem;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+.semester-trigger:hover,
+.semester-trigger.open {
+  background: var(--bg-hover);
+}
+.semester-icon { flex: none; color: var(--text-secondary); }
+.semester-trigger-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.semester-chevron {
+  flex: none;
+  color: var(--text-secondary);
+  transition: transform 0.15s;
+}
+.semester-chevron.open { transform: rotate(180deg); }
+.semester-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 15.5rem;
+  max-height: 21rem;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--bg-modal);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px var(--shadow-lg);
+  z-index: var(--z-dropdown);
+  text-align: left;
+}
+.semester-group + .semester-group {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-color);
+}
+.semester-group-label {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.semester-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.semester-option:hover { background: var(--bg-hover); }
+.semester-option.active {
+  color: var(--accent-deep);
+  font-weight: 600;
+}
+.semester-option-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .search-submit {
   flex: none;

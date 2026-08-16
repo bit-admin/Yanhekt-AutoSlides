@@ -6,7 +6,8 @@
  * hit /v2/course/list, then we join our published sessions.
  *
  * Write budget: D1 is written ONLY on publish. Homepage reads cron-built
- * `stats:home` in KV. Search/lecture/semester GETs are Cache-API wrapped.
+ * `stats:home` in KV (counts, recent, colleges, Yanhekt semester list).
+ * Search/lecture GETs are Cache-API wrapped.
  */
 
 import { decodeSharePayload, type SharePayload } from '../../autoslides/src/shared/shareLink';
@@ -284,7 +285,9 @@ async function hydrateRows(
 async function handleSearch(req: Request, env: Env, url: URL, ctx: ExecutionContext): Promise<Response> {
   return cached(req, ctx, 120, async () => {
     const q = (url.searchParams.get('q') ?? '').trim();
-    const semesterId = (url.searchParams.get('semesterId') ?? '').trim();
+    // A numeric keyword is a Yanhekt course id — exact match, all semesters.
+    const isCourseId = /^\d+$/.test(q);
+    const semesterId = isCourseId ? '' : (url.searchParams.get('semesterId') ?? '').trim();
     const page = Math.max(1, Number(url.searchParams.get('page') ?? '1') || 1);
     const db = env.INDEX_DB;
 
@@ -300,7 +303,7 @@ async function handleSearch(req: Request, env: Env, url: URL, ctx: ExecutionCont
       keyword: q,
       semesterId: semesterId || undefined,
       page,
-      pageSize: 16,
+      pageSize: 32,
     });
     const courses = list?.data ?? [];
     const courseIds = [...new Set(courses.map((c) => String(c.id ?? '')).filter(Boolean))];
@@ -358,29 +361,23 @@ async function handleLecture(req: Request, env: Env, url: URL, ctx: ExecutionCon
   });
 }
 
-async function handleSemesters(req: Request, ctx: ExecutionContext): Promise<Response> {
-  return cached(req, ctx, 3600, async () => {
-    const semesters = await fetchSemesters();
-    return json({ ok: true, semesters });
-  });
-}
-
 export async function refreshStats(env: Env): Promise<Record<string, unknown>> {
   const db = env.INDEX_DB;
-  const counts = await db
-    .prepare('SELECT COUNT(DISTINCT course_id) AS courses, COUNT(*) AS lectures FROM lectures')
-    .first<{ courses: number; lectures: number }>();
-  const vcount = await db
-    .prepare('SELECT COUNT(*) AS versions FROM versions')
-    .first<{ versions: number }>();
-  const recent = await db
-    .prepare(
-      `SELECT v.share_id, v.image_count, v.created_at, v.course_id, v.session_id
-       FROM versions v
-       ORDER BY v.created_at DESC LIMIT ?`,
-    )
-    .bind(RECENT_LIMIT)
-    .all();
+  const [counts, vcount, recent, semesters] = await Promise.all([
+    db
+      .prepare('SELECT COUNT(DISTINCT course_id) AS courses, COUNT(*) AS lectures FROM lectures')
+      .first<{ courses: number; lectures: number }>(),
+    db.prepare('SELECT COUNT(*) AS versions FROM versions').first<{ versions: number }>(),
+    db
+      .prepare(
+        `SELECT v.share_id, v.image_count, v.created_at, v.course_id, v.session_id
+         FROM versions v
+         ORDER BY v.created_at DESC LIMIT ?`,
+      )
+      .bind(RECENT_LIMIT)
+      .all(),
+    fetchSemesters(),
+  ]);
 
   const recentFiles = await Promise.all(
     recent.results.map(async (r) => {
@@ -417,6 +414,7 @@ export async function refreshStats(env: Env): Promise<Record<string, unknown>> {
     colleges: [...collegeMap.entries()]
       .map(([college, count]) => ({ college, count }))
       .sort((a, b) => b.count - a.count),
+    semesters,
     updatedAt: new Date().toISOString(),
   };
   await env.SHARE_KV.put('stats:home', JSON.stringify(stats));
@@ -426,7 +424,15 @@ export async function refreshStats(env: Env): Promise<Record<string, unknown>> {
 async function handleStats(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   return cached(req, ctx, 300, async () => {
     const cachedStats = await env.SHARE_KV.get('stats:home');
-    const stats = cachedStats ? JSON.parse(cachedStats) : await refreshStats(env);
+    const parsed = cachedStats
+      ? (JSON.parse(cachedStats) as { semesters?: Array<{ labelEn?: string }> })
+      : null;
+    const hasEn =
+      Array.isArray(parsed?.semesters) &&
+      (parsed.semesters.length === 0 || typeof parsed.semesters[0]?.labelEn === 'string');
+    // Rebuild when missing or pre-English semester blobs so the first GET after
+    // deploy does not wait for the hourly cron.
+    const stats = parsed && hasEn ? parsed : await refreshStats(env);
     return json({ ok: true, stats });
   });
 }
@@ -450,9 +456,6 @@ export async function routeV2(
   }
   if (pathname === '/v2/api/lecture' && req.method === 'GET') {
     return handleLecture(req, env, url, ctx);
-  }
-  if (pathname === '/v2/api/semesters' && req.method === 'GET') {
-    return handleSemesters(req, ctx);
   }
   if (pathname === '/v2/api/stats' && req.method === 'GET') {
     return handleStats(req, env, ctx);

@@ -232,9 +232,9 @@ const togglePin = () => {
 }
 
 const searchInIndex = () => {
-  const title = courseDetails.value?.title || props.course?.title
-  if (!title) return
-  navigationStore.requestCloudIndexSearch(title)
+  const courseId = String(courseDetails.value?.id || props.course?.id || '')
+  if (!courseId) return
+  navigationStore.requestCloudIndexSearch(courseId)
 }
 
 onMounted(() => {

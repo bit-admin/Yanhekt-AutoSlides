@@ -165,6 +165,14 @@ export interface IndexStats {
   versionCount: number;
   recent: IndexRecentFile[];
   colleges: { college: string; count: number }[];
+  /** Yanhekt semester tags, cron-copied from /v1/tag/list into stats:home. */
+  semesters?: Array<{
+    id: number;
+    label: string;
+    schoolYear?: number;
+    semester?: number;
+    labelEn?: string;
+  }>;
   updatedAt?: string;
 }
 

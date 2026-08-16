@@ -31,8 +31,8 @@ const activeNav = ref<NavTarget>('home')
 // can label itself "Sessions" instead of "Recorded".
 const recordedOnSessions = ref(false)
 const courseOpenRequest = ref<CourseOpenRequest | null>(null)
-// A course name to pre-search in the Cloud Notes page's index mode. Consumed by
-// CloudNotesTab (immediate watch), which enters index mode and runs the search.
+// A Yanhekt course id to pre-search in Drive index mode (all semesters).
+// Consumed by CloudNotesTab (immediate watch).
 const cloudIndexSearchRequest = ref<CloudIndexSearchRequest | null>(null)
 // When a course is opened directly from a sidebar pinned item, that item takes
 // the active highlight instead of the "Recorded" navigator entry. Cleared the
@@ -86,8 +86,7 @@ const setActivePinned = (id: string | null) => {
   activePinnedId.value = id
 }
 
-// Jump to the Cloud Notes page's index mode with a course name pre-searched
-// (from the sessions header search button).
+// Jump to Drive index mode and search this course id across all semesters.
 const requestCloudIndexSearch = (term: string) => {
   cloudIndexSearchRequest.value = { term, requestId: nextRequestId++ }
   navigate('cloud-notes')

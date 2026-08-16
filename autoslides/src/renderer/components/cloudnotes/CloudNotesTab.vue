@@ -739,7 +739,7 @@ function recentMeta(f: { instructor?: string; professors?: string[]; schoolYear?
   ].filter(Boolean).join(' · ')
 }
 
-// A course-name pre-search from the sessions header (navigationStore) enters
+// A course-id pre-search from the sessions header (navigationStore) enters
 // index mode and runs the search. `immediate` covers a request set right before
 // this page lazily mounts.
 watch(

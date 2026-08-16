@@ -179,7 +179,7 @@ export async function fetchCourseList(opts: {
 }): Promise<YanhektCourseListPage | null> {
   const params = new URLSearchParams();
   params.set('page', String(opts.page ?? 1));
-  params.set('page_size', String(opts.pageSize ?? 16));
+  params.set('page_size', String(opts.pageSize ?? 32));
   if (opts.keyword?.trim()) params.set('keyword', opts.keyword.trim());
   if (opts.semesterId !== undefined && opts.semesterId !== '') {
     params.append('semesters[]', String(opts.semesterId));
@@ -192,13 +192,38 @@ export async function fetchCourseList(opts: {
   return raw;
 }
 
-export async function fetchSemesters(): Promise<Array<{ id: number; label: string }>> {
+export interface IndexSemester {
+  id: number;
+  /** Raw Yanhekt tag name, e.g. "2025-2026 第二学期". */
+  label: string;
+  /** Start year of the academic year, or 0 if unparseable. */
+  schoolYear: number;
+  /** 1 = Fall, 2 = Spring. */
+  semester: number;
+  /** English display, e.g. "Fall 2025" / "Spring 2026". */
+  labelEn: string;
+}
+
+function parseSemesterName(name: string): Pick<IndexSemester, 'schoolYear' | 'semester' | 'labelEn'> {
+  const match = name.match(/(\d{4})-(\d{4})\s+(第[一二]学期)/);
+  if (!match) return { schoolYear: 0, semester: 1, labelEn: name };
+  const startYear = parseInt(match[1], 10);
+  const endYear = parseInt(match[2], 10);
+  const semester = match[3] === '第一学期' ? 1 : 2;
+  return {
+    schoolYear: startYear,
+    semester,
+    labelEn: semester === 1 ? `Fall ${startYear}` : `Spring ${endYear}`,
+  };
+}
+
+export async function fetchSemesters(): Promise<IndexSemester[]> {
   const tags = await getJson<YanhektTag[]>('/v1/tag/list?with_sub=true');
   const semesterTag = tags?.find((t) => t.param === 'semesters');
   const children = semesterTag?.children ?? [];
   return [...children]
     .sort((a, b) => (b.sort ?? 0) - (a.sort ?? 0))
-    .map((c) => ({ id: c.id, label: c.name }));
+    .map((c) => ({ id: c.id, label: c.name, ...parseSemesterName(c.name) }));
 }
 
 /**

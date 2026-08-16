@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { groupLectures, schoolYearRank, semesterRank } from './lectureSort';
+import { SemesterSelect, type IndexSemester } from './SemesterSelect';
 
 declare global {
   interface Window {
@@ -56,6 +57,7 @@ interface Stats {
   versionCount: number;
   recent: RecentFile[];
   colleges: { college: string; count: number }[];
+  semesters?: IndexSemester[];
 }
 
 const API = '/v2/api';
@@ -149,14 +151,23 @@ export function App() {
   );
 }
 
+function isCourseIdQuery(term: string): boolean {
+  return /^\d+$/.test(term.trim());
+}
+
 function Home({
   openSession,
 }: {
   openSession: (sessions: Lecture[], lecture: Lecture) => void;
 }) {
-  const [q, setQ] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '');
-  const [semesterId, setSemesterId] = useState(() => new URLSearchParams(window.location.search).get('semesterId') ?? '');
-  const [semesters, setSemesters] = useState<Array<{ id: number; label: string }>>([]);
+  const initialParams = new URLSearchParams(window.location.search);
+  const initialQ = initialParams.get('q') ?? '';
+  const urlSemester = initialParams.get('semesterId');
+  const [q, setQ] = useState(initialQ);
+  const [semesterId, setSemesterId] = useState(urlSemester ?? '');
+  const [semesterReady, setSemesterReady] = useState(
+    urlSemester !== null || isCourseIdQuery(initialQ),
+  );
   const [results, setResults] = useState<Lecture[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -170,12 +181,19 @@ function Home({
   useEffect(() => {
     fetch(`${API}/stats`)
       .then((r) => r.json())
-      .then((d) => setStats(d.stats ?? null))
-      .catch(() => setStats(null));
-    fetch(`${API}/semesters`)
-      .then((r) => r.json())
-      .then((d) => setSemesters(Array.isArray(d.semesters) ? d.semesters : []))
-      .catch(() => setSemesters([]));
+      .then((d) => {
+        const next = (d.stats ?? null) as Stats | null;
+        setStats(next);
+        if (urlSemester === null && !isCourseIdQuery(initialQ) && next?.semesters?.[0]) {
+          setSemesterId(String(next.semesters[0].id));
+        }
+        setSemesterReady(true);
+      })
+      .catch(() => {
+        setStats(null);
+        setSemesterReady(true);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const runSearch = useCallback(async (term: string, sem = semesterId) => {
@@ -187,7 +205,7 @@ function Home({
     try {
       const params = new URLSearchParams();
       if (term.trim()) params.set('q', term.trim());
-      if (sem) params.set('semesterId', sem);
+      if (sem && !isCourseIdQuery(term)) params.set('semesterId', sem);
       const r = await fetch(`${API}/search?${params}`);
       const d = await r.json();
       setResults(Array.isArray(d.results) ? d.results : []);
@@ -198,13 +216,18 @@ function Home({
     }
   }, [semesterId]);
 
-  // Honor a ?q=<term> URL param on load (e.g. the desktop app deep-links here to
-  // pre-search a course name). runSearch is a stable useCallback.
+  // Deep-link ?q= waits until the latest-semester default is applied (unless
+  // the query is a course id — those always search all semesters).
   useEffect(() => {
-    const initialQ = new URLSearchParams(window.location.search).get('q');
-    if (initialQ) void runSearch(initialQ);
+    if (!semesterReady || !initialQ) return;
+    void runSearch(initialQ, semesterId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [semesterReady]);
+
+  const onSemesterChange = (next: string) => {
+    setSemesterId(next);
+    if (q.trim()) void runSearch(q, next);
+  };
 
   const onOpenV1 = useCallback(() => {
     const v = pasteLink.trim();
@@ -357,27 +380,17 @@ function Home({
                 onChange={(e) => setQ(e.target.value)}
                 autoFocus
               />
+              {stats?.semesters && stats.semesters.length > 0 && (
+                <SemesterSelect
+                  semesters={stats.semesters}
+                  value={semesterId}
+                  onChange={onSemesterChange}
+                />
+              )}
               <button className="search-submit" type="submit" aria-label="Search" disabled={searching}>
                 {searching ? <SpinnerIcon /> : <SearchIcon />}
               </button>
             </div>
-            {semesters.length > 0 && (
-              <label className="semester-filter">
-                <span className="semester-filter__label">Semester</span>
-                <select
-                  className="semester-filter__select"
-                  value={semesterId}
-                  onChange={(e) => setSemesterId(e.target.value)}
-                >
-                  <option value="">All semesters</option>
-                  {semesters.map((s) => (
-                    <option key={s.id} value={String(s.id)}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
           </form>
         )}
 
