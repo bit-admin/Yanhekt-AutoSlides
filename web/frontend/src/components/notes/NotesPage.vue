@@ -616,8 +616,8 @@ async function onMoveGroup(groupId: number): Promise<void> {
   --nt-text-muted: #787774;
   --nt-border: rgba(0, 0, 0, 0.06);
   --nt-accent: #2383e2;
-  --nt-selection-bg: rgba(35, 131, 226, 0.28);
-  --nt-selection-fg: inherit;
+  --nt-selection-bg: #b5d4f5;
+  --nt-selection-fg: #1a1a1a;
   --nt-elevated: #ffffff;
   --nt-elevated-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   /* Notion-style workspace avatar: light gray square + dark glyph */
@@ -638,8 +638,8 @@ html[data-theme="dark"] .notes-workspace {
   --nt-text-muted: rgba(255, 255, 255, 0.5);
   --nt-border: rgba(255, 255, 255, 0.09);
   --nt-accent: #5b9dff;
-  --nt-selection-bg: rgba(91, 157, 255, 0.38);
-  --nt-selection-fg: rgba(255, 255, 255, 0.92);
+  --nt-selection-bg: #3a5d88;
+  --nt-selection-fg: #f2f5f8;
   --nt-elevated: #2a2a2a;
   --nt-elevated-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   /* Muted square + light glyph (matches Notion dark sidebar) */

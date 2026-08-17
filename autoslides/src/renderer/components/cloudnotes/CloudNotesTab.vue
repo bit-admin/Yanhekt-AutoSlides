@@ -165,18 +165,18 @@
               <button
                 class="cn-group-item cn-group-item--managed"
                 :class="{ active: cn.activeGroupId.value === g.id }"
-                :title="g.name"
+                :title="groupLabel(g)"
                 @click="cn.setGroup(g.id)"
               >
                 <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
                 </svg>
-                {{ g.name }}
+                {{ groupLabel(g) }}
               </button>
               <button
                 class="cn-icon-btn cn-group-delete"
                 :title="$t('cloudNotes.deleteGroup')"
-                @click.stop="onDeleteGroup(g.id, g.name)"
+                @click.stop="onDeleteGroup(g.id, groupLabel(g))"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>
               </button>
@@ -205,19 +205,19 @@
             <button
               class="cn-group-item"
               :class="{ active: cn.activeGroupId.value === g.id }"
-              :title="g.id === 0 ? $t('cloudNotes.defaultGroup') : (g.name || $t('cloudNotes.defaultGroup'))"
+              :title="groupLabel(g)"
               @click="cn.setGroup(g.id)"
             >
               <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
               </svg>
-              {{ g.id === 0 ? $t('cloudNotes.defaultGroup') : (g.name || $t('cloudNotes.defaultGroup')) }}
+              {{ groupLabel(g) }}
             </button>
             <button
               v-if="g.id !== 0"
               class="cn-icon-btn cn-group-delete"
               :title="$t('cloudNotes.deleteGroup')"
-              @click.stop="onDeleteGroup(g.id, g.name)"
+              @click.stop="onDeleteGroup(g.id, groupLabel(g))"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>
             </button>
@@ -537,7 +537,7 @@ import { useNoteImport } from '@features/cloudNotes/useNoteImport'
 import { useShareIndexExport } from '@features/cloudNotes/useShareIndexExport'
 import { useCloudIndexBrowse, type IndexTermOption } from '@features/cloudNotes/useCloudIndexBrowse'
 import { navigationStore } from '@features/course/navigationStore'
-import type { IndexLecture, IndexVersion } from '@common/notesTypes'
+import { formatNoteGroupLabel, type IndexLecture, type IndexVersion } from '@common/notesTypes'
 import CloudIndexViewer from './CloudIndexViewer.vue'
 import CloudIndexRemovalModal from './CloudIndexRemovalModal.vue'
 import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
@@ -553,15 +553,17 @@ import { useNoteEditor } from '@features/cloudNotes/useNoteEditor'
 import { useNoteExport } from '@features/cloudNotes/useNoteExport'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { SHARE_ORIGIN } from '@common/shareLink'
-import { NOTE_COPYRIGHT } from '@common/notesContent'
 
 const { t } = useI18n()
+
+function groupLabel(g: { id: number; name: string }): string {
+  return formatNoteGroupLabel(g, t)
+}
 const cn = useCloudNotes()
 const { userId } = useAuth()
 
 const imp = useNoteImport(cn, {
   meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
-  warning: NOTE_COPYRIGHT,
   slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
 })
 const exp = useNoteExport(cn)

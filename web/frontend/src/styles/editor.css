@@ -261,28 +261,29 @@ html[data-theme="dark"] .ce-toolbar__settings-btn:hover {
 }
 
 /*
-  Selection — one blue for BOTH text range and full-block select.
-  Editor.js hardcodes #d4ecff (::selection) and #e1f2ff (block) — different
-  lights that also wash out dark-mode body text. Use the same token for both.
+  Selection — one opaque color for BOTH text range and full-block select.
+  Semi-transparent tokens stacked (block bg + ::selection) as two layers;
+  Editor.js also hardcodes #d4ecff on ::selection. Runtime rewrite lives in
+  lib/notes/editorSelection.ts; these literals cover first paint.
 */
 .codex-editor ::selection,
 .codex-editor ::-moz-selection {
-  background: var(--nt-selection-bg, rgba(35, 131, 226, 0.28)) !important;
-  background-color: var(--nt-selection-bg, rgba(35, 131, 226, 0.28)) !important;
-  color: var(--nt-selection-fg, inherit) !important;
+  background: #b5d4f5 !important;
+  background-color: #b5d4f5 !important;
+  color: #1a1a1a !important;
 }
 
 .ce-block--selected .ce-block__content {
-  background: var(--nt-selection-bg, rgba(35, 131, 226, 0.28)) !important;
+  background: #b5d4f5 !important;
 }
 
 html[data-theme="dark"] .codex-editor ::selection,
 html[data-theme="dark"] .codex-editor ::-moz-selection {
-  background: var(--nt-selection-bg, rgba(91, 157, 255, 0.38)) !important;
-  background-color: var(--nt-selection-bg, rgba(91, 157, 255, 0.38)) !important;
-  color: var(--nt-selection-fg, rgba(255, 255, 255, 0.92)) !important;
+  background: #3a5d88 !important;
+  background-color: #3a5d88 !important;
+  color: #f2f5f8 !important;
 }
 
 html[data-theme="dark"] .ce-block--selected .ce-block__content {
-  background: var(--nt-selection-bg, rgba(91, 157, 255, 0.38)) !important;
+  background: #3a5d88 !important;
 }

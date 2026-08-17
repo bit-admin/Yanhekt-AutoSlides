@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue';
 import type { NoteSummary, NoteDetail, NoteGroup, NotesResult } from '../../lib/notes/notesTypes';
-import { isAutoSlidesGroupName } from '../../lib/notes/notesTypes';
+import { isAutoSlidesGroupName, isManagedGroupName } from '../../lib/notes/notesTypes';
 import { notesClient } from '../../lib/notes/notesClient';
 import { cloudStorageStore } from '../../stores/cloudStorageStore';
 
@@ -60,8 +60,13 @@ export function useCloudNotes() {
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null);
 
-  /** The AutoSlides-managed groups (ASnote import + ASuser watch), by reserved name. */
-  const managedGroups = computed(() => groups.value.filter((g) => isAutoSlidesGroupName(g.name)));
+  /** Managed groups — ASuser (Watch Notes) first, then ASnote (AutoSlides Database). */
+  const managedGroups = computed(() =>
+    groups.value
+      .filter((g) => isAutoSlidesGroupName(g.name))
+      .slice()
+      .sort((a, b) => Number(isManagedGroupName(a.name)) - Number(isManagedGroupName(b.name))),
+  );
   /** Everything else: the default (Ungrouped) group + user-created groups. */
   const otherGroups = computed(() => groups.value.filter((g) => !isAutoSlidesGroupName(g.name)));
 

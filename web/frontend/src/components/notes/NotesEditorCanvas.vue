@@ -315,7 +315,7 @@
             <span class="nec-meta-caption">{{ $t('cloudNotes.folderLabel') }}</span>
             <select class="nec-group-select" :value="String(groupId)" @change="onGroupChange">
               <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
-              <option v-for="g in moveGroups" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
+              <option v-for="g in moveGroups" :key="g.id" :value="String(g.id)">{{ groupLabel(g) }}</option>
             </select>
           </label>
         </div>
@@ -334,7 +334,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import type { NoteGroup } from '../../lib/notes/notesTypes'
-import { managedNoteDisplayName, managedNoteIdentity } from '../../lib/notes/notesTypes'
+import { formatNoteGroupLabel, managedNoteDisplayName, managedNoteIdentity } from '../../lib/notes/notesTypes'
 import {
   NOTES_FONT_FALLBACKS,
   NOTES_FONT_SETS,
@@ -372,6 +372,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+function groupLabel(g: { id: number; name: string }): string {
+  return formatNoteGroupLabel(g, t)
+}
 
 const menuOpen = ref(false)
 const menuRoot = ref<HTMLElement | null>(null)

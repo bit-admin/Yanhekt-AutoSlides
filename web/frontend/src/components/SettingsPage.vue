@@ -252,19 +252,19 @@
               <div class="cloud-storage-card">
                 <span class="cloud-storage-dot" :class="statusClass"></span>
                 <div class="cloud-storage-text">
-                  <span class="cloud-storage-title">{{ noteGroupName }} {{ statusText }}</span>
-                  <span class="cloud-storage-subtitle">{{ $t('settings.cloudStorageGroupDescription') }}</span>
+                  <span class="cloud-storage-title">{{ userGroupTitle }} {{ statusText }}</span>
+                  <span class="cloud-storage-subtitle">{{ $t('settings.cloudStorageGroupDescriptionUser') }}</span>
                 </div>
-                <span v-if="noteIdText" class="cloud-storage-meta">{{ noteIdText }}</span>
+                <span v-if="userIdText" class="cloud-storage-meta">{{ userIdText }}</span>
               </div>
 
               <div class="cloud-storage-card">
                 <span class="cloud-storage-dot" :class="statusClass"></span>
                 <div class="cloud-storage-text">
-                  <span class="cloud-storage-title">{{ userGroupLabel }} {{ statusText }}</span>
-                  <span class="cloud-storage-subtitle">{{ $t('settings.cloudStorageGroupDescriptionUser') }}</span>
+                  <span class="cloud-storage-title">{{ noteGroupTitle }} {{ statusText }}</span>
+                  <span class="cloud-storage-subtitle">{{ $t('settings.cloudStorageGroupDescription') }}</span>
                 </div>
-                <span v-if="userIdText" class="cloud-storage-meta">{{ userIdText }}</span>
+                <span v-if="noteIdText" class="cloud-storage-meta">{{ noteIdText }}</span>
               </div>
             </div>
 
@@ -393,7 +393,7 @@ import {
 } from '../stores/settingsStore'
 import { cloudStorageStore } from '../stores/cloudStorageStore'
 import { authStore } from '../stores/authStore'
-import { MANAGED_GROUP_NAME, USER_GROUP_NAME } from '../lib/notes/notesTypes'
+import { formatGroupSettingsTitle, MANAGED_GROUP_NAME, USER_GROUP_NAME } from '../lib/notes/notesTypes'
 
 defineOptions({ name: 'SettingsPage' })
 
@@ -404,8 +404,8 @@ const languageMode = computed(() => configStore.languageMode)
 const publicRelay = PUBLIC_RELAY_ENDPOINT
 const store = cloudStorageStore
 
-const noteGroupName = MANAGED_GROUP_NAME
-const userGroupLabel = USER_GROUP_NAME
+const noteGroupTitle = computed(() => formatGroupSettingsTitle(MANAGED_GROUP_NAME, t))
+const userGroupTitle = computed(() => formatGroupSettingsTitle(USER_GROUP_NAME, t))
 
 const storageBusy = computed(
   () => store.status.value === 'checking' || store.status.value === 'repairing',

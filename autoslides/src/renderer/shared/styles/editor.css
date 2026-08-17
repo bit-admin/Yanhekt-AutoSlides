@@ -174,20 +174,46 @@
 
 /*
   Selection — one accent wash for BOTH text range and full-block select.
-  Editor.js hardcodes different light blues (#d4ecff / #e1f2ff); use the same
-  token for both so they never diverge.
+  Editor.js hardcodes #d4ecff (::selection) and #e1f2ff (block).
+
+  Two Electron/Chromium quirks:
+  1) var() on ::selection is dropped, so colors must be literals.
+  2) semi-transparent ::selection is composited against white (not the
+     dark editor surface), which turns rgba(91,157,255,0.38) into the
+     same ice-blue as Editor.js. Use opaque colors here. Block-select
+     is a real element, so tokens/alpha still work for that.
 */
 .codex-editor {
   --editor-selection-bg: color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .codex-editor ::selection,
-.codex-editor ::-moz-selection {
-  background: var(--editor-selection-bg) !important;
-  background-color: var(--editor-selection-bg) !important;
-  color: var(--text-primary) !important;
+.codex-editor ::-moz-selection,
+.codex-editor [contenteditable] ::selection,
+.codex-editor [contenteditable]::selection {
+  background: #b5d4f5 !important;
+  background-color: #b5d4f5 !important;
+  color: #1a1a1a !important;
+  -webkit-text-fill-color: #1a1a1a !important;
 }
 
 .ce-block--selected .ce-block__content {
-  background: var(--editor-selection-bg) !important;
+  background: var(--editor-selection-bg, rgba(0, 122, 204, 0.28)) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .codex-editor ::selection,
+  .codex-editor ::-moz-selection,
+  .codex-editor [contenteditable] ::selection,
+  .codex-editor [contenteditable]::selection {
+    /* Opaque stand-in for rgba(91,157,255,0.38) over the dark editor. */
+    background: #3a5d88 !important;
+    background-color: #3a5d88 !important;
+    color: #f2f5f8 !important;
+    -webkit-text-fill-color: #f2f5f8 !important;
+  }
+
+  .ce-block--selected .ce-block__content {
+    background: var(--editor-selection-bg, rgba(91, 157, 255, 0.38)) !important;
+  }
 }

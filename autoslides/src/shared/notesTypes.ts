@@ -267,6 +267,45 @@ export function isAutoSlidesGroupName(name: string): boolean {
   return isManagedGroupName(name) || isUserGroupName(name);
 }
 
+/** i18n keys for friendly UI names. Server group names stay ASnote / ASuser. */
+export const MANAGED_GROUP_LABEL_KEY = 'cloudNotes.managedGroupAsnote';
+export const USER_GROUP_LABEL_KEY = 'cloudNotes.managedGroupAsuser';
+
+/**
+ * Drive / Notes label for a group. Maps reserved server names to localized
+ * titles (AutoSlides Database, Watch Notes); anything else is returned as-is.
+ */
+export function formatGroupDisplayName(
+  name: string,
+  translate: (key: string) => string,
+): string {
+  if (isManagedGroupName(name)) return translate(MANAGED_GROUP_LABEL_KEY);
+  if (isUserGroupName(name)) return translate(USER_GROUP_LABEL_KEY);
+  return name;
+}
+
+/**
+ * Settings card title: friendly name plus the raw server identifier, e.g.
+ * `AutoSlides Database (ASnote)`. Non-managed names are unchanged.
+ */
+export function formatGroupSettingsTitle(
+  name: string,
+  translate: (key: string) => string,
+): string {
+  if (!isAutoSlidesGroupName(name)) return name;
+  return `${formatGroupDisplayName(name, translate)} (${name})`;
+}
+
+/** Label for a note-group row or <option>, including the Ungrouped sentinel. */
+export function formatNoteGroupLabel(
+  group: { id: number; name: string },
+  translate: (key: string) => string,
+  ungroupedKey = 'cloudNotes.defaultGroup',
+): string {
+  if (group.id === 0) return translate(ungroupedKey);
+  return formatGroupDisplayName(group.name, translate) || translate(ungroupedKey);
+}
+
 /**
  * @deprecated Titles no longer use an `AS ·` prefix (id token is first). Kept so
  * callers that still mention the constant compile; do not emit this on new notes.

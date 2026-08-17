@@ -598,8 +598,8 @@ function demoNoteBlocks(spec: DemoNoteSpec): EditorJsBlock[] {
   if (spec.kind === 'readme') {
     return [
       { type: 'header', data: { text: 'AutoSlides Cloud Storage', level: 2 } },
-      { type: 'paragraph', data: { text: 'This “ASnote” group holds slide decks AutoSlides exported to your Yanhekt notes. Each note keeps the slides from one lecture.' } },
-      { type: 'paragraph', data: { text: 'Please don’t rename or delete the ASnote group — AutoSlides looks it up by name.' } },
+      { type: 'paragraph', data: { text: 'This AutoSlides Database group (named ASnote on Yanhekt) holds slide decks AutoSlides exported to your Yanhekt notes. Each note keeps the slides from one lecture.' } },
+      { type: 'paragraph', data: { text: 'Please don’t rename or delete the ASnote group — AutoSlides looks it up by that reserved name.' } },
     ]
   }
   return [

@@ -2,11 +2,16 @@ import { describe, it, expect } from 'vitest';
 import {
   buildManagedNoteTitle,
   buildShareImportTitle,
+  formatGroupDisplayName,
+  formatGroupSettingsTitle,
+  formatNoteGroupLabel,
   isManagedNoteTitle,
+  MANAGED_GROUP_NAME,
   managedNoteDisplayName,
   managedNoteIdentity,
   shareImportDisplayName,
   splitNoteDisplayName,
+  USER_GROUP_NAME,
 } from './notesTypes';
 
 describe('managed note titles', () => {
@@ -59,6 +64,24 @@ describe('managed note titles', () => {
         { courseTitle: '操作系统', sessionTitle: '第1周 星期二 第5大节' },
       ),
     ).toBe('c61841s751112 · 操作系统 · 第1周 星期二 第5大节');
+  });
+
+  it('maps reserved group names to friendly UI labels and leaves others alone', () => {
+    const translate = (key: string) =>
+      key === 'cloudNotes.managedGroupAsnote'
+        ? 'AutoSlides Database'
+        : key === 'cloudNotes.managedGroupAsuser'
+          ? 'Watch Notes'
+          : key === 'cloudNotes.defaultGroup'
+            ? 'Ungrouped'
+            : key;
+    expect(formatGroupDisplayName(MANAGED_GROUP_NAME, translate)).toBe('AutoSlides Database');
+    expect(formatGroupDisplayName(USER_GROUP_NAME, translate)).toBe('Watch Notes');
+    expect(formatGroupDisplayName('Math', translate)).toBe('Math');
+    expect(formatGroupSettingsTitle(MANAGED_GROUP_NAME, translate)).toBe('AutoSlides Database (ASnote)');
+    expect(formatGroupSettingsTitle(USER_GROUP_NAME, translate)).toBe('Watch Notes (ASuser)');
+    expect(formatNoteGroupLabel({ id: 0, name: '' }, translate)).toBe('Ungrouped');
+    expect(formatNoteGroupLabel({ id: 1, name: MANAGED_GROUP_NAME }, translate)).toBe('AutoSlides Database');
   });
 
   it('turns a hydrated share result into the on-disk folder stem', () => {

@@ -61,7 +61,6 @@ export interface ImportItem {
 /** Localized strings for the generated note content (the component owns i18n). */
 export interface ImportTexts {
   meta: (count: number, date: string) => string
-  warning: string
   slideCaption: (n: number) => string
 }
 
@@ -134,7 +133,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     const blocks: EditorJsBlock[] = [
       { type: 'header', data: { text: heading, level: 2 } },
       { type: 'paragraph', data: { text: texts.meta(urls.length, new Date().toLocaleDateString()) } },
-      { type: 'paragraph', data: { text: texts.warning } },
       ...urls.map((url, idx): EditorJsBlock => ({
         type: 'image',
         data: {

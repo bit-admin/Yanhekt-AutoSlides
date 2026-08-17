@@ -393,7 +393,6 @@ import { useNoteImport } from '@features/cloudNotes/useNoteImport'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { navigationStore } from '@features/course/navigationStore'
-import { NOTE_COPYRIGHT } from '@common/notesContent'
 import { configStore } from '@shared/services/configStore'
 import ResultsImageGrid from './ResultsImageGrid.vue'
 import ResultsPreviewModal from './ResultsPreviewModal.vue'
@@ -585,7 +584,6 @@ const {
 const cn = useCloudNotes()
 const imp = useNoteImport(cn, {
   meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
-  warning: NOTE_COPYRIGHT,
   slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
 })
 const showNotesModal = ref(false)

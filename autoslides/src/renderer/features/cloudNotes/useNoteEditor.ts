@@ -9,6 +9,7 @@ import Quote from '@editorjs/quote'
 import CodeTool from '@editorjs/code'
 import Table from '@editorjs/table'
 import type { useCloudNotes } from './useCloudNotes'
+import { syncEditorJsSelectionStyles } from './editorSelection'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
 
@@ -140,6 +141,7 @@ export function useNoteEditor(
     })
     editor = instance
     await instance.isReady
+    syncEditorJsSelectionStyles()
     if (editor !== instance) return
     // Capture the editor's own block serialization of the just-loaded content as
     // the baseline, so the initial render's onChange (and block normalization)

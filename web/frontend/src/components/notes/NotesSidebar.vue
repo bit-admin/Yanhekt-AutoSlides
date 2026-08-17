@@ -69,13 +69,13 @@
           type="button"
           class="ns-row"
           :class="{ active: activeGroupId === g.id }"
-          :title="g.name"
+          :title="groupLabel(g)"
           @click="emit('set-group', g.id)"
         >
           <svg class="ns-row-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
           </svg>
-          <span class="ns-row-label">{{ g.name }}</span>
+          <span class="ns-row-label">{{ groupLabel(g) }}</span>
         </button>
       </div>
 
@@ -86,14 +86,14 @@
             type="button"
             class="ns-row"
             :class="{ active: activeGroupId === g.id }"
-            :title="g.id === 0 ? $t('cloudNotes.defaultGroup') : (g.name || $t('cloudNotes.defaultGroup'))"
+            :title="groupLabel(g)"
             @click="emit('set-group', g.id)"
           >
             <svg class="ns-row-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
             <span class="ns-row-label">
-              {{ g.id === 0 ? $t('cloudNotes.defaultGroup') : (g.name || $t('cloudNotes.defaultGroup')) }}
+              {{ groupLabel(g) }}
             </span>
           </button>
           <button
@@ -101,7 +101,7 @@
             type="button"
             class="ns-icon-btn ns-row-action"
             :title="$t('cloudNotes.deleteGroup')"
-            @click.stop="emit('delete-group', g.id, g.name)"
+            @click.stop="emit('delete-group', g.id, groupLabel(g))"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" />
@@ -179,8 +179,15 @@
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import type { NoteGroup, NoteSummary } from '../../lib/notes/notesTypes'
+import { useI18n } from 'vue-i18n'
+import { formatNoteGroupLabel, type NoteGroup, type NoteSummary } from '../../lib/notes/notesTypes'
 import NotesUserMenu from './NotesUserMenu.vue'
+
+const { t } = useI18n()
+
+function groupLabel(g: { id: number; name: string }): string {
+  return formatNoteGroupLabel(g, t)
+}
 
 defineProps<{
   keyword: string

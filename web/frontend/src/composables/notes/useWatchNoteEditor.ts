@@ -9,6 +9,7 @@ import Quote from '@editorjs/quote';
 import CodeTool from '@editorjs/code';
 import Table from '@editorjs/table';
 import { notesClient } from '../../lib/notes/notesClient';
+import { syncEditorJsSelectionStyles } from '../../lib/notes/editorSelection';
 
 /**
  * Slim Editor.js lifecycle for the playback-sidebar watch-notes editor. Mirrors
@@ -120,6 +121,7 @@ export function useWatchNoteEditor(
     });
     editor = instance;
     await instance.isReady;
+    syncEditorJsSelectionStyles();
     if (editor !== instance) return;
     try {
       lastSavedBlocks = JSON.stringify((await instance.save()).blocks);

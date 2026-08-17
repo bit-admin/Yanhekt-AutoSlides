@@ -9,7 +9,7 @@
         <div class="cloud-storage-card">
           <span class="cloud-storage-dot" :class="statusClass"></span>
           <div class="cloud-storage-text">
-            <span class="cloud-storage-title">{{ noteGroupName }} {{ statusText }}</span>
+            <span class="cloud-storage-title">{{ noteGroupTitle }} {{ statusText }}</span>
             <span class="cloud-storage-subtitle">{{ $t('advanced.cloudStorage.groupDescription') }}</span>
           </div>
           <span v-if="noteIdText" class="cloud-storage-meta">{{ noteIdText }}</span>
@@ -19,7 +19,7 @@
         <div class="cloud-storage-card">
           <span class="cloud-storage-dot" :class="statusClass"></span>
           <div class="cloud-storage-text">
-            <span class="cloud-storage-title">{{ userGroupName }} {{ statusText }}</span>
+            <span class="cloud-storage-title">{{ userGroupTitle }} {{ statusText }}</span>
             <span class="cloud-storage-subtitle">{{ $t('advanced.cloudStorage.groupDescriptionUser') }}</span>
           </div>
           <span v-if="userIdText" class="cloud-storage-meta">{{ userIdText }}</span>
@@ -139,7 +139,7 @@
 // so it reads the shared cloudStorageStore directly instead of settingsContext.
 import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MANAGED_GROUP_NAME, USER_GROUP_NAME } from '@common/notesTypes'
+import { formatGroupSettingsTitle, MANAGED_GROUP_NAME, USER_GROUP_NAME } from '@common/notesTypes'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { useSettingsContext } from '@features/settings/settingsContext'
 
@@ -167,11 +167,10 @@ watch(tempCloudAutoSyncMode, (mode) => {
     tempCloudAutoRepublishAfterResync.value = false
   }
 })
-// The managed groups' names are fixed, non-localized identifiers (server-side
-// dedup keys) — always show them, even before the groups exist, so each card's
-// title reads e.g. "ASnote Not initialized" rather than a blank prefix.
-const noteGroupName = MANAGED_GROUP_NAME
-const userGroupName = USER_GROUP_NAME
+// Friendly title plus the reserved server name, even before the groups exist,
+// so each card reads e.g. "AutoSlides Database (ASnote) Not initialized".
+const noteGroupTitle = computed(() => formatGroupSettingsTitle(MANAGED_GROUP_NAME, t))
+const userGroupTitle = computed(() => formatGroupSettingsTitle(USER_GROUP_NAME, t))
 
 const busy = computed(() =>
   store.status.value === 'checking' || store.status.value === 'repairing')

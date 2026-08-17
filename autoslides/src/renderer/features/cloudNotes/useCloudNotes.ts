@@ -5,7 +5,7 @@ import type {
   NoteGroup,
   NotesResult,
 } from '@common/notesTypes'
-import { isManagedGroupName, isAutoSlidesGroupName, README_NOTE_TITLE } from '@common/notesTypes'
+import { isManagedGroupName, isUserGroupName, isAutoSlidesGroupName, README_NOTE_TITLE } from '@common/notesTypes'
 import { overrides } from '@shared/overrideRegistry'
 
 const PAGE_SIZE = 20
@@ -66,8 +66,13 @@ export function useCloudNotes() {
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null)
 
-  /** The AutoSlides-managed groups (ASnote import + ASuser watch), by reserved name. */
-  const managedGroups = computed(() => groups.value.filter((g) => isAutoSlidesGroupName(g.name)))
+  /** Managed groups — ASnote (AutoSlides Database) first, then ASuser (Watch Notes). */
+  const managedGroups = computed(() =>
+    groups.value
+      .filter((g) => isAutoSlidesGroupName(g.name))
+      .slice()
+      .sort((a, b) => Number(isUserGroupName(a.name)) - Number(isUserGroupName(b.name))),
+  )
   /** Everything else: the default (Ungrouped) group + user-created groups. */
   const otherGroups = computed(() => groups.value.filter((g) => !isAutoSlidesGroupName(g.name)))
   /** Whether the ASnote import group has been provisioned on the server. */

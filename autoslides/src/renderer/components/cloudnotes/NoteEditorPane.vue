@@ -25,7 +25,7 @@
         />
         <select class="text-input cn-group-select" :value="String(cn.selectedNote.value.note_group_id ?? 0)" @change="onMoveGroup">
           <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
-          <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
+          <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ groupLabel(g) }}</option>
         </select>
         <!-- Share is always available for the open note (image check happens in the
              modal so live edits that add images don't hide the button). Export stays
@@ -68,9 +68,17 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { formatNoteGroupLabel } from '@common/notesTypes'
 import type { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import type { useNoteEditor } from '@features/cloudNotes/useNoteEditor'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
+
+const { t } = useI18n()
+
+function groupLabel(g: { id: number; name: string }): string {
+  return formatNoteGroupLabel(g, t)
+}
 
 const props = defineProps<{
   cn: ReturnType<typeof useCloudNotes>

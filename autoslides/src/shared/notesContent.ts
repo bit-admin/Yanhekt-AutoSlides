@@ -24,11 +24,8 @@ export const NOTE_METADATA_KEY = 'autoslides';
 export const NOTE_METADATA_VERSION = 1;
 
 /**
- * Short, English-only copyright notice embedded in every imported note (a
- * condensed form of the PDF Maker cover copyright). Kept English regardless of
- * UI language since the note travels with the user's Yanhekt account. Shared by
- * every import call site (Cloud Notes folder import, Cloud Index share-link
- * import) so the wording can't drift between them.
+ * Short, English-only copyright notice seeded into watch-mode (ASuser) notes.
+ * ASnote imports use a compact metadata line instead (`cloudNotes.noteMeta`).
  */
 export const NOTE_COPYRIGHT =
   'This file may contain copyrighted material, extracted from a recorded lecture solely for ' +

@@ -8,6 +8,7 @@ import Delimiter from '@editorjs/delimiter'
 import Quote from '@editorjs/quote'
 import CodeTool from '@editorjs/code'
 import Table from '@editorjs/table'
+import { syncEditorJsSelectionStyles } from './editorSelection'
 
 /**
  * Slim Editor.js lifecycle for the right-panel watch-notes editor. Mirrors the
@@ -117,6 +118,7 @@ export function useWatchNoteEditor(
     })
     editor = instance
     await instance.isReady
+    syncEditorJsSelectionStyles()
     if (editor !== instance) return
     try {
       lastSavedBlocks = JSON.stringify((await instance.save()).blocks)
