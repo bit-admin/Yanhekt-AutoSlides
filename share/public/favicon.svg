@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AutoSlides Index">
+  <!--
+    The Index wordmark mark (U+25A6 ▦) at its true 4×4 orthogonal-crosshatch
+    proportions, centred on a blank field — the way the AutoSlides web favicon
+    pads its play mark rather than reshaping it. The waffle spans 81% of the
+    canvas: enough white to still read as a framed card, without the margin
+    swallowing the 16 cells at favicon sizes.
+
+    Corners are rounded and the area outside them is transparent, so flattening
+    this file onto white yields the square, opaque canvas iOS wants for
+    apple-touch-icon; 32/48/180/192/512 render straight from it. The 16px ICO
+    layer is a pixel-hinted sibling (full-bleed tile, 1px holes) so all 16
+    cells survive a tab favicon.
+  -->
+  <rect width="64" height="64" rx="14" fill="#FFFFFF"/>
+  <g transform="translate(6 6)">
+    <rect width="52" height="52" fill="#3B6FE0"/>
+    <g fill="#FFFFFF">
+      <rect x="4" y="4" width="8" height="8"/>
+      <rect x="16" y="4" width="8" height="8"/>
+      <rect x="28" y="4" width="8" height="8"/>
+      <rect x="40" y="4" width="8" height="8"/>
+      <rect x="4" y="16" width="8" height="8"/>
+      <rect x="16" y="16" width="8" height="8"/>
+      <rect x="28" y="16" width="8" height="8"/>
+      <rect x="40" y="16" width="8" height="8"/>
+      <rect x="4" y="28" width="8" height="8"/>
+      <rect x="16" y="28" width="8" height="8"/>
+      <rect x="28" y="28" width="8" height="8"/>
+      <rect x="40" y="28" width="8" height="8"/>
+      <rect x="4" y="40" width="8" height="8"/>
+      <rect x="16" y="40" width="8" height="8"/>
+      <rect x="28" y="40" width="8" height="8"/>
+      <rect x="40" y="40" width="8" height="8"/>
+    </g>
+  </g>
+</svg>

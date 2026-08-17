@@ -9,6 +9,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: '/',
   root: 'apex',
+  // Favicons live in share/public/ (not apex/public) so both Vite builds can
+  // see them. Relative to `root`, that is ../public → copied to dist/.
+  publicDir: '../public',
   plugins: [react()],
   server: {
     fs: { allow: ['..'] },
