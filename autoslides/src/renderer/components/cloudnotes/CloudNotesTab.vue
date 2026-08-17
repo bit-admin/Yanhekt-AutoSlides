@@ -383,15 +383,35 @@
                   <span class="cn-index-version-count">{{ $t('cloudIndex.slideCount', { n: v.imageCount ?? 0 }) }}</span>
                   <span v-if="v.hasTimeline" class="cn-index-timeline" :title="$t('cloudIndex.hasTimeline')">
                     {{ $t('cloudIndex.timeline') }}
-                    <svg class="cn-index-verified cn-index-verified--reviewed" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1.2 14.4l-4-4 1.4-1.4 2.6 2.6 5.4-5.4 1.4 1.4z"/></svg>
+                    <svg class="cn-index-timeline-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                   </span>
                   <svg
                     v-if="v.reviewed"
                     class="cn-index-verified"
                     :class="v.edited ? 'cn-index-verified--edited' : 'cn-index-verified--reviewed'"
                     :title="v.edited ? $t('cloudIndex.edited') : $t('cloudIndex.reviewed')"
-                    width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-                  ><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1.2 14.4l-4-4 1.4-1.4 2.6 2.6 5.4-5.4 1.4 1.4z"/></svg>
+                    width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"
+                  >
+                    <g fill="currentColor">
+                      <circle cx="20.2" cy="12" r="3.3" />
+                      <circle cx="17.8" cy="17.8" r="3.3" />
+                      <circle cx="12" cy="20.2" r="3.3" />
+                      <circle cx="6.2" cy="17.8" r="3.3" />
+                      <circle cx="3.8" cy="12" r="3.3" />
+                      <circle cx="6.2" cy="6.2" r="3.3" />
+                      <circle cx="12" cy="3.8" r="3.3" />
+                      <circle cx="17.8" cy="6.2" r="3.3" />
+                      <circle cx="12" cy="12" r="7.2" />
+                    </g>
+                    <path
+                      d="M7.9 12.4 10.5 15 16.3 9"
+                      stroke="#fff"
+                      stroke-width="2.3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      fill="none"
+                    />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -1740,14 +1760,15 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
 .cn-index-timeline {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   margin-left: auto;
   font-size: 11px;
   font-weight: 600;
   color: var(--success);
 }
-.cn-index-timeline .cn-index-verified {
-  margin-left: 0;
+.cn-index-timeline-check {
+  color: var(--success);
+  flex: none;
 }
 .cn-index-verified {
   color: var(--accent);

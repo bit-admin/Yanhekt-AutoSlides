@@ -579,7 +579,7 @@ function FilePanel({
               {v.hasTimeline && (
                 <span className="version-timeline" title="Has timeline">
                   Timeline
-                  <VerifiedIcon className="version-timeline-icon" label="Has timeline" />
+                  <TimelineCheckIcon className="version-timeline-icon" label="Has timeline" />
                 </span>
               )}
               {v.reviewed && (
@@ -981,6 +981,16 @@ function FlagIcon() {
         fill="none"
       />
     </svg>
+  );
+}
+
+function TimelineCheckIcon({ className = 'version-timeline-icon', label = 'Has timeline' }: { className?: string; label?: string }) {
+  return (
+    <span className={className} title={label}>
+      <svg width="14" height="14" viewBox="0 0 24 24" aria-label={label} fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    </span>
   );
 }
 
