@@ -1,12 +1,25 @@
 /**
  * Cache Management Service
- * Handles cache statistics, cleanup, and data reset operations
+ *
+ * Manual stats + clear for Chromium session caches and app-owned cache dirs.
+ * There is no automatic cleanup — Settings → General drives this.
+ *
+ * Clear uses Electron session APIs for HTTP + V8/WASM caches (safe while the
+ * app is running). GPU/Dawn/shader dirs and app folders (thumbnails,
+ * lecture-posters, updates, temp) are removed as files. Cookies, Local
+ * Storage, config, and models are left alone.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { app } from 'electron';
+import { app, session } from 'electron';
 import { createLogger } from '@main/infra/logger';
+import {
+  APP_CACHE_DIR_NAMES,
+  collectCacheRoots,
+  collectFilesystemOnlyCacheRoots,
+} from './cachePaths';
+
 const log = createLogger('PlatformCacheManagement');
 
 export interface CacheStats {
@@ -21,82 +34,47 @@ export interface CacheOperationResult {
 
 export class CacheManagementService {
   private readonly userDataPath: string;
-  private readonly tempPath: string;
+  private readonly appTempPath: string;
 
   constructor() {
     this.userDataPath = app.getPath('userData');
-    this.tempPath = app.getPath('temp');
+    this.appTempPath = path.join(app.getPath('temp'), 'AutoSlides');
   }
 
-  /**
-   * Get cache statistics
-   */
   async getStats(): Promise<CacheStats> {
     try {
-      const stats: CacheStats = {
-        totalSize: 0,
-        tempFiles: 0
-      };
+      const partitions = await this.listPartitionNames();
+      const roots = collectCacheRoots(this.userDataPath, this.appTempPath, partitions);
 
-      // Calculate app-specific temp files
-      const appTempPath = path.join(this.tempPath, 'AutoSlides');
-      if (await this.pathExists(appTempPath)) {
-        const tempStats = await this.calculateDirectoryStats(appTempPath);
-        stats.totalSize += tempStats.size;
-        stats.tempFiles += tempStats.files;
+      let totalSize = 0;
+      let tempFiles = 0;
+      for (const root of roots) {
+        if (!(await this.pathExists(root))) continue;
+        const stats = await this.calculateDirectoryStats(root);
+        totalSize += stats.size;
+        tempFiles += stats.files;
       }
 
-      // Calculate other cache directories in userData
-      const cacheDirectories = ['cache', 'tmp', 'temp', 'Cache', 'thumbnails'];
-      for (const dir of cacheDirectories) {
-        const cachePath = path.join(this.userDataPath, dir);
-        if (await this.pathExists(cachePath)) {
-          const cacheStats = await this.calculateDirectoryStats(cachePath);
-          stats.totalSize += cacheStats.size;
-          stats.tempFiles += cacheStats.files;
-        }
-      }
-
-      return stats;
+      return { totalSize, tempFiles };
     } catch (error) {
       log.error('Failed to get cache stats:', error);
-      return {
-        totalSize: 0,
-        tempFiles: 0
-      };
+      return { totalSize: 0, tempFiles: 0 };
     }
   }
 
-  /**
-   * Clear cache files
-   */
   async clearCache(): Promise<CacheOperationResult> {
     try {
-      let clearedFiles = 0;
+      await this.clearSessionCaches();
+      await this.removeAppCacheDirs();
+      await this.removeFilesystemOnlyCaches();
 
-      // Clear app-specific temp files
-      const appTempPath = path.join(this.tempPath, 'AutoSlides');
-      if (await this.pathExists(appTempPath)) {
-        clearedFiles += await this.removeDirectory(appTempPath);
-      }
-
-
-      // Clear cache directories in userData
-      const cacheDirectories = ['cache', 'tmp', 'temp', 'Cache', 'thumbnails'];
-      for (const dir of cacheDirectories) {
-        const cachePath = path.join(this.userDataPath, dir);
-        if (await this.pathExists(cachePath)) {
-          clearedFiles += await this.removeDirectory(cachePath);
-        }
-      }
-
-      log.debug(`Cache cleared: ${clearedFiles} files removed`);
+      log.debug('Cache cleared via session APIs + app cache dirs');
       return { success: true };
     } catch (error) {
       log.error('Failed to clear cache:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -106,50 +84,75 @@ export class CacheManagementService {
    */
   async resetAllData(): Promise<CacheOperationResult> {
     try {
-      // Get list of files/directories to preserve (none for now)
-      const preserveList: string[] = [];
+      // Release Chromium file handles before deleting userData.
+      try {
+        await this.clearSessionCaches({ storage: true });
+      } catch (error) {
+        log.warn('Session clear during factory reset failed:', error);
+      }
 
-      // Get all items in userData directory
       const items = await fs.promises.readdir(this.userDataPath);
-
-      let removedItems = 0;
       for (const item of items) {
-        if (!preserveList.includes(item)) {
-          const itemPath = path.join(this.userDataPath, item);
-          try {
-            const stat = await fs.promises.stat(itemPath);
-            if (stat.isDirectory()) {
-              removedItems += await this.removeDirectory(itemPath);
-            } else {
-              await fs.promises.unlink(itemPath);
-              removedItems++;
-            }
-          } catch (error) {
-            log.warn(`Failed to remove ${itemPath}:`, error);
-          }
-        }
+        await this.removeTree(path.join(this.userDataPath, item));
       }
 
-      // Also clear app temp directory
-      const appTempPath = path.join(this.tempPath, 'AutoSlides');
-      if (await this.pathExists(appTempPath)) {
-        removedItems += await this.removeDirectory(appTempPath);
-      }
+      await this.removeTree(this.appTempPath);
 
-      log.debug(`Factory reset completed: ${removedItems} items removed`);
+      log.debug('Factory reset completed');
       return { success: true };
     } catch (error) {
       log.error('Failed to reset all data:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
   /**
-   * Check if path exists
+   * Clear HTTP + code caches on the default session and every persist:
+   * partition that already exists on disk. Optionally wipe storage too
+   * (factory reset only — that includes cookies).
    */
+  private async clearSessionCaches(opts: { storage?: boolean } = {}): Promise<void> {
+    const sessions = [session.defaultSession];
+    for (const name of await this.listPartitionNames()) {
+      sessions.push(session.fromPartition(`persist:${name}`));
+    }
+
+    for (const ses of sessions) {
+      await ses.clearCache();
+      await ses.clearCodeCaches({});
+      if (opts.storage) {
+        await ses.clearStorageData();
+      }
+    }
+  }
+
+  private async removeAppCacheDirs(): Promise<void> {
+    for (const name of APP_CACHE_DIR_NAMES) {
+      await this.removeTree(path.join(this.userDataPath, name));
+    }
+    await this.removeTree(this.appTempPath);
+  }
+
+  private async removeFilesystemOnlyCaches(): Promise<void> {
+    const partitions = await this.listPartitionNames();
+    for (const root of collectFilesystemOnlyCacheRoots(this.userDataPath, partitions)) {
+      await this.removeTree(root);
+    }
+  }
+
+  private async listPartitionNames(): Promise<string[]> {
+    const root = path.join(this.userDataPath, 'Partitions');
+    try {
+      const entries = await fs.promises.readdir(root, { withFileTypes: true });
+      return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    } catch {
+      return [];
+    }
+  }
+
   private async pathExists(filePath: string): Promise<boolean> {
     try {
       await fs.promises.access(filePath);
@@ -159,9 +162,6 @@ export class CacheManagementService {
     }
   }
 
-  /**
-   * Calculate directory statistics
-   */
   private async calculateDirectoryStats(dirPath: string): Promise<{ size: number; files: number }> {
     let totalSize = 0;
     let fileCount = 0;
@@ -183,7 +183,6 @@ export class CacheManagementService {
             fileCount++;
           }
         } catch (error) {
-          // Skip files that can't be accessed
           log.warn(`Cannot access ${itemPath}:`, error);
         }
       }
@@ -194,41 +193,13 @@ export class CacheManagementService {
     return { size: totalSize, files: fileCount };
   }
 
-  /**
-   * Remove directory recursively
-   */
-  private async removeDirectory(dirPath: string): Promise<number> {
-    let removedCount = 0;
-
+  private async removeTree(target: string): Promise<void> {
     try {
-      const items = await fs.promises.readdir(dirPath);
-
-      for (const item of items) {
-        const itemPath = path.join(dirPath, item);
-        try {
-          const stat = await fs.promises.stat(itemPath);
-
-          if (stat.isDirectory()) {
-            removedCount += await this.removeDirectory(itemPath);
-          } else {
-            await fs.promises.unlink(itemPath);
-            removedCount++;
-          }
-        } catch (error) {
-          log.warn(`Failed to remove ${itemPath}:`, error);
-        }
-      }
-
-      // Remove the directory itself
-      await fs.promises.rmdir(dirPath);
+      await fs.promises.rm(target, { recursive: true, force: true });
     } catch (error) {
-      log.warn(`Failed to remove directory ${dirPath}:`, error);
+      log.warn(`Failed to remove ${target}:`, error);
     }
-
-    return removedCount;
   }
-
 }
 
-// Create singleton instance
 export const cacheManagementService = new CacheManagementService();

@@ -14,6 +14,7 @@ import {
 } from './videoProxy/urlHelpers';
 import { ProxyAuth } from './videoProxy/proxyAuth';
 import { signRecordedUrl, buildAxiosConfig } from './videoProxy/proxyRequest';
+import { applyNoStoreHeaders, shouldForwardUpstreamHeader } from './videoProxy/httpHeaders';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('VideoProxy');
 
@@ -596,10 +597,13 @@ export class VideoProxyService {
     }
 
     Object.keys(response.headers).forEach(key => {
-      if (!key.toLowerCase().startsWith('access-control-')) {
+      if (shouldForwardUpstreamHeader(key)) {
         res.setHeader(key, response.headers[key] as string);
       }
     });
+    // Drop upstream Cache-Control/ETag: Chromium would otherwise write every
+    // HLS segment into userData/Cache. HLS.js already buffers in memory.
+    applyNoStoreHeaders(res);
 
     res.writeHead(response.status);
     response.data.pipe(res);
@@ -659,6 +663,7 @@ export class VideoProxyService {
     // account's loginToken so each TS request signs with the right account).
     const content = this.processLiveM3u8Content(response.data, originalUrl as string, loginToken as string);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    applyNoStoreHeaders(res);
     res.writeHead(200);
     res.end(content);
   }
@@ -704,6 +709,7 @@ export class VideoProxyService {
     // account's loginToken so each TS request signs with the right account).
     const content = this.processM3u8Content(response.data, originalUrl as string, loginToken as string);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    applyNoStoreHeaders(res);
     res.writeHead(200);
     res.end(content);
   }
