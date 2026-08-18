@@ -1,6 +1,6 @@
 <template>
   <div class="playback-page" :class="{ 'cinema-mode': isCinemaMode }">
-    <div class="playback-content-wrapper">
+    <div ref="playbackWrapper" class="playback-content-wrapper">
       <!-- Left Column: Video + Meta Details -->
       <div class="main-video-section">
         <!-- Video Player Panel -->
@@ -488,7 +488,20 @@
       <div
         class="playback-sidebar-playlist"
         v-if="!isCinemaMode && (props.mode === 'recorded' || notesTabAvailable)"
+        :style="sidebarStyle"
       >
+        <div
+          v-if="!isStackedLayout"
+          class="playback-resize"
+          :class="{ 'is-dragging': resizing }"
+          role="separator"
+          aria-orientation="vertical"
+          :aria-valuenow="appliedSidebarWidth"
+          :aria-valuemin="SIDEBAR_MIN"
+          :aria-valuemax="sidebarMaxWidth"
+          :title="$t('playback.resizeSidebar')"
+          @pointerdown="onResizeStart"
+        />
         <!-- Sessions | Notes toggle (recorded only — live has no sessions list) -->
         <div v-if="props.mode === 'recorded' && notesTabAvailable" class="playlist-tabs">
           <button
@@ -616,6 +629,108 @@ const descriptionExpanded = ref(false)
 // Sibling sessions sidebar state
 const siblingSessions = ref<SessionData[]>([])
 const isLoadingSiblings = ref(false)
+
+// Desktop sidebar width. Drag the gap handle to grow the Notes/Sessions
+// column up to a 50/50 split with the player. Persisted across reloads.
+const SIDEBAR_DEFAULT = 400 // matches the previous 25rem fixed width
+const SIDEBAR_MIN = 280
+const SIDEBAR_STORAGE_KEY = 'autoslides.playback.sidebarWidth'
+const STACK_BREAKPOINT = 1120
+
+const playbackWrapper = ref<HTMLElement | null>(null)
+const isStackedLayout = ref(false)
+const resizing = ref(false)
+const layoutTick = ref(0)
+
+function readStoredSidebarWidth(): number {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_STORAGE_KEY)
+    const n = raw == null ? NaN : Number(raw)
+    if (Number.isFinite(n)) return Math.max(SIDEBAR_MIN, Math.round(n))
+  } catch {
+    // private mode / blocked storage
+  }
+  return SIDEBAR_DEFAULT
+}
+
+const preferredSidebarWidthPx = ref(readStoredSidebarWidth())
+
+function measureSidebarMaxWidth(): number {
+  const el = playbackWrapper.value
+  if (!el) return SIDEBAR_DEFAULT
+  const style = getComputedStyle(el)
+  const padL = parseFloat(style.paddingLeft) || 0
+  const padR = parseFloat(style.paddingRight) || 0
+  const gap = parseFloat(style.columnGap || style.gap) || 24
+  const inner = el.clientWidth - padL - padR
+  return Math.max(SIDEBAR_MIN, Math.floor((inner - gap) / 2))
+}
+
+function clampSidebarWidth(px: number): number {
+  return Math.min(measureSidebarMaxWidth(), Math.max(SIDEBAR_MIN, Math.round(px)))
+}
+
+function persistSidebarWidth(px: number): void {
+  try {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(px))
+  } catch {
+    // ignore
+  }
+}
+
+const sidebarMaxWidth = computed(() => {
+  void layoutTick.value
+  return measureSidebarMaxWidth()
+})
+
+const appliedSidebarWidth = computed(() => {
+  void layoutTick.value
+  return clampSidebarWidth(preferredSidebarWidthPx.value)
+})
+
+const sidebarStyle = computed(() => {
+  if (isStackedLayout.value) return undefined
+  return { width: `${appliedSidebarWidth.value}px` }
+})
+
+function onWindowResize(): void {
+  isStackedLayout.value = window.innerWidth <= STACK_BREAKPOINT
+  layoutTick.value += 1
+}
+
+let wrapperObserver: ResizeObserver | null = null
+
+function onResizeStart(e: PointerEvent): void {
+  if (isStackedLayout.value || e.button !== 0) return
+  e.preventDefault()
+  resizing.value = true
+  const startX = e.clientX
+  const startW = appliedSidebarWidth.value
+  const target = e.currentTarget as HTMLElement
+  target.setPointerCapture?.(e.pointerId)
+  const prevCursor = document.body.style.cursor
+  const prevUserSelect = document.body.style.userSelect
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+
+  const onMove = (ev: PointerEvent) => {
+    // Dragging the left edge of the sidebar leftward makes it wider.
+    preferredSidebarWidthPx.value = clampSidebarWidth(startW + (startX - ev.clientX))
+  }
+  const onUp = (ev: PointerEvent) => {
+    resizing.value = false
+    persistSidebarWidth(preferredSidebarWidthPx.value)
+    target.releasePointerCapture?.(ev.pointerId)
+    document.body.style.cursor = prevCursor
+    document.body.style.userSelect = prevUserSelect
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+  }
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', onUp)
+}
 
 const playbackRateOptions = [1, 1.25, 1.5, 2]
 
@@ -1212,7 +1327,14 @@ const onFullscreenChange = () => {
 onMounted(async () => {
   document.addEventListener('fullscreenchange', onFullscreenChange)
   window.addEventListener('beforeunload', onBeforeUnload)
+  window.addEventListener('resize', onWindowResize)
+  onWindowResize()
   await nextTick()
+  onWindowResize()
+  wrapperObserver = new ResizeObserver(() => {
+    layoutTick.value += 1
+  })
+  if (playbackWrapper.value) wrapperObserver.observe(playbackWrapper.value)
   videoPlayerComposable.loadVideoStreams()
   void loadSiblingSessions()
 })
@@ -1220,6 +1342,9 @@ onMounted(async () => {
 onUnmounted(async () => {
   document.removeEventListener('fullscreenchange', onFullscreenChange)
   window.removeEventListener('beforeunload', onBeforeUnload)
+  window.removeEventListener('resize', onWindowResize)
+  wrapperObserver?.disconnect()
+  wrapperObserver = null
   if (document.pictureInPictureElement && document.pictureInPictureElement === videoPlayer.value) {
     try {
       await document.exitPictureInPicture()
@@ -1588,6 +1713,7 @@ onUnmounted(async () => {
 
 /* Sibling Sessions Sidebar Playlist */
 .playback-sidebar-playlist {
+  position: relative;
   width: 25rem;
   border: 1px solid var(--border-color);
   border-radius: 0.75rem;
@@ -1596,6 +1722,42 @@ onUnmounted(async () => {
   flex-direction: column;
   height: calc(100vh - var(--header-height) - 3rem);
   flex-shrink: 0;
+}
+
+/* Hit target sitting in the 1.5rem gap to the left of the sidebar. */
+.playback-resize {
+  position: absolute;
+  left: -1.5rem;
+  top: 0;
+  bottom: 0;
+  width: 1.5rem;
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none;
+  background: transparent;
+}
+
+.playback-resize::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: transparent;
+  transition: background 0.12s ease, width 0.12s ease;
+}
+
+.playback-resize:hover::after,
+.playback-resize.is-dragging::after {
+  width: 2px;
+  background: var(--accent);
+}
+
+.playback-content-wrapper:has(.playback-resize.is-dragging) {
+  user-select: none;
+  cursor: col-resize;
 }
 
 .playlist-tabs {
@@ -1803,6 +1965,9 @@ onUnmounted(async () => {
     width: 100%;
     height: auto;
     max-height: 25rem;
+  }
+  .playback-resize {
+    display: none;
   }
 }
 

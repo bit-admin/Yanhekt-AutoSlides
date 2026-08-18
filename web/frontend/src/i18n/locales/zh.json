@@ -229,7 +229,8 @@
     },
     "sessionsTab": "课时",
     "notesTab": "笔记",
-    "sessionsCount": "{count} 节课"
+    "sessionsCount": "{count} 节课",
+    "resizeSidebar": "拖动调整侧边栏宽度"
   },
   "searchPage": {
     "academicYear": "{start}–{end} 学年",

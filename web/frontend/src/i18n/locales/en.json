@@ -229,7 +229,8 @@
     },
     "sessionsTab": "Sessions",
     "notesTab": "Notes",
-    "sessionsCount": "{count} sessions"
+    "sessionsCount": "{count} sessions",
+    "resizeSidebar": "Drag to resize sidebar"
   },
   "searchPage": {
     "academicYear": "{start}–{end} Academic Year",
