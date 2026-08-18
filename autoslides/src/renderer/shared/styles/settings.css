@@ -160,6 +160,21 @@
   outline: none;
 }
 
+.slide-interval-input-wrapper:has(.slide-interval-input:disabled) {
+  background-color: var(--bg-input-disabled);
+  cursor: not-allowed;
+}
+
+.slide-interval-input-wrapper:has(.slide-interval-input:disabled):focus-within {
+  border-color: var(--border-input);
+  box-shadow: none;
+}
+
+.slide-interval-input:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
 .interval-unit {
   padding: 6px 8px;
   font-size: 11px;

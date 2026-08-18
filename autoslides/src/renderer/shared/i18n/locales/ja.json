@@ -508,7 +508,7 @@
       "requestSettings": "リクエスト設定",
       "rateLimit": "レート制限",
       "rateLimitUnit": "リクエスト/分",
-      "rateLimitBuiltinHint": "内蔵サービスは10/分に制限されています。",
+      "rateLimitBuiltinHint": "内蔵サービスのリクエスト設定と補完パラメータはサーバー側で管理されており、変更できません。",
       "rateLimitCustomHint": "ModelScopeのAPIレート制限を回避するため、最大同時リクエスト数を1、リクエスト間の最小時間を6000msに設定することをお勧めします。",
       "batchSize": "バッチサイズ",
       "batchSizeUnit": "画像/リクエスト",

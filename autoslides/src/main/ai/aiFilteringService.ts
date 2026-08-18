@@ -8,7 +8,8 @@ import {
   ChatMessage,
   ContentPart,
   ChatCompletionResponse,
-  LLMResult
+  LLMResult,
+  type BuiltinModelInfo
 } from './llmApiService';
 import { appUserAgent } from '@main/infra/appUserAgent';
 
@@ -59,7 +60,7 @@ export class AIFilteringService {
   // Fetched once per token and held for the life of the process (see resolveBuiltinModel) —
   // not re-fetched on a timer. The Settings-page "refresh" button and account switching are
   // the only ways to pick up a server-side model change without an app restart.
-  private builtinModelCache: { token: string; model: string } | null = null;
+  private builtinModelCache: { token: string; info: BuiltinModelInfo } | null = null;
 
   constructor(
     configService: ConfigService,
@@ -167,10 +168,19 @@ export class AIFilteringService {
   }
 
   /**
+   * Fetch GET /model for the built-in service (display name + request settings).
+   */
+  async getBuiltinModelInfo(token: string): Promise<BuiltinModelInfo> {
+    const info = await this.llm.getBuiltinModelInfo(token);
+    this.builtinModelCache = { token, info };
+    return info;
+  }
+
+  /**
    * Fetch the model name for the built-in service
    */
   async getBuiltinModelName(token: string): Promise<string> {
-    return this.llm.getBuiltinModelName(token);
+    return (await this.getBuiltinModelInfo(token)).model;
   }
 
   /**
@@ -184,13 +194,13 @@ export class AIFilteringService {
 
     const cached = this.builtinModelCache;
     if (cached && cached.token === token) {
-      return cached.model;
+      return cached.info.model;
     }
 
     try {
-      const model = await this.llm.getBuiltinModelName(token);
-      this.builtinModelCache = { token, model };
-      return model;
+      const info = await this.llm.getBuiltinModelInfo(token);
+      this.builtinModelCache = { token, info };
+      return info.model;
     } catch (error) {
       debugError('resolveBuiltinModel: falling back to default model', error);
       return BUILTIN_FALLBACK_MODEL;

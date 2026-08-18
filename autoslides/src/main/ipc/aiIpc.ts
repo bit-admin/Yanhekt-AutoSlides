@@ -16,6 +16,10 @@ export function registerAiIpcHandlers(services: IpcServices): void {
     return aiFilteringService.getBuiltinModelName(token);
   });
 
+  ipcMain.handle('ai:getBuiltinModelInfo', async (_event, token: string) => {
+    return aiFilteringService.getBuiltinModelInfo(token);
+  });
+
   ipcMain.handle('ai:isConfigured', async (_event, token?: string) => {
     return aiFilteringService.isConfigured(token);
   });

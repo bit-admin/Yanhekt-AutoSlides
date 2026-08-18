@@ -508,7 +508,7 @@
       "requestSettings": "请求设置",
       "rateLimit": "请求频率限制",
       "rateLimitUnit": "次/分钟",
-      "rateLimitBuiltinHint": "内置服务限制为 10 次/分钟。",
+      "rateLimitBuiltinHint": "内置服务的请求设置和补全参数由服务器管理，无法更改。",
       "rateLimitCustomHint": "为避免触发 ModelScope 的 API 请求限制，建议将最大并发请求数设为 1，请求最小间隔设为 6000 毫秒。",
       "batchSize": "批量大小",
       "batchSizeUnit": "张/请求",

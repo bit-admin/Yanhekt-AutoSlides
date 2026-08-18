@@ -463,6 +463,7 @@
                 min="1"
                 :max="maxAiRateLimit"
                 class="slide-interval-input"
+                :disabled="tempAiServiceType === 'builtin'"
               />
               <span class="interval-unit">{{ $t('advanced.ai.rateLimitUnit') }}</span>
             </div>
@@ -480,6 +481,7 @@
                 min="1"
                 max="10"
                 class="slide-interval-input"
+                :disabled="tempAiServiceType === 'builtin'"
               />
               <span class="interval-unit">{{ $t('advanced.ai.maxConcurrentUnit') }}</span>
             </div>
@@ -502,6 +504,7 @@
                 max="60000"
                 step="100"
                 class="slide-interval-input"
+                :disabled="tempAiServiceType === 'builtin'"
               />
               <span class="interval-unit">{{ $t('advanced.ai.minTimeUnit') }}</span>
             </div>
@@ -519,6 +522,7 @@
                 min="1"
                 max="10"
                 class="slide-interval-input"
+                :disabled="tempAiServiceType === 'builtin'"
                 @change="updateAiBatchSize"
               />
               <span class="interval-unit">{{ $t('advanced.ai.batchSizeUnit') }}</span>
@@ -568,6 +572,7 @@
               <input
                 type="checkbox"
                 v-model="tempRequestBodySend.maxTokens"
+                :disabled="tempAiServiceType === 'builtin'"
                 :aria-label="$t('advanced.ai.sendParam')"
               />
             </td>
@@ -579,7 +584,7 @@
                 min="1"
                 max="8192"
                 class="completion-value-input"
-                :disabled="!tempRequestBodySend.maxTokens"
+                :disabled="tempAiServiceType === 'builtin' || !tempRequestBodySend.maxTokens"
               />
             </td>
             <td class="col-note">{{ $t('advanced.ai.maxTokensNote') }}</td>
@@ -590,6 +595,7 @@
               <input
                 type="checkbox"
                 v-model="tempRequestBodySend.temperature"
+                :disabled="tempAiServiceType === 'builtin'"
                 :aria-label="$t('advanced.ai.sendParam')"
               />
             </td>
@@ -602,7 +608,7 @@
                 max="2"
                 step="0.1"
                 class="completion-value-input"
-                :disabled="!tempRequestBodySend.temperature"
+                :disabled="tempAiServiceType === 'builtin' || !tempRequestBodySend.temperature"
               />
             </td>
             <td class="col-note">{{ $t('advanced.ai.temperatureNote') }}</td>
@@ -613,6 +619,7 @@
               <input
                 type="checkbox"
                 v-model="tempRequestBodySend.topP"
+                :disabled="tempAiServiceType === 'builtin'"
                 :aria-label="$t('advanced.ai.sendParam')"
               />
             </td>
@@ -625,7 +632,7 @@
                 max="1"
                 step="0.05"
                 class="completion-value-input"
-                :disabled="!tempRequestBodySend.topP"
+                :disabled="tempAiServiceType === 'builtin' || !tempRequestBodySend.topP"
               />
             </td>
             <td class="col-note">{{ $t('advanced.ai.topPNote') }}</td>
@@ -652,8 +659,8 @@
 
           <tr
             :class="{
-              'row-fixed': tempAiServiceType === 'copilot',
-              'row-omitted': tempAiServiceType !== 'copilot' && !tempRequestBodySend.enableThinking
+              'row-fixed': tempAiServiceType === 'copilot' || tempAiServiceType === 'builtin',
+              'row-omitted': tempAiServiceType !== 'copilot' && tempAiServiceType !== 'builtin' && !tempRequestBodySend.enableThinking
             }"
           >
             <td class="col-send">
@@ -668,6 +675,7 @@
                 v-else
                 type="checkbox"
                 v-model="tempRequestBodySend.enableThinking"
+                :disabled="tempAiServiceType === 'builtin'"
                 :aria-label="$t('advanced.ai.sendParam')"
               />
             </td>
@@ -675,7 +683,7 @@
               <select
                 class="param-key-select"
                 v-model="tempRequestBodyValues.thinkingKey"
-                :disabled="tempAiServiceType === 'copilot' || !tempRequestBodySend.enableThinking"
+                :disabled="tempAiServiceType === 'copilot' || tempAiServiceType === 'builtin' || !tempRequestBodySend.enableThinking"
                 :aria-label="$t('advanced.ai.thinkingKeyLabel')"
               >
                 <option value="enable_thinking">enable_thinking</option>
@@ -686,7 +694,7 @@
               <label
                 class="bool-toggle"
                 :class="{
-                  disabled: tempAiServiceType === 'copilot' || !tempRequestBodySend.enableThinking
+                  disabled: tempAiServiceType === 'copilot' || tempAiServiceType === 'builtin' || !tempRequestBodySend.enableThinking
                 }"
               >
                 <input
@@ -699,7 +707,7 @@
                   v-else
                   type="checkbox"
                   v-model="tempRequestBodyValues.enableThinking"
-                  :disabled="!tempRequestBodySend.enableThinking"
+                  :disabled="tempAiServiceType === 'builtin' || !tempRequestBodySend.enableThinking"
                 />
                 <span>{{
                   tempAiServiceType === 'copilot'

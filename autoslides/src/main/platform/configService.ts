@@ -987,7 +987,7 @@ export class ConfigService {
 
   getAIBatchSize(): number {
     const config = this.getAIFilteringConfig();
-    return config.batchSize || 5;
+    return config.batchSize || 4;
   }
 
   setAIClassifierMode(mode: AIClassifierMode): void {

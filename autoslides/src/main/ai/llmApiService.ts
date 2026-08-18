@@ -2,6 +2,16 @@ import axios, { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import { ConfigService } from '@main/platform/configService';
 import { appUserAgent } from '@main/infra/appUserAgent';
+import {
+  parseBuiltinModelResponse,
+  resolveEffectiveAICompletionParams,
+  resolveEffectiveAIRequestSettings,
+  toAIRequestSettings,
+  toBuiltinCompletionParams,
+  type AIRequestSettings,
+  type BuiltinCompletionParams,
+  type BuiltinModelInfo
+} from '@common/aiRequestSettings';
 
 const DEBUG = true;
 
@@ -185,22 +195,46 @@ function isEmptyChoicesError(error: LLMError): boolean {
   );
 }
 
+export type { BuiltinModelInfo };
+
 export class LLMApiService {
   private configService: ConfigService;
   private limiter: Bottleneck;
   // Session-scoped: models that returned quota_exceeded in this app session.
   // Keyed by `${providerScope}::${modelName}`. Cleared on launch and on config changes.
   private exhaustedModels: Set<string> = new Set();
+  // Last successful GET /model advertisement. Used only while serviceType is builtin.
+  private remoteBuiltinRequestSettings: AIRequestSettings | null = null;
+  private remoteBuiltinCompletionParams: BuiltinCompletionParams | null = null;
 
   constructor(configService: ConfigService) {
     this.configService = configService;
+    const settings = this.resolveLimiterSettings();
+    this.limiter = this.createLimiter(settings.rateLimit, settings.maxConcurrent, settings.minTime);
+  }
 
+  private resolveLimiterSettings(): AIRequestSettings {
     const config = this.configService.getAIFilteringConfig();
-    const rateLimit = config.rateLimit || 10;
-    const maxConcurrent = config.maxConcurrent || 1;
-    const minTime = config.minTime || 6000;
+    return resolveEffectiveAIRequestSettings(
+      config.serviceType,
+      config,
+      this.remoteBuiltinRequestSettings
+    );
+  }
 
-    this.limiter = this.createLimiter(rateLimit, maxConcurrent, minTime);
+  applyRemoteBuiltinModelInfo(info: BuiltinModelInfo): void {
+    this.remoteBuiltinRequestSettings = toAIRequestSettings(info);
+    this.remoteBuiltinCompletionParams = toBuiltinCompletionParams(info.requestBody);
+    this.updateRateLimitConfig();
+  }
+
+  private resolveCompletionParams(): BuiltinCompletionParams {
+    const config = this.configService.getAIFilteringConfig();
+    return resolveEffectiveAICompletionParams(
+      config.serviceType,
+      config.requestBody,
+      this.remoteBuiltinCompletionParams
+    );
   }
 
   private createLimiter(rateLimit: number, maxConcurrent: number, minTime: number): Bottleneck {
@@ -220,10 +254,7 @@ export class LLMApiService {
   }
 
   updateRateLimitConfig(): void {
-    const config = this.configService.getAIFilteringConfig();
-    const rateLimit = config.rateLimit || 10;
-    const maxConcurrent = config.maxConcurrent || 1;
-    const minTime = config.minTime || 6000;
+    const { rateLimit, maxConcurrent, minTime } = this.resolveLimiterSettings();
     // Bottleneck 2.19.x can leave queued jobs stuck at reservoir=0 forever after
     // updateSettings() touches reservoir settings. Recreate the limiter so the
     // refresh timer is definitely installed; already-scheduled jobs continue on
@@ -238,8 +269,7 @@ export class LLMApiService {
   }
 
   getRateLimit(): number {
-    const config = this.configService.getAIFilteringConfig();
-    return config.rateLimit || 10;
+    return this.resolveLimiterSettings().rateLimit;
   }
 
   /** Clear the session-scoped exhausted-model set. Called when API URL/key/chain changes. */
@@ -283,17 +313,20 @@ export class LLMApiService {
   }
 
   /**
-   * Fetch the model name for the built-in service.
-   * @throws Error with 'cloudflareBlocked' or 'fetchFailed' for the renderer to branch on.
+   * Fetch GET /model for the built-in service (display name + request settings).
+   * Extra fields are optional — a legacy `{ model }` body still works.
+   * @throws Error with 'cloudflareBlocked', 'temporarilyUnavailable', or 'fetchFailed'.
    */
-  async getBuiltinModelName(token: string): Promise<string> {
+  async getBuiltinModelInfo(token?: string): Promise<BuiltinModelInfo> {
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'User-Agent': appUserAgent()
+      };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const response = await axios.get(`${BUILTIN_API_BASE_URL}/model`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'User-Agent': appUserAgent()
-        },
+        headers,
         timeout: 10000
       });
 
@@ -302,13 +335,15 @@ export class LLMApiService {
         throw new Error('cloudflareBlocked');
       }
 
+      const info = parseBuiltinModelResponse(response.data, BUILTIN_FALLBACK_MODEL);
+
       // Worker sentinel: MODEL env var unset — returned at 200 in some edge cases
-      if (response.data && response.data.model === BUILTIN_TEMP_UNAVAILABLE_MODEL) {
+      if (info.model === BUILTIN_TEMP_UNAVAILABLE_MODEL) {
         throw new Error('temporarilyUnavailable');
       }
 
-      if (response.data && response.data.model) return response.data.model;
-      return BUILTIN_FALLBACK_MODEL;
+      this.applyRemoteBuiltinModelInfo(info);
+      return info;
     } catch (error) {
       if (error instanceof Error && error.message === 'cloudflareBlocked') throw error;
       if (error instanceof Error && error.message === 'temporarilyUnavailable') throw error;
@@ -318,7 +353,7 @@ export class LLMApiService {
           throw new Error('cloudflareBlocked');
         }
         const data = error.response.data as { model?: string; error?: string } | undefined;
-        // Worker returns 503 with body { model: 'TEMP_UNAVAILABLE' } when env.MODEL is unset
+        // Worker returns 503 with body { model: 'TEMP_UNAVAILABLE' } when PROXY_ENABLED is off
         if (error.response.status === 503 && data?.model === BUILTIN_TEMP_UNAVAILABLE_MODEL) {
           throw new Error('temporarilyUnavailable');
         }
@@ -327,9 +362,17 @@ export class LLMApiService {
           throw new Error('temporarilyUnavailable');
         }
       }
-      console.error('[LLM] Failed to fetch built-in model name:', error);
+      console.error('[LLM] Failed to fetch built-in model info:', error);
       throw new Error('fetchFailed');
     }
+  }
+
+  /**
+   * Fetch the model name for the built-in service.
+   * @throws Error with 'cloudflareBlocked' or 'fetchFailed' for the renderer to branch on.
+   */
+  async getBuiltinModelName(token: string): Promise<string> {
+    return (await this.getBuiltinModelInfo(token)).model;
   }
 
   /**
@@ -353,7 +396,7 @@ export class LLMApiService {
     // Build body from AI requestBody settings. `null` means omit the key entirely —
     // do not re-introduce defaults with `??` (Agnes + max_tokens is why presence matters).
     // Per-call input.maxTokens / temperature still win when explicitly provided.
-    const rb = this.configService.getAIFilteringConfig().requestBody;
+    const rb = this.resolveCompletionParams();
     const requestBody: Record<string, unknown> = {
       model,
       messages: input.messages

@@ -6,6 +6,7 @@ export const ai = {
   classifyMultipleImages: (base64Images: string[], token?: string, modelOverride?: string) =>
     ipcRenderer.invoke('ai:classifyMultipleImages', base64Images, token, modelOverride),
   getBuiltinModelName: (token: string) => ipcRenderer.invoke('ai:getBuiltinModelName', token),
+  getBuiltinModelInfo: (token: string) => ipcRenderer.invoke('ai:getBuiltinModelInfo', token),
   isConfigured: (token?: string) => ipcRenderer.invoke('ai:isConfigured', token),
   getServiceType: () => ipcRenderer.invoke('ai:getServiceType'),
   getExhaustedModels: () => ipcRenderer.invoke('ai:getExhaustedModels'),

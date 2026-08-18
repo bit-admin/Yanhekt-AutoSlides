@@ -4,6 +4,12 @@ import { useCopilotOAuth, type CopilotOAuthStep } from './useCopilotOAuth'
 import { useMlClassifierSettings, type AIClassifierMode, type MlThresholdValues, type MlModelInfo } from './useMlClassifierSettings'
 import { useModelChain, type ModelPreset } from './useModelChain'
 import { detectCustomProvider, MODELSCOPE_API_BASE_URL, OPENCODE_ZEN_API_BASE_URL, type CustomProviderId } from './providerDetect'
+import type { AIRequestSettings, BuiltinCompletionParams } from '@common/aiRequestSettings'
+import {
+  resolveRendererAICompletionParams,
+  resolveRendererAIRequestSettings,
+  setRemoteBuiltinModelInfo
+} from '@shared/services/builtinRequestSettings'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('AISettings');
 
@@ -30,9 +36,8 @@ export interface UseAISettingsOptions {
 
 // Every committed/temp value pair, with its initial default. One record per
 // side replaces the former 28 individual refs; resetTempPairs() replaces the
-// field-by-field copy in resetTempValues. NOTE the load-time fallback for
-// batchSize is `|| 5` (see loadAISettings) while the initial default is 4 —
-// a long-standing quirk kept as-is.
+// field-by-field copy in resetTempValues. Built-in service locks request
+// settings and completion params to GET /model (hardcoded fallback if absent).
 const AI_PAIR_DEFAULTS = {
   serviceType: 'builtin' as AIServiceType,
   customApiBaseUrl: '',
@@ -140,6 +145,67 @@ export function useAISettings(options: UseAISettingsOptions) {
   const committed = reactive<AiPairs>({ ...AI_PAIR_DEFAULTS })
   const temp = reactive<AiPairs>({ ...AI_PAIR_DEFAULTS })
   const resetTempPairs = () => Object.assign(temp, toRaw(committed))
+
+  // Last user-owned request settings (custom/copilot). Built-in display uses
+  // the server advertisement and must not overwrite these on save.
+  const userRequestSettings: AIRequestSettings = {
+    rateLimit: AI_PAIR_DEFAULTS.rateLimit,
+    batchSize: AI_PAIR_DEFAULTS.batchSize,
+    maxConcurrent: AI_PAIR_DEFAULTS.maxConcurrent,
+    minTime: AI_PAIR_DEFAULTS.minTime,
+  }
+
+  const assignRequestSettings = (target: AiPairs, settings: AIRequestSettings) => {
+    target.rateLimit = settings.rateLimit
+    target.batchSize = settings.batchSize
+    target.maxConcurrent = settings.maxConcurrent
+    target.minTime = settings.minTime
+  }
+
+  const snapshotUserRequestSettings = (source: AIRequestSettings) => {
+    userRequestSettings.rateLimit = source.rateLimit
+    userRequestSettings.batchSize = source.batchSize
+    userRequestSettings.maxConcurrent = source.maxConcurrent
+    userRequestSettings.minTime = source.minTime
+  }
+
+  const applyBuiltinRequestSettingsTo = (target: AiPairs) => {
+    assignRequestSettings(target, resolveRendererAIRequestSettings('builtin'))
+  }
+
+  const userRequestBody: BuiltinCompletionParams = {
+    maxTokens: REQUEST_BODY_VALUE_DEFAULTS.maxTokens,
+    temperature: REQUEST_BODY_VALUE_DEFAULTS.temperature,
+    topP: null,
+    stream: false,
+    enableThinking: REQUEST_BODY_VALUE_DEFAULTS.enableThinking,
+    thinkingKey: REQUEST_BODY_VALUE_DEFAULTS.thinkingKey,
+  }
+
+  const snapshotUserRequestBody = (rb: BuiltinCompletionParams) => {
+    userRequestBody.maxTokens = rb.maxTokens
+    userRequestBody.temperature = rb.temperature
+    userRequestBody.topP = rb.topP
+    userRequestBody.stream = rb.stream
+    userRequestBody.enableThinking = rb.enableThinking
+    userRequestBody.thinkingKey = rb.thinkingKey
+  }
+
+  const applyCompletionParamsToUi = (
+    rb: BuiltinCompletionParams,
+    values: RequestBodyValues,
+    send: RequestBodySend
+  ) => {
+    const ui = requestBodyToUi(rb)
+    Object.assign(values, ui.values)
+    Object.assign(send, ui.send)
+  }
+
+  const applyBuiltinCompletionParamsToUi = () => {
+    const rb = resolveRendererAICompletionParams('builtin')
+    applyCompletionParamsToUi(rb, committedRequestBodyValues, committedRequestBodySend)
+    applyCompletionParamsToUi(rb, tempRequestBodyValues, tempRequestBodySend)
+  }
 
   // Completion request-body knobs (Send checkbox + staging value per key).
   const committedRequestBodyValues = reactive<RequestBodyValues>({ ...REQUEST_BODY_VALUE_DEFAULTS })
@@ -266,28 +332,48 @@ export function useAISettings(options: UseAISettingsOptions) {
         tempAiCustomModelName.value = modelChain.tempCustomModelChain.value[0]
       }
     }
+    if (prev && prev !== 'builtin') {
+      snapshotUserRequestSettings(temp)
+      snapshotUserRequestBody(uiToRequestBody(tempRequestBodyValues, tempRequestBodySend))
+    }
+    if (next === 'builtin') {
+      applyBuiltinRequestSettingsTo(temp)
+      applyCompletionParamsToUi(
+        resolveRendererAICompletionParams('builtin'),
+        tempRequestBodyValues,
+        tempRequestBodySend
+      )
+    } else if (prev === 'builtin') {
+      assignRequestSettings(temp, userRequestSettings)
+      applyCompletionParamsToUi(userRequestBody, tempRequestBodyValues, tempRequestBodySend)
+    }
   })
 
   const loadAISettings = async () => {
     try {
       const aiConfig = await window.electronAPI.config.getAIFilteringConfig()
       if (aiConfig) {
-        // Per-key falsy fallbacks preserved exactly (incl. the batchSize || 5
-        // quirk). Written to BOTH records so committed === temp after a load.
+        // Per-key falsy fallbacks. Written to BOTH records so committed === temp
+        // after a load. Built-in then overlays the locked request settings.
         const loaded: Omit<AiPairs, 'promptLive' | 'promptRecorded' | 'promptLiveDistinguish' | 'promptRecordedDistinguish'> = {
           serviceType: aiConfig.serviceType || 'builtin',
           customApiBaseUrl: aiConfig.customApiBaseUrl || '',
           customApiKey: aiConfig.customApiKey || '',
           customModelName: aiConfig.customModelName || '',
           rateLimit: aiConfig.rateLimit || 10,
-          batchSize: aiConfig.batchSize || 5,
+          batchSize: aiConfig.batchSize || 4,
           maxConcurrent: aiConfig.maxConcurrent || 1,
           minTime: aiConfig.minTime || 6000,
           imageResizeWidth: aiConfig.imageResizeWidth || 768,
           imageResizeHeight: aiConfig.imageResizeHeight || 432,
         }
+        snapshotUserRequestSettings(loaded)
         Object.assign(committed, loaded)
         Object.assign(temp, loaded)
+        if (loaded.serviceType === 'builtin') {
+          applyBuiltinRequestSettingsTo(committed)
+          applyBuiltinRequestSettingsTo(temp)
+        }
 
         modelChain.tempCustomModelChain.value = Array.isArray(aiConfig.customModelChain)
           ? [...aiConfig.customModelChain]
@@ -298,11 +384,21 @@ export function useAISettings(options: UseAISettingsOptions) {
         )
         selectedImageResizePreset.value = matchingPreset?.key || '768x432'
 
-        const rbUi = requestBodyToUi(aiConfig.requestBody)
-        Object.assign(committedRequestBodyValues, rbUi.values)
-        Object.assign(committedRequestBodySend, rbUi.send)
-        Object.assign(tempRequestBodyValues, rbUi.values)
-        Object.assign(tempRequestBodySend, rbUi.send)
+        const loadedBody: BuiltinCompletionParams = {
+          maxTokens: aiConfig.requestBody?.maxTokens ?? null,
+          temperature: aiConfig.requestBody?.temperature ?? null,
+          topP: aiConfig.requestBody?.topP ?? null,
+          stream: aiConfig.requestBody?.stream ?? null,
+          enableThinking: aiConfig.requestBody?.enableThinking ?? null,
+          thinkingKey: normalizeThinkingKey(aiConfig.requestBody?.thinkingKey),
+        }
+        snapshotUserRequestBody(loadedBody)
+        if (loaded.serviceType === 'builtin') {
+          applyBuiltinCompletionParamsToUi()
+        } else {
+          applyCompletionParamsToUi(loadedBody, committedRequestBodyValues, committedRequestBodySend)
+          applyCompletionParamsToUi(loadedBody, tempRequestBodyValues, tempRequestBodySend)
+        }
 
         await copilot.applyLoadedConfig(aiConfig)
         mlClassifier.applyLoadedConfig(aiConfig)
@@ -327,14 +423,30 @@ export function useAISettings(options: UseAISettingsOptions) {
 
   const saveAISettings = async () => {
     try {
-      // Ensure rate limit respects max based on service type
-      const effectiveRateLimit = tempAiServiceType.value === 'builtin'
-        ? Math.min(tempAiRateLimit.value, 10)
-        : tempAiRateLimit.value
-
-      const effectiveBatchSize = Math.max(1, Math.min(10, tempAiBatchSize.value))
-      const effectiveMaxConcurrent = Math.max(1, Math.min(10, tempAiMaxConcurrent.value))
-      const effectiveMinTime = Math.max(0, Math.min(60000, tempAiMinTime.value))
+      // Built-in request settings are server-owned — persist the last user
+      // (custom/copilot) values so switching back doesn't lose them.
+      const isBuiltin = tempAiServiceType.value === 'builtin'
+      if (!isBuiltin) {
+        snapshotUserRequestSettings(temp)
+        snapshotUserRequestBody(uiToRequestBody(tempRequestBodyValues, tempRequestBodySend))
+      }
+      const persistRequest: AIRequestSettings = isBuiltin
+        ? { ...userRequestSettings }
+        : {
+            rateLimit: Math.max(1, Math.min(60, tempAiRateLimit.value)),
+            batchSize: Math.max(1, Math.min(10, tempAiBatchSize.value)),
+            maxConcurrent: Math.max(1, Math.min(10, tempAiMaxConcurrent.value)),
+            minTime: Math.max(0, Math.min(60000, tempAiMinTime.value)),
+          }
+      const displayRequest = isBuiltin
+        ? resolveRendererAIRequestSettings('builtin')
+        : persistRequest
+      const persistBody: BuiltinCompletionParams = isBuiltin
+        ? { ...userRequestBody }
+        : uiToRequestBody(tempRequestBodyValues, tempRequestBodySend)
+      const displayBody = isBuiltin
+        ? resolveRendererAICompletionParams('builtin')
+        : persistBody
 
       // Save ML classifier mode + thresholds (independent IPC calls)
       await mlClassifier.save()
@@ -345,8 +457,6 @@ export function useAISettings(options: UseAISettingsOptions) {
       const effectiveModelName = chainProvider === 'modelscope' && chainToSave.length > 0
         ? chainToSave[0]
         : tempAiCustomModelName.value
-
-      const requestBody = uiToRequestBody(tempRequestBodyValues, tempRequestBodySend)
 
       await window.electronAPI.config.setAIFilteringConfig({
         serviceType: tempAiServiceType.value,
@@ -359,13 +469,13 @@ export function useAISettings(options: UseAISettingsOptions) {
         copilotModelName: copilot.tempCopilotModelName.value,
         copilotUsername: copilot.copilotUsername.value,
         copilotAvatarUrl: copilot.copilotAvatarUrl.value,
-        rateLimit: effectiveRateLimit,
-        batchSize: effectiveBatchSize,
+        rateLimit: persistRequest.rateLimit,
+        batchSize: persistRequest.batchSize,
         imageResizeWidth: tempAiImageResizeWidth.value,
         imageResizeHeight: tempAiImageResizeHeight.value,
-        maxConcurrent: effectiveMaxConcurrent,
-        minTime: effectiveMinTime,
-        requestBody
+        maxConcurrent: persistRequest.maxConcurrent,
+        minTime: persistRequest.minTime,
+        requestBody: persistBody
       })
 
       tempAiCustomModelName.value = effectiveModelName
@@ -375,23 +485,13 @@ export function useAISettings(options: UseAISettingsOptions) {
       aiCustomApiKey.value = tempAiCustomApiKey.value
       aiCustomModelName.value = tempAiCustomModelName.value
       copilot.copilotModelName.value = copilot.tempCopilotModelName.value
-      aiRateLimit.value = effectiveRateLimit
-      tempAiRateLimit.value = effectiveRateLimit
-      aiBatchSize.value = effectiveBatchSize
-      tempAiBatchSize.value = effectiveBatchSize
-      aiMaxConcurrent.value = effectiveMaxConcurrent
-      tempAiMaxConcurrent.value = effectiveMaxConcurrent
-      aiMinTime.value = effectiveMinTime
-      tempAiMinTime.value = effectiveMinTime
+      assignRequestSettings(committed, displayRequest)
+      assignRequestSettings(temp, displayRequest)
       aiImageResizeWidth.value = tempAiImageResizeWidth.value
       aiImageResizeHeight.value = tempAiImageResizeHeight.value
 
-      // Re-sync staging values from the clamped saved payload so temp === committed.
-      const savedRbUi = requestBodyToUi(requestBody)
-      Object.assign(committedRequestBodyValues, savedRbUi.values)
-      Object.assign(committedRequestBodySend, savedRbUi.send)
-      Object.assign(tempRequestBodyValues, savedRbUi.values)
-      Object.assign(tempRequestBodySend, savedRbUi.send)
+      applyCompletionParamsToUi(displayBody, committedRequestBodyValues, committedRequestBodySend)
+      applyCompletionParamsToUi(displayBody, tempRequestBodyValues, tempRequestBodySend)
 
       if (tempAiPromptLive.value !== aiPromptLive.value) {
         await window.electronAPI.config.setAIPrompt('live', tempAiPromptLive.value, 'simple')
@@ -423,14 +523,24 @@ export function useAISettings(options: UseAISettingsOptions) {
       return
     }
 
-    log.debug('[AI] refreshBuiltinModel: Fetching model name...')
+    log.debug('[AI] refreshBuiltinModel: Fetching model info...')
     isLoadingBuiltinModel.value = true
     builtinModelError.value = ''
 
     try {
-      const modelName = await window.electronAPI.ai.getBuiltinModelName(token)
-      log.debug('[AI] refreshBuiltinModel: API response:', modelName)
-      builtinModelName.value = modelName
+      const info = await window.electronAPI.ai.getBuiltinModelInfo(token)
+      log.debug('[AI] refreshBuiltinModel: API response:', info)
+      builtinModelName.value = info.model
+      setRemoteBuiltinModelInfo(info)
+      const lockedBody = resolveRendererAICompletionParams('builtin')
+      if (tempAiServiceType.value === 'builtin') {
+        applyBuiltinRequestSettingsTo(temp)
+        applyCompletionParamsToUi(lockedBody, tempRequestBodyValues, tempRequestBodySend)
+      }
+      if (aiServiceType.value === 'builtin') {
+        applyBuiltinRequestSettingsTo(committed)
+        applyCompletionParamsToUi(lockedBody, committedRequestBodyValues, committedRequestBodySend)
+      }
     } catch (error) {
       log.error('[AI] refreshBuiltinModel: Failed to fetch built-in model name:', error)
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -494,6 +604,10 @@ export function useAISettings(options: UseAISettingsOptions) {
   }
 
   const updateAiBatchSize = () => {
+    if (tempAiServiceType.value === 'builtin') {
+      applyBuiltinRequestSettingsTo(temp)
+      return
+    }
     tempAiBatchSize.value = Math.max(1, Math.min(10, Math.round(tempAiBatchSize.value)))
   }
 
@@ -508,6 +622,17 @@ export function useAISettings(options: UseAISettingsOptions) {
   const resetTempValues = () => {
     resetTempPairs()
     resetTempRequestBody()
+    if (temp.serviceType === 'builtin') {
+      applyBuiltinRequestSettingsTo(temp)
+      applyCompletionParamsToUi(
+        resolveRendererAICompletionParams('builtin'),
+        tempRequestBodyValues,
+        tempRequestBodySend
+      )
+    } else {
+      snapshotUserRequestSettings(committed)
+      snapshotUserRequestBody(uiToRequestBody(committedRequestBodyValues, committedRequestBodySend))
+    }
     if (modelChain.tempCustomModelChain.value.length === 0 && aiCustomModelName.value) {
       modelChain.tempCustomModelChain.value = [aiCustomModelName.value]
     }

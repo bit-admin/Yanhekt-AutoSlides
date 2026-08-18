@@ -508,7 +508,7 @@
       "requestSettings": "요청 설정",
       "rateLimit": "속도 제한",
       "rateLimitUnit": "요청/분",
-      "rateLimitBuiltinHint": "내장 서비스는 10/분으로 제한됩니다.",
+      "rateLimitBuiltinHint": "내장 서비스의 요청 설정과 완료 매개변수는 서버에서 관리되며 변경할 수 없습니다.",
       "rateLimitCustomHint": "ModelScope의 API 속도 제한을 피하려면 최대 동시 요청 수를 1로, 요청 간 최소 시간을 6000ms로 설정하는 것이 좋습니다.",
       "batchSize": "배치 크기",
       "batchSizeUnit": "이미지/요청",

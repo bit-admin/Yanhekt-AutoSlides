@@ -9,6 +9,7 @@ import {
 } from '@features/ai/slideClassificationService'
 import { createInPlaceAutoCropper } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
+import { resolveRendererAIRequestSettings } from '@shared/services/builtinRequestSettings'
 import {
   errorInfoToBanner,
   parseBannerError,
@@ -190,7 +191,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       enableAutoCropAIFilteredEdit,
       enableDedupAfterAutoCropAIFilteredEdit,
       exclusionList,
-      aiBatchSize: auto ? 1 : (aiConfig?.batchSize || 5),
+      aiBatchSize: auto ? 1 : resolveRendererAIRequestSettings(aiConfig?.serviceType, aiConfig).batchSize,
       aiImageResizeWidth: aiConfig?.imageResizeWidth || aiImageResizeWidth.value,
       aiImageResizeHeight: aiConfig?.imageResizeHeight || aiImageResizeHeight.value
     }
@@ -416,7 +417,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
       const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
       if (aiConfig) {
-        aiBatchSize.value = aiConfig.batchSize || 5
+        aiBatchSize.value = resolveRendererAIRequestSettings(aiConfig.serviceType, aiConfig).batchSize
         aiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
         aiImageResizeHeight.value = aiConfig.imageResizeHeight || 432
       }

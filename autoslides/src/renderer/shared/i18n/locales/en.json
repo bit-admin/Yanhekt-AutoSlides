@@ -508,7 +508,7 @@
       "requestSettings": "Request Settings",
       "rateLimit": "Rate Limit",
       "rateLimitUnit": "requests/min",
-      "rateLimitBuiltinHint": "Built-in service is limited to 10/min.",
+      "rateLimitBuiltinHint": "Request settings and completion parameters for the built-in service are managed by the server and cannot be changed.",
       "rateLimitCustomHint": "To avoid hitting ModelScope's API rate limit, we recommend setting Max Concurrent Requests to 1 and Min Time Between Requests to 6000ms.",
       "batchSize": "Batch Size",
       "batchSizeUnit": "images/request",

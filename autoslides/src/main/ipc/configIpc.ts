@@ -531,6 +531,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
       llmApiService.resetExhaustedModels();
     }
     if (
+      config.serviceType !== undefined ||
       config.rateLimit !== undefined ||
       config.maxConcurrent !== undefined ||
       config.minTime !== undefined

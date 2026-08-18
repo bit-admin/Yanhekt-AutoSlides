@@ -11,6 +11,7 @@ import type {
   PostProcessingProgress
 } from '@shared/postProcessing/types'
 import { filterEnabledExclusionItems } from '@shared/postProcessing/types'
+import { resolveRendererAIRequestSettings } from './builtinRequestSettings'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesPostProcessing');
 
@@ -360,7 +361,7 @@ class PostProcessingServiceClass {
         enableAutoCropAIFilteredEdit,
         enableDedupAfterAutoCropAIFilteredEdit,
         exclusionList,
-        aiBatchSize: aiConfig?.batchSize || 5,
+        aiBatchSize: resolveRendererAIRequestSettings(aiConfig?.serviceType, aiConfig).batchSize,
         aiImageResizeWidth: aiConfig?.imageResizeWidth || 768,
         aiImageResizeHeight: aiConfig?.imageResizeHeight || 432
       },

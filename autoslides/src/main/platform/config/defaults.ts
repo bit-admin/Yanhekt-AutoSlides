@@ -147,7 +147,7 @@ export const defaultAIFilteringConfig: AIFilteringConfig = {
   copilotUsername: '',
   copilotAvatarUrl: '',
   rateLimit: 10,
-  batchSize: 5,
+  batchSize: 4,
   imageResizeWidth: 768,
   imageResizeHeight: 432,
   maxConcurrent: 1,

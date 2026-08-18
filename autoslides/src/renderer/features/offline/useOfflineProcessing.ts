@@ -8,6 +8,7 @@ import {
 } from '@features/ai/slideClassificationService'
 import { createInPlaceAutoCropper } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
+import { resolveRendererAIRequestSettings } from '@shared/services/builtinRequestSettings'
 import { sanitizeFileName } from '@common/sanitizeFileName'
 import type {
   PostProcessingConfig,
@@ -165,7 +166,7 @@ export function useOfflineProcessing() {
       enableAutoCropAIFilteredEdit,
       enableDedupAfterAutoCropAIFilteredEdit,
       exclusionList,
-      aiBatchSize: aiConfig?.batchSize || 5,
+      aiBatchSize: resolveRendererAIRequestSettings(aiConfig?.serviceType, aiConfig).batchSize,
       aiImageResizeWidth: aiConfig?.imageResizeWidth || 768,
       aiImageResizeHeight: aiConfig?.imageResizeHeight || 432
     }
