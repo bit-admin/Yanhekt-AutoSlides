@@ -445,7 +445,7 @@ async function toggleShare(): Promise<void> {
     const content = await props.getContent()
     const urls = noteImageUrls(content)
     const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
-    const t = timelineDeltaFromUnknown(readNoteMetadata(content)?.timeline)
+    const t = timelineDeltaFromUnknown(readNoteMetadata(content)?.timeline, urls.length)
     const payload = buildSharePayload(managedNoteIdentity(props.title || ''), urls, undefined, t ? { t } : undefined)
     shareImageCount.value = cossCount
     shareLongUrl.value = cossCount > 0 ? buildShareUrl(payload) : ''

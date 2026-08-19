@@ -5,8 +5,12 @@
  * `frontend/`; third-party clones of `web/` must stay self-contained).
  *
  * Keep in sync with the desktop module: encode + decode stay dependency-free
- * (`TextEncoder`/`TextDecoder`/`btoa`/`atob` only).
+ * (`TextEncoder`/`TextDecoder`/`btoa`/`atob` only). `timelineDeltaFromUnknown`
+ * is the web port of `@common/shareTimeline.shareTimelineDeltaFromNote` and
+ * may import `notesContent` for filename order.
  */
+
+import { exportSlideFilenames } from './notesContent';
 
 export const SHARE_ORIGIN = 'https://share.ruc.edu.kg';
 export const SHARE_PATH = '/v1';
@@ -62,45 +66,111 @@ export function payloadHasTimeline(payload: SharePayload): boolean {
   return payload.v === 3 && typeof payload.t === 'string' && payload.t.length > 0;
 }
 
-/**
- * Duck-typed encode from a note's embedded timeline.json (web has no sidecar
- * module). Indices follow first appearance of each resolved file, which matches
- * share image order for AutoSlides-managed notes.
- */
-export function timelineDeltaFromUnknown(raw: unknown): string | undefined {
-  if (!raw || typeof raw !== 'object') return undefined;
+type EventLike = { id?: unknown; changeAt?: unknown; initialFile?: unknown };
+type ResLike = { state?: unknown; file?: unknown; duplicateOf?: unknown };
+type TimelineLike = { events: EventLike[]; resolutions: Record<string, ResLike> };
+
+function asTimeline(raw: unknown): TimelineLike | null {
+  if (!raw || typeof raw !== 'object') return null;
   const events = (raw as { events?: unknown }).events;
   const resolutions = (raw as { resolutions?: unknown }).resolutions;
-  if (!Array.isArray(events) || !resolutions || typeof resolutions !== 'object') return undefined;
+  if (!Array.isArray(events) || !resolutions || typeof resolutions !== 'object') return null;
+  return { events: events as EventLike[], resolutions: resolutions as Record<string, ResLike> };
+}
 
-  const sorted = [...events]
-    .filter((e): e is { id?: unknown; changeAt?: unknown; initialFile?: unknown } => !!e && typeof e === 'object')
-    .sort((a, b) => Number(a.changeAt) - Number(b.changeAt));
+function basenameOf(filename: string): string {
+  const parts = filename.split(/[/\\]/);
+  return parts[parts.length - 1] ?? '';
+}
 
-  const fileOf = (event: { id?: unknown; initialFile?: unknown }): string | null => {
+/**
+ * Duck-typed port of Electron `resolveCanonicalFile` (shareTimeline / deriveCues).
+ * Follows duplicateOf chains to a canonical file; gaps / cycles → null.
+ */
+function resolveCanonicalFile(
+  tl: TimelineLike,
+  targetFilename: string | undefined,
+  seen: Set<string> = new Set(),
+): string | null {
+  if (!targetFilename) return null;
+  if (seen.has(targetFilename)) return null;
+  seen.add(targetFilename);
+
+  for (const event of tl.events) {
+    if (event.initialFile !== targetFilename) continue;
     const id = typeof event.id === 'string' ? event.id : '';
-    const res = (resolutions as Record<string, { state?: unknown; file?: unknown; duplicateOf?: unknown }>)[id];
-    if (!res) return typeof event.initialFile === 'string' ? event.initialFile : null;
+    const res = tl.resolutions[id];
+    if (!res) return null;
     if (res.state === 'canonical' && typeof res.file === 'string') return res.file;
-    if (res.state === 'duplicate' && typeof res.duplicateOf === 'string') return res.duplicateOf;
+    if (res.state === 'duplicate') {
+      return resolveCanonicalFile(
+        tl,
+        typeof res.duplicateOf === 'string' ? res.duplicateOf : undefined,
+        seen,
+      );
+    }
     return null;
-  };
+  }
+
+  for (const res of Object.values(tl.resolutions)) {
+    if (res.state === 'canonical' && res.file === targetFilename && typeof res.file === 'string') {
+      return res.file;
+    }
+  }
+  return null;
+}
+
+/** Resolved on-screen file for one event, or null for a gap. */
+function cueFile(tl: TimelineLike, event: EventLike): string | null {
+  const id = typeof event.id === 'string' ? event.id : '';
+  const res = tl.resolutions[id];
+  if (!res || res.state === 'gap') return null;
+  if (res.state === 'canonical') return typeof res.file === 'string' ? res.file : null;
+  if (res.state === 'duplicate') {
+    return resolveCanonicalFile(tl, typeof res.duplicateOf === 'string' ? res.duplicateOf : undefined);
+  }
+  return null;
+}
+
+/**
+ * Duck-typed port of Electron `shareTimelineDeltaFromNote`: coalesce resolved
+ * slide cues and key them by `exportSlideFilenames(imageCount, timeline)` so
+ * indices match share image order (`h`). Unmappable cues are skipped (so a
+ * count mismatch cannot drop the whole `t` the way first-appearance indexing
+ * did). Returns undefined when there is no timeline or no mappable cue.
+ */
+export function timelineDeltaFromUnknown(raw: unknown, imageCount?: number): string | undefined {
+  const tl = asTimeline(raw);
+  if (!tl?.events.length || imageCount == null || imageCount <= 0) return undefined;
+
+  const filenames = exportSlideFilenames(imageCount, raw);
+  if (filenames.length === 0) return undefined;
 
   const indexOf = new Map<string, number>();
+  filenames.forEach((name, i) => {
+    const base = basenameOf(name);
+    if (base && !indexOf.has(base)) indexOf.set(base, i);
+  });
+
+  const sorted = [...tl.events]
+    .filter((e): e is EventLike => !!e && typeof e === 'object')
+    .sort((a, b) => Number(a.changeAt) - Number(b.changeAt));
+
   const pairs: Array<[number, number]> = [];
-  let last: string | null = null;
+  let lastFile: string | null = null;
   for (const event of sorted) {
-    const file = fileOf(event);
+    const file = cueFile(tl, event);
     if (!file) {
-      last = null;
+      lastFile = null;
       continue;
     }
-    if (file === last) continue;
-    last = file;
-    if (!indexOf.has(file)) indexOf.set(file, indexOf.size);
+    if (file === lastFile) continue;
+    lastFile = file;
+    const idx = indexOf.get(basenameOf(file));
+    if (idx === undefined) continue;
     const start = Math.round(Number(event.changeAt));
     if (!Number.isFinite(start)) continue;
-    pairs.push([indexOf.get(file)!, start]);
+    pairs.push([idx, start]);
   }
   return pairs.length > 0 ? encodeShareTimeline(pairs) : undefined;
 }

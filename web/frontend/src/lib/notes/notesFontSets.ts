@@ -106,7 +106,9 @@ export function ensureNotesFontSetLoaded(id: NotesFontSetId): Promise<void> {
     await Promise.all(
       set.editorFaces.map(async (face) => {
         try {
-          const ff = new FontFace(set.family, `url(${face.url})`, {
+          // Quote + encode: unquoted url(/fonts/Arial Italic.ttf) is invalid CSS
+          // ("could not be parsed as a value list") because of the space.
+          const ff = new FontFace(set.family, `url("${encodeURI(face.url)}")`, {
             style: face.style ?? 'normal',
             weight: face.weight ?? '400',
             display: 'swap',
