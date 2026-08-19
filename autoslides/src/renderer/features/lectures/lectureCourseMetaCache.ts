@@ -15,6 +15,12 @@ export interface LectureCourseMetaSession {
   week_number?: number
   day?: number
   started_at?: string
+  video_id?: string
+  duration?: number
+  /** Yanhekt camera (main) HLS URL. */
+  mainUrl?: string
+  /** Yanhekt screen (vga) HLS URL. */
+  vgaUrl?: string
 }
 
 export interface LectureCourseMeta {
@@ -95,6 +101,10 @@ export async function getCourseMeta(
           week_number: v.week_number,
           day: v.day,
           started_at: v.started_at,
+          video_id: v.video_id ? String(v.video_id) : undefined,
+          duration: v.duration,
+          mainUrl: v.main_url || undefined,
+          vgaUrl: v.vga_url || undefined,
         })),
         degraded: false,
       }

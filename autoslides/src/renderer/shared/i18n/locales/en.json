@@ -1580,6 +1580,8 @@
     "libraryEpisodeCount": "{count} episodes",
     "libraryInstructor": "Instructor",
     "libraryClassrooms": "Classroom",
-    "libraryFiles": "Files"
+    "libraryFiles": "Files",
+    "bothStreamsOnlineHint": "Plays the file on disk together with the other stream from the server.",
+    "streamOnline": "Online"
   }
 }

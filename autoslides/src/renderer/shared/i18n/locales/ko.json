@@ -1580,6 +1580,8 @@
     "libraryEpisodeCount": "{count}개 회차",
     "libraryInstructor": "교수",
     "libraryClassrooms": "강의실",
-    "libraryFiles": "파일"
+    "libraryFiles": "파일",
+    "bothStreamsOnlineHint": "디스크의 파일과 서버의 다른 스트림을 함께 재생합니다.",
+    "streamOnline": "온라인"
   }
 }

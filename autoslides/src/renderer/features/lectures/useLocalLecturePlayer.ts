@@ -1,11 +1,20 @@
-// Progressive local dual/single player for Lectures Library.
-// Uses asmedia:// URLs — no hls.js, no video proxy, no extraction.
+// Local lecture player: asmedia:// for on-disk files, optional recorded HLS
+// slave for hybrid dual (missing stream played online). No extraction.
 // Clock updates come from the video `timeupdate` event (same as Playback dual).
 
 import { computed, onBeforeUnmount, ref, shallowRef, type Ref } from 'vue'
+import Hls, { Events } from 'hls.js'
 import { toAsmediaUrl } from '@common/asmediaUrl'
+import { tokenManager } from '@shared/services/authService'
+import { getHlsConfig } from '@features/video/hlsConfig'
+import { setupDualHlsErrorHandler } from '@features/video/useVideoErrorRecovery'
 import type { LibraryFileRef, LibrarySession, LocalStreamMode } from './libraryModel'
-import { defaultStreamMode } from './libraryModel'
+import {
+  canShowDual,
+  defaultStreamMode,
+  hybridOnlineKind,
+  sessionHasDual,
+} from './libraryModel'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LocalLecturePlayer')
@@ -15,6 +24,14 @@ const SYNC_INTERVAL_MS = 1500
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 
 export type DualAudioSource = 'screen' | 'camera'
+
+function findStreamUrl(
+  streams: { [key: string]: { type: string; url: string } },
+  type: 'camera' | 'screen',
+): string | null {
+  const match = Object.values(streams).find((stream) => stream.type === type)
+  return match?.url || null
+}
 
 export function useLocalLecturePlayer() {
   const screenVideoEl = shallowRef<HTMLVideoElement | null>(null)
@@ -39,9 +56,14 @@ export function useLocalLecturePlayer() {
   const cameraError = ref('')
 
   let syncTimer: ReturnType<typeof setInterval> | null = null
+  let onlineHls: Hls | null = null
+  let proxyClientId: string | null = null
 
-  const hasDual = computed(() => Boolean(session.value?.screen && session.value?.camera))
+  const onlineKind = computed(() => (session.value ? hybridOnlineKind(session.value) : null))
+  const hasLocalDual = computed(() => Boolean(session.value && sessionHasDual(session.value)))
+  const hasDual = computed(() => Boolean(session.value && canShowDual(session.value)))
   const isDualMode = computed(() => streamMode.value === 'dual' && hasDual.value)
+  const isHybridDual = computed(() => isDualMode.value && onlineKind.value != null)
   const canSeek = computed(() => Number.isFinite(duration.value) && duration.value > 0)
   const playbackRateOptions = PLAYBACK_RATES
 
@@ -93,8 +115,36 @@ export function useLocalLecturePlayer() {
     }
   }
 
+  const destroyOnlineHls = () => {
+    if (!onlineHls) return
+    try {
+      onlineHls.destroy()
+    } catch (error) {
+      log.warn('HLS destroy failed', error)
+    }
+    onlineHls = null
+  }
+
+  const releaseProxyClient = async () => {
+    if (!proxyClientId) return
+    const id = proxyClientId
+    proxyClientId = null
+    try {
+      await window.electronAPI.video.unregisterClient(id)
+    } catch (error) {
+      log.warn('unregisterClient failed', error)
+    }
+  }
+
+  const ensureProxyClient = async () => {
+    if (proxyClientId) return
+    proxyClientId = await window.electronAPI.video.registerClient()
+  }
+
   const destroy = () => {
     stopSync()
+    destroyOnlineHls()
+    void releaseProxyClient()
     clearVideo(screenVideoEl.value)
     clearVideo(cameraVideoEl.value)
     clearVideo(singleVideoEl.value)
@@ -109,11 +159,21 @@ export function useLocalLecturePlayer() {
     session.value = null
   }
 
+  /** Local file is the clock master in hybrid dual; screen is master for local dual. */
   const masterVideo = (): HTMLVideoElement | null => {
     if (isDualMode.value) {
+      if (onlineKind.value === 'camera') return screenVideoEl.value
+      if (onlineKind.value === 'screen') return cameraVideoEl.value
       return screenVideoEl.value || cameraVideoEl.value
     }
     return singleVideoEl.value
+  }
+
+  const slaveVideo = (): HTMLVideoElement | null => {
+    if (!isDualMode.value) return null
+    if (onlineKind.value === 'camera') return cameraVideoEl.value
+    if (onlineKind.value === 'screen') return screenVideoEl.value
+    return cameraVideoEl.value
   }
 
   const applyAudio = () => {
@@ -167,24 +227,24 @@ export function useLocalLecturePlayer() {
   }
 
   const syncDual = () => {
-    const screen = screenVideoEl.value
-    const camera = cameraVideoEl.value
-    if (!screen || !camera) return
+    const master = masterVideo()
+    const slave = slaveVideo()
+    if (!master || !slave) return
 
     applyRate()
-    const drift = Math.abs((screen.currentTime || 0) - (camera.currentTime || 0))
+    const drift = Math.abs((master.currentTime || 0) - (slave.currentTime || 0))
     if (drift > DRIFT_THRESHOLD_S) {
       try {
-        camera.currentTime = screen.currentTime
+        slave.currentTime = master.currentTime
       } catch (error) {
         log.warn('Dual drift seek failed', error)
       }
     }
-    if (!screen.paused && camera.paused) {
-      void camera.play().catch(() => undefined)
+    if (!master.paused && slave.paused) {
+      void slave.play().catch(() => undefined)
     }
-    if (screen.paused && !camera.paused) {
-      camera.pause()
+    if (master.paused && !slave.paused) {
+      slave.pause()
     }
     applyAudio()
   }
@@ -232,6 +292,52 @@ export function useLocalLecturePlayer() {
     video.addEventListener('error', onErr, { once: true })
   }
 
+  const attachOnlineHls = (
+    video: HTMLVideoElement,
+    url: string,
+    label: 'screen' | 'camera',
+    seekToTime?: number,
+    shouldAutoPlay?: boolean,
+  ) => {
+    destroyOnlineHls()
+    if (!Hls.isSupported()) {
+      throw new Error('HLS is not supported in this browser')
+    }
+
+    const hlsInstance = new Hls(getHlsConfig('recorded'))
+    onlineHls = hlsInstance
+    hlsInstance.loadSource(url)
+    hlsInstance.attachMedia(video)
+
+    hlsInstance.on(Events.MANIFEST_PARSED, () => {
+      setTimeout(() => {
+        video.playbackRate = playbackRate.value
+        if (seekToTime !== undefined && seekToTime > 0 && Number.isFinite(seekToTime)) {
+          try {
+            video.currentTime = seekToTime
+          } catch (seekError) {
+            log.warn(`Could not seek ${label} stream during hybrid load:`, seekError)
+          }
+        }
+        applyAudio()
+        updateClock()
+        if (shouldAutoPlay !== false) {
+          video.play().catch(() => undefined)
+        }
+      }, 100)
+    })
+
+    setupDualHlsErrorHandler(hlsInstance, video, label, {
+      mode: 'recorded',
+      onFatal: (message) => {
+        if (label === 'screen') screenError.value = message
+        if (label === 'camera') cameraError.value = message
+        errorMessage.value = message
+        log.warn('Hybrid HLS fatal', label, message)
+      },
+    })
+  }
+
   const waitForElements = async (dual: boolean, attempts = 12): Promise<boolean> => {
     for (let i = 0; i < attempts; i++) {
       if (dual) {
@@ -246,21 +352,88 @@ export function useLocalLecturePlayer() {
       : Boolean(singleVideoEl.value)
   }
 
-  const attachSources = async (autoplay: boolean) => {
+  const resolveHybridUrl = async (
+    sess: LibrarySession,
+    kind: 'camera' | 'screen',
+  ): Promise<string | null> => {
+    const token = tokenManager.getToken()
+    if (!token) {
+      errorMessage.value = 'Sign in to play the online stream.'
+      return null
+    }
+
+    const payload = JSON.parse(JSON.stringify({
+      session_id: sess.sessionId,
+      video_id: sess.videoId,
+      title: sess.title,
+      duration: sess.duration,
+      main_url: sess.mainUrl,
+      vga_url: sess.vgaUrl,
+    }))
+
+    await ensureProxyClient()
+    const result = await window.electronAPI.video.getVideoPlaybackUrls(payload, token)
+    const url = findStreamUrl(result.streams, kind)
+    if (!url) {
+      errorMessage.value = 'Online stream is not available for this lecture.'
+      return null
+    }
+    return url
+  }
+
+  const attachSingle = async (autoplay: boolean, seekTo?: number) => {
+    const file = activeSingleFile.value
+    const video = singleVideoEl.value
+    if (!file || !video) {
+      isLoading.value = false
+      return
+    }
+    clearVideo(video)
+    wireElement(video, file, 'single')
+    applyAudio()
+    applyRate()
+    if (seekTo && seekTo > 0) {
+      try {
+        if (video.readyState >= 1) video.currentTime = seekTo
+      } catch {
+        /* seek after metadata */
+      }
+    }
+    if (autoplay) {
+      await video.play().catch(() => undefined)
+      isPlaying.value = !video.paused
+    }
+  }
+
+  const attachSources = async (autoplay: boolean, seekTo?: number, keepError = false) => {
     isLoading.value = true
-    errorMessage.value = ''
+    if (!keepError) errorMessage.value = ''
     failedPaths.value = []
     screenError.value = ''
     cameraError.value = ''
     stopSync()
+    destroyOnlineHls()
 
     const sess = session.value
     if (!sess) {
       isLoading.value = false
+      await releaseProxyClient()
       return
     }
 
-    const wantDual = streamMode.value === 'dual' && Boolean(sess.screen && sess.camera)
+    const wantLocalDual = streamMode.value === 'dual' && sessionHasDual(sess)
+    const hybridKind = streamMode.value === 'dual' ? hybridOnlineKind(sess) : null
+    const wantHybrid = streamMode.value === 'dual' && hybridKind != null
+    const wantDual = wantLocalDual || wantHybrid
+
+    if (!wantHybrid) {
+      await releaseProxyClient()
+    }
+
+    if (streamMode.value === 'dual' && !wantDual) {
+      streamMode.value = defaultStreamMode(sess)
+    }
+
     const ready = await waitForElements(wantDual)
     if (!ready) {
       isLoading.value = false
@@ -268,15 +441,10 @@ export function useLocalLecturePlayer() {
       return
     }
 
-    if (wantDual) {
-      clearVideo(screenVideoEl.value)
-      clearVideo(cameraVideoEl.value)
-    } else {
-      clearVideo(singleVideoEl.value)
-    }
-
     try {
-      if (wantDual && sess.screen && sess.camera) {
+      if (wantLocalDual && sess.screen && sess.camera) {
+        clearVideo(screenVideoEl.value)
+        clearVideo(cameraVideoEl.value)
         const screen = screenVideoEl.value
         const camera = cameraVideoEl.value
         if (!screen || !camera) {
@@ -292,25 +460,47 @@ export function useLocalLecturePlayer() {
           await Promise.allSettled([screen.play(), camera.play()])
           isPlaying.value = !screen.paused
         }
-      } else {
-        const file = activeSingleFile.value
-        const video = singleVideoEl.value
-        if (!file || !video) {
+      } else if (wantHybrid && hybridKind) {
+        const localKind: 'screen' | 'camera' = hybridKind === 'camera' ? 'screen' : 'camera'
+        const localFile = localKind === 'screen' ? sess.screen : sess.camera
+        const localEl = localKind === 'screen' ? screenVideoEl.value : cameraVideoEl.value
+        const onlineEl = hybridKind === 'camera' ? cameraVideoEl.value : screenVideoEl.value
+        if (!localFile || !localEl || !onlineEl) {
           isLoading.value = false
           return
         }
-        wireElement(video, file, 'single')
+
+        const url = await resolveHybridUrl(sess, hybridKind)
+        if (!url) {
+          streamMode.value = defaultStreamMode(sess)
+          await releaseProxyClient()
+          await attachSources(autoplay, seekTo, true)
+          return
+        }
+
+        clearVideo(localEl)
+        clearVideo(onlineEl)
+        wireElement(localEl, localFile, localKind)
+        attachOnlineHls(onlineEl, url, hybridKind, seekTo, autoplay)
         applyAudio()
         applyRate()
+        startDualSync()
         if (autoplay) {
-          await video.play().catch(() => undefined)
-          isPlaying.value = !video.paused
+          await localEl.play().catch(() => undefined)
+          isPlaying.value = !localEl.paused
         }
+      } else {
+        await attachSingle(autoplay, seekTo)
       }
     } catch (error) {
       log.error('attachSources failed', error)
       errorMessage.value = error instanceof Error ? error.message : String(error)
       isLoading.value = false
+      if (wantHybrid) {
+        streamMode.value = defaultStreamMode(sess)
+        await releaseProxyClient()
+        await attachSources(autoplay, seekTo, true)
+      }
     }
   }
 
@@ -323,12 +513,26 @@ export function useLocalLecturePlayer() {
     await attachSources(autoplay)
   }
 
+  const syncSession = (next: LibrarySession) => {
+    if (!session.value || session.value.sessionId !== next.sessionId) return
+    session.value = next
+  }
+
+  const setDualAudioForMode = (mode: LocalStreamMode, sess: LibrarySession) => {
+    if (mode !== 'dual') return
+    const kind = hybridOnlineKind(sess)
+    if (kind === 'camera') dualAudioSource.value = 'screen'
+    else if (kind === 'screen') dualAudioSource.value = 'camera'
+    else dualAudioSource.value = sess.screen ? 'screen' : 'camera'
+  }
+
   const setStreamMode = async (mode: LocalStreamMode) => {
     if (streamMode.value === mode) return
     const t = currentTime.value
     const wasPlaying = isPlaying.value
     streamMode.value = mode
-    await attachSources(wasPlaying)
+    if (session.value) setDualAudioForMode(mode, session.value)
+    await attachSources(wasPlaying, t)
     if (t > 0) seek(t)
   }
 
@@ -393,13 +597,10 @@ export function useLocalLecturePlayer() {
       }
     }
 
-    // Master first (screen when dual), then the other stream.
     if (isDualMode.value) {
-      applySeek(screenVideoEl.value)
-      applySeek(cameraVideoEl.value)
-      // Restart sync after both have accepted the seek target.
+      applySeek(masterVideo())
+      applySeek(slaveVideo())
       if (isPlaying.value) {
-        // Delay slightly so both elements fire seeked before drift checks.
         setTimeout(() => {
           if (isPlaying.value && isDualMode.value) startDualSync()
         }, 250)
@@ -461,7 +662,10 @@ export function useLocalLecturePlayer() {
     screenError,
     cameraError,
     hasDual,
+    hasLocalDual,
     isDualMode,
+    isHybridDual,
+    onlineKind,
     canSeek,
     seekProgress,
     volumeProgress,
@@ -470,6 +674,7 @@ export function useLocalLecturePlayer() {
     bindCameraEl,
     bindSingleEl,
     open,
+    syncSession,
     setStreamMode,
     play,
     pause,

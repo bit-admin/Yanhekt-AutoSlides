@@ -1580,6 +1580,8 @@
     "libraryEpisodeCount": "{count} 课时",
     "libraryInstructor": "教师",
     "libraryClassrooms": "教室",
-    "libraryFiles": "文件"
+    "libraryFiles": "文件",
+    "bothStreamsOnlineHint": "本地文件与服务器上的另一路视频一起播放。",
+    "streamOnline": "在线"
   }
 }

@@ -1580,6 +1580,8 @@
     "libraryEpisodeCount": "{count} 話",
     "libraryInstructor": "教員",
     "libraryClassrooms": "教室",
-    "libraryFiles": "ファイル"
+    "libraryFiles": "ファイル",
+    "bothStreamsOnlineHint": "ディスク上のファイルと、サーバー上のもう一方のストリームを同時に再生します。",
+    "streamOnline": "オンライン"
   }
 }

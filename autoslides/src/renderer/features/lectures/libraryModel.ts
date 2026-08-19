@@ -31,6 +31,12 @@ export interface LibrarySession {
   startedAt?: string | null
   screen?: LibraryFileRef
   camera?: LibraryFileRef
+  videoId?: string
+  duration?: number
+  /** Yanhekt camera (main) HLS URL — used when the camera file is not on disk. */
+  mainUrl?: string
+  /** Yanhekt screen (vga) HLS URL — used when the screen file is not on disk. */
+  vgaUrl?: string
   /** Prefer screen path for poster generation. */
   posterSourcePath?: string
 }
@@ -113,6 +119,30 @@ export function sessionHasDual(session: LibrarySession): boolean {
   return Boolean(session.screen && session.camera)
 }
 
+/** Alias: both screen and camera files are on disk. */
+export function sessionHasLocalDual(session: LibrarySession): boolean {
+  return sessionHasDual(session)
+}
+
+/**
+ * Which stream would be fetched online in hybrid dual.
+ * Null when both files are local, or the complementary Yanhekt URL is missing.
+ */
+export function hybridOnlineKind(session: LibrarySession): 'camera' | 'screen' | null {
+  if (session.screen && session.camera) return null
+  if (session.screen && session.mainUrl) return 'camera'
+  if (session.camera && session.vgaUrl) return 'screen'
+  return null
+}
+
+export function canHybridDual(session: LibrarySession): boolean {
+  return hybridOnlineKind(session) != null
+}
+
+export function canShowDual(session: LibrarySession): boolean {
+  return sessionHasDual(session) || canHybridDual(session)
+}
+
 export function formatSessionSubtitle(session: LibrarySession, semester?: string | number): string {
   const se = [formatSemesterToken(semester), formatEpisodeToken(session.episode)]
     .filter(Boolean)
@@ -192,6 +222,10 @@ export function buildLibraryCourses(
         startedAt: metaSession?.started_at,
         screen: sess.screen,
         camera: sess.camera,
+        videoId: metaSession?.video_id,
+        duration: metaSession?.duration,
+        mainUrl: metaSession?.mainUrl,
+        vgaUrl: metaSession?.vgaUrl,
         posterSourcePath: sess.screen?.path || sess.camera?.path,
       }
       sessions.push(session)
