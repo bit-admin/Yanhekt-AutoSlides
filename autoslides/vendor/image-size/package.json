@@ -1,0 +1,11 @@
+{
+  "name": "image-size",
+  "version": "2.0.3",
+  "description": "Subset replacement for image-size 1.2.1: PNG/JPEG/GIF/WebP/BMP only. Omits unpatched ICNS/JXL/HEIF parsers (GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq). Remove when upstream publishes >2.0.2.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16"
+  }
+}

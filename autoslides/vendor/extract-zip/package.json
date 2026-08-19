@@ -1,0 +1,16 @@
+{
+  "name": "extract-zip",
+  "version": "2.0.2",
+  "description": "Patched extract-zip 2.0.1: reject symlink targets (and dest paths) outside the extract root (GHSA-jmr9-qjv8-65gv / CVE-2026-56876). Remove when upstream publishes a fix.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "BSD-2-Clause",
+  "engines": {
+    "node": ">= 10.17.0"
+  },
+  "dependencies": {
+    "debug": "^4.1.1",
+    "get-stream": "^5.1.0",
+    "yauzl": "^2.10.0"
+  }
+}

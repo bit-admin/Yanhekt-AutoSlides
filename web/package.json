@@ -20,27 +20,33 @@
     "@editorjs/image": "^2.8.2",
     "@editorjs/list": "^1.8.0",
     "@editorjs/quote": "^2.5.0",
-    "@editorjs/table": "^2.2.2",
+    "@editorjs/table": "^2.4.6",
     "@pdf-lib/fontkit": "^1.1.1",
     "@pdf-lib/upng": "^1.0.1",
     "@techstark/opencv-js": "^4.12.0-release.1",
     "crypto-js": "^4.2.0",
     "fflate": "^0.8.3",
-    "hls.js": "^1.6.15",
-    "hono": "^4.6.14",
+    "hls.js": "^1.7.1",
+    "hono": "^4.13.3",
     "pdf-lib": "^1.17.1",
-    "vue": "^3.5.25",
-    "vue-i18n": "^11.2.2",
+    "vue": "^3.5.41",
+    "vue-i18n": "^11.4.8",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241127.0",
+    "@cloudflare/workers-types": "^5.20260819.1",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^22.20.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "typescript": "^5.7.2",
     "vite": "^7.2.6",
     "vue-tsc": "^3.2.6",
-    "wrangler": "^4.103.0"
+    "wrangler": "^4.124.0"
+  },
+  "overrides": {
+    "sharp": "^0.35.3",
+    "undici": "^7.29.0",
+    "nanoid@3": "3.3.18",
+    "postcss": "^8.5.26"
   }
 }

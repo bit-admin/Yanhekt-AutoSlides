@@ -14,7 +14,7 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
-    "jspdf": "^2.5.2",
+    "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -25,6 +25,12 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.6.3",
     "vite": "^6.0.7",
-    "wrangler": "^4.106.0"
+    "wrangler": "^4.124.0"
+  },
+  "overrides": {
+    "sharp": "^0.35.3",
+    "undici": "^7.29.0",
+    "nanoid@3": "3.3.18",
+    "postcss": "^8.5.26"
   }
 }

@@ -1,81 +1,117 @@
 name: Continuous Integration
 
+# PRs were previously unchecked — only `push` to main ran this workflow.
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  autoslides:
+    name: autoslides (lint, types, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: autoslides
+    steps:
+      - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          # electron@41 and several deps (vite, sharp, vue-i18n, …) require Node ≥ 22.12.
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: autoslides/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npx vue-tsc --noEmit
+      - run: npm test
+
+  workers:
+    name: ${{ matrix.dir }} (typecheck)
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest]
-        node-version: [22]
-
+        dir: [web, share, relay]
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: autoslides/package-lock.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.dir }}/package-lock.json
 
+      - run: npm ci
 
-    - name: Install dependencies
-      run: |
-        cd autoslides
-        npm ci
+      # web's worker tsc includes gitignored worker-configuration.d.ts.
+      # Generate it from the tracked example config (real wrangler.jsonc is gitignored).
+      # --strict-vars false keeps SSO_RESUME_KEY as string, matching src/env.ts.
+      - name: Generate wrangler types
+        if: matrix.dir == 'web'
+        run: npx wrangler types -c wrangler.example.jsonc --strict-vars false
 
-    - name: Lint code
-      run: |
-        cd autoslides
-        npm run lint
+      - run: npm run typecheck
 
-    - name: Type check
-      run: |
-        cd autoslides
-        npx vue-tsc --noEmit
-
-    - name: Build application (package only)
-      run: |
-        cd autoslides
-        npm run package
-      env:
-        CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Typecheck Vue frontend
+        if: matrix.dir == 'web'
+        run: npm run typecheck:web
 
   security:
+    name: audit ${{ matrix.dir }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [autoslides, web, share, relay]
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        # Match the test matrix / build workflows — electron@41 and
-        # several deps (vite, sharp, vue-i18n, …) require Node ≥ 22.12;
-        # Node 18 fails at electron's install.js (ERR_REQUIRE_ESM on
-        # @electron/get).
-        node-version: '22'
-        cache: 'npm'
-        cache-dependency-path: autoslides/package-lock.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.dir }}/package-lock.json
 
-    - name: Install dependencies
-      run: |
-        cd autoslides
-        npm ci
+      - run: npm ci
+      - run: npm audit --audit-level=moderate
+      - name: Outdated report (non-blocking)
+        run: npm outdated || true
 
-    - name: Run security audit
-      run: |
-        cd autoslides
-        npm audit --audit-level=moderate
+  package:
+    name: autoslides package (windows)
+    runs-on: windows-latest
+    needs: [autoslides]
+    defaults:
+      run:
+        working-directory: autoslides
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Check for outdated dependencies
-      run: |
-        cd autoslides
-        npm outdated || true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: autoslides/package-lock.json
+
+      - run: npm ci
+      - name: Build application (package only)
+        run: npm run package
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
