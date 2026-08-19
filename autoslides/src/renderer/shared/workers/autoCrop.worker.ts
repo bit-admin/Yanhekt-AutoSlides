@@ -2,7 +2,7 @@
  * Auto-Crop Web Worker
  *
  * Two detection backends:
- *   1. Canny — classical CV port of REFERENCE/auto_crop_slide.py via OpenCV.js.
+ *   1. Canny — classical CV via OpenCV.js.
  *   2. YOLO  — onnxruntime-web inference against a fine-tuned YOLOv8 model.
  *
  * IMPORTANT: We use top-level static imports so Vite bundles the runtimes into

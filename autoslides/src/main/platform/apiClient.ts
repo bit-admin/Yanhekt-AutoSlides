@@ -704,8 +704,7 @@ export class ApiClient {
    * detail *by id*. Proved anonymous-ok (2026-08-13): title, schedule, location,
    * nested `course`, historical `live` (incl. target URLs), and `video_ids`.
    * Does **not** include the authenticated list's `videos[]` VOD URLs; recover
-   * those via `GET /v1/video?id=` using `video_ids`. See
-   * `REFERENCE/YANHEKT_UNAUTH_API_REPORT.md`.
+   * those via `GET /v1/video?id=` using `video_ids`.
    */
   async getSessionById(sessionId: string, token: string): Promise<unknown> {
     const url = `https://cbiz.yanhekt.cn/v1/course/session?session_id=${encodeURIComponent(sessionId)}&with_video=true`;

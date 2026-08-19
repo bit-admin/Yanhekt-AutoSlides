@@ -1,6 +1,6 @@
 /**
- * Generates the token-grabbing bookmarklet (ported from
- * REFERENCE/bookmark-generator.js): dragged to the bookmarks bar and clicked
+ * Generates the token-grabbing bookmarklet:
+ * dragged to the bookmarks bar and clicked
  * while on yanhekt.cn, it reads the login token from the site's localStorage
  * 'auth' entry and either jumps back here with ?token=<token> (auto-filled
  * into the login paste field — user still hits Verify) or copies the token

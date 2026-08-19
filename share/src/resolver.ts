@@ -10,8 +10,8 @@ export type ResolvedImage = ResolvedShareImage;
 
 /**
  * Browser/Worker folder lister: fetch each ListObjectsV2 page and pull the keys
- * out with DOMParser. Paginates via the S3 continuation token (mirrors
- * REFERENCE/coss-browser.html). The bucket is anonymously listable; we read with
+ * out with DOMParser. Paginates via the S3 continuation token.
+ * The bucket is anonymously listable; we read with
  * credentials omitted.
  */
 async function listFolder(prefix: string): Promise<Map<string, string>> {

@@ -1,8 +1,8 @@
 import type { LegalDoc } from "./types";
 
 // End-user disclosure of Yanhekt Platform public object storage as it affects
-// Cloud Notes image uploads. Drawn from read-only research on coss.yanhekt.cn
-// (see REFERENCE/report.md); not an exploit writeup. The interactive browser
+// Cloud Notes image uploads. Drawn from read-only research on coss.yanhekt.cn;
+// not an exploit writeup. The interactive browser
 // for the same store is at https://coss.ruc.edu.kg.
 //
 // Aligns with privacy.ts Cloud Notes paragraph (Platform MinIO hosts note

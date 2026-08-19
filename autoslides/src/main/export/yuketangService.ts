@@ -1,7 +1,6 @@
 /**
  * Yuketang Export Service
  * Handles downloading slides from Yuketang education platform.
- * Adapted from REFERENCE/src/yuketang-export.js for AutoSlides conventions.
  */
 
 import fs from 'node:fs/promises';

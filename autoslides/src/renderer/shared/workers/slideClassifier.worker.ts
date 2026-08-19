@@ -2,7 +2,7 @@
  * Slide Classifier Web Worker
  *
  * MobileNetV4 ONNX classifier (3 classes: may_be_slide / not_slide / slide).
- * Preprocessing matches REFERENCE/inference_opencv.py:
+ * Preprocessing matches:
  *   BGR->RGB -> resize 256x256 INTER_AREA -> /255 -> ImageNet mean/std -> CHW float32.
  *
  * Static top-level imports mirror autoCrop.worker.ts so Vite bundles the
@@ -156,7 +156,7 @@ async function ensureOrtReady(modelBuffer?: ArrayBuffer): Promise<void> {
 }
 
 // ----------------------------------------------------------------------------
-// Preprocessing (matches REFERENCE/inference_opencv.py)
+// Preprocessing
 // ----------------------------------------------------------------------------
 
 const INPUT_SIZE = 256

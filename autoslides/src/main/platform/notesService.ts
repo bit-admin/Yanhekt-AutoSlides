@@ -7,8 +7,7 @@
  * and (b) bypass the note API's yanhekt.cn-only CORS lock (Node has no CORS).
  *
  * The only non-obvious auth gate is the `Xdomain-Client: web_user` header; the
- * xclient signing headers are NOT enforced by this API. See
- * REFERENCE/yanhekt-note-api-report.md for the verified endpoint surface.
+ * xclient signing headers are NOT enforced by this API.
  */
 
 import { promises as fs } from 'fs';

@@ -2,7 +2,7 @@
  * Anonymous Yanhekt (cbiz) client for the share Worker.
  *
  * Course/session/list/tag GETs work without a user Bearer when Origin is the
- * official site and Xdomain-Client is web_user (see REFERENCE/YANHEKT_UNAUTH_API_REPORT.md).
+ * official site and Xdomain-Client is web_user.
  * Signature headers are optional for these reads; we still send the constant
  * Xclient-Signature so we match the desktop/web clients.
  *

@@ -2,8 +2,6 @@
  * Yanhekt cloud-note API types (cbiz.yanhekt.cn/v1/note*).
  * Shared across the main process (notesService), the preload bridge, and the
  * renderer (useCloudNotes / CloudNotesTab). Imported via `@common/notesTypes`.
- *
- * See REFERENCE/yanhekt-note-api-report.md for the verified API surface.
  */
 
 import type { SlideMetadata } from './slideMetadataTypes';

@@ -536,8 +536,6 @@
 
 ## 🏗️ 架构设计
 
-AutoSlides 使用 Electron + Vue 3 + TypeScript 构建，采用多进程架构：主进程负责系统服务、网络代理和文件操作；渲染器负责 UI 和轻量计算；Web Worker 承载图像处理等 CPU 密集任务。详细的进程模型、模块依赖、IPC 通信、状态机、流水线设计、构建系统等完整架构说明请参阅 [ARCHITECTURE.md](ARCHITECTURE.md)。
-
 图像分析算法（SSIM、pHash、ML 分类、自动裁剪）的技术细节和数学推导请参阅 [AutoSlides Image Analysis Technical Report](docs/image-analysis-technical-report.pdf)。
 
 ### 为什么推荐组合使用 `AutoSlides` 和 `AutoSlides Extractor`？
@@ -566,39 +564,6 @@ npm run make:linux     # 生成 Linux AppImage/deb
 npm run screenshots:build   # 演示模式下重新截图（重新打包 + 截图）
 npm run docs:images         # 重命名/拆分/复制到 ../docs（处理记录见 out/screenshots/NOTES.md）
 ```
-
-> [!NOTE]
-> 所有 `docs/` 图像均自动生成，无需手动截图。`docs/login.png` 是浏览器登录视图，截图脚本会在内置 webview 中实时加载真实的统一身份认证登录页后再截取（需联网）；`docs/extractor-install.png` 由脚本从「下载与播放」设置页顶部裁剪而来。
-
-代码变更后建议运行验证：
-
-```bash
-npx tsc --noEmit       # 类型检查
-npm run lint           # Lint 检查
-npm start              # 启动应用，确认 3 个窗口无控制台错误
-```
-
-开发约定：
-
-- 主进程服务按领域组织（`platform`、`infra`、`video`、`extraction`、`ai`、`export`、`download`），IPC 处理器通过 `IpcServices` 依赖注入接收服务实例，禁止直接导入单例。
-- 渲染器 Feature 领域之间禁止互相导入（ESLint `no-restricted-imports` 强制）；共享逻辑放入 `@shared/*`。
-- 新增持久化设置时，先扩展配置类型（`src/main/platform/config/types.ts`）和默认值（`src/main/platform/config/defaults.ts`）。
-- 耗时图像处理应放入 Web Worker；需要文件系统、Sharp、FFmpeg 或模型文件时，通过主进程 IPC 处理。
-- 新增界面文案时同步更新 `src/renderer/shared/i18n/locales/` 下的多语言文件。
-- CSS 颜色必须引用 `src/renderer/shared/styles/theme.css` 中的变量，不使用硬编码色值。
-- 更多架构细节请参阅 [ARCHITECTURE.md](ARCHITECTURE.md)。
-
-## Star History
-
-<div align="center">
-  <a href="https://www.star-history.com/?repos=bit-admin%2FYanhekt-AutoSlides&type=date&legend=top-left">
-   <picture>
-     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=bit-admin/Yanhekt-AutoSlides&type=date&theme=dark&legend=top-left" />
-     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=bit-admin/Yanhekt-AutoSlides&type=date&legend=top-left" />
-     <img alt="Star History Chart" src="https://api.star-history.com/image?repos=bit-admin/Yanhekt-AutoSlides&type=date&legend=top-left" />
-   </picture>
-  </a>
-</div>
 
 ---
 
