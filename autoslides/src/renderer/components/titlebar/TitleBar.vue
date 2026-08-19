@@ -742,6 +742,7 @@ const openSettings = () => {
   display: flex;
   align-items: center;
   height: 36px;
+  flex-shrink: 0;
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
   user-select: none;

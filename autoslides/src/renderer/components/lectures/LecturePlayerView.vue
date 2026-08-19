@@ -681,7 +681,8 @@ const formatTime = (seconds: number): string => {
 onMounted(async () => {
   await nextTick()
   await open(props.session, props.initialMode, true)
-  rootEl.value?.focus()
+  // Space/arrows target this root; preventScroll so focus cannot nudge the title bar.
+  rootEl.value?.focus({ preventScroll: true })
   showControls()
 })
 

@@ -374,6 +374,8 @@ onMounted(() => {
 .app {
   height: 100vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-page);
   color: var(--text-primary);
@@ -381,17 +383,11 @@ onMounted(() => {
 
 .layout {
   display: flex;
-  height: calc(100% - 36px); /* Subtract titlebar height */
+  flex: 1;
+  min-height: 0;
   width: 100%;
   background-color: var(--bg-page);
   overflow: hidden;
-}
-
-/* Adjust for macOS titlebar height */
-@media screen and (-webkit-min-device-pixel-ratio: 1) {
-  .layout {
-    height: calc(100% - 32px); /* macOS titlebar is slightly shorter */
-  }
 }
 
 /* Gray sidebar on opaque platforms; macOS overrides with the glass tint */
