@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { readPageSemesterIds } from '../src/lib/searchQuery';
 import { groupLectures, schoolYearRank, semesterRank } from './lectureSort';
 import { SemesterSelect, type IndexSemester } from './SemesterSelect';
 
@@ -163,11 +164,11 @@ function Home({
 }) {
   const initialParams = new URLSearchParams(window.location.search);
   const initialQ = initialParams.get('q') ?? '';
-  const urlSemester = initialParams.get('semesterId');
+  const urlSemesterIds = readPageSemesterIds(initialParams);
   const [q, setQ] = useState(initialQ);
-  const [semesterId, setSemesterId] = useState(urlSemester ?? '');
+  const [semesterIds, setSemesterIds] = useState<string[]>(urlSemesterIds ?? []);
   const [semesterReady, setSemesterReady] = useState(
-    urlSemester !== null || isCourseIdQuery(initialQ),
+    urlSemesterIds !== null || isCourseIdQuery(initialQ),
   );
   const [results, setResults] = useState<Lecture[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -185,8 +186,8 @@ function Home({
       .then((d) => {
         const next = (d.stats ?? null) as Stats | null;
         setStats(next);
-        if (urlSemester === null && !isCourseIdQuery(initialQ) && next?.semesters?.[0]) {
-          setSemesterId(String(next.semesters[0].id));
+        if (urlSemesterIds === null && !isCourseIdQuery(initialQ) && next?.semesters?.[0]) {
+          setSemesterIds([String(next.semesters[0].id)]);
         }
         setSemesterReady(true);
       })
@@ -197,7 +198,7 @@ function Home({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const runSearch = useCallback(async (term: string, sem = semesterId) => {
+  const runSearch = useCallback(async (term: string, semesters = semesterIds) => {
     setSearching(true);
     setCollegeFilter(null);
     setTermFilter(null);
@@ -206,7 +207,9 @@ function Home({
     try {
       const params = new URLSearchParams();
       if (term.trim()) params.set('q', term.trim());
-      if (sem && !isCourseIdQuery(term)) params.set('semesterId', sem);
+      if (semesters.length > 0 && !isCourseIdQuery(term)) {
+        params.set('semesterIds', semesters.join(','));
+      }
       const r = await fetch(`${API}/search?${params}`);
       const d = await r.json();
       setResults(Array.isArray(d.results) ? d.results : []);
@@ -215,18 +218,18 @@ function Home({
     } finally {
       setSearching(false);
     }
-  }, [semesterId]);
+  }, [semesterIds]);
 
   // Deep-link ?q= waits until the latest-semester default is applied (unless
   // the query is a course id — those always search all semesters).
   useEffect(() => {
     if (!semesterReady || !initialQ) return;
-    void runSearch(initialQ, semesterId);
+    void runSearch(initialQ, semesterIds);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [semesterReady]);
 
-  const onSemesterChange = (next: string) => {
-    setSemesterId(next);
+  const onSemesterChange = (next: string[]) => {
+    setSemesterIds(next);
     if (q.trim()) void runSearch(q, next);
   };
 
@@ -384,7 +387,7 @@ function Home({
               {stats?.semesters && stats.semesters.length > 0 && (
                 <SemesterSelect
                   semesters={stats.semesters}
-                  value={semesterId}
+                  value={semesterIds}
                   onChange={onSemesterChange}
                 />
               )}

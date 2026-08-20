@@ -53,8 +53,9 @@ export function SemesterSelect({
   onChange,
 }: {
   semesters: IndexSemester[];
-  value: string;
-  onChange: (id: string) => void;
+  /** Selected ids. Empty array = all semesters. */
+  value: string[];
+  onChange: (ids: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -71,12 +72,22 @@ export function SemesterSelect({
   }, [open]);
 
   const groups = useMemo(() => groupSemesters(semesters), [semesters]);
-  const selected = semesters.find((s) => String(s.id) === value);
-  const triggerLabel = selected ? displayLabel(selected) : 'All semesters';
+  const isAll = value.length === 0;
+  const triggerLabel = (() => {
+    if (isAll) return 'All semesters';
+    if (value.length === 1) {
+      const selected = semesters.find((s) => String(s.id) === value[0]);
+      return selected ? displayLabel(selected) : 'Semester';
+    }
+    return `${value.length} semesters`;
+  })();
 
-  const pick = (id: string) => {
-    onChange(id);
-    setOpen(false);
+  const chooseAll = () => {
+    if (value.length > 0) onChange([]);
+  };
+
+  const toggle = (id: string) => {
+    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
   };
 
   return (
@@ -101,15 +112,16 @@ export function SemesterSelect({
         </svg>
       </button>
       {open && (
-        <div className="semester-menu" role="listbox">
+        <div className="semester-menu" role="listbox" aria-multiselectable="true">
           <div className="semester-group">
             <button
               type="button"
-              className={`semester-option${value === '' ? ' active' : ''}`}
-              onClick={() => pick('')}
+              className={`semester-option${isAll ? ' active' : ''}`}
+              aria-selected={isAll}
+              onClick={chooseAll}
             >
               <span className="semester-option-label">All semesters</span>
-              {value === '' && <CheckIcon />}
+              {isAll && <CheckIcon />}
             </button>
           </div>
           {groups.map((group) => (
@@ -117,13 +129,14 @@ export function SemesterSelect({
               {group.label && <div className="semester-group-label">{group.label}</div>}
               {group.options.map((option) => {
                 const id = String(option.id);
-                const active = value === id;
+                const active = value.includes(id);
                 return (
                   <button
                     type="button"
                     key={option.id}
                     className={`semester-option${active ? ' active' : ''}`}
-                    onClick={() => pick(id)}
+                    aria-selected={active}
+                    onClick={() => toggle(id)}
                   >
                     <span className="semester-option-label">{displayLabel(option)}</span>
                     {active && <CheckIcon />}

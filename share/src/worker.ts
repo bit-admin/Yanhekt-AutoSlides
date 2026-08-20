@@ -14,7 +14,7 @@
  *
  *   v2 (AutoSlides Index — see v2.ts):
  *     POST /v2/api/publish               -> verify token, upsert lecture+version
- *     GET  /v2/api/search?q=             -> lecture search (Cache-API wrapped)
+ *     GET  /v2/api/search?q=&semesterIds= -> lecture search (Cache-API wrapped)
  *     GET  /v2/api/lecture?courseId&...  -> lecture + its versions
  *     GET  /v2/api/stats                 -> homepage aggregates (KV, cron-built)
  *

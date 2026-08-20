@@ -173,7 +173,10 @@ export async function fetchSession(sessionId: string): Promise<YanhektSession | 
 
 export async function fetchCourseList(opts: {
   keyword?: string;
+  /** Legacy single-id alias; ignored when `semesterIds` is provided. */
   semesterId?: string | number;
+  /** Empty / omitted = all semesters (Yanhekt `semesters[]` is left off). */
+  semesterIds?: Array<string | number>;
   page?: number;
   pageSize?: number;
 }): Promise<YanhektCourseListPage | null> {
@@ -181,8 +184,8 @@ export async function fetchCourseList(opts: {
   params.set('page', String(opts.page ?? 1));
   params.set('page_size', String(opts.pageSize ?? 32));
   if (opts.keyword?.trim()) params.set('keyword', opts.keyword.trim());
-  if (opts.semesterId !== undefined && opts.semesterId !== '') {
-    params.append('semesters[]', String(opts.semesterId));
+  for (const id of collectSemesterIds(opts)) {
+    params.append('semesters[]', id);
   }
   // Yanhekt wraps list pages as { code, data: { data: [...], last_page } } OR
   // { code, data: [...] } depending on version. Normalize below.
@@ -190,6 +193,23 @@ export async function fetchCourseList(opts: {
   if (!raw) return null;
   if (Array.isArray(raw)) return { data: raw, current_page: 1, last_page: 1, total: raw.length };
   return raw;
+}
+
+function collectSemesterIds(opts: {
+  semesterId?: string | number;
+  semesterIds?: Array<string | number>;
+}): string[] {
+  const raw = opts.semesterIds
+    ?? (opts.semesterId !== undefined && opts.semesterId !== '' ? [opts.semesterId] : []);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const value of raw) {
+    const id = String(value).trim();
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
 }
 
 export interface IndexSemester {

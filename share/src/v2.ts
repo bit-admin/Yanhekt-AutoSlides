@@ -3,7 +3,8 @@
  *
  * D1 stores only (course_id, session_id) + versions. Names come from Yanhekt
  * (anonymous GETs) at read time. Search is Yanhekt-first: keyword + semester
- * hit /v2/course/list, then we join our published sessions.
+ * hit /v2/course/list (one or more `semesters[]`), then we join our published
+ * sessions. Course-check size: 32 / 48 / 64 for one / several / all semesters.
  *
  * Write budget: D1 is written ONLY on publish. Homepage reads cron-built
  * `stats:home` in KV (counts, recent, colleges, Yanhekt semester list).
@@ -19,6 +20,7 @@ import {
   type Env,
   type ExecutionContext,
 } from './lib/runtime';
+import { courseCheckPageSize, parseSearchSemesterIds } from './lib/searchQuery';
 import {
   fetchCourseList,
   fetchLectureMeta,
@@ -300,11 +302,11 @@ async function handleSearch(req: Request, env: Env, url: URL, ctx: ExecutionCont
     const q = (url.searchParams.get('q') ?? '').trim();
     // A numeric keyword is a Yanhekt course id — exact match, all semesters.
     const isCourseId = /^\d+$/.test(q);
-    const semesterId = isCourseId ? '' : (url.searchParams.get('semesterId') ?? '').trim();
+    const semesterIds = isCourseId ? [] : parseSearchSemesterIds(url.searchParams);
     const page = Math.max(1, Number(url.searchParams.get('page') ?? '1') || 1);
     const db = env.INDEX_DB;
 
-    if (!q && !semesterId) {
+    if (!q && semesterIds.length === 0) {
       const rows = await db
         .prepare(`SELECT ${LECTURE_COLS} FROM lectures ORDER BY updated_at DESC LIMIT ?`)
         .bind(SEARCH_LIMIT)
@@ -314,9 +316,9 @@ async function handleSearch(req: Request, env: Env, url: URL, ctx: ExecutionCont
 
     const list = await fetchCourseList({
       keyword: q,
-      semesterId: semesterId || undefined,
+      semesterIds,
       page,
-      pageSize: 32,
+      pageSize: courseCheckPageSize(semesterIds.length),
     });
     const courses = list?.data ?? [];
     const courseIds = [...new Set(courses.map((c) => String(c.id ?? '')).filter(Boolean))];
