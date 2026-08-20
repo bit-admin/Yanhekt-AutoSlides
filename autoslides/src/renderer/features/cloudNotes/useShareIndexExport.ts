@@ -98,8 +98,16 @@ export function useShareIndexExport() {
     }
     // Best-effort: write the index-sourced metadata.json so the folder carries
     // its origin identity/review state (matches useNoteExport's restore step).
+    // JSON-clone — `result.metadata` comes off the viewer ref, so it is a Vue
+    // proxy; ipcRenderer.invoke's structured clone throws DataCloneError
+    // (CLAUDE.md). Timeline below already cloned; metadata was missed.
     if (row.metadata) {
-      try { await window.electronAPI.slideMetadata.write(prep.data.dir, row.metadata) } catch { /* best-effort */ }
+      try {
+        await window.electronAPI.slideMetadata.write(
+          prep.data.dir,
+          JSON.parse(JSON.stringify(row.metadata)),
+        )
+      } catch { /* best-effort */ }
     }
     if (row.timeline) {
       try {
