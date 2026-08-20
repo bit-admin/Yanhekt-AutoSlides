@@ -6,6 +6,7 @@ import {
   type LectureVideoType,
 } from '@common/lectureVideoNaming'
 import { configStore } from '@shared/services/configStore'
+import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger'
 import { LectureCompressQueue } from './lectureCompressQueue'
 
@@ -72,7 +73,9 @@ export function useLecturesPage() {
     isLoading.value = true
     errorMessage.value = ''
     try {
-      const rows = await window.electronAPI.lectures.listVideos()
+      const rows = await (overrides.lecturesProvider
+        ? overrides.lecturesProvider.listVideos()
+        : window.electronAPI.lectures.listVideos())
       videos.value = rows.map((row) => {
         const parsed = parseLectureVideoName(row.name)
         return {

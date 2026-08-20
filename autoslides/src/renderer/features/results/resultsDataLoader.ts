@@ -28,7 +28,18 @@ export function createResultsDataIO(): ResultsDataIO {
   // A registered override (demo mode) serves fabricated folders/images/trash/crop
   // instead of reading the real output directory. Shapes match structurally.
   if (overrides.resultsProvider) {
-    return overrides.resultsProvider as ResultsDataIO;
+    return {
+      ...overrides.resultsProvider,
+      getMetadata: async (folderPath) => {
+        if (!overrides.sidecarsProvider) return null;
+        try {
+          return ((await overrides.sidecarsProvider.getMetadata(folderPath)) as SlideMetadata | null) ?? null;
+        } catch (error) {
+          log.warn(`Failed to load override metadata for ${folderPath}:`, error);
+          return null;
+        }
+      },
+    } as ResultsDataIO;
   }
   return {
     getFolders: () => window.electronAPI.pdfmaker.getFolders(),

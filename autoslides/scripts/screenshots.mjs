@@ -218,6 +218,19 @@ async function main() {
     await shot('playback-screen')
   })
 
+  // Watch-mode Notes: the titlebar Notes tab is only offered while a playback
+  // tab is active and watch-sync is on (demo enables it). Capture before we
+  // leave this tab for Search / Workspace pages.
+  await step('watch-notes', async () => {
+    const notesTab = win.locator('.view-switcher .view-tab', { hasText: /notes/i })
+    await notesTab.waitFor({ state: 'visible', timeout: 8000 })
+    await notesTab.click()
+    await win.waitForSelector('.watch-notes-panel .wn-editor-doc', { timeout: 8000 })
+    await win.waitForTimeout(700)
+    await shot('watch-notes')
+    await win.locator('.view-switcher .view-tab').nth(0).click() // back to Task
+  })
+
   await step('search', async () => {
     const input = win.locator('.nav-search-input')
     await input.click()
@@ -299,6 +312,7 @@ async function main() {
       ['advanced-playback', 2],
       ['advanced-network', 3],
       ['advanced-ai', 4],
+      ['advanced-cloud', 5],
     ]
     for (const [name, idx] of tabs) {
       try {
@@ -501,6 +515,25 @@ async function main() {
     await shot('cloud-index-browse')
   })
 
+  // Lectures Workspace: library poster wall → course hero → local dual player
+  // with the Emby-style slide strip (timeline cues from demo sidecars).
+  await step('lectures', async () => {
+    await gotoWorkspace('lectures', '.library-view .show-card')
+    await win.waitForTimeout(600)
+    await shot('lectures-library')
+
+    await win.locator('.show-card', { hasText: 'Functional Analysis' }).click()
+    await win.waitForSelector('.episode-card', { timeout: 8000 })
+    await win.waitForTimeout(600)
+    await shot('lectures-course')
+
+    await win.locator('.episode-card').first().click()
+    await win.waitForSelector('.lecture-player', { timeout: 8000 })
+    await win.waitForSelector('.lecture-slide-strip .slide-card', { timeout: 8000 })
+    await win.waitForTimeout(900)
+    await shot('lectures-player')
+  })
+
   // --- browser SSO login (real network) -----------------------------------
   // The browser-login view embeds a <webview> pointed at the LIVE BIT SSO page,
   // so this capture needs network — but it's fully reproducible, not manual.
@@ -588,12 +621,17 @@ ${list}
 | cloud-notes-editor.png | cloud-notes-editor.png | 云盘（笔记）— 打开托管笔记（嵌入幻灯片图片） |
 | cloud-index-recent.png | cloud-index-recent.png | 云盘（云索引）— 最近添加 |
 | cloud-index-browse.png | cloud-index-browse.png | 云盘（云索引）— 搜索浏览 + 幻灯片查看器 |
+| lectures-library.png | lectures-library.png | 讲座库 — 课程海报墙 |
+| lectures-course.png | lectures-course.png | 讲座库 — 课程详情 / 分集 |
+| lectures-player.png | lectures-player.png | 讲座库 — 本地双流播放 + 幻灯片章节条 |
+| watch-notes.png | watch-notes.png | 观看模式笔记（右侧 Notes 面板） |
 | advanced-general.png | settings-general.png | B & I. 一般设置 |
 | advanced-image.png | settings-image-output.png + settings-postprocess.png + settings-autocrop.png | I. 图像处理（**拆分为 3 张**） |
 | advanced-playback.png | settings-playback.png | I. 下载与播放 |
 | advanced-network.png | settings-network.png | I. 网络 |
 | advanced-ai.png | settings-ai-service.png + settings-ai-behaviour.png | C & I. AI（**拆分为 2 张**） |
 | advanced-ai-ml.png | settings-ai-ml.png | I. AI（ML 模式 / 严格度滑块） |
+| advanced-cloud.png | settings-cloud.png | I. 云存储 |
 | tools-offline.png | tools-offline.png | J. 离线处理 |
 | tools-compress.png | tools-compress.png | J. 讲座压缩 |
 | tools-webcapture.png | tools-webcapture.png | K. 网页捕获 |

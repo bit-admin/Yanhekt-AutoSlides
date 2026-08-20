@@ -15,6 +15,7 @@ import {
   hybridOnlineKind,
   sessionHasDual,
 } from './libraryModel'
+import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LocalLecturePlayer')
@@ -58,6 +59,8 @@ export function useLocalLecturePlayer() {
   let syncTimer: ReturnType<typeof setInterval> | null = null
   let onlineHls: Hls | null = null
   let proxyClientId: string | null = null
+  let demoClockTimer: ReturnType<typeof setInterval> | null = null
+  const DEMO_DURATION_S = 5400
 
   const onlineKind = computed(() => (session.value ? hybridOnlineKind(session.value) : null))
   const hasLocalDual = computed(() => Boolean(session.value && sessionHasDual(session.value)))
@@ -104,6 +107,61 @@ export function useLocalLecturePlayer() {
     }
   }
 
+  const stopDemoClock = () => {
+    if (demoClockTimer) {
+      clearInterval(demoClockTimer)
+      demoClockTimer = null
+    }
+  }
+
+  const startDemoClock = () => {
+    stopDemoClock()
+    demoClockTimer = setInterval(() => {
+      const next = currentTime.value + 0.25 * playbackRate.value
+      if (next >= duration.value) {
+        currentTime.value = duration.value
+        isPlaying.value = false
+        stopDemoClock()
+        return
+      }
+      currentTime.value = next
+    }, 250)
+  }
+
+  const applyDemoPosters = () => {
+    const demo = overrides.playbackDemo
+    if (!demo) return
+    const screenPoster = demo.poster('screen')
+    const cameraPoster = demo.poster('camera')
+    if (screenVideoEl.value) screenVideoEl.value.poster = screenPoster
+    if (cameraVideoEl.value) cameraVideoEl.value.poster = cameraPoster
+    if (singleVideoEl.value) {
+      singleVideoEl.value.poster = streamMode.value === 'camera' ? cameraPoster : screenPoster
+    }
+  }
+
+  const attachDemo = (autoplay: boolean, seekTo?: number) => {
+    applyDemoPosters()
+    duration.value = DEMO_DURATION_S
+    const start =
+      seekTo != null && Number.isFinite(seekTo) && seekTo > 0
+        ? Math.min(seekTo, DEMO_DURATION_S)
+        : currentTime.value || 0
+    currentTime.value = start
+    isLoading.value = false
+    errorMessage.value = ''
+    failedPaths.value = []
+    screenError.value = ''
+    cameraError.value = ''
+    if (autoplay) {
+      isPlaying.value = true
+      startDemoClock()
+    } else {
+      isPlaying.value = false
+      stopDemoClock()
+    }
+  }
+
   const clearVideo = (video: HTMLVideoElement | null) => {
     if (!video) return
     try {
@@ -142,6 +200,7 @@ export function useLocalLecturePlayer() {
   }
 
   const destroy = () => {
+    stopDemoClock()
     stopSync()
     destroyOnlineHls()
     void releaseProxyClient()
@@ -441,6 +500,11 @@ export function useLocalLecturePlayer() {
       return
     }
 
+    if (overrides.playbackDemo) {
+      attachDemo(autoplay, seekTo)
+      return
+    }
+
     try {
       if (wantLocalDual && sess.screen && sess.camera) {
         clearVideo(screenVideoEl.value)
@@ -537,6 +601,12 @@ export function useLocalLecturePlayer() {
   }
 
   const play = async () => {
+    if (overrides.playbackDemo) {
+      if (!(duration.value > 0)) duration.value = DEMO_DURATION_S
+      isPlaying.value = true
+      startDemoClock()
+      return
+    }
     applyAudio()
     if (isDualMode.value) {
       await Promise.allSettled([
@@ -551,6 +621,7 @@ export function useLocalLecturePlayer() {
   }
 
   const pause = () => {
+    stopDemoClock()
     stopSync()
     screenVideoEl.value?.pause()
     cameraVideoEl.value?.pause()
@@ -565,6 +636,12 @@ export function useLocalLecturePlayer() {
 
   const seek = (time: number) => {
     if (!Number.isFinite(time)) return
+
+    if (overrides.playbackDemo) {
+      if (!(duration.value > 0)) duration.value = DEMO_DURATION_S
+      currentTime.value = Math.min(Math.max(time, 0), Math.max(0, duration.value - 0.05))
+      return
+    }
 
     // Prefer the live media duration (more accurate than our last clock sample).
     const master = masterVideo()

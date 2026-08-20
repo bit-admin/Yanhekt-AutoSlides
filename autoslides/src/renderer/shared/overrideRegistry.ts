@@ -88,6 +88,31 @@ export interface PlaybackDemo {
   gallerySlides(): unknown[]
 }
 
+// Drop-in for the subset of window.electronAPI.lectures that the Lectures
+// workspace calls. In demo mode this serves fabricated Emby-tagged files so the
+// library/list/player render offline; production reads `overrides.lecturesProvider ?? real`.
+export interface LecturesProvider {
+  listVideos(): Promise<Array<{ name: string; path: string; size: number; mtimeMs: number }>>
+  getPoster(filePath: string, seekSeconds?: number): Promise<string | null>
+  rename(fromPath: string, toName: string): Promise<{ path: string; name: string }>
+}
+
+// Folder sidecars (metadata.json / timeline.json). Demo serves in-memory fixtures
+// keyed by the same virtual folder paths as resultsProvider; production reads
+// `overrides.sidecarsProvider ?? IPC`. Loose return types so shared/ does not
+// import @common/sidecars — consumers cast at the seam.
+export interface SidecarsProvider {
+  getMetadata(folderPath: string): Promise<unknown>
+  getTimeline(folderPath: string): Promise<unknown>
+}
+
+export interface QtExtractorStatusOverride {
+  ok: boolean
+  version: string
+  path?: string
+  resolvedPath?: string
+}
+
 export interface RuntimeOverrides {
   /** Data source for ApiClient (collapses every per-method demo branch). */
   apiTransport?: ApiTransport
@@ -111,6 +136,12 @@ export interface RuntimeOverrides {
   cloudNotesProvider?: CloudNotesProvider
   /** Backing data source for the Drive page's Cloud Index mode (browse + viewer). */
   cloudIndexProvider?: CloudIndexProvider
+  /** Backing reads for the Lectures workspace (library / list / posters / rename). */
+  lecturesProvider?: LecturesProvider
+  /** Folder sidecar reads (metadata.json + timeline.json). */
+  sidecarsProvider?: SidecarsProvider
+  /** Fake Qt extractor status so Playback settings can show Ready without a binary. */
+  qtExtractorStatus?: QtExtractorStatusOverride
   /** When true, the download + task queues never start real network/extraction. */
   suppressRealWork?: boolean
 }

@@ -460,6 +460,27 @@ window.addEventListener('slidesPostProcessed', onSlidesPostProcessed)
 window.addEventListener('slidesCleared', onSlidesClearedEvent)
 window.addEventListener('slideAutoCropped', onSlideAutoCropped)
 
+/**
+ * Inject a ready watch-note entry without going through extraction.
+ * Used by demo mode (and tests) so the Notes tab can render offline.
+ */
+export function seedWatchNoteEntry(entry: {
+  tabId: string
+  instanceId?: string
+  noteId?: number | null
+  displayName: string
+  content: OutputData
+}): void {
+  state.entries[entry.tabId] = {
+    tabId: entry.tabId,
+    instanceId: entry.instanceId ?? 'seeded',
+    noteId: entry.noteId ?? null,
+    displayName: entry.displayName,
+    status: 'ready',
+    content: entry.content,
+  }
+}
+
 export const watchNotesStore = {
   onExtractionStarted,
   onExtractionStopped,
@@ -469,4 +490,5 @@ export const watchNotesStore = {
   unregisterActiveEditor,
   commitEditorContent,
   watchSyncActive,
+  seedWatchNoteEntry,
 }

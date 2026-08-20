@@ -4,6 +4,7 @@
 //
 // v1: recorded + builtin only. Callers gate before invoking (live/Qt skip).
 import { createLogger } from '@shared/utils/logger';
+import { overrides } from '@shared/overrideRegistry';
 import type {
   GapReason,
   RecordCaptureConfirmedPayload,
@@ -22,6 +23,10 @@ function plain<T>(value: T): T {
 
 export async function getTimeline(folderPath: string): Promise<SlideTimeline | null> {
   try {
+    if (overrides.sidecarsProvider) {
+      const timeline = await overrides.sidecarsProvider.getTimeline(folderPath);
+      return (timeline as SlideTimeline | null) ?? null;
+    }
     return await window.electronAPI.slideTimeline.get(folderPath);
   } catch (error) {
     log.warn('Failed to read timeline:', error);

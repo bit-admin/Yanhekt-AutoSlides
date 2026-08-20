@@ -29,6 +29,7 @@ export interface PostProcessJobProgress {
   duplicatesRemoved: number
   excludedRemoved: number
   aiFiltered: number
+  aiFilteredEdit?: number
   failed: number
   retrying: number
 }

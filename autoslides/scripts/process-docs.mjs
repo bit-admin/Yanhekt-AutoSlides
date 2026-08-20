@@ -65,6 +65,11 @@ const COPY = {
   'advanced-playback': 'settings-playback',
   'advanced-network': 'settings-network',
   'advanced-ai-ml': 'settings-ai-ml',
+  'advanced-cloud': 'settings-cloud',
+  'lectures-library': 'lectures-library',
+  'lectures-course': 'lectures-course',
+  'lectures-player': 'lectures-player',
+  'watch-notes': 'watch-notes',
 }
 
 // Long settings tabs split into bands at section-title boundaries. `at` lists

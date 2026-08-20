@@ -5,6 +5,7 @@ import {
   qtFeatureSupported,
   qtSupportsWriteTimeline,
 } from '@common/qtExtractorFeatures'
+import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractorSettings');
 
@@ -74,6 +75,16 @@ export function useExtractorSettings() {
 
     qtExtractorVerifying.value = true
     try {
+      if (overrides.qtExtractorStatus) {
+        const demo = overrides.qtExtractorStatus
+        applyQtStatus({
+          ok: demo.ok,
+          version: demo.version,
+          path: demo.path || qtExtractorBinaryPath.value || '/Applications/AutoSlides Extractor.app',
+          resolvedPath: demo.resolvedPath || demo.path || '/Applications/AutoSlides Extractor.app',
+        })
+        return
+      }
       const status = await window.electronAPI.qtExtractor.verify(qtExtractorBinaryPath.value || undefined)
       applyQtStatus(status)
       // Reuse the snapshot we just obtained to refresh the extraction queue's

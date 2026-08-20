@@ -99,6 +99,7 @@
             class="dual-video-player"
             preload="metadata"
             playsinline
+            :poster="overrides.playbackDemo?.poster('camera')"
             @timeupdate="onTimeUpdate"
             @play="onPlayStateChanged"
             @pause="onPlayStateChanged"
@@ -113,6 +114,7 @@
             class="dual-video-player"
             preload="metadata"
             playsinline
+            :poster="overrides.playbackDemo?.poster('screen')"
             @timeupdate="onTimeUpdate"
             @play="onPlayStateChanged"
             @pause="onPlayStateChanged"
@@ -129,6 +131,7 @@
           class="dual-video-player single-video-player"
           preload="metadata"
           playsinline
+          :poster="overrides.playbackDemo?.poster(streamMode === 'camera' ? 'camera' : 'screen')"
           @timeupdate="onTimeUpdate"
           @play="onPlayStateChanged"
           @pause="onPlayStateChanged"
@@ -470,6 +473,7 @@ import { useLectureSlideChapters } from '@features/lectures/useLectureSlideChapt
 import { navigationStore } from '@features/course/navigationStore'
 import { tabStore } from '@features/course/tabStore'
 import LectureSlideStrip from './LectureSlideStrip.vue'
+import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LecturePlayerView')

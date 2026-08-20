@@ -38,15 +38,50 @@ import {
   buildManagedNoteTitle,
   managedNoteDisplayName,
 } from '@common/notesTypes'
+import type { SlideMetadata } from '@common/slideMetadataTypes'
+import { SLIDE_METADATA_VERSION } from '@common/slideMetadataTypes'
+import type { SlideTimeline } from '@common/sidecars'
+import { SLIDE_TIMELINE_VERSION } from '@common/sidecars'
+import type { StoredAccount } from '@common/types'
 
 export const DEMO_TOKEN = 'DEMO_MODE_TOKEN'
 
+export const DEMO_USER_BADGE = '2022140137'
+
 export function demoUser(): UserData {
   return {
-    badge: '2022140137',
+    badge: DEMO_USER_BADGE,
     nickname: 'Kate',
     gender: 2,
   }
+}
+
+/** Extra remembered accounts so the AccountSwitcher flyout is populated. */
+export function demoStoredAccounts(): StoredAccount[] {
+  const now = Date.now()
+  return [
+    {
+      badge: '2021140888',
+      nickname: 'Alex Chen',
+      displayName: 'Alex Chen',
+      token: 'DEMO_MODE_TOKEN_ALEX',
+      addedAt: now - 14 * 24 * 60 * 60 * 1000,
+      lastUsedAt: now - 3 * 24 * 60 * 60 * 1000,
+    },
+    {
+      badge: '2019140221',
+      nickname: 'Jordan Park',
+      displayName: 'Jordan Park',
+      token: 'DEMO_MODE_TOKEN_JORDAN',
+      addedAt: now - 40 * 24 * 60 * 60 * 1000,
+      lastUsedAt: now - 10 * 24 * 60 * 60 * 1000,
+    },
+  ]
+}
+
+/** Digit-only session id: course 501 week 9 → `50109`. Required by parseLectureIds. */
+export function demoSessionId(courseId: string, week: number): string {
+  return `${courseId}${String(week).padStart(2, '0')}`
 }
 
 // Greeting name. The real greeting reads config.userDisplayName /
@@ -69,8 +104,8 @@ export function demoSavedSearchesRecorded(): string[] {
 // DEMO_COURSES so opening a pinned card lands on a real demo sessions page.
 export function demoPinnedCourses(): Array<{ id: string; title: string }> {
   return [
-    { id: 'math-501', title: 'Functional Analysis' },
-    { id: 'math-505', title: 'Point-Set Topology' },
+    { id: '501', title: 'Functional Analysis' },
+    { id: '505', title: 'Point-Set Topology' },
   ]
 }
 
@@ -93,16 +128,16 @@ const DEMO_COURSES: Array<{
   semester: string
   enrolled: number
 }> = [
-  { id: 'math-501', title: 'Functional Analysis', professor: 'Dr. Helena Whitcombe', room: 'Science Hall 301', semester: '1', enrolled: 42 },
-  { id: 'math-401', title: 'Real Analysis', professor: 'Dr. Marcus Lindqvist', room: 'Science Hall 214', semester: '1', enrolled: 58 },
-  { id: 'math-402', title: 'Abstract Algebra', professor: 'Dr. Priya Narayan', room: 'Whitman Building 110', semester: '1', enrolled: 47 },
-  { id: 'math-505', title: 'Point-Set Topology', professor: 'Dr. Theo Brandt', room: 'Science Hall 305', semester: '2', enrolled: 36 },
-  { id: 'math-512', title: 'Measure Theory', professor: 'Dr. Helena Whitcombe', room: 'Science Hall 301', semester: '2', enrolled: 29 },
-  { id: 'math-410', title: 'Complex Analysis', professor: 'Dr. Sofia Renault', room: 'Whitman Building 204', semester: '2', enrolled: 51 },
-  { id: 'math-520', title: 'Differential Geometry', professor: 'Dr. Anton Vasiliev', room: 'Science Hall 218', semester: '1', enrolled: 33 },
-  { id: 'math-530', title: 'Partial Differential Equations', professor: 'Dr. Marcus Lindqvist', room: 'Engineering Annex 140', semester: '2', enrolled: 44 },
-  { id: 'math-460', title: 'Number Theory', professor: 'Dr. Priya Narayan', room: 'Whitman Building 110', semester: '1', enrolled: 39 },
-  { id: 'math-470', title: 'Probability Theory', professor: 'Dr. Sofia Renault', room: 'Science Hall 214', semester: '1', enrolled: 62 },
+  { id: '501', title: 'Functional Analysis', professor: 'Dr. Helena Whitcombe', room: 'Science Hall 301', semester: '1', enrolled: 42 },
+  { id: '401', title: 'Real Analysis', professor: 'Dr. Marcus Lindqvist', room: 'Science Hall 214', semester: '1', enrolled: 58 },
+  { id: '402', title: 'Abstract Algebra', professor: 'Dr. Priya Narayan', room: 'Whitman Building 110', semester: '1', enrolled: 47 },
+  { id: '505', title: 'Point-Set Topology', professor: 'Dr. Theo Brandt', room: 'Science Hall 305', semester: '2', enrolled: 36 },
+  { id: '512', title: 'Measure Theory', professor: 'Dr. Helena Whitcombe', room: 'Science Hall 301', semester: '2', enrolled: 29 },
+  { id: '410', title: 'Complex Analysis', professor: 'Dr. Sofia Renault', room: 'Whitman Building 204', semester: '2', enrolled: 51 },
+  { id: '520', title: 'Differential Geometry', professor: 'Dr. Anton Vasiliev', room: 'Science Hall 218', semester: '1', enrolled: 33 },
+  { id: '530', title: 'Partial Differential Equations', professor: 'Dr. Marcus Lindqvist', room: 'Engineering Annex 140', semester: '2', enrolled: 44 },
+  { id: '460', title: 'Number Theory', professor: 'Dr. Priya Narayan', room: 'Whitman Building 110', semester: '1', enrolled: 39 },
+  { id: '470', title: 'Probability Theory', professor: 'Dr. Sofia Renault', room: 'Science Hall 214', semester: '1', enrolled: 62 },
 ]
 
 export function demoRecordedCourses(): CourseListResponse {
@@ -137,34 +172,34 @@ function isoAt(dayOffset: number, hour: number, minute = 0): string {
 export function demoLiveCourses(): LiveListResponse {
   const data: LiveStream[] = [
     {
-      id: 'live-math-501',
+      id: '50112',
       title: 'Functional Analysis — Lecture 12',
       subtitle: 'Spectral Theory of Compact Operators',
       status: 1, // live now
       schedule_started_at: isoAt(0, 10, 0),
       schedule_ended_at: isoAt(0, 11, 30),
       participant_count: 38,
-      session: { professor: { name: 'Dr. Helena Whitcombe' }, section_group_title: 'Science Hall 301' },
+      session: { course_id: '501', professor: { name: 'Dr. Helena Whitcombe' }, section_group_title: 'Science Hall 301' },
     },
     {
-      id: 'live-math-410',
+      id: '41009',
       title: 'Complex Analysis — Lecture 9',
       subtitle: 'The Residue Theorem',
       status: 2, // upcoming
       schedule_started_at: isoAt(0, 14, 0),
       schedule_ended_at: isoAt(0, 15, 30),
       participant_count: 0,
-      session: { professor: { name: 'Dr. Sofia Renault' }, section_group_title: 'Whitman Building 204' },
+      session: { course_id: '410', professor: { name: 'Dr. Sofia Renault' }, section_group_title: 'Whitman Building 204' },
     },
     {
-      id: 'live-math-401',
+      id: '40111',
       title: 'Real Analysis — Lecture 11',
       subtitle: 'Sequences of Functions and Uniform Convergence',
       status: 0, // ended
       schedule_started_at: isoAt(-1, 9, 0),
       schedule_ended_at: isoAt(-1, 10, 30),
       participant_count: 55,
-      session: { professor: { name: 'Dr. Marcus Lindqvist' }, section_group_title: 'Science Hall 214' },
+      session: { course_id: '401', professor: { name: 'Dr. Marcus Lindqvist' }, section_group_title: 'Science Hall 214' },
     },
   ]
 
@@ -179,13 +214,13 @@ export function demoLiveCourses(): LiveListResponse {
 
 // Lecture-title pools keyed by course id so each course shows topical sessions.
 const SESSION_TOPICS: Record<string, string[]> = {
-  'math-501': [
+  '501': [
     'Normed Vector Spaces', 'Banach Spaces', 'Bounded Linear Operators', 'The Hahn–Banach Theorem',
     'Dual Spaces', 'The Open Mapping Theorem', 'The Closed Graph Theorem', 'Hilbert Spaces',
     'Orthonormal Bases', 'The Riesz Representation Theorem', 'Compact Operators', 'Spectral Theory',
     'The Spectral Theorem', 'Applications to Integral Equations',
   ],
-  'math-401': [
+  '401': [
     'The Real Number System', 'Sequences and Limits', 'Series', 'Continuity', 'Differentiation',
     'The Riemann Integral', 'Sequences of Functions', 'Uniform Convergence', 'Power Series',
     'Metric Spaces', 'Compactness', 'Connectedness', 'The Stone–Weierstrass Theorem', 'Review',
@@ -210,9 +245,9 @@ export function demoCourseInfo(courseId: string): CourseInfoResponse {
     // Spread lectures back in time, one per week.
     const dayOffset = -(topics.length - i) * 7
     return {
-      id: `${courseId}-s${week}`,
-      session_id: `${courseId}-session-${week}`,
-      video_id: `${courseId}-video-${week}`,
+      id: demoSessionId(courseId, week),
+      session_id: demoSessionId(courseId, week),
+      video_id: `${demoSessionId(courseId, week)}0`,
       title: `Lecture ${week}: ${topic}`,
       duration: 5400, // 90 minutes
       week_number: week,
@@ -421,15 +456,24 @@ export function demoGallerySlides(): Array<{
   }))
 }
 
-// Folder list. Clean English names grouped by course via the "<course> - Lecture N"
-// form that parseSessionInfo()/getCourseKey() understand (no underscores / Chinese
-// session suffix — cleaner for screenshots). The first folder is the "rich" one
-// carrying the removed + cropped demo items.
-const DEMO_RESULT_FOLDERS: Array<{ name: string; activeCount: number }> = [
-  { name: 'slides_Functional Analysis - Lecture 9', activeCount: 5 },
-  { name: 'slides_Functional Analysis - Lecture 10', activeCount: 4 },
-  { name: 'slides_Real Analysis - Lecture 11', activeCount: 6 },
-  { name: 'slides_Complex Analysis - Lecture 9', activeCount: 4 },
+// Folder list. English titles plus `__c<course>s<session>` so parseLectureIds
+// (Lectures strip, managed titles) can match folders to sessions. The first
+// folder is the "rich" one carrying the removed + cropped demo items.
+function demoFolderName(title: string, week: number, courseId: string): string {
+  return `slides_${title} - Lecture ${week}__c${courseId}s${demoSessionId(courseId, week)}`
+}
+
+const DEMO_RESULT_FOLDERS: Array<{
+  name: string
+  activeCount: number
+  courseId: string
+  week: number
+  title: string
+}> = [
+  { name: demoFolderName('Functional Analysis', 9, '501'), activeCount: 5, courseId: '501', week: 9, title: 'Functional Analysis' },
+  { name: demoFolderName('Functional Analysis', 10, '501'), activeCount: 4, courseId: '501', week: 10, title: 'Functional Analysis' },
+  { name: demoFolderName('Real Analysis', 11, '401'), activeCount: 6, courseId: '401', week: 11, title: 'Real Analysis' },
+  { name: demoFolderName('Complex Analysis', 9, '410'), activeCount: 4, courseId: '410', week: 9, title: 'Complex Analysis' },
 ]
 
 const DEMO_RICH_FOLDER = DEMO_RESULT_FOLDERS[0].name
@@ -539,9 +583,10 @@ interface DemoNoteSpec {
 // Order = display order (server sorts by created time; README pinned on top).
 const DEMO_NOTES: DemoNoteSpec[] = [
   { id: 101, title: README_NOTE_TITLE, groupId: 0, kind: 'readme' },
-  { id: 102, title: buildManagedNoteTitle('Functional Analysis - Lecture 9'), groupId: 1, kind: 'managed', slides: 4 },
-  { id: 103, title: buildManagedNoteTitle('Real Analysis - Lecture 11'), groupId: 1, kind: 'managed', slides: 3 },
-  { id: 104, title: buildManagedNoteTitle('Complex Analysis - Lecture 9'), groupId: 1, kind: 'managed', slides: 3 },
+  { id: 102, title: buildManagedNoteTitle('Functional Analysis - Lecture 9', { courseId: '501', sessionId: demoSessionId('501', 9) }), groupId: 1, kind: 'managed', slides: 4 },
+  { id: 103, title: buildManagedNoteTitle('Real Analysis - Lecture 11', { courseId: '401', sessionId: demoSessionId('401', 11) }), groupId: 1, kind: 'managed', slides: 3 },
+  { id: 104, title: buildManagedNoteTitle('Complex Analysis - Lecture 9', { courseId: '410', sessionId: demoSessionId('410', 9) }), groupId: 1, kind: 'managed', slides: 3 },
+  { id: 108, title: buildManagedNoteTitle('Functional Analysis - Lecture 12', { courseId: '501', liveId: '50112' }), groupId: 3, kind: 'managed', slides: 3 },
   {
     id: 105,
     title: 'Spectral theory — reading list',
@@ -670,19 +715,19 @@ export function demoNextNoteIdValue(): number {
 interface DemoIndexSession {
   courseId: string
   week: number
-  versions: Array<{ imageCount: number; reviewed: boolean; edited?: boolean }>
+  versions: Array<{ imageCount: number; reviewed: boolean; edited?: boolean; hasTimeline?: boolean }>
 }
 
 const DEMO_INDEX_SESSIONS: DemoIndexSession[] = [
-  { courseId: 'math-501', week: 9, versions: [{ imageCount: 6, reviewed: true }, { imageCount: 5, reviewed: false, edited: true }] },
-  { courseId: 'math-501', week: 10, versions: [{ imageCount: 5, reviewed: true }] },
-  { courseId: 'math-501', week: 11, versions: [{ imageCount: 4, reviewed: false }] },
-  { courseId: 'math-501', week: 12, versions: [{ imageCount: 6, reviewed: true }] },
-  { courseId: 'math-401', week: 7, versions: [{ imageCount: 5, reviewed: true }] },
-  { courseId: 'math-401', week: 8, versions: [{ imageCount: 4, reviewed: false }] },
-  { courseId: 'math-401', week: 11, versions: [{ imageCount: 6, reviewed: true }] },
-  { courseId: 'math-410', week: 9, versions: [{ imageCount: 4, reviewed: false }] },
-  { courseId: 'math-410', week: 10, versions: [{ imageCount: 5, reviewed: true }] },
+  { courseId: '501', week: 9, versions: [{ imageCount: 6, reviewed: true, hasTimeline: true }, { imageCount: 5, reviewed: false, edited: true, hasTimeline: true }] },
+  { courseId: '501', week: 10, versions: [{ imageCount: 5, reviewed: true, hasTimeline: true }] },
+  { courseId: '501', week: 11, versions: [{ imageCount: 4, reviewed: false }] },
+  { courseId: '501', week: 12, versions: [{ imageCount: 6, reviewed: true, hasTimeline: true }] },
+  { courseId: '401', week: 7, versions: [{ imageCount: 5, reviewed: true }] },
+  { courseId: '401', week: 8, versions: [{ imageCount: 4, reviewed: false }] },
+  { courseId: '401', week: 11, versions: [{ imageCount: 6, reviewed: true, hasTimeline: true }] },
+  { courseId: '410', week: 9, versions: [{ imageCount: 4, reviewed: false, hasTimeline: true }] },
+  { courseId: '410', week: 10, versions: [{ imageCount: 5, reviewed: true }] },
 ]
 
 const indexShareId = (s: DemoIndexSession, i: number): string =>
@@ -702,7 +747,7 @@ function indexLectureOf(s: DemoIndexSession): IndexLecture {
   const c = indexCourseOf(s)
   return {
     courseId: s.courseId,
-    sessionId: `${s.courseId}-session-${s.week}`,
+    sessionId: demoSessionId(s.courseId, s.week),
     courseTitle: c.title,
     sessionTitle: `Lecture ${s.week}: ${indexTopicOf(s)}`,
     instructor: c.professor,
@@ -724,6 +769,7 @@ function indexVersionsOf(s: DemoIndexSession): IndexVersion[] {
     imageCount: v.imageCount,
     reviewed: v.reviewed,
     edited: v.edited ?? false,
+    hasTimeline: v.hasTimeline ?? false,
     createdAt: isoAt(-(16 - s.week) + i, 15, 30),
   }))
 }
@@ -771,9 +817,156 @@ export function demoIndexSearch(term: string): IndexLecture[] {
 
 export function demoIndexLecture(courseId: string, sessionId: string): IndexLectureDetail | null {
   const s = DEMO_INDEX_SESSIONS.find(
-    (x) => x.courseId === courseId && `${x.courseId}-session-${x.week}` === sessionId,
+    (x) => x.courseId === courseId && demoSessionId(x.courseId, x.week) === sessionId,
   )
   return s ? { lecture: indexLectureOf(s), versions: indexVersionsOf(s) } : null
+}
+
+function folderSpecByPath(folderPath: string) {
+  return DEMO_RESULT_FOLDERS.find((f) => `${DEMO_OUTPUT_ROOT}/${f.name}` === folderPath)
+    ?? DEMO_RESULT_FOLDERS.find((f) => folderPath.endsWith(f.name))
+    ?? null
+}
+
+function demoTimelineForCount(slideCount: number, createdAt: string): SlideTimeline {
+  const events: SlideTimeline['events'] = []
+  const resolutions: SlideTimeline['resolutions'] = {}
+  for (let i = 0; i < slideCount; i++) {
+    const id = `evt_${i + 1}`
+    const changeAt = i * 180
+    events.push({
+      id,
+      changeAt,
+      confirmedAt: changeAt + 2.4,
+      initialFile: `Slide_${pad3(i + 1)}.png`,
+    })
+    resolutions[id] = { state: 'canonical', file: `Slide_${pad3(i + 1)}.png` }
+  }
+  if (slideCount >= 3) {
+    const dupId = 'evt_dup'
+    events.push({
+      id: dupId,
+      changeAt: 185,
+      confirmedAt: 187,
+      initialFile: `Slide_${pad3(slideCount + 1)}.png`,
+    })
+    resolutions[dupId] = { state: 'duplicate', duplicateOf: 'Slide_001.png' }
+  }
+  if (slideCount >= 4) {
+    const gapId = 'evt_gap'
+    events.push({
+      id: gapId,
+      changeAt: 700,
+      confirmedAt: 740,
+      initialFile: null,
+    })
+    resolutions[gapId] = { state: 'gap', gapReason: 'ai_filtered' }
+  }
+  events.sort((a, b) => a.changeAt - b.changeAt)
+  return {
+    version: SLIDE_TIMELINE_VERSION,
+    kind: 'recorded',
+    extractor: 'builtin',
+    createdAt,
+    updatedAt: createdAt,
+    events,
+    resolutions,
+  }
+}
+
+export function demoMetadata(folderPath: string): SlideMetadata | null {
+  const spec = folderSpecByPath(folderPath)
+  if (!spec) return null
+  const course = DEMO_COURSES.find((c) => c.id === spec.courseId)
+  const sessionId = demoSessionId(spec.courseId, spec.week)
+  const createdAt = isoAt(-(16 - spec.week), 12, 0)
+  const reviewed = spec.week !== 11
+  const edited = spec === DEMO_RESULT_FOLDERS[0]
+  return {
+    version: SLIDE_METADATA_VERSION,
+    kind: 'recorded',
+    source: {
+      courseId: spec.courseId,
+      courseTitle: spec.title,
+      sessionId,
+      sessionTitle: `Lecture ${spec.week}: ${(SESSION_TOPICS[spec.courseId] ?? GENERIC_TOPICS)[spec.week - 1] ?? 'Lecture'}`,
+      instructor: course?.professor,
+      professors: course ? [course.professor] : undefined,
+      semester: course?.semester,
+      schoolYear: '2024-2025',
+      college: COLLEGE,
+      classrooms: course ? [course.room] : undefined,
+      weekNumber: spec.week,
+      day: 2,
+    },
+    extraction: {
+      extractor: 'builtin',
+      ssimThreshold: 0.92,
+      extractedAt: createdAt,
+      trigger: 'auto',
+    },
+    postProcessing: {
+      ran: true,
+      duplicateRemoval: true,
+      exclusionList: true,
+      aiFiltering: true,
+      aiClassifierMode: 'llm',
+      completedAt: isoAt(-(16 - spec.week), 12, 18),
+    },
+    review: {
+      reviewed,
+      reviewedAt: reviewed ? isoAt(-(16 - spec.week) + 1, 9, 0) : null,
+      edited,
+      editedAt: edited ? isoAt(-(16 - spec.week) + 1, 9, 12) : null,
+      cropped: edited,
+    },
+    createdAt,
+    updatedAt: isoAt(-(16 - spec.week) + 1, 9, 12),
+  }
+}
+
+export function demoTimeline(folderPath: string): SlideTimeline | null {
+  const spec = folderSpecByPath(folderPath)
+  if (!spec) return null
+  return demoTimelineForCount(spec.activeCount, isoAt(-(16 - spec.week), 12, 0))
+}
+
+export function demoLectureVideos(): Array<{ name: string; path: string; size: number; mtimeMs: number }> {
+  const now = Date.now()
+  const DAY = 24 * 60 * 60 * 1000
+  const mk = (
+    title: string,
+    week: number,
+    courseId: string,
+    videoType: 'screen' | 'camera',
+    opts?: { ascomp?: 'tiny' | 'small' | 'readable'; daysAgo?: number; mb?: number },
+  ) => {
+    const sessionId = demoSessionId(courseId, week)
+    const semester = DEMO_COURSES.find((c) => c.id === courseId)?.semester === '2' ? 'S02' : 'S01'
+    const ep = String(week).padStart(2, '0')
+    const tags = [
+      `[yhid=c${courseId}s${sessionId}]`,
+      `[vtype=${videoType}]`,
+      opts?.ascomp ? `[ascomp=${opts.ascomp}]` : '',
+    ].filter(Boolean).join(' ')
+    const name = `${title} - ${semester}E${ep} - Lecture ${week} ${tags}.mp4`
+    return {
+      name,
+      path: `${DEMO_OUTPUT_ROOT}/${name}`,
+      size: Math.round((opts?.mb ?? (videoType === 'screen' ? 420 : 280)) * 1024 * 1024),
+      mtimeMs: now - (opts?.daysAgo ?? week) * DAY,
+    }
+  }
+  return [
+    mk('Functional Analysis', 9, '501', 'screen', { daysAgo: 14, mb: 510 }),
+    mk('Functional Analysis', 9, '501', 'camera', { daysAgo: 14, mb: 260 }),
+    mk('Functional Analysis', 10, '501', 'screen', { daysAgo: 7, mb: 488 }),
+    mk('Functional Analysis', 12, '501', 'screen', { ascomp: 'small', daysAgo: 1, mb: 96 }),
+    mk('Functional Analysis', 12, '501', 'camera', { daysAgo: 1, mb: 240 }),
+    mk('Real Analysis', 11, '401', 'screen', { daysAgo: 10, mb: 402 }),
+    mk('Real Analysis', 11, '401', 'camera', { daysAgo: 10, mb: 218 }),
+    mk('Complex Analysis', 9, '410', 'screen', { daysAgo: 21, mb: 377 }),
+  ]
 }
 
 /** Resolve a `/v1/s/<shareId>` link minted from the demo index into slide URLs. */
@@ -784,12 +977,46 @@ export function demoResolveIndexShare(link: string): ShareImportResult | null {
     if (i < 0) continue
     const c = indexCourseOf(s)
     const count = Math.min(s.versions[i].imageCount, SLIDE_TITLES.length)
+    const sessionId = demoSessionId(s.courseId, s.week)
+    const folderName = demoFolderName(c.title, s.week, s.courseId)
+    const folderPath = `${DEMO_OUTPUT_ROOT}/${folderName}`
+    const metadata = demoMetadata(folderPath) ?? {
+      version: SLIDE_METADATA_VERSION,
+      kind: 'recorded' as const,
+      source: {
+        courseId: s.courseId,
+        courseTitle: c.title,
+        sessionId,
+        sessionTitle: `Lecture ${s.week}`,
+        instructor: c.professor,
+        semester: c.semester,
+        schoolYear: '2024-2025',
+        college: COLLEGE,
+        weekNumber: s.week,
+        day: 2,
+      },
+      extraction: {
+        extractor: 'builtin' as const,
+        extractedAt: isoAt(-(16 - s.week), 12, 0),
+        trigger: 'auto' as const,
+      },
+      review: {
+        reviewed: s.versions[i].reviewed,
+        reviewedAt: s.versions[i].reviewed ? isoAt(-(16 - s.week) + 1, 9, 0) : null,
+        edited: s.versions[i].edited ?? false,
+        editedAt: s.versions[i].edited ? isoAt(-(16 - s.week) + 1, 9, 12) : null,
+        cropped: false,
+      },
+      createdAt: isoAt(-(16 - s.week), 12, 0),
+      updatedAt: isoAt(-(16 - s.week), 12, 0),
+    }
     return {
-      title: `${c.title} - Lecture ${s.week}`,
-      identity: { courseId: s.courseId, sessionId: `${s.courseId}-session-${s.week}` },
+      title: buildManagedNoteTitle(`${c.title} - Lecture ${s.week}`, { courseId: s.courseId, sessionId }),
+      identity: { courseId: s.courseId, sessionId },
       urls: SLIDE_TITLES.slice(0, count).map(([title, page]) => slideDataUri(title, page)),
       missing: 0,
-      metadata: null,
+      metadata,
+      timeline: s.versions[i].hasTimeline ? demoTimelineForCount(count, isoAt(-(16 - s.week), 12, 0)) : null,
       lectureMeta: { courseTitle: c.title, sessionTitle: `Lecture ${s.week}` },
     }
   }

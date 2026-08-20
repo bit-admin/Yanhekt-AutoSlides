@@ -80,6 +80,7 @@ import {
 } from '@features/lectures/lectureCourseMetaCache'
 import { DEFAULT_RENAME } from '@features/lectures/lecturePrefs'
 import type { LectureVideoItem } from '@features/lectures/useLecturesPage'
+import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LectureRenameModal')
@@ -205,7 +206,9 @@ const apply = async () => {
   for (const row of previews.value) {
     if (row.fromName === row.toName) continue
     try {
-      await window.electronAPI.lectures.rename(row.path, row.toName)
+      await (overrides.lecturesProvider
+        ? overrides.lecturesProvider.rename(row.path, row.toName)
+        : window.electronAPI.lectures.rename(row.path, row.toName))
     } catch (error) {
       failed += 1
       log.error('Rename failed', row.fromName, error)

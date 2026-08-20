@@ -10,6 +10,7 @@
 
 import { overrides } from '@shared/overrideRegistry'
 import type { ApiTransport } from '@shared/services/apiClient'
+import { configStore } from '@shared/services/configStore'
 import {
   DEMO_TOKEN,
   DEMO_DISPLAY_NAME,
@@ -37,6 +38,10 @@ import {
   demoIndexSearch,
   demoIndexLecture,
   demoResolveIndexShare,
+  demoLectureVideos,
+  demoMetadata,
+  demoTimeline,
+  demoStoredAccounts,
 } from './demoData'
 import { seedDemoQueues } from './demoSeed'
 
@@ -134,7 +139,40 @@ export function installDemo(): void {
     },
     requestIndexRemoval: async () => ({ ok: true, data: { removed: 1, lectureRemoved: false } }),
   }
+  const lectureVideos = demoLectureVideos()
+  overrides.lecturesProvider = {
+    listVideos: async () => lectureVideos.map((row) => ({ ...row })),
+    getPoster: async (filePath: string) => {
+      const kind = /\[vtype=camera\]/i.test(filePath) ? 'camera' : 'screen'
+      return demoPosterDataUri(kind)
+    },
+    rename: async (fromPath: string, toName: string) => {
+      const row = lectureVideos.find((item) => item.path === fromPath)
+      if (!row) throw new Error('Demo lecture file not found')
+      const sep = fromPath.includes('\\') && !fromPath.includes('/') ? '\\' : '/'
+      const dir = fromPath.slice(0, fromPath.lastIndexOf(sep))
+      row.name = toName
+      row.path = `${dir}${sep}${toName}`
+      return { path: row.path, name: row.name }
+    },
+  }
+  overrides.sidecarsProvider = {
+    getMetadata: async (folderPath: string) => demoMetadata(folderPath),
+    getTimeline: async (folderPath: string) => demoTimeline(folderPath),
+  }
+  overrides.qtExtractorStatus = {
+    ok: true,
+    version: '2.0.0',
+    path: '/Applications/AutoSlides Extractor.app',
+    resolvedPath: '/Applications/AutoSlides Extractor.app',
+  }
   overrides.suppressRealWork = true
+
+  configStore.cloudWatchSyncEnabled = true
+  void window.electronAPI.config.setCloudWatchSyncEnabled(true).catch(() => undefined)
+  for (const account of demoStoredAccounts()) {
+    void window.electronAPI.config.upsertAccount(account).catch(() => undefined)
+  }
 
   // Demo disables macOS vibrancy (opaque window for clean captures); this class
   // lets CSS paint the sidebar a solid gray instead of the faint glass tint.

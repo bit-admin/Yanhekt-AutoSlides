@@ -16,6 +16,7 @@ import {
   type LectureCourseMeta,
 } from './lectureCourseMetaCache'
 import type { LectureVideoItem } from './useLecturesPage'
+import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LectureLibrary')
@@ -106,7 +107,9 @@ export function useLectureLibrary(videos: Ref<LectureVideoItem[]>) {
     if (posters.value[filePath] || posterInFlight.has(filePath)) return
     posterInFlight.add(filePath)
     try {
-      const dataUrl = await window.electronAPI.lectures.getPoster(filePath)
+      const dataUrl = await (overrides.lecturesProvider
+        ? overrides.lecturesProvider.getPoster(filePath)
+        : window.electronAPI.lectures.getPoster(filePath))
       if (dataUrl) {
         posters.value = { ...posters.value, [filePath]: dataUrl }
       }

@@ -5,6 +5,7 @@
 import { computed, reactive, ref, unref, watch, type MaybeRefOrGetter, type Ref } from 'vue'
 import { parseLectureIds } from '@common/lectureNaming'
 import { coalesceConsecutiveSlideCues, deriveCues } from '@common/sidecars'
+import { overrides } from '@shared/overrideRegistry'
 import { getTimeline } from '@shared/services/slideTimelineClient'
 import { createLogger } from '@shared/utils/logger'
 
@@ -77,6 +78,14 @@ export function useLectureSlideChapters(
     if (!imagePath || thumbnailMap.has(imagePath) || loadingPaths.has(imagePath)) return
     loadingPaths.add(imagePath)
     try {
+      const file = imagePath.split(/[/\\]/).pop() || ''
+      if (overrides.resultImageSource) {
+        const uri = overrides.resultImageSource({ name: file })
+        if (uri) {
+          thumbnailMap.set(imagePath, uri)
+          return
+        }
+      }
       const base64 = await window.electronAPI.pdfmaker.getImageAsBase64(imagePath)
       if (base64) {
         thumbnailMap.set(imagePath, `data:image/png;base64,${base64}`)
@@ -109,7 +118,9 @@ export function useLectureSlideChapters(
     const wantSession = String(sessionId)
     loading.value = true
     try {
-      const folders = await window.electronAPI.pdfmaker.getFolders()
+      const folders = overrides.resultsProvider
+        ? await overrides.resultsProvider.getFolders()
+        : await window.electronAPI.pdfmaker.getFolders()
       const match = folders.find(folder => {
         const ids = parseLectureIds(folder.name)
         return (
