@@ -26,7 +26,9 @@
     "../autoslides/src/shared/notesTypes.ts",
     "../autoslides/src/shared/lectureNaming.ts",
     "../autoslides/src/shared/slideMetadataTypes.ts",
-    "../autoslides/src/shared/academicTerm.ts",
-    "../autoslides/src/shared/sidecars/timeline/**/*.ts"
+    "../autoslides/src/shared/academicTerm.ts"
+    // sidecars/timeline is imported by shareTimeline.ts / notesContent.ts.
+    // Do not glob that folder: **/*.ts would pull in timeline.test.ts, and
+    // exclude patterns here are rooted at share/ so they cannot match ../autoslides.
   ]
 }
