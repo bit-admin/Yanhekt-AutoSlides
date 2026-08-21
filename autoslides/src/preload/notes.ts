@@ -72,8 +72,8 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:resolveShareLink', link),
   indexStats: (): Promise<NotesResult<IndexStats>> =>
     ipcRenderer.invoke('cloudNotes:indexStats'),
-  indexSearch: (q: string): Promise<NotesResult<IndexLecture[]>> =>
-    ipcRenderer.invoke('cloudNotes:indexSearch', q),
+  indexSearch: (q: string, semesterIds?: number[]): Promise<NotesResult<IndexLecture[]>> =>
+    ipcRenderer.invoke('cloudNotes:indexSearch', q, semesterIds),
   indexLecture: (courseId: string, sessionId: string): Promise<NotesResult<IndexLectureDetail>> =>
     ipcRenderer.invoke('cloudNotes:indexLecture', courseId, sessionId),
   requestIndexRemoval: (courseId: string, sessionId: string): Promise<NotesResult<IndexRemovalResult>> =>

@@ -444,9 +444,23 @@ export class NotesService {
     return data.stats;
   }
 
-  /** Search the Index by course/session/instructor/college. Empty q → latest lectures. */
-  async indexSearch(q: string): Promise<IndexLecture[]> {
-    const res = await fetch(`${SHARE_ORIGIN}/v2/api/search?q=${encodeURIComponent(q)}`, {
+  /**
+   * Search the Index by course/session/instructor/college.
+   * Empty q and no semesterIds → latest lectures. A numeric q is a course id
+   * (worker searches all semesters). `semesterIds` is forwarded as the share
+   * worker's comma-separated `semesterIds` param.
+   */
+  async indexSearch(q: string, semesterIds: number[] = []): Promise<IndexLecture[]> {
+    const params = new URLSearchParams();
+    const term = q.trim();
+    if (term) params.set('q', term);
+    const ids = semesterIds.map(Number).filter((id) => Number.isFinite(id));
+    if (ids.length > 0 && !/^\d+$/.test(term)) {
+      params.set('semesterIds', ids.join(','));
+    }
+    const qs = params.toString();
+    const url = qs ? `${SHARE_ORIGIN}/v2/api/search?${qs}` : `${SHARE_ORIGIN}/v2/api/search`;
+    const res = await fetch(url, {
       headers: { 'User-Agent': appUserAgent() },
     });
     if (!res.ok) throw new Error(`Index search failed (${res.status})`);

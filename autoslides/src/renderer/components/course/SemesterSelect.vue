@@ -154,7 +154,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  box-sizing: border-box;
+  height: var(--control-height);
+  padding: 0 12px;
   border: 1px solid var(--border-input);
   border-radius: 8px;
   background-color: var(--bg-input);

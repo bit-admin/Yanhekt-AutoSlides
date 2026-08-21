@@ -804,15 +804,25 @@ export function demoIndexStats(): IndexStats {
   }
 }
 
-export function demoIndexSearch(term: string): IndexLecture[] {
+export function demoIndexSearch(term: string, semesterIds?: number[]): IndexLecture[] {
   const q = term.trim().toLowerCase()
-  return DEMO_INDEX_SESSIONS.map(indexLectureOf).filter(
+  let lectures = DEMO_INDEX_SESSIONS.map(indexLectureOf).filter(
     (l) =>
       !q ||
       [l.courseTitle, l.sessionTitle, l.instructor, l.college].some((f) =>
         f?.toLowerCase().includes(q),
       ),
   )
+  // Numeric q is a course id — match the worker and ignore the semester filter.
+  if (semesterIds && semesterIds.length > 0 && !/^\d+$/.test(q)) {
+    const allowed = new Set(
+      demoSemesters()
+        .filter((s) => semesterIds.includes(s.id))
+        .map((s) => `${s.schoolYear}-${s.schoolYear + 1}||${s.semester}`),
+    )
+    lectures = lectures.filter((l) => allowed.has(`${l.schoolYear}||${l.semester}`))
+  }
+  return lectures
 }
 
 export function demoIndexLecture(courseId: string, sessionId: string): IndexLectureDetail | null {

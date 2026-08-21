@@ -151,6 +151,8 @@ const {
 .mode-switch {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
+  height: var(--control-height);
   padding: 2px;
   border-radius: 8px;
   background: var(--bg-page-alt);
@@ -160,7 +162,9 @@ const {
 .mode-pill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 0 12px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;

@@ -1082,7 +1082,7 @@ interface ElectronAPI {
     ) => Promise<import('@common/notesTypes').NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>>;
     resolveShareLink: (link: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ShareImportResult>>;
     indexStats: () => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexStats>>;
-    indexSearch: (q: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexLecture[]>>;
+    indexSearch: (q: string, semesterIds?: number[]) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexLecture[]>>;
     indexLecture: (courseId: string, sessionId: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexLectureDetail>>;
     requestIndexRemoval: (courseId: string, sessionId: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexRemovalResult>>;
   };

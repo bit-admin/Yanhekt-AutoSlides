@@ -92,8 +92,8 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
   ipcMain.handle('cloudNotes:indexStats', () =>
     run(() => notesService.indexStats()));
 
-  ipcMain.handle('cloudNotes:indexSearch', (_e, q: string) =>
-    run(() => notesService.indexSearch(q)));
+  ipcMain.handle('cloudNotes:indexSearch', (_e, q: string, semesterIds?: number[]) =>
+    run(() => notesService.indexSearch(q, semesterIds)));
 
   ipcMain.handle('cloudNotes:indexLecture', (_e, courseId: string, sessionId: string) =>
     run(() => notesService.indexLecture(courseId, sessionId)));

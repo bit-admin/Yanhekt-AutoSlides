@@ -92,6 +92,12 @@
                 @keyup.enter="onIndexPaste"
               />
             </div>
+            <SemesterSelect
+              v-if="idx.searchMode.value === 'search' && idx.semesterInitialized.value"
+              :semesters="idx.availableSemesters.value"
+              :model-value="idx.selectedSemesterIds.value"
+              @update:model-value="idx.setSemesters"
+            />
             <button
               class="cn-newnote-btn"
               :title="idx.searchMode.value === 'search' ? $t('cloudIndex.toggleToPaste') : $t('cloudIndex.toggleToSearch')"
@@ -538,6 +544,7 @@ import { useShareIndexExport } from '@features/cloudNotes/useShareIndexExport'
 import { useCloudIndexBrowse, type IndexTermOption } from '@features/cloudNotes/useCloudIndexBrowse'
 import { navigationStore } from '@features/course/navigationStore'
 import { formatNoteGroupLabel, type IndexLecture, type IndexVersion } from '@common/notesTypes'
+import SemesterSelect from '../course/SemesterSelect.vue'
 import CloudIndexViewer from './CloudIndexViewer.vue'
 import CloudIndexRemovalModal from './CloudIndexRemovalModal.vue'
 import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
@@ -599,10 +606,12 @@ const footerVisible = computed(() => viewMode.value === 'notes')
 
 async function enterIndexMode(): Promise<void> {
   viewMode.value = 'index'
+  const tasks: Promise<unknown>[] = [idx.prepareSemesters()]
   if (!indexLoaded.value) {
     indexLoaded.value = true
-    await idx.loadRecent()
+    tasks.push(idx.loadRecent())
   }
+  await Promise.all(tasks)
 }
 
 /** Return to notes mode on the "All notes" group. */
@@ -1078,6 +1087,16 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
   padding: 10px 14px;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  position: relative;
+  z-index: var(--z-dropdown);
+}
+
+.cn-toolbar :deep(.semester-select) {
+  flex-shrink: 0;
+}
+
+.cn-toolbar :deep(.semester-trigger) {
+  max-width: 168px;
 }
 
 /* Collapse-groups button (left of the search), matches the title bar panel toggle. */
@@ -1400,6 +1419,8 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
   display: flex;
   align-items: center;
   gap: 6px;
+  box-sizing: border-box;
+  height: var(--control-height);
   padding: 0 8px;
   border: none;
   border-radius: 6px;

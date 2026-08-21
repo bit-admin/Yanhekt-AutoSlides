@@ -12,14 +12,17 @@
  *     courses re-renders from already-fetched data — no new request. Expanding a
  *     session is the only place `/v2/api/lecture` is called (cached per session).
  *   - Selecting a version resolves its slides into the RIGHT-panel viewer.
+ *
+ * Semester filter uses the same Yanhekt tag list as the Search page
+ * (`apiClient.getAvailableSemesters`), not Index `/v2/api/stats`, and is sent as
+ * `semesterIds` on `/v2/api/search`. Defaults to the latest semester.
  */
 
 import { computed, ref, watch } from 'vue'
 import { SHARE_ORIGIN } from '@common/shareLink'
 import { buildShareImportTitle, splitNoteDisplayName } from '@common/notesTypes'
-import type { ShareLectureMeta } from '@common/notesTypes'
-import { overrides } from '@shared/overrideRegistry'
 import type {
+  ShareLectureMeta,
   IndexLecture,
   IndexVersion,
   IndexRecentFile,
@@ -28,8 +31,14 @@ import type {
   IndexRemovalResult,
 } from '@common/notesTypes'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
+import { overrides } from '@shared/overrideRegistry'
+import { ApiClient, type SemesterOption } from '@shared/services/apiClient'
+import { createLogger } from '@shared/utils/logger'
 import { groupLectures, schoolYearRank, semesterRank } from './lectureSort'
 import { buildIndexMetadata } from './indexMetadata'
+
+const log = createLogger('CloudIndexBrowse')
+const apiClient = new ApiClient()
 
 export type IndexSearchMode = 'search' | 'paste'
 
@@ -106,6 +115,13 @@ export function useCloudIndexBrowse() {
   const query = ref('')
   const pasteLink = ref('')
   const searching = ref(false)
+
+  // Same contract as useSearchPage: empty array = all semesters; `semesterInitialized`
+  // distinguishes "not yet defaulted" from a deliberate All-semesters choice.
+  const availableSemesters = ref<SemesterOption[]>([])
+  const selectedSemesterIds = ref<number[]>([])
+  const semesterInitialized = ref(false)
+  let loadingSemesters: Promise<void> | null = null
 
   const recentFiles = ref<IndexRecentFile[]>([])
   const statsSummary = ref<{ courseCount: number; lectureCount: number; versionCount: number } | null>(null)
@@ -199,6 +215,39 @@ export function useCloudIndexBrowse() {
 
   // ── Loading ────────────────────────────────────────────────────────────
 
+  async function ensureSemesters(): Promise<void> {
+    if (availableSemesters.value.length > 0) return
+    if (!loadingSemesters) {
+      loadingSemesters = apiClient
+        .getAvailableSemesters()
+        .then((list) => {
+          availableSemesters.value = list
+        })
+        .catch((error) => {
+          log.error('Failed to load available semesters:', error)
+        })
+        .finally(() => {
+          loadingSemesters = null
+        })
+    }
+    if (loadingSemesters) await loadingSemesters
+  }
+
+  /** Load the Yanhekt semester list and default to the latest term once. */
+  async function prepareSemesters(): Promise<void> {
+    await ensureSemesters()
+    if (semesterInitialized.value) return
+    if (availableSemesters.value.length > 0) {
+      selectedSemesterIds.value = [availableSemesters.value[0].id]
+    }
+    semesterInitialized.value = true
+  }
+
+  /** Clone off the Vue proxy before the IPC / structured-clone hop (Recurring #1). */
+  function plainSemesterIds(): number[] {
+    return selectedSemesterIds.value.map(Number).filter((id) => Number.isFinite(id))
+  }
+
   /** Fetch the homepage aggregates + recently-added files (the no-search view). */
   async function loadRecent(): Promise<void> {
     const res = await notes.indexStats()
@@ -217,29 +266,44 @@ export function useCloudIndexBrowse() {
   // term, so a programmatic write doesn't re-trigger the debounce watcher below.
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
   let lastExecutedQuery: string | null = null
+  let searchSeq = 0
   const cancelPendingSearch = (): void => {
     if (debounceTimer !== null) {
       clearTimeout(debounceTimer)
       debounceTimer = null
     }
   }
+  const executedKey = (term: string): string => `${term}\0${plainSemesterIds().join(',')}`
 
   /** Run a search, group the results by course, and select the first course. */
   async function runSearch(term: string): Promise<void> {
-    lastExecutedQuery = term
+    await prepareSemesters()
+    lastExecutedQuery = executedKey(term)
     query.value = term
     searchMode.value = 'search'
     searching.value = true
     expandedKey.value = null
     sessionCache.value = {}
     resetFilters()
+    const seq = ++searchSeq
     try {
-      const res = await notes.indexSearch(term)
+      const res = await notes.indexSearch(term, plainSemesterIds())
+      if (seq !== searchSeq) return
       results.value = res.ok ? res.data : []
       selectedCourseId.value = courseGroups.value[0]?.courseId ?? null
     } finally {
-      searching.value = false
+      if (seq === searchSeq) searching.value = false
     }
+  }
+
+  /** Update the semester filter; re-runs an in-flight query immediately. */
+  async function setSemesters(ids: number[]): Promise<void> {
+    selectedSemesterIds.value = ids.map(Number).filter((id) => Number.isFinite(id))
+    semesterInitialized.value = true
+    const term = query.value.trim()
+    if (!term) return
+    cancelPendingSearch()
+    await runSearch(term)
   }
 
   /** Back to the recently-added view (clears the current search). */
@@ -262,7 +326,7 @@ export function useCloudIndexBrowse() {
     debounceTimer = setTimeout(() => {
       debounceTimer = null
       const term = query.value.trim()
-      if (term === lastExecutedQuery) return
+      if (executedKey(term) === lastExecutedQuery) return
       if (!term) {
         if (results.value !== null) clearSearch()
         return
@@ -467,6 +531,7 @@ export function useCloudIndexBrowse() {
   return {
     // state
     searchMode, query, pasteLink, searching,
+    availableSemesters, selectedSemesterIds, semesterInitialized,
     recentFiles, statsSummary,
     results, hasResults, courseGroups, selectedCourseId, selectedCourse, sessions,
     collegeFilter, termFilter, instructorFilter, colleges, terms, instructors, showFilterBar,
@@ -474,7 +539,7 @@ export function useCloudIndexBrowse() {
     // reads
     sessionEntryFor, isExpanded,
     // actions
-    loadRecent, runSearch, clearSearch, togglePaste,
+    loadRecent, prepareSemesters, runSearch, setSemesters, clearSearch, togglePaste,
     selectCourse, toggleSession,
     openVersion, openRecentFile, resolvePaste, closeViewer,
     requestRemoval, reloadSession,

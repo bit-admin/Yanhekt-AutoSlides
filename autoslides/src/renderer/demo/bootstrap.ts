@@ -128,7 +128,10 @@ export function installDemo(): void {
   // index over the same demo courses; share links resolve to the slide SVGs.
   overrides.cloudIndexProvider = {
     indexStats: async () => ({ ok: true, data: demoIndexStats() }),
-    indexSearch: async (term: string) => ({ ok: true, data: demoIndexSearch(term) }),
+    indexSearch: async (term: string, semesterIds?: number[]) => ({
+      ok: true,
+      data: demoIndexSearch(term, semesterIds),
+    }),
     indexLecture: async (courseId: string, sessionId: string) => {
       const detail = demoIndexLecture(courseId, sessionId)
       return detail ? { ok: true, data: detail } : { ok: false, error: 'not found' }

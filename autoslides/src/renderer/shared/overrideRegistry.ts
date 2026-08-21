@@ -74,7 +74,7 @@ export interface CloudNotesProvider {
 // index mode renders offline; production reads `overrides.cloudIndexProvider ?? real`.
 export interface CloudIndexProvider {
   indexStats(): Promise<NotesResult<IndexStats>>
-  indexSearch(term: string): Promise<NotesResult<IndexLecture[]>>
+  indexSearch(term: string, semesterIds?: number[]): Promise<NotesResult<IndexLecture[]>>
   indexLecture(courseId: string, sessionId: string): Promise<NotesResult<IndexLectureDetail>>
   resolveShareLink(link: string): Promise<NotesResult<ShareImportResult>>
   requestIndexRemoval(courseId: string, sessionId: string): Promise<NotesResult<IndexRemovalResult>>
