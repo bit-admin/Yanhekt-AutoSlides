@@ -6,7 +6,7 @@
           type="checkbox"
           :checked="enabled"
           :disabled="captureNotSupported"
-          @change="$emit('toggle', ($event.target as HTMLInputElement).checked)"
+          @click.prevent="onToggleClick"
         />
         <span class="toggle-slider"></span>
         <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
@@ -173,13 +173,21 @@ const props = defineProps<{
   captureNotSupported: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   toggle: [checked: boolean]
   postProcess: []
 }>()
 
 const { t } = useI18n()
 const collapsed = ref(false)
+
+// Fully controlled: the native checkbox would otherwise stay checked when the
+// parent intercepts a turn-on (first-run features prompt) and leaves `enabled`
+// false. Vue skips patching :checked when the bound value did not change.
+const onToggleClick = () => {
+  if (props.captureNotSupported) return
+  emit('toggle', !props.enabled)
+}
 
 const phase1 = computed(() => {
   const status = props.postStatus

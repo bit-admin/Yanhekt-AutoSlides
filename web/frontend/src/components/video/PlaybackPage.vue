@@ -878,7 +878,9 @@ const onExtractionFeaturesContinue = () => {
 
 const onExtractionFeaturesCancel = () => {
   showExtractionFeaturesPrompt.value = false
-  // Toggle stays off — user declined to start extraction.
+  // Keep extraction off — the panel checkbox is controlled by this flag, so
+  // Cancel must leave it disabled (and never call startExtraction).
+  slideExtraction.isSlideExtractionEnabled.value = false
 }
 
 // Switching to a camera-only view mid-extraction force-stops it (desktop parity).
