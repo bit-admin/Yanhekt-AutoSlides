@@ -462,8 +462,8 @@ html[data-theme="dark"] .btn:hover:not(:disabled) {
   /* Vertical scrim keeps the title legible over any banner (lighter so covers show). */
   background: linear-gradient(
     180deg,
-    rgba(0, 0, 0, 0.08) 0%,
-    rgba(0, 0, 0, 0.28) 100%
+    rgba(0, 0, 0, 0.02) 0%,
+    rgba(0, 0, 0, 0.10) 100%
   );
   text-shadow: 0 0.4cqw 1cqw rgba(0, 0, 0, 0.6);
 }
