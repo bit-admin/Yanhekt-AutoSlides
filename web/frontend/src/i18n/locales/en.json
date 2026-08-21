@@ -74,6 +74,10 @@
       "subscriptions": "Subscriptions"
     }
   },
+  "dialog": {
+    "cancel": "Cancel",
+    "ok": "OK"
+  },
   "feedback": {
     "close": "Close",
     "lead": "Found a bug, or want to suggest something? Pick whichever suits you.",
@@ -187,6 +191,7 @@
     "goToLive": "Go to Live",
     "instructor": "Instructor",
     "lastPlayedPosition": "Last played position:",
+    "leave": "Leave",
     "loadFailed": "Failed to load playback info",
     "loadingVideoStreams": "Loading video streams...",
     "mute": "Mute",

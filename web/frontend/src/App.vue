@@ -101,12 +101,14 @@
     <!-- First-run notice. Skipped on full-page routes so its own Terms/Privacy
          links are reachable; it reappears on return until acknowledged. -->
     <FirstRunNotice v-if="!isFullPage && !noticeStore.acknowledged.value" />
+    <ConfirmHost />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, type RouteLocationNormalizedLoaded } from 'vue-router'
+import ConfirmHost from './components/ConfirmHost.vue'
 import FirstRunNotice from './components/FirstRunNotice.vue'
 import Header from './components/Header.vue'
 import LeftPanel from './components/LeftPanel.vue'

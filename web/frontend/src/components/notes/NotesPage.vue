@@ -128,6 +128,7 @@ import { useNoteEditor } from '../../composables/notes/useNoteEditor'
 import { notesRefreshTick } from '../../stores/notesRefreshStore'
 import { authStore } from '../../stores/authStore'
 import { cloudStorageStore } from '../../stores/cloudStorageStore'
+import { dialogStore } from '../../stores/dialogStore'
 import { publicStorageNoticeStore } from '../../stores/publicStorageNoticeStore'
 import NotesSidebar from './NotesSidebar.vue'
 import NotesEditorCanvas from './NotesEditorCanvas.vue'
@@ -353,7 +354,12 @@ function onRefreshList(): void {
 }
 
 async function onDeleteNote(id: number): Promise<void> {
-  if (!window.confirm(t('cloudNotes.confirmDeleteNote'))) return
+  const ok = await dialogStore.confirm({
+    message: t('cloudNotes.confirmDeleteNote'),
+    confirmText: t('cloudNotes.delete'),
+    danger: true,
+  })
+  if (!ok) return
   const wasOpen = cn.selectedNoteId.value === id
   await cn.deleteNote(id)
   if (wasOpen) routeToNote(null)
@@ -391,7 +397,12 @@ async function onDuplicateNote(): Promise<void> {
 }
 
 async function onDeleteGroup(id: number, name: string): Promise<void> {
-  if (!window.confirm(t('cloudNotes.confirmDeleteGroup', { name: name || t('cloudNotes.defaultGroup') }))) return
+  const ok = await dialogStore.confirm({
+    message: t('cloudNotes.confirmDeleteGroup', { name: name || t('cloudNotes.defaultGroup') }),
+    confirmText: t('cloudNotes.delete'),
+    danger: true,
+  })
+  if (!ok) return
   await cn.deleteGroup(id)
 }
 

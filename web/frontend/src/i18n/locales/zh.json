@@ -74,6 +74,10 @@
       "subscriptions": "订阅"
     }
   },
+  "dialog": {
+    "cancel": "取消",
+    "ok": "确定"
+  },
   "feedback": {
     "close": "关闭",
     "lead": "遇到问题，或有功能建议？选择你方便的方式。",
@@ -187,6 +191,7 @@
     "goToLive": "前往直播",
     "instructor": "讲师",
     "lastPlayedPosition": "上次播放位置：",
+    "leave": "离开",
     "loadFailed": "加载播放信息失败",
     "loadingVideoStreams": "加载视频流中...",
     "mute": "静音",

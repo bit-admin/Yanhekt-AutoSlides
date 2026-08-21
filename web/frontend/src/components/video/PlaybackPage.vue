@@ -568,6 +568,7 @@ import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '../../com
 import { useControlsVisibility } from '../../composables/video/useControlsVisibility'
 import { useSlideExtraction } from '../../composables/video/useSlideExtraction'
 import { postProcessingStatus } from '../../lib/postProcessing/runner'
+import { dialogStore } from '../../stores/dialogStore'
 import { playbackStore } from '../../stores/playbackStore'
 import { router } from '../../router'
 import { stashCourse, stashSession } from '../../stores/courseTransfer'
@@ -896,8 +897,22 @@ const extractionActive = computed(
     slideExtraction.isSlideExtractionEnabled.value ||
     slideExtraction.slideExtractionStatus.value.isRunning,
 )
-const confirmLeaveExtraction = () =>
-  !extractionActive.value || window.confirm(t('playback.confirmLeaveExtraction'))
+let leavePrompt: Promise<boolean> | null = null
+async function confirmLeaveExtraction(): Promise<boolean> {
+  if (!extractionActive.value) return true
+  if (leavePrompt) return leavePrompt
+  leavePrompt = dialogStore
+    .confirm({
+      title: t('playback.slideExtraction'),
+      message: t('playback.confirmLeaveExtraction'),
+      confirmText: t('playback.leave'),
+      danger: true,
+    })
+    .finally(() => {
+      leavePrompt = null
+    })
+  return leavePrompt
+}
 
 onBeforeRouteLeave(() => confirmLeaveExtraction())
 onBeforeRouteUpdate((to, from) => {

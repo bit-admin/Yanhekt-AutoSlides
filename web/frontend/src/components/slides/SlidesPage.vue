@@ -140,6 +140,7 @@ import SlidesMain from './SlidesMain.vue'
 import SlidesPreviewModal from './SlidesPreviewModal.vue'
 import { useResultsView } from '../../composables/useResultsView'
 import { useSlidesExport, type ExportFormat } from '../../composables/useSlidesExport'
+import { dialogStore } from '../../stores/dialogStore'
 import type { ResultsFolder, ResultsItem } from '../../composables/resultsTypes'
 
 defineOptions({ name: 'SlidesPage' })
@@ -271,7 +272,12 @@ async function onRefresh(): Promise<void> {
 
 const removeFolderWithConfirm = async (folder: ResultsFolder) => {
   const displayName = rv.getFolderDisplayName(folder.name).course || folder.name
-  if (!window.confirm(t('trash.confirmDeleteFolder', { folder: displayName }))) return
+  const ok = await dialogStore.confirm({
+    message: t('trash.confirmDeleteFolder', { folder: displayName }),
+    confirmText: t('trash.delete'),
+    danger: true,
+  })
+  if (!ok) return
   const wasOpen = rv.currentFolder.value?.name === folder.name
   await rv.removeFolders([folder.name])
   if (wasOpen) {
@@ -285,14 +291,24 @@ const removeFolderWithConfirm = async (folder: ResultsFolder) => {
 }
 
 const clearAllTrash = async () => {
-  if (!window.confirm(t('trash.confirmClear'))) return
+  const ok = await dialogStore.confirm({
+    message: t('trash.confirmClear'),
+    confirmText: t('trash.delete'),
+    danger: true,
+  })
+  if (!ok) return
   await rv.clearTrash()
 }
 
 const clearFolderTrash = async () => {
   const folder = rv.currentFolder.value
   if (!folder) return
-  if (!window.confirm(t('trash.confirmClearFolder', { folder: rv.currentFolderDisplayName.value }))) return
+  const ok = await dialogStore.confirm({
+    message: t('trash.confirmClearFolder', { folder: rv.currentFolderDisplayName.value }),
+    confirmText: t('trash.delete'),
+    danger: true,
+  })
+  if (!ok) return
   const ids = rv.trashEntries.value
     .filter((entry) => entry.originalParentFolder === folder.name)
     .map((entry) => entry.id)
@@ -303,7 +319,12 @@ const clearFolderTrash = async () => {
 const deleteSelectedWithConfirm = async () => {
   const count = rv.selectedActiveItems.value.length
   if (count === 0) return
-  if (!window.confirm(t('trash.confirmDelete', { count }))) return
+  const ok = await dialogStore.confirm({
+    message: t('trash.confirmDelete', { count }),
+    confirmText: t('trash.delete'),
+    danger: true,
+  })
+  if (!ok) return
   await rv.deleteSelected()
 }
 
@@ -311,13 +332,13 @@ const applyBaselineSelected = async () => {
   if (!rv.baselineCrop.value) return
   if (rv.selectedActiveItems.value.length === 0) return
   const summary = await rv.applyBaselineToSelected()
-  window.alert(
-    t('trash.applyBaselineSummary', {
+  await dialogStore.alert({
+    message: t('trash.applyBaselineSummary', {
       cropped: summary.cropped,
       outOfBounds: summary.outOfBounds,
       failed: summary.failed,
     }),
-  )
+  })
 }
 
 function formatAutoCropSummary(summary: {
@@ -335,21 +356,21 @@ function formatAutoCropSummary(summary: {
 const autoCropSelected = async () => {
   if (rv.selectedAutoCropCount.value === 0) return
   const summary = await rv.autoCropSelected()
-  window.alert(formatAutoCropSummary(summary))
+  await dialogStore.alert({ message: formatAutoCropSummary(summary) })
 }
 
 const autoCropSingleItem = async (item: ResultsItem) => {
   const summary = await rv.autoCropItem(item)
   // Quiet when a single tile succeeds; surface misses/failures.
   if (summary.noDetection > 0 || summary.failed > 0 || summary.cropped === 0) {
-    window.alert(formatAutoCropSummary(summary))
+    await dialogStore.alert({ message: formatAutoCropSummary(summary) })
   }
 }
 
 const autoCropFromPreview = async (item: ResultsItem) => {
   const summary = await rv.autoCropItem(item)
   if (summary.noDetection > 0 || summary.failed > 0 || summary.cropped === 0) {
-    window.alert(formatAutoCropSummary(summary))
+    await dialogStore.alert({ message: formatAutoCropSummary(summary) })
   }
 }
 
@@ -374,7 +395,12 @@ const restoreFromPreview = async (item: ResultsItem) => {
 }
 
 const deleteFromPreview = async (item: ResultsItem) => {
-  if (!window.confirm(t('trash.confirmDelete', { count: 1 }))) return
+  const ok = await dialogStore.confirm({
+    message: t('trash.confirmDelete', { count: 1 }),
+    confirmText: t('trash.delete'),
+    danger: true,
+  })
+  if (!ok) return
   rv.closePreview()
   rv.selectedIds.value = [item.id]
   await rv.deleteSelected()
@@ -386,7 +412,12 @@ const restoreSingleItem = async (item: ResultsItem) => {
 }
 
 const deleteSingleItem = async (item: ResultsItem) => {
-  if (!window.confirm(t('trash.confirmDelete', { count: 1 }))) return
+  const ok = await dialogStore.confirm({
+    message: t('trash.confirmDelete', { count: 1 }),
+    confirmText: t('trash.delete'),
+    danger: true,
+  })
+  if (!ok) return
   rv.selectedIds.value = [item.id]
   await rv.deleteSelected()
 }

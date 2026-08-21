@@ -9,6 +9,7 @@ import { getSlideCropSourceBlob } from '../lib/slideStore'
 import { createAutoCropWorkerClient } from '../workers/autoCropWorkerClient'
 import type { CropRect, ResultsItem } from './resultsTypes'
 import { createLogger } from '../lib/logger'
+import { dialogStore } from '../stores/dialogStore'
 
 const log = createLogger('CropEditor')
 
@@ -419,18 +420,20 @@ export function useCropEditor(deps: CropEditorDeps) {
       if (requestId !== cropSourceRequestId.value) return
 
       if (!response.success || !response.result?.bbox) {
-        window.alert(
-          `${t('trash.autoCropNoDetectionTitle')}\n\n${t('trash.autoCropNoDetectionMessage')}`,
-        )
+        await dialogStore.alert({
+          title: t('trash.autoCropNoDetectionTitle'),
+          message: t('trash.autoCropNoDetectionMessage'),
+        })
         return
       }
 
       const { x, y, w, h } = response.result.bbox
       const next = sanitizeCropRect({ x, y, width: w, height: h })
       if (!next || next.width < minimumCropSize || next.height < minimumCropSize) {
-        window.alert(
-          `${t('trash.autoCropNoDetectionTitle')}\n\n${t('trash.autoCropNoDetectionMessage')}`,
-        )
+        await dialogStore.alert({
+          title: t('trash.autoCropNoDetectionTitle'),
+          message: t('trash.autoCropNoDetectionMessage'),
+        })
         return
       }
 
