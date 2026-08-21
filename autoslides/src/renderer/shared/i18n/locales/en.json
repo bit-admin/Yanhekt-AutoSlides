@@ -1565,8 +1565,8 @@
     "viewList": "List",
     "viewLibrary": "Library",
     "libraryHydrating": "Loading course metadata…",
-    "libraryEmpty": "No recognised lecture videos yet.",
-    "libraryEmptyHint": "Library only shows files with course and session identity (legacy __c…s… names or Emby [yhid=…] tags). Use List view for unrecognised files, or Rename after signing in.",
+    "libraryEmpty": "No recognised lecture videos or slide timelines yet.",
+    "libraryEmptyHint": "Library shows recognised videos (legacy __c…s… names or Emby [yhid=…] tags) and slides folders that include course/session ids plus timeline.json. Use List view for unrecognised files, or Rename after signing in.",
     "libraryBackCourses": "Courses",
     "libraryBack": "Back",
     "libraryNoEpisodes": "No episodes found for this course.",
@@ -1581,7 +1581,8 @@
     "libraryInstructor": "Instructor",
     "libraryClassrooms": "Classroom",
     "libraryFiles": "Files",
-    "bothStreamsOnlineHint": "Plays the file on disk together with the other stream from the server.",
-    "streamOnline": "Online"
+    "bothStreamsOnlineHint": "One or both streams play from the server.",
+    "streamOnline": "Online",
+    "streamOnlineHint": "Plays this stream from the server."
   }
 }

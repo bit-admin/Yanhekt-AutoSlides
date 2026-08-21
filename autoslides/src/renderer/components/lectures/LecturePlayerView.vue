@@ -251,100 +251,82 @@
                 </svg>
               </button>
               <div v-if="showStreamPanel" class="dual-popover dual-speed-popover">
-                <template v-if="hasLocalDual">
-                  <button
-                    type="button"
-                    class="dual-popover-option"
-                    :class="{ active: streamMode === 'dual' }"
-                    @click="pickStreamMode('dual')"
+                <button
+                  type="button"
+                  class="dual-popover-option stream-hybrid-option"
+                  :class="{ active: streamMode === 'dual' }"
+                  @click="pickStreamMode('dual')"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <rect x="2.5" y="5" width="8.5" height="14" rx="1.5"/>
+                    <rect x="13" y="5" width="8.5" height="14" rx="1.5"/>
+                  </svg>
+                  <span>{{ $t('playback.bothStreams') }}</span>
+                  <span
+                    v-if="dualIsOnline"
+                    class="stream-hybrid-info"
+                    :title="$t('lectures.bothStreamsOnlineHint')"
+                    :aria-label="$t('lectures.bothStreamsOnlineHint')"
+                    @click.stop
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <rect x="2.5" y="5" width="8.5" height="14" rx="1.5"/>
-                      <rect x="13" y="5" width="8.5" height="14" rx="1.5"/>
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                      <circle cx="8" cy="5.15" r="0.85" fill="currentColor"/>
+                      <path d="M8 7.25v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                     </svg>
-                    <span>{{ $t('playback.bothStreams') }}</span>
-                  </button>
-                  <button
-                    v-if="session.screen"
-                    type="button"
-                    class="dual-popover-option"
-                    :class="{ active: streamMode === 'screen' }"
-                    @click="pickStreamMode('screen')"
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="dual-popover-option stream-hybrid-option"
+                  :class="{ active: streamMode === 'screen' }"
+                  @click="pickStreamMode('screen')"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="13" rx="2"/>
+                    <path d="M8 21h8"/>
+                    <path d="M12 17v4"/>
+                  </svg>
+                  <span>{{ $t('playback.streamScreen') }}</span>
+                  <span
+                    v-if="screenIsOnline"
+                    class="stream-hybrid-info"
+                    :title="$t('lectures.streamOnlineHint')"
+                    :aria-label="$t('lectures.streamOnlineHint')"
+                    @click.stop
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <rect x="2" y="4" width="20" height="13" rx="2"/>
-                      <path d="M8 21h8"/>
-                      <path d="M12 17v4"/>
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                      <circle cx="8" cy="5.15" r="0.85" fill="currentColor"/>
+                      <path d="M8 7.25v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                     </svg>
-                    <span>{{ $t('playback.streamScreen') }}</span>
-                  </button>
-                  <button
-                    v-if="session.camera"
-                    type="button"
-                    class="dual-popover-option"
-                    :class="{ active: streamMode === 'camera' }"
-                    @click="pickStreamMode('camera')"
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="dual-popover-option stream-hybrid-option"
+                  :class="{ active: streamMode === 'camera' }"
+                  @click="pickStreamMode('camera')"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M23 7l-7 5 7 5V7z"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2"/>
+                  </svg>
+                  <span>{{ $t('playback.streamCamera') }}</span>
+                  <span
+                    v-if="cameraIsOnline"
+                    class="stream-hybrid-info"
+                    :title="$t('lectures.streamOnlineHint')"
+                    :aria-label="$t('lectures.streamOnlineHint')"
+                    @click.stop
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <path d="M23 7l-7 5 7 5V7z"/>
-                      <rect x="1" y="5" width="15" height="14" rx="2"/>
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                      <circle cx="8" cy="5.15" r="0.85" fill="currentColor"/>
+                      <path d="M8 7.25v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
                     </svg>
-                    <span>{{ $t('playback.streamCamera') }}</span>
-                  </button>
-                </template>
-                <template v-else-if="canHybrid">
-                  <button
-                    v-if="session.screen"
-                    type="button"
-                    class="dual-popover-option"
-                    :class="{ active: streamMode === 'screen' }"
-                    @click="pickStreamMode('screen')"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <rect x="2" y="4" width="20" height="13" rx="2"/>
-                      <path d="M8 21h8"/>
-                      <path d="M12 17v4"/>
-                    </svg>
-                    <span>{{ $t('playback.streamScreen') }}</span>
-                  </button>
-                  <button
-                    v-else-if="session.camera"
-                    type="button"
-                    class="dual-popover-option"
-                    :class="{ active: streamMode === 'camera' }"
-                    @click="pickStreamMode('camera')"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <path d="M23 7l-7 5 7 5V7z"/>
-                      <rect x="1" y="5" width="15" height="14" rx="2"/>
-                    </svg>
-                    <span>{{ $t('playback.streamCamera') }}</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="dual-popover-option stream-hybrid-option"
-                    :class="{ active: streamMode === 'dual' }"
-                    @click="pickStreamMode('dual')"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                      <rect x="2.5" y="5" width="8.5" height="14" rx="1.5"/>
-                      <rect x="13" y="5" width="8.5" height="14" rx="1.5"/>
-                    </svg>
-                    <span>{{ $t('playback.bothStreams') }}</span>
-                    <span
-                      class="stream-hybrid-info"
-                      :title="$t('lectures.bothStreamsOnlineHint')"
-                      :aria-label="$t('lectures.bothStreamsOnlineHint')"
-                      @click.stop
-                    >
-                      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-                        <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"/>
-                        <circle cx="8" cy="5.15" r="0.85" fill="currentColor"/>
-                        <path d="M8 7.25v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
-                      </svg>
-                    </span>
-                  </button>
-                </template>
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -460,9 +442,10 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  canHybridDual,
+  canShowDual,
   formatLibrarySemester,
-  sessionHasDual,
+  isCameraOnline,
+  isScreenOnline,
   type LibraryCourse,
   type LibrarySession,
   type LocalStreamMode,
@@ -504,8 +487,6 @@ const {
   errorMessage,
   failedPaths,
   isDualMode,
-  isHybridDual,
-  onlineKind,
   canSeek,
   seekProgress,
   volumeProgress,
@@ -583,9 +564,10 @@ const episodeLine = computed(() => {
 })
 
 const headerTitle = computed(() => `${episodeLine.value} — ${props.course.title}`)
-const hasLocalDual = computed(() => sessionHasDual(props.session))
-const canHybrid = computed(() => canHybridDual(props.session))
-const hasStreamChoices = computed(() => hasLocalDual.value || canHybrid.value)
+const hasStreamChoices = computed(() => canShowDual(props.session))
+const dualIsOnline = computed(() => isScreenOnline(props.session) || isCameraOnline(props.session))
+const screenIsOnline = computed(() => isScreenOnline(props.session))
+const cameraIsOnline = computed(() => isCameraOnline(props.session))
 const cameraOrder = computed(() => (isOrderSwapped.value ? 2 : 1))
 const screenOrder = computed(() => (isOrderSwapped.value ? 1 : 2))
 
@@ -598,15 +580,11 @@ const streamModeTitle = computed(() => {
 
 const cameraPaneLabel = computed(() => {
   const base = t('playback.streamCamera')
-  return isHybridDual.value && onlineKind.value === 'camera'
-    ? `${base} (${t('lectures.streamOnline')})`
-    : base
+  return cameraIsOnline.value ? `${base} (${t('lectures.streamOnline')})` : base
 })
 const screenPaneLabel = computed(() => {
   const base = t('playback.streamScreen')
-  return isHybridDual.value && onlineKind.value === 'screen'
-    ? `${base} (${t('lectures.streamOnline')})`
-    : base
+  return screenIsOnline.value ? `${base} (${t('lectures.streamOnline')})` : base
 })
 
 // Controls auto-hide

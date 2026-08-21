@@ -1565,8 +1565,8 @@
     "viewList": "列表",
     "viewLibrary": "资料库",
     "libraryHydrating": "正在加载课程元数据…",
-    "libraryEmpty": "暂无已识别的课程视频。",
-    "libraryEmptyHint": "资料库只显示带有课程与课时身份的文件（旧版 __c…s… 或 Emby [yhid=…] 标签）。未识别文件请用列表视图，或登录后使用重命名。",
+    "libraryEmpty": "暂无已识别的课程视频或幻灯片时间轴。",
+    "libraryEmptyHint": "资料库显示带有课程与课时身份的视频（旧版 __c…s… 或 Emby [yhid=…] 标签），以及带课程/课时 id 且含 timeline.json 的幻灯片文件夹。未识别文件请用列表视图，或登录后使用重命名。",
     "libraryBackCourses": "课程",
     "libraryBack": "返回",
     "libraryNoEpisodes": "此课程下没有可播放的课时。",
@@ -1581,7 +1581,8 @@
     "libraryInstructor": "教师",
     "libraryClassrooms": "教室",
     "libraryFiles": "文件",
-    "bothStreamsOnlineHint": "本地文件与服务器上的另一路视频一起播放。",
-    "streamOnline": "在线"
+    "bothStreamsOnlineHint": "一路或两路视频来自服务器。",
+    "streamOnline": "在线",
+    "streamOnlineHint": "此路视频来自服务器。"
   }
 }

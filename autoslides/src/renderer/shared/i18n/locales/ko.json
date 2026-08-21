@@ -1565,8 +1565,8 @@
     "viewList": "목록",
     "viewLibrary": "라이브러리",
     "libraryHydrating": "강의 메타데이터 불러오는 중…",
-    "libraryEmpty": "인식된 강의 영상이 없습니다.",
-    "libraryEmptyHint": "라이브러리는 코스·세션 ID가 있는 파일만 표시합니다(레거시 __c…s… 또는 Emby [yhid=…] 태그). 미인식 파일은 목록 보기를 사용하거나 로그인 후 이름 변경을 하세요.",
+    "libraryEmpty": "인식된 강의 영상이나 슬라이드 타임라인이 없습니다.",
+    "libraryEmptyHint": "라이브러리는 코스·세션 ID가 있는 영상(레거시 __c…s… 또는 Emby [yhid=…] 태그)과 코스/세션 ID 및 timeline.json이 있는 슬라이드 폴더를 표시합니다. 미인식 파일은 목록 보기를 사용하거나 로그인 후 이름 변경을 하세요.",
     "libraryBackCourses": "강의",
     "libraryBack": "뒤로",
     "libraryNoEpisodes": "이 강의에 재생할 회차가 없습니다.",
@@ -1581,7 +1581,8 @@
     "libraryInstructor": "교수",
     "libraryClassrooms": "강의실",
     "libraryFiles": "파일",
-    "bothStreamsOnlineHint": "디스크의 파일과 서버의 다른 스트림을 함께 재생합니다.",
-    "streamOnline": "온라인"
+    "bothStreamsOnlineHint": "하나 또는 두 스트림을 서버에서 재생합니다.",
+    "streamOnline": "온라인",
+    "streamOnlineHint": "이 스트림을 서버에서 재생합니다."
   }
 }

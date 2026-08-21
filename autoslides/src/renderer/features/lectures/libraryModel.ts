@@ -1,6 +1,9 @@
 // Build Infuse-style Course → Session → {screen?, camera?} tree from flat
-// LectureVideoItem listings. Library shows recognised files only.
+// LectureVideoItem listings plus slides_* folders that carry course/session ids
+// and a timeline.json. List view stays video-only; Library may show slides-only
+// sessions and play their streams online.
 
+import { formatLectureDisplayName, parseLectureIds } from '@common/lectureNaming'
 import {
   episodeIndexForSession,
   formatEpisodeToken,
@@ -39,6 +42,17 @@ export interface LibrarySession {
   vgaUrl?: string
   /** Prefer screen path for poster generation. */
   posterSourcePath?: string
+  /** Matching slides_* folder (courseId+sessionId + timeline.json). */
+  slideFolderPath?: string
+}
+
+/** A slides_* folder that can seed a library session without local video files. */
+export interface LibrarySlideSeed {
+  courseId: string
+  sessionId: string
+  folderPath: string
+  folderName: string
+  fallbackTitle: string
 }
 
 export interface LibraryCourse {
@@ -89,29 +103,52 @@ function pickBetter(a: LibraryFileRef, b: LibraryFileRef): LibraryFileRef {
   return b
 }
 
-function courseLabelFromItem(item: LectureVideoItem): string {
-  const d = item.displayName
-  const se = d.match(/^(.+?)\s+-\s+S\d{2}/)
+function courseLabelFromDisplayName(displayName: string, fallback: string): string {
+  const se = displayName.match(/^(.+?)\s+-\s+S\d{2}/)
   if (se) return se[1].trim()
-  const legacy = d.match(/^(.+?)_第\d+周/)
+  const legacy = displayName.match(/^(.+?)_第\d+周/)
   if (legacy) return legacy[1].replace(/_/g, ' ').trim()
-  const dash = d.split(' - ')[0]
-  return (dash || d || item.name).trim()
+  const dash = displayName.split(' - ')[0]
+  return (dash || displayName || fallback).trim()
 }
 
-function sessionLabelFromItem(item: LectureVideoItem): string {
+function sessionLabelFromDisplayName(displayName: string): string {
   // Emby: "Course - S01E01 - Session Title"
-  const parts = item.displayName.split(' - ')
+  const parts = displayName.split(' - ')
   if (parts.length >= 3) return parts.slice(2).join(' - ').trim()
   if (parts.length === 2 && !/^S\d{2}/i.test(parts[1])) return parts[1].trim()
   // Legacy stripped: often "Course_第1周_…"
-  const legacy = item.displayName.replace(/^[^_]+_/, '')
-  return legacy || item.displayName
+  const legacy = displayName.replace(/^[^_]+_/, '')
+  return legacy || displayName
+}
+
+function courseLabelFromItem(item: LectureVideoItem): string {
+  return courseLabelFromDisplayName(item.displayName, item.name)
+}
+
+function sessionLabelFromItem(item: LectureVideoItem): string {
+  return sessionLabelFromDisplayName(item.displayName)
+}
+
+/** Parse a slides_* folder into a library seed, or null if course+session ids are missing. */
+export function slideSeedFromFolder(folder: { name: string; path: string }): LibrarySlideSeed | null {
+  const ids = parseLectureIds(folder.name)
+  if (!ids.courseId || !ids.sessionId) return null
+  return {
+    courseId: String(ids.courseId),
+    sessionId: String(ids.sessionId),
+    folderPath: folder.path,
+    folderName: folder.name,
+    fallbackTitle: formatLectureDisplayName(folder.name) || folder.name,
+  }
 }
 
 export function defaultStreamMode(session: LibrarySession): LocalStreamMode {
   if (session.screen && session.camera) return 'dual'
   if (session.screen) return 'screen'
+  if (session.camera) return 'camera'
+  if (session.vgaUrl && session.mainUrl) return 'dual'
+  if (session.vgaUrl) return 'screen'
   return 'camera'
 }
 
@@ -125,8 +162,8 @@ export function sessionHasLocalDual(session: LibrarySession): boolean {
 }
 
 /**
- * Which stream would be fetched online in hybrid dual.
- * Null when both files are local, or the complementary Yanhekt URL is missing.
+ * Which stream would be fetched online in mixed (one-local) dual.
+ * Null when both files are local, neither is local, or the complementary URL is missing.
  */
 export function hybridOnlineKind(session: LibrarySession): 'camera' | 'screen' | null {
   if (session.screen && session.camera) return null
@@ -139,8 +176,30 @@ export function canHybridDual(session: LibrarySession): boolean {
   return hybridOnlineKind(session) != null
 }
 
+export function canPlayScreen(session: LibrarySession): boolean {
+  return Boolean(session.screen || session.vgaUrl)
+}
+
+export function canPlayCamera(session: LibrarySession): boolean {
+  return Boolean(session.camera || session.mainUrl)
+}
+
+/** Screen would play from Yanhekt (no local file). */
+export function isScreenOnline(session: LibrarySession): boolean {
+  return !session.screen && Boolean(session.vgaUrl)
+}
+
+/** Camera would play from Yanhekt (no local file). */
+export function isCameraOnline(session: LibrarySession): boolean {
+  return !session.camera && Boolean(session.mainUrl)
+}
+
+export function sessionHasLocalVideo(session: LibrarySession): boolean {
+  return Boolean(session.screen || session.camera)
+}
+
 export function canShowDual(session: LibrarySession): boolean {
-  return sessionHasDual(session) || canHybridDual(session)
+  return canPlayScreen(session) && canPlayCamera(session)
 }
 
 export function formatSessionSubtitle(session: LibrarySession, semester?: string | number): string {
@@ -153,11 +212,13 @@ export function formatSessionSubtitle(session: LibrarySession, semester?: string
 }
 
 /**
- * Build library courses from a flat video list + optional per-course API meta.
+ * Build library courses from a flat video list + optional per-course API meta
+ * + slides_* folders that have course/session ids (timeline gated by the caller).
  */
 export function buildLibraryCourses(
   items: LectureVideoItem[],
   metaByCourse: Map<string, LectureCourseMeta> = new Map(),
+  slideSeeds: LibrarySlideSeed[] = [],
 ): LibraryCourse[] {
   const recognised = items.filter((v) => v.recognised && v.courseId && v.sessionId)
 
@@ -167,26 +228,37 @@ export function buildLibraryCourses(
     screen?: LibraryFileRef
     camera?: LibraryFileRef
     fallbackTitle: string
+    slideFolderPath?: string
   }
   const courseMap = new Map<string, { fallbackTitle: string; sessions: Map<string, SessionBucket> }>()
+
+  const ensureCourse = (courseId: string, fallbackTitle: string) => {
+    let course = courseMap.get(courseId)
+    if (!course) {
+      course = { fallbackTitle, sessions: new Map() }
+      courseMap.set(courseId, course)
+    }
+    return course
+  }
+
+  const ensureSession = (
+    course: { sessions: Map<string, SessionBucket> },
+    sessionId: string,
+    fallbackTitle: string,
+  ) => {
+    let session = course.sessions.get(sessionId)
+    if (!session) {
+      session = { sessionId, fallbackTitle }
+      course.sessions.set(sessionId, session)
+    }
+    return session
+  }
 
   for (const item of recognised) {
     const courseId = item.courseId!
     const sessionId = item.sessionId!
-    let course = courseMap.get(courseId)
-    if (!course) {
-      course = { fallbackTitle: courseLabelFromItem(item), sessions: new Map() }
-      courseMap.set(courseId, course)
-    }
-
-    let session = course.sessions.get(sessionId)
-    if (!session) {
-      session = {
-        sessionId,
-        fallbackTitle: sessionLabelFromItem(item),
-      }
-      course.sessions.set(sessionId, session)
-    }
+    const course = ensureCourse(courseId, courseLabelFromItem(item))
+    const session = ensureSession(course, sessionId, sessionLabelFromItem(item))
 
     const type = item.videoType
     if (type === 'screen' || type === 'camera') {
@@ -199,6 +271,19 @@ export function buildLibraryCourses(
     }
   }
 
+  for (const seed of slideSeeds) {
+    const course = ensureCourse(
+      seed.courseId,
+      courseLabelFromDisplayName(seed.fallbackTitle, seed.courseId),
+    )
+    const session = ensureSession(
+      course,
+      seed.sessionId,
+      sessionLabelFromDisplayName(seed.fallbackTitle),
+    )
+    if (!session.slideFolderPath) session.slideFolderPath = seed.folderPath
+  }
+
   const courses: LibraryCourse[] = []
 
   for (const [courseId, bucket] of courseMap) {
@@ -206,7 +291,7 @@ export function buildLibraryCourses(
     const sessions: LibrarySession[] = []
 
     for (const sess of bucket.sessions.values()) {
-      if (!sess.screen && !sess.camera) continue
+      if (!sess.screen && !sess.camera && !sess.slideFolderPath) continue
 
       const metaSession = meta?.sessions.find((s) => String(s.session_id) === String(sess.sessionId))
       const episode = meta
@@ -227,6 +312,7 @@ export function buildLibraryCourses(
         mainUrl: metaSession?.mainUrl,
         vgaUrl: metaSession?.vgaUrl,
         posterSourcePath: sess.screen?.path || sess.camera?.path,
+        slideFolderPath: sess.slideFolderPath,
       }
       sessions.push(session)
     }

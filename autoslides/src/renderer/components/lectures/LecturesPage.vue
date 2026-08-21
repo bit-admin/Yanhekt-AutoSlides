@@ -95,7 +95,7 @@
         :class="{ 'content-area--library': viewMode === 'library' }"
       >
         <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
-        <div v-if="isLoading && videos.length === 0" class="loading-state">
+        <div v-if="showLibraryLoading" class="loading-state">
           <div class="spinner"></div>
           <p>{{ $t('lectures.loading') }}</p>
         </div>
@@ -256,6 +256,7 @@ const {
   activeCourse,
   activePlayerSession,
   isHydrating,
+  isDiscoveringSlides,
   posters,
   openCourses,
   openCourse,
@@ -266,6 +267,16 @@ const {
 } = useLectureLibrary(videos)
 
 const activeJob = computed(() => queue.activeJob.value)
+
+const showLibraryLoading = computed(() => {
+  if (isLoading.value && videos.value.length === 0) return true
+  return (
+    viewMode.value === 'library'
+    && isDiscoveringSlides.value
+    && libraryCourses.value.length === 0
+    && videos.value.length === 0
+  )
+})
 
 const playerBundle = computed(() => {
   if (!playerTarget.value) return null

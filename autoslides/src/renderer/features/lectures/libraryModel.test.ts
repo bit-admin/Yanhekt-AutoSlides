@@ -2,11 +2,19 @@ import { describe, it, expect } from 'vitest'
 import {
   buildLibraryCourses,
   canHybridDual,
+  canPlayCamera,
+  canPlayScreen,
+  canShowDual,
   defaultStreamMode,
   hybridOnlineKind,
+  isCameraOnline,
+  isScreenOnline,
   sessionHasDual,
+  sessionHasLocalVideo,
+  slideSeedFromFolder,
   type LibraryFileRef,
   type LibrarySession,
+  type LibrarySlideSeed,
 } from './libraryModel'
 import type { LectureVideoItem } from './useLecturesPage'
 import type { LectureCourseMeta } from './lectureCourseMetaCache'
@@ -126,6 +134,95 @@ describe('buildLibraryCourses', () => {
     expect(canHybridDual(session)).toBe(true)
     expect(defaultStreamMode(session)).toBe('screen')
   })
+
+  it('includes slides-only sessions that have course and session ids', () => {
+    const seeds: LibrarySlideSeed[] = [{
+      courseId: '9',
+      sessionId: '10',
+      folderPath: '/out/slides_Algebra_第1周__c9s10',
+      folderName: 'slides_Algebra_第1周__c9s10',
+      fallbackTitle: 'Algebra_第1周',
+    }]
+    const courses = buildLibraryCourses([], new Map(), seeds)
+    expect(courses).toHaveLength(1)
+    expect(courses[0].courseId).toBe('9')
+    expect(courses[0].fileCount).toBe(0)
+    expect(courses[0].sessions).toHaveLength(1)
+    expect(courses[0].sessions[0].sessionId).toBe('10')
+    expect(courses[0].sessions[0].slideFolderPath).toBe('/out/slides_Algebra_第1周__c9s10')
+    expect(sessionHasLocalVideo(courses[0].sessions[0])).toBe(false)
+  })
+
+  it('merges a slide seed into an existing video session', () => {
+    const items = [
+      item({
+        name: 'a [yhid=c1s2] [vtype=screen].mp4',
+        path: '/out/a-scr.mp4',
+        courseId: '1',
+        sessionId: '2',
+        videoType: 'screen',
+      }),
+    ]
+    const seeds: LibrarySlideSeed[] = [{
+      courseId: '1',
+      sessionId: '2',
+      folderPath: '/out/slides_Course__c1s2',
+      folderName: 'slides_Course__c1s2',
+      fallbackTitle: 'Course',
+    }]
+    const session = buildLibraryCourses(items, new Map(), seeds)[0].sessions[0]
+    expect(session.screen?.path).toBe('/out/a-scr.mp4')
+    expect(session.slideFolderPath).toBe('/out/slides_Course__c1s2')
+  })
+
+  it('copies Yanhekt URLs onto a slides-only session', () => {
+    const seeds: LibrarySlideSeed[] = [{
+      courseId: '1',
+      sessionId: '2',
+      folderPath: '/out/slides_Course__c1s2',
+      folderName: 'slides_Course__c1s2',
+      fallbackTitle: 'Course',
+    }]
+    const meta = new Map<string, LectureCourseMeta>([
+      ['1', {
+        courseId: '1',
+        title: 'Course',
+        sessions: [{
+          session_id: '2',
+          title: 'Lecture',
+          video_id: '99',
+          duration: 3600,
+          mainUrl: 'https://cdn.example/main.m3u8',
+          vgaUrl: 'https://cdn.example/vga.m3u8',
+        }],
+        degraded: false,
+      }],
+    ])
+    const session = buildLibraryCourses([], meta, seeds)[0].sessions[0]
+    expect(session.mainUrl).toBe('https://cdn.example/main.m3u8')
+    expect(session.vgaUrl).toBe('https://cdn.example/vga.m3u8')
+    expect(canShowDual(session)).toBe(true)
+    expect(defaultStreamMode(session)).toBe('dual')
+    expect(isScreenOnline(session)).toBe(true)
+    expect(isCameraOnline(session)).toBe(true)
+  })
+})
+
+describe('slideSeedFromFolder', () => {
+  it('requires both course and session ids', () => {
+    expect(slideSeedFromFolder({
+      name: 'slides_Course__c12s34',
+      path: '/out/slides_Course__c12s34',
+    })).toMatchObject({ courseId: '12', sessionId: '34' })
+    expect(slideSeedFromFolder({
+      name: 'slides_Live__c12l99',
+      path: '/out/slides_Live__c12l99',
+    })).toBeNull()
+    expect(slideSeedFromFolder({
+      name: 'slides_Legacy',
+      path: '/out/slides_Legacy',
+    })).toBeNull()
+  })
 })
 
 describe('hybridOnlineKind', () => {
@@ -191,5 +288,22 @@ describe('hybridOnlineKind', () => {
     expect(canHybridDual(screenOnly)).toBe(false)
     expect(defaultStreamMode(screenOnly)).toBe('screen')
     expect(defaultStreamMode(cameraOnly)).toBe('camera')
+  })
+
+  it('treats a no-file session with both URLs as fully online dual', () => {
+    const session: LibrarySession = {
+      ...base,
+      mainUrl: 'https://cdn.example/main.m3u8',
+      vgaUrl: 'https://cdn.example/vga.m3u8',
+    }
+    expect(hybridOnlineKind(session)).toBeNull()
+    expect(canHybridDual(session)).toBe(false)
+    expect(canPlayScreen(session)).toBe(true)
+    expect(canPlayCamera(session)).toBe(true)
+    expect(canShowDual(session)).toBe(true)
+    expect(isScreenOnline(session)).toBe(true)
+    expect(isCameraOnline(session)).toBe(true)
+    expect(sessionHasLocalVideo(session)).toBe(false)
+    expect(defaultStreamMode(session)).toBe('dual')
   })
 })

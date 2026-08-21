@@ -1565,8 +1565,8 @@
     "viewList": "リスト",
     "viewLibrary": "ライブラリ",
     "libraryHydrating": "コース情報を読み込み中…",
-    "libraryEmpty": "認識済みの講義動画がありません。",
-    "libraryEmptyHint": "ライブラリにはコースとセッション ID を持つファイルのみ表示されます（旧形式 __c…s… または Emby [yhid=…]）。未認識はリスト表示を使うか、ログイン後にリネームしてください。",
+    "libraryEmpty": "認識済みの講義動画またはスライドタイムラインがありません。",
+    "libraryEmptyHint": "ライブラリにはコースとセッション ID を持つ動画（旧形式 __c…s… または Emby [yhid=…]）と、コース/セッション ID と timeline.json を含むスライドフォルダが表示されます。未認識はリスト表示を使うか、ログイン後にリネームしてください。",
     "libraryBackCourses": "コース",
     "libraryBack": "戻る",
     "libraryNoEpisodes": "このコースにエピソードがありません。",
@@ -1581,7 +1581,8 @@
     "libraryInstructor": "教員",
     "libraryClassrooms": "教室",
     "libraryFiles": "ファイル",
-    "bothStreamsOnlineHint": "ディスク上のファイルと、サーバー上のもう一方のストリームを同時に再生します。",
-    "streamOnline": "オンライン"
+    "bothStreamsOnlineHint": "一方または両方のストリームをサーバーから再生します。",
+    "streamOnline": "オンライン",
+    "streamOnlineHint": "このストリームをサーバーから再生します。"
   }
 }

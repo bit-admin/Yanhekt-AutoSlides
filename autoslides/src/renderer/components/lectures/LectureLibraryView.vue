@@ -43,9 +43,6 @@
               </span>
             </div>
             <span class="show-ep-badge">{{ course.episodeCount }}</span>
-            <span v-if="course.dualCount > 0" class="show-dual-dot" :title="$t('lectures.libraryDual')">
-              {{ $t('lectures.libraryDual') }}
-            </span>
           </div>
           <div class="show-meta">
             <div class="show-title" :title="course.title">{{ course.title }}</div>
@@ -216,6 +213,9 @@
                   </span>
                   <span v-else-if="session.screen" class="ep-badge">{{ $t('lectures.screen') }}</span>
                   <span v-else-if="session.camera" class="ep-badge">{{ $t('lectures.camera') }}</span>
+                  <span v-if="!session.screen && !session.camera" class="ep-badge ep-badge--online">
+                    {{ $t('lectures.streamOnline') }}
+                  </span>
                   <span
                     v-if="session.screen?.compressPreset"
                     class="ep-badge ep-badge--comp"
@@ -482,19 +482,6 @@ watch(
   justify-content: center;
   font-variant-numeric: tabular-nums;
   backdrop-filter: blur(6px);
-}
-
-.show-dual-dot {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 88%, #000);
-  color: var(--text-on-accent);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
 }
 
 .show-meta {
@@ -918,6 +905,12 @@ watch(
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   color: var(--accent);
+}
+
+.ep-badge--online {
+  background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--text-secondary) 30%, transparent);
+  color: var(--text-secondary);
 }
 
 .ep-badge--comp {
