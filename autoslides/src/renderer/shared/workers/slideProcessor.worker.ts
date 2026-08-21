@@ -123,6 +123,24 @@ function calculateSSIM(img1Data: ImageData, img2Data: ImageData): number {
 }
 
 /**
+ * Apply the extraction downsample (OffscreenCanvas) when `enableDownsampling` is
+ * set. Shared by `compareImages` (boolean) and `calculateSSIM` (score).
+ */
+function downsamplePair(
+  img1Data: ImageData,
+  img2Data: ImageData,
+  config: Pick<ImageProcessingConfig, 'enableDownsampling' | 'downsampleWidth' | 'downsampleHeight'>,
+): { img1: ImageData; img2: ImageData } {
+  if (!config.enableDownsampling) {
+    return { img1: img1Data, img2: img2Data };
+  }
+  return {
+    img1: resizeImageData(img1Data, config.downsampleWidth, config.downsampleHeight),
+    img2: resizeImageData(img2Data, config.downsampleWidth, config.downsampleHeight),
+  };
+}
+
+/**
  * Compare two images for significant changes (using SSIM-only comparison)
  *
  * The per-call `config` makes the worker stateless across messages so that
@@ -141,14 +159,7 @@ function compareImages(
       return false; // If there are null values, consider no change
     }
 
-    // Apply downsampling if enabled
-    let processedImg1 = img1Data;
-    let processedImg2 = img2Data;
-
-    if (config.enableDownsampling) {
-      processedImg1 = resizeImageData(img1Data, config.downsampleWidth, config.downsampleHeight);
-      processedImg2 = resizeImageData(img2Data, config.downsampleWidth, config.downsampleHeight);
-    }
+    const { img1: processedImg1, img2: processedImg2 } = downsamplePair(img1Data, img2Data, config);
 
     // Use SSIM for precise comparison
     const ssim = calculateSSIM(processedImg1, processedImg2);
@@ -175,8 +186,17 @@ self.onmessage = function(e: MessageEvent<WorkerMessage>) {
       }
 
       case 'calculateSSIM': {
-        const { img1, img2 } = data;
-        result = calculateSSIM(img1, img2);
+        const { img1, img2, config } = data;
+        if (config) {
+          const processed = downsamplePair(img1, img2, {
+            enableDownsampling: config.enableDownsampling ?? CONFIG.enableDownsampling,
+            downsampleWidth: config.downsampleWidth ?? CONFIG.downsampleWidth,
+            downsampleHeight: config.downsampleHeight ?? CONFIG.downsampleHeight,
+          });
+          result = calculateSSIM(processed.img1, processed.img2);
+        } else {
+          result = calculateSSIM(img1, img2);
+        }
         break;
       }
 

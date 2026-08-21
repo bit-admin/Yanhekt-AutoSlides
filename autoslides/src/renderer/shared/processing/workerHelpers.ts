@@ -116,9 +116,22 @@ export class SlideProcessorService {
     }
   }
 
-  async calculateSSIM(img1Data: ImageData, img2Data: ImageData): Promise<number> {
+  /**
+   * Return the SSIM score for two frames. Pass `config` to apply the same
+   * downsample path `compareImages` uses (per-call, no shared CONFIG write).
+   * Omit `config` to score the ImageData as-is (legacy callers).
+   */
+  async calculateSSIM(
+    img1Data: ImageData,
+    img2Data: ImageData,
+    config?: SlideWorkerConfig,
+  ): Promise<number> {
     try {
-      return await this.sendMessage<number>('calculateSSIM', { img1: img1Data, img2: img2Data });
+      return await this.sendMessage<number>('calculateSSIM', {
+        img1: img1Data,
+        img2: img2Data,
+        config,
+      });
     } catch (error) {
       log.error('Error calculating SSIM:', error);
       return 0;

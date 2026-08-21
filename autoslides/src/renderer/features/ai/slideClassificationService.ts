@@ -1,5 +1,10 @@
-import type { ClassifierClass, ClassifyResult } from '@shared/workers/slideClassifier.worker'
-import { classifyImage as runMlClassify, ensureMlClassifierReady } from '@features/ai/mlClassifierClient'
+import type { ClassifyResult } from '@shared/workers/slideClassifier.worker'
+import {
+  applyMlDecision,
+  classifyImage as runMlClassify,
+  ensureMlClassifierReady,
+  type MlThresholdValues,
+} from '@shared/mlClassifier'
 import { decodeBase64ToImageData } from '@shared/utils/imageDecode'
 import type {
   ClassificationValue,
@@ -8,49 +13,11 @@ import type {
 } from '@shared/postProcessing/types'
 
 export type { ClassificationValue, UnifiedClassificationResult, UnifiedSingleClassificationResult }
-
-export interface MlThresholdValues {
-  trustLow: number
-  trustHigh: number
-  slideCheckLow: number
-}
+export { applyMlDecision, type MlThresholdValues }
 
 interface AIFilteringConfigShape {
   classifierMode?: 'llm' | 'ml'
   mlThresholds?: MlThresholdValues
-}
-
-/**
- * Pure policy function — decide the final class for a single ML inference result,
- * applying the configurable threshold bands and the distinguishMaybeSlide flag.
- */
-export function applyMlDecision(
-  probabilities: Record<ClassifierClass, number>,
-  predictedClass: ClassifierClass,
-  confidence: number,
-  thresholds: MlThresholdValues,
-  distinguishMaybeSlide: boolean
-): ClassificationValue {
-  if (predictedClass === 'slide') return 'slide'
-
-  const mapRemoval = (): ClassificationValue => {
-    if (predictedClass === 'not_slide') return 'not_slide'
-    // predictedClass === 'may_be_slide'
-    return distinguishMaybeSlide ? 'may_be_slide_edit' : 'not_slide'
-  }
-
-  if (confidence < thresholds.trustLow) {
-    // Low confidence in non-slide prediction → keep as slide.
-    return 'slide'
-  }
-  if (confidence > thresholds.trustHigh) {
-    // High confidence → trust and remove.
-    return mapRemoval()
-  }
-  // Check band: consult slide probability.
-  const slideProb = probabilities.slide
-  if (slideProb < thresholds.slideCheckLow) return mapRemoval()
-  return 'slide'
 }
 
 async function classifyOneWithMl(

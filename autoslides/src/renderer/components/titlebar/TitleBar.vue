@@ -325,6 +325,8 @@ const infoTabLabel = computed(() => {
       return $t('tabs.lectures');
     case 'settings':
       return $t('tabs.settings');
+    case 'developer':
+      return $t('tabs.developer');
     default:
       return $t('tabs.info');
   }

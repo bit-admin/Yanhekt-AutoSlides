@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { resetMlClassifier } from './mlClassifierClient'
+import { resetMlClassifier } from '@shared/mlClassifier'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('MlClassifierSettings');
 
