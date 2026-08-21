@@ -13,7 +13,8 @@
     "slidesReview": "スライド",
     "cloudNotes": "ドライブ",
     "cloudIndex": "公開インデックス",
-    "lectures": "講義"
+    "lectures": "講義",
+    "developer": "開発者"
   },
   "cloudIndex": {
     "loading": "スライドを読み込み中…",
@@ -595,7 +596,10 @@
       "modelChainAddPlaceholder": "モデル名を入力するか、プリセットを選択...",
       "modelChainEmpty": "チェーンにモデルがありません。AI 分類を有効にするには下から追加してください。",
       "modelTemporarilyUnavailable": "サービスは一時的に利用できません"
-    }
+    },
+    "developerMode": "開発者モード",
+    "developerModeDescription": "自動クロップ検出などの機能をテストする開発者ワークスペースを表示します。",
+    "enableDeveloperMode": "開発者モードを有効にする"
   },
   "courses": {
     "title": {
@@ -1125,51 +1129,6 @@
     "includeCover": "表紙ページを含める",
     "coverCopyright": "This file may contain copyrighted material. The text, images, and video stills within this document are protected by intellectual property law, with all rights reserved by their respective holders. This material was extracted from a recorded lecture solely for personal study, academic reference, and non-commercial educational use. External distribution, commercial exploitation, or unauthorized reproduction is strictly prohibited and may result in legal liability.\nAutoSlides operates strictly as an automated processing tool and does not claim ownership, endorse, or assume responsibility for the extracted content. The views and opinions expressed within these materials represent the original authors and not AutoSlides or its affiliates."
   },
-  "offlineProcessing": {
-    "open": "オフライン後処理",
-    "title": "オフライン後処理",
-    "inputFolder": "入力フォルダ",
-    "selectFolder": "参照",
-    "noFolderSelected": "フォルダが選択されていません",
-    "postProcessingConfig": "後処理設定",
-    "enableDuplicateRemoval": "重複削除を有効にする",
-    "enableExclusionList": "除外リストを有効にする",
-    "exclusionListNote": "詳細設定の除外リストと AI 設定を使用します",
-    "enableAIFiltering": "AI フィルタリングを有効にする",
-    "outputOptions": "出力オプション",
-    "enablePngColorReduction": "PNG 色数削減を有効にする",
-    "progress": "進捗",
-    "phaseCopying": "画像をコピー・変換中...",
-    "phaseCompleted": "処理完了",
-    "start": "開始",
-    "processing": "処理中...",
-    "cancel": "キャンセル",
-    "close": "閉じる",
-    "cancelled": "処理がキャンセルされました",
-    "noImagesFound": "選択したフォルダに画像ファイルが見つかりません",
-    "openOutput": "出力を開く",
-    "errorTitle": "処理エラー",
-    "autoCrop": {
-      "title": "自動クロップ",
-      "inputImages": "入力画像",
-      "select": "画像を選択",
-      "noImagesSelected": "画像が選択されていません",
-      "imagesSelected": "{count} 枚の画像を選択済み",
-      "outputFolder": "出力フォルダ",
-      "config": "自動クロップ設定",
-      "redBoxMode": "赤いクロップ枠付きで出力",
-      "showEdges": "Canny エッジを表示",
-      "enablePngColorReduction": "PNG 色削減を有効にする",
-      "start": "開始",
-      "processing": "処理中…",
-      "cancel": "キャンセル",
-      "close": "閉じる",
-      "openOutput": "出力フォルダを開く",
-      "processed": "処理済み",
-      "failed": "失敗",
-      "noDetection": "未検出"
-    }
-  },
   "compressLecture": {
     "inputFile": "入力ファイル",
     "noInputSelected": "入力動画が選択されていません",
@@ -1231,7 +1190,6 @@
   "tools": {
     "openTools": "ツール",
     "tabCompressLecture": "講義圧縮",
-    "tabOffline": "オフライン処理",
     "tabWebCapture": "ウェブキャプチャ",
     "tabYuketang": "雨課堂"
   },
@@ -1584,5 +1542,33 @@
     "bothStreamsOnlineHint": "一方または両方のストリームをサーバーから再生します。",
     "streamOnline": "オンライン",
     "streamOnlineHint": "このストリームをサーバーから再生します。"
+  },
+  "developer": {
+    "title": "開発者",
+    "subtitle": "ローカルのテスト台です。ディスクには書き込みません。",
+    "autoCrop": {
+      "title": "自動クロップ",
+      "blurb": "画像を 1 枚選び、スライド／後処理と同じ検出器を実行します。赤枠は常に描画し、Canny 実行時はエッジも重ねます。",
+      "modeHint": "検出モードは「設定 → 画像処理」の値を使います",
+      "modeCannyThenYolo": "Canny → YOLO",
+      "modeCanny": "Canny のみ",
+      "modeYolo": "YOLO のみ",
+      "chooseImage": "画像を選択",
+      "chooseAnother": "別の画像",
+      "detect": "検出",
+      "detecting": "検出中…",
+      "empty": "自動クロップ検出を試す画像を 1 枚選んでください。",
+      "previewAlt": "自動クロップ検出オーバーレイ",
+      "yoloOnlyNote": "YOLO のみモードでは Canny エッジはありません。枠が見つかれば赤枠は描画されます。",
+      "backend": "バックエンド",
+      "duration": "所要時間",
+      "bbox": "枠",
+      "confidence": "信頼度",
+      "edges": "Canny エッジ",
+      "edgesYes": "あり",
+      "edgesNo": "なし",
+      "candidates": "候補",
+      "noDetection": "未検出"
+    }
   }
 }

@@ -407,12 +407,6 @@ async function main() {
     await win.waitForTimeout(400)
   }
 
-  await step('tools-offline', () =>
-    captureChildWindow(() => window.electronAPI.tools.openWindow('offline'), 'tools-offline', '.toolwin-tabs'))
-
-  await step('tools-compress', () =>
-    captureChildWindow(() => window.electronAPI.tools.openWindow('compress'), 'tools-compress', '.toolwin-tabs'))
-
   await step('tools-webcapture', () =>
     captureChildWindow(() => window.electronAPI.tools.openWindow('webcapture'), 'tools-webcapture', '.toolwin-tabs'))
 
@@ -632,7 +626,6 @@ ${list}
 | advanced-ai.png | settings-ai-service.png + settings-ai-behaviour.png | C & I. AI（**拆分为 2 张**） |
 | advanced-ai-ml.png | settings-ai-ml.png | I. AI（ML 模式 / 严格度滑块） |
 | advanced-cloud.png | settings-cloud.png | I. 云存储 |
-| tools-offline.png | tools-offline.png | J. 离线处理 |
 | tools-compress.png | tools-compress.png | J. 讲座压缩 |
 | tools-webcapture.png | tools-webcapture.png | K. 网页捕获 |
 | tools-yuketang.png | tools-yuketang.png | K. 雨课堂 |

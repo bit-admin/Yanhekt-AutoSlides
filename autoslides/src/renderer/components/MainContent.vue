@@ -53,6 +53,16 @@
           <LecturesPage v-if="lecturesMounted" />
         </div>
 
+        <!-- Developer (Workspace page — gated by Settings → General → Developer mode).
+             Lazily mounted; kept mounted so an in-flight Auto Crop test survives
+             a sidebar hop. -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'developer' }]"
+          data-mode="developer"
+        >
+          <DeveloperPage v-if="developerMounted" />
+        </div>
+
         <!-- Settings (Workspace page — full-width, right panel hidden). Reached
              from the user-bar gear button / menu bar, not the Workspace nav list.
              Lazily mounted on first visit so its prepare loads (network
@@ -129,6 +139,7 @@ import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
 import LecturesPage from '@renderer/components/lectures/LecturesPage.vue'
+import DeveloperPage from '@renderer/components/developer/DeveloperPage.vue'
 import SettingsPage from '@renderer/components/settings/SettingsPage.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 import { DataStore } from '@shared/services/dataStore'
@@ -136,6 +147,7 @@ import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoo
 import { taskQueueState } from '@shared/services/taskQueueService'
 import { navigationStore } from '@features/course/navigationStore'
 import { tabStore, openPlaybackTab } from '@features/course/tabStore'
+import { configStore } from '@shared/services/configStore'
 
 type Page = 'courses' | 'sessions'
 
@@ -167,6 +179,23 @@ watch(
     if (nav === 'lectures') lecturesMounted.value = true
   },
   { immediate: true }
+)
+
+const developerMounted = ref(false)
+watch(
+  activeNav,
+  (nav) => {
+    if (nav === 'developer') developerMounted.value = true
+  },
+  { immediate: true }
+)
+watch(
+  () => configStore.developerMode,
+  (enabled) => {
+    if (!enabled && activeNav.value === 'developer') {
+      navigationStore.navigate('home')
+    }
+  },
 )
 
 // Settings likewise mounts lazily on first visit (its prepare loads network

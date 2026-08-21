@@ -185,7 +185,7 @@ export class WindowManager {
   }
 
   createToolsWindow(tab?: string): void {
-    const targetTab = tab || 'offline';
+    const targetTab = tab || 'webcapture';
 
     if (this.toolsWindow && !this.toolsWindow.isDestroyed()) {
       this.toolsWindow.webContents.send('tools:switchTab', targetTab);

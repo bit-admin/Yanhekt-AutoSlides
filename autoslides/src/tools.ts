@@ -1,6 +1,6 @@
 /**
  * Tools Window Renderer
- * Entry point for the unified Tools window (PDF Maker, Trash, Offline Processing)
+ * Entry point for the Tools window (Web Capture, Yuketang).
  */
 
 import './index.css';
@@ -9,13 +9,6 @@ import ToolsApp from './renderer/components/tools/ToolsApp.vue';
 import { i18n } from './renderer/shared/i18n';
 import { loadConfig } from './renderer/shared/services/configStore';
 import { tokenManager } from './renderer/shared/services/authService';
-import { PostProcessingService } from './renderer/shared/services/postProcessingService';
-import {
-  classifyMultipleImages,
-  classifySingleImage,
-} from './renderer/features/ai/slideClassificationService';
-
-PostProcessingService.setClassifier({ classifyMultipleImages, classifySingleImage });
 
 const app = createApp(ToolsApp);
 app.use(i18n);

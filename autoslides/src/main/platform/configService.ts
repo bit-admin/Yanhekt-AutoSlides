@@ -188,6 +188,7 @@ export class ConfigService {
       cloudWatchSyncEnabled: this.store.get('cloudWatchSyncEnabled') ?? false,
       cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
+      developerMode: this.store.get('developerMode') ?? false,
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
       localRelayPort: this.store.get('localRelayPort') ?? 8787,
       localRelayWhitelistEnabled: this.store.get('localRelayWhitelistEnabled') ?? true,
@@ -424,6 +425,10 @@ export class ConfigService {
 
   setShowMorePlaybackSpeed(enabled: boolean): void {
     this.store.set('showMorePlaybackSpeed', enabled);
+  }
+
+  setDeveloperMode(enabled: boolean): void {
+    this.store.set('developerMode', enabled);
   }
 
   setAutoPostProcessing(enabled: boolean): void {

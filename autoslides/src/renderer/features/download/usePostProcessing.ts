@@ -266,7 +266,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
             // Refresh gallery thumbnail + watch pending buffer with cropped pixels.
             try {
               const fullPath = `${outputPath}/${filename}`
-              const buffer = await window.electronAPI.offline.readImageBuffer(fullPath)
+              const buffer = await window.electronAPI.slideExtraction.readImageBuffer(fullPath)
               const dataUrl = await bufferToDataUrl(buffer)
               const slide = filenameToSlide.get(filename)
               if (slide) slide.dataUrl = dataUrl

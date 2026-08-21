@@ -203,6 +203,7 @@ export const defaultConfig: AppConfig = {
   cloudWatchSyncEnabled: false,
   cloudShareEmbedTimeline: true,
   preferAnonymousApiRequests: false,
+  developerMode: false,
   localRelayEnabled: false,
   localRelayPort: 8787,
   localRelayWhitelistEnabled: true,

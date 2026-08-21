@@ -195,6 +195,19 @@
       </div>
     </div>
   </div>
+
+  <div class="advanced-setting-section">
+    <h4>{{ $t('advanced.developerMode') }}</h4>
+    <div class="setting-item">
+      <div class="setting-description">{{ $t('advanced.developerModeDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempDeveloperMode" />
+          {{ $t('advanced.enableDeveloperMode') }}
+        </label>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -225,6 +238,7 @@ const {
   tempTaskSpeed,
   tempParallelTasks,
   tempMaxManualTabs,
+  tempDeveloperMode,
 } = advanced.general
 
 const {

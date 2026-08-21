@@ -41,6 +41,7 @@ export interface UseAdvancedSettingsOptions {
   parallelTasks: Ref<number>
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
+  developerMode: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
 }

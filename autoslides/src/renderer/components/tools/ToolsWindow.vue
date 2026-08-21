@@ -7,17 +7,6 @@
         <div class="toolwin-tabs">
           <button
             class="toolwin-tab"
-            :class="{ active: activeTab === 'offline' }"
-            @click="switchTab('offline')"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M8 12a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM4.5 9.5a5 5 0 016.9 0l-1 1a3.5 3.5 0 00-4.9 0l-1-1zM1.5 6.5a9 9 0 0112.9 0l-1 1a7.5 7.5 0 00-10.9 0l-1-1z" fill="currentColor"/>
-              <line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-            {{ $t('tools.tabOffline') }}
-          </button>
-          <button
-            class="toolwin-tab"
             :class="{ active: activeTab === 'webcapture' }"
             @click="switchTab('webcapture')"
           >
@@ -60,9 +49,6 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
-      <div v-show="activeTab === 'offline'" class="tab-panel">
-        <OfflineProcessingTab />
-      </div>
       <div v-show="activeTab === 'webcapture'" class="tab-panel">
         <WebCaptureTab />
       </div>
@@ -75,23 +61,21 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import OfflineProcessingTab from '@renderer/components/offline/OfflineProcessingTab.vue'
 import WebCaptureTab from '@renderer/components/webCapture/WebCaptureTab.vue'
 import YuketangTab from '@renderer/components/export/YuketangTab.vue'
 
-// Lecture Compress moved to Workspace → Lectures (batch queue). Tools keeps
-// Offline Processing, Web Capture, and Yuketang only.
-type TabId = 'offline' | 'webcapture' | 'yuketang'
+// Lecture Compress lives in Workspace → Lectures. Tools keeps Web Capture and Yuketang.
+type TabId = 'webcapture' | 'yuketang'
 
 const isValidTab = (tab: string | null): tab is TabId =>
-  tab === 'offline' || tab === 'webcapture' || tab === 'yuketang'
+  tab === 'webcapture' || tab === 'yuketang'
 
 const isMacOS = navigator.userAgent.includes('Mac')
 
-// Read initial tab from URL query param
+// Read initial tab from URL query param. Legacy 'offline' / 'compress' fall through.
 const getInitialTab = (): TabId => {
   const tab = new URLSearchParams(window.location.search).get('tab')
-  return isValidTab(tab) ? tab : 'offline'
+  return isValidTab(tab) ? tab : 'webcapture'
 }
 
 const activeTab = ref<TabId>(getInitialTab())

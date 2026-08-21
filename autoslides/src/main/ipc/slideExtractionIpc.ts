@@ -1,8 +1,15 @@
 import { ipcMain } from 'electron';
 import { slideExtractionService, TrashMetadata } from '@main/extraction/slideExtractionService';
+import { hasTraversalSegment } from '@main/infra/pathUtils';
 import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('SlideExtractionIpc');
+
+function assertNoTraversal(targetPath: string): void {
+  if (hasTraversalSegment(targetPath)) {
+    throw new Error('Invalid path: contains traversal segments');
+  }
+}
 
 export function registerSlideExtractionIpcHandlers(services: IpcServices): void {
   const { configService } = services;
@@ -84,6 +91,18 @@ export function registerSlideExtractionIpcHandlers(services: IpcServices): void 
       return await slideExtractionService.listSlides(outputPath);
     } catch (error) {
       log.error('Failed to list slides:', error);
+      throw error;
+    }
+  });
+
+  // Arbitrary-path image read (Results crop/dedup, in-place auto-crop, Developer
+  // lab). Not confined to the output directory — only reject `..` segments.
+  ipcMain.handle('slideExtraction:readImageBuffer', async (_event, filePath: string) => {
+    try {
+      assertNoTraversal(filePath);
+      return await slideExtractionService.readImageBuffer(filePath);
+    } catch (error) {
+      log.error('Failed to read image buffer:', error);
       throw error;
     }
   });

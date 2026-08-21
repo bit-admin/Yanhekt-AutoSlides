@@ -20,7 +20,7 @@ export interface ResultsDedupIO {
 export function createResultsDedupIO(): ResultsDedupIO {
   return {
     getImages: (folderPath) => window.electronAPI.pdfmaker.getImages(folderPath),
-    readImageBuffer: (path) => window.electronAPI.offline.readImageBuffer(path),
+    readImageBuffer: (path) => window.electronAPI.slideExtraction.readImageBuffer(path),
     moveToInAppTrash: (folderPath, filename, metadata) =>
       window.electronAPI.slideExtraction.moveToInAppTrash(folderPath, filename, metadata),
   };

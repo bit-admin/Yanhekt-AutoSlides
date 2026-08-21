@@ -13,7 +13,8 @@
     "slidesReview": "Slides",
     "cloudNotes": "Drive",
     "cloudIndex": "Public Index",
-    "lectures": "Lectures"
+    "lectures": "Lectures",
+    "developer": "Developer"
   },
   "cloudIndex": {
     "loading": "Loading slides…",
@@ -595,7 +596,10 @@
       "modelChainAddPlaceholder": "Enter model name or pick a preset...",
       "modelChainEmpty": "No models in chain. Add one below to enable AI classification.",
       "modelTemporarilyUnavailable": "Service temporarily unavailable"
-    }
+    },
+    "developerMode": "Developer Mode",
+    "developerModeDescription": "Show a Developer workspace page for testing app features such as Auto Crop detection.",
+    "enableDeveloperMode": "Enable Developer Mode"
   },
   "courses": {
     "title": {
@@ -1125,51 +1129,6 @@
     "includeCover": "Include Cover Page",
     "coverCopyright": "This file may contain copyrighted material. The text, images, and video stills within this document are protected by intellectual property law, with all rights reserved by their respective holders. This material was extracted from a recorded lecture solely for personal study, academic reference, and non-commercial educational use. External distribution, commercial exploitation, or unauthorized reproduction is strictly prohibited and may result in legal liability.\nAutoSlides operates strictly as an automated processing tool and does not claim ownership, endorse, or assume responsibility for the extracted content. The views and opinions expressed within these materials represent the original authors and not AutoSlides or its affiliates."
   },
-  "offlineProcessing": {
-    "open": "Offline Post-Processing",
-    "title": "Offline Post-Processing",
-    "inputFolder": "Input Folder",
-    "selectFolder": "Browse",
-    "noFolderSelected": "No Folder Selected",
-    "postProcessingConfig": "Post-Processing Configuration",
-    "enableDuplicateRemoval": "Enable Duplicate Removal",
-    "enableExclusionList": "Enable Exclusion List",
-    "exclusionListNote": "Uses the exclusion list and AI configuration from Advanced Settings",
-    "enableAIFiltering": "Enable AI Filtering",
-    "outputOptions": "Output Options",
-    "enablePngColorReduction": "Enable PNG Color Reduction",
-    "progress": "Progress",
-    "phaseCopying": "Copying and converting images...",
-    "phaseCompleted": "Processing Complete",
-    "start": "Start",
-    "processing": "Processing...",
-    "cancel": "Cancel",
-    "close": "Close",
-    "cancelled": "Processing Cancelled",
-    "noImagesFound": "No Image Files Found in Selected Folder",
-    "openOutput": "Open Output",
-    "errorTitle": "Processing Error",
-    "autoCrop": {
-      "title": "Auto Crop",
-      "inputImages": "Input Images",
-      "select": "Select Images",
-      "noImagesSelected": "No Images Selected",
-      "imagesSelected": "{count} Image(s) Selected",
-      "outputFolder": "Output Folder",
-      "config": "Auto Crop Configuration",
-      "redBoxMode": "Output with Red Crop Box",
-      "showEdges": "Show Canny Edges",
-      "enablePngColorReduction": "Enable PNG Color Reduction",
-      "start": "Start",
-      "processing": "Processing…",
-      "cancel": "Cancel",
-      "close": "Close",
-      "openOutput": "Open Output Folder",
-      "processed": "Processed",
-      "failed": "Failed",
-      "noDetection": "No Detection"
-    }
-  },
   "compressLecture": {
     "inputFile": "Input File",
     "noInputSelected": "No input video selected",
@@ -1231,7 +1190,6 @@
   "tools": {
     "openTools": "Tools",
     "tabCompressLecture": "Lecture Compress",
-    "tabOffline": "Offline Processing",
     "tabWebCapture": "Web Capture",
     "tabYuketang": "Yuketang"
   },
@@ -1584,5 +1542,33 @@
     "bothStreamsOnlineHint": "One or both streams play from the server.",
     "streamOnline": "Online",
     "streamOnlineHint": "Plays this stream from the server."
+  },
+  "developer": {
+    "title": "Developer",
+    "subtitle": "Local test bench. Nothing here writes files to disk.",
+    "autoCrop": {
+      "title": "Auto Crop",
+      "blurb": "Pick one image and run the same detector used by Results and post-processing. Always draws a red box and Canny edges when Canny ran.",
+      "modeHint": "Uses the detector mode from Settings → Image Processing",
+      "modeCannyThenYolo": "Canny → YOLO",
+      "modeCanny": "Canny only",
+      "modeYolo": "YOLO only",
+      "chooseImage": "Choose image",
+      "chooseAnother": "Choose another",
+      "detect": "Detect",
+      "detecting": "Detecting…",
+      "empty": "Choose one image to test Auto Crop detection.",
+      "previewAlt": "Auto Crop detection overlay",
+      "yoloOnlyNote": "Canny edges are unavailable in YOLO-only mode. The red box is still drawn when a box is found.",
+      "backend": "Backend",
+      "duration": "Duration",
+      "bbox": "Box",
+      "confidence": "Confidence",
+      "edges": "Canny edges",
+      "edgesYes": "Yes",
+      "edgesNo": "No",
+      "candidates": "Candidates",
+      "noDetection": "No detection"
+    }
   }
 }

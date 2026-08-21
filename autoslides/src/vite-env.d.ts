@@ -492,6 +492,7 @@ interface ElectronAPI {
     setPreviewFromVideo: (enabled: boolean) => Promise<AppConfig>;
     setPreviewSeekSeconds: (seconds: number) => Promise<AppConfig>;
     setShowMorePlaybackSpeed: (enabled: boolean) => Promise<AppConfig>;
+    setDeveloperMode: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;
     getAutoPostProcessingLive: () => Promise<boolean>;
@@ -801,6 +802,7 @@ interface ElectronAPI {
     readSlideAsBase64: (outputPath: string, filename: string) => Promise<string>;
     readSlideForAI: (outputPath: string, filename: string, targetWidth: number, targetHeight: number) => Promise<string>;
     listSlides: (outputPath: string) => Promise<string[]>;
+    readImageBuffer: (filePath: string) => Promise<Uint8Array>;
   };
 
   dialog?: {
@@ -1049,15 +1051,6 @@ interface ElectronAPI {
     getModelBuffer: () => Promise<ArrayBuffer>;
     selectAndImportModel: () => Promise<MlClassifierModelInfo | null>;
     deleteCustomModel: () => Promise<MlClassifierModelInfo>;
-  };
-
-  offline: {
-    selectInputFolder: () => Promise<string | null>;
-    listImages: (folderPath: string) => Promise<string[]>;
-    copyAndConvert: (inputPath: string, outputDir: string, outputFilename: string, enableColorReduction: boolean) => Promise<void>;
-    readImageForAI: (filePath: string, targetWidth: number, targetHeight: number) => Promise<string>;
-    readImageBuffer: (filePath: string) => Promise<Uint8Array>;
-    savePngBuffer: (outputDir: string, filename: string, buffer: Uint8Array, enableColorReduction: boolean) => Promise<void>;
   };
 
   cloudNotes: {

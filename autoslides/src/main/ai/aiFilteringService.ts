@@ -40,10 +40,10 @@ export interface AIFilteringResult {
   // parseAIError() regex-matching. New code should prefer `errorKind`.
   error?: string;
   // Typed error kind for future switch-based error surfacing.
-  // TODO(notification-system): downstream (usePostProcessing, postProcessingService,
-  // useOfflineProcessing) currently treats error results by leaving images classified
-  // as 'slide'. Route `errorKind` through a session notification channel + surface in
-  // Results View when we add the proper error-display system.
+  // TODO(notification-system): downstream (usePostProcessing, postProcessingService)
+  // currently treats error results by leaving images classified as 'slide'. Route
+  // `errorKind` through a session notification channel + surface in Results View
+  // when we add the proper error-display system.
   errorKind?: LLMError['kind'];
   modelUsed?: string;
 }

@@ -5,9 +5,7 @@
 //     detection. Used after "Set as Baseline Crop".
 //
 // Both call `io.applyCrop` (electronAPI.crop.apply) — the in-place crop path
-// that preserves the trash/restore lineage. The Offline Processing pipeline
-// (@shared/autoCrop) writes to a separate output dir instead and is therefore
-// a different primitive.
+// that preserves the trash/restore lineage.
 
 import type { DetectConfig } from '@shared/workers/autoCrop.worker';
 import type { AutoCropWorkerClient } from '@shared/autoCrop';
@@ -25,7 +23,7 @@ export interface ResultsCropIO {
 export function createResultsCropIO(): ResultsCropIO {
   return {
     restoreFromTrash: (ids) => window.electronAPI.trash.restore(ids),
-    readImageBuffer: (path) => window.electronAPI.offline.readImageBuffer(path),
+    readImageBuffer: (path) => window.electronAPI.slideExtraction.readImageBuffer(path),
     applyCrop: (path, rect, autoCropped) => window.electronAPI.crop.apply(path, rect, autoCropped),
   };
 }

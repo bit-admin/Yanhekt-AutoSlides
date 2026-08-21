@@ -31,7 +31,6 @@ import { noteExportService } from '@main/export/noteExportService';
 import { slideExtractionService } from '@main/extraction/slideExtractionService';
 import { slideMetadataService } from '@main/extraction/slideMetadataService';
 import { slideTimelineService } from '@main/extraction/slideTimelineService';
-import { offlineProcessingService } from '@main/extraction/offlineProcessingService';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
 import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
@@ -240,7 +239,6 @@ registerAllIpcHandlers({
   slideExtractionService,
   slideMetadataService,
   slideTimelineService,
-  offlineProcessingService,
   cacheManagementService,
   notesService
 });

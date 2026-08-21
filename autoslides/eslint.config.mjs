@@ -15,7 +15,7 @@ const DEMO_IMPORT_BAN = {
 // Domain-boundary helper: a feature domain may not import from sibling feature
 // domains. Returns a no-restricted-imports rule that forbids every domain other
 // than `self` and explicitly-allowed cross-domain edges (plus the demo ban).
-const FEATURE_DOMAINS = ['video', 'results', 'offline', 'download', 'ai', 'export', 'course', 'settings', 'platform', 'webCapture', 'tools', 'cloudIndex'];
+const FEATURE_DOMAINS = ['video', 'results', 'developer', 'download', 'ai', 'export', 'course', 'settings', 'platform', 'webCapture', 'tools', 'cloudIndex'];
 function featureBoundaryRule(self, allowed = []) {
   const allow = new Set([self, ...allowed]);
   const forbidden = FEATURE_DOMAINS.filter(d => !allow.has(d));
@@ -140,16 +140,14 @@ export default tseslint.config(
   //   download → video    (PlaybackData type in useTaskQueue)
   //   download → ai       (classifier callbacks injected into post-processing
   //                        pipeline ctx — shared/ cannot import from features/)
-  //   offline → ai        (same; offline post-processing path)
   //   settings → platform, ai (SettingsContext bundles useAuth/useCache/useAI*
   //                            composables for the LeftPanel tab children)
   //   cloudIndex → cloudNotes (useCloudNotes/useNoteImport: managed group id,
   //                            same-title conflict check, loadAll/refreshGroups)
-  //   (results → offline edge removed once Phase 10 extracted shared/autoCrop)
   // ----------------------------------------------------------------------
   { files: ['src/renderer/features/video/**/*.{ts,vue}'],     rules: featureBoundaryRule('video',     ['course']) },
   { files: ['src/renderer/features/results/**/*.{ts,vue}'],   rules: featureBoundaryRule('results') },
-  { files: ['src/renderer/features/offline/**/*.{ts,vue}'],   rules: featureBoundaryRule('offline',   ['ai']) },
+  { files: ['src/renderer/features/developer/**/*.{ts,vue}'], rules: featureBoundaryRule('developer') },
   { files: ['src/renderer/features/download/**/*.{ts,vue}'],  rules: featureBoundaryRule('download',  ['video', 'course', 'ai']) },
   { files: ['src/renderer/features/ai/**/*.{ts,vue}'],        rules: featureBoundaryRule('ai') },
   { files: ['src/renderer/features/export/**/*.{ts,vue}'],    rules: featureBoundaryRule('export') },

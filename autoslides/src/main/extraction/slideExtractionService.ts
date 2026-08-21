@@ -1121,6 +1121,15 @@ export class SlideExtractionService {
       return false;
     }
   }
+
+  /**
+   * Read raw image bytes from an arbitrary path (file-picker / Results / developer
+   * lab). Callers must already have rejected `..` segments at the IPC boundary.
+   */
+  async readImageBuffer(filePath: string): Promise<Uint8Array> {
+    const buffer = await fs.readFile(filePath);
+    return new Uint8Array(buffer);
+  }
 }
 
 // Create singleton instance

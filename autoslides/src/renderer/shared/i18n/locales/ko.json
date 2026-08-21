@@ -13,7 +13,8 @@
     "slidesReview": "슬라이드",
     "cloudNotes": "드라이브",
     "cloudIndex": "공개 인덱스",
-    "lectures": "강의"
+    "lectures": "강의",
+    "developer": "개발자"
   },
   "cloudIndex": {
     "loading": "슬라이드 불러오는 중…",
@@ -595,7 +596,10 @@
       "modelChainAddPlaceholder": "모델 이름을 입력하거나 프리셋을 선택하세요...",
       "modelChainEmpty": "체인에 모델이 없습니다. AI 분류를 사용하려면 아래에서 추가하세요.",
       "modelTemporarilyUnavailable": "서비스를 일시적으로 사용할 수 없습니다"
-    }
+    },
+    "developerMode": "개발자 모드",
+    "developerModeDescription": "자동 크롭 감지 등 앱 기능을 테스트하는 개발자 작업 공간 페이지를 표시합니다.",
+    "enableDeveloperMode": "개발자 모드 사용"
   },
   "courses": {
     "title": {
@@ -1125,51 +1129,6 @@
     "includeCover": "표지 페이지 포함",
     "coverCopyright": "This file may contain copyrighted material. The text, images, and video stills within this document are protected by intellectual property law, with all rights reserved by their respective holders. This material was extracted from a recorded lecture solely for personal study, academic reference, and non-commercial educational use. External distribution, commercial exploitation, or unauthorized reproduction is strictly prohibited and may result in legal liability.\nAutoSlides operates strictly as an automated processing tool and does not claim ownership, endorse, or assume responsibility for the extracted content. The views and opinions expressed within these materials represent the original authors and not AutoSlides or its affiliates."
   },
-  "offlineProcessing": {
-    "open": "오프라인 후처리",
-    "title": "오프라인 후처리",
-    "inputFolder": "입력 폴더",
-    "selectFolder": "찾아보기",
-    "noFolderSelected": "폴더가 선택되지 않았습니다",
-    "postProcessingConfig": "후처리 설정",
-    "enableDuplicateRemoval": "중복 제거 활성화",
-    "enableExclusionList": "제외 목록 활성화",
-    "exclusionListNote": "고급 설정에서 구성된 제외 목록과 AI 설정을 사용합니다",
-    "enableAIFiltering": "AI 필터링 활성화",
-    "outputOptions": "출력 옵션",
-    "enablePngColorReduction": "PNG 색상 축소 활성화",
-    "progress": "진행률",
-    "phaseCopying": "이미지 복사 및 변환 중...",
-    "phaseCompleted": "처리 완료",
-    "start": "시작",
-    "processing": "처리 중...",
-    "cancel": "취소",
-    "close": "닫기",
-    "cancelled": "처리가 취소되었습니다",
-    "noImagesFound": "선택한 폴더에서 이미지 파일을 찾을 수 없습니다",
-    "openOutput": "출력 열기",
-    "errorTitle": "처리 오류",
-    "autoCrop": {
-      "title": "자동 크롭",
-      "inputImages": "입력 이미지",
-      "select": "이미지 선택",
-      "noImagesSelected": "이미지가 선택되지 않음",
-      "imagesSelected": "{count}개 이미지 선택됨",
-      "outputFolder": "출력 폴더",
-      "config": "자동 크롭 구성",
-      "redBoxMode": "빨간 크롭 박스로 출력",
-      "showEdges": "Canny 에지 표시",
-      "enablePngColorReduction": "PNG 색상 감소 활성화",
-      "start": "시작",
-      "processing": "처리 중…",
-      "cancel": "취소",
-      "close": "닫기",
-      "openOutput": "출력 폴더 열기",
-      "processed": "처리됨",
-      "failed": "실패",
-      "noDetection": "미감지"
-    }
-  },
   "compressLecture": {
     "inputFile": "입력 파일",
     "noInputSelected": "입력 영상이 선택되지 않았습니다",
@@ -1231,7 +1190,6 @@
   "tools": {
     "openTools": "도구",
     "tabCompressLecture": "강의 압축",
-    "tabOffline": "오프라인 처리",
     "tabWebCapture": "웹 캡처",
     "tabYuketang": "雨课堂"
   },
@@ -1584,5 +1542,33 @@
     "bothStreamsOnlineHint": "하나 또는 두 스트림을 서버에서 재생합니다.",
     "streamOnline": "온라인",
     "streamOnlineHint": "이 스트림을 서버에서 재생합니다."
+  },
+  "developer": {
+    "title": "개발자",
+    "subtitle": "로컬 테스트 벤치입니다. 디스크에 파일을 쓰지 않습니다.",
+    "autoCrop": {
+      "title": "자동 크롭",
+      "blurb": "이미지 한 장을 고르고 슬라이드/후처리와 같은 검출기를 실행합니다. 빨간 상자는 항상 그리고, Canny가 실행되면 에지도 겹칩니다.",
+      "modeHint": "검출 모드는 설정 → 이미지 처리 값을 사용합니다",
+      "modeCannyThenYolo": "Canny → YOLO",
+      "modeCanny": "Canny만",
+      "modeYolo": "YOLO만",
+      "chooseImage": "이미지 선택",
+      "chooseAnother": "다른 이미지",
+      "detect": "검출",
+      "detecting": "검출 중…",
+      "empty": "자동 크롭 검출을 테스트할 이미지 한 장을 선택하세요.",
+      "previewAlt": "자동 크롭 검출 오버레이",
+      "yoloOnlyNote": "YOLO 전용 모드에서는 Canny 에지가 없습니다. 상자가 있으면 빨간 상자는 그려집니다.",
+      "backend": "백엔드",
+      "duration": "소요 시간",
+      "bbox": "상자",
+      "confidence": "신뢰도",
+      "edges": "Canny 에지",
+      "edgesYes": "있음",
+      "edgesNo": "없음",
+      "candidates": "후보",
+      "noDetection": "미검출"
+    }
   }
 }

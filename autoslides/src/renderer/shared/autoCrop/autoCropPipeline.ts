@@ -1,150 +1,44 @@
-import type { DetectConfig, DetectorMode, DetectResult } from '../workers/autoCrop.worker';
-import type { AutoCropWorkerClient } from './autoCropWorkerClient';
-import { bytesToImageBitmap, imageBitmapToImageData } from '@shared/utils/imageDecode';
-import { createLogger } from '@shared/utils/logger';
-const log = createLogger('AutoCropPipeline');
+import type { DetectResult } from '../workers/autoCrop.worker';
+import { bytesToImageBitmap } from '@shared/utils/imageDecode';
 
-export interface AutoCropImageSource {
-  readImageBuffer(imagePath: string): Promise<Uint8Array>;
-  savePngBuffer(
-    outDir: string,
-    filename: string,
-    buffer: Uint8Array,
-    enableColorReduction: boolean,
-  ): Promise<void>;
-}
+/**
+ * Compose the developer-lab Auto Crop preview: original image, optional Canny
+ * edges overlay, optional red detection box. Returns a PNG data URL.
+ * Does not write to disk.
+ */
+export async function composeDetectionPreview(
+  bitmap: ImageBitmap,
+  result: DetectResult,
+): Promise<string> {
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context unavailable');
 
-export interface AutoCropOptions {
-  outputDir: string;
-  detectConfig: Partial<DetectConfig>;
-  redBoxMode: boolean;
-  showEdges: boolean;
-  enablePngColorReduction: boolean;
-}
+  ctx.drawImage(bitmap, 0, 0);
 
-export interface AutoCropBatchProgress {
-  current: number;
-  total: number;
-  processed: number;
-  failed: number;
-  noDetection: number;
-  fallbackUsed: number;
-}
-
-export interface AutoCropCallbacks {
-  onProgress?: (progress: AutoCropBatchProgress) => void;
-  shouldCancel?: () => boolean;
-}
-
-function basename(p: string): string {
-  return p.replace(/\\/g, '/').split('/').pop() ?? p;
-}
-
-export async function processBatch(
-  client: AutoCropWorkerClient,
-  source: AutoCropImageSource,
-  imagePaths: string[],
-  options: AutoCropOptions,
-  callbacks: AutoCropCallbacks = {},
-): Promise<AutoCropBatchProgress> {
-  const progress: AutoCropBatchProgress = {
-    current: 0,
-    total: imagePaths.length,
-    processed: 0,
-    failed: 0,
-    noDetection: 0,
-    fallbackUsed: 0,
-  };
-  const mode: DetectorMode = options.detectConfig.mode ?? 'canny_then_yolo';
-  const canShowEdges = mode !== 'yolo_only';
-
-  for (const imagePath of imagePaths) {
-    if (callbacks.shouldCancel?.()) break;
-    progress.current++;
-    callbacks.onProgress?.(progress);
-
-    try {
-      const buffer = await source.readImageBuffer(imagePath);
-      const bitmap = await bytesToImageBitmap(buffer);
-      const imageData = imageBitmapToImageData(bitmap);
-
-      const useDebug = options.redBoxMode && options.showEdges && canShowEdges;
-      const response = await client.detectBbox(imageData, useDebug, options.detectConfig);
-
-      if (!response.success || !response.result) {
-        log.warn(`Auto-crop failed for ${basename(imagePath)}:`, response.error);
-        progress.failed++;
-        bitmap.close();
-        callbacks.onProgress?.(progress);
-        continue;
-      }
-
-      const result: DetectResult = response.result;
-      if (!result.bbox) {
-        progress.noDetection++;
-        bitmap.close();
-        callbacks.onProgress?.(progress);
-        continue;
-      }
-
-      if (mode === 'canny_then_yolo' && result.backend === 'yolo') {
-        progress.fallbackUsed++;
-      }
-
-      const { x, y, w, h } = result.bbox;
-      let outCanvas: OffscreenCanvas;
-      let outCtx: OffscreenCanvasRenderingContext2D;
-
-      if (options.redBoxMode) {
-        outCanvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-        outCtx = outCanvas.getContext('2d')!;
-        outCtx.drawImage(bitmap, 0, 0);
-
-        if (
-          options.showEdges &&
-          canShowEdges &&
-          result.edgesPng &&
-          result.stripped &&
-          result.innerSize
-        ) {
-          const edgesBitmap = await bytesToImageBitmap(result.edgesPng, 'image/png');
-          outCtx.globalAlpha = 0.5;
-          outCtx.drawImage(
-            edgesBitmap,
-            result.stripped.left,
-            result.stripped.top,
-            result.innerSize.width,
-            result.innerSize.height,
-          );
-          outCtx.globalAlpha = 1.0;
-          edgesBitmap.close();
-        }
-
-        const lineW = Math.max(2, Math.round(bitmap.width / 600));
-        outCtx.strokeStyle = 'rgba(255, 40, 40, 1)';
-        outCtx.lineWidth = lineW;
-        outCtx.strokeRect(x + lineW / 2, y + lineW / 2, w - lineW, h - lineW);
-      } else {
-        outCanvas = new OffscreenCanvas(w, h);
-        outCtx = outCanvas.getContext('2d')!;
-        outCtx.drawImage(bitmap, x, y, w, h, 0, 0, w, h);
-      }
-
-      bitmap.close();
-
-      const outBlob = await outCanvas.convertToBlob({ type: 'image/png' });
-      const outBuffer = new Uint8Array(await outBlob.arrayBuffer());
-      const filename = basename(imagePath).replace(/\.[^.]+$/, '.png');
-      await source.savePngBuffer(options.outputDir, filename, outBuffer, options.enablePngColorReduction);
-
-      progress.processed++;
-      callbacks.onProgress?.(progress);
-    } catch (err) {
-      log.error(`Failed to auto-crop ${imagePath}:`, err);
-      progress.failed++;
-      callbacks.onProgress?.(progress);
-    }
+  if (result.edgesPng && result.stripped && result.innerSize) {
+    const edgesBitmap = await bytesToImageBitmap(result.edgesPng, 'image/png');
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(
+      edgesBitmap,
+      result.stripped.left,
+      result.stripped.top,
+      result.innerSize.width,
+      result.innerSize.height,
+    );
+    ctx.globalAlpha = 1.0;
+    edgesBitmap.close();
   }
 
-  return progress;
+  if (result.bbox) {
+    const { x, y, w, h } = result.bbox;
+    const lineW = Math.max(2, Math.round(bitmap.width / 600));
+    ctx.strokeStyle = 'rgba(255, 40, 40, 1)';
+    ctx.lineWidth = lineW;
+    ctx.strokeRect(x + lineW / 2, y + lineW / 2, w - lineW, h - lineW);
+  }
+
+  return canvas.toDataURL('image/png');
 }

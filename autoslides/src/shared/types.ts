@@ -247,6 +247,9 @@ export interface AppConfig {
   // Session list, personal lists, notes, and account APIs still send the token.
   // Default off — production behavior is always-authenticated.
   preferAnonymousApiRequests: boolean;
+  // When true, show the Developer workspace page (Auto Crop detection lab, etc.).
+  // Default off.
+  developerMode: boolean;
   // Local LAN relay server (Worker-compatible /playlist + /segment API). Opt-in;
   // binds 0.0.0.0 so other devices on the network can stream recorded HLS.
   // Independent of the in-app localhost VideoProxyService.

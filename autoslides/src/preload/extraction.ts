@@ -28,18 +28,7 @@ export const slideExtraction = {
   readSlideForAI: (outputPath: string, filename: string, targetWidth: number, targetHeight: number) =>
     ipcRenderer.invoke('slideExtraction:readSlideForAI', outputPath, filename, targetWidth, targetHeight),
   listSlides: (outputPath: string) => ipcRenderer.invoke('slideExtraction:listSlides', outputPath),
-};
-
-export const offline = {
-  selectInputFolder: () => ipcRenderer.invoke('offline:selectInputFolder'),
-  listImages: (folderPath: string) => ipcRenderer.invoke('offline:listImages', folderPath),
-  copyAndConvert: (inputPath: string, outputDir: string, outputFilename: string, enableColorReduction: boolean) =>
-    ipcRenderer.invoke('offline:copyAndConvert', inputPath, outputDir, outputFilename, enableColorReduction),
-  readImageForAI: (filePath: string, targetWidth: number, targetHeight: number) =>
-    ipcRenderer.invoke('offline:readImageForAI', filePath, targetWidth, targetHeight),
-  readImageBuffer: (filePath: string) => ipcRenderer.invoke('offline:readImageBuffer', filePath),
-  savePngBuffer: (outputDir: string, filename: string, buffer: Uint8Array, enableColorReduction: boolean) =>
-    ipcRenderer.invoke('offline:savePngBuffer', outputDir, filename, buffer, enableColorReduction),
+  readImageBuffer: (filePath: string) => ipcRenderer.invoke('slideExtraction:readImageBuffer', filePath),
 };
 
 export const trash = {

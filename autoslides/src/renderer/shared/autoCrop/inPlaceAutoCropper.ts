@@ -39,7 +39,7 @@ export function createInPlaceAutoCropper(): InPlaceAutoCropper {
           client = createAutoCropWorkerClient()
         }
         const detectConfig = readDetectConfig()
-        const buffer = await window.electronAPI.offline.readImageBuffer(imagePath)
+        const buffer = await window.electronAPI.slideExtraction.readImageBuffer(imagePath)
         const imageData = await decodeBufferToImageData(buffer)
         const response = await client.detectBbox(imageData, false, detectConfig)
         if (!response.success || !response.result?.bbox) {

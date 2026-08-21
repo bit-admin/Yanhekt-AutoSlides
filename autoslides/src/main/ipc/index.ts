@@ -10,7 +10,6 @@ import { registerCompressIpcHandlers } from './compressIpc';
 import { registerLecturesIpcHandlers } from './lecturesIpc';
 import { registerDownloadIpcHandlers } from './downloadIpc';
 import { registerSlideExtractionIpcHandlers } from './slideExtractionIpc';
-import { registerOfflineIpcHandlers } from './offlineIpc';
 import { registerDialogIpcHandlers } from './dialogIpc';
 import { registerWindowIpcHandlers } from './windowIpc';
 import { registerShellIpcHandlers } from './shellIpc';
@@ -47,7 +46,6 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerLecturesIpcHandlers(services);
   registerDownloadIpcHandlers(services);
   registerSlideExtractionIpcHandlers(services);
-  registerOfflineIpcHandlers(services);
   registerDialogIpcHandlers();
   registerWindowIpcHandlers(services);
   registerShellIpcHandlers();

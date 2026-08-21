@@ -131,6 +131,7 @@ const advancedSettings = useAdvancedSettings(
     parallelTasks: settings.parallelTasks,
     maxManualTabs: settings.maxManualTabs,
     showMorePlaybackSpeed: settings.showMorePlaybackSpeed,
+    developerMode: settings.developerMode,
     enableAIFiltering: settings.enableAIFiltering,
     tempEnableAIFiltering: settings.tempEnableAIFiltering
   },

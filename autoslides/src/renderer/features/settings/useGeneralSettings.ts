@@ -21,6 +21,7 @@ export interface UseGeneralSettingsOptions {
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
   preventSystemSleep: Ref<boolean>
+  developerMode: Ref<boolean>
 }
 
 export function useGeneralSettings(options: UseGeneralSettingsOptions) {
@@ -40,7 +41,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     parallelTasks,
     maxManualTabs,
     showMorePlaybackSpeed,
-    preventSystemSleep
+    preventSystemSleep,
+    developerMode
   } = options
 
   const tempMaxConcurrentDownloads = ref(5)
@@ -59,6 +61,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempMaxManualTabs = ref(3)
   const tempShowMorePlaybackSpeed = ref(false)
   const tempPreventSystemSleep = ref(true)
+  const tempDeveloperMode = ref(false)
 
   const resetTemp = () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
@@ -77,6 +80,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempMaxManualTabs.value = maxManualTabs.value
     tempShowMorePlaybackSpeed.value = showMorePlaybackSpeed.value
     tempPreventSystemSleep.value = preventSystemSleep.value
+    tempDeveloperMode.value = developerMode.value
   }
 
   const save = async () => {
@@ -145,6 +149,11 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
         await window.electronAPI.powerManagement.allowSleep()
       }
     }
+
+    if (tempDeveloperMode.value !== developerMode.value) {
+      const developerResult = await window.electronAPI.config.setDeveloperMode(tempDeveloperMode.value)
+      developerMode.value = developerResult.developerMode ?? false
+    }
   }
 
   // Placeholders — actual save happens in save()
@@ -170,6 +179,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempMaxManualTabs,
     tempShowMorePlaybackSpeed,
     tempPreventSystemSleep,
+    tempDeveloperMode,
 
     resetTemp,
     save,

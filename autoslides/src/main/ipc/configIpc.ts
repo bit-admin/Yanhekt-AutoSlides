@@ -127,6 +127,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
+    configService.setDeveloperMode(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setAutoPostProcessing', async (_event, enabled: boolean) => {
     configService.setAutoPostProcessing(enabled);
     broadcastConfig();

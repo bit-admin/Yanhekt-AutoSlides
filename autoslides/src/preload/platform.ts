@@ -36,6 +36,7 @@ export const config = {
   setPreviewFromVideo: (enabled: boolean) => ipcRenderer.invoke('config:setPreviewFromVideo', enabled),
   setPreviewSeekSeconds: (seconds: number) => ipcRenderer.invoke('config:setPreviewSeekSeconds', seconds),
   setShowMorePlaybackSpeed: (enabled: boolean) => ipcRenderer.invoke('config:setShowMorePlaybackSpeed', enabled),
+  setDeveloperMode: (enabled: boolean) => ipcRenderer.invoke('config:setDeveloperMode', enabled),
   setAutoPostProcessing: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessing', enabled),
   setAutoPostProcessingLive: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessingLive', enabled),
   getAutoPostProcessingLive: () => ipcRenderer.invoke('config:getAutoPostProcessingLive'),
