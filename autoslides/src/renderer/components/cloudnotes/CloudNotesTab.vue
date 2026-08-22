@@ -515,16 +515,6 @@
         @import="onImportVersion"
         @export="onExportVersion"
       />
-
-      <!-- Request-removal modal (index mode) -->
-      <CloudIndexRemovalModal
-        v-if="removalTarget"
-        :course-id="removalTarget.courseId"
-        :session-id="removalTarget.sessionId"
-        :on-submit="idx.requestRemoval"
-        @close="removalTarget = null"
-        @removed="onRemovalDone"
-      />
     </template>
     </div>
 
@@ -546,7 +536,6 @@ import { navigationStore } from '@features/course/navigationStore'
 import { formatNoteGroupLabel, type IndexLecture, type IndexVersion } from '@common/notesTypes'
 import SemesterSelect from '../course/SemesterSelect.vue'
 import CloudIndexViewer from './CloudIndexViewer.vue'
-import CloudIndexRemovalModal from './CloudIndexRemovalModal.vue'
 import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
 import ImportProgressModal from './ImportProgressModal.vue'
 import NoteEditorPane from './NoteEditorPane.vue'
@@ -590,7 +579,7 @@ const viewMode = ref<'notes' | 'index'>('notes')
 const idx = useCloudIndexBrowse()
 const idxExp = useShareIndexExport()
 const indexLoaded = ref(false)
-const removalTarget = ref<{ courseId: string; sessionId: string } | null>(null)
+const removalBusy = ref(false)
 // Index-mode pane widths: course names run long, so the LEFT column gets its
 // own wider range; the middle (sessions) list is narrower than in notes mode's
 // former default since session titles are short.
@@ -657,14 +646,56 @@ function onOpenVersion(v: IndexVersion, s: IndexLecture): void {
   void idx.openVersion(v, lecture)
 }
 
-function onOpenRemoval(courseId: string, sessionId: string): void {
-  removalTarget.value = { courseId, sessionId }
-}
+async function onOpenRemoval(courseId: string, sessionId: string): Promise<void> {
+  if (removalBusy.value) return
+  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'warning',
+    title: t('cloudIndex.removalTitle'),
+    message: t('cloudIndex.removalBody'),
+    buttons: [t('cloudNotes.cancel'), t('cloudIndex.removalConfirm')],
+    defaultId: 1,
+    cancelId: 0,
+  })
+  if (confirmed?.response !== 1) return
 
-async function onRemovalDone(): Promise<void> {
-  const target = removalTarget.value
-  removalTarget.value = null
-  if (target) await idx.reloadSession(target.courseId, target.sessionId)
+  removalBusy.value = true
+  try {
+    const res = await idx.requestRemoval(courseId, sessionId)
+    if (!res.ok) {
+      await window.electronAPI.dialog?.showMessageBox?.({
+        type: 'error',
+        title: t('cloudIndex.removalTitle'),
+        message: res.error === 'not-signed-in' ? t('cloudNotes.notSignedIn') : t('cloudIndex.removalError'),
+        buttons: [t('cloudIndex.removalClose')],
+      })
+      return
+    }
+    if (res.data.removed === 0) {
+      await window.electronAPI.dialog?.showMessageBox?.({
+        type: 'info',
+        title: t('cloudIndex.removalTitle'),
+        message: t('cloudIndex.removalNoVersions'),
+        buttons: [t('cloudIndex.removalClose')],
+      })
+      return
+    }
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      title: t('cloudIndex.removalTitle'),
+      message: t('cloudIndex.removalDone', { n: res.data.removed }),
+      buttons: [t('cloudIndex.removalClose')],
+    })
+    await idx.reloadSession(courseId, sessionId)
+  } catch {
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'error',
+      title: t('cloudIndex.removalTitle'),
+      message: t('cloudIndex.removalNetworkError'),
+      buttons: [t('cloudIndex.removalClose')],
+    })
+  } finally {
+    removalBusy.value = false
+  }
 }
 
 /** Import the open version's slides as a managed Cloud Note — runs through the
@@ -858,7 +889,15 @@ async function onCreateNote(): Promise<void> {
 }
 
 async function onDeleteNote(noteId: number): Promise<void> {
-  if (!confirm(t('cloudNotes.confirmDeleteNote'))) return
+  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'warning',
+    title: t('cloudNotes.delete'),
+    message: t('cloudNotes.confirmDeleteNote'),
+    buttons: [t('cloudNotes.cancel'), t('cloudNotes.delete')],
+    defaultId: 1,
+    cancelId: 0,
+  })
+  if (confirmed?.response !== 1) return
   if (cn.selectedNoteId.value === noteId) await ed.destroyEditor()
   await cn.deleteNote(noteId)
 }
@@ -919,7 +958,15 @@ async function onOpenConflictNote(id?: number): Promise<void> {
 const exportModalRef = ref<InstanceType<typeof NotesExportModal> | null>(null)
 
 async function onDeleteGroup(id: number, name: string): Promise<void> {
-  if (!confirm(t('cloudNotes.confirmDeleteGroup', { name }))) return
+  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'warning',
+    title: t('cloudNotes.deleteGroup'),
+    message: t('cloudNotes.confirmDeleteGroup', { name }),
+    buttons: [t('cloudNotes.cancel'), t('cloudNotes.delete')],
+    defaultId: 1,
+    cancelId: 0,
+  })
+  if (confirmed?.response !== 1) return
   await cn.deleteGroup(id)
 }
 
