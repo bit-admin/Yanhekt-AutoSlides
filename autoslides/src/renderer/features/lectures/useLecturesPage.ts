@@ -201,10 +201,6 @@ export function useLecturesPage() {
     }
   }
 
-  const selectAll = () => {
-    selectedPaths.value = videos.value.map((v) => v.path)
-  }
-
   const clearSelection = () => {
     selectedPaths.value = []
   }
@@ -239,7 +235,6 @@ export function useLecturesPage() {
     toggleSelectMode,
     toggleSelection,
     selectGroup,
-    selectAll,
     clearSelection,
     openOutputDirectory,
     reveal,

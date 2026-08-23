@@ -55,7 +55,7 @@
           :disabled="previews.length === 0 || isHydrating || isApplying"
           @click="apply"
         >
-          {{ isApplying ? $t('lectures.renaming') : $t('lectures.applyRename', { count: previews.length }) }}
+          {{ isApplying ? $t('lectures.renaming') : $t('lectures.applyRename') }}
         </button>
       </div>
     </div>

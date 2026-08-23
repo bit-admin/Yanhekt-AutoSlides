@@ -196,7 +196,6 @@
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
           </svg>
           {{ $t('trash.importToNotes') }}
-          <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
         </button>
 
         <button
@@ -210,7 +209,6 @@
             <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
           </svg>
           {{ $t('trash.publishToIndex') }}
-          <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
         </button>
 
         <div v-if="currentView === 'folders'" class="actions-divider"></div>
@@ -225,7 +223,6 @@
             <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
           </svg>
           {{ $t('trash.clearFolder') }}
-          <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
         </button>
 
         <button
@@ -319,11 +316,7 @@
       <div class="footer-left">
         <template v-if="currentView === 'folders'">
           <span v-if="!isFolderEditMode">{{ $t('trash.total') }}: {{ sortedFolders.length }}</span>
-          <template v-else>
-            <span>{{ $t('trash.selected') }}: {{ selectedFolderNames.length }} / {{ $t('trash.total') }}: {{ sortedFolders.length }}</span>
-            <span class="footer-separator">|</span>
-            <span>{{ $t('pdfmaker.totalImages') }}: {{ selectedImageCount }}</span>
-          </template>
+          <span v-else>{{ $t('trash.selected') }}: {{ selectedFolderNames.length }} / {{ $t('trash.total') }}: {{ sortedFolders.length }} / {{ $t('pdfmaker.totalImages') }}: {{ selectedImageCount }}</span>
         </template>
         <template v-else>
           <button
@@ -1202,22 +1195,6 @@ const confirmClearTrash = async () => {
   border-color: var(--accent-hover);
 }
 
-.edit-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  margin-left: 4px;
-  border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.25);
-  color: var(--text-on-accent);
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
 .action-split {
   position: relative;
   display: inline-flex;
@@ -1394,10 +1371,7 @@ const confirmClearTrash = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.footer-separator {
-  color: var(--border-strong);
+  font-variant-numeric: tabular-nums;
 }
 
 .select-all-btn {

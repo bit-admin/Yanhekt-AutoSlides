@@ -81,7 +81,7 @@
         @click="clearBlocks"
         :disabled="blockedSelectors.length === 0"
       >
-        {{ $t('webCapture.clearBlocks', { n: blockedSelectors.length }) }}
+        {{ $t('webCapture.clearBlocks') }}
       </button>
       <button
         class="btn secondary-btn"

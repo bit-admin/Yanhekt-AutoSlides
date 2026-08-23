@@ -95,7 +95,7 @@
           :disabled="fileCount === 0"
           @click="start"
         >
-          {{ $t('lectures.startCompress', { count: fileCount }) }}
+          {{ $t('lectures.startCompress') }}
         </button>
       </div>
     </div>

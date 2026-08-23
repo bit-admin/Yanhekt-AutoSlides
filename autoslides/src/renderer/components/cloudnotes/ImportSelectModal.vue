@@ -45,7 +45,7 @@
       <div class="cn-modal-actions">
         <button class="btn cn-modal-btn" @click="emit('close')">{{ $t('cloudNotes.cancel') }}</button>
         <button class="btn btn--primary cn-modal-btn" :disabled="importSelected.length === 0" @click="onStartImport">
-          {{ $t('cloudNotes.importStart', { n: importSelected.length }) }}
+          {{ $t('cloudNotes.importStart') }}
         </button>
       </div>
     </div>

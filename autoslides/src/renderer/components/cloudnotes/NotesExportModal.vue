@@ -29,7 +29,7 @@
         <div class="cn-modal-actions">
           <button class="btn cn-modal-btn" @click="close">{{ $t('cloudNotes.cancel') }}</button>
           <button class="btn btn--primary cn-modal-btn" :disabled="exportSelected.length === 0" @click="onStartExport">
-            {{ $t('cloudNotes.exportStart', { n: exportSelected.length }) }}
+            {{ $t('cloudNotes.exportStart') }}
           </button>
         </div>
       </template>

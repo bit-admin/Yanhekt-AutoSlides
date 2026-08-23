@@ -59,9 +59,6 @@
               <path d="M4.5 8.2l2.4 2.4 4.6-5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             {{ isSelectMode ? $t('lectures.doneSelecting') : $t('lectures.select') }}
-            <span v-if="isSelectMode && selectedPaths.length > 0" class="edit-count">
-              {{ selectedPaths.length }}
-            </span>
           </button>
         </div>
 
@@ -165,20 +162,8 @@
 
       <div v-if="viewMode === 'list'" class="footer">
         <div class="footer-left">
-          <template v-if="isSelectMode">
-            <button
-              type="button"
-              class="select-all-btn"
-              :disabled="videos.length === 0"
-              @click="selectedPaths.length === videos.length ? clearSelection() : selectAll()"
-            >
-              {{ selectedPaths.length === videos.length ? $t('trash.clearSelection') : $t('trash.selectAll') }}
-            </button>
-            <span>{{ $t('trash.selected') }}: {{ selectedPaths.length }} / {{ $t('trash.total') }}: {{ videos.length }}</span>
-          </template>
-          <template v-else>
-            <span>{{ $t('trash.total') }}: {{ videos.length }}</span>
-          </template>
+          <span v-if="isSelectMode">{{ $t('trash.selected') }}: {{ selectedPaths.length }} / {{ $t('trash.total') }}: {{ videos.length }}</span>
+          <span v-else>{{ $t('trash.total') }}: {{ videos.length }}</span>
         </div>
         <label class="group-toggle">
           <input type="checkbox" v-model="groupByCourse" />
@@ -241,7 +226,6 @@ const {
   toggleSelectMode,
   toggleSelection,
   selectGroup,
-  selectAll,
   clearSelection,
   openOutputDirectory,
   reveal,
@@ -490,22 +474,6 @@ onMounted(async () => {
   border-color: var(--accent-hover);
 }
 
-.edit-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  margin-left: 4px;
-  border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.25);
-  color: var(--text-on-accent);
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
 /* Mirrors ResultsWindow notes-btn / restore-btn solid action style. */
 .action-btn {
   display: flex;
@@ -672,15 +640,6 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   min-width: 0;
-}
-
-.select-all-btn {
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 12px;
-  cursor: pointer;
-  padding: 0;
+  font-variant-numeric: tabular-nums;
 }
 </style>
