@@ -329,10 +329,10 @@
             <button
               class="cn-note-item"
               :class="{ active: cn.selectedNoteId.value === note.id }"
-              :title="note.title || $t('cloudNotes.untitled')"
+              :title="noteListTitle(note)"
               @click="ed.openNote(note.id)"
             >
-              <span class="cn-note-title">{{ note.title || $t('cloudNotes.untitled') }}</span>
+              <span class="cn-note-title">{{ noteListTitle(note) }}</span>
               <span class="cn-note-meta">{{ note.updated_at }}</span>
             </button>
             <button
@@ -564,7 +564,7 @@ import { useNoteImport } from '@features/cloudNotes/useNoteImport'
 import { useShareIndexExport } from '@features/cloudNotes/useShareIndexExport'
 import { useCloudIndexBrowse, type IndexTermOption } from '@features/cloudNotes/useCloudIndexBrowse'
 import { navigationStore } from '@features/course/navigationStore'
-import { formatNoteGroupLabel, NOTE_GROUP_NAME_MAX, validateNoteGroupName, type IndexLecture, type IndexVersion } from '@common/notesTypes'
+import { formatNoteDisplayTitle, formatNoteGroupLabel, NOTE_GROUP_NAME_MAX, validateNoteGroupName, type IndexLecture, type IndexVersion } from '@common/notesTypes'
 import SemesterSelect from '../course/SemesterSelect.vue'
 import CloudIndexViewer from './CloudIndexViewer.vue'
 import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
@@ -585,7 +585,13 @@ const { t } = useI18n()
 function groupLabel(g: { id: number; name: string }): string {
   return formatNoteGroupLabel(g, t)
 }
+
 const cn = useCloudNotes()
+
+function noteListTitle(note: { title: string; note_group_id: number }): string {
+  const managed = cn.managedGroups.value.some((g) => g.id === note.note_group_id)
+  return formatNoteDisplayTitle(note.title, managed) || t('cloudNotes.untitled')
+}
 const { userId } = useAuth()
 
 const imp = useNoteImport(cn, {

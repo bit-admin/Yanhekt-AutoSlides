@@ -389,6 +389,25 @@ export function isManagedNoteTitle(title: string): boolean {
 }
 
 /**
+ * Sidebar/list label for a note. In AutoSlides-managed groups the leading
+ * lecture token (`c61838s751030 · `) is a server-side dedup key, not a human
+ * title — strip it for display the same way reserved group names are mapped
+ * to friendly labels. Stored titles stay intact. Token-only titles (no
+ * course/session remainder) keep the token so the row is not blank.
+ */
+export function formatNoteDisplayTitle(title: string, managed = false): string {
+  const trimmed = (title ?? '').trim();
+  if (!managed || !trimmed) return trimmed;
+  let rest = trimmed;
+  if (MANAGED_TOKEN_AT_START.test(rest)) {
+    rest = rest.replace(MANAGED_TOKEN_AT_START, '').replace(/^\s*·\s*/, '').trim();
+  } else if (rest.startsWith(MANAGED_NOTE_PREFIX)) {
+    rest = rest.slice(MANAGED_NOTE_PREFIX.length).trim();
+  }
+  return rest || trimmed;
+}
+
+/**
  * Folder-stem inverse of `buildManagedNoteTitle` for export: underscores, no
  * token. `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节` →
  * `泛函分析_第1周_星期三_第2大节`.

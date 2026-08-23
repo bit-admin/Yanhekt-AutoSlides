@@ -168,14 +168,14 @@
           type="button"
           class="ns-row ns-page-row"
           :class="{ active: selectedNoteId === note.id }"
-          :title="note.title || $t('cloudNotes.untitled')"
+          :title="noteListTitle(note)"
           @click="emit('open-note', note.id)"
         >
           <svg class="ns-row-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
-          <span class="ns-row-label">{{ note.title || $t('cloudNotes.untitled') }}</span>
+          <span class="ns-row-label">{{ noteListTitle(note) }}</span>
         </button>
         <button
           type="button"
@@ -214,6 +214,7 @@ import { nextTick, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
+  formatNoteDisplayTitle,
   formatNoteGroupLabel,
   NOTE_GROUP_NAME_MAX,
   validateNoteGroupName,
@@ -253,6 +254,11 @@ const emit = defineEmits<{
   'go-page': [page: number]
   'update:keyword': [value: string]
 }>()
+
+function noteListTitle(note: NoteSummary): string {
+  const managed = props.managedGroups.some((g) => g.id === note.note_group_id)
+  return formatNoteDisplayTitle(note.title, managed) || t('cloudNotes.untitled')
+}
 
 function onSearchInput(e: Event): void {
   emit('update:keyword', (e.target as HTMLInputElement).value)

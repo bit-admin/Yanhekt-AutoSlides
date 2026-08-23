@@ -244,6 +244,25 @@ export function isManagedNoteTitle(title: string): boolean {
   return MANAGED_TOKEN_AT_START.test(trimmed) || trimmed.startsWith(MANAGED_NOTE_PREFIX);
 }
 
+/**
+ * Sidebar/list label for a note. In AutoSlides-managed groups the leading
+ * lecture token (`c61838s751030 · `) is a server-side dedup key, not a human
+ * title — strip it for display the same way reserved group names are mapped
+ * to friendly labels. Stored titles stay intact. Token-only titles (no
+ * course/session remainder) keep the token so the row is not blank.
+ */
+export function formatNoteDisplayTitle(title: string, managed = false): string {
+  const trimmed = (title ?? '').trim();
+  if (!managed || !trimmed) return trimmed;
+  let rest = trimmed;
+  if (MANAGED_TOKEN_AT_START.test(rest)) {
+    rest = rest.replace(MANAGED_TOKEN_AT_START, '').replace(/^\s*·\s*/, '').trim();
+  } else if (rest.startsWith(MANAGED_NOTE_PREFIX)) {
+    rest = rest.slice(MANAGED_NOTE_PREFIX.length).trim();
+  }
+  return rest || trimmed;
+}
+
 export function managedNoteDisplayName(title: string): string {
   const trimmed = title.trim();
   const token = parseLectureToken(trimmed);

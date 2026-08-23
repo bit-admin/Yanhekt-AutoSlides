@@ -4,10 +4,12 @@ import {
   buildShareImportTitle,
   formatGroupDisplayName,
   formatGroupSettingsTitle,
+  formatNoteDisplayTitle,
   formatNoteGroupLabel,
   isManagedNoteTitle,
   MANAGED_GROUP_NAME,
   NOTE_GROUP_NAME_MAX,
+  README_NOTE_TITLE,
   managedNoteDisplayName,
   validateNoteGroupName,
   managedNoteIdentity,
@@ -66,6 +68,20 @@ describe('managed note titles', () => {
         { courseTitle: '操作系统', sessionTitle: '第1周 星期二 第5大节' },
       ),
     ).toBe('c61841s751112 · 操作系统 · 第1周 星期二 第5大节');
+  });
+
+  it('strips the lecture token from managed-group sidebar titles only', () => {
+    const recorded = 'c61838s751030 · 泛函分析 · 第1周 星期三 第2大节';
+    const live = 'c71736l761952 · 电工和电子技术BⅡ · 2024秋季';
+    expect(formatNoteDisplayTitle(recorded, true)).toBe('泛函分析 · 第1周 星期三 第2大节');
+    expect(formatNoteDisplayTitle(live, true)).toBe('电工和电子技术BⅡ · 2024秋季');
+    expect(formatNoteDisplayTitle(recorded, false)).toBe(recorded);
+    expect(formatNoteDisplayTitle('c61838s751030', true)).toBe('c61838s751030');
+    expect(formatNoteDisplayTitle('AS · 泛函分析 · 第1周 星期三 第2大节', true)).toBe(
+      '泛函分析 · 第1周 星期三 第2大节',
+    );
+    expect(formatNoteDisplayTitle(README_NOTE_TITLE, true)).toBe(README_NOTE_TITLE);
+    expect(formatNoteDisplayTitle('My shopping list', true)).toBe('My shopping list');
   });
 
   it('maps reserved group names to friendly UI labels and leaves others alone', () => {
