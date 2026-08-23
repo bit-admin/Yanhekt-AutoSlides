@@ -195,7 +195,7 @@ const initializePowerManagement = async () => {
 app.whenReady().then(() => {
   initializePowerManagement();
   windowManager.setupYuketangClassCapture();
-  // Start LAN relay if the user left it enabled last session.
+  // Start LAN relay if Developer mode is on and the user left it enabled.
   void localRelayService.applyConfig();
 });
 

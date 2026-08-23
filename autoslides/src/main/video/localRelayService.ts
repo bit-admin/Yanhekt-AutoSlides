@@ -127,10 +127,19 @@ export class LocalRelayService {
     });
   }
 
+  /**
+   * The LAN server is a developer-only tool: Settings → Network only shows it
+   * when Developer mode is on, and it must not bind 0.0.0.0 otherwise — even
+   * if a leftover `localRelayEnabled` is still in the store.
+   */
+  private isRuntimeEnabled(): boolean {
+    return this.configService.getDeveloperMode() && this.configService.getLocalRelayEnabled();
+  }
+
   getStatus(): LocalRelayStatus {
     const port = this.configService.getLocalRelayPort();
     return {
-      enabled: this.configService.getLocalRelayEnabled(),
+      enabled: this.isRuntimeEnabled(),
       running: !!(this.server && this.listeningPort),
       port: this.listeningPort || port,
       bindAddresses: this.listBindAddresses(),
@@ -139,11 +148,12 @@ export class LocalRelayService {
   }
 
   /**
-   * Apply current config: stop when disabled; start/restart when enabled and
-   * the listen port changed; whitelist-only updates need no restart.
+   * Apply current config: stop when disabled or Developer mode is off;
+   * start/restart when enabled and the listen port changed; whitelist-only
+   * updates need no restart.
    */
   async applyConfig(): Promise<LocalRelayStatus> {
-    const enabled = this.configService.getLocalRelayEnabled();
+    const enabled = this.isRuntimeEnabled();
     const port = this.configService.getLocalRelayPort();
 
     if (!enabled) {
@@ -164,7 +174,7 @@ export class LocalRelayService {
   }
 
   async start(): Promise<void> {
-    if (!this.configService.getLocalRelayEnabled()) {
+    if (!this.isRuntimeEnabled()) {
       return;
     }
     if (this.server && this.listeningPort) {

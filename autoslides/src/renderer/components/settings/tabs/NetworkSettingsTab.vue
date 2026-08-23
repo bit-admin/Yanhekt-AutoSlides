@@ -94,9 +94,9 @@
   </div>
 
   <!-- Local LAN relay: Worker-compatible /playlist + /segment for external clients.
-       All options stay visible; body grays out when the server is off, and the
-       whitelist body grays out when the whitelist itself is off. -->
-  <div class="advanced-setting-section">
+       Developer-mode only (Settings → General). Body grays out when the server
+       is off, and the whitelist body grays out when the whitelist itself is off. -->
+  <div v-if="tempDeveloperMode" class="advanced-setting-section">
     <h4>{{ $t('advanced.localRelay') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.localRelayDescription') }}</div>
@@ -251,6 +251,8 @@ import { computed } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
 
 const { advanced } = useSettingsContext()
+
+const { tempDeveloperMode } = advanced.general
 
 const {
   tempIntranetInterfaceIp,

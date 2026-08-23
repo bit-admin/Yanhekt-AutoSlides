@@ -427,6 +427,10 @@ export class ConfigService {
     this.store.set('showMorePlaybackSpeed', enabled);
   }
 
+  getDeveloperMode(): boolean {
+    return this.store.get('developerMode') ?? false;
+  }
+
   setDeveloperMode(enabled: boolean): void {
     this.store.set('developerMode', enabled);
   }

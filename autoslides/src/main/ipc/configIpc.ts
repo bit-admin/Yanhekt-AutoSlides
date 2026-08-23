@@ -129,6 +129,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
     configService.setDeveloperMode(enabled);
+    // Local Relay is developer-only: turning Developer mode off persist-disables
+    // the flag and tears down the LAN server so it cannot keep listening.
+    if (!enabled) {
+      configService.setLocalRelayConfig({ enabled: false });
+    }
+    await localRelayService.applyConfig();
     broadcastConfig();
     return configService.getConfig();
   });
@@ -365,6 +371,10 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
         includeCurrentToken?: boolean;
         tokenWhitelist?: string[];
       };
+      // Cannot enable (or leave enabled) without Developer mode.
+      if (!configService.getDeveloperMode()) {
+        plain.enabled = false;
+      }
       configService.setLocalRelayConfig(plain);
       await localRelayService.applyConfig();
       broadcastConfig();
