@@ -13,6 +13,18 @@
         :aria-labelledby="titleId"
         :aria-describedby="active.title ? messageId : undefined"
       >
+        <div v-if="showIcon" class="confirm-icon" :class="iconClass" aria-hidden="true">
+          <svg v-if="isDanger" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+        </div>
         <h3 v-if="active.title" :id="titleId" class="confirm-title">{{ active.title }}</h3>
         <p
           :id="active.title ? messageId : titleId"
@@ -56,6 +68,10 @@ const messageId = 'autoslides-confirm-message'
 const active = dialogStore.active
 const cancelEl = ref<HTMLButtonElement | null>(null)
 const confirmEl = ref<HTMLButtonElement | null>(null)
+
+const isDanger = computed(() => !!active.value && active.value.kind === 'confirm' && !!active.value.danger)
+const showIcon = computed(() => !!active.value && (active.value.kind === 'alert' || isDanger.value))
+const iconClass = computed(() => (isDanger.value ? 'confirm-icon--danger' : 'confirm-icon--info'))
 
 const confirmBtnClass = computed(() => {
   const dialog = active.value
@@ -109,7 +125,27 @@ function onOverlay(): void {
   box-shadow: 0 8px 32px var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+}
+
+.confirm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
+  border-radius: 50%;
+}
+
+.confirm-icon--danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.confirm-icon--info {
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-surface));
+  color: var(--accent);
 }
 
 .confirm-title {
@@ -122,17 +158,16 @@ function onOverlay(): void {
 
 .confirm-message {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.5;
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   word-break: break-word;
 }
 
 .confirm-message--solo {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary);
 }
 
 .confirm-actions {

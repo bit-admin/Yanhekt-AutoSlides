@@ -614,7 +614,9 @@
       "modeLabel": "搜索类型",
       "placeholder": "输入关键词...",
       "cancel": "取消",
-      "confirm": "保存"
+      "confirm": "保存",
+      "empty": "请输入关键词。",
+      "duplicate": "该搜索已保存。"
     },
     "welcome": {
       "title": "欢迎使用 AutoSlides",
@@ -1217,10 +1219,18 @@
     "readmeBody2": "请勿手动重命名、移动或编辑「AutoSlides 数据库」（ASnote）分组内的笔记：AutoSlides 在重新同步时可能会覆盖它们。",
     "readmeBody3": "注意：幻灯片图片会上传到延河课堂的公开存储，任何拿到链接的人都能查看。请勿包含私密或敏感图片。",
     "deleteGroup": "删除分组",
-    "newGroupPlaceholder": "新建分组（≤{max}）",
+    "newGroupPlaceholder": "新建分组",
     "newGroupTitle": "新建分组",
     "newGroupLabel": "分组名称",
     "newGroupHelp": "分组名称最多 {max} 个字符。",
+    "groupName": {
+      "empty": "请输入名称。",
+      "tooLong": "名称最多 {max} 个字符。",
+      "reserved": "该名称已被保留。",
+      "duplicate": "已有同名分组。",
+      "invalidChars": "该名称无效，请换一个。",
+      "failed": "无法创建分组。"
+    },
     "add": "添加",
     "searchPlaceholder": "按标题搜索…",
     "search": "搜索",

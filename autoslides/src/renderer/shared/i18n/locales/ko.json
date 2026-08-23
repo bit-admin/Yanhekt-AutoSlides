@@ -614,7 +614,9 @@
       "modeLabel": "검색 유형",
       "placeholder": "키워드 입력...",
       "cancel": "취소",
-      "confirm": "저장"
+      "confirm": "저장",
+      "empty": "키워드를 입력하세요.",
+      "duplicate": "이미 저장된 검색입니다."
     },
     "welcome": {
       "title": "AutoSlides에 오신 것을 환영합니다",
@@ -1217,10 +1219,18 @@
     "readmeBody2": "AutoSlides 데이터베이스(ASnote) 그룹 안의 노트를 수동으로 이름 변경·이동·편집하지 마세요. 다시 동기화할 때 AutoSlides가 덮어쓸 수 있습니다.",
     "readmeBody3": "참고: 슬라이드 이미지는 옌허커탕의 공개 저장소에 업로드되어 링크가 있으면 누구나 볼 수 있습니다. 비공개·민감한 이미지는 포함하지 마세요.",
     "deleteGroup": "그룹 삭제",
-    "newGroupPlaceholder": "새 그룹 (≤{max})",
+    "newGroupPlaceholder": "새 그룹",
     "newGroupTitle": "새 그룹",
     "newGroupLabel": "그룹 이름",
     "newGroupHelp": "그룹 이름은 {max}자 이내여야 합니다.",
+    "groupName": {
+      "empty": "이름을 입력하세요.",
+      "tooLong": "이름은 {max}자 이내여야 합니다.",
+      "reserved": "이 이름은 예약되어 있습니다.",
+      "duplicate": "같은 이름의 그룹이 이미 있습니다.",
+      "invalidChars": "이 이름은 사용할 수 없습니다. 다른 이름을 선택하세요.",
+      "failed": "그룹을 만들 수 없습니다."
+    },
     "add": "추가",
     "searchPlaceholder": "제목으로 검색…",
     "search": "검색",

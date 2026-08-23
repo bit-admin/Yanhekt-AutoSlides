@@ -134,7 +134,7 @@
         :class="{ collapsed: groupCollapsed }"
         :style="{ width: groupColPx }"
       >
-        <div class="cn-groups-scroll custom-scrollbar">
+        <div ref="groupsScrollEl" class="cn-groups-scroll custom-scrollbar">
           <!-- AutoSlides Index — flips the whole page into index mode -->
           <button
             class="cn-group-item cn-index-nav"
@@ -228,6 +228,26 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>
             </button>
           </div>
+          <div v-if="creatingGroup" class="cn-group-item-row cn-inline-create">
+            <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <div class="cn-inline-wrap">
+              <input
+                ref="newGroupInput"
+                v-model="newGroupName"
+                class="cn-inline-input"
+                :class="{ 'has-error': !!groupCreateError }"
+                :placeholder="$t('cloudNotes.newGroupPlaceholder')"
+                :aria-label="$t('cloudNotes.newGroupTitle')"
+                :aria-invalid="!!groupCreateError"
+                @keydown.enter.prevent="commitNewGroup"
+                @keydown.esc.prevent="cancelNewGroup"
+                @input="onGroupNameInput"
+                @blur="onGroupBlur"
+              />
+            </div>
+          </div>
           </template>
 
           <!-- Index mode: filters + course list (grouped from the last search) -->
@@ -269,7 +289,11 @@
         </div>
 
         <div v-if="viewMode === 'notes'" class="cn-groups-footer">
-          <button class="cn-newgroup-btn" @click="showNewGroupModal = true">
+          <button
+            class="cn-newgroup-btn"
+            @mousedown="creatingGroup ? $event.preventDefault() : undefined"
+            @click="startNewGroup"
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
@@ -278,7 +302,14 @@
         </div>
       </aside>
 
-      <NewGroupModal :open="showNewGroupModal" :cn="cn" @close="showNewGroupModal = false" />
+      <Teleport to="body">
+        <div
+          v-if="creatingGroup && groupCreateError"
+          class="cn-inline-error"
+          role="alert"
+          :style="groupErrorStyle"
+        >{{ groupCreateError }}</div>
+      </Teleport>
 
       <!-- groups | list resize divider (drag left past the threshold collapses groups) -->
       <div class="cn-divider" @mousedown="startResize('group', $event)"></div>
@@ -533,7 +564,7 @@ import { useNoteImport } from '@features/cloudNotes/useNoteImport'
 import { useShareIndexExport } from '@features/cloudNotes/useShareIndexExport'
 import { useCloudIndexBrowse, type IndexTermOption } from '@features/cloudNotes/useCloudIndexBrowse'
 import { navigationStore } from '@features/course/navigationStore'
-import { formatNoteGroupLabel, type IndexLecture, type IndexVersion } from '@common/notesTypes'
+import { formatNoteGroupLabel, NOTE_GROUP_NAME_MAX, validateNoteGroupName, type IndexLecture, type IndexVersion } from '@common/notesTypes'
 import SemesterSelect from '../course/SemesterSelect.vue'
 import CloudIndexViewer from './CloudIndexViewer.vue'
 import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
@@ -541,7 +572,6 @@ import ImportProgressModal from './ImportProgressModal.vue'
 import NoteEditorPane from './NoteEditorPane.vue'
 import NoteShareModal from './NoteShareModal.vue'
 import NoteExportFormatModal from './NoteExportFormatModal.vue'
-import NewGroupModal from './NewGroupModal.vue'
 import ImportSelectModal from './ImportSelectModal.vue'
 import NotesExportModal from './NotesExportModal.vue'
 import IndexExportModal from './IndexExportModal.vue'
@@ -881,7 +911,126 @@ function startResize(type: 'group' | 'list', e: MouseEvent): void {
   e.preventDefault()
 }
 
-const showNewGroupModal = ref(false)
+const creatingGroup = ref(false)
+const newGroupName = ref('')
+const groupCreateError = ref('')
+const newGroupInput = ref<HTMLInputElement | null>(null)
+const groupsScrollEl = ref<HTMLElement | null>(null)
+const groupErrorStyle = ref<Record<string, string>>({})
+let groupCreateBusy = false
+let suppressGroupBlur = false
+
+function existingGroupNames(): string[] {
+  return cn.groups.value.map((g) => g.name)
+}
+
+function groupNameMessage(raw: string): string {
+  const code = validateNoteGroupName(raw, existingGroupNames())
+  if (!code) return ''
+  return t(`cloudNotes.groupName.${code}`, { max: NOTE_GROUP_NAME_MAX })
+}
+
+function syncGroupErrorPos(): void {
+  const el = newGroupInput.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  groupErrorStyle.value = {
+    top: `${Math.round(r.bottom + 4)}px`,
+    left: `${Math.round(r.left)}px`,
+  }
+}
+
+function startNewGroup(): void {
+  if (creatingGroup.value) {
+    nextTick(() => newGroupInput.value?.focus())
+    return
+  }
+  newGroupName.value = ''
+  groupCreateError.value = ''
+  creatingGroup.value = true
+  nextTick(() => {
+    newGroupInput.value?.focus()
+    syncGroupErrorPos()
+  })
+}
+
+function cancelNewGroup(): void {
+  suppressGroupBlur = true
+  creatingGroup.value = false
+  newGroupName.value = ''
+  groupCreateError.value = ''
+  nextTick(() => { suppressGroupBlur = false })
+}
+
+function onGroupNameInput(): void {
+  const code = validateNoteGroupName(newGroupName.value, existingGroupNames())
+  if (!code || code === 'empty') {
+    groupCreateError.value = ''
+  } else if (code === 'tooLong' || groupCreateError.value) {
+    groupCreateError.value = groupNameMessage(newGroupName.value)
+  }
+  nextTick(syncGroupErrorPos)
+}
+
+async function commitNewGroup(): Promise<void> {
+  const err = groupNameMessage(newGroupName.value)
+  if (err) {
+    groupCreateError.value = err
+    nextTick(() => {
+      syncGroupErrorPos()
+      newGroupInput.value?.focus()
+    })
+    return
+  }
+  if (groupCreateBusy) return
+  groupCreateBusy = true
+  suppressGroupBlur = true
+  const ok = await cn.createGroup(newGroupName.value.trim())
+  groupCreateBusy = false
+  if (ok) {
+    creatingGroup.value = false
+    newGroupName.value = ''
+    groupCreateError.value = ''
+    suppressGroupBlur = false
+    return
+  }
+  groupCreateError.value = t('cloudNotes.groupName.failed')
+  nextTick(() => {
+    suppressGroupBlur = false
+    newGroupInput.value?.focus()
+    syncGroupErrorPos()
+  })
+}
+
+function onGroupBlur(): void {
+  if (suppressGroupBlur || groupCreateBusy) return
+  if (!newGroupName.value.trim()) {
+    cancelNewGroup()
+    return
+  }
+  const err = groupNameMessage(newGroupName.value)
+  if (err) {
+    groupCreateError.value = err
+    nextTick(syncGroupErrorPos)
+    return
+  }
+  void commitNewGroup()
+}
+
+watch(creatingGroup, (open) => {
+  const el = groupsScrollEl.value
+  if (open) {
+    el?.addEventListener('scroll', syncGroupErrorPos, { passive: true })
+    window.addEventListener('resize', syncGroupErrorPos)
+  } else {
+    el?.removeEventListener('scroll', syncGroupErrorPos)
+    window.removeEventListener('resize', syncGroupErrorPos)
+  }
+})
+
+watch(viewMode, (mode) => {
+  if (mode !== 'notes' && creatingGroup.value) cancelNewGroup()
+})
 
 async function onCreateNote(): Promise<void> {
   const id = await cn.createNote()
@@ -1001,6 +1150,8 @@ watch(
 
 onUnmounted(() => {
   if (resizing) stopResize()
+  groupsScrollEl.value?.removeEventListener('scroll', syncGroupErrorPos)
+  window.removeEventListener('resize', syncGroupErrorPos)
 })
 
 // Account switch: the note list, groups, and any open note belong to the previous
@@ -1376,6 +1527,61 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
 .cn-newgroup-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.cn-inline-create {
+  gap: 9px;
+  padding: 2px 10px 2px 10px;
+  overflow: visible;
+}
+
+.cn-inline-create .cn-group-icon {
+  flex-shrink: 0;
+}
+
+.cn-inline-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cn-inline-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.cn-inline-input::placeholder {
+  color: var(--text-muted);
+}
+
+.cn-inline-input.has-error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.cn-inline-error {
+  position: fixed;
+  z-index: var(--z-overlay);
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(220px, calc(100vw - 24px));
+  padding: 6px 8px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px var(--shadow-md);
+  pointer-events: none;
 }
 
 /* Init cloud storage — flat row matching the group items, accent text. */

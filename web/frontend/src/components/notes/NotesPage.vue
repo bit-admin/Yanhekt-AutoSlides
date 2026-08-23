@@ -28,7 +28,7 @@
       @create-note="onCreateNote"
       @delete-note="onDeleteNote"
       @delete-group="onDeleteGroup"
-      @new-group="showNewGroupModal = true"
+      @create-group="onCreateGroup"
       @refresh="onRefreshList"
       @go-page="cn.goToPage"
       @close="sidebarOpen = false"
@@ -108,12 +108,6 @@
 
       <PublicStorageBanner v-if="!publicStorageNoticeStore.acknowledged.value" />
     </template>
-
-    <NotesNewGroupModal
-      v-if="showNewGroupModal"
-      @close="showNewGroupModal = false"
-      @create="onCreateGroup"
-    />
   </div>
 </template>
 
@@ -132,7 +126,6 @@ import { dialogStore } from '../../stores/dialogStore'
 import { publicStorageNoticeStore } from '../../stores/publicStorageNoticeStore'
 import NotesSidebar from './NotesSidebar.vue'
 import NotesEditorCanvas from './NotesEditorCanvas.vue'
-import NotesNewGroupModal from './NotesNewGroupModal.vue'
 import PublicStorageBanner from './PublicStorageBanner.vue'
 
 defineOptions({ name: 'NotesPage' })
@@ -143,7 +136,6 @@ const router = useRouter()
 const cn = useCloudNotes()
 const ed = useNoteEditor(cn, t)
 
-const showNewGroupModal = ref(false)
 const sidebarOpen = ref(false)
 const isMobile = ref(false)
 
@@ -407,8 +399,7 @@ async function onDeleteGroup(id: number, name: string): Promise<void> {
 }
 
 async function onCreateGroup(name: string): Promise<void> {
-  const ok = await cn.createGroup(name)
-  if (ok) showNewGroupModal.value = false
+  await cn.createGroup(name)
 }
 
 async function onMoveGroup(groupId: number): Promise<void> {

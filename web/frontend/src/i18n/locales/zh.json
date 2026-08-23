@@ -59,7 +59,9 @@
       "modeLabel": "搜索类型",
       "placeholder": "输入关键词...",
       "remove": "删除",
-      "save": "保存搜索"
+      "save": "保存搜索",
+      "empty": "请输入关键词。",
+      "duplicate": "该搜索已保存。"
     },
     "signInToLoad": "登录后加载课程列表",
     "status": {
@@ -465,8 +467,16 @@
     "defaultGroup": "未分组",
     "deleteGroup": "删除文件夹",
     "newGroupTitle": "新建文件夹",
-    "newGroupPlaceholder": "新建文件夹（≤{max}）",
+    "newGroupPlaceholder": "新建文件夹",
     "newGroupHint": "文件夹名称最多 {max} 个字符。",
+    "groupName": {
+      "empty": "请输入名称。",
+      "tooLong": "名称最多 {max} 个字符。",
+      "reserved": "该名称已被保留。",
+      "duplicate": "已有同名文件夹。",
+      "invalidChars": "该名称无效，请换一个。",
+      "failed": "无法创建文件夹。"
+    },
     "loading": "加载中…",
     "noNotes": "暂无页面",
     "untitled": "无标题",

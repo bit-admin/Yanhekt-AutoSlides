@@ -1,5 +1,5 @@
 <template>
-  <!-- Drive-style workspace modal chrome (matches NewGroupModal / NoteExportFormatModal). -->
+  <!-- Drive-style workspace modal chrome (matches NoteExportFormatModal). -->
   <div class="modal-overlay" @click.self="emit('close')">
     <div class="lec-modal-box lec-rename-box" @click.stop>
       <h3 class="lec-modal-title">{{ $t('lectures.renameModalTitle') }}</h3>

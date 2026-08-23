@@ -614,7 +614,9 @@
       "modeLabel": "検索モード",
       "placeholder": "キーワードを入力...",
       "cancel": "キャンセル",
-      "confirm": "保存"
+      "confirm": "保存",
+      "empty": "キーワードを入力してください。",
+      "duplicate": "この検索は既に保存されています。"
     },
     "welcome": {
       "title": "AutoSlidesへようこそ",
@@ -1217,10 +1219,18 @@
     "readmeBody2": "AutoSlidesデータベース（ASnote）グループ内のノートを手動で名前変更・移動・編集しないでください。再同期の際に AutoSlides が上書きする場合があります。",
     "readmeBody3": "注意：スライド画像は延河課堂の公開ストレージにアップロードされ、リンクを知っていれば誰でも閲覧できます。私的・機密の画像は含めないでください。",
     "deleteGroup": "グループを削除",
-    "newGroupPlaceholder": "新規グループ（≤{max}）",
+    "newGroupPlaceholder": "新規グループ",
     "newGroupTitle": "新規グループ",
     "newGroupLabel": "グループ名",
     "newGroupHelp": "グループ名は{max}文字以内です。",
+    "groupName": {
+      "empty": "名前を入力してください。",
+      "tooLong": "名前は{max}文字以内です。",
+      "reserved": "この名前は予約されています。",
+      "duplicate": "同じ名前のグループが既にあります。",
+      "invalidChars": "この名前は使えません。別の名前を指定してください。",
+      "failed": "グループを作成できませんでした。"
+    },
     "add": "追加",
     "searchPlaceholder": "タイトルで検索…",
     "search": "検索",

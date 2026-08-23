@@ -59,7 +59,9 @@
       "modeLabel": "Search mode",
       "placeholder": "Enter a keyword...",
       "remove": "Remove",
-      "save": "Save Search"
+      "save": "Save Search",
+      "empty": "Enter a keyword.",
+      "duplicate": "This search is already saved."
     },
     "signInToLoad": "Sign in to load your course list",
     "status": {
@@ -465,8 +467,16 @@
     "defaultGroup": "Ungrouped",
     "deleteGroup": "Delete group",
     "newGroupTitle": "New folder",
-    "newGroupPlaceholder": "New folder (≤{max})",
+    "newGroupPlaceholder": "New folder",
     "newGroupHint": "Folder names are limited to {max} characters.",
+    "groupName": {
+      "empty": "Enter a name.",
+      "tooLong": "Name is limited to {max} characters.",
+      "reserved": "This name is reserved.",
+      "duplicate": "A folder with this name already exists.",
+      "invalidChars": "This name is not valid. Please choose a different name.",
+      "failed": "Couldn't create the folder."
+    },
     "loading": "Loading…",
     "noNotes": "No pages",
     "untitled": "Untitled",

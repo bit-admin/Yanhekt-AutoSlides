@@ -7,7 +7,9 @@ import {
   formatNoteGroupLabel,
   isManagedNoteTitle,
   MANAGED_GROUP_NAME,
+  NOTE_GROUP_NAME_MAX,
   managedNoteDisplayName,
+  validateNoteGroupName,
   managedNoteIdentity,
   shareImportDisplayName,
   splitNoteDisplayName,
@@ -92,5 +94,26 @@ describe('managed note titles', () => {
         lectureMeta: { courseTitle: '操作系统', sessionTitle: '第1周 星期二 第5大节' },
       }),
     ).toBe('操作系统_第1周_星期二_第5大节');
+  });
+});
+
+describe('validateNoteGroupName', () => {
+  const existing = ['Math', '物理'];
+
+  it('rejects empty, over-long, reserved, duplicate, and slash names', () => {
+    expect(validateNoteGroupName('  ', existing)).toBe('empty');
+    expect(validateNoteGroupName('abcdefg', existing)).toBe('tooLong');
+    expect('abcdefg'.length).toBeGreaterThan(NOTE_GROUP_NAME_MAX);
+    expect(validateNoteGroupName('ASnote', existing)).toBe('reserved');
+    expect(validateNoteGroupName('asuser', existing)).toBe('reserved');
+    expect(validateNoteGroupName('math', existing)).toBe('duplicate');
+    expect(validateNoteGroupName('a/b', existing)).toBe('invalidChars');
+    expect(validateNoteGroupName('ab\\c', existing)).toBe('invalidChars');
+    expect(validateNoteGroupName('ab\nc', existing)).toBe('invalidChars');
+  });
+
+  it('accepts a short unique name', () => {
+    expect(validateNoteGroupName('笔记', existing)).toBeNull();
+    expect(validateNoteGroupName('abcdef', existing)).toBeNull();
   });
 });

@@ -51,8 +51,30 @@
           </span>
         </button>
 
-        <!-- Add Chip Button -->
-        <button class="chip chip--add" @click="openAddModal">
+        <div v-if="addingSearch" class="chip chip--editing" :class="`chip--${newSearchMode}`">
+          <input
+            ref="keywordInputRef"
+            v-model="newKeyword"
+            type="text"
+            class="chip-inline-input"
+            :class="{ 'has-error': !!searchError }"
+            :placeholder="$t('courses.savedSearches.placeholder')"
+            :aria-label="$t('courses.savedSearches.modalTitle')"
+            :aria-invalid="!!searchError"
+            @keydown.enter.prevent="confirmAdd"
+            @keydown.esc.prevent="closeAddSearch"
+            @input="onSearchKeywordInput"
+            @blur="onSearchBlur"
+          />
+          <button
+            type="button"
+            class="chip-mode-toggle"
+            :aria-label="$t('courses.savedSearches.modeLabel')"
+            @mousedown.prevent
+            @click="newSearchMode = newSearchMode === 'recorded' ? 'live' : 'recorded'"
+          >{{ $t(newSearchMode === 'live' ? 'navigation.live' : 'navigation.recorded') }}</button>
+        </div>
+        <button v-else class="chip chip--add" @click="openAddSearch">
           <svg class="chip-add-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"/>
             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -183,40 +205,19 @@
       <p class="signin-panel-subtitle">{{ $t('home.signInHint') }}</p>
     </div>
 
-    <!-- Save Search Modal -->
-    <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
-      <div class="modal-box">
-        <h3 class="modal-title">{{ $t('courses.savedSearches.modalTitle') }}</h3>
-        <div class="modal-field-row">
-          <input
-            v-model="newKeyword"
-            type="text"
-            class="modal-input"
-            :placeholder="$t('courses.savedSearches.placeholder')"
-            @keyup.enter="confirmAdd"
-            @keyup.esc="closeAddModal"
-            ref="keywordInputRef"
-          />
-          <select
-            v-model="newSearchMode"
-            class="select-field modal-mode-select"
-            :aria-label="$t('courses.savedSearches.modeLabel')"
-          >
-            <option value="recorded">{{ $t('navigation.recorded') }}</option>
-            <option value="live">{{ $t('navigation.live') }}</option>
-          </select>
-        </div>
-        <div class="modal-actions">
-          <button class="btn modal-action-btn" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
-          <button class="btn btn--primary modal-action-btn" @click="confirmAdd" :disabled="!newKeyword.trim()">{{ $t('courses.savedSearches.confirm') }}</button>
-        </div>
-      </div>
-    </div>
+    <Teleport to="body">
+      <div
+        v-if="addingSearch && searchError"
+        class="chip-inline-error"
+        role="alert"
+        :style="searchErrorStyle"
+      >{{ searchError }}</div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getPersonalLiveList, getPersonalCourseList } from '../../lib/api'
 import {
@@ -227,7 +228,7 @@ import {
 } from '../../composables/useCourseList'
 import { openCourse } from '../../composables/courseSelection'
 import { useSearchPage } from '../../composables/useSearchPage'
-import { mergedSavedSearches, addSavedSearch, removeSavedSearch } from '../../composables/savedSearches'
+import { mergedSavedSearches, addSavedSearch, removeSavedSearch, savedSearchesLive, savedSearchesRecorded } from '../../composables/savedSearches'
 import { subscribedRecordedCourses, openSubscribedCourse, removeSubscribedCourse } from '../../composables/subscribedCourses'
 import { authStore } from '../../stores/authStore'
 import { resolveCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
@@ -246,28 +247,99 @@ const { isLoggedIn, userNickname, userId } = authStore
 const { activeNav, navigate } = navigationStore
 const { openSavedSearch } = useSearchPage()
 
-// Add-saved-search modal
-const showAddModal = ref(false)
+const addingSearch = ref(false)
 const newKeyword = ref('')
 const newSearchMode = ref<'live' | 'recorded'>('recorded')
 const keywordInputRef = ref<HTMLInputElement | null>(null)
+const searchError = ref('')
+const searchErrorStyle = ref<Record<string, string>>({})
+let suppressSearchBlur = false
 
-const openAddModal = () => {
-  newKeyword.value = ''
-  newSearchMode.value = 'recorded'
-  showAddModal.value = true
-  void nextTick(() => keywordInputRef.value?.focus())
+function syncSearchErrorPos(): void {
+  const el = keywordInputRef.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  searchErrorStyle.value = {
+    top: `${Math.round(r.bottom + 4)}px`,
+    left: `${Math.round(r.left)}px`,
+    width: `${Math.round(Math.max(r.width, 180))}px`,
+  }
 }
 
-const closeAddModal = () => {
-  showAddModal.value = false
+function searchKeywordMessage(raw: string): string {
+  const kw = raw.trim()
+  if (!kw) return t('courses.savedSearches.empty')
+  const current = newSearchMode.value === 'live' ? savedSearchesLive.value : savedSearchesRecorded.value
+  if (current.includes(kw)) return t('courses.savedSearches.duplicate')
+  return ''
+}
+
+const openAddSearch = () => {
+  newKeyword.value = ''
+  newSearchMode.value = 'recorded'
+  searchError.value = ''
+  addingSearch.value = true
+  void nextTick(() => {
+    keywordInputRef.value?.focus()
+    syncSearchErrorPos()
+  })
+}
+
+const closeAddSearch = () => {
+  suppressSearchBlur = true
+  addingSearch.value = false
+  newKeyword.value = ''
+  searchError.value = ''
+  void nextTick(() => { suppressSearchBlur = false })
+}
+
+const onSearchKeywordInput = () => {
+  if (!searchError.value) return
+  searchError.value = searchKeywordMessage(newKeyword.value)
+  void nextTick(syncSearchErrorPos)
 }
 
 const confirmAdd = () => {
-  if (!newKeyword.value.trim()) return
+  const err = searchKeywordMessage(newKeyword.value)
+  if (err) {
+    searchError.value = err
+    void nextTick(() => {
+      syncSearchErrorPos()
+      keywordInputRef.value?.focus()
+    })
+    return
+  }
   addSavedSearch(newSearchMode.value, newKeyword.value)
-  closeAddModal()
+  closeAddSearch()
 }
+
+const onSearchBlur = () => {
+  if (suppressSearchBlur) return
+  if (!newKeyword.value.trim()) {
+    closeAddSearch()
+    return
+  }
+  const err = searchKeywordMessage(newKeyword.value)
+  if (err) {
+    searchError.value = err
+    void nextTick(syncSearchErrorPos)
+    return
+  }
+  confirmAdd()
+}
+
+watch(newSearchMode, () => {
+  if (!searchError.value) return
+  searchError.value = searchKeywordMessage(newKeyword.value)
+  void nextTick(syncSearchErrorPos)
+})
+watch(addingSearch, (open) => {
+  if (open) window.addEventListener('resize', syncSearchErrorPos)
+  else window.removeEventListener('resize', syncSearchErrorPos)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', syncSearchErrorPos)
+})
 
 const greetingText = computed(() => {
   const hour = new Date().getHours()
@@ -475,6 +547,56 @@ watch(activeNav, (nav) => {
 
 .chip-add-icon {
   margin-right: -0.125rem;
+}
+
+.chip--editing {
+  padding: 0 0.35rem 0 0.5rem;
+  gap: 0.25rem;
+  cursor: default;
+  border-color: var(--accent-deep);
+}
+
+.chip-inline-input {
+  width: 8.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border: none;
+  border-radius: 0.25rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  outline: none;
+}
+
+.chip-inline-input.has-error {
+  box-shadow: 0 0 0 1px var(--danger);
+}
+
+.chip-mode-toggle {
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border: none;
+  border-radius: 0.25rem;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip-inline-error {
+  position: fixed;
+  z-index: var(--z-overlay);
+  box-sizing: border-box;
+  padding: 6px 8px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px var(--shadow-md);
+  pointer-events: none;
 }
 
 /* Sections & Grids */
@@ -695,86 +817,6 @@ watch(activeNav, (nav) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* Modal and segments styling (relative rem units) */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay-dark);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
-  backdrop-filter: blur(2px);
-}
-
-.modal-box {
-  background: var(--bg-modal);
-  border-radius: 0.75rem;
-  padding: 1.5rem;
-  width: 24rem;
-  max-width: calc(100vw - 2rem);
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.modal-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
-}
-
-.modal-field-row {
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-}
-
-.modal-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  box-sizing: border-box;
-  height: var(--control-height);
-  min-height: var(--control-height);
-  padding: 0 0.75rem;
-  border: 1px solid var(--border-input);
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.modal-input:focus {
-  border-color: var(--link-color);
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
-.modal-mode-select {
-  flex: 0 0 auto;
-  width: 6.25rem;
-  padding-left: 0.5rem;
-  padding-right: 1.5rem;
-  background-position: right 0.4rem center;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.modal-action-btn {
-  flex: 0 0 auto;
-  min-width: 7.5rem;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
 }
 
 .row-loading {

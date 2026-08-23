@@ -91,7 +91,33 @@
             </svg>
           </button>
         </div>
-        <div class="saved-card saved-card--add" @click="openAddModal">
+        <div
+          v-if="addingSearch"
+          class="saved-card saved-card--editing"
+          :class="[`saved-card--${newSearchMode}`, { 'has-error': !!searchError }]"
+        >
+          <input
+            ref="addSearchInput"
+            v-model="newKeyword"
+            type="text"
+            class="saved-inline-input"
+            :placeholder="$t('courses.savedSearches.placeholder')"
+            :aria-label="$t('courses.savedSearches.modalTitle')"
+            :aria-invalid="!!searchError"
+            @keydown.enter.prevent="confirmAddSearch"
+            @keydown.esc.prevent="closeAddSearch"
+            @input="onSearchKeywordInput"
+            @blur="onSearchBlur"
+          />
+          <button
+            type="button"
+            class="saved-mode-toggle"
+            :aria-label="$t('courses.savedSearches.modeLabel')"
+            @mousedown.prevent
+            @click="newSearchMode = newSearchMode === 'recorded' ? 'live' : 'recorded'"
+          >{{ $t(newSearchMode === 'live' ? 'navigation.live' : 'navigation.recorded') }}</button>
+        </div>
+        <div v-else class="saved-card saved-card--add" @click="openAddSearch">
           <span class="saved-icon saved-icon--add">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/>
@@ -193,39 +219,19 @@
     </template>
     <p v-else class="home-signin-hint">{{ $t('home.signInHint') }}</p>
 
-    <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
-      <div class="modal-box">
-        <h3 class="modal-title">{{ $t('courses.savedSearches.modalTitle') }}</h3>
-        <div class="modal-field-row">
-          <input
-            v-model="newKeyword"
-            type="text"
-            class="modal-input"
-            :placeholder="$t('courses.savedSearches.placeholder')"
-            @keyup.enter="confirmAddSearch"
-            @keyup.esc="closeAddModal"
-            ref="modalInputRef"
-          />
-          <select
-            v-model="newSearchMode"
-            class="select-field modal-mode-select"
-            :aria-label="$t('courses.savedSearches.modeLabel')"
-          >
-            <option value="recorded">{{ $t('navigation.recorded') }}</option>
-            <option value="live">{{ $t('navigation.live') }}</option>
-          </select>
-        </div>
-        <div class="modal-actions">
-          <button class="btn modal-action-btn" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
-          <button class="btn btn--primary modal-action-btn" @click="confirmAddSearch" :disabled="!newKeyword.trim()">{{ $t('courses.savedSearches.confirm') }}</button>
-        </div>
-      </div>
-    </div>
+    <Teleport to="body">
+      <div
+        v-if="addingSearch && searchError"
+        class="saved-inline-error"
+        role="alert"
+        :style="searchErrorStyle"
+      >{{ searchError }}</div>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGreeting } from '@features/platform/useGreeting'
 import { useAuth } from '@features/platform/useAuth'
@@ -234,7 +240,7 @@ import { useHomeThumbnails } from '@features/course/useHomeThumbnails'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { openCourse } from '@features/course/courseSelection'
 import { getCourseStatusClass, getCourseStatusText, type Course } from '@features/course/useCourseList'
-import { mergedSavedSearches, addSavedSearch, removeSavedSearch } from '@features/course/savedSearches'
+import { mergedSavedSearches, addSavedSearch, removeSavedSearch, savedSearchesLive, savedSearchesRecorded } from '@features/course/savedSearches'
 import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
 import { useCampusNetworkCheck } from '@features/platform/useCampusNetworkCheck'
 import { settingsLauncher } from '@features/settings/settingsLauncher'
@@ -320,27 +326,95 @@ const vIntersect = {
   }
 }
 
-// Add Saved Search modal
-const showAddModal = ref(false)
+const addingSearch = ref(false)
 const newKeyword = ref('')
 const newSearchMode = ref<'live' | 'recorded'>('recorded')
-const modalInputRef = ref<HTMLInputElement | null>(null)
+const addSearchInput = ref<HTMLInputElement | null>(null)
+const searchError = ref('')
+const searchErrorStyle = ref<Record<string, string>>({})
+let suppressSearchBlur = false
 
-const openAddModal = () => {
+function syncSearchErrorPos(): void {
+  const el = addSearchInput.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  searchErrorStyle.value = {
+    top: `${Math.round(r.bottom + 4)}px`,
+    left: `${Math.round(r.left)}px`,
+    width: `${Math.round(Math.max(r.width, 180))}px`,
+  }
+}
+
+function searchKeywordMessage(raw: string): string {
+  const kw = raw.trim()
+  if (!kw) return t('courses.savedSearches.empty')
+  const current = newSearchMode.value === 'live' ? savedSearchesLive.value : savedSearchesRecorded.value
+  if (current.includes(kw)) return t('courses.savedSearches.duplicate')
+  return ''
+}
+
+const openAddSearch = () => {
   newKeyword.value = ''
   newSearchMode.value = 'recorded'
-  showAddModal.value = true
-  nextTick(() => modalInputRef.value?.focus())
+  searchError.value = ''
+  addingSearch.value = true
+  nextTick(() => {
+    addSearchInput.value?.focus()
+    syncSearchErrorPos()
+  })
 }
-const closeAddModal = () => {
-  showAddModal.value = false
+const closeAddSearch = () => {
+  suppressSearchBlur = true
+  addingSearch.value = false
+  newKeyword.value = ''
+  searchError.value = ''
+  nextTick(() => { suppressSearchBlur = false })
+}
+const onSearchKeywordInput = () => {
+  if (!searchError.value) return
+  searchError.value = searchKeywordMessage(newKeyword.value)
+  nextTick(syncSearchErrorPos)
 }
 const confirmAddSearch = () => {
-  if (newKeyword.value.trim()) {
-    addSavedSearch(newSearchMode.value, newKeyword.value)
+  const err = searchKeywordMessage(newKeyword.value)
+  if (err) {
+    searchError.value = err
+    nextTick(() => {
+      syncSearchErrorPos()
+      addSearchInput.value?.focus()
+    })
+    return
   }
-  closeAddModal()
+  addSavedSearch(newSearchMode.value, newKeyword.value)
+  closeAddSearch()
 }
+const onSearchBlur = () => {
+  if (suppressSearchBlur) return
+  if (!newKeyword.value.trim()) {
+    closeAddSearch()
+    return
+  }
+  const err = searchKeywordMessage(newKeyword.value)
+  if (err) {
+    searchError.value = err
+    nextTick(syncSearchErrorPos)
+    return
+  }
+  confirmAddSearch()
+}
+
+watch(newSearchMode, () => {
+  if (!searchError.value) return
+  searchError.value = searchKeywordMessage(newKeyword.value)
+  nextTick(syncSearchErrorPos)
+})
+watch(addingSearch, (open) => {
+  if (open) window.addEventListener('resize', syncSearchErrorPos)
+  else window.removeEventListener('resize', syncSearchErrorPos)
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', syncSearchErrorPos)
+})
 
 // Watch userId too: switching accounts stays logged-in (isLoggedIn unchanged),
 // so a plain isLoggedIn watch would leave the previous account's rows/greeting.
@@ -607,6 +681,62 @@ onMounted(() => {
   color: var(--accent);
 }
 
+.saved-card--editing,
+.saved-card--editing:hover {
+  overflow: visible;
+  cursor: default;
+  gap: 8px;
+  padding: 8px 10px;
+  border-color: var(--accent);
+  box-shadow: none;
+}
+
+.saved-card--editing.has-error,
+.saved-card--editing.has-error:hover {
+  border-color: var(--danger);
+}
+
+.saved-inline-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  box-shadow: none;
+}
+
+.saved-mode-toggle {
+  flex-shrink: 0;
+  height: 22px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 4px;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saved-inline-error {
+  position: fixed;
+  z-index: var(--z-overlay);
+  box-sizing: border-box;
+  padding: 6px 8px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+  color: var(--danger);
+  font-size: 11px;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px var(--shadow-md);
+  pointer-events: none;
+}
+
 .saved-remove {
   position: absolute;
   top: 6px;
@@ -806,92 +936,5 @@ onMounted(() => {
   margin: 0;
   font-size: 13px;
   color: var(--text-muted);
-}
-
-/* Add Saved Search modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay-dark);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
-}
-
-.modal-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
-  width: 384px;
-  max-width: calc(100vw - 32px);
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.modal-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
-}
-
-.modal-field-row {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.modal-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  box-sizing: border-box;
-  min-height: var(--control-height);
-  padding: 8px 11px;
-  border: 1px solid var(--border-input);
-  border-radius: 7px;
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.modal-input::placeholder {
-  color: var(--text-muted);
-}
-
-.modal-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
-.modal-mode-select {
-  flex: 0 0 auto;
-  width: 100px;
-  min-height: var(--control-height);
-  border-radius: 7px;
-  font-size: 13px;
-  padding: 6px 8px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.modal-action-btn {
-  flex: 0 0 auto;
-  min-width: 120px;
-  min-height: 32px;
-  padding-left: 24px;
-  padding-right: 24px;
-  border-radius: 7px;
-  font-size: 13px;
 }
 </style>

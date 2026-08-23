@@ -265,6 +265,40 @@ export function isAutoSlidesGroupName(name: string): boolean {
   return isManagedGroupName(name) || isUserGroupName(name);
 }
 
+/** Client-side reasons a new group/folder name cannot be submitted. */
+export type NoteGroupNameError = 'empty' | 'tooLong' | 'reserved' | 'duplicate' | 'invalidChars';
+
+function hasForbiddenGroupChars(name: string): boolean {
+  if (name.includes('/') || name.includes('\\')) return true;
+  for (let i = 0; i < name.length; i++) {
+    const code = name.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
+/**
+ * Validate a Yanhekt group name before POST /v1/note/group. Length matches the
+ * server's 6-char cap (JS string length, same as the old maxlength=6 input).
+ */
+export function validateNoteGroupName(
+  raw: string,
+  existingNames: Iterable<string>,
+): NoteGroupNameError | null {
+  const name = raw.trim();
+  if (!name) return 'empty';
+  if (name.length > NOTE_GROUP_NAME_MAX) return 'tooLong';
+  if (hasForbiddenGroupChars(name)) return 'invalidChars';
+  const lower = name.toLowerCase();
+  if (lower === MANAGED_GROUP_NAME.toLowerCase() || lower === USER_GROUP_NAME.toLowerCase()) {
+    return 'reserved';
+  }
+  for (const existing of existingNames) {
+    if (existing.toLowerCase() === lower) return 'duplicate';
+  }
+  return null;
+}
+
 /** i18n keys for friendly UI names. Server group names stay ASnote / ASuser. */
 export const MANAGED_GROUP_LABEL_KEY = 'cloudNotes.managedGroupAsnote';
 export const USER_GROUP_LABEL_KEY = 'cloudNotes.managedGroupAsuser';

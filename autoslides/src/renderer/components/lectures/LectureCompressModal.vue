@@ -125,7 +125,7 @@ const start = () => {
 </script>
 
 <style scoped>
-/* Matches Drive NewGroupModal / NoteExportFormatModal chrome. */
+/* Matches Drive NoteExportFormatModal chrome. */
 .lec-modal-box {
   background: var(--bg-modal);
   border-radius: 12px;

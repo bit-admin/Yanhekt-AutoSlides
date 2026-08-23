@@ -1,24 +1,84 @@
 <template>
   <div v-if="visible" class="modal-overlay" @click.self="close">
-    <div class="cn-modal-box cn-export-box">
-      <h3 class="cn-modal-title">{{ $t('cloudNotes.exportTitle') }}</h3>
-      <p class="cn-modal-help">{{ $t('cloudNotes.exportHint') }}</p>
-      <div class="cn-export-formats">
+    <div
+      class="cn-export-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cn-export-title"
+    >
+      <div class="cn-export-header">
+        <div class="cn-export-header-text">
+          <h3 id="cn-export-title" class="cn-export-title">{{ $t('cloudNotes.exportTitle') }}</h3>
+          <p class="cn-export-subtitle">{{ $t('cloudNotes.exportHint') }}</p>
+        </div>
+        <button
+          class="modal-close"
+          type="button"
+          :aria-label="$t('cloudNotes.cancel')"
+          :disabled="busy"
+          @click="close"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="cn-export-cards" role="group" :aria-label="$t('cloudNotes.exportTitle')">
         <button
           v-for="f in formats"
           :key="f.id"
-          class="cn-export-format"
+          type="button"
+          class="cn-format-card"
+          :class="{ 'is-busy': busy && activeFormat === f.id }"
           :disabled="busy"
           @click="run(f.id)"
         >
-          <span class="cn-export-format-name">{{ f.label }}</span>
-          <span class="cn-export-format-desc">{{ f.desc }}</span>
+          <span class="cn-format-icon" :class="`cn-format-icon--${f.id}`" aria-hidden="true">
+            <!-- PDF -->
+            <svg v-if="f.id === 'pdf'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <path d="M14 2v6h6"/>
+              <path d="M8 13h2.2a1.4 1.4 0 0 1 0 2.8H8V18"/>
+              <path d="M13 13v5M13 13h1.6a1.4 1.4 0 0 1 0 2.8H13"/>
+              <path d="M18 18v-5h.01"/>
+            </svg>
+            <!-- Markdown / zip -->
+            <svg v-else-if="f.id === 'markdown'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <path d="M14 2v6h6"/>
+              <path d="M8 14.5l2 2 2-2M10 16.5v-5"/>
+              <path d="M15 11.5v5l2-2"/>
+            </svg>
+            <!-- Word -->
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <path d="M14 2v6h6"/>
+              <path d="M8 13l1.4 5L12 13l2.6 5L16 13"/>
+            </svg>
+          </span>
+          <span class="cn-format-copy">
+            <span class="cn-format-name-row">
+              <span class="cn-format-name">{{ f.label }}</span>
+              <span class="cn-format-ext">{{ f.ext }}</span>
+            </span>
+            <span class="cn-format-desc">{{ f.desc }}</span>
+          </span>
+          <span class="cn-format-trail" aria-hidden="true">
+            <span v-if="busy && activeFormat === f.id" class="cn-format-spinner"></span>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </span>
         </button>
       </div>
-      <p v-if="busy" class="cn-export-status">{{ $t('cloudNotes.exportBusy') }}</p>
-      <p v-if="error" class="cn-export-status cn-export-error">{{ error }}</p>
-      <div class="cn-modal-actions">
-        <button class="btn cn-modal-btn" :disabled="busy" @click="close">{{ $t('cloudNotes.cancel') }}</button>
+
+      <p v-if="error" class="cn-export-error">{{ error }}</p>
+      <p v-else-if="busy" class="cn-export-status">{{ $t('cloudNotes.exportBusy') }}</p>
+
+      <div class="cn-export-actions">
+        <button class="btn cn-export-cancel" :disabled="busy" @click="close">{{ $t('cloudNotes.cancel') }}</button>
       </div>
     </div>
   </div>
@@ -41,16 +101,18 @@ const { t } = useI18n()
 const visible = ref(false)
 const busy = ref(false)
 const error = ref('')
+const activeFormat = ref<Format | null>(null)
 
-const formats = computed<{ id: Format; label: string; desc: string }[]>(() => [
-  { id: 'pdf', label: t('cloudNotes.exportPdf'), desc: t('cloudNotes.exportPdfDesc') },
-  { id: 'markdown', label: t('cloudNotes.exportMarkdown'), desc: t('cloudNotes.exportMarkdownDesc') },
-  { id: 'docx', label: t('cloudNotes.exportDocx'), desc: t('cloudNotes.exportDocxDesc') },
+const formats = computed<{ id: Format; label: string; desc: string; ext: string }[]>(() => [
+  { id: 'pdf', label: t('cloudNotes.exportPdf'), desc: t('cloudNotes.exportPdfDesc'), ext: '.pdf' },
+  { id: 'markdown', label: t('cloudNotes.exportMarkdown'), desc: t('cloudNotes.exportMarkdownDesc'), ext: '.zip' },
+  { id: 'docx', label: t('cloudNotes.exportDocx'), desc: t('cloudNotes.exportDocxDesc'), ext: '.docx' },
 ])
 
 function open(): void {
   error.value = ''
   busy.value = false
+  activeFormat.value = null
   visible.value = true
 }
 
@@ -63,6 +125,7 @@ async function run(format: Format): Promise<void> {
   const note = props.cn.selectedNote.value
   if (!note) return
   busy.value = true
+  activeFormat.value = format
   error.value = ''
   try {
     const content = await props.getContent()
@@ -70,6 +133,7 @@ async function run(format: Format): Promise<void> {
     const res = await window.electronAPI.noteExport.export({ title, content, format })
     if (res.canceled) {
       busy.value = false
+      activeFormat.value = null
       return
     }
     if (res.ok) {
@@ -81,6 +145,7 @@ async function run(format: Format): Promise<void> {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
     busy.value = false
+    activeFormat.value = null
   }
 }
 
@@ -88,77 +153,165 @@ defineExpose({ open })
 </script>
 
 <style scoped>
-/* Matches the Drive modals (NewGroupModal): rounded box, centered title, no
-   header bar / close button / footer chrome. */
-.cn-modal-box {
+.cn-export-modal {
   background: var(--bg-modal);
   border-radius: 12px;
-  padding: 20px;
-  width: 360px;
+  padding: 18px 18px 16px;
+  width: 400px;
+  max-width: calc(100vw - 32px);
   box-shadow: 0 8px 32px var(--shadow-lg);
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-.cn-modal-title {
+.cn-export-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cn-export-header-text {
+  min-width: 0;
+}
+
+.cn-export-title {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  text-align: center;
   color: var(--text-primary);
 }
 
-.cn-modal-help {
-  margin: -6px 0 0;
+.cn-export-subtitle {
+  margin: 4px 0 0;
   font-size: 12px;
-  color: var(--text-muted);
   line-height: 1.4;
+  color: var(--text-muted);
 }
 
-.cn-export-formats {
+.cn-export-cards {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.cn-export-format {
+.cn-format-card {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 11px 13px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background-color: var(--bg-surface);
+  border-radius: 10px;
+  background: var(--bg-surface);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
-.cn-export-format:hover:not(:disabled) {
+.cn-format-card:hover:not(:disabled) {
   border-color: var(--accent);
-  background-color: var(--bg-hover);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-surface));
+  transform: translateY(-1px);
 }
 
-.cn-export-format:disabled {
-  opacity: 0.6;
+.cn-format-card:disabled {
   cursor: default;
+  opacity: 0.7;
 }
 
-.cn-export-format-name {
+.cn-format-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.cn-format-icon--pdf {
+  background: color-mix(in srgb, var(--danger) 14%, var(--bg-surface));
+  color: var(--danger);
+}
+
+.cn-format-icon--markdown {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.cn-format-icon--docx {
+  background: color-mix(in srgb, var(--accent) 14%, var(--bg-surface));
+  color: var(--accent);
+}
+
+.cn-format-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.cn-format-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cn-format-name {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.cn-export-format-desc {
-  font-size: 12px;
+.cn-format-ext {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 
-.cn-export-status {
+.cn-format-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.cn-format-trail {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.cn-format-card:hover:not(:disabled) .cn-format-trail {
+  color: var(--accent);
+}
+
+.cn-format-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: cn-export-spin 0.7s linear infinite;
+}
+
+@keyframes cn-export-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cn-export-status,
+.cn-export-error {
   margin: 0;
+  min-height: 16px;
   font-size: 12px;
   color: var(--text-secondary);
 }
@@ -167,15 +320,14 @@ defineExpose({ open })
   color: var(--danger);
 }
 
-.cn-modal-actions {
+.cn-export-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 2px;
 }
 
-.cn-modal-btn {
+.cn-export-cancel {
   min-height: 32px;
-  padding: 0 18px;
+  padding: 0 16px;
   border-radius: 7px;
   font-size: 13px;
 }

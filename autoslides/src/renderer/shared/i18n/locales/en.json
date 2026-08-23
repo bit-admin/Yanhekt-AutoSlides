@@ -614,7 +614,9 @@
       "modeLabel": "Search mode",
       "placeholder": "Enter a keyword...",
       "cancel": "Cancel",
-      "confirm": "Save"
+      "confirm": "Save",
+      "empty": "Enter a keyword.",
+      "duplicate": "This search is already saved."
     },
     "welcome": {
       "title": "Welcome to AutoSlides",
@@ -1217,10 +1219,18 @@
     "readmeBody2": "Please don't manually rename, move, or edit notes inside AutoSlides Database (ASnote): AutoSlides may overwrite them when it re-syncs.",
     "readmeBody3": "Note: slide images are uploaded to Yanhekt's public storage, so anyone with the link can view them. Don't include private or sensitive images.",
     "deleteGroup": "Delete group",
-    "newGroupPlaceholder": "New group (≤{max})",
+    "newGroupPlaceholder": "New group",
     "newGroupTitle": "New Group",
     "newGroupLabel": "Group name",
     "newGroupHelp": "Group name is limited to {max} characters.",
+    "groupName": {
+      "empty": "Enter a name.",
+      "tooLong": "Name is limited to {max} chars.",
+      "reserved": "This name is reserved.",
+      "duplicate": "A group with this name already exists.",
+      "invalidChars": "This name is not valid. Please choose a different name.",
+      "failed": "Couldn't create the group."
+    },
     "add": "Add",
     "searchPlaceholder": "Search by title…",
     "search": "Search",

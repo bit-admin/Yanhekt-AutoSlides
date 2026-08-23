@@ -109,7 +109,30 @@
           </button>
         </div>
 
-        <button type="button" class="ns-row ns-row--muted" @click="emit('new-group')">
+        <div v-if="creating" class="ns-inline-create">
+          <svg class="ns-row-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+          </svg>
+          <input
+            ref="inputEl"
+            v-model="name"
+            class="ns-inline-input"
+            :class="{ 'has-error': !!error }"
+            :placeholder="$t('cloudNotes.newGroupPlaceholder')"
+            :aria-label="$t('cloudNotes.newGroupTitle')"
+            :aria-invalid="!!error"
+            @keydown.enter.prevent="commit"
+            @keydown.esc.prevent="cancel"
+            @input="onInput"
+            @blur="onBlur"
+          />
+        </div>
+        <button
+          v-else
+          type="button"
+          class="ns-row ns-row--muted"
+          @click="startCreate"
+        >
           <svg class="ns-row-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
           </svg>
@@ -174,13 +197,29 @@
     </div>
 
     <NotesUserMenu />
+
+    <Teleport to="body">
+      <div
+        v-if="creating && error"
+        class="ns-inline-error"
+        role="alert"
+        :style="errorStyle"
+      >{{ error }}</div>
+    </Teleport>
   </aside>
 </template>
 
 <script setup lang="ts">
+import { nextTick, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { formatNoteGroupLabel, type NoteGroup, type NoteSummary } from '../../lib/notes/notesTypes'
+import {
+  formatNoteGroupLabel,
+  NOTE_GROUP_NAME_MAX,
+  validateNoteGroupName,
+  type NoteGroup,
+  type NoteSummary,
+} from '../../lib/notes/notesTypes'
 import NotesUserMenu from './NotesUserMenu.vue'
 
 const { t } = useI18n()
@@ -189,7 +228,7 @@ function groupLabel(g: { id: number; name: string }): string {
   return formatNoteGroupLabel(g, t)
 }
 
-defineProps<{
+const props = defineProps<{
   keyword: string
   activeGroupId: number | ''
   managedGroups: NoteGroup[]
@@ -206,7 +245,7 @@ const emit = defineEmits<{
   close: []
   refresh: []
   'create-note': []
-  'new-group': []
+  'create-group': [name: string]
   'set-group': [id: number | '']
   'open-note': [id: number]
   'delete-note': [id: number]
@@ -218,6 +257,108 @@ const emit = defineEmits<{
 function onSearchInput(e: Event): void {
   emit('update:keyword', (e.target as HTMLInputElement).value)
 }
+
+const creating = ref(false)
+const name = ref('')
+const error = ref('')
+const inputEl = ref<HTMLInputElement | null>(null)
+const errorStyle = ref<Record<string, string>>({})
+let suppressBlur = false
+let committing = false
+
+function existingNames(): string[] {
+  return [...props.managedGroups, ...props.otherGroups].map((g) => g.name)
+}
+
+function nameMessage(raw: string): string {
+  const code = validateNoteGroupName(raw, existingNames())
+  if (!code) return ''
+  return t(`cloudNotes.groupName.${code}`, { max: NOTE_GROUP_NAME_MAX })
+}
+
+function syncErrorPos(): void {
+  const el = inputEl.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  errorStyle.value = {
+    top: `${Math.round(r.bottom + 4)}px`,
+    left: `${Math.round(r.left)}px`,
+    width: `${Math.round(Math.max(r.width, 160))}px`,
+  }
+}
+
+function startCreate(): void {
+  name.value = ''
+  error.value = ''
+  creating.value = true
+  void nextTick(() => {
+    inputEl.value?.focus()
+    syncErrorPos()
+  })
+}
+
+function cancel(): void {
+  suppressBlur = true
+  creating.value = false
+  name.value = ''
+  error.value = ''
+  void nextTick(() => { suppressBlur = false })
+}
+
+function onInput(): void {
+  const code = validateNoteGroupName(name.value, existingNames())
+  if (!code || code === 'empty') {
+    error.value = ''
+  } else if (code === 'tooLong' || error.value) {
+    error.value = nameMessage(name.value)
+  }
+  void nextTick(syncErrorPos)
+}
+
+function commit(): void {
+  const err = nameMessage(name.value)
+  if (err) {
+    error.value = err
+    void nextTick(() => {
+      syncErrorPos()
+      inputEl.value?.focus()
+    })
+    return
+  }
+  if (committing) return
+  committing = true
+  suppressBlur = true
+  emit('create-group', name.value.trim())
+  creating.value = false
+  name.value = ''
+  error.value = ''
+  committing = false
+  void nextTick(() => { suppressBlur = false })
+}
+
+function onBlur(): void {
+  if (suppressBlur || committing) return
+  if (!name.value.trim()) {
+    cancel()
+    return
+  }
+  const err = nameMessage(name.value)
+  if (err) {
+    error.value = err
+    void nextTick(syncErrorPos)
+    return
+  }
+  commit()
+}
+
+watch(creating, (open) => {
+  if (open) window.addEventListener('resize', syncErrorPos)
+  else window.removeEventListener('resize', syncErrorPos)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', syncErrorPos)
+})
 </script>
 
 <style scoped>
@@ -520,5 +661,51 @@ function onSearchInput(e: Event): void {
   to {
     transform: rotate(360deg);
   }
+}
+
+.ns-inline-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+}
+
+.ns-inline-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--nt-accent, #2383e2);
+  border-radius: 4px;
+  background: var(--bg-input, #fff);
+  color: var(--nt-text, #37352f);
+  font-size: 13px;
+  outline: none;
+  box-shadow: 0 0 0 1px var(--nt-accent, #2383e2);
+}
+
+.ns-inline-input::placeholder {
+  color: var(--nt-text-muted, #787774);
+}
+
+.ns-inline-input.has-error {
+  border-color: var(--danger, #c4554d);
+  box-shadow: 0 0 0 1px var(--danger, #c4554d);
+}
+
+.ns-inline-error {
+  position: fixed;
+  z-index: var(--z-overlay, 30);
+  box-sizing: border-box;
+  padding: 6px 8px;
+  background: var(--danger-bg, #ffe8e6);
+  border: 1px solid var(--danger-border, #feb2b2);
+  border-radius: 4px;
+  color: var(--danger, #c4554d);
+  font-size: 11px;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px var(--shadow-md, rgba(0, 0, 0, 0.12));
+  pointer-events: none;
 }
 </style>
