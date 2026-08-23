@@ -853,7 +853,7 @@ function RemovalModal({
         ) : (
           <>
             <p className="removal-modal-body">
-              This removes only the version(s) you uploaded for this lecture. Other
+              This removes only the versions you uploaded for this lecture. Other
               contributors’ versions are unaffected.
             </p>
             {!injected && (

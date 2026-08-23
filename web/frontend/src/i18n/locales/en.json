@@ -349,7 +349,7 @@
     "clearTrash": "Clear Trash",
     "confirmClear": "Permanently delete all trashed items? This cannot be undone.",
     "confirmClearFolder": "Permanently delete all removed images in {folder}? This cannot be undone.",
-    "confirmDelete": "Move {count} image(s) to trash?",
+    "confirmDelete": "Move {count} images to trash?",
     "confirmDeleteFolder": "Delete {folder} and all of its images? This cannot be undone.",
     "delete": "Delete",
     "deleteFolder": "Delete folder",

@@ -154,7 +154,7 @@ export async function exportLessonSummary({
     }
   }
 
-  onProgress(`Done. Exported ${presentations.length} presentation(s).`);
+  onProgress(`Done. Exported ${presentations.length} presentations.`);
   return {
     lessonId,
     lessonTitle,
