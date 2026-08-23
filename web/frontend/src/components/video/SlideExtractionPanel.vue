@@ -1,12 +1,16 @@
 <template>
   <div class="slide-extraction-panel">
     <div class="extraction-header">
-      <label class="extraction-toggle" :class="{ disabled: captureNotSupported }">
+      <label
+        class="extraction-toggle"
+        :class="{ enabled, disabled: captureNotSupported }"
+        @click.prevent="onToggleClick"
+      >
         <input
           type="checkbox"
           :checked="enabled"
           :disabled="captureNotSupported"
-          @click.prevent="onToggleClick"
+          tabindex="-1"
         />
         <span class="toggle-slider"></span>
         <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
@@ -181,9 +185,10 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const collapsed = ref(false)
 
-// Fully controlled: the native checkbox would otherwise stay checked when the
-// parent intercepts a turn-on (first-run features prompt) and leaves `enabled`
-// false. Vue skips patching :checked when the bound value did not change.
+// Fully controlled: intercept the label click so the native checkbox never
+// self-toggles. The parent may leave `enabled` false (first-run features
+// prompt Cancel); Vue would then skip patching :checked and the slider would
+// lie. ON chrome is the `.enabled` class, not input:checked.
 const onToggleClick = () => {
   if (props.captureNotSupported) return
   emit('toggle', !props.enabled)
@@ -295,6 +300,7 @@ const postLine = computed(() => {
 }
 
 .extraction-toggle {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -308,7 +314,13 @@ const postLine = computed(() => {
 }
 
 .extraction-toggle input {
-  display: none;
+  /* Stay in the tree for a11y (unlike display:none). ON chrome is driven by
+     `.enabled` because the label's @click.prevent stops the native checkbox
+     from toggling, so input:checked alone would stay visually off. */
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
 .toggle-slider {
@@ -334,11 +346,13 @@ const postLine = computed(() => {
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s ease;
 }
 
+.extraction-toggle.enabled .toggle-slider,
 .extraction-toggle input:checked + .toggle-slider {
   background-color: var(--accent);
   border-color: var(--accent);
 }
 
+.extraction-toggle.enabled .toggle-slider::after,
 .extraction-toggle input:checked + .toggle-slider::after {
   transform: translateX(16px);
   background-color: #ffffff;
