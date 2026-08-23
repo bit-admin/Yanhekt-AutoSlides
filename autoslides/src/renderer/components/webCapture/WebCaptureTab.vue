@@ -163,9 +163,9 @@
 
     <!-- Confirm name modal -->
     <div v-if="captureState === 'confirming'" class="modal-overlay" @click.self="cancelStart">
-      <div class="modal">
-        <h3>{{ $t('webCapture.confirmTitle') }}</h3>
-        <p>{{ $t('webCapture.confirmDesc') }} <code>slides_{{ sanitizedPreview }}</code>.</p>
+      <div class="dialog-box webcapture-confirm-box" @click.stop>
+        <h3 class="dialog-title">{{ $t('webCapture.confirmTitle') }}</h3>
+        <p class="dialog-help">{{ $t('webCapture.confirmDesc') }} <code>slides_{{ sanitizedPreview }}</code>.</p>
         <input
           class="text-input modal-input"
           :value="courseName"
@@ -173,9 +173,9 @@
           @keydown.enter="confirmAndStart"
           ref="modalInputRef"
         />
-        <div class="modal-actions">
-          <button class="btn secondary-btn" @click="cancelStart">{{ $t('webCapture.cancel') }}</button>
-          <button class="btn btn--primary" @click="confirmAndStart" :disabled="!courseName.trim()">{{ $t('webCapture.start') }}</button>
+        <div class="dialog-actions">
+          <button type="button" class="btn dialog-btn" @click="cancelStart">{{ $t('webCapture.cancel') }}</button>
+          <button type="button" class="btn btn--primary dialog-btn" @click="confirmAndStart" :disabled="!courseName.trim()">{{ $t('webCapture.start') }}</button>
         </div>
       </div>
     </div>
@@ -484,26 +484,11 @@ watch(captureState, (val) => {
   z-index: var(--z-overlay);
 }
 
-.modal {
+.webcapture-confirm-box {
   width: 420px;
-  background-color: var(--bg-modal);
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 4px 20px var(--shadow-lg);
 }
 
-.modal h3 {
-  margin: 0 0 8px 0;
-  font-size: 15px;
-}
-
-.modal p {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin: 0 0 12px 0;
-}
-
-.modal code {
+.webcapture-confirm-box code {
   padding: 1px 4px;
   background-color: var(--bg-hover);
   border-radius: 3px;
@@ -515,13 +500,6 @@ watch(captureState, (val) => {
   box-sizing: border-box;
   padding: 8px 10px;
   font-size: 13px;
-}
-
-.modal-actions {
-  margin-top: 14px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 </style>

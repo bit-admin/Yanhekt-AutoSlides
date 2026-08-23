@@ -2,19 +2,9 @@
   <!-- Teleported so the sidebar's overflow/stacking context can't clip it. -->
   <Teleport to="body">
     <div class="modal-overlay" @click.self="emit('close')">
-      <div class="modal-content feedback-modal" role="dialog" aria-modal="true" :aria-label="$t('feedback.title')">
-        <div class="modal-header">
-          <h3 class="feedback-title">{{ $t('feedback.title') }}</h3>
-          <button type="button" class="modal-close" :aria-label="$t('feedback.close')" @click="emit('close')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <div class="modal-body">
-          <p class="feedback-lead">{{ $t('feedback.lead') }}</p>
+      <div class="dialog-box feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+        <h3 id="feedback-title" class="dialog-title">{{ $t('feedback.title') }}</h3>
+        <p class="dialog-help">{{ $t('feedback.lead') }}</p>
 
           <button type="button" class="feedback-row" @click="openIssue">
             <span class="feedback-row-icon">
@@ -46,6 +36,9 @@
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
+
+        <div class="dialog-actions">
+          <button type="button" class="btn dialog-btn" @click="emit('close')">{{ $t('feedback.close') }}</button>
         </div>
       </div>
     </div>
@@ -113,20 +106,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   width: min(26rem, calc(100vw - 2rem));
 }
 
-.feedback-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.feedback-lead {
-  margin: 0 0 0.875rem;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
 .feedback-row {
   display: flex;
   align-items: center;
@@ -139,10 +118,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   text-align: left;
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s;
-}
-
-.feedback-row + .feedback-row {
-  margin-top: 0.5rem;
 }
 
 .feedback-row:hover {

@@ -1,7 +1,7 @@
 <template>
   <div v-if="open" class="modal-overlay" @click.self="$emit('close')">
-    <div class="cn-import-box">
-      <h3 class="cn-modal-title">{{ title }}</h3>
+    <div class="dialog-box cn-import-box">
+      <h3 class="dialog-title">{{ title }}</h3>
 
       <!-- Folder-batch imports only — a share-link import is always a single item. -->
       <div v-if="imp.queue.value.some(i => i.kind === 'folder')" class="cn-import-overall">{{ $t('cloudNotes.importOverall', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</div>
@@ -23,12 +23,12 @@
         </div>
       </div>
       <p v-if="imp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.importConflictHint') }}</p>
-      <div class="cn-modal-actions">
+      <div class="dialog-actions">
         <template v-if="imp.importing.value">
-          <button class="btn cn-modal-btn" @click="imp.cancel()">{{ $t('cloudNotes.importCancel') }}</button>
-          <button class="btn btn--primary cn-modal-btn" @click="$emit('close')">{{ $t('cloudNotes.importClose') }}</button>
+          <button class="btn dialog-btn" @click="imp.cancel()">{{ $t('cloudNotes.importCancel') }}</button>
+          <button class="btn btn--primary dialog-btn" @click="$emit('close')">{{ $t('cloudNotes.importClose') }}</button>
         </template>
-        <button v-else class="btn btn--primary cn-modal-btn" @click="$emit('done')">{{ $t('cloudNotes.importDone') }}</button>
+        <button v-else class="btn btn--primary dialog-btn" @click="$emit('done')">{{ $t('cloudNotes.importDone') }}</button>
       </div>
     </div>
   </div>
@@ -93,24 +93,9 @@ function barWidth(item: ImportItem): number {
 
 <style scoped>
 .cn-import-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
   width: 460px;
   max-width: 92vw;
   max-height: 80vh;
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.cn-modal-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
 }
 
 .cn-import-overall {
@@ -212,18 +197,5 @@ function barWidth(item: ImportItem): number {
   margin: 0;
   font-size: 12px;
   color: var(--text-muted);
-}
-
-.cn-modal-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.cn-modal-btn {
-  flex: 1;
-  min-height: 32px;
-  border-radius: 7px;
-  font-size: 13px;
 }
 </style>

@@ -1,9 +1,8 @@
 <template>
-  <!-- Drive-style workspace modal chrome (matches NoteExportFormatModal). -->
   <div class="modal-overlay" @click.self="emit('close')">
-    <div class="lec-modal-box lec-rename-box" @click.stop>
-      <h3 class="lec-modal-title">{{ $t('lectures.renameModalTitle') }}</h3>
-      <p class="lec-modal-help">
+    <div class="dialog-box lec-rename-box" @click.stop>
+      <h3 class="dialog-title">{{ $t('lectures.renameModalTitle') }}</h3>
+      <p class="dialog-help">
         {{ $t('lectures.renameModalHint') }}
       </p>
 
@@ -40,10 +39,10 @@
         </div>
       </div>
 
-      <div class="lec-modal-actions">
+      <div class="dialog-actions">
         <button
           type="button"
-          class="btn lec-modal-btn"
+          class="btn dialog-btn"
           :disabled="isApplying"
           @click="emit('close')"
         >
@@ -51,7 +50,7 @@
         </button>
         <button
           type="button"
-          class="btn btn--primary lec-modal-btn"
+          class="btn btn--primary dialog-btn"
           :disabled="previews.length === 0 || isHydrating || isApplying"
           @click="apply"
         >
@@ -226,35 +225,8 @@ const apply = async () => {
 </script>
 
 <style scoped>
-.lec-modal-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  max-height: 90vh;
-}
-
 .lec-rename-box {
   width: min(560px, 94vw);
-}
-
-.lec-modal-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
-}
-
-.lec-modal-help {
-  margin: -6px 0 0;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
-  text-align: center;
 }
 
 .lec-toggles {
@@ -336,18 +308,5 @@ const apply = async () => {
   text-align: center;
   color: var(--text-muted);
   font-size: 12px;
-}
-
-.lec-modal-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.lec-modal-btn {
-  flex: 1;
-  min-height: 32px;
-  border-radius: 7px;
-  font-size: 13px;
 }
 </style>

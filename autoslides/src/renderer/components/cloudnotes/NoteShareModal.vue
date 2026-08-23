@@ -3,13 +3,8 @@
        and AutoSlides Index publish. Owns all share state; the parent opens it
        via the exposed open() when the editor pane emits `share`. -->
   <div v-if="showShareModal" class="modal-overlay" @click.self="close">
-    <div class="cn-import-box cn-share-box">
-      <button class="modal-close cn-share-close" :aria-label="$t('cloudNotes.shareClose')" :title="$t('cloudNotes.shareClose')" @click="close">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-      <h3 class="cn-modal-title">{{ $t('cloudNotes.shareTitle') }}</h3>
+    <div class="dialog-box cn-share-box">
+      <h3 class="dialog-title">{{ $t('cloudNotes.shareTitle') }}</h3>
       <p class="cn-share-meta">
         <template v-if="shareImageCount > 0">{{ $t('cloudNotes.shareImagesCount', { n: shareImageCount }) }}</template>
         <template v-else>{{ $t('cloudNotes.shareNoImages') }}</template>
@@ -78,6 +73,10 @@
           </div>
         </div>
       </template>
+
+      <div class="dialog-actions">
+        <button class="btn dialog-btn" type="button" @click="close">{{ $t('cloudNotes.shareClose') }}</button>
+      </div>
     </div>
   </div>
 </template>
@@ -257,44 +256,18 @@ defineExpose({ open })
 </script>
 
 <style scoped>
-/* This modal's copy of the shared modal-box classes (ImportProgressModal
-   precedent: extracted modals carry their own scoped subset). */
-.cn-import-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
-  width: 460px;
+.cn-share-box {
+  width: 480px;
   max-width: 92vw;
   max-height: 80vh;
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.cn-modal-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
-}
-
-.cn-share-box {
-  position: relative;
-  width: 480px;
-}
-
-.cn-share-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
+  overflow: auto;
 }
 
 .cn-share-meta {
   margin: -4px 0 4px;
   color: var(--text-muted);
   font-size: 13px;
+  text-align: center;
 }
 
 .cn-share-hint-block {

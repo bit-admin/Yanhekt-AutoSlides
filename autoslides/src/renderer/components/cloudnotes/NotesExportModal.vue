@@ -4,8 +4,8 @@
        footer opens it via the exposed openFromFooter() and keeps reading the
        queue counters straight off `exp` (parent-constructed). -->
   <div v-if="show" class="modal-overlay" @click.self="close">
-    <div class="cn-import-box">
-      <h3 class="cn-modal-title">{{ $t('cloudNotes.exportNotesTitle') }}</h3>
+    <div class="dialog-box cn-import-box">
+      <h3 class="dialog-title">{{ $t('cloudNotes.exportNotesTitle') }}</h3>
 
       <!-- Phase: select notes -->
       <template v-if="exportPhase === 'select'">
@@ -26,9 +26,9 @@
             <span class="cn-import-folder-name">{{ n.displayName }}</span>
           </button>
         </div>
-        <div class="cn-modal-actions">
-          <button class="btn cn-modal-btn" @click="close">{{ $t('cloudNotes.cancel') }}</button>
-          <button class="btn btn--primary cn-modal-btn" :disabled="exportSelected.length === 0" @click="onStartExport">
+        <div class="dialog-actions">
+          <button class="btn dialog-btn" @click="close">{{ $t('cloudNotes.cancel') }}</button>
+          <button class="btn btn--primary dialog-btn" :disabled="exportSelected.length === 0" @click="onStartExport">
             {{ $t('cloudNotes.exportStart') }}
           </button>
         </div>
@@ -55,12 +55,12 @@
           </div>
         </div>
         <p v-if="exp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.exportConflictHint') }}</p>
-        <div class="cn-modal-actions">
+        <div class="dialog-actions">
           <template v-if="exp.exporting.value">
-            <button class="btn cn-modal-btn" @click="exp.cancel()">{{ $t('cloudNotes.exportCancel') }}</button>
-            <button class="btn btn--primary cn-modal-btn" @click="close">{{ $t('cloudNotes.exportClose') }}</button>
+            <button class="btn dialog-btn" @click="exp.cancel()">{{ $t('cloudNotes.exportCancel') }}</button>
+            <button class="btn btn--primary dialog-btn" @click="close">{{ $t('cloudNotes.exportClose') }}</button>
           </template>
-          <button v-else class="btn btn--primary cn-modal-btn" @click="doneExport">{{ $t('cloudNotes.exportDone') }}</button>
+          <button v-else class="btn btn--primary dialog-btn" @click="doneExport">{{ $t('cloudNotes.exportDone') }}</button>
         </div>
       </template>
     </div>
@@ -150,26 +150,10 @@ defineExpose({ openFromFooter })
 </script>
 
 <style scoped>
-/* This modal's copy of the shared modal classes (ImportProgressModal precedent). */
 .cn-import-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
   width: 460px;
   max-width: 92vw;
   max-height: 80vh;
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.cn-modal-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
 }
 
 .cn-import-list {
@@ -323,18 +307,5 @@ defineExpose({ openFromFooter })
   margin: 0;
   font-size: 12px;
   color: var(--text-muted);
-}
-
-.cn-modal-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.cn-modal-btn {
-  flex: 1;
-  min-height: 32px;
-  border-radius: 7px;
-  font-size: 13px;
 }
 </style>

@@ -1,9 +1,8 @@
 <template>
-  <!-- Drive-style workspace modal: rounded box, centered title, no header bar / X / chrome footer. -->
   <div class="modal-overlay" @click.self="emit('close')">
-    <div class="lec-modal-box lec-compress-box" @click.stop>
-      <h3 class="lec-modal-title">{{ $t('lectures.compressModalTitle') }}</h3>
-      <p class="lec-modal-help">
+    <div class="dialog-box lec-compress-box" @click.stop>
+      <h3 class="dialog-title">{{ $t('lectures.compressModalTitle') }}</h3>
+      <p class="dialog-help">
         {{ $t('lectures.compressModalHint') }}
       </p>
 
@@ -85,13 +84,13 @@
 
       <p class="lec-modal-note">{{ $t('lectures.compressReplaceNote') }}</p>
 
-      <div class="lec-modal-actions">
-        <button type="button" class="btn lec-modal-btn" @click="emit('close')">
+      <div class="dialog-actions">
+        <button type="button" class="btn dialog-btn" @click="emit('close')">
           {{ $t('trash.cancel') }}
         </button>
         <button
           type="button"
-          class="btn btn--primary lec-modal-btn"
+          class="btn btn--primary dialog-btn"
           :disabled="fileCount === 0"
           @click="start"
         >
@@ -125,37 +124,9 @@ const start = () => {
 </script>
 
 <style scoped>
-/* Matches Drive NoteExportFormatModal chrome. */
-.lec-modal-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  max-height: 90vh;
-  overflow: auto;
-}
-
 .lec-compress-box {
   width: min(480px, 92vw);
-}
-
-.lec-modal-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
-}
-
-.lec-modal-help {
-  margin: -6px 0 0;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
-  text-align: center;
+  overflow: auto;
 }
 
 .lec-settings-grid {
@@ -182,19 +153,6 @@ const start = () => {
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.4;
-}
-
-.lec-modal-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.lec-modal-btn {
-  flex: 1;
-  min-height: 32px;
-  border-radius: 7px;
-  font-size: 13px;
 }
 
 @media (max-width: 480px) {

@@ -1,6 +1,10 @@
 /*
  * Shared modal overlay/content styles. Components opt in by using these
  * class names; scoped overrides win when needed.
+ *
+ * Two families:
+ *   Document window — .modal-content + header/body/footer (Update, Extractor)
+ *   Dialog          — .dialog-box + title/help/actions (compact in-app prompts)
  */
 
 .modal-overlay {
@@ -13,10 +17,15 @@
   z-index: var(--z-modal);
 }
 
+/* ==========================================================================
+   Document window (Update Manager, Extractor installer)
+   Header bar with title + X, scrollable body, bottom action bar
+   ========================================================================== */
+
 .modal-content {
   background: var(--bg-modal);
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px var(--shadow-lg);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
@@ -65,4 +74,50 @@
   padding: 12px 20px;
   border-top: 1px solid var(--border-color);
   background: var(--bg-elevated);
+}
+
+/* ==========================================================================
+   Dialog (rename, import/export, confirm, feedback, …)
+   Centered title, optional muted help, no X, equal-width footer buttons
+   ========================================================================== */
+
+.dialog-box {
+  background: var(--bg-modal);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 32px var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 90vh;
+  box-sizing: border-box;
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.dialog-help {
+  margin: -6px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  text-align: center;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.dialog-btn {
+  flex: 1;
+  min-height: 32px;
+  border-radius: 7px;
+  font-size: 13px;
 }

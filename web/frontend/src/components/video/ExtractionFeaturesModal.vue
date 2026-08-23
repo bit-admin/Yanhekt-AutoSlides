@@ -4,21 +4,17 @@
          extraction toggle state stays consistent with their intent. -->
     <div class="modal-overlay extraction-features-overlay">
       <div
-        class="modal-content extraction-features-modal"
+        class="dialog-box extraction-features-modal"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
       >
-        <div class="modal-header">
-          <h3 :id="titleId" class="extraction-features-title">
-            {{ $t('playback.extractionFeatures.title') }}
-          </h3>
-        </div>
-
-        <div class="modal-body">
-          <p class="extraction-features-lead">
-            {{ $t('playback.extractionFeatures.lead') }}
-          </p>
+        <h3 :id="titleId" class="dialog-title">
+          {{ $t('playback.extractionFeatures.title') }}
+        </h3>
+        <p class="dialog-help">
+          {{ $t('playback.extractionFeatures.lead') }}
+        </p>
 
           <label class="feature-option">
             <input v-model="aiEnabled" type="checkbox" class="feature-checkbox" />
@@ -42,15 +38,14 @@
           </label>
 
           <p v-if="error" class="feature-error">{{ error }}</p>
-        </div>
 
-        <div class="modal-footer">
-          <button type="button" class="btn btn--sm" :disabled="busy" @click="onCancel">
+        <div class="dialog-actions">
+          <button type="button" class="btn dialog-btn" :disabled="busy" @click="onCancel">
             {{ $t('playback.extractionFeatures.cancel') }}
           </button>
           <button
             type="button"
-            class="btn btn--primary btn--sm"
+            class="btn btn--primary dialog-btn"
             :disabled="busy"
             @click="onContinue"
           >
@@ -148,26 +143,11 @@ const onContinue = async () => {
   width: min(28rem, 100%);
 }
 
-.extraction-features-title {
-  margin: 0;
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-}
-
-.extraction-features-lead {
-  margin: 0 0 1rem;
-  font-size: 0.875rem;
-  line-height: 1.55;
-  color: var(--text-secondary);
-}
-
 .feature-option {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  margin: 0 0 0.875rem;
+  margin: 0;
   padding: 0.75rem 0.875rem;
   border: 1px solid var(--border-color);
   border-radius: 0.625rem;
@@ -243,7 +223,7 @@ const onContinue = async () => {
   }
 }
 
-.modal-footer .btn {
+.dialog-actions .btn {
   gap: 0.375rem;
 }
 </style>

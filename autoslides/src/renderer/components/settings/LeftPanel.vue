@@ -239,34 +239,24 @@
     />
 
     <!-- Custom Name Input Dialog -->
-    <div v-if="showNameInputModal" class="modal-overlay" @click="cancelNameInput">
-      <div class="modal-content name-input-modal" @click.stop>
-        <div class="modal-header">
-          <h3>{{ $t('advanced.enterExclusionName') }}</h3>
-          <button @click="cancelNameInput" class="close-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+    <div v-if="showNameInputModal" class="modal-overlay" @click.self="cancelNameInput">
+      <div class="dialog-box name-input-modal" @click.stop>
+        <h3 class="dialog-title">{{ $t('advanced.enterExclusionName') }}</h3>
+        <div class="name-input-content">
+          <label class="setting-label">{{ $t('advanced.exclusionItemName') }}</label>
+          <input
+            v-model="nameInputValue"
+            type="text"
+            class="name-input-field"
+            :placeholder="$t('advanced.enterNamePlaceholder')"
+            @keyup.enter="confirmNameInput"
+            @keyup.escape="cancelNameInput"
+            ref="nameInputField"
+          />
         </div>
-        <div class="modal-body">
-          <div class="name-input-content">
-            <label class="setting-label">{{ $t('advanced.exclusionItemName') }}</label>
-            <input
-              v-model="nameInputValue"
-              type="text"
-              class="name-input-field"
-              :placeholder="$t('advanced.enterNamePlaceholder')"
-              @keyup.enter="confirmNameInput"
-              @keyup.escape="cancelNameInput"
-              ref="nameInputField"
-            />
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button @click="cancelNameInput" class="cancel-btn">{{ $t('advanced.cancel') }}</button>
-          <button @click="confirmNameInput" :disabled="!nameInputValue.trim()" class="save-btn">{{ $t('advanced.confirm') }}</button>
+        <div class="dialog-actions">
+          <button type="button" class="btn dialog-btn" @click="cancelNameInput">{{ $t('advanced.cancel') }}</button>
+          <button type="button" class="btn btn--primary dialog-btn" :disabled="!nameInputValue.trim()" @click="confirmNameInput">{{ $t('advanced.confirm') }}</button>
         </div>
       </div>
     </div>
@@ -770,65 +760,6 @@ defineExpose({
   margin-bottom: 6px;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: var(--overlay-dark);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
-}
-
-.modal-content {
-  background-color: var(--bg-modal);
-  border-radius: 8px;
-  width: 600px;
-  max-width: 90vw;
-  max-height: 80vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.close-btn:hover {
-  background-color: var(--bg-hover);
-}
-
-.modal-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: var(--text-primary);
-}
-
 .advanced-setting-section .setting-item {
   margin-bottom: 20px;
 }
@@ -887,46 +818,6 @@ defineExpose({
 /* Downsampling controls styles */
 
 /* Classroom Rules Styles */
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px;
-  border-top: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
-  flex-shrink: 0;
-}
-
-.cancel-btn, .save-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancel-btn {
-  background-color: var(--bg-elevated);
-  color: var(--text-secondary);
-}
-
-.cancel-btn:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
-}
-
-.save-btn {
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  border-color: var(--accent);
-}
-
-.save-btn:hover {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
 
 /* Navigator (Apple Music style sidebar) */
 .navigator-section {
@@ -1186,7 +1077,8 @@ defineExpose({
 }
 
 .name-input-content {
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .name-input-field {

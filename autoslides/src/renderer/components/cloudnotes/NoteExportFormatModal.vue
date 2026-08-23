@@ -1,29 +1,13 @@
 <template>
   <div v-if="visible" class="modal-overlay" @click.self="close">
     <div
-      class="cn-export-modal"
+      class="dialog-box cn-export-modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="cn-export-title"
     >
-      <div class="cn-export-header">
-        <div class="cn-export-header-text">
-          <h3 id="cn-export-title" class="cn-export-title">{{ $t('cloudNotes.exportTitle') }}</h3>
-          <p class="cn-export-subtitle">{{ $t('cloudNotes.exportHint') }}</p>
-        </div>
-        <button
-          class="modal-close"
-          type="button"
-          :aria-label="$t('cloudNotes.cancel')"
-          :disabled="busy"
-          @click="close"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
+      <h3 id="cn-export-title" class="dialog-title">{{ $t('cloudNotes.exportTitle') }}</h3>
+      <p class="dialog-help">{{ $t('cloudNotes.exportHint') }}</p>
 
       <div class="cn-export-cards" role="group" :aria-label="$t('cloudNotes.exportTitle')">
         <button
@@ -77,8 +61,8 @@
       <p v-if="error" class="cn-export-error">{{ error }}</p>
       <p v-else-if="busy" class="cn-export-status">{{ $t('cloudNotes.exportBusy') }}</p>
 
-      <div class="cn-export-actions">
-        <button class="btn cn-export-cancel" :disabled="busy" @click="close">{{ $t('cloudNotes.cancel') }}</button>
+      <div class="dialog-actions">
+        <button class="btn dialog-btn" type="button" :disabled="busy" @click="close">{{ $t('cloudNotes.cancel') }}</button>
       </div>
     </div>
   </div>
@@ -154,40 +138,8 @@ defineExpose({ open })
 
 <style scoped>
 .cn-export-modal {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 18px 18px 16px;
   width: 400px;
   max-width: calc(100vw - 32px);
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.cn-export-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.cn-export-header-text {
-  min-width: 0;
-}
-
-.cn-export-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.cn-export-subtitle {
-  margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-muted);
 }
 
 .cn-export-cards {
@@ -318,17 +270,5 @@ defineExpose({ open })
 
 .cn-export-error {
   color: var(--danger);
-}
-
-.cn-export-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.cn-export-cancel {
-  min-height: 32px;
-  padding: 0 16px;
-  border-radius: 7px;
-  font-size: 13px;
 }
 </style>

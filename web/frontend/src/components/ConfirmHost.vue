@@ -7,7 +7,7 @@
       @keydown.esc.prevent="onDismiss"
     >
       <div
-        class="confirm-box"
+        class="dialog-box confirm-box"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="titleId"
@@ -25,7 +25,7 @@
             <line x1="12" y1="8" x2="12.01" y2="8"/>
           </svg>
         </div>
-        <h3 v-if="active.title" :id="titleId" class="confirm-title">{{ active.title }}</h3>
+        <h3 v-if="active.title" :id="titleId" class="dialog-title">{{ active.title }}</h3>
         <p
           :id="active.title ? messageId : titleId"
           class="confirm-message"
@@ -33,11 +33,11 @@
         >
           {{ active.message }}
         </p>
-        <div class="confirm-actions">
+        <div class="dialog-actions">
           <button
             v-if="active.kind === 'confirm'"
             ref="cancelEl"
-            class="btn confirm-btn"
+            class="btn dialog-btn"
             type="button"
             @click="dialogStore.resolve(false)"
           >
@@ -45,7 +45,7 @@
           </button>
           <button
             ref="confirmEl"
-            class="btn confirm-btn"
+            class="btn dialog-btn"
             :class="confirmBtnClass"
             type="button"
             @click="dialogStore.resolve(true)"
@@ -117,15 +117,8 @@ function onOverlay(): void {
 }
 
 .confirm-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
   width: 360px;
   max-width: calc(100vw - 32px);
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .confirm-icon {
@@ -148,14 +141,6 @@ function onOverlay(): void {
   color: var(--accent);
 }
 
-.confirm-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
-}
-
 .confirm-message {
   margin: 0;
   font-size: 14px;
@@ -168,18 +153,5 @@ function onOverlay(): void {
 .confirm-message--solo {
   font-size: 15px;
   font-weight: 600;
-}
-
-.confirm-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.confirm-btn {
-  flex: 1;
-  min-height: 32px;
-  border-radius: 7px;
-  font-size: 13px;
 }
 </style>
