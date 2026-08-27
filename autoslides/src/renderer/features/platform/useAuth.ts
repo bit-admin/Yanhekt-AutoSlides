@@ -8,6 +8,8 @@ const log = createLogger('PlatformAuth');
 
 // Shared state (singleton pattern for cross-component access)
 const isBrowserLoginActive = ref(false)
+// Shared so SignedOutPanel / Home welcome can open the same SSO dialog LeftPanel hosts.
+const showSsoModal = ref(false)
 const isLoggedIn = ref(false)
 const userNickname = ref('User')
 const userId = ref('user123')
@@ -102,6 +104,11 @@ export interface UseAuthReturn {
   openBrowserLogin: () => void
   closeBrowserLogin: () => void
   handleBrowserToken: (token: string) => Promise<void>
+
+  // SSO modal (hosted by LeftPanel; openable from signed-out page CTAs)
+  showSsoModal: Ref<boolean>
+  openSsoModal: () => void
+  closeSsoModal: () => void
 
   // Token manager instance for other composables
   tokenManager: TokenManager
@@ -408,7 +415,16 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
   }
 
   // Browser login methods
+  const openSsoModal = () => {
+    showSsoModal.value = true
+  }
+
+  const closeSsoModal = () => {
+    showSsoModal.value = false
+  }
+
   const openBrowserLogin = () => {
+    showSsoModal.value = false
     isBrowserLoginActive.value = true
   }
 
@@ -448,6 +464,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     userId,
     isVerifyingToken,
     isBrowserLoginActive,
+    showSsoModal,
     smsChallenge,
 
     // Local state
@@ -485,6 +502,9 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     openBrowserLogin,
     closeBrowserLogin,
     handleBrowserToken,
+
+    openSsoModal,
+    closeSsoModal,
 
     // Token manager
     tokenManager

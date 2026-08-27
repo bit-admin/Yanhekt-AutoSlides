@@ -164,7 +164,7 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   const fetchPersonalCourses = async (resetPage = true) => {
     const token = tokenManager.getToken()
     if (!token) {
-      errorMessage.value = 'Please login first'
+      errorMessage.value = ''
       return
     }
 

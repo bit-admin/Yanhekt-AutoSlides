@@ -51,7 +51,7 @@
   },
   "courses": {
     "loading": "Loading courses...",
-    "noResults": "No courses found",
+    "noResults": "No Courses Found",
     "savedSearches": {
       "cancel": "Cancel",
       "confirm": "Save",
@@ -257,7 +257,7 @@
     "loadingSessions": "Loading sessions...",
     "monday": "Monday",
     "noCourseSelected": "No Course Selected",
-    "noSessions": "No sessions found for this course.",
+    "noSessions": "No Sessions Found",
     "noSubscriptions": "No subscribed courses",
     "participants": "Participants",
     "participantsCount": "Participants",
@@ -361,7 +361,7 @@
     "extractedOnly": "Extracted Only",
     "filterReason": "Reason",
     "manual": "Manual",
-    "noResultsFolders": "No Result Folders Found",
+    "noResultsFolders": "No Slides Folders Found",
     "preview": "Preview",
     "refresh": "Refresh",
     "removed": "Removed",

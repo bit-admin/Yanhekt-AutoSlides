@@ -65,7 +65,7 @@
     </div>
 
     <div class="content">
-      <div v-if="errorMessage" class="error-message">
+      <div v-if="errorMessage && isLoggedIn" class="error-message">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <line x1="15" y1="9" x2="9" y2="15"/>
@@ -74,7 +74,9 @@
         {{ errorMessage }}
       </div>
 
-      <div v-if="isLoading" class="loading-state">
+      <SignedOutPanel v-if="!isLoggedIn" :title="$t('sessions.signInToView')" />
+
+      <div v-else-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <p>{{ $t('sessions.loadingSessions') }}</p>
       </div>
@@ -179,6 +181,8 @@ import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
 import { isPinned, togglePinnedCourse } from '@features/course/pinnedCourses'
 import { navigationStore } from '@features/course/navigationStore'
+import { useAuth } from '@features/platform/useAuth'
+import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
 const props = defineProps<{
   course: SessionCourse | null
@@ -192,6 +196,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { isLoggedIn } = useAuth()
 
 const {
   sessions,

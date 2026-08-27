@@ -24,7 +24,9 @@
     </div>
 
     <div class="content">
-      <div v-if="errorMessage" class="error-message">
+      <SignedOutPanel v-if="!isLoggedIn" :title="$t('searchPage.signInToSearch')" />
+
+      <div v-else-if="errorMessage" class="error-message">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <line x1="15" y1="9" x2="9" y2="15"/>
@@ -33,7 +35,7 @@
         {{ errorMessage }}
       </div>
 
-      <div v-if="isLoading" class="loading-state">
+      <div v-else-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <p>{{ $t('courses.loading') }}</p>
       </div>
@@ -72,7 +74,7 @@
         </div>
       </div>
 
-      <div v-if="!isLoading && results.length > 0" class="pagination">
+      <div v-if="isLoggedIn && !isLoading && results.length > 0" class="pagination">
         <button
           :disabled="currentPage === 1"
           @click="goToPage(currentPage - 1)"
@@ -101,9 +103,12 @@
 import { useI18n } from 'vue-i18n'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
+import { useAuth } from '@features/platform/useAuth'
 import SemesterSelect from './SemesterSelect.vue'
+import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
 const { t } = useI18n()
+const { isLoggedIn } = useAuth()
 
 const {
   mode,

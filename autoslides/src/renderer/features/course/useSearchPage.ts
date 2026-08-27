@@ -63,9 +63,10 @@ const executeSearch = async (resetPage = true) => {
 
   const token = tokenManager.getToken()
   if (!token) {
-    errorMessage.value = 'Please login first'
+    errorMessage.value = ''
     results.value = []
-    hasSearched.value = true
+    hasSearched.value = false
+    isLoading.value = false
     return
   }
 

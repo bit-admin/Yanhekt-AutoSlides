@@ -1,5 +1,5 @@
 <template>
-  <div class="home-page custom-scrollbar">
+  <div class="home-page custom-scrollbar" :class="{ 'home-page--welcome': !isLoggedIn }">
     <!-- Campus-network warning banner -->
     <div v-if="campusCheckStatus === 'warning' || rechecking" class="home-banner">
       <span class="home-banner-msg">
@@ -29,6 +29,47 @@
         </button>
       </span>
     </div>
+    <div v-if="!isLoggedIn" class="home-welcome">
+      <h1 class="home-greeting">{{ greetingText }}</h1>
+      <p class="home-tagline">{{ $t('courses.welcome.subtitle') }}</p>
+      <HomeWelcomeDemo />
+      <h2 class="home-feature-title">
+        <span>{{ $t('home.featureTitleIn') }}</span>
+        <span class="home-feature-out">{{ $t('home.featureTitleOut') }}</span>
+      </h2>
+      <p class="home-feature-lead">{{ $t('home.featureLead') }}</p>
+      <button type="button" class="home-yanhekt-cta" @click="openSsoModal">
+        <span>{{ $t('home.signInTo') }}</span>
+        <svg class="home-yanhekt-wordmark" viewBox="54 5 95 31" aria-hidden="true">
+          <g fill="currentColor">
+            <polygon points="98.737 7.639 98.737 6.126 98.125 6.126 94.937 6.126 84.664 6.126 84.664 7.639 94.937 7.639 94.937 21.54 92.425 21.54 93.101 23.053 94.937 23.053 97.449 23.053 98.125 23.053 98.125 7.639" />
+            <polygon points="65.986 20.216 69.174 20.216 73.006 20.216 73.618 18.703 69.174 18.703 69.174 14.101 73.006 14.101 73.618 12.557 69.174 12.557 69.174 7.639 73.006 7.639 73.618 6.126 69.174 6.126 65.986 6.126 60.93 6.126 60.93 7.639 65.986 7.639 65.986 18.703 64.118 18.703 64.118 10.413 60.93 10.413 60.93 18.703 60.93 20.216 64.118 20.216" />
+            <polygon points="79.061 6.126 80.156 9.972 83.311 9.972 82.249 6.126" />
+            <polygon points="108.14 9.31 107.335 6.126 104.147 6.126 104.952 9.31" />
+            <polygon points="79.061 10.854 80.156 14.732 83.311 14.732 82.249 10.854" />
+            <polygon points="79.061 23.053 82.249 23.053 83.311 15.866 80.156 15.866" />
+            <polygon points="108.14 10.287 108.076 10.287 108.076 10.224 104.115 10.224 104.115 11.768 104.952 11.768 104.952 23.053 106.337 23.053 108.14 23.053 109.203 23.053 109.783 21.54 108.14 21.54" />
+            <polygon points="94.035 20.216 94.035 9.499 92.844 9.499 90.847 9.499 88.464 9.499 85.276 9.499 85.276 11.043 85.276 20.216 87.176 20.216 90.01 20.216 90.622 18.703 88.464 18.703 88.464 11.043 90.847 11.043 90.847 20.216" />
+            <polygon points="147.332 16.686 147.332 11.107 146.044 11.107 144.144 11.107 133.162 11.107 129.974 11.107 129.974 12.651 129.974 16.686 131.874 16.686 131.874 16.717 143.339 16.717 143.95 15.173 133.162 15.173 133.162 12.651 144.144 12.651 144.144 16.686" />
+            <path d="M118.509777,6.12608696 L115.321642,6.12608696 L113.292828,6.12608696 L110.104693,6.12608696 L110.104693,7.45 L110.104693,9.71956522 L110.104693,11.0434783 L110.104693,14.2902174 L112.004693,14.2902174 L113.292828,14.2902174 L115.321642,14.2902174 L115.321642,15.1413043 L110.104693,15.1413043 L110.104693,16.4652174 L115.321642,16.4652174 L115.321642,23.0847826 L118.509777,23.0847826 L118.509777,16.4652174 L123.726726,16.4652174 L123.726726,15.1413043 L118.509777,15.1413043 L118.509777,14.2902174 L119.701303,14.2902174 L120.313167,12.9663043 L118.541981,12.9663043 L118.541981,11.0434783 L120.570794,11.0434783 L120.570794,14.2902174 L123.75893,14.2902174 L123.75893,7.45 L123.75893,6.12608696 L120.570794,6.12608696 L118.509777,6.12608696 Z M113.292828,7.45 L115.321642,7.45 L115.321642,9.71956522 L113.292828,9.71956522 L113.292828,7.45 Z M115.321642,12.9347826 L113.292828,12.9347826 L113.292828,11.0119565 L115.321642,11.0119565 L115.321642,12.9347826 Z M120.538591,9.68804348 L118.509777,9.68804348 L118.509777,7.41847826 L120.538591,7.41847826 L120.538591,9.68804348 Z" />
+            <polygon points="140.247 20.059 147.944 20.059 147.944 18.735 140.247 18.735 140.247 17.442 137.059 17.442 137.059 18.735 129.523 18.735 129.523 20.059 137.059 20.059 137.059 21.761 129.169 21.761 129.169 23.085 148.137 23.085 148.137 21.761 140.247 21.761" />
+            <polygon points="145.786 7.923 146.43 6.126 143.242 6.126 142.598 7.923 140.247 7.923 140.247 6.126 137.059 6.126 137.059 7.923 134.708 7.923 134.064 6.126 130.876 6.126 131.52 7.923 128.815 7.923 128.815 9.247 128.815 10.697 132.003 10.697 132.003 9.247 145.303 9.247 145.303 10.697 148.491 10.697 148.491 9.247 148.491 7.923" />
+            <polygon points="57.195 23.085 57.388 21.918 58.644 23.053 73.006 23.053 73.618 21.54 57.452 21.54 58.772 14.101 57.291 14.101 59.191 6.126 58.386 6.126 56.003 6.126 54.103 6.126 54.103 7.639 55.649 7.639 54.103 14.101 55.617 14.101 54.006 23.085" />
+            <polygon points="114.098 17.064 110.91 17.064 110.105 23.085 113.293 23.085" />
+            <polygon points="119.701 17.064 120.539 23.085 123.695 23.085 122.889 17.064" />
+            <polygon points="58.096 31.375 56.357 29.358 54.457 29.358 57.13 32.321 57.13 34.779 59.062 34.779 59.062 32.321 61.767 29.358 59.835 29.358" />
+            <polygon points="89.011 33.55 85.308 29.358 83.537 29.358 83.537 34.779 84.922 34.779 84.922 30.808 88.464 34.779 90.396 34.779 90.396 29.358 89.011 29.358" />
+            <polygon points="99.928 29.358 98.157 29.358 98.157 34.779 99.928 34.779 99.928 32.352 102.279 32.352 102.601 31.659 99.928 31.659" />
+            <polygon points="114.613 32.478 118.188 32.478 118.413 31.785 114.613 31.785 114.613 30.051 118.22 30.051 118.478 29.358 112.874 29.358 112.874 34.779 118.478 34.779 118.703 34.086 114.613 34.086" />
+            <polygon points="141.6 30.02 143.757 30.02 143.757 34.779 145.625 34.779 145.625 30.02 147.364 30.02 147.654 29.326 141.6 29.326" />
+            <polygon points="71.428 29.358 69.013 34.779 70.591 34.779 72.459 30.587 74.295 34.779 75.872 34.779 73.489 29.358" />
+            <polygon points="132.872 29.484 131.295 29.484 128.847 31.785 128.847 29.326 127.301 29.326 127.301 34.779 128.847 34.779 128.847 31.974 131.617 34.779 133.227 34.779 130.328 31.848" />
+          </g>
+        </svg>
+      </button>
+    </div>
+
+    <template v-else>
     <div class="home-hero">
       <h1 class="home-greeting">{{ greetingText }}</h1>
       <p class="home-tagline">{{ $t('courses.welcome.subtitle') }}</p>
@@ -131,8 +172,7 @@
       </div>
     </section>
 
-    <template v-if="isLoggedIn">
-      <section class="home-section">
+    <section class="home-section">
         <h2 class="home-section-title">{{ $t('home.myLiveStreams') }}</h2>
         <div v-if="isLoadingLive" class="row-loading"><div class="spinner"></div></div>
         <p v-else-if="liveError" class="row-error">{{ liveError }}</p>
@@ -217,7 +257,6 @@
         </div>
       </section>
     </template>
-    <p v-else class="home-signin-hint">{{ $t('home.signInHint') }}</p>
 
     <Teleport to="body">
       <div
@@ -245,10 +284,11 @@ import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@fe
 import { useCampusNetworkCheck } from '@features/platform/useCampusNetworkCheck'
 import { settingsLauncher } from '@features/settings/settingsLauncher'
 import { configStore } from '@shared/services/configStore'
+import HomeWelcomeDemo from './HomeWelcomeDemo.vue'
 
 const { t } = useI18n()
 const { greetingText, loadGreeting, resetGreeting } = useGreeting()
-const { isLoggedIn, userId } = useAuth()
+const { isLoggedIn, userId, openSsoModal } = useAuth()
 const { openSavedSearch } = useSearchPage()
 const {
   liveStreams,
@@ -455,6 +495,78 @@ onMounted(() => {
   overflow-y: auto;
   padding: 24px 32px 28px;
   background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.home-page--welcome {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-welcome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 16px 36px;
+  min-height: 0;
+}
+
+.home-feature-title {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35em;
+  margin: 22px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.35px;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.home-feature-out {
+  color: var(--accent);
+}
+
+.home-feature-lead {
+  margin: 8px 0 0;
+  max-width: 28rem;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.home-yanhekt-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 6px 16px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.home-yanhekt-cta:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.home-yanhekt-wordmark {
+  display: block;
+  width: 76px;
+  height: 25px;
   color: var(--text-primary);
 }
 
@@ -932,9 +1044,4 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
-.home-signin-hint {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-muted);
-}
 </style>

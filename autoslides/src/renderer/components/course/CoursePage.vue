@@ -5,7 +5,7 @@
     </div>
 
     <div class="content">
-      <div v-if="errorMessage" class="error-message">
+      <div v-if="errorMessage && isLoggedIn" class="error-message">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <line x1="15" y1="9" x2="9" y2="15"/>
@@ -14,9 +14,7 @@
         {{ errorMessage }}
       </div>
 
-      <div v-if="!isLoggedIn" class="signin-state">
-        <p>{{ $t('courses.signInToLoad') }}</p>
-      </div>
+      <SignedOutPanel v-if="!isLoggedIn" :title="$t('courses.signInToLoad')" />
 
       <div v-else-if="isLoading" class="loading-state">
         <div class="spinner"></div>
@@ -84,6 +82,7 @@ import { useI18n } from 'vue-i18n'
 import { useCourseList } from '@features/course/useCourseList'
 import { navigationStore } from '@features/course/navigationStore'
 import { useAuth } from '@features/platform/useAuth'
+import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
 const props = defineProps<{
   mode: 'live' | 'recorded'
@@ -187,15 +186,6 @@ watch([isLoggedIn, userId], ([loggedIn]) => {
   color: var(--danger-bright);
   font-size: 14px;
   flex-shrink: 0;
-}
-
-.signin-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 14px;
 }
 
 .loading-state {

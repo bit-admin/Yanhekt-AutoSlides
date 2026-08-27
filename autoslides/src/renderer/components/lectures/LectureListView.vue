@@ -120,8 +120,11 @@
       </button>
     </div>
 
-    <div v-if="groups.length === 0 && !isLoading" class="empty-state">
-      <p>{{ $t('lectures.empty') }}</p>
+    <div v-if="groups.length === 0 && !isLoading" class="loading-state empty-state">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        <path d="M8 12v40h48V20H32l-6-8H8z" fill="currentColor" opacity="0.3"/>
+      </svg>
+      <span>{{ $t('lectures.empty') }}</span>
     </div>
   </div>
 </template>
@@ -174,6 +177,8 @@ const iconClass = (type?: LectureVideoType) => {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+  min-height: 0;
+  flex: 1;
   width: 100%;
 }
 
@@ -430,9 +435,8 @@ const iconClass = (type?: LectureVideoType) => {
 }
 
 .empty-state {
-  padding: 48px 16px;
-  text-align: center;
+  flex: 1;
+  height: 100%;
   color: var(--text-muted);
-  font-size: 13px;
 }
 </style>

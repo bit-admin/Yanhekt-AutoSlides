@@ -318,7 +318,10 @@ const {
   userId,
   isVerifyingToken,
   logout,
-  openBrowserLogin
+  openBrowserLogin,
+  showSsoModal,
+  openSsoModal: openSsoModalShared,
+  closeSsoModal,
 } = auth
 
 // Cloud-storage launch check (mirrors the auth-token check): once sign-in is
@@ -350,7 +353,6 @@ const userInfoRef = ref<HTMLElement | null>(null)
 // Signed-out "Sign In" dropup menu + SSO modal state
 const showSigninMenu = ref(false)
 const signinMenuRef = ref<HTMLElement | null>(null)
-const showSsoModal = ref(false)
 
 const { isChineseName, displayNickname, nameInitial: userInitial } = usePinyinName(userNickname)
 
@@ -377,11 +379,7 @@ const closeSigninMenu = () => {
 
 const openSsoModal = () => {
   closeSigninMenu()
-  showSsoModal.value = true
-}
-
-const closeSsoModal = () => {
-  showSsoModal.value = false
+  openSsoModalShared()
 }
 
 const startBrowserLogin = () => {

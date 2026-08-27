@@ -182,7 +182,8 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
 
     const token = tokenManager.getToken()
     if (!token) {
-      errorMessage.value = t('sessions.pleaseLoginFirst')
+      errorMessage.value = ''
+      isLoading.value = false
       return
     }
 

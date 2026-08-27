@@ -1,7 +1,7 @@
 <template>
   <div class="cloud-notes-tab">
     <!-- Public-images notice banner -->
-    <div v-if="bannerVisible" class="cn-banner">
+    <div v-if="bannerVisible && !cn.notSignedIn.value" class="cn-banner">
       <span class="cn-banner-msg">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 3l9 16H3L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
@@ -24,12 +24,7 @@
 
     <div class="cn-body">
     <!-- Not signed in -->
-    <div v-if="cn.notSignedIn.value" class="cn-signin">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-        <path d="M12 11a3 3 0 100-6 3 3 0 000 6zM5 20a7 7 0 0114 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-      </svg>
-      <p>{{ $t('cloudNotes.notSignedIn') }}</p>
-    </div>
+    <SignedOutPanel v-if="cn.notSignedIn.value" :title="$t('cloudNotes.notSignedIn')" />
 
     <template v-else>
       <!-- Left region: groups + list, sharing one search toolbar that spans
@@ -572,6 +567,7 @@ import ImportProgressModal from './ImportProgressModal.vue'
 import NoteEditorPane from './NoteEditorPane.vue'
 import NoteShareModal from './NoteShareModal.vue'
 import NoteExportFormatModal from './NoteExportFormatModal.vue'
+import SignedOutPanel from '../shell/SignedOutPanel.vue'
 import ImportSelectModal from './ImportSelectModal.vue'
 import NotesExportModal from './NotesExportModal.vue'
 import IndexExportModal from './IndexExportModal.vue'
@@ -1858,15 +1854,6 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
   font-size: 13px;
 }
 
-/* Sign-in prompt */
-.cn-signin {
-  margin: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  color: var(--text-muted);
-}
 
 .cn-error {
   position: absolute;
