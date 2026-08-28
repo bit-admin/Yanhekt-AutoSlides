@@ -20,8 +20,8 @@
         <!-- Act 2 backdrop: address pill + yanhekt page content -->
         <g class="d-site">
           <rect class="d-address" x="160" y="8" width="200" height="26" rx="13" />
-          <path class="d-lock" d="M176.5 17 v-2.5 a3 3 0 0 1 6 0 V17" fill="none" />
-          <rect class="d-lock-body" x="174.5" y="17" width="10" height="7.5" rx="1.5" />
+          <path class="d-lock" d="M176.5 19 v-2.5 a3 3 0 0 1 6 0 V19" fill="none" />
+          <rect class="d-lock-body" x="174.5" y="19" width="10" height="7.5" rx="1.5" />
           <text class="d-address-text" x="268" y="25.5" text-anchor="middle">yanhekt.cn</text>
 
           <rect class="d-thumb" x="70" y="84" width="112" height="62" rx="8" />

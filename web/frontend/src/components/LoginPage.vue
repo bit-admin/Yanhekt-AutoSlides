@@ -24,11 +24,10 @@
             <!-- Left column: brand + heading (identical frame on every step) -->
             <div class="login-head">
               <div class="login-logo">
-                <svg width="46" height="34" viewBox="0 0 30 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect width="30" height="22" rx="5" fill="#FF0000" />
-                  <polygon points="12,6 20,11 12,16" fill="white" />
-                  <line x1="6" y1="18" x2="24" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round" />
-                </svg>
+                <span v-if="logoKind === 'bit'" class="login-logo-bit">
+                  <img :src="bitLogoTextUrl" alt="" />
+                </span>
+                <span v-else class="login-logo-yanhekt" aria-hidden="true" />
               </div>
               <h1 class="login-title">
                 {{ step === 'sms' ? $t('webAuth.smsTitle') : $t('webAuth.formTitle') }}
@@ -292,6 +291,7 @@ import { generateBookmarklet } from '../lib/bookmarklet'
 import TokenBookmarkletDemo from './TokenBookmarkletDemo.vue'
 import { setLanguageMode } from '../stores/settingsStore'
 import { getCurrentLocale } from '../i18n'
+import bitLogoTextUrl from '../assets/bit-logo-text.svg?url'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -311,6 +311,7 @@ function isSafeRedirect(value: unknown): value is string {
 
 type Step = 'choose' | 'password' | 'sms' | 'token-get' | 'token-paste'
 const step = ref<Step>('choose')
+const logoKind = computed(() => (step.value === 'password' || step.value === 'sms' ? 'bit' : 'yanhekt'))
 const username = ref('')
 const password = ref('')
 const tokenInput = ref('')
@@ -640,6 +641,32 @@ html[data-theme='dark'] .login-card {
 
 .login-logo {
   margin-bottom: 1.75rem;
+}
+
+.login-logo-yanhekt {
+  display: block;
+  width: calc(2.25rem * 95 / 40);
+  height: 2.25rem;
+  background-color: var(--text-primary);
+  -webkit-mask: url('../assets/yanhekt-wordmark.svg') center / contain no-repeat;
+  mask: url('../assets/yanhekt-wordmark.svg') center / contain no-repeat;
+}
+
+.login-logo-bit {
+  display: block;
+  height: 2.25rem;
+  overflow: hidden;
+}
+
+.login-logo-bit img {
+  display: block;
+  height: 2.25rem;
+  width: auto;
+  filter: brightness(0.18);
+}
+
+:root[data-theme="dark"] .login-logo-bit img {
+  filter: none;
 }
 
 .login-title {

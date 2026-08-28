@@ -30,14 +30,10 @@
       </span>
     </div>
     <div v-if="!isLoggedIn" class="home-welcome">
+      <HomeWelcomeDemo />
+      <div class="home-welcome-copy">
       <h1 class="home-greeting">{{ greetingText }}</h1>
       <p class="home-tagline">{{ $t('courses.welcome.subtitle') }}</p>
-      <HomeWelcomeDemo />
-      <h2 class="home-feature-title">
-        <span>{{ $t('home.featureTitleIn') }}</span>
-        <span class="home-feature-out">{{ $t('home.featureTitleOut') }}</span>
-      </h2>
-      <p class="home-feature-lead">{{ $t('home.featureLead') }}</p>
       <button type="button" class="home-yanhekt-cta" @click="openSsoModal">
         <span>{{ $t('home.signInTo') }}</span>
         <svg class="home-yanhekt-wordmark" viewBox="54 5 95 31" aria-hidden="true">
@@ -59,6 +55,7 @@
             <polygon points="119.701 17.064 120.539 23.085 123.695 23.085 122.889 17.064" />
             <polygon points="58.096 31.375 56.357 29.358 54.457 29.358 57.13 32.321 57.13 34.779 59.062 34.779 59.062 32.321 61.767 29.358 59.835 29.358" />
             <polygon points="89.011 33.55 85.308 29.358 83.537 29.358 83.537 34.779 84.922 34.779 84.922 30.808 88.464 34.779 90.396 34.779 90.396 29.358 89.011 29.358" />
+            <rect x="103.149" y="29.358" width="1.771" height="5.422" />
             <polygon points="99.928 29.358 98.157 29.358 98.157 34.779 99.928 34.779 99.928 32.352 102.279 32.352 102.601 31.659 99.928 31.659" />
             <polygon points="114.613 32.478 118.188 32.478 118.413 31.785 114.613 31.785 114.613 30.051 118.22 30.051 118.478 29.358 112.874 29.358 112.874 34.779 118.478 34.779 118.703 34.086 114.613 34.086" />
             <polygon points="141.6 30.02 143.757 30.02 143.757 34.779 145.625 34.779 145.625 30.02 147.364 30.02 147.654 29.326 141.6 29.326" />
@@ -67,6 +64,7 @@
           </g>
         </svg>
       </button>
+      </div>
     </div>
 
     <template v-else>
@@ -510,33 +508,15 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 20px 16px 36px;
+  padding: 20px 16px 72px;
   min-height: 0;
 }
 
-.home-feature-title {
+.home-welcome-copy {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.35em;
-  margin: 22px 0 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.35px;
-  line-height: 1.25;
-  color: var(--text-primary);
-}
-
-.home-feature-out {
-  color: var(--accent);
-}
-
-.home-feature-lead {
-  margin: 8px 0 0;
-  max-width: 28rem;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-secondary);
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
 }
 
 .home-yanhekt-cta {
@@ -544,7 +524,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 22px;
+  margin-top: 16px;
   box-sizing: border-box;
   min-height: 36px;
   padding: 6px 16px;
