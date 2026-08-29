@@ -42,8 +42,19 @@
   // requires an SMS code answers `sms_unavailable` and falls back to the
   // token-paste flow. See README.md.
   "vars": {
-    "SSO_RESUME_KEY": "replace-me-with-a-long-random-string"
+    "SSO_RESUME_KEY": "replace-me-with-a-long-random-string",
+    // Optional. Origin this Worker fetches for `/api/ai/*` (the browser stays
+    // on this host). Unset → those routes 503. The Worker sends User-Agent
+    // `AutoSlides/web` on that fetch.
+    // "AI_ORIGIN": "https://ai.example.com"
   },
+
+  // Optional same-account service binding for recorded HLS. Uncomment if you
+  // deploy ../relay (see that package's wrangler `name`). Unbound,
+  // GET /playlist|/segment return 503.
+  // "services": [
+  //   { "binding": "RELAY", "service": "yanhekt-proxy", "remote": true }
+  // ],
 
   "observability": {
     "enabled": false

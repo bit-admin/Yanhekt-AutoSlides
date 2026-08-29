@@ -14,7 +14,7 @@ src/                Worker (TypeScript, Hono) — the tracked, public API
   index.ts          entry point: builds the app and starts serving
   app.ts            createApp/finalizeApp — the route table; real API routes
                      are mounted inside createApp() as the project grows
-  env.ts             bindings (ASSETS, SSO_RESUME_KEY)
+  env.ts             bindings (ASSETS, SSO_RESUME_KEY, RELAY, AI_ORIGIN)
   lib/
     yanhekt.ts       yanhekt.cn API helpers: header/signature construction
                      (upstreamHeaders/createHeaders) + token verification
@@ -28,6 +28,8 @@ src/                Worker (TypeScript, Hono) — the tracked, public API
     login.ts         POST /api/login (200 | 202 sms_required | 401) and
                      POST /api/login/sms — campus SSO password login, in one
                      request or two when an SMS code is required
+    relayProxy.ts    GET /playlist|/segment — service-bind sibling relay/
+    aiProxy.ts       /api/ai/* — forward to AI_ORIGIN (strip /api/ai)
 frontend/            Vue 3 + TypeScript + Vite app — builds to ../dist/
   index.html
   src/
@@ -37,8 +39,9 @@ frontend/            Vue 3 + TypeScript + Vite app — builds to ../dist/
                                    useVideoErrorRecovery — ported from the
                                    Electron app, plus a native-HLS fallback
     lib/api.ts                    fetch client for /api/yanhekt/*
-    lib/streamUrls.ts             recorded → relay.ruc.edu.kg/playlist URLs;
-                                   live → raw target/target_vga (CORS-open)
+    lib/streamUrls.ts             recorded → same-origin /playlist (Worker
+                                   service-binds sibling relay/); live → raw
+                                   target/target_vga (CORS-open)
     lib/bookmarklet.ts            token-grabbing bookmarklet (paste-token
                                    sign-in fallback)
     stores/                       navigationStore, playbackStore, authStore
@@ -57,21 +60,25 @@ cp wrangler.example.jsonc wrangler.jsonc   # then set your own custom domain
 npm run cf-typegen                         # generate worker-configuration.d.ts
 npm run build                              # vite build → dist/ (required at least once)
 npm run dev                                # wrangler dev, serves dist/: http://localhost:8787
-npm run dev:web                            # vite dev server on :5173, proxies /api to :8787
+npm run dev:web                            # vite on :5173, proxies /api /playlist /segment to :8787
 npm run typecheck                          # tsc --noEmit (Worker, src/)
 npm run typecheck:web                      # vue-tsc --noEmit (frontend/)
 ```
 
 Run `npm run dev` and `npm run dev:web` side by side for a normal dev loop:
-the Vite server hot-reloads the UI on :5173 and proxies `/api/*` requests to
-the Worker on :8787.
+the Vite server hot-reloads the UI on :5173 and proxies `/api/*`, `/playlist`,
+and `/segment` to the Worker on :8787.
 
 Note: local `wrangler dev` rejects a future `compatibility_date` — keep it at
 or before today's date in `wrangler.jsonc`.
 
-Recorded video playback depends on the sibling `relay/` Worker (live at
-`relay.ruc.edu.kg`) to sign and proxy Yanhekt's HLS streams — see
-`../relay/README.md`.
+Recorded video playback is same-origin (`/playlist`, `/segment`) on this
+Worker, which service-binds the sibling `relay/` Worker — see
+`../relay/README.md`. Builtin AI is `/api/ai/*`, forwarded by this Worker
+to `AI_ORIGIN` (a `vars` URL) with `User-Agent: AutoSlides/web`. Uncomment
+`services` / `AI_ORIGIN` in `wrangler.jsonc` after copying the example;
+unset, those routes 503. Settings → Relay Server can point HLS at a local
+`wrangler dev` of `relay/` instead.
 
 ## SMS second factor (`SSO_RESUME_KEY`)
 

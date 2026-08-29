@@ -12,6 +12,8 @@ import { cors } from "hono/cors";
 import type { Env } from "./env";
 import { loginRouter } from "./routes/login";
 import { yanhektProxyRouter } from "./routes/yanhektProxy";
+import { relayProxyRouter } from "./routes/relayProxy";
+import { aiProxyRouter } from "./routes/aiProxy";
 
 export function createApp<TEnv extends Env = Env>() {
   const app = new Hono<{ Bindings: TEnv }>();
@@ -22,7 +24,12 @@ export function createApp<TEnv extends Env = Env>() {
   );
 
   app.route("/api/yanhekt", yanhektProxyRouter);
+  app.route("/api/ai", aiProxyRouter);
   app.route("/api", loginRouter);
+  // Root `/playlist` + `/segment` — must match the relay Worker's exact
+  // pathnames so rewritten m3u8 segment URLs stay on this origin. Register
+  // here (before finalizeApp's SPA catch-all).
+  app.route("/", relayProxyRouter);
 
   return app;
 }

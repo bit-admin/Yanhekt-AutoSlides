@@ -3,8 +3,8 @@ import vue from "@vitejs/plugin-vue";
 
 // The Vue frontend lives in frontend/ and builds into dist/, which the
 // Worker serves through its ASSETS binding (see wrangler.jsonc). During
-// development, `npm run dev:web` proxies /api to `npm run dev` (wrangler on
-// :8787) so the real Worker routes answer.
+// development, `npm run dev:web` proxies /api, /playlist, and /segment to
+// `npm run dev` (wrangler on :8787) so the real Worker routes answer.
 export default defineConfig({
   root: "frontend",
   plugins: [vue()],
@@ -15,6 +15,8 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": "http://localhost:8787",
+      "/playlist": "http://localhost:8787",
+      "/segment": "http://localhost:8787",
     },
   },
 });

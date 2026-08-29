@@ -2,7 +2,6 @@ import {
   configStore,
   persistConfig,
   normalizeRelayEndpoint,
-  PUBLIC_RELAY_ENDPOINT,
   type LanguageMode,
   type ThemeMode,
 } from "./configStore";
@@ -48,22 +47,29 @@ export function setLanguageMode(mode: LanguageMode): void {
 }
 
 /**
- * Persist a relay endpoint after normalization. Returns the stored origin, or
- * null if the input was invalid (config is left unchanged).
+ * Persist a relay endpoint after normalization. Empty string stores built-in
+ * (same-origin). Returns the stored origin (possibly ""), or null if the
+ * input was invalid (config is left unchanged).
  */
 export function setRelayEndpoint(raw: string): string | null {
-  const normalized = normalizeRelayEndpoint(raw);
+  const trimmed = (raw || "").trim();
+  if (!trimmed) {
+    configStore.relayEndpoint = "";
+    persistConfig();
+    return "";
+  }
+  const normalized = normalizeRelayEndpoint(trimmed);
   if (!normalized) return null;
   configStore.relayEndpoint = normalized;
   persistConfig();
   return normalized;
 }
 
-/** Restore the public Cloudflare relay (https://relay.ruc.edu.kg). */
+/** Restore built-in same-origin `/playlist` (empty endpoint). */
 export function resetRelayEndpoint(): string {
-  configStore.relayEndpoint = PUBLIC_RELAY_ENDPOINT;
+  configStore.relayEndpoint = "";
   persistConfig();
-  return PUBLIC_RELAY_ENDPOINT;
+  return "";
 }
 
 /**
@@ -84,11 +90,6 @@ export function isMixedContentRelay(endpoint?: string): boolean {
 
 /** Apply persisted preferences at startup and follow OS scheme in system mode. */
 export function initSettings(): void {
-  // Heal a missing/empty relay endpoint from older configs.
-  if (!configStore.relayEndpoint) {
-    configStore.relayEndpoint = PUBLIC_RELAY_ENDPOINT;
-    persistConfig();
-  }
   applyTheme();
   applyLanguage();
   // Track the OS scheme so "Follow System" updates live.

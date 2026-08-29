@@ -35,9 +35,6 @@ export interface SubscribedCourse {
   imageUrl?: string;
 }
 
-/** Default public Cloudflare relay. Also the "reset" target in Settings. */
-export const PUBLIC_RELAY_ENDPOINT = "https://relay.ruc.edu.kg";
-
 export interface WebConfig {
   themeMode: ThemeMode;
   languageMode: LanguageMode;
@@ -45,9 +42,10 @@ export interface WebConfig {
   savedSearchesRecorded: string[];
   subscribedRecordedCourses: SubscribedCourse[];
   sidebarCollapsed: boolean;
-  // Base URL of the recorded-HLS relay (no trailing slash). Defaults to the
-  // public Worker; may be overridden with another relay origin. Scheme matters:
-  // an https page cannot fetch an http relay (mixed active content) — see
+  // Origin of an optional recorded-HLS relay (no trailing slash). Empty =
+  // built-in same-origin `/playlist`+`/segment` on this Worker. A custom
+  // origin (LAN / local `wrangler dev` of relay/) is for Settings. Scheme
+  // matters: an https page cannot fetch an http relay — see
   // settingsStore.setRelayEndpoint / isMixedContentRelay.
   relayEndpoint: string;
   // Run post-processing (pHash phases) automatically after each saved slide
@@ -89,7 +87,7 @@ const defaults = (): WebConfig => ({
   savedSearchesRecorded: [],
   subscribedRecordedCourses: [],
   sidebarCollapsed: false,
-  relayEndpoint: PUBLIC_RELAY_ENDPOINT,
+  relayEndpoint: "",
   autoPostProcessingLive: true,
   cloudWatchSyncEnabled: false,
   cloudStorageInitializedUsers: [],
@@ -119,9 +117,14 @@ function load(): WebConfig {
     writeJSON(STORAGE_KEY, merged);
   }
 
-  // Heal missing / malformed relay endpoints from older configs or bad edits.
-  const normalized = normalizeRelayEndpoint(merged.relayEndpoint || "");
-  merged.relayEndpoint = normalized || PUBLIC_RELAY_ENDPOINT;
+  // Empty = built-in. Collapse the unpublished previous default so leftover
+  // localStorage from `npm run dev` does not keep using the old public host.
+  const rawRelay = (merged.relayEndpoint || "").replace(/\/+$/, "");
+  if (!rawRelay || rawRelay === "https://relay.ruc.edu.kg") {
+    merged.relayEndpoint = "";
+  } else {
+    merged.relayEndpoint = normalizeRelayEndpoint(rawRelay) || "";
+  }
 
   // Heal pre-init configs that never had the flag array.
   if (!Array.isArray(merged.cloudStorageInitializedUsers)) {
@@ -150,8 +153,8 @@ export const configStore = reactive<WebConfig>(load());
  * Normalize a relay endpoint the user typed:
  * - trim whitespace
  * - strip trailing slashes
- * - if no scheme, default to https:// (public relay is HTTPS; LAN http must
- *   be typed explicitly so mixed-content risk is intentional)
+ * - if no scheme, default to https:// (LAN http must be typed explicitly so
+ *   mixed-content risk is intentional)
  * - accept only http: / https:
  * Returns null when the value is empty or not a usable absolute URL.
  */
@@ -184,7 +187,7 @@ export function persistConfig(): void {
     savedSearchesRecorded: [...configStore.savedSearchesRecorded],
     subscribedRecordedCourses: configStore.subscribedRecordedCourses.map((c) => ({ ...c })),
     sidebarCollapsed: configStore.sidebarCollapsed,
-    relayEndpoint: configStore.relayEndpoint || PUBLIC_RELAY_ENDPOINT,
+    relayEndpoint: configStore.relayEndpoint,
     autoPostProcessingLive: configStore.autoPostProcessingLive,
     cloudWatchSyncEnabled: configStore.cloudWatchSyncEnabled,
     cloudStorageInitializedUsers: [...configStore.cloudStorageInitializedUsers],

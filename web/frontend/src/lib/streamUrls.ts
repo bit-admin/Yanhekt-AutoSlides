@@ -3,18 +3,19 @@
  * the desktop app's videoProxyService.getVideoPlaybackUrls /
  * getLiveStreamUrls results).
  *
- * Recorded streams go through a relay (public Worker or a local Electron LAN
- * relay) that signs Yanhekt's anti-hotlink scheme and rewrites the playlist so
- * any HLS player can stream it. The base URL is configStore.relayEndpoint —
- * default https://relay.ruc.edu.kg. The generated URL embeds the login token —
- * treat it as a secret (never log it or surface it in shareable UI; use
- * original_url for that).
+ * Recorded streams go through a relay that signs Yanhekt's anti-hotlink
+ * scheme and rewrites the playlist so any HLS player can stream it. Empty
+ * `configStore.relayEndpoint` (the default) uses this origin's `/playlist`
+ * (the web Worker service-binds the sibling relay). A custom origin is a
+ * LAN / local `wrangler dev` relay. The generated URL embeds the login
+ * token — treat it as a secret (never log it or surface it in shareable UI;
+ * use original_url for that).
  *
  * Live streams are unsigned and their CDN is CORS-open, so they play
  * directly from the raw m3u8.
  */
 import type { LiveStream, SessionData } from "./api";
-import { configStore, PUBLIC_RELAY_ENDPOINT } from "../stores/configStore";
+import { configStore } from "../stores/configStore";
 
 export interface VideoStream {
   type: "camera" | "screen";
@@ -27,14 +28,15 @@ export interface PlaybackData {
   streams: Record<string, VideoStream>;
 }
 
-/** Current relay origin (no trailing slash). Falls back to the public Worker. */
+/** Current custom relay origin (no trailing slash), or "" for built-in. */
 export function getRelayBase(): string {
-  const ep = (configStore.relayEndpoint || "").trim().replace(/\/+$/, "");
-  return ep || PUBLIC_RELAY_ENDPOINT;
+  return (configStore.relayEndpoint || "").trim().replace(/\/+$/, "");
 }
 
 function relayPlaylistUrl(m3u8Url: string, loginToken: string): string {
-  return `${getRelayBase()}/playlist?u=${encodeURIComponent(m3u8Url)}&t=${encodeURIComponent(loginToken)}`;
+  const query = `/playlist?u=${encodeURIComponent(m3u8Url)}&t=${encodeURIComponent(loginToken)}`;
+  const base = getRelayBase();
+  return base ? `${base}${query}` : query;
 }
 
 /** Yanhekt sometimes JSON-escapes slashes in stream URLs (`https:\/\/...`). */

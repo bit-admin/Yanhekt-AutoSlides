@@ -6,13 +6,13 @@ import type { LegalDoc } from "./types";
 //   - password / SMS / keepsake   -> src/routes/login.ts, src/lib/campusSso.ts,
 //                                    src/lib/resumeSeal.ts, stores/authStore.ts
 //   - API proxy (incl. notes)     -> src/routes/yanhektProxy.ts -> cbiz.yanhekt.cn
-//   - recorded video relay        -> lib/streamUrls.ts (default relay.ruc.edu.kg;
+//   - recorded video relay        -> lib/streamUrls.ts (same-origin /playlist;
 //                                    optional custom endpoint in config)
 //   - cloud notes / watch sync    -> stores/watchNotesStore.ts, stores/cloudStorageStore.ts,
 //                                    lib/notes/notesClient.ts  (MinIO upload + note content)
 //   - AI filtering                -> lib/ai/aiFilteringClient.ts, lib/ai/llmClient.ts,
 //                                    lib/ai/copilotAuth.ts
-//                                    (openai.ruc.edu.kg / copilot.ruc.edu.kg / custom)
+//                                    (/api/ai / copilot.ruc.edu.kg / custom)
 //   - GitHub fetch on /apps       -> lib/github.ts
 // If any of those change, this document has to change with them.
 //
@@ -143,8 +143,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**為何需要轉送。** 瀏覽器無法直接呼叫平台的 API（跨來源及簽署要求），因此課程列表、播放資訊，以及閣下發起的雲筆記與圖像上傳，均經由本服務請求；本服務將其轉送至平台（cbiz.yanhekt.cn），再把回應傳回閣下。由於平台需要藉此識別閣下身分，閣下的權杖會隨該等請求一併傳送。",
         },
         {
-          en: "**4.2 Video.** Recorded lectures are streamed through a relay service (by default relay.ruc.edu.kg; you may configure a different endpoint in Settings). The relay must present your token to the Platform in order to sign each request, so treat any generated stream URL as sensitive. Live streams are fetched by your browser directly from the Platform's content network where the Platform permits it.",
-          zh: "**影片。** 錄播課程經由中轉服務串流（預設為 relay.ruc.edu.kg；閣下可在設定中改用其他端點）。該服務須向平台出示閣下的權杖，方能為每個請求簽署，因此任何產生的串流網址均應視作敏感資料。在平台允許的情況下，直播由閣下的瀏覽器直接向平台的內容網絡獲取。",
+          en: "**4.2 Video.** Recorded lectures are streamed through the Service, which signs each Platform request; you may configure a different relay endpoint in Settings. Treat any generated stream URL as sensitive. Live streams are fetched by your browser directly from the Platform's content network where the Platform permits it.",
+          zh: "**影片。** 錄播課程經由本服務串流，由本服務為每個平台請求簽署；閣下可在設定中改用其他中轉端點。任何產生的串流網址均應視作敏感資料。在平台允許的情況下，直播由閣下的瀏覽器直接向平台的內容網絡獲取。",
         },
         {
           en: "**4.3 No server-side user archive.** The Service is designed as a **stateless relay**: it does not operate a Developer database of your account, your viewing history, or the Content you access, and it does not retain school passwords after the login request completes (section 3). Mid-login state for SMS is sealed and held only by your browser for a few minutes. Ordinary request handling may involve ephemeral processing in memory on the edge in order to forward traffic; that is not a persistent archive of your activity for the Developer to browse later.",
@@ -176,8 +176,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**AI 篩選。** 當 AI 篩選已啟用（可在設定中開關）時，候選幻燈片圖像會以 base64 PNG 形式由閣下的瀏覽器直接傳送至閣下所選的 AI 服務，僅供其回傳分類結果（例如：幻燈片／非幻燈片／可能為編輯畫面）。本服務不會用該等圖像代閣下訓練任何模型。閣下可選擇第 5.3 至 5.5 節所述其中一項。",
         },
         {
-          en: "**5.3 Built-in AI.** Requests go to the Developer's AI endpoint (openai.ruc.edu.kg), authenticated with your Platform token. The image is used to produce the classification response for that request and is not retained by the Service as a slide library.",
-          zh: "**內建 AI。** 請求會送往開發者的 AI 端點（openai.ruc.edu.kg），並以閣下的平台權杖認證。圖像僅用於產生該次請求的分類回應，本服務不會將其作為幻燈片庫保留。",
+          en: "**5.3 Built-in AI.** Requests go through the Service to the Developer's AI backend, authenticated with your Platform token. The image is used to produce the classification response for that request and is not retained by the Service as a slide library.",
+          zh: "**內建 AI。** 請求經由本服務送往開發者的 AI 後端，並以閣下的平台權杖認證。圖像僅用於產生該次請求的分類回應，本服務不會將其作為幻燈片庫保留。",
         },
         {
           en: "**5.4 GitHub Copilot.** After you connect Copilot (device-code flow through copilot.ruc.edu.kg), images and your Copilot access token are sent to that Copilot proxy for classification. Your Copilot token is stored only in this browser's local storage.",
@@ -214,8 +214,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**GitHub。** 「桌面應用」頁面會從 GitHub 獲取發佈資訊及文檔（如無法連接 GitHub，則改用例如 gh-proxy.org 的鏡像）。開啟該頁面時，會如一般網絡請求般向該等服務透露閣下的 IP 位址。連接 Copilot 亦會涉及 GitHub 的裝置授權流程。本服務的其他頁面不會為無關目的與其聯絡。",
         },
         {
-          en: "**6.4 Video relay.** The recorded-video relay (default relay.ruc.edu.kg, or another endpoint you configure) receives the stream URL and your Platform token in order to sign and proxy segments. Live streams do not use that relay by default.",
-          zh: "**影片中轉。** 錄播影片中轉（預設 relay.ruc.edu.kg，或閣下設定的其他端點）會收到串流網址及閣下的平台權杖，以便簽署及代理分段。直播預設不使用該中轉。",
+          en: "**6.4 Video relay.** Recorded video is signed and proxied by the Service (or by another relay endpoint you configure in Settings). Live streams do not use that path by default.",
+          zh: "**影片中轉。** 錄播影片由本服務簽署及代理（或由閣下在設定中指定的其他中轉端點處理）。直播預設不使用該路徑。",
         },
         {
           en: "**6.5 Infrastructure.** Cloudflare and any other infrastructure providers used to host or protect the Service process technical traffic data as described in section 4.4.",

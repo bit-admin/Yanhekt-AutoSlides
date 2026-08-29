@@ -233,9 +233,10 @@ export function chatCompletionWithImage(req: ChatImageRequest): Promise<LLMResul
 }
 
 // Built-in service: no client-side model discovery (desktop still calls
-// GET /model). The chat-completions body always sends BUILTIN_MODEL — same
-// string as the Electron app's discovery fallback — and the backend at
-// openai.ruc.edu.kg may rewrite/proxy it as needed.
-export const BUILTIN_API_BASE_URL = 'https://openai.ruc.edu.kg';
+// GET /model). Same-origin `/api/ai` is forwarded by this host to the
+// configured AI origin; the chat-completions body always sends
+// BUILTIN_MODEL — same string as the Electron app's discovery fallback —
+// and the backend may rewrite it.
+export const BUILTIN_API_BASE_URL = '/api/ai';
 /** Hardcoded built-in model (matches Electron `BUILTIN_FALLBACK_MODEL`). */
 export const BUILTIN_MODEL = 'agnes-2.0-flash';

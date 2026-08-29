@@ -1,8 +1,9 @@
 // AI-filtering provider resolution + response parsing.
 // Web analogue of autoslides/src/main/ai/aiFilteringService.ts, LLM-only and
 // single-image-only. Three service types:
-//  - builtin: the hosted proxy at openai.ruc.edu.kg, keyed by the user's own
-//    login token (same gate as desktop: configured iff signed in);
+//  - builtin: same-origin `/api/ai` (this host forwards to the AI origin),
+//    keyed by the user's own login token (same gate as desktop: configured
+//    iff signed in);
 //  - copilot: GitHub Copilot through the copilot-proxy Worker's /v1 endpoints,
 //    keyed by the gho_/ghu_ token from the device flow;
 //  - custom: any OpenAI-compatible endpoint (must allow browser CORS).

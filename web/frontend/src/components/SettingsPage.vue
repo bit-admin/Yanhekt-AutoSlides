@@ -343,17 +343,17 @@
                 class="text-input relay-endpoint-input"
                 spellcheck="false"
                 autocomplete="off"
-                :placeholder="publicRelay"
+                placeholder=""
                 @change="commitRelay"
                 @keyup.enter="commitRelay"
               />
               <button
                 type="button"
                 class="btn btn--sm"
-                :disabled="isPublicRelay"
+                :disabled="isBuiltInRelay"
                 @click="onResetRelay"
               >
-                {{ $t('settings.relayUsePublic') }}
+                {{ $t('settings.relayUseBuiltIn') }}
               </button>
             </div>
             <div v-if="relayError" class="setting-hint setting-hint--error">
@@ -378,7 +378,6 @@ import { useI18n } from 'vue-i18n'
 import {
   configStore,
   persistConfig,
-  PUBLIC_RELAY_ENDPOINT,
   type AIServiceType,
   type LanguageMode,
   type ThemeMode,
@@ -401,7 +400,6 @@ const { t } = useI18n()
 
 const themeMode = computed(() => configStore.themeMode)
 const languageMode = computed(() => configStore.languageMode)
-const publicRelay = PUBLIC_RELAY_ENDPOINT
 const store = cloudStorageStore
 
 const noteGroupTitle = computed(() => formatGroupSettingsTitle(MANAGED_GROUP_NAME, t))
@@ -470,8 +468,8 @@ const onInitialize = () => {
 
 const RELAY_UNLOCK_KEY = 'autoslides.relaySettingsUnlocked'
 
-function isNonPublicRelay(endpoint: string): boolean {
-  return (endpoint || '').replace(/\/+$/, '') !== PUBLIC_RELAY_ENDPOINT
+function isCustomRelay(endpoint: string): boolean {
+  return Boolean((endpoint || '').trim())
 }
 
 // Hidden by default. Unlocked via Ctrl/Cmd+Shift+D (session), or auto-shown
@@ -480,7 +478,7 @@ const relayUnlocked = ref(
   typeof sessionStorage !== 'undefined' && sessionStorage.getItem(RELAY_UNLOCK_KEY) === '1'
 )
 const relaySectionVisible = computed(
-  () => relayUnlocked.value || isNonPublicRelay(configStore.relayEndpoint)
+  () => relayUnlocked.value || isCustomRelay(configStore.relayEndpoint)
 )
 
 function unlockRelaySection(): void {
@@ -533,9 +531,7 @@ watch(
   }
 )
 
-const isPublicRelay = computed(
-  () => (configStore.relayEndpoint || '').replace(/\/+$/, '') === PUBLIC_RELAY_ENDPOINT
-)
+const isBuiltInRelay = computed(() => !configStore.relayEndpoint.trim())
 
 const isHttpRelay = computed(() => {
   try {
@@ -690,7 +686,6 @@ const commitRelay = () => {
   relayError.value = null
   const raw = relayDraft.value.trim()
   if (!raw) {
-    // Empty → treat as "use public".
     relayDraft.value = resetRelayEndpoint()
     return
   }
