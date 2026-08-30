@@ -118,7 +118,7 @@
         </svg>
       </div>
       <p>{{ $t('tasks.noTasks') }}</p>
-      <p>{{ $t('tasks.noTasksDescription') }}</p>
+      <p class="empty-queue-hint">{{ $t('tasks.noTasksDescription') }}</p>
     </div>
   </div>
 </template>

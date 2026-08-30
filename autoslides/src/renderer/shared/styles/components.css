@@ -444,8 +444,15 @@
 }
 
 .empty-queue p {
-  margin: 0 0 20px 0;
+  margin: 0;
   font-size: 14px;
+}
+
+.empty-queue p.empty-queue-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 
 /* Circular per-item status indicator shared by the queue panels. The
