@@ -5,11 +5,13 @@
  *
  * Routes:
  *   GET /                            static asset (public/index.html), no Worker cost
+ *   GET /cf.txt                      static asset (connection-details header beacon)
  *   GET /playlist?u=<m3u8>&t=<token> fetch+sign m3u8, rewrite segment lines
  *   GET /segment?u=<url>&t=<token>   fetch+sign a media segment, stream it back
  *
- * Both routes accept &nocache=1 to bypass the shared VOD cache (read AND
- * write); /playlist propagates the flag into the segment URLs it emits.
+ * Playlist and segment routes accept &nocache=1 to bypass the shared VOD
+ * cache (read AND write); /playlist propagates the flag into the segment
+ * URLs it emits.
  *
  * Caching (Cache API): one shared video TOKEN (anonymous mint, ~its real
  * lifetime), plus raw VOD m3u8 bodies and full 200 segment bodies keyed by

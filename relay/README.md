@@ -31,15 +31,18 @@ AutoSlides' local Node proxy (`autoslides/src/main/video/videoProxyService.ts`).
 
 | Route | Purpose |
 |-------|---------|
-| `GET /` | Static page to generate a playable URL + test it with hls.js |
+| `GET /` | Static page to generate a playable URL + test it with hls.js. Connection details are read in the browser from `/cdn-cgi/trace` (Cloudflare edge, not this Worker) and the optional `x-client-asn` header on `/cf.txt` |
+| `GET /cf.txt` | Tiny static file so the page can read `x-client-asn` without a Worker API |
 | `GET /playlist?u=<m3u8 url>&t=<loginToken>` | Fetch + sign the m3u8, rewrite segment/variant/key lines back through the proxy |
 | `GET /segment?u=<media url>&t=<loginToken>` | Fetch + sign a segment and stream it (supports `Range`) |
 
-Both routes accept `&nocache=1` to bypass the shared VOD cache (read and write); `/playlist`
+Playlist and segment routes accept `&nocache=1` to bypass the shared VOD cache (read and write); `/playlist`
 propagates the flag into the segment URLs it emits, so setting it once on the playlist opts
 the whole playback session out.
 
 All responses are CORS-open (`Access-Control-Allow-Origin: *`).
+
+`/cdn-cgi/trace` does not include ASN. To show Cloudflare's ASN, add a **Response Header Transform Rule** on `GET /cf.txt` that sets `x-client-asn` to `to_string(ip.src.asnum)` (`cf-*` header names are reserved). That header is evaluated per request at the edge; it is not a Worker route and does not consume Worker request quota.
 
 ## Develop & deploy
 

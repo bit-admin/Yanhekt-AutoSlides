@@ -42,6 +42,35 @@
   label.check { display: flex; align-items: center; gap: .45rem; font-weight: 400; }
   label.check code { font-size: 12.5px; opacity: .75; }
   .note { margin-top: 2rem; font-size: 12.5px; opacity: .65; border-top: 1px solid color-mix(in srgb, CanvasText 15%, transparent); padding-top: 1rem; }
+  .conn { margin-top: 2.5rem; border-top: 1px solid color-mix(in srgb, CanvasText 15%, transparent); padding-top: 1.5rem; }
+  .conn h2 { font-size: 1.1rem; margin: 0 0 .25rem; }
+  .conn-lead { margin: .15rem 0 1rem; font-size: 1.02rem; }
+  .conn-lead strong { font-weight: 650; }
+  .kv { display: grid; grid-template-columns: 8.2rem 1fr; gap: .3rem .85rem; align-items: baseline; font-size: 13.5px; }
+  .kv .k { opacity: .62; font-weight: 600; }
+  .kv .v { font-family: ui-monospace, monospace; font-size: 12.5px; word-break: break-all; }
+  .kv .v.plain { font-family: inherit; font-size: 13.5px; }
+  .pill { display: inline-block; border-radius: 999px; padding: .08rem .55rem; font-size: 12px; font-weight: 650; font-family: inherit; }
+  .pill--ok { background: color-mix(in srgb, #16a34a 22%, Canvas); color: color-mix(in srgb, #16a34a 80%, CanvasText); }
+  .pill--warn { background: color-mix(in srgb, #d97706 24%, Canvas); color: color-mix(in srgb, #b45309 85%, CanvasText); }
+  .pill--muted { background: color-mix(in srgb, CanvasText 10%, Canvas); opacity: .85; }
+  .verdict { margin: 1rem 0 0; padding: .75rem .9rem; border-radius: 8px; font-size: 13.5px; }
+  .verdict--ok { background: color-mix(in srgb, #16a34a 14%, Canvas); }
+  .verdict--warn { background: color-mix(in srgb, #d97706 16%, Canvas); }
+  .verdict--muted { background: color-mix(in srgb, CanvasText 6%, Canvas); }
+  .allow { margin-top: 1.15rem; }
+  .allow h3 { font-size: .92rem; margin: 0 0 .4rem; }
+  .allow ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+  .allow li { display: grid; grid-template-columns: auto 1fr; gap: .55rem; align-items: start; padding: .55rem .7rem; border-radius: 8px; border: 1px solid color-mix(in srgb, CanvasText 12%, transparent); background: color-mix(in srgb, CanvasText 3%, Canvas); font-size: 13px; }
+  .allow li.match { border-color: color-mix(in srgb, #16a34a 45%, transparent); background: color-mix(in srgb, #16a34a 10%, Canvas); }
+  .allow .asn { font-family: ui-monospace, monospace; font-weight: 650; }
+  .allow .desc { opacity: .78; }
+  .conn details { margin-top: 1rem; }
+  .conn summary { cursor: pointer; font-size: 13px; opacity: .75; }
+  .conn pre { margin: .5rem 0 0; padding: .7rem .8rem; border-radius: 8px; overflow: auto; font: 12px/1.45 ui-monospace, monospace; background: color-mix(in srgb, CanvasText 5%, Canvas); border: 1px solid color-mix(in srgb, CanvasText 12%, transparent); white-space: pre-wrap; word-break: break-all; }
+  .mean-body { margin: .7rem 0 0; font-size: 13.5px; }
+  .mean-body p { margin: 0 0 .7rem; }
+  .mean-body p:last-child { margin-bottom: 0; }
 </style>
 </head>
 <body>
@@ -71,6 +100,41 @@
   </div>
 
   <video id="player" controls playsinline></video>
+
+  <section class="conn" id="conn">
+    <h2>Connection details</h2>
+    <p class="sub">Where you are, which Cloudflare city you reached, and whether that path looks fast.</p>
+    <div id="conn-body"><p class="hint">Reading Cloudflare edge&hellip;</p></div>
+
+    <details class="mean">
+      <summary>What this means?</summary>
+      <div class="mean-body">
+        <p>
+          This relay runs on Cloudflare, and Cloudflare has no data centre in mainland China.
+          Traffic from campus therefore always leaves the country to reach the nearest Cloudflare city.
+        </p>
+        <p>
+          Hong Kong (<code>HKG</code>) is usually the shortest hop to the video origin in China.
+          Singapore (<code>SIN</code>), Tokyo, Osaka, Seoul, Taipei, and Macau are also nearby and typically play well.
+        </p>
+        <p>
+          On campus you will most often land in Hong Kong or Singapore.
+          Cloudflare can still send you farther &mdash; Los Angeles (<code>LAX</code>) and San Jose (<code>SJC</code>)
+          show up sometimes &mdash; and that longer path is slower.
+        </p>
+        <p>
+          This service allows campus networks on the list above.
+          Other networks may be challenged or blocked by Cloudflare.
+        </p>
+        <p>
+          Routing <code>ruc.edu.kg</code> through a Hong Kong proxy can shorten a detour,
+          but off-campus you still have to pass a Cloudflare challenge in the browser first.
+          Dedicated players (VLC, ffmpeg, and many HLS apps) cannot complete that challenge,
+          so they will fail even after this page loads.
+        </p>
+      </div>
+    </details>
+  </section>
 
   <p class="note">
     The login token is embedded in the generated URL (so HLS players can fetch every
@@ -125,6 +189,202 @@
       video.play();
     }
   };
+
+  var ALLOWLIST = [
+    { asn: 4847, name: 'China Networks Inter-Exchange (DSL, MOBILE, BIZNET, EYEBALL)' },
+    { asn: 23910, name: 'China Next Generation Internet CERNET2 (IPv6)' }
+  ];
+  var COLO = {
+    SIN: 'Singapore', HKG: 'Hong Kong', NRT: 'Tokyo', KIX: 'Osaka', ICN: 'Seoul',
+    TPE: 'Taipei', KHH: 'Kaohsiung', MFM: 'Macau', BKK: 'Bangkok', CNX: 'Chiang Mai',
+    SGN: 'Ho Chi Minh City', HAN: 'Hanoi', DAD: 'Da Nang', MNL: 'Manila', CEB: 'Cebu',
+    KUL: 'Kuala Lumpur', JHB: 'Johor Bahru', CGK: 'Jakarta', DPS: 'Denpasar',
+    FUK: 'Fukuoka', OKA: 'Naha', PNH: 'Phnom Penh', VTE: 'Vientiane', BWN: 'Bandar Seri Begawan',
+    LHR: 'London', AMS: 'Amsterdam', FRA: 'Frankfurt', CDG: 'Paris',
+    LAX: 'Los Angeles', SJC: 'San Jose', SFO: 'San Francisco', IAD: 'Ashburn',
+    EWR: 'Newark', ORD: 'Chicago', YYZ: 'Toronto', SYD: 'Sydney', DXB: 'Dubai', BOM: 'Mumbai'
+  };
+  // Cloudflare has no mainland-China colos. Nearby = East / Southeast Asia.
+  var NEAR_COLO = {
+    SIN: 1, HKG: 1, MFM: 1, TPE: 1, KHH: 1,
+    NRT: 1, KIX: 1, FUK: 1, OKA: 1, ICN: 1,
+    BKK: 1, CNX: 1, SGN: 1, HAN: 1, DAD: 1,
+    MNL: 1, CEB: 1, KUL: 1, JHB: 1, CGK: 1, DPS: 1,
+    PNH: 1, VTE: 1, BWN: 1
+  };
+  var NEAR_LOC = { CN: 1, HK: 1, MO: 1, TW: 1, SG: 1, JP: 1, KR: 1 };
+  var COLO_CC = {
+    HKG: 'HK', SIN: 'SG', MFM: 'MO', TPE: 'TW', KHH: 'TW',
+    NRT: 'JP', KIX: 'JP', FUK: 'JP', OKA: 'JP', ICN: 'KR',
+    BKK: 'TH', CNX: 'TH', SGN: 'VN', HAN: 'VN', DAD: 'VN',
+    MNL: 'PH', CEB: 'PH', KUL: 'MY', JHB: 'MY', CGK: 'ID', DPS: 'ID',
+    PNH: 'KH', VTE: 'LA', BWN: 'BN',
+    LHR: 'GB', AMS: 'NL', FRA: 'DE', CDG: 'FR',
+    LAX: 'US', SJC: 'US', SFO: 'US', IAD: 'US', EWR: 'US', ORD: 'US',
+    YYZ: 'CA', SYD: 'AU', DXB: 'AE', BOM: 'IN'
+  };
+
+  function parseTrace(text) {
+    var out = {};
+    String(text).split(/\r?\n/).forEach(function (line) {
+      var i = line.indexOf('=');
+      if (i > 0) out[line.slice(0, i)] = line.slice(i + 1).trim();
+    });
+    return out;
+  }
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function countryName(code) {
+    if (!code) return '';
+    try {
+      return new Intl.DisplayNames(['en'], { type: 'region' }).of(code.toUpperCase()) || code;
+    } catch (e) { return code; }
+  }
+  function prettyHttp(h) {
+    if (!h) return '';
+    return h.replace(/^http\//i, 'HTTP/');
+  }
+  function parseAsn(v) {
+    if (v == null || v === '') return null;
+    var n = parseInt(String(v).replace(/^AS/i, ''), 10);
+    return isFinite(n) ? n : null;
+  }
+  function allowEntry(asn) {
+    for (var i = 0; i < ALLOWLIST.length; i++) if (ALLOWLIST[i].asn === asn) return ALLOWLIST[i];
+    return null;
+  }
+  function row(k, v, plain) {
+    return '<div class="k">' + escapeHtml(k) + '</div><div class="v' + (plain ? ' plain' : '') + '">' + v + '</div>';
+  }
+  function headerAsn(res) {
+    if (!res) return null;
+    return parseAsn(res.headers.get('x-client-asn'));
+  }
+
+  function loadAsnFrom(url) {
+    return fetch(url, { cache: 'no-store' }).then(headerAsn).catch(function () { return null; });
+  }
+
+  function loadAsn() {
+    return loadAsnFrom('/cf.txt').then(function (n) {
+      return { asn: n, org: '' };
+    });
+  }
+
+  function coloCity(colo) {
+    return COLO[colo] || colo || 'an unknown city';
+  }
+
+  function pathHint(loc, colo) {
+    var locName = loc ? (countryName(loc) || loc) : 'an unknown country';
+    var city = coloCity(colo);
+    var samePlace = !!(loc && COLO_CC[colo] && COLO_CC[colo] === loc);
+    var nearColo = !!NEAR_COLO[colo];
+    var nearLoc = !!NEAR_LOC[loc];
+    var proxy = ' Consider adding <code>ruc.edu.kg</code> to your proxy group so this site exits closer to East Asia.';
+
+    if (!colo) {
+      return { cls: 'verdict--muted', html: 'Could not tell which Cloudflare city you reached.' };
+    }
+    if (samePlace && nearColo) {
+      return {
+        cls: 'verdict--ok',
+        html: 'You are in ' + escapeHtml(locName) + ' and connected to Cloudflare ' +
+          escapeHtml(city) + '. This path should be smooth — the video origin is in China.'
+      };
+    }
+    if (nearColo && nearLoc) {
+      return {
+        cls: 'verdict--ok',
+        html: 'You are in ' + escapeHtml(locName) + ' and connected via ' + escapeHtml(city) +
+          '. That is a short hop toward the video origin in China, so playback should be reasonably fast.'
+      };
+    }
+    if (nearColo) {
+      return {
+        cls: 'verdict--ok',
+        html: 'You are in ' + escapeHtml(locName) + ', and this request entered Cloudflare in ' +
+          escapeHtml(city) + ', which is close to the video origin in China. Origin fetch should be fine.'
+      };
+    }
+    if (nearLoc) {
+      return {
+        cls: 'verdict--warn',
+        html: 'You are in ' + escapeHtml(locName) + ' but connected via ' + escapeHtml(city) +
+          '. That is a long detour from the video origin in China, so speed may be limited.' + proxy
+      };
+    }
+    return {
+      cls: 'verdict--warn',
+      html: 'You are in ' + escapeHtml(locName) + ' and connected via ' + escapeHtml(city) +
+        '. The video origin is in China, so this path may be slow.' + proxy
+    };
+  }
+
+  function renderConn(t, raw, asnInfo) {
+    var colo = (t.colo || '').toUpperCase();
+    var loc = (t.loc || '').toUpperCase();
+    var locName = loc ? (countryName(loc) || loc) : 'an unknown country';
+    var city = coloCity(colo);
+    var http = prettyHttp(t.http);
+    var asn = asnInfo && asnInfo.asn;
+    var listed = allowEntry(asn);
+    var org = listed ? listed.name : ((asnInfo && asnInfo.org) || '');
+    var asnText = asn == null ? 'unavailable' : ('AS' + asn + (org ? ' — ' + org : ''));
+    var path = pathHint(loc, colo);
+
+    var lead = 'You are in <strong>' + escapeHtml(locName) + '</strong>, connected to Cloudflare <strong>' +
+      escapeHtml(city) + '</strong>' + (colo ? ' (' + escapeHtml(colo) + ')' : '') + '.';
+
+    var rows =
+      row('You', escapeHtml(loc ? locName + ' (' + loc + ')' : 'unknown'), true) +
+      row('Cloudflare', escapeHtml(city + (colo ? ' (' + colo + ')' : '')), true) +
+      row('IP', escapeHtml(t.ip || '—')) +
+      row('Network', escapeHtml(asnText) + (listed
+        ? ' <span class="pill pill--ok">allowlisted</span>'
+        : (asn == null ? '' : ' <span class="pill pill--warn">not on allowlist</span>'))) +
+      (http || t.tls ? row('Protocol', escapeHtml((http || '') + (t.tls ? (http ? ' · ' : '') + t.tls : '')), true) : '');
+
+    var allowItems = ALLOWLIST.map(function (a) {
+      var match = asn === a.asn;
+      return '<li' + (match ? ' class="match"' : '') + '>' +
+        '<span class="asn">AS' + a.asn + '</span>' +
+        '<span><span class="desc">' + escapeHtml(a.name) + '</span>' +
+        (match ? ' <span class="pill pill--ok">you</span>' : '') +
+        '</span></li>';
+    }).join('');
+
+    var waf;
+    if (asn == null) {
+      waf = '<p class="hint">Could not read ASN, so allowlist status is unknown.</p>';
+    } else if (listed) {
+      waf = '<p class="hint">Your network is on the allowlist, so Cloudflare WAF should allow this connection.</p>';
+    } else {
+      waf = '<p class="hint">Your network is not on the allowlist. Cloudflare WAF may challenge or block this connection.</p>';
+    }
+
+    document.getElementById('conn-body').innerHTML =
+      '<p class="conn-lead">' + lead + '</p>' +
+      '<div class="kv">' + rows + '</div>' +
+      '<div class="verdict ' + path.cls + '">' + path.html + '</div>' +
+      '<div class="allow"><h3>WAF allowlist</h3>' +
+      waf +
+      '<ul>' + allowItems + '</ul></div>' +
+      '<details><summary>Raw /cdn-cgi/trace</summary><pre>' + escapeHtml(raw.trim()) + '</pre></details>';
+  }
+
+  fetch('/cdn-cgi/trace', { cache: 'no-store' }).then(function (r) {
+    if (!r.ok) throw new Error('trace ' + r.status);
+    return r.text();
+  }).then(function (raw) {
+    var t = parseTrace(raw);
+    return loadAsn().then(function (asnInfo) { renderConn(t, raw, asnInfo); });
+  }).catch(function () {
+    document.getElementById('conn-body').innerHTML =
+      '<p class="hint">Could not read Cloudflare trace for this connection.</p>';
+  });
 </script>
 </body>
 </html>

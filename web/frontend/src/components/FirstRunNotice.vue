@@ -44,7 +44,17 @@
                   <line x1="12" y1="20" x2="12.01" y2="20" />
                 </template>
               </svg>
-              <span>{{ $t(`notice.items.${item.key}`) }}</span>
+              <i18n-t v-if="item.key === 'network'" keypath="notice.items.network" tag="span">
+                <template #check>
+                  <a
+                    class="notice-inline-link"
+                    href="https://relay.ruc.edu.kg"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >{{ $t('notice.checkConnection') }}</a>
+                </template>
+              </i18n-t>
+              <span v-else>{{ $t(`notice.items.${item.key}`) }}</span>
             </li>
           </ul>
 
@@ -156,6 +166,16 @@ const ITEMS = [
   flex-shrink: 0;
   margin-top: 0.125rem;
   color: var(--text-secondary);
+}
+
+.notice-inline-link {
+  color: var(--link-color, var(--accent));
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.notice-inline-link:hover {
+  color: var(--text-primary);
 }
 
 .notice-para {
