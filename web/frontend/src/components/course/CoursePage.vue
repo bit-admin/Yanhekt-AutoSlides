@@ -23,7 +23,9 @@
         <p>{{ $t('courses.loading') }}</p>
       </div>
 
-      <template v-else-if="!errorMessage">
+      <NoCoursesEmpty v-else-if="!errorMessage && hasFetched && courses.length === 0" />
+
+      <template v-else-if="!errorMessage && courses.length > 0">
         <div class="video-grid">
           <div
             v-for="course in paginatedCourses"
@@ -98,6 +100,7 @@ import { navigationStore } from '../../stores/navigationStore'
 import { authStore } from '../../stores/authStore'
 import { resolveCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
 import { useKeepScroll } from '../../composables/useKeepScroll'
+import NoCoursesEmpty from './NoCoursesEmpty.vue'
 
 defineOptions({ name: 'CoursePage' })
 
@@ -107,6 +110,10 @@ const props = defineProps<{
 
 const contentEl = ref<HTMLElement | null>(null)
 useKeepScroll(contentEl)
+
+// SearchPage uses hasSearched so "No Courses Found" does not flash before the
+// first request. Same gate here: onMounted fetch starts after the first paint.
+const hasFetched = ref(false)
 
 const { t } = useI18n()
 const { activeNav } = navigationStore
@@ -141,7 +148,9 @@ const handleScroll = (event: Event) => {
 
 const refresh = () => {
   if (isLoggedIn.value && !isLoading.value) {
-    fetchPersonalCourses()
+    void fetchPersonalCourses().finally(() => {
+      hasFetched.value = true
+    })
   }
 }
 
@@ -222,6 +231,16 @@ const getLiveBadgeClass = (status?: number) => {
   justify-content: center;
   color: var(--text-muted);
   font-size: 0.875rem;
+}
+
+.loading-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--text-secondary);
 }
 
 /* responsive grid.

@@ -21,6 +21,8 @@
         <p>{{ $t('courses.loading') }}</p>
       </div>
 
+      <EmptySetState v-else-if="!errorMessage && hasFetched && courses.length === 0" :title="$t('courses.noResults')" />
+
       <div v-else-if="!errorMessage" class="courses-grid custom-scrollbar">
         <div
           v-for="course in paginatedCourses"
@@ -77,11 +79,12 @@
 </template>
 
 <script setup lang="ts">
-import { toRef, onMounted, watch } from 'vue'
+import { ref, toRef, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseList } from '@features/course/useCourseList'
 import { navigationStore } from '@features/course/navigationStore'
 import { useAuth } from '@features/platform/useAuth'
+import EmptySetState from '../shell/EmptySetState.vue'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
 const props = defineProps<{
@@ -91,6 +94,10 @@ const props = defineProps<{
 const { t } = useI18n()
 const { activeNav } = navigationStore
 const { isLoggedIn, userId } = useAuth()
+
+// SearchPage uses hasSearched so "No Courses Found" does not flash before the
+// first request. Same gate here: onMounted fetch starts after the first paint.
+const hasFetched = ref(false)
 
 const {
   isLoading,
@@ -111,7 +118,9 @@ const {
 
 const refresh = () => {
   if (isLoggedIn.value && !isLoading.value) {
-    fetchPersonalCourses()
+    void fetchPersonalCourses().finally(() => {
+      hasFetched.value = true
+    })
   }
 }
 

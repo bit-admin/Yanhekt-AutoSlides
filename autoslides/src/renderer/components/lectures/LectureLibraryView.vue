@@ -11,10 +11,11 @@
         </div>
       </div>
 
-      <div v-if="courses.length === 0" class="lib-empty">
-        <p>{{ $t('lectures.libraryEmpty') }}</p>
-        <p class="lib-empty-hint">{{ $t('lectures.libraryEmptyHint') }}</p>
-      </div>
+      <EmptySetState
+        v-if="courses.length === 0"
+        :title="$t('lectures.libraryEmpty')"
+        :hint="$t('lectures.libraryEmptyHint')"
+      />
 
       <div v-else class="shows-grid">
         <button
@@ -244,6 +245,7 @@ import {
   type LibrarySession,
 } from '@features/lectures/libraryModel'
 import type { LibraryBrowseLevel } from '@features/lectures/useLectureLibrary'
+import EmptySetState from '../shell/EmptySetState.vue'
 
 const props = defineProps<{
   browseLevel: LibraryBrowseLevel
@@ -299,6 +301,8 @@ watch(
 
 <style scoped>
 .library-view {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 0;

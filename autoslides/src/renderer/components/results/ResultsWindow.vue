@@ -252,12 +252,7 @@
       </div>
 
       <template v-else-if="currentView === 'folders'">
-        <div v-if="folders.length === 0" class="loading-state empty-state">
-          <svg width="64" height="64" viewBox="0 0 64 64">
-            <path d="M8 12v40h48V20H32l-6-8H8z" fill="currentColor" opacity="0.3"/>
-          </svg>
-          <span>{{ $t('trash.noResultsFolders') }}</span>
-        </div>
+        <EmptySetState v-if="folders.length === 0" :title="$t('trash.noResultsFolders')" />
 
         <FolderListView
           v-else
@@ -390,6 +385,7 @@ import { configStore } from '@shared/services/configStore'
 import ResultsImageGrid from './ResultsImageGrid.vue'
 import ResultsPreviewModal from './ResultsPreviewModal.vue'
 import FolderListView from './FolderListView.vue'
+import EmptySetState from '../shell/EmptySetState.vue'
 import ImportProgressModal from '../cloudnotes/ImportProgressModal.vue'
 
 const { t } = useI18n()
@@ -1333,11 +1329,14 @@ const confirmClearTrash = async () => {
 
 .content-area {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   padding: 16px;
 }
 
 .loading-state {
+  flex: 1;
   height: 100%;
   color: var(--text-muted);
 }

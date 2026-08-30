@@ -40,9 +40,7 @@
         <p>{{ $t('courses.loading') }}</p>
       </div>
 
-      <div v-else-if="!errorMessage && hasSearched && results.length === 0" class="empty-state">
-        <p>{{ $t('courses.noResults') }}</p>
-      </div>
+      <EmptySetState v-else-if="!errorMessage && hasSearched && results.length === 0" :title="$t('courses.noResults')" />
 
       <div v-else-if="!errorMessage" class="courses-grid custom-scrollbar">
         <div
@@ -105,6 +103,7 @@ import { useSearchPage } from '@features/course/useSearchPage'
 import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
 import { useAuth } from '@features/platform/useAuth'
 import SemesterSelect from './SemesterSelect.vue'
+import EmptySetState from '../shell/EmptySetState.vue'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
 const { t } = useI18n()
@@ -234,15 +233,6 @@ const {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 14px;
 }
 
 /* A page is always 16 items: 4 columns × 4 rows stretched to fill the

@@ -43,9 +43,7 @@
         <p>{{ $t('courses.loading') }}</p>
       </div>
 
-      <div v-else-if="!errorMessage && hasSearched && results.length === 0" class="empty-state">
-        <p>{{ $t('courses.noResults') }}</p>
-      </div>
+      <NoCoursesEmpty v-else-if="!errorMessage && hasSearched && results.length === 0" />
 
       <template v-else-if="!errorMessage && hasSearched">
         <div class="video-grid">
@@ -121,6 +119,7 @@ import { useRoute } from 'vue-router'
 import { useSearchPage } from '../../composables/useSearchPage'
 import { getCourseStatusText } from '../../composables/useCourseList'
 import SemesterSelect from './SemesterSelect.vue'
+import NoCoursesEmpty from './NoCoursesEmpty.vue'
 import { resolveCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
 
 defineOptions({ name: 'SearchPage' })
@@ -253,15 +252,6 @@ const getLiveBadgeClass = (status?: number) => {
   justify-content: center;
   gap: 0.75rem;
   color: var(--text-secondary);
-}
-
-.empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
 }
 
 /* 16:9 grids.

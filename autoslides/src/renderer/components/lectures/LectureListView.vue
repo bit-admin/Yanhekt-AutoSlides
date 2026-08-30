@@ -120,18 +120,14 @@
       </button>
     </div>
 
-    <div v-if="groups.length === 0 && !isLoading" class="loading-state empty-state">
-      <svg width="64" height="64" viewBox="0 0 64 64">
-        <path d="M8 12v40h48V20H32l-6-8H8z" fill="currentColor" opacity="0.3"/>
-      </svg>
-      <span>{{ $t('lectures.empty') }}</span>
-    </div>
+    <EmptySetState v-if="groups.length === 0 && !isLoading" :title="$t('lectures.empty')" />
   </div>
 </template>
 
 <script setup lang="ts">
 import type { LectureCourseGroup } from '@features/lectures/useLecturesPage'
 import type { LectureVideoType } from '@common/lectureVideoNaming'
+import EmptySetState from '../shell/EmptySetState.vue'
 
 const props = defineProps<{
   groups: LectureCourseGroup[]
@@ -434,9 +430,4 @@ const iconClass = (type?: LectureVideoType) => {
   background: var(--success-bg, var(--bg-subtle));
 }
 
-.empty-state {
-  flex: 1;
-  height: 100%;
-  color: var(--text-muted);
-}
 </style>
