@@ -857,10 +857,11 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   color: var(--text-secondary);
 }
 
-/* macOS: the traffic lights sit a touch below the title-bar centerline, so nudge
-   the toggles down to line up with them (Safari/Finder alignment). */
+/* macOS: hiddenInset lights are 12px filled discs; the sidebar glyph is a stroked
+   rounded-rect. 1px matches centroids but the square's top stroke reads high;
+   2px matches tops but the taller square hangs below. 1.5px is the optical middle. */
 .titlebar.is-macos .panel-toggle {
-  transform: translateY(1px);
+  transform: translateY(1.5px);
 }
 
 /* Non-macOS: collapse toggles live inside the center drag band (the tab strip).
