@@ -240,6 +240,26 @@ export function parseShareLink(input: string): ParsedShareLink | null {
   return null;
 }
 
+/**
+ * Client-side gate for flows that require an embedded v3 timeline (Lectures
+ * clone). Short links (`/v1/s/<id>`) cannot be version-checked until resolved.
+ */
+export type ShareTimelinePrecheck = 'ok' | 'empty' | 'invalid' | 'no-timeline';
+
+export function precheckShareLinkTimeline(input: string): ShareTimelinePrecheck {
+  const raw = input.trim();
+  if (!raw) return 'empty';
+  const parsed = parseShareLink(raw);
+  if (!parsed) return 'invalid';
+  // Short id only — fragment lives on the Worker. Caller must resolve, then
+  // reject if the reconstructed timeline is missing.
+  if (parsed.shortId && !parsed.fragment) return 'ok';
+  if (!parsed.fragment) return 'invalid';
+  const payload = decodeSharePayload(parsed.fragment);
+  if (!payload) return 'invalid';
+  return payloadHasTimeline(payload) ? 'ok' : 'no-timeline';
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────
 
 /** Parse a coss image URL into prefix/hash/ext, or null if it isn't one. */

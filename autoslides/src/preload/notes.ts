@@ -68,8 +68,11 @@ export const cloudNotes = {
     review: { reviewed: boolean; edited: boolean },
   ): Promise<NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>> =>
     ipcRenderer.invoke('cloudNotes:publishToIndex', fragment, source, review),
-  resolveShareLink: (link: string): Promise<NotesResult<ShareImportResult>> =>
-    ipcRenderer.invoke('cloudNotes:resolveShareLink', link),
+  resolveShareLink: (
+    link: string,
+    opts?: { requireTimeline?: boolean },
+  ): Promise<NotesResult<ShareImportResult>> =>
+    ipcRenderer.invoke('cloudNotes:resolveShareLink', link, opts),
   indexStats: (): Promise<NotesResult<IndexStats>> =>
     ipcRenderer.invoke('cloudNotes:indexStats'),
   indexSearch: (q: string, semesterIds?: number[]): Promise<NotesResult<IndexLecture[]>> =>

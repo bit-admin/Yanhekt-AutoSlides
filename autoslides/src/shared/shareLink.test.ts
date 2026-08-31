@@ -11,6 +11,7 @@ import {
   encodeShareTimeline,
   decodeShareTimeline,
   payloadHasTimeline,
+  precheckShareLinkTimeline,
   type SharePayload,
 } from './shareLink';
 
@@ -143,6 +144,18 @@ describe('shareLink codec', () => {
     const skipped = buildSharePayload(IDS, [hash('e'.repeat(32))], 7, { t: '3:0' });
     expect(skipped.v).toBe(2);
     expect(skipped.t).toBeUndefined();
+  });
+
+  it('precheckShareLinkTimeline accepts v3, rejects v2, defers short links', () => {
+    const v3 = buildShareUrl(buildSharePayload(IDS, [hash('e'.repeat(32))], 7, { t: '0:0,0:10' }));
+    const v2 = buildShareUrl(buildSharePayload(IDS, [hash('e'.repeat(32))]));
+    expect(precheckShareLinkTimeline(v3)).toBe('ok');
+    expect(precheckShareLinkTimeline(`  ${v3}  `)).toBe('ok');
+    expect(precheckShareLinkTimeline(v2)).toBe('no-timeline');
+    expect(precheckShareLinkTimeline(v2.split('#')[1])).toBe('no-timeline');
+    expect(precheckShareLinkTimeline('https://share.ruc.edu.kg/v1/s/k1erPIw4WM')).toBe('ok');
+    expect(precheckShareLinkTimeline('')).toBe('empty');
+    expect(precheckShareLinkTimeline('https://example.com/v1')).toBe('invalid');
   });
 
   it('encodes and decodes timeline deltas to absolute cues', () => {

@@ -62,8 +62,22 @@
           </button>
         </div>
 
-        <div v-if="viewMode === 'list'" class="actions">
+        <div class="actions">
           <button
+            v-if="viewMode === 'library'"
+            class="action-btn action-btn--secondary"
+            :title="$t('lectures.cloneModalHint')"
+            @click="showCloneModal = true"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            {{ $t('lectures.cloneFromLink') }}
+          </button>
+
+          <button
+            v-if="viewMode === 'list'"
             class="action-btn action-btn--primary"
             :disabled="!canCompress"
             :title="compressDisabledReason"
@@ -75,6 +89,7 @@
             {{ $t('lectures.compress') }}
           </button>
           <button
+            v-if="viewMode === 'list'"
             class="action-btn action-btn--secondary"
             :disabled="!canRename"
             @click="openRename"
@@ -185,6 +200,12 @@
         @close="showRenameModal = false"
         @done="onRenameDone"
       />
+
+      <LectureCloneShareModal
+        v-if="showCloneModal"
+        @close="showCloneModal = false"
+        @cloned="onCloneDone"
+      />
     </template>
   </div>
 </template>
@@ -201,6 +222,7 @@ import LectureLibraryView from './LectureLibraryView.vue'
 import LecturePlayerView from './LecturePlayerView.vue'
 import LectureCompressModal from './LectureCompressModal.vue'
 import LectureRenameModal from './LectureRenameModal.vue'
+import LectureCloneShareModal from './LectureCloneShareModal.vue'
 
 export type LecturesViewMode = 'list' | 'library'
 
@@ -208,6 +230,7 @@ const { t } = useI18n()
 
 /** Session-only Library|List toggle (not AppConfig). Opens on Library. */
 const viewMode = ref<LecturesViewMode>('library')
+const showCloneModal = ref(false)
 
 const {
   videos,
@@ -348,6 +371,11 @@ const onRenameDone = async () => {
   showRenameModal.value = false
   clearSelection()
   await loadVideos()
+}
+
+const onCloneDone = async () => {
+  showCloneModal.value = false
+  await onRefresh()
 }
 
 const onPlaySession = (courseId: string, session: LibrarySession) => {

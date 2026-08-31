@@ -86,8 +86,11 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
       run(() => notesService.publishToIndex(fragment, source, review)),
   );
 
-  ipcMain.handle('cloudNotes:resolveShareLink', (_e, link: string) =>
-    run(() => notesService.resolveShareLink(link)));
+  ipcMain.handle(
+    'cloudNotes:resolveShareLink',
+    (_e, link: string, opts?: { requireTimeline?: boolean }) =>
+      run(() => notesService.resolveShareLink(link, opts)),
+  );
 
   ipcMain.handle('cloudNotes:indexStats', () =>
     run(() => notesService.indexStats()));

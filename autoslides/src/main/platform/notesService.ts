@@ -34,7 +34,7 @@ import type {
 } from '@common/notesTypes';
 import { NOTE_GROUP_NAME_MAX, buildShareImportTitle, splitNoteDisplayName } from '@common/notesTypes';
 import type { SlideMetadataSource } from '@common/slideMetadataTypes';
-import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink } from '@common/shareLink';
+import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink, payloadHasTimeline } from '@common/shareLink';
 import { timelineFromSharePayload } from '@common/shareTimeline';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
 import { createLogger } from '@main/infra/logger';
@@ -516,8 +516,14 @@ export class NotesService {
    * export to a local folder. Lists the public coss `images` bucket to expand
    * the short hashes — runs in the main process to avoid renderer CORS, like the
    * other coss/yanhekt calls. Needs no auth (everything it touches is public).
+   *
+   * `requireTimeline` rejects v2 / no-timeline payloads after decode (and after
+   * the short-link hop) so callers that need `timeline.json` skip the bucket list.
    */
-  async resolveShareLink(link: string): Promise<ShareImportResult> {
+  async resolveShareLink(
+    link: string,
+    opts?: { requireTimeline?: boolean },
+  ): Promise<ShareImportResult> {
     const parsed = parseShareLink(link);
     if (!parsed) throw new Error('invalid-share-link');
 
@@ -532,6 +538,10 @@ export class NotesService {
 
     const payload = decodeSharePayload(fragment);
     if (!payload) throw new Error('invalid-share-link');
+    // Lectures clone needs timeline.json; fail before the public bucket listing.
+    if (opts?.requireTimeline && !payloadHasTimeline(payload)) {
+      throw new Error('share-link-no-timeline');
+    }
 
     const identity = { courseId: payload.c, sessionId: payload.s, liveId: payload.l };
     const [resolved, lectureMeta] = await Promise.all([
