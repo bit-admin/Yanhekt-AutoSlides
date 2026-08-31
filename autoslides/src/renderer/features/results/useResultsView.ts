@@ -869,6 +869,14 @@ export function useResultsView(options: UseResultsViewOptions = {}) {
     refresh()
   })
 
+  // Rescan when the configured output directory changes (same as Lectures).
+  watch(
+    () => configStore.outputDirectory,
+    () => {
+      void refresh()
+    },
+  )
+
   return {
     folders,
     currentView,
