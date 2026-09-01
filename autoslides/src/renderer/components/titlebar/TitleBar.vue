@@ -55,11 +55,19 @@
       <div class="menu-item" @click="toggleHelpMenu" ref="helpMenuTrigger">
         {{ $t('titlebar.help') }}
         <div v-if="showHelpMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
-          <div class="menu-option" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
+          <div class="menu-option menu-option--submenu">
+            <span>{{ $t('titlebar.autoslides') }}</span>
+            <svg class="menu-option-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <div class="dropdown-menu dropdown-submenu">
+              <div class="menu-option" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
+              <div class="menu-option" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
+              <div class="menu-option" @click="openAutoSlidesWeb">{{ $t('titlebar.openAutoSlidesWeb') }}</div>
+              <div class="menu-option" @click="openPublicIndex">{{ $t('titlebar.publicIndex') }}</div>
+            </div>
+          </div>
           <div class="menu-option" @click="openYanhekt">{{ $t('titlebar.openYanhekt') }}</div>
-          <div class="menu-option" @click="openAutoSlidesWeb">{{ $t('titlebar.openAutoSlidesWeb') }}</div>
-          <div class="menu-option" @click="openPublicIndex">{{ $t('titlebar.publicIndex') }}</div>
           <div class="menu-separator"></div>
           <div class="menu-option" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
           <div class="menu-separator"></div>
@@ -976,6 +984,31 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 
 .menu-option:hover:not(.disabled) .shortcut {
   color: rgba(255, 255, 255, 0.8);
+}
+
+.menu-option--submenu {
+  position: relative;
+}
+
+.menu-option-chevron {
+  margin-left: 20px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.menu-option--submenu:hover .menu-option-chevron {
+  color: var(--text-on-accent);
+}
+
+.dropdown-submenu {
+  display: none;
+  top: -4px;
+  left: 100%;
+  margin-top: 0;
+}
+
+.menu-option--submenu:hover .dropdown-submenu {
+  display: block;
 }
 
 /* Drag region - allows window dragging */

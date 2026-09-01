@@ -526,7 +526,7 @@
     "exportButton": "导出",
     "exportTip": "将此笔记导出为文件",
     "exportAsnoteTip": "AutoSlides 数据库导出请使用桌面端",
-    "exportAsnoteHint": "AutoSlides 数据库是由 AutoSlides 桌面端管理的受限分组（在延河课堂上名为 ASnote）。如需从这些笔记还原幻灯片，请在桌面端云盘页使用导入/导出。",
+    "exportAsnoteHint": "AutoSlides 数据库是由 AutoSlides 桌面端管理的受限分组（在延河课堂上名为 ASnote）。如需从这些笔记还原幻灯片，请在桌面端云存储页面使用导入/导出。",
     "shareButton": "分享",
     "shareTip": "将此笔记的幻灯片生成分享链接",
     "shareTitle": "分享幻灯片",
