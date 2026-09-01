@@ -59,6 +59,7 @@
           <div class="menu-option" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
           <div class="menu-option" @click="openYanhekt">{{ $t('titlebar.openYanhekt') }}</div>
           <div class="menu-option" @click="openAutoSlidesWeb">{{ $t('titlebar.openAutoSlidesWeb') }}</div>
+          <div class="menu-option" @click="openPublicIndex">{{ $t('titlebar.publicIndex') }}</div>
           <div class="menu-separator"></div>
           <div class="menu-option" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
           <div class="menu-separator"></div>
@@ -630,6 +631,14 @@ const openAutoSlidesWeb = async () => {
     await window.electronAPI.shell.openExternal(url);
   } catch (error) {
     log.error('Failed to open AutoSlides Web:', error);
+  }
+};
+
+const openPublicIndex = async () => {
+  try {
+    await window.electronAPI.shell.openExternal('https://share.ruc.edu.kg');
+  } catch (error) {
+    log.error('Failed to open Public Index:', error);
   }
 };
 

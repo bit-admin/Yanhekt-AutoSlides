@@ -164,7 +164,8 @@ export class WindowManager {
             ? `https://learn.ruc.edu.kg?token=${encodeURIComponent(token)}`
             : 'https://learn.ruc.edu.kg';
           shell.openExternal(url);
-        } }
+        } },
+        { label: t('titlebar.publicIndex'), click: () => { shell.openExternal('https://share.ruc.edu.kg'); } }
       ] }
     ];
   }
