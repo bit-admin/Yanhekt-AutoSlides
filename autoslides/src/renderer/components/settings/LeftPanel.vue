@@ -632,7 +632,7 @@ defineExpose({
   bottom: calc(100% - 1px);
   left: -8px;
   right: -8px;
-  z-index: 20;
+  z-index: var(--z-modal);
   border: 1px solid var(--border-input);
   border-bottom: none;
   border-radius: 8px 8px 0 0;

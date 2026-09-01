@@ -1005,6 +1005,18 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   top: -4px;
   left: 100%;
   margin-top: 0;
+  margin-left: 12px;
+}
+
+/* Transparent bridge so hover stays continuous across the 12px gap
+   (same spacing as the user-menu flyout). */
+.dropdown-submenu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -12px;
+  width: 12px;
+  height: 100%;
 }
 
 .menu-option--submenu:hover .dropdown-submenu {
