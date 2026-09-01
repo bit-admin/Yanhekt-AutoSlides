@@ -56,8 +56,7 @@
     "tar": "^7.5.11",
     "tmp": "^0.2.4",
     "extract-zip": "$extract-zip",
-    "image-size": "$image-size",
-    "nanoid@3": "3.3.18"
+    "image-size": "$image-size"
   },
   "dependencies": {
     "@editorjs/code": "^2.8.0",
