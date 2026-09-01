@@ -15,7 +15,9 @@
  *
  * Semester filter uses the same Yanhekt tag list as the Search page
  * (`apiClient.getAvailableSemesters`), not Index `/v2/api/stats`, and is sent as
- * `semesterIds` on `/v2/api/search`. Defaults to the latest semester.
+ * `semesterIds` on `/v2/api/search`. Defaults to the latest semester. A numeric
+ * query is a Yanhekt course id — the worker (and `notesService.indexSearch`)
+ * search all semesters, so the picker is forced to All to match.
  */
 
 import { computed, ref, watch } from 'vue'
@@ -76,6 +78,11 @@ interface SessionCacheEntry {
 }
 
 const sessionKey = (courseId: string, sessionId: string): string => `${courseId}.${sessionId}`
+
+/** Numeric Public Index queries are Yanhekt course ids and always search all semesters. */
+function isCourseIdQuery(term: string): boolean {
+  return /^\d+$/.test(term.trim())
+}
 
 // Mirrors the left-panel Search page's search-as-you-type debounce (useSearchPage.ts).
 const SEARCH_DEBOUNCE_MS = 400
@@ -277,7 +284,15 @@ export function useCloudIndexBrowse() {
 
   /** Run a search, group the results by course, and select the first course. */
   async function runSearch(term: string): Promise<void> {
-    await prepareSemesters()
+    if (isCourseIdQuery(term)) {
+      // Match the worker: numeric q ignores semesterIds. Keep the picker on
+      // All so it doesn't still show the latest-term default.
+      await ensureSemesters()
+      selectedSemesterIds.value = []
+      semesterInitialized.value = true
+    } else {
+      await prepareSemesters()
+    }
     lastExecutedQuery = executedKey(term)
     query.value = term
     searchMode.value = 'search'
@@ -298,9 +313,16 @@ export function useCloudIndexBrowse() {
 
   /** Update the semester filter; re-runs an in-flight query immediately. */
   async function setSemesters(ids: number[]): Promise<void> {
+    const term = query.value.trim()
+    // Course-id search cannot be narrowed by term — snap the picker back to All
+    // rather than showing a filter the worker will ignore.
+    if (isCourseIdQuery(term)) {
+      selectedSemesterIds.value = []
+      semesterInitialized.value = true
+      return
+    }
     selectedSemesterIds.value = ids.map(Number).filter((id) => Number.isFinite(id))
     semesterInitialized.value = true
-    const term = query.value.trim()
     if (!term) return
     cancelPendingSearch()
     await runSearch(term)
