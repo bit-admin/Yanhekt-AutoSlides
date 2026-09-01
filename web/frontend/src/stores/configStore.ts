@@ -43,9 +43,9 @@ export interface WebConfig {
   subscribedRecordedCourses: SubscribedCourse[];
   sidebarCollapsed: boolean;
   // Origin of an optional recorded-HLS relay (no trailing slash). Empty =
-  // built-in same-origin `/playlist`+`/segment` on this Worker. A custom
-  // origin (LAN / local `wrangler dev` of relay/) is for Settings. Scheme
-  // matters: an https page cannot fetch an http relay — see
+  // built-in same-origin `/playlist`+`/segment` on this Worker. Any other
+  // origin is a custom endpoint and is persisted as-is. Scheme matters: an
+  // https page cannot fetch an http relay — see
   // settingsStore.setRelayEndpoint / isMixedContentRelay.
   relayEndpoint: string;
   // Run post-processing (pHash phases) automatically after each saved slide
@@ -117,14 +117,10 @@ function load(): WebConfig {
     writeJSON(STORAGE_KEY, merged);
   }
 
-  // Empty = built-in. Collapse the unpublished previous default so leftover
-  // localStorage from `npm run dev` does not keep using the old public host.
-  const rawRelay = (merged.relayEndpoint || "").replace(/\/+$/, "");
-  if (!rawRelay || rawRelay === "https://relay.ruc.edu.kg") {
-    merged.relayEndpoint = "";
-  } else {
-    merged.relayEndpoint = normalizeRelayEndpoint(rawRelay) || "";
-  }
+  // Empty = built-in same-origin. Any other stored origin is custom (including
+  // https://relay.ruc.edu.kg) and is kept. Invalid values collapse to built-in.
+  const rawRelay = (merged.relayEndpoint || "").trim().replace(/\/+$/, "");
+  merged.relayEndpoint = rawRelay ? normalizeRelayEndpoint(rawRelay) || "" : "";
 
   // Heal pre-init configs that never had the flag array.
   if (!Array.isArray(merged.cloudStorageInitializedUsers)) {
@@ -187,7 +183,8 @@ export function persistConfig(): void {
     savedSearchesRecorded: [...configStore.savedSearchesRecorded],
     subscribedRecordedCourses: configStore.subscribedRecordedCourses.map((c) => ({ ...c })),
     sidebarCollapsed: configStore.sidebarCollapsed,
-    relayEndpoint: configStore.relayEndpoint,
+    // Empty = built-in; a non-empty origin is a custom endpoint and is stored.
+    relayEndpoint: (configStore.relayEndpoint || "").trim(),
     autoPostProcessingLive: configStore.autoPostProcessingLive,
     cloudWatchSyncEnabled: configStore.cloudWatchSyncEnabled,
     cloudStorageInitializedUsers: [...configStore.cloudStorageInitializedUsers],

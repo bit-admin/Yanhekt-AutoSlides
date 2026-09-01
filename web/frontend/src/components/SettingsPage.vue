@@ -327,7 +327,7 @@
         </div>
 
         <!-- Hidden debug section: reveal with Ctrl/Cmd+Shift+D while Settings is open.
-             If a non-public endpoint is already stored, show it so the user can reset. -->
+             If a custom endpoint is already stored, show it so the user can reset. -->
         <div v-if="relaySectionVisible" class="advanced-setting-section">
           <h4>{{ $t('settings.relay') }}</h4>
           <div class="setting-item">
