@@ -10,6 +10,8 @@
  *   the frontend falls back to the token-paste flow.
  * - RELAY: optional service binding to the sibling recorded-HLS Worker.
  *   Unset → `/playlist`/`/segment` 503.
+ * - SHARE: optional service binding to the sibling share Worker.
+ *   Unset → `/api/share/*` 503.
  * - AI_ORIGIN: origin this Worker fetches for `/api/ai/*`. Unset → 503.
  */
 export interface Env {
@@ -17,6 +19,8 @@ export interface Env {
   SSO_RESUME_KEY?: string;
   /** Sibling recorded-HLS Worker. Unset → `/playlist`/`/segment` 503. */
   RELAY?: Fetcher;
+  /** Sibling share Worker. Unset → `/api/share/*` 503. */
+  SHARE?: Fetcher;
   /** Builtin AI origin (`https://…`, no trailing path). Unset → `/api/ai/*` 503. */
   AI_ORIGIN?: string;
 }

@@ -22,9 +22,36 @@ interface ShareDocumentProps {
   payload: SharePayload;
   images: ResolvedImage[];
   meta: ViewerMeta | null;
+  /** Decoded share payload fragment (no leading `#`). */
+  fragment: string;
 }
 
 type Busy = null | 'zip' | 'pdf' | 'timeline';
+type Copied = null | 'current' | 'fragment';
+
+const SHORT_PATH = /\/v1\/s\/[A-Za-z0-9]+\/?$/;
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    try {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.setAttribute('readonly', '');
+      el.style.position = 'fixed';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(el);
+      return ok;
+    } catch {
+      return false;
+    }
+  }
+}
 
 function fileStem(payload: SharePayload, meta: ViewerMeta | null): string {
   const token = [payload.c && `c${payload.c}`, payload.s && `s${payload.s}`, payload.l && `l${payload.l}`]
@@ -34,9 +61,10 @@ function fileStem(payload: SharePayload, meta: ViewerMeta | null): string {
   return parts.join(' · ') || 'slides';
 }
 
-export function ShareDocument({ payload, images, meta }: ShareDocumentProps) {
+export function ShareDocument({ payload, images, meta, fragment }: ShareDocumentProps) {
   const [busy, setBusy] = useState<Busy>(null);
   const [zoom, setZoom] = useState<string | null>(null);
+  const [copied, setCopied] = useState<Copied>(null);
 
   const urls = useMemo(() => images.map((i) => i.url), [images]);
   const resolvedCount = useMemo(() => urls.filter(Boolean).length, [urls]);
@@ -50,6 +78,15 @@ export function ShareDocument({ payload, images, meta }: ShareDocumentProps) {
   const term = formatAcademicTerm(meta?.schoolYear, meta?.semester);
   const byline = [meta?.instructor, meta?.college, term].filter(Boolean).join(' · ');
   const stem = fileStem(payload, meta);
+  const isShortLink = SHORT_PATH.test(location.pathname);
+  const fragmentUrl = `${location.origin}/v1#${fragment}`;
+
+  const copyLink = async (kind: Exclude<Copied, null>, text: string) => {
+    const ok = await copyText(text);
+    if (!ok) return;
+    setCopied(kind);
+    window.setTimeout(() => setCopied((cur) => (cur === kind ? null : cur)), 1600);
+  };
 
   const run = async (kind: Exclude<Busy, null>, fn: () => Promise<void>) => {
     if (busy) return;
@@ -64,6 +101,24 @@ export function ShareDocument({ payload, images, meta }: ShareDocumentProps) {
   return (
     <div className="doc">
       <header className="doc__head">
+        <div className="doc__share-links">
+          <button
+            type="button"
+            className="text-link"
+            onClick={() => void copyLink('current', location.href)}
+          >
+            {copied === 'current' ? 'Copied' : 'Copy link'}
+          </button>
+          {isShortLink && (
+            <button
+              type="button"
+              className="text-link"
+              onClick={() => void copyLink('fragment', fragmentUrl)}
+            >
+              {copied === 'fragment' ? 'Copied' : 'Copy full link'}
+            </button>
+          )}
+        </div>
         <h1 className="doc__title">{course || 'Shared slides'}</h1>
         {session && <p className="doc__session">{session}</p>}
         <p className="doc__meta">

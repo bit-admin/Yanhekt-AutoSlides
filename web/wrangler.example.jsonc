@@ -49,11 +49,12 @@
     // "AI_ORIGIN": "https://ai.example.com"
   },
 
-  // Optional same-account service binding for recorded HLS. Uncomment if you
-  // deploy ../relay (see that package's wrangler `name`). Unbound,
-  // GET /playlist|/segment return 503.
+  // Optional same-account service bindings. Uncomment if you deploy ../relay
+  // (recorded HLS) and/or ../share (short-link KV). Unbound,
+  // GET /playlist|/segment and GET /api/share/* return 503.
   // "services": [
-  //   { "binding": "RELAY", "service": "yanhekt-proxy", "remote": true }
+  //   { "binding": "RELAY", "service": "yanhekt-proxy", "remote": true },
+  //   { "binding": "SHARE", "service": "autoslides-share", "remote": true }
   // ],
 
   "observability": {

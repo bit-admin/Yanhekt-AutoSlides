@@ -6,7 +6,13 @@ import { ShareDocument, type ViewerMeta } from './components/ShareDocument';
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'ready'; payload: SharePayload; images: ResolvedImage[]; meta: ViewerMeta | null };
+  | {
+      kind: 'ready';
+      payload: SharePayload;
+      images: ResolvedImage[];
+      meta: ViewerMeta | null;
+      fragment: string;
+    };
 
 async function fetchMeta(courseId?: string, sessionId?: string): Promise<ViewerMeta | null> {
   if (!courseId && !sessionId) return null;
@@ -65,7 +71,15 @@ export function App() {
       }
       try {
         const images = await resolveImages(payload);
-        if (!cancelled) setState({ kind: 'ready', payload, images, meta: loaded.meta });
+        if (!cancelled) {
+          setState({
+            kind: 'ready',
+            payload,
+            images,
+            meta: loaded.meta,
+            fragment: loaded.fragment,
+          });
+        }
       } catch {
         if (!cancelled) setState({ kind: 'error', message: 'Could not load the slides from the server.' });
       }
@@ -85,5 +99,12 @@ export function App() {
       </div>
     );
   }
-  return <ShareDocument payload={state.payload} images={state.images} meta={state.meta} />;
+  return (
+    <ShareDocument
+      payload={state.payload}
+      images={state.images}
+      meta={state.meta}
+      fragment={state.fragment}
+    />
+  );
 }

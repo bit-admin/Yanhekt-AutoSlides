@@ -311,6 +311,26 @@ export function parseShareLink(input: string): ParsedShareLink | null {
   return null;
 }
 
+/**
+ * Fast local check before any COSS listing. Short links return `'short'`
+ * (fragment lives in share-Worker KV). The web player resolves those via
+ * same-origin `GET /api/share/get` (service binding), not a browser request
+ * to share.ruc.edu.kg. Desktop returns `'ok'` and resolves via main.
+ */
+export type ShareTimelinePrecheck = 'ok' | 'empty' | 'invalid' | 'no-timeline' | 'short';
+
+export function precheckShareLinkTimeline(input: string): ShareTimelinePrecheck {
+  const raw = input.trim();
+  if (!raw) return 'empty';
+  const parsed = parseShareLink(raw);
+  if (!parsed) return 'invalid';
+  if (parsed.shortId && !parsed.fragment) return 'short';
+  if (!parsed.fragment) return 'invalid';
+  const payload = decodeSharePayload(parsed.fragment);
+  if (!payload) return 'invalid';
+  return payloadHasTimeline(payload) ? 'ok' : 'no-timeline';
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────
 
 /** Parse a coss image URL into prefix/hash/ext, or null if it isn't one. */

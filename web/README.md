@@ -14,7 +14,7 @@ src/                Worker (TypeScript, Hono) — the tracked, public API
   index.ts          entry point: builds the app and starts serving
   app.ts            createApp/finalizeApp — the route table; real API routes
                      are mounted inside createApp() as the project grows
-  env.ts             bindings (ASSETS, SSO_RESUME_KEY, RELAY, AI_ORIGIN)
+  env.ts             bindings (ASSETS, SSO_RESUME_KEY, RELAY, SHARE, AI_ORIGIN)
   lib/
     yanhekt.ts       yanhekt.cn API helpers: header/signature construction
                      (upstreamHeaders/createHeaders) + token verification
@@ -29,6 +29,7 @@ src/                Worker (TypeScript, Hono) — the tracked, public API
                      POST /api/login/sms — campus SSO password login, in one
                      request or two when an SMS code is required
     relayProxy.ts    GET /playlist|/segment — service-bind sibling relay/
+    shareProxy.ts    GET /api/share/get — service-bind sibling share/ (short links)
     aiProxy.ts       /api/ai/* — forward to AI_ORIGIN (strip /api/ai)
 frontend/            Vue 3 + TypeScript + Vite app — builds to ../dist/
   index.html
@@ -74,11 +75,13 @@ or before today's date in `wrangler.jsonc`.
 
 Recorded video playback is same-origin (`/playlist`, `/segment`) on this
 Worker, which service-binds the sibling `relay/` Worker — see
-`../relay/README.md`. Builtin AI is `/api/ai/*`, forwarded by this Worker
-to `AI_ORIGIN` (a `vars` URL) with `User-Agent: AutoSlides/web`. Uncomment
-`services` / `AI_ORIGIN` in `wrangler.jsonc` after copying the example;
-unset, those routes 503. Settings → Relay Server can point HLS at a local
-`wrangler dev` of `relay/` instead.
+`../relay/README.md`. Short share links resolve same-origin at
+`GET /api/share/get?id=`, which service-binds sibling `share/` (`autoslides-share`)
+so the browser never talks to `share.ruc.edu.kg`. Builtin AI is `/api/ai/*`,
+forwarded by this Worker to `AI_ORIGIN` (a `vars` URL) with `User-Agent:
+AutoSlides/web`. Uncomment `services` / `AI_ORIGIN` in `wrangler.jsonc` after
+copying the example; unset, those routes 503. Settings → Relay Server can
+point HLS at a local `wrangler dev` of `relay/` instead.
 
 ## SMS second factor (`SSO_RESUME_KEY`)
 

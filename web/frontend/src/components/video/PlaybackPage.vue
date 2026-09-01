@@ -65,6 +65,11 @@
                   <p v-if="props.mode === 'recorded'" class="warming-hint">{{ $t('playback.warming.hint') }}</p>
                 </div>
 
+                <div v-else-if="isSeekBuffering" class="warming-overlay seek-buffering-overlay">
+                  <div class="warming-spinner"></div>
+                  <p class="warming-title">{{ $t('playback.buffering') }}</p>
+                </div>
+
                 <SingleStreamControls
                   :mode="props.mode"
                   :is-playing="isPlaying"
@@ -87,8 +92,13 @@
                   :is-picture-in-picture="isPictureInPicture"
                   :video-player-ready="!!videoPlayer"
                   :format-time="formatPlaybackTime"
+                  :chapters="shareOverlay.chapters.value"
+                  :active-chapter-id="shareOverlay.activeChapterId.value"
+                  :strip-open="slidesStripOpen"
                   @toggle-playback="toggleSinglePlayback"
                   @seek-input="onSingleSeekInput"
+                  @seek-chapter="seekToChapter"
+                  @toggle-strip="slidesStripOpen = !slidesStripOpen"
                   @volume-input="applySingleVolume"
                   @toggle-mute="toggleSingleMute"
                   @toggle-speed-panel="toggleSpeedPanel"
@@ -120,7 +130,7 @@
                         preload="metadata"
                         playsinline
                         crossorigin="anonymous"
-                        @timeupdate="onDualTimeUpdate"
+                        @timeupdate="onDualClockUpdate"
                         @play="onDualPlayStateChanged"
                         @pause="onDualPlayStateChanged"
                         @ended="onDualEnded"
@@ -137,7 +147,7 @@
                         preload="metadata"
                         playsinline
                         crossorigin="anonymous"
-                        @timeupdate="onDualTimeUpdate"
+                        @timeupdate="onDualClockUpdate"
                         @play="onDualPlayStateChanged"
                         @pause="onDualPlayStateChanged"
                         @ended="onDualEnded"
@@ -158,6 +168,11 @@
                     <p class="warming-title">{{ $t('playback.warming.title') }}</p>
                     <p v-if="props.mode === 'recorded'" class="warming-hint">{{ $t('playback.warming.hint') }}</p>
                   </div>
+
+                  <div v-else-if="isSeekBuffering" class="warming-overlay seek-buffering-overlay">
+                    <div class="warming-spinner"></div>
+                    <p class="warming-title">{{ $t('playback.buffering') }}</p>
+                  </div>
                 </div>
 
                 <div
@@ -166,6 +181,13 @@
                   @mouseenter="pointerOverControls = true"
                   @mouseleave="pointerOverControls = false"
                 >
+                  <SlideChapterStrip
+                    v-if="shareOverlay.hasChapters.value && slidesStripOpen"
+                    :chapters="shareOverlay.chapters.value"
+                    :active-chapter-id="shareOverlay.activeChapterId.value"
+                    @seek="seekToChapter"
+                  />
+
                   <div class="dual-controls-main-row">
                     <div class="dual-controls-left">
                       <button
@@ -274,6 +296,21 @@
                           </button>
                         </div>
                       </div>
+
+                      <button
+                        v-if="shareOverlay.hasChapters.value"
+                        class="dual-icon-button"
+                        :class="{ 'is-active-control': slidesStripOpen }"
+                        :title="$t('playback.slideChapters')"
+                        :aria-pressed="slidesStripOpen"
+                        @click="slidesStripOpen = !slidesStripOpen"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <rect x="3" y="4" width="18" height="12" rx="2"/>
+                          <path d="M7 20h10"/>
+                          <path d="M8 8h5M8 11h8"/>
+                        </svg>
+                      </button>
 
                       <button
                         class="dual-icon-button"
@@ -464,17 +501,32 @@
           </div>
         </div>
 
-        <!-- Slide extraction panel (screen or dual view only) -->
+        <!-- Slide extraction panel. Recorded always shows it so a share-link
+             timeline can be loaded even on camera-only; live stays screen/dual. -->
         <SlideExtractionPanel
-          v-if="playbackData && !loading && !error && canExtract"
+          v-if="playbackData && !loading && !error && (canExtract || props.mode === 'recorded' || shareOverlay.hasOverlay.value)"
           :enabled="slideExtraction.isSlideExtractionEnabled.value"
           :status="slideExtraction.slideExtractionStatus.value"
-          :slides="slideExtraction.extractedSlides.value"
+          :slides="panelSlides"
           :post-status="extractionPostStatus"
           :is-post-processing="slideExtraction.isPostProcessing.value"
           :capture-not-supported="slideExtraction.captureNotSupported.value"
+          :share-overlay="shareOverlay.hasOverlay.value"
+          :show-share="props.mode === 'recorded'"
+          :share-busy="shareOverlay.loading.value"
+          :extract-disabled="!canExtract || shareOverlay.hasOverlay.value"
           @toggle="onExtractionToggle"
           @post-process="slideExtraction.executePostProcessing()"
+          @load-share="openShareModal"
+          @clear-share="shareOverlay.clear()"
+        />
+
+        <ShareSlideModal
+          v-if="showShareModal"
+          :resolving="shareOverlay.loading.value"
+          :error="shareModalError"
+          @close="showShareModal = false"
+          @submit="onShareLinkSubmit"
         />
 
         <ExtractionFeaturesModal
@@ -574,7 +626,10 @@ import { router } from '../../router'
 import { stashCourse, stashSession } from '../../stores/courseTransfer'
 import SingleStreamControls from './SingleStreamControls.vue'
 import SlideExtractionPanel from './SlideExtractionPanel.vue'
+import ShareSlideModal from './ShareSlideModal.vue'
+import SlideChapterStrip from './SlideChapterStrip.vue'
 import ExtractionFeaturesModal from './ExtractionFeaturesModal.vue'
+import { useShareSlideOverlay, type ShareOverlayError } from '../../composables/video/useShareSlideOverlay'
 import { hasSeenExtractionFeaturesPrompt } from '../../stores/extractionFeaturesPromptStore'
 import WatchNotesPanel from '../notes/WatchNotesPanel.vue'
 import { configStore } from '../../stores/configStore'
@@ -591,7 +646,10 @@ const props = defineProps<{
   mode: 'live' | 'recorded'
 }>()
 
+const { t } = useI18n()
+
 // Local UI state
+
 const isPictureInPicture = ref(false)
 const isCinemaMode = playbackStore.cinema
 
@@ -797,7 +855,7 @@ const {
   setDualAudioSource,
   setDualVolume,
   applyDualAudioState,
-  onDualTimeUpdate,
+  onDualTimeUpdate: applyDualTimeUpdate,
   onDualPlayStateChanged,
   onDualEnded,
   preventDualUnmute,
@@ -838,6 +896,73 @@ const slideExtraction = useSlideExtraction({
 slideExtraction.videoElementProvider.value = () =>
   isDualStreamSelected.value ? screenVideoPlayer.value : videoPlayer.value
 
+const overlayCurrentTime = computed(() =>
+  isDualStreamSelected.value ? dualCurrentTime.value : singleCurrentTime.value,
+)
+const shareOverlay = useShareSlideOverlay({
+  course: courseRef,
+  session: sessionRef,
+  currentTime: overlayCurrentTime,
+})
+const slidesStripOpen = ref(true)
+const isSeekBuffering = ref(false)
+watch(
+  () => shareOverlay.hasChapters.value,
+  (available) => {
+    if (available) slidesStripOpen.value = true
+  },
+)
+watch(
+  () => shareOverlay.hasPendingSeek.value,
+  (pending) => {
+    if (!pending) isSeekBuffering.value = false
+  },
+)
+
+function onDualClockUpdate(): void {
+  const master = screenVideoPlayer.value ?? cameraVideoPlayer.value
+  if (master) {
+    shareOverlay.noteMediaTime(master.currentTime)
+    if (shareOverlay.hasPendingSeek.value) return
+  }
+  applyDualTimeUpdate()
+}
+const showShareModal = ref(false)
+const shareModalError = ref('')
+const panelSlides = computed(() =>
+  shareOverlay.hasOverlay.value
+    ? shareOverlay.gallerySlides.value
+    : slideExtraction.extractedSlides.value,
+)
+
+function shareErrorText(code: ShareOverlayError): string {
+  switch (code) {
+    case 'not-found': return t('playback.loadFromLinkNotFound')
+    case 'unavailable': return t('playback.loadFromLinkUnavailable')
+    case 'no-timeline': return t('playback.loadFromLinkNoTimeline')
+    case 'mismatch': return t('playback.loadFromLinkMismatch')
+    case 'empty-images': return t('playback.loadFromLinkEmpty')
+    case 'failed': return t('playback.loadFromLinkFailed')
+    default: return t('playback.loadFromLinkInvalid')
+  }
+}
+
+function openShareModal(): void {
+  shareModalError.value = ''
+  showShareModal.value = true
+}
+
+async function onShareLinkSubmit(link: string): Promise<void> {
+  shareModalError.value = ''
+  const err = await shareOverlay.load(link)
+  if (err) {
+    shareModalError.value = shareErrorText(err)
+    return
+  }
+  slideExtraction.forceStopSlideExtraction()
+  showShareModal.value = false
+}
+
 // Extraction is possible when the capture source shows the screen stream.
 const canExtract = computed(
   () => isDualStreamSelected.value || currentStreamData.value?.type === 'screen',
@@ -858,6 +983,7 @@ const startExtraction = () => {
 }
 
 const onExtractionToggle = (checked: boolean) => {
+  if (shareOverlay.hasOverlay.value) return
   if (!checked) {
     slideExtraction.isSlideExtractionEnabled.value = false
     void slideExtraction.toggleSlideExtraction()
@@ -893,7 +1019,6 @@ watch(canExtract, (can) => {
 // Leaving this page mid-extraction (sidebar nav, browser back, the player's
 // back button, a sibling-session switch) unmounts it and kills the run —
 // confirm first. beforeunload covers reload/tab-close the same way.
-const { t } = useI18n()
 const extractionActive = computed(
   () =>
     slideExtraction.isSlideExtractionEnabled.value ||
@@ -1045,6 +1170,8 @@ const toggleDualMute = () => {
 }
 
 const onDualSeekInput = (event: Event) => {
+  shareOverlay.clearSeekPin()
+  isSeekBuffering.value = false
   const target = event.target as HTMLInputElement
   seekDualStreams(Number(target.value))
 }
@@ -1112,7 +1239,23 @@ const seekSingle = (time: number) => {
   video.currentTime = Math.min(Math.max(time, 0), video.duration)
 }
 
+const seekToChapter = (time: number) => {
+  shareOverlay.pinSeek(time)
+  isSeekBuffering.value = true
+  if (isDualStreamSelected.value) {
+    seekDualStreams(time)
+    return
+  }
+  const duration = singleDuration.value
+  singleCurrentTime.value = Number.isFinite(duration) && duration > 0
+    ? Math.min(Math.max(time, 0), duration)
+    : Math.max(0, time)
+  seekSingle(time)
+}
+
 const onSingleSeekInput = (next: number) => {
+  shareOverlay.clearSeekPin()
+  isSeekBuffering.value = false
   singleCurrentTime.value = next
   seekSingle(next)
 }
@@ -1242,6 +1385,8 @@ watch(
         videoPlayerComposable.isPlaying.value = !newPlayer.paused
       }
       const onTimeUpdate = () => {
+        shareOverlay.noteMediaTime(newPlayer.currentTime)
+        if (shareOverlay.hasPendingSeek.value) return
         singleCurrentTime.value = newPlayer.currentTime
       }
       const onLoadedMeta = () => {
@@ -1260,9 +1405,13 @@ watch(
         if (slideExtraction.isSlideExtractionEnabled.value) {
           slideExtraction.slideExtractorInstance.value?.pauseForBuffering()
         }
+        if (shareOverlay.hasPendingSeek.value) isSeekBuffering.value = true
       }
       const onBufferReady = () => {
         slideExtraction.slideExtractorInstance.value?.resumeAfterBuffering()
+      }
+      const onSeeking = () => {
+        if (shareOverlay.hasPendingSeek.value) isSeekBuffering.value = true
       }
 
       newPlayer.addEventListener('play', updatePlayingState)
@@ -1274,6 +1423,7 @@ watch(
       newPlayer.addEventListener('waiting', onBufferWaiting)
       newPlayer.addEventListener('canplay', onBufferReady)
       newPlayer.addEventListener('canplaythrough', onBufferReady)
+      newPlayer.addEventListener('seeking', onSeeking)
 
       currentEventListeners.push(() => {
         newPlayer.removeEventListener('play', updatePlayingState)
@@ -1285,6 +1435,7 @@ watch(
         newPlayer.removeEventListener('waiting', onBufferWaiting)
         newPlayer.removeEventListener('canplay', onBufferReady)
         newPlayer.removeEventListener('canplaythrough', onBufferReady)
+        newPlayer.removeEventListener('seeking', onSeeking)
       })
 
       if (currentStreamData.value && playbackData.value && !isDualStreamSelected.value) {
@@ -1308,17 +1459,23 @@ watch(
         if (slideExtraction.isSlideExtractionEnabled.value) {
           slideExtraction.slideExtractorInstance.value?.pauseForBuffering()
         }
+        if (shareOverlay.hasPendingSeek.value) isSeekBuffering.value = true
       }
       const onBufferReady = () => {
         slideExtraction.slideExtractorInstance.value?.resumeAfterBuffering()
       }
+      const onSeeking = () => {
+        if (shareOverlay.hasPendingSeek.value) isSeekBuffering.value = true
+      }
       newPlayer.addEventListener('waiting', onBufferWaiting)
       newPlayer.addEventListener('canplay', onBufferReady)
       newPlayer.addEventListener('canplaythrough', onBufferReady)
+      newPlayer.addEventListener('seeking', onSeeking)
       screenBufferListeners.push(() => {
         newPlayer.removeEventListener('waiting', onBufferWaiting)
         newPlayer.removeEventListener('canplay', onBufferReady)
         newPlayer.removeEventListener('canplaythrough', onBufferReady)
+        newPlayer.removeEventListener('seeking', onSeeking)
       })
     }
   },
@@ -1521,6 +1678,12 @@ onUnmounted(async () => {
   font-size: 0.8125rem;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.75);
+}
+
+.seek-buffering-overlay {
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: none;
+  gap: 0.75rem;
 }
 
 /* Dual layout */

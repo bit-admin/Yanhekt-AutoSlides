@@ -3,20 +3,20 @@
     <div class="extraction-header">
       <label
         class="extraction-toggle"
-        :class="{ enabled, disabled: captureNotSupported }"
+        :class="{ enabled: enabled && !shareOverlay, disabled: toggleDisabled }"
         @click.prevent="onToggleClick"
       >
         <input
           type="checkbox"
-          :checked="enabled"
-          :disabled="captureNotSupported"
+          :checked="enabled && !shareOverlay"
+          :disabled="toggleDisabled"
           tabindex="-1"
         />
         <span class="toggle-slider"></span>
         <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
       </label>
 
-      <div class="slide-counter" :class="{ active: enabled }">
+      <div class="slide-counter" :class="{ active: enabled || shareOverlay }">
         <svg class="counter-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
           <circle cx="9" cy="9" r="2"/>
@@ -24,17 +24,18 @@
         </svg>
         <span class="counter-text">
           <strong class="count-num">{{ slides.length }}</strong> {{ $t('playback.slides') }}
-          <span v-if="enabled" class="counter-status-pill">{{ $t('playback.extracted') }}</span>
+          <span v-if="shareOverlay" class="counter-status-pill">{{ $t('playback.shared') }}</span>
+          <span v-else-if="enabled" class="counter-status-pill">{{ $t('playback.extracted') }}</span>
         </span>
         <span
-          v-if="enabled && status.verificationState === 'verifying'"
+          v-if="enabled && !shareOverlay && status.verificationState === 'verifying'"
           class="verification-dot"
           :title="`${status.currentVerification}`"
         ></span>
       </div>
 
       <button
-        v-if="slides.length > 0"
+        v-if="slides.length > 0 && !shareOverlay"
         class="btn btn--sm btn-postprocess"
         :class="{ 'btn--primary': postStatus?.state !== 'running', 'is-processing': isPostProcessing }"
         :disabled="isPostProcessing"
@@ -48,6 +49,46 @@
         </svg>
         <span v-else class="processing-spinner"></span>
         <span>{{ isPostProcessing ? $t('playback.postProcessing') : $t('playback.postProcess') }}</span>
+      </button>
+
+      <button
+        v-if="showShare"
+        type="button"
+        class="btn btn--sm share-link-btn"
+        :disabled="shareBusy"
+        :title="shareOverlay ? $t('playback.clearSharedSlides') : $t('playback.loadFromLinkHint')"
+        @click="shareOverlay ? $emit('clearShare') : $emit('loadShare')"
+      >
+        <svg
+          v-if="!shareOverlay"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <svg
+          v-else
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        {{ shareOverlay ? $t('playback.clearSharedSlides') : $t('playback.loadFromLink') }}
       </button>
 
       <button
@@ -72,7 +113,7 @@
 
     <!-- Premium Post-Processing Progress Dashboard -->
     <div
-      v-if="postStatus && (postStatus.state === 'running' || postStatus.state === 'done' || postStatus.state === 'error')"
+      v-if="!shareOverlay && postStatus && (postStatus.state === 'running' || postStatus.state === 'done' || postStatus.state === 'error')"
       class="post-process-dashboard"
       :class="`status-${postStatus.state}`"
     >
@@ -175,22 +216,32 @@ const props = defineProps<{
   postStatus: PostProcessingRunStatus | null
   isPostProcessing: boolean
   captureNotSupported: boolean
+  shareOverlay?: boolean
+  showShare?: boolean
+  shareBusy?: boolean
+  extractDisabled?: boolean
 }>()
 
 const emit = defineEmits<{
   toggle: [checked: boolean]
   postProcess: []
+  loadShare: []
+  clearShare: []
 }>()
 
 const { t } = useI18n()
 const collapsed = ref(false)
+
+const toggleDisabled = computed(
+  () => props.captureNotSupported || props.shareOverlay === true || props.extractDisabled === true,
+)
 
 // Fully controlled: intercept the label click so the native checkbox never
 // self-toggles. The parent may leave `enabled` false (first-run features
 // prompt Cancel); Vue would then skip patching :checked and the slider would
 // lie. ON chrome is the `.enabled` class, not input:checked.
 const onToggleClick = () => {
-  if (props.captureNotSupported) return
+  if (toggleDisabled.value) return
   emit('toggle', !props.enabled)
 }
 
@@ -454,6 +505,12 @@ const postLine = computed(() => {
   to { transform: rotate(360deg); }
 }
 
+.share-link-btn {
+  margin-left: auto;
+  gap: 0.375rem;
+  font-weight: 600;
+}
+
 .collapse-btn {
   margin-left: auto;
   display: flex;
@@ -467,6 +524,10 @@ const postLine = computed(() => {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.share-link-btn + .collapse-btn {
+  margin-left: 0;
 }
 
 .collapse-btn:hover {

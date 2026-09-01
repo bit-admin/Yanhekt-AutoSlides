@@ -101,12 +101,11 @@ const previewSlide = computed(() => {
 })
 
 const formatSlideTime = (timestamp: string): string => {
-  try {
-    const d = new Date(timestamp)
+  const d = new Date(timestamp)
+  if (!Number.isNaN(d.getTime()) && /^\d{4}-/.test(timestamp)) {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`
-  } catch {
-    return timestamp
   }
+  return timestamp
 }
 
 function openPreview(index: number): void {

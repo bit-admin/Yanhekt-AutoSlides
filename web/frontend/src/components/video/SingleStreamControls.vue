@@ -9,6 +9,13 @@
     @mouseenter="emit('pointer-over-controls', true)"
     @mouseleave="emit('pointer-over-controls', false)"
   >
+    <SlideChapterStrip
+      v-if="chapters.length > 0 && stripOpen"
+      :chapters="chapters"
+      :active-chapter-id="activeChapterId"
+      @seek="emit('seek-chapter', $event)"
+    />
+
     <div class="dual-controls-main-row">
       <div class="dual-controls-left">
         <button
@@ -83,6 +90,22 @@
             </button>
           </div>
         </div>
+
+        <button
+          v-if="chapters.length > 0"
+          class="dual-icon-button"
+          :class="{ 'is-active-control': stripOpen }"
+          :disabled="shouldDisableControls"
+          :title="$t('playback.slideChapters')"
+          :aria-pressed="stripOpen"
+          @click="emit('toggle-strip')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="12" rx="2"/>
+            <path d="M7 20h10"/>
+            <path d="M8 8h5M8 11h8"/>
+          </svg>
+        </button>
 
         <button
           class="dual-icon-button"
@@ -162,7 +185,10 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import SlideChapterStrip from './SlideChapterStrip.vue'
+import type { SlideChapterCard } from '../../composables/video/useShareSlideOverlay'
+
+withDefaults(defineProps<{
   mode: 'live' | 'recorded'
   isPlaying: boolean
   controlsVisible: boolean
@@ -184,7 +210,14 @@ defineProps<{
   isPictureInPicture: boolean
   videoPlayerReady: boolean
   formatTime: (duration: string | number) => string
-}>()
+  chapters?: SlideChapterCard[]
+  activeChapterId?: string | null
+  stripOpen?: boolean
+}>(), {
+  chapters: () => [],
+  activeChapterId: null,
+  stripOpen: true,
+})
 
 const emit = defineEmits<{
   (e: 'toggle-playback'): void
@@ -198,6 +231,8 @@ const emit = defineEmits<{
   (e: 'toggle-cinema'): void
   (e: 'toggle-pip'): void
   (e: 'pointer-over-controls', over: boolean): void
+  (e: 'seek-chapter', time: number): void
+  (e: 'toggle-strip'): void
 }>()
 
 const onSeekInput = (event: Event) => {

@@ -136,6 +136,10 @@
   cursor: not-allowed;
 }
 
+.dual-icon-button.is-active-control {
+  background-color: rgba(255, 255, 255, 0.18);
+}
+
 .dual-popover-anchor {
   position: relative;
   display: flex;
