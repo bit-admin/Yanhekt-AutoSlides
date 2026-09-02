@@ -1,0 +1,28 @@
+{
+  "hashes": {
+    "autoslides/src/shared/shareLink.ts": "8cee73159422706ae77f015af144c3a9b83083e81f81536113d085097f8e12af",
+    "web/frontend/src/lib/notes/shareLink.ts": "33278a7b3d81c4df3ea2c2203b0119f6713c7da52e3495de29a8324fe4ad895f",
+    "autoslides/src/shared/notesContent.ts": "e5faeb1e660fced8fb9fa9ef8aa3bf0cc9b533be0c1f83a4999c648603c2ae79",
+    "web/frontend/src/lib/notes/notesContent.ts": "b315133cf9ad11be5cf58d82be69c648458d7115f16f1841e1fbf11af69b24a2",
+    "autoslides/src/shared/notesTypes.ts": "3c40aa891f6dd995db2a73013510435d0c8a29e02d66f6f5154332726dc3d009",
+    "web/frontend/src/lib/notes/notesTypes.ts": "419c10dff2207befef9f7dd2e77c6005bf5c718e6290c4394980478faf7e8173",
+    "autoslides/src/shared/sanitizeFileName.ts": "f80b77c24fd45f1c26ac1d170b47a8026aa276dbd3fa1124931268cd94eef9ca",
+    "web/frontend/src/lib/sanitizeFileName.ts": "109eab0819d187eaaad4f14cd099881d4149aede960a040ba64b89b36ed0c484",
+    "autoslides/src/shared/slideMetadataTypes.ts": "6246f4e7534019c4e927f79e5536ebcd9d4d4ab46d2c453bc1b03879e5a70799",
+    "web/frontend/src/lib/slideMetadataTypes.ts": "ea8e5da181c72809c30ade810daa5218034cc258898949de329aba1465a0058f",
+    "autoslides/src/renderer/shared/processing/changeDetection.ts": "8f3d8acd4b4e9e7e0ce89406e6ac459291c2092457593f7554a87424accce677",
+    "web/frontend/src/lib/processing/changeDetection.ts": "1fa1d1ad66eb1cb69e9d86ae1f98cc4274d6f9b988f5a1e317e669ac56ba95ee",
+    "autoslides/src/renderer/shared/postProcessing/phase1Duplicates.ts": "853eeae2be232dd69fc68bf7646802e68d51fd2370063e960223c8cc4bcb9b09",
+    "web/frontend/src/lib/postProcessing/phase1Duplicates.ts": "6a7ce676585714d6d5ed236e2f3daedf7dd981ba2d283155e69098f84ff31418",
+    "autoslides/src/renderer/shared/postProcessing/phase2Exclusion.ts": "1545592d52a9f67ab6f33aa48110bc6d3e44a2279a0a602c6216d037f13ce3d8",
+    "web/frontend/src/lib/postProcessing/phase2Exclusion.ts": "4503b9ad7cd73a150f40e039da647ddd78543016a6b50e0cd88aec3bf5e500ac",
+    "autoslides/src/renderer/shared/postProcessing/phase3AI.ts": "c6088c2c48814f9153fece4dfb145a7bfee43487d708a1b0db0923ded2a5125a",
+    "web/frontend/src/lib/postProcessing/phase3AI.ts": "5ebe2d0df23b8def7580a610d13f5388c17352be57e629f59e12a68c2c680681",
+    "autoslides/src/renderer/shared/postProcessing/postCropDedup.ts": "b8fef1f90904f8f8d60d8436b7a1dc9b8690a15e4b5d8e12ce0e5ac332779456",
+    "web/frontend/src/lib/postProcessing/postCropDedup.ts": "ef2ae431d3896bf6adaad2d42e8e618bdf7cb79c45d741ac83571432dfa7151e",
+    "autoslides/src/shared/crypto.ts": "5ae08680ca466835c5b25b2854b124e9ae1ce0977d311484031b6bfffb0a8410",
+    "web/src/lib/yanhekt.ts": "8c346a5d60194217f4626cc987d0ae6852d2f98a80a872fdc42cd0706b6a0be5",
+    "relay/src/yanhekt.ts": "1a5fccedaafa1bcdaaf1d00189630bb18aa033f89ef54fdecda0378ae775f18b",
+    "share/src/lib/yanhekt.ts": "5136ba5eb1ea53c701c183a00b1939a75da125f1c0f95a45c191447a5d1579ee"
+  }
+}

@@ -65,6 +65,16 @@ function parseLoginToken(authHeader: string | undefined): string | null {
  * Paths Yanhekt serves without a user Bearer (2026-08-13 probes). Personal
  * live (`user_relationship_type=1`), session list, subscriptions, notes,
  * and /v1/user still need the token forwarded.
+ *
+ * Keep in step with the Electron `allowAnonymous` opt-ins in
+ * autoslides/src/main/platform/apiClient.ts (`preferAnonymousApiRequests`):
+ *   anonymous-ok : getCourseList (/v2/course/list), getCourseInfo first hop
+ *                  (/v1/course), public getLiveList / searchLiveList
+ *                  (/v2/live/list, user_relationship_type !== 1),
+ *                  getTagList (/v1/tag/list, always), getVideoToken
+ *   never        : session list, personal live/course, subscriptions,
+ *                  /v1/user, logout, notes, MinIO
+ * yanhektProxy.test.ts asserts this table.
  */
 function isAnonymousUpstream(method: string, path: string, search: URLSearchParams): boolean {
   if (method !== "GET") return false;

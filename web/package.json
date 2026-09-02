@@ -10,6 +10,7 @@
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "typecheck:web": "vue-tsc -p frontend --noEmit"
   },
   "dependencies": {
@@ -40,6 +41,7 @@
     "@vitejs/plugin-vue": "^6.0.2",
     "typescript": "^5.7.2",
     "vite": "^7.2.6",
+    "vitest": "^4.1.11",
     "vue-tsc": "^3.2.6",
     "wrangler": "^4.128.0"
   },

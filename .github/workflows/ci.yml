@@ -35,9 +35,13 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx vue-tsc --noEmit
       - run: npm test
+      # Electron ↔ web copied files must be ported (or consciously re-stamped) together.
+      - name: Drift check (Electron ↔ web copies)
+        working-directory: .
+        run: node scripts/check-drift.mjs
 
   workers:
-    name: ${{ matrix.dir }} (typecheck)
+    name: ${{ matrix.dir }} (typecheck, test)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -65,6 +69,7 @@ jobs:
         run: npx wrangler types -c wrangler.example.jsonc --strict-vars false
 
       - run: npm run typecheck
+      - run: npm test
 
       - name: Typecheck Vue frontend
         if: matrix.dir == 'web'

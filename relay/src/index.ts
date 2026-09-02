@@ -51,12 +51,12 @@ function tokenHeaders(): Record<string, string> {
 // malformed tokens up front so junk requests can't be served shared cached
 // media for free. NOTE: this is a format check only — a well-formed but
 // expired/revoked token still gets cache hits until the entry expires.
-const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i;
+export const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i;
 
 // The relay signs and fetches whatever `u` points at, so restrict it to
 // Yanhekt hosts — otherwise any token holder can use the relay as an open
 // fetch proxy. Recorded media lives on cvideo.yanhekt.cn.
-function isAllowedUpstream(rawUrl: string): boolean {
+export function isAllowedUpstream(rawUrl: string): boolean {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
@@ -257,7 +257,7 @@ async function getSegment(
 
 // ---- Signed media fetch with 403 re-sign / re-mint retry ------------------
 
-async function fetchSignedMedia(
+export async function fetchSignedMedia(
   rawUrl: string,
   ctx: ExecutionContext,
   range: string | null
@@ -285,7 +285,7 @@ async function fetchSignedMedia(
 
 // ---- m3u8 rewriting -------------------------------------------------------
 
-function rewriteM3u8(
+export function rewriteM3u8(
   content: string,
   baseUrl: string,
   origin: string,

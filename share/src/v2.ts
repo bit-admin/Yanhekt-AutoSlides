@@ -77,7 +77,7 @@ async function verifyUser(token: string): Promise<VerifiedUser | null> {
   }
 }
 
-async function fingerprintPayload(payload: SharePayload): Promise<string> {
+export async function fingerprintPayload(payload: SharePayload): Promise<string> {
   const o = payload.o ?? {};
   const canonO = Object.keys(o)
     .sort((a, b) => Number(a) - Number(b))
@@ -126,7 +126,7 @@ interface PublishBody {
   review?: { reviewed?: unknown; edited?: unknown };
 }
 
-async function handlePublish(req: Request, env: Env, origin: string): Promise<Response> {
+export async function handlePublish(req: Request, env: Env, origin: string): Promise<Response> {
   const auth = req.headers.get('Authorization') ?? '';
   const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
   if (!token) return json({ error: 'unauthorized' }, 401);
