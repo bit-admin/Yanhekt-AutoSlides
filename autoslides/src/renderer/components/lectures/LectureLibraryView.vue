@@ -321,7 +321,7 @@ watch(
   padding: 14px 20px 6px;
   position: sticky;
   top: 0;
-  z-index: 5;
+  z-index: var(--z-float);
   background: linear-gradient(var(--bg-page) 70%, transparent);
 }
 
@@ -560,7 +560,7 @@ watch(
 
 .detail-back {
   position: relative;
-  z-index: 2;
+  z-index: var(--z-raised);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -583,7 +583,7 @@ watch(
 
 .detail-hero {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-base);
   display: grid;
   grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
   gap: 22px;
@@ -737,7 +737,7 @@ watch(
 /* ── Episodes ────────────────────────────────────────────────────── */
 .episodes-section {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-base);
   min-width: 0;
   max-width: 100%;
 }

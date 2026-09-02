@@ -1964,7 +1964,7 @@ onUnmounted(async () => {
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  z-index: 10;
+  z-index: var(--z-dropdown);
 }
 
 .mute-indicator svg {
@@ -1985,7 +1985,7 @@ onUnmounted(async () => {
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  z-index: 20;
+  z-index: var(--z-sticky);
   backdrop-filter: blur(4px);
 }
 
@@ -2052,7 +2052,7 @@ onUnmounted(async () => {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 5;
+  z-index: var(--z-float);
   padding: 4px 8px;
   border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.65);

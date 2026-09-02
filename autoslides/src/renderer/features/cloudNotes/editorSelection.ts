@@ -6,19 +6,18 @@
  * stylesheet and pin a higher-specificity override after every mount.
  */
 
+import { onColorSchemeChange, themeToken } from '@shared/utils/prefersDark'
+
 const STYLE_ID = 'autoslides-editor-selection'
 const EDITORJS_INLINE = '#d4ecff'
 const EDITORJS_BLOCK = '#e1f2ff'
 
-function isDark(): boolean {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
+// Colors come from theme.css tokens (light + dark defined there); this module
+// only turns them into the literals Chromium requires inside ::selection.
 function colors(): { inline: string; block: string; fg: string } {
-  if (isDark()) {
-    return { inline: '#3a5d88', block: '#3a5d88', fg: '#f2f5f8' }
-  }
-  return { inline: '#b5d4f5', block: '#b5d4f5', fg: '#1a1a1a' }
+  const bg = themeToken('--editor-selection-bg') || '#b5d4f5'
+  const fg = themeToken('--editor-selection-fg') || '#1a1a1a'
+  return { inline: bg, block: bg, fg }
 }
 
 function rewriteSheet(sheet: CSSStyleSheet, inline: string, block: string): void {
@@ -110,8 +109,6 @@ export function syncEditorJsSelectionStyles(): void {
 
   if (!listening) {
     listening = true
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      syncEditorJsSelectionStyles()
-    })
+    onColorSchemeChange(syncEditorJsSelectionStyles)
   }
 }

@@ -649,7 +649,7 @@ const classLabel = (value: string) => {
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  z-index: 1;
+  z-index: var(--z-base);
 }
 
 .gutter-tick {

@@ -115,7 +115,7 @@ const onCancel = () => {
 .region-overlay {
   position: absolute;
   inset: 0;
-  z-index: 10;
+  z-index: var(--z-dropdown);
   cursor: crosshair;
   background-color: rgba(0, 0, 0, 0.25);
   user-select: none;
@@ -144,7 +144,7 @@ const onCancel = () => {
   font-size: 12px;
   pointer-events: auto;
   cursor: default;
-  z-index: 11;
+  z-index: calc(var(--z-dropdown) + 1);
 }
 
 .region-actions {

@@ -382,7 +382,7 @@ const formatCropArea = (rect?: CropRect) => {
 .preview-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.55);
+  background-color: var(--overlay-scrim);
   display: flex;
   align-items: center;
   justify-content: center;

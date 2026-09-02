@@ -785,7 +785,7 @@ const onKeydown = (event: KeyboardEvent) => {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 40;
+  z-index: var(--z-player-overlay);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -860,7 +860,7 @@ const onKeydown = (event: KeyboardEvent) => {
   top: 64px;
   left: 16px;
   right: 16px;
-  z-index: 50;
+  z-index: var(--z-player-chrome);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -913,7 +913,7 @@ const onKeydown = (event: KeyboardEvent) => {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 5;
+  z-index: var(--z-float);
   padding: 4px 8px;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.65);
@@ -953,7 +953,7 @@ const onKeydown = (event: KeyboardEvent) => {
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-dropdown);
 }
 
 .spinner {
@@ -975,7 +975,7 @@ const onKeydown = (event: KeyboardEvent) => {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 30;
+  z-index: var(--z-overlay);
   display: flex;
   flex-direction: column;
   gap: 6px;

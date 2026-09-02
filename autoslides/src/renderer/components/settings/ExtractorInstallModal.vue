@@ -1,6 +1,6 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click="onClose">
-    <div class="modal-content extractor-install-modal" @click.stop>
+  <div v-if="visible" class="modal-overlay installer-modal-overlay" @click="onClose">
+    <div class="modal-content installer-modal extractor-install-modal" @click.stop>
       <div class="modal-header">
         <h3>
           {{
@@ -366,60 +366,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Mirrors the update modal in TitleBar.vue (lines 1378+) so the two modals
-   feel like one product. Kept scoped per Vue convention; Vue doesn't share
-   scoped styles across components so we duplicate. */
-/* Backdrop is shared (.modal-overlay in modal.css); only the z-index differs
-   so this installer sits above the main app modals. */
-.modal-overlay {
-  z-index: var(--z-super-modal);
-}
-
-.modal-content {
-  background-color: var(--bg-modal);
-  border-radius: 8px;
-  width: 640px;
-  max-width: 90vw;
-  max-height: 85vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.modal-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 16px;
-  color: var(--text-primary);
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px;
-  border-top: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
-  flex-shrink: 0;
-}
-
+/* Shared installer/update chrome lives in shared/styles/installerModal.css
+   (namespaced under .installer-modal) so this dialog and UpdateManager.vue
+   feel like one product. Only installer-specific extras here. */
 .loading-section,
 .error-section {
   padding: 16px 0;
@@ -429,14 +378,6 @@ onBeforeUnmount(() => {
 
 .error-section { color: var(--danger); }
 .error-section p { margin: 0 0 8px 0; }
-
-/* Version header */
-.version-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
 
 .up-to-date-notice {
   display: flex;
@@ -452,45 +393,6 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
-.version-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.publish-date {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-/* Release notes section */
-.release-notes-section {
-  margin-bottom: 16px;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.release-notes-section h4 {
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  flex-shrink: 0;
-}
-
-.release-notes-scroll {
-  flex: 1;
-  min-height: 120px;
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 12px;
-  background: var(--bg-page);
-  border-radius: 6px;
-  font-size: 13px;
-}
-
 .release-body-plain {
   margin: 0;
   white-space: pre-wrap;
@@ -499,189 +401,15 @@ onBeforeUnmount(() => {
   color: var(--text-primary);
 }
 
-/* Download section */
-.download-section {
-  flex-shrink: 0;
-}
-
-.download-assets {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.asset-item {
-  padding: 10px 12px;
-  background: var(--bg-page);
-  border-radius: 6px;
-}
-
-.asset-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.asset-name {
-  font-size: 12px;
-  color: var(--text-primary);
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.asset-size {
-  font-size: 11px;
-  color: var(--text-secondary);
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.asset-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.download-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--brand-github);
-  color: var(--text-on-accent);
-}
-
-.download-btn:hover {
-  background: var(--brand-github-hover);
-}
-
-.download-btn.secondary {
-  background: var(--accent);
-}
-
-.download-btn.secondary:hover {
-  background: var(--accent-hover);
-}
-
-.download-btn svg {
-  flex-shrink: 0;
-}
-
 /* Build-from-source / no-asset notice */
 .build-from-source-section {
   padding: 12px;
-  background: var(--bg-page);
+  background: var(--bg-elevated);
   border-radius: 6px;
   font-size: 13px;
   color: var(--text-primary);
 }
 .build-from-source-section p {
   margin: 0 0 10px 0;
-}
-
-/* Download progress */
-.download-progress-section {
-  padding: 12px;
-  background: var(--bg-page);
-  border-radius: 6px;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.progress-label {
-  font-size: 12px;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.progress-percent {
-  font-size: 12px;
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.progress-bar {
-  margin-bottom: 8px;
-}
-
-.progress-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.progress-bytes {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-/* Download complete */
-.download-complete-section {
-  padding: 12px;
-  background: var(--success-bg);
-  border: 1px solid var(--success-border);
-  border-radius: 6px;
-}
-
-.complete-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--success);
-}
-
-.complete-badge svg {
-  color: var(--success);
-}
-
-.complete-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  flex: 1;
-}
-
-/* Quarantine notice */
-.quarantine-notice {
-  display: flex;
-  gap: 10px;
-  padding: 10px 12px;
-  background: var(--warning-bg);
-  border: 1px solid var(--warning-border);
-  border-radius: 6px;
-  margin-top: 12px;
-}
-
-.quarantine-notice > svg {
-  color: var(--warning);
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.notice-text {
-  flex: 1;
-  font-size: 11px;
-  color: var(--warning);
-  line-height: 1.4;
 }
 </style>

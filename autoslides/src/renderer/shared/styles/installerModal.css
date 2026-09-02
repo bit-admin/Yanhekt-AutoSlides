@@ -1,0 +1,283 @@
+/*
+ * Shared chrome for the two GitHub-release download dialogs — the app update
+ * modal (titlebar/UpdateManager.vue) and the AutoSlides Extractor installer
+ * (settings/ExtractorInstallModal.vue). They must feel like one product, and
+ * Vue scoped styles cannot be shared, so the common rules live here,
+ * namespaced under `.installer-modal` (on `.modal-content`) so generic names
+ * like `.progress-bar` or `.modal-header` never leak into modal.css or other
+ * components. Each component keeps only its own extras scoped.
+ *
+ * Backdrop is modal.css's `.modal-overlay`; `.installer-modal-overlay` only
+ * lifts it above the main app modals.
+ */
+
+.installer-modal-overlay {
+  z-index: var(--z-super-modal);
+}
+
+.installer-modal {
+  background-color: var(--bg-modal);
+  border-radius: 8px;
+  width: 640px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.installer-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.installer-modal .modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.installer-modal .modal-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px;
+  color: var(--text-primary);
+}
+
+.installer-modal .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+/* Version header */
+.installer-modal .version-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.installer-modal .version-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.installer-modal .publish-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Release notes */
+.installer-modal .release-notes-section {
+  margin-bottom: 16px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.installer-modal .release-notes-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.installer-modal .release-notes-scroll {
+  flex: 1;
+  min-height: 120px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* Download assets */
+.installer-modal .download-section {
+  flex-shrink: 0;
+}
+
+.installer-modal .download-assets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.installer-modal .asset-item {
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+}
+
+.installer-modal .asset-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.installer-modal .asset-name {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.installer-modal .asset-size {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.installer-modal .asset-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.installer-modal .download-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--brand-github);
+  color: var(--text-on-accent);
+}
+
+.installer-modal .download-btn:hover {
+  background: var(--brand-github-hover);
+}
+
+.installer-modal .download-btn.secondary {
+  background: var(--accent);
+}
+
+.installer-modal .download-btn.secondary:hover {
+  background: var(--accent-hover);
+}
+
+.installer-modal .download-btn svg {
+  flex-shrink: 0;
+}
+
+/* Download progress */
+.installer-modal .download-progress-section {
+  padding: 12px;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+}
+
+.installer-modal .progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.installer-modal .progress-label {
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.installer-modal .progress-percent {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.installer-modal .progress-bar {
+  margin-bottom: 8px;
+}
+
+.installer-modal .progress-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.installer-modal .progress-bytes {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Download complete */
+.installer-modal .download-complete-section {
+  padding: 12px;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: 6px;
+}
+
+.installer-modal .complete-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--success);
+}
+
+.installer-modal .complete-badge svg {
+  color: var(--success);
+}
+
+.installer-modal .complete-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Stretch the complete-action buttons to fill the row */
+.installer-modal .action-btn {
+  flex: 1;
+}
+
+/* Quarantine / unsigned-binary notice */
+.installer-modal .quarantine-notice {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+.installer-modal .quarantine-notice > svg {
+  color: var(--warning);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.installer-modal .notice-text {
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-warning);
+  line-height: 1.4;
+}

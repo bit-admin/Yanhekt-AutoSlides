@@ -477,7 +477,7 @@ watch(captureState, (val) => {
 .modal-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--overlay-scrim);
   display: flex;
   align-items: center;
   justify-content: center;

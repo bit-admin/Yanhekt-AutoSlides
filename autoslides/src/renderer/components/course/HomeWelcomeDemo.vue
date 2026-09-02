@@ -270,7 +270,7 @@ function exportX(i: number): number {
 .hw-hero {
   position: absolute;
   inset: 0 0 22% 0;
-  z-index: 1;
+  z-index: var(--z-base);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -303,7 +303,7 @@ function exportX(i: number): number {
 .hw-end {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: var(--z-raised);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -356,21 +356,12 @@ function exportX(i: number): number {
 }
 
 .hw-end-yanhekt-clip--word img {
+  filter: var(--logo-clip-filter);
   margin-left: calc(-34px * 54 / 40);
 }
 
 .hw-end-bit-text {
-  filter: brightness(0.18);
-}
-
-@media (prefers-color-scheme: dark) {
-  .hw-end-yanhekt-clip--word img {
-    filter: brightness(0) invert(1);
-  }
-
-  .hw-end-bit-text {
-    filter: none;
-  }
+  filter: var(--logo-mono-filter);
 }
 
 .hw-end-bit-lockup {

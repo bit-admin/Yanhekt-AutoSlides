@@ -766,7 +766,7 @@ const openSettings = () => {
   border-bottom: 1px solid var(--border-color);
   user-select: none;
   position: relative;
-  z-index: 1000;
+  z-index: var(--z-titlebar);
 }
 
 .titlebar.is-macos {
@@ -939,7 +939,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
+  z-index: var(--z-titlebar);
   padding: 4px 0;
   margin-top: 2px;
 }
@@ -1162,7 +1162,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 }
 
 /* Teleported to <body>: fixed-positioned via inline top/right from the button.
-   z-index sits above the title bar (z-index:1000) so it's never clipped. */
+   z-index sits above the title bar (--z-titlebar) so it's never clipped. */
 .tab-overflow-menu {
   position: fixed;
   min-width: 200px;

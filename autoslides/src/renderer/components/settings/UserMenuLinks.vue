@@ -365,7 +365,7 @@ const openFeedbackEmail = async () => {
   border-radius: 8px;
   background-color: var(--bg-card);
   box-shadow: var(--shadow-md);
-  z-index: 30;
+  z-index: var(--z-overlay);
   visibility: hidden;
   opacity: 0;
   transition: opacity 0.15s ease, visibility 0.15s ease;

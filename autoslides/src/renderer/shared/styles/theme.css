@@ -70,9 +70,25 @@
   --neutral-strong: #6c757d;
   --neutral-strong-hover: #5b646b;
 
-  /* Overlays */
+  /* Overlays. --overlay-dark/-light swap with the theme (dimming scrims that
+     sit on app surfaces). --overlay-scrim / --overlay-lightbox are fixed in
+     both themes: modal backdrops and the image-preview lightbox are meant to
+     read as "the app went dark behind this" regardless of scheme. */
   --overlay-dark: rgba(0, 0, 0, 0.3);
   --overlay-light: rgba(255, 255, 255, 0.3);
+  --overlay-scrim: rgba(0, 0, 0, 0.5);
+  --overlay-lightbox: rgba(0, 0, 0, 0.8);
+
+  /* Editor.js text selection. Chromium drops var() inside ::selection, so
+     editorSelection.ts reads these tokens and injects literal colors; keep
+     the light/dark pairs here, not in component CSS. */
+  --editor-selection-bg: #b5d4f5;
+  --editor-selection-fg: #1a1a1a;
+  --editor-selection-block-bg: color-mix(in srgb, var(--accent) 30%, transparent);
+
+  /* Brand lockups that must flip between dark-on-light and light-on-dark. */
+  --logo-mono-filter: brightness(0.18);
+  --logo-clip-filter: none;
 
   /* Scrollbar */
   --scrollbar-thumb: rgba(0, 0, 0, 0.2);
@@ -145,12 +161,19 @@
   --status-active: #9acd32;
   --status-error: #ff9800;
 
-  /* Z-index scale */
+  /* Z-index scale. --z-raised/--z-float are in-component layers (badges,
+     hover chrome inside a card); --z-player-* is the lecture/playback overlay
+     stack; --z-titlebar keeps window chrome above page modals. */
   --z-base: 1;
+  --z-raised: 2;
+  --z-float: 5;
   --z-dropdown: 10;
   --z-sticky: 20;
   --z-overlay: 30;
+  --z-player-overlay: 40;
+  --z-player-chrome: 50;
   --z-modal: 1000;
+  --z-titlebar: 1000;
   --z-super-modal: 10000;
 }
 
@@ -211,9 +234,17 @@
     --neutral-strong: #7d868d;
     --neutral-strong-hover: #6b747b;
 
-    /* Overlays */
+    /* Overlays (scrim / lightbox stay fixed — see light block) */
     --overlay-dark: rgba(0, 0, 0, 0.7);
     --overlay-light: rgba(255, 255, 255, 0.15);
+
+    /* Editor.js selection — opaque stand-ins for rgba(91,157,255,0.38) over the dark surface */
+    --editor-selection-bg: #3a5d88;
+    --editor-selection-fg: #f2f5f8;
+    --editor-selection-block-bg: rgba(91, 157, 255, 0.38);
+
+    --logo-mono-filter: none;
+    --logo-clip-filter: brightness(0) invert(1);
 
     /* Scrollbar */
     --scrollbar-thumb: rgba(255, 255, 255, 0.2);
