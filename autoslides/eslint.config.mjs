@@ -15,7 +15,9 @@ const DEMO_IMPORT_BAN = {
 // Domain-boundary helper: a feature domain may not import from sibling feature
 // domains. Returns a no-restricted-imports rule that forbids every domain other
 // than `self` and explicitly-allowed cross-domain edges (plus the demo ban).
-const FEATURE_DOMAINS = ['video', 'results', 'developer', 'download', 'ai', 'export', 'course', 'settings', 'platform', 'webCapture', 'tools', 'cloudIndex'];
+// Must match the directories under src/renderer/features/ exactly — a domain
+// missing here is silently unlinted.
+const FEATURE_DOMAINS = ['ai', 'cloudNotes', 'course', 'developer', 'download', 'export', 'lectures', 'platform', 'results', 'settings', 'video', 'webCapture'];
 function featureBoundaryRule(self, allowed = []) {
   const allow = new Set([self, ...allowed]);
   const forbidden = FEATURE_DOMAINS.filter(d => !allow.has(d));
@@ -142,8 +144,10 @@ export default tseslint.config(
   //                        pipeline ctx — shared/ cannot import from features/)
   //   settings → platform, ai (SettingsContext bundles useAuth/useCache/useAI*
   //                            composables for the LeftPanel tab children)
-  //   cloudIndex → cloudNotes (useCloudNotes/useNoteImport: managed group id,
-  //                            same-title conflict check, loadAll/refreshGroups)
+  //   cloudNotes → course (watchNotesStore keys watch notes by tabStore tab id)
+  //   lectures → course   (lectureCourseMetaCache uses lookupCourseById)
+  //   lectures → video    (useLocalLecturePlayer reuses hlsConfig +
+  //                        useVideoErrorRecovery for the local dual player)
   // ----------------------------------------------------------------------
   { files: ['src/renderer/features/video/**/*.{ts,vue}'],     rules: featureBoundaryRule('video',     ['course']) },
   { files: ['src/renderer/features/results/**/*.{ts,vue}'],   rules: featureBoundaryRule('results') },
@@ -155,8 +159,8 @@ export default tseslint.config(
   { files: ['src/renderer/features/settings/**/*.{ts,vue}'],  rules: featureBoundaryRule('settings',  ['platform', 'ai']) },
   { files: ['src/renderer/features/platform/**/*.{ts,vue}'],  rules: featureBoundaryRule('platform') },
   { files: ['src/renderer/features/webCapture/**/*.{ts,vue}'],rules: featureBoundaryRule('webCapture') },
-  { files: ['src/renderer/features/tools/**/*.{ts,vue}'],     rules: featureBoundaryRule('tools') },
-  { files: ['src/renderer/features/cloudIndex/**/*.{ts,vue}'],rules: featureBoundaryRule('cloudIndex', ['cloudNotes']) },
+  { files: ['src/renderer/features/cloudNotes/**/*.{ts,vue}'],rules: featureBoundaryRule('cloudNotes', ['course']) },
+  { files: ['src/renderer/features/lectures/**/*.{ts,vue}'],  rules: featureBoundaryRule('lectures',  ['course', 'video']) },
 
   // shared/ is foundational — it must not depend on features/ (one-way layering)
   // and must never import the deletable demo/ folder.
