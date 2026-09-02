@@ -23,19 +23,9 @@ export type { Course } from '@features/course/useCourseList'
 import type { Course } from '@features/course/useCourseList'
 import { configStore } from '@shared/services/configStore'
 
-export interface Session {
-  id: string
-  session_id: string
-  video_id: string
-  title: string
-  duration: number
-  week_number: number
-  day: number
-  started_at: string
-  ended_at: string
-  main_url?: string
-  vga_url?: string
-}
+import type { SessionData } from '@common/apiTypes'
+/** Recorded session row from /v1/course (alias kept for existing importers). */
+export type Session = SessionData
 
 export interface UseSlideExtractionOptions {
   mode: 'live' | 'recorded'

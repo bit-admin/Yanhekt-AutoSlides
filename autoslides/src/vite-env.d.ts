@@ -30,6 +30,14 @@ import type {
   UnlinkToGapPayload,
   RestoreCanonicalPayload,
 } from './shared/sidecars';
+import type {
+  TokenVerificationResult,
+  LiveStream,
+  CourseData,
+  SubscriptionListResponse,
+  CourseInfoResponse,
+  SemesterOption,
+} from './shared/apiTypes';
 
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const _MAIN_WINDOW_VITE_NAME: string;
@@ -202,117 +210,12 @@ interface AuthResponse {
   };
 }
 
-interface TokenVerificationResponse {
-  valid: boolean;
-  userData: {
-    badge: string;
-    nickname: string;
-    gender?: number;
-    phone?: string;
-  } | null;
-  networkError?: boolean;
-}
-
-interface CourseData {
-  id: string;
-  name_zh: string;
-  professors: string[];
-  classrooms: { name: string }[];
-  school_year: string;
-  semester: string;
-  college_name: string;
-  participant_count: number;
-  image_url?: string;
-}
-
-/** Raw row from GET /v1/course/subscription/list (professors may be objects). */
-interface SubscriptionCourseRow {
-  id: number | string;
-  name_zh: string;
-  professor_names?: string[];
-  professors?: Array<{ name?: string } | string>;
-  classrooms?: Array<{ name: string }>;
-  participant_count?: number;
-  college_name?: string;
-  college?: { name?: string; image_url?: string };
-  school_year?: string | number;
-  semester?: string | number;
-  image_url?: string;
-}
-
-interface SubscriptionListResponse {
-  data: SubscriptionCourseRow[];
-  current_page: number;
-  last_page: number;
-  per_page: number | string;
-  total: number;
-}
-
-interface LiveStreamData {
-  id: string;
-  live_id?: string;
-  title: string;
-  subtitle?: string;
-  status: number;
-  schedule_started_at: string;
-  schedule_ended_at: string;
-  participant_count?: number;
-  img?: string;
-  course?: {
-    id?: number | string;
-    image_url?: string;
-  };
-  session?: {
-    course_id?: number | string;
-    professor?: {
-      name: string;
-    };
-    section_group_title?: string;
-  };
-  target?: string;
-  target_vga?: string;
-}
-
 interface PaginatedResponse<T> {
   data: T[];
   current_page: number;
   last_page: number;
   per_page: number;
   total: number;
-}
-
-interface VideoInfo {
-  id: string;
-  session_id: string;
-  video_id: string;
-  title: string;
-  duration: number;
-  week_number: number;
-  day: number;
-  started_at: string;
-  ended_at: string;
-  main_url?: string;
-  vga_url?: string;
-}
-
-interface CourseInfoResponse {
-  course_id: string;
-  title: string;
-  professor: string;
-  professors?: string[];
-  college_name?: string;
-  school_year?: string;
-  semester?: number | string;
-  image_url?: string;
-  videos: VideoInfo[];
-}
-
-interface SemesterInfo {
-  id: number;
-  label: string;
-  labelEn: string;
-  schoolYear: number;
-  semester: number;
 }
 
 interface StreamInfo {
@@ -463,7 +366,7 @@ interface ElectronAPI {
     login: (username: string, password: string) => Promise<AuthResponse>;
     submitSmsCode: (challengeId: string, code: string) => Promise<AuthResponse>;
     cancelSmsChallenge: (challengeId: string) => Promise<{ success: boolean }>;
-    verifyToken: (token: string) => Promise<TokenVerificationResponse>;
+    verifyToken: (token: string) => Promise<TokenVerificationResult>;
     revokeToken: (token: string) => Promise<void>;
     clearBrowserData: () => Promise<{ success: boolean; error?: string }>;
   };
@@ -608,15 +511,15 @@ interface ElectronAPI {
     resetAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
   };
   api: {
-    getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;
-    searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;
+    getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStream>>;
+    searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStream>>;
     getCourseList: (token: string, options: CourseListOptions) => Promise<PaginatedResponse<CourseData>>;
     getPersonalCourseList: (token: string, options: PersonalCourseListOptions) => Promise<PaginatedResponse<CourseData>>;
     getSubscriptionList: (token: string, options?: { page?: number; pageSize?: number }) => Promise<SubscriptionListResponse>;
     subscribeCourse: (token: string, courseId: string) => Promise<void>;
     unsubscribeCourse: (token: string, courseId: string) => Promise<void>;
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
-    getAvailableSemesters: () => Promise<SemesterInfo[]>;
+    getAvailableSemesters: () => Promise<SemesterOption[]>;
   };
   intranet: {
     setEnabled: (enabled: boolean) => Promise<IntranetStatus>;
