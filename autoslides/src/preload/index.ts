@@ -1,6 +1,6 @@
 import { contextBridge } from 'electron';
 import { auth, config, windowNs, shell, menu, powerManagement, cache, app, dialog } from './platform';
-import { video, ffmpeg, compressLecture, download } from './video';
+import { video, compressLecture, download } from './video';
 import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
 import { pdfmaker, yuketang, noteExport } from './export';
@@ -23,7 +23,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   intranet,
   localRelay,
   video,
-  ffmpeg,
   compressLecture,
   download,
   slideExtraction,

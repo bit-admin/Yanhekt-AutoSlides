@@ -5,7 +5,6 @@ import { registerAiIpcHandlers } from './aiIpc';
 import { registerIntranetIpcHandlers } from './intranetIpc';
 import { registerApiIpcHandlers } from './apiIpc';
 import { registerVideoIpcHandlers } from './videoIpc';
-import { registerFfmpegIpcHandlers } from './ffmpegIpc';
 import { registerCompressIpcHandlers } from './compressIpc';
 import { registerLecturesIpcHandlers } from './lecturesIpc';
 import { registerDownloadIpcHandlers } from './downloadIpc';
@@ -41,7 +40,6 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerLocalRelayIpcHandlers(services);
   registerApiIpcHandlers(services);
   registerVideoIpcHandlers(services);
-  registerFfmpegIpcHandlers(services);
   registerCompressIpcHandlers(services);
   registerLecturesIpcHandlers(services);
   registerDownloadIpcHandlers(services);

@@ -221,7 +221,6 @@ registerAllIpcHandlers({
   localRelayService,
   thumbnailService,
   localLecturePosterService,
-  ffmpegService,
   m3u8DownloadService,
   powerManagementService,
   aiPromptsService,

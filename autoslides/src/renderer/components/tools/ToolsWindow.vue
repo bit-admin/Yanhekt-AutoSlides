@@ -72,7 +72,7 @@ const isValidTab = (tab: string | null): tab is TabId =>
 
 const isMacOS = navigator.userAgent.includes('Mac')
 
-// Read initial tab from URL query param. Legacy 'offline' / 'compress' fall through.
+// Read initial tab from URL query param; unknown values fall back to Web Capture.
 const getInitialTab = (): TabId => {
   const tab = new URLSearchParams(window.location.search).get('tab')
   return isValidTab(tab) ? tab : 'webcapture'

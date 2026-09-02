@@ -71,9 +71,7 @@ export const config = {
   }) => ipcRenderer.invoke('config:setAutoCropYoloParams', params),
   resetAutoCropYoloParams: () => ipcRenderer.invoke('config:resetAutoCropYoloParams'),
   setThemeMode: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('config:setThemeMode', theme),
-  getThemeMode: () => ipcRenderer.invoke('config:getThemeMode'),
   isDarkMode: () => ipcRenderer.invoke('config:isDarkMode'),
-  getEffectiveTheme: () => ipcRenderer.invoke('config:getEffectiveTheme'),
   setLanguageMode: (language: LanguageMode) => ipcRenderer.invoke('config:setLanguageMode', language),
   getLanguageMode: () => ipcRenderer.invoke('config:getLanguageMode'),
   setPreventSystemSleep: (prevent: boolean) => ipcRenderer.invoke('config:setPreventSystemSleep', prevent),
@@ -92,7 +90,6 @@ export const config = {
   setCloudWatchSyncEnabled: (enabled: boolean) => ipcRenderer.invoke('config:setCloudWatchSyncEnabled', enabled),
   setCloudShareEmbedTimeline: (enabled: boolean) => ipcRenderer.invoke('config:setCloudShareEmbedTimeline', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => ipcRenderer.invoke('config:setPreferAnonymousApiRequests', enabled),
-  getPreferAnonymousApiRequests: () => ipcRenderer.invoke('config:getPreferAnonymousApiRequests'),
   setLocalRelayConfig: (patch: {
     enabled?: boolean;
     port?: number;
@@ -155,20 +152,14 @@ export const config = {
       thinkingKey?: 'enable_thinking' | 'thinking';
     };
   }) => ipcRenderer.invoke('config:setAIFilteringConfig', cfg),
-  setAIBatchSize: (batchSize: number) => ipcRenderer.invoke('config:setAIBatchSize', batchSize),
-  getAIBatchSize: () => ipcRenderer.invoke('config:getAIBatchSize'),
   setAIClassifierMode: (mode: 'llm' | 'ml') => ipcRenderer.invoke('config:setAIClassifierMode', mode),
   setMlThresholds: (thresholds: { trustLow?: number; trustHigh?: number; slideCheckLow?: number }) =>
     ipcRenderer.invoke('config:setMlThresholds', thresholds),
   getAIPrompts: (variant?: 'simple' | 'distinguish') => ipcRenderer.invoke('config:getAIPrompts', variant),
-  getAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') =>
-    ipcRenderer.invoke('config:getAIPrompt', type, variant),
   setAIPrompt: (type: 'live' | 'recorded', prompt: string, variant?: 'simple' | 'distinguish') =>
     ipcRenderer.invoke('config:setAIPrompt', type, prompt, variant),
   resetAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') =>
     ipcRenderer.invoke('config:resetAIPrompt', type, variant),
-  getDefaultAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') =>
-    ipcRenderer.invoke('config:getDefaultAIPrompt', type, variant),
 };
 
 export const windowNs = {

@@ -996,17 +996,6 @@ export class ConfigService {
     return config.rateLimit || 10;
   }
 
-  setAIBatchSize(batchSize: number): void {
-    // Batch size must be between 1 and 10
-    const validBatchSize = Math.max(1, Math.min(10, Math.round(batchSize)));
-    this.setAIFilteringConfig({ batchSize: validBatchSize });
-  }
-
-  getAIBatchSize(): number {
-    const config = this.getAIFilteringConfig();
-    return config.batchSize || 4;
-  }
-
   setAIClassifierMode(mode: AIClassifierMode): void {
     this.setAIFilteringConfig({ classifierMode: mode });
   }

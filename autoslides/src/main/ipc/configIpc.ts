@@ -231,16 +231,8 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
-  ipcMain.handle('config:getThemeMode', async () => {
-    return configService.getThemeMode();
-  });
-
   ipcMain.handle('config:isDarkMode', async () => {
     return configService.isDarkMode();
-  });
-
-  ipcMain.handle('config:getEffectiveTheme', async () => {
-    return configService.getEffectiveTheme();
   });
 
   ipcMain.handle('config:setLanguageMode', async (_event, language: LanguageMode) => {
@@ -343,10 +335,6 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     configService.setPreferAnonymousApiRequests(enabled);
     broadcastConfig();
     return configService.getConfig();
-  });
-
-  ipcMain.handle('config:getPreferAnonymousApiRequests', async () => {
-    return configService.getPreferAnonymousApiRequests();
   });
 
   // Local LAN relay (Worker-compatible /playlist + /segment). One setter so
@@ -558,16 +546,6 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return next;
   });
 
-  ipcMain.handle('config:setAIBatchSize', async (_event, batchSize: number) => {
-    configService.setAIBatchSize(batchSize);
-    broadcastConfig();
-    return configService.getAIFilteringConfig();
-  });
-
-  ipcMain.handle('config:getAIBatchSize', async () => {
-    return configService.getAIBatchSize();
-  });
-
   ipcMain.handle('config:setAIClassifierMode', async (_event, mode: 'llm' | 'ml') => {
     configService.setAIClassifierMode(mode);
     broadcastConfig();
@@ -587,10 +565,6 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return aiPromptsService.getPrompts(variant);
   });
 
-  ipcMain.handle('config:getAIPrompt', async (_event, type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => {
-    return aiPromptsService.getPrompt(type, variant);
-  });
-
   ipcMain.handle('config:setAIPrompt', async (_event, type: 'live' | 'recorded', prompt: string, variant?: 'simple' | 'distinguish') => {
     aiPromptsService.setPrompt(type, prompt, variant);
     return aiPromptsService.getPrompts(variant);
@@ -600,7 +574,4 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return aiPromptsService.resetPrompt(type, variant);
   });
 
-  ipcMain.handle('config:getDefaultAIPrompt', async (_event, type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => {
-    return aiPromptsService.getDefaultPrompt(type, variant);
-  });
 }

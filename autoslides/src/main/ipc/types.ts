@@ -4,7 +4,6 @@ import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { VideoProxyService } from '@main/video/videoProxyService';
 import type { ThumbnailService } from '@main/video/thumbnailService';
-import type { FFmpegService } from '@main/infra/ffmpegService';
 import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
 import type { PowerManagementService } from '@main/platform/powerManagementService';
 import type { AIPromptsService } from '@main/ai/aiPromptsService';
@@ -36,7 +35,6 @@ export interface IpcServices {
   localRelayService: LocalRelayService;
   thumbnailService: ThumbnailService;
   localLecturePosterService: LocalLecturePosterService;
-  ffmpegService: FFmpegService;
   m3u8DownloadService: M3u8DownloadService;
   powerManagementService: PowerManagementService;
   aiPromptsService: AIPromptsService;

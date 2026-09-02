@@ -57,16 +57,6 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
     }
   });
 
-  ipcMain.handle('video:stopProxy', async () => {
-    try {
-      videoProxyService.stopVideoProxy();
-      log.debug('Video proxy stopped');
-    } catch (error) {
-      log.error('Failed to stop video proxy:', error);
-      throw error;
-    }
-  });
-
   ipcMain.handle('video:stopSignatureLoop', async () => {
     try {
       videoProxyService.stopSignatureLoop();

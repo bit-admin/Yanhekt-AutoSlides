@@ -14,15 +14,7 @@ export const video = {
   }) => ipcRenderer.invoke('video:getScreenThumbnail', req) as Promise<string | null>,
   registerClient: () => ipcRenderer.invoke('video:registerClient'),
   unregisterClient: (clientId: string) => ipcRenderer.invoke('video:unregisterClient', clientId),
-  stopProxy: () => ipcRenderer.invoke('video:stopProxy'),
   stopSignatureLoop: () => ipcRenderer.invoke('video:stopSignatureLoop'),
-};
-
-export const ffmpeg = {
-  getPath: () => ipcRenderer.invoke('ffmpeg:getPath'),
-  isAvailable: () => ipcRenderer.invoke('ffmpeg:isAvailable'),
-  getPlatformInfo: () => ipcRenderer.invoke('ffmpeg:getPlatformInfo'),
-  warmUp: () => ipcRenderer.invoke('ffmpeg:warmUp'),
 };
 
 type CompressLectureOptions = {
@@ -77,7 +69,6 @@ export const download = {
   start: (downloadId: string, m3u8Url: string, outputName: string) =>
     ipcRenderer.invoke('download:start', downloadId, m3u8Url, outputName),
   cancel: (downloadId: string) => ipcRenderer.invoke('download:cancel', downloadId),
-  isActive: (downloadId: string) => ipcRenderer.invoke('download:isActive', downloadId),
   cleanupTempFiles: (outputName: string) => ipcRenderer.invoke('download:cleanupTempFiles', outputName),
   onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, downloadId: string, progress: { current: number; total: number; phase: number }) => callback(downloadId, progress);

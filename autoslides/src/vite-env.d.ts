@@ -380,12 +380,6 @@ interface PowerManagementStatus {
   error?: string;
 }
 
-interface FFmpegInfo {
-  platform: string;
-  ffmpegPath: string | null;
-  isPackaged: boolean;
-}
-
 interface DownloadProgress {
   current: number;
   total: number;
@@ -507,9 +501,7 @@ interface ElectronAPI {
 
     // Theme configuration
     setThemeMode: (theme: 'system' | 'light' | 'dark') => Promise<AppConfig>;
-    getThemeMode: () => Promise<'system' | 'light' | 'dark'>;
     isDarkMode: () => Promise<boolean>;
-    getEffectiveTheme: () => Promise<'light' | 'dark'>;
 
     // Language configuration
     setLanguageMode: (language: 'system' | 'en' | 'zh' | 'ja' | 'ko') => Promise<AppConfig>;
@@ -525,7 +517,6 @@ interface ElectronAPI {
     setCloudWatchSyncEnabled: (enabled: boolean) => Promise<AppConfig>;
     setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
-    getPreferAnonymousApiRequests: () => Promise<boolean>;
     setLocalRelayConfig: (patch: {
       enabled?: boolean;
       port?: number;
@@ -604,8 +595,6 @@ interface ElectronAPI {
     // AI filtering configuration
     getAIFilteringConfig: () => Promise<AIFilteringConfig>;
     setAIFilteringConfig: (config: Partial<AIFilteringConfig>) => Promise<AIFilteringConfig>;
-    setAIBatchSize: (batchSize: number) => Promise<AIFilteringConfig>;
-    getAIBatchSize: () => Promise<number>;
     setAIClassifierMode: (mode: 'llm' | 'ml') => Promise<AIFilteringConfig>;
     setMlThresholds: (thresholds: {
       trustLow?: number;
@@ -615,10 +604,8 @@ interface ElectronAPI {
 
     // AI prompts management
     getAIPrompts: (variant?: 'simple' | 'distinguish') => Promise<AIPrompts>;
-    getAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
     setAIPrompt: (type: 'live' | 'recorded', prompt: string, variant?: 'simple' | 'distinguish') => Promise<AIPrompts>;
     resetAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
-    getDefaultAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
   };
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;
@@ -657,16 +644,9 @@ interface ElectronAPI {
     }) => Promise<string | null>;
     registerClient: () => Promise<string>;
     unregisterClient: (clientId: string) => Promise<void>;
-    stopProxy: () => Promise<void>;
     stopSignatureLoop: () => Promise<void>;
   };
 
-  ffmpeg: {
-    getPath: () => Promise<string | null>;
-    isAvailable: () => Promise<boolean>;
-    getPlatformInfo: () => Promise<FFmpegInfo>;
-    warmUp: () => Promise<void>;
-  };
 
   compressLecture: {
     selectInput: () => Promise<string | null>;
@@ -692,7 +672,6 @@ interface ElectronAPI {
   download: {
     start: (downloadId: string, m3u8Url: string, outputName: string) => Promise<void>;
     cancel: (downloadId: string) => Promise<void>;
-    isActive: (downloadId: string) => Promise<boolean>;
     cleanupTempFiles: (outputName: string) => Promise<void>;
     onProgress: (callback: (downloadId: string, progress: DownloadProgress) => void) => () => void;
     onCompleted: (callback: (downloadId: string) => void) => () => void;
