@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
+import type { ElectronAPI } from './electronApi';
 
-export const update = {
+export const update: ElectronAPI['update'] = {
   checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),
   onCheckForUpdates: (callback: () => void) => {
     const handler = () => callback();
@@ -44,7 +45,7 @@ export const update = {
   deleteOldUpdates: (filenames: string[]) => ipcRenderer.invoke('update:deleteOldUpdates', filenames),
 };
 
-export const extractorInstaller = {
+export const extractorInstaller: ElectronAPI['extractorInstaller'] = {
   checkLatest: () => ipcRenderer.invoke('extractorInstaller:checkLatest'),
   download: (url: string, filename: string) => ipcRenderer.invoke('extractorInstaller:download', url, filename),
   cancel: () => ipcRenderer.invoke('extractorInstaller:cancel'),

@@ -1,7 +1,8 @@
 import { ipcRenderer } from 'electron';
-import type { LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import type { ElectronAPI, DialogOptions } from './electronApi';
+import type { AppConfig, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 
-export const auth = {
+export const auth: ElectronAPI['auth'] = {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
   submitSmsCode: (challengeId: string, code: string) =>
     ipcRenderer.invoke('auth:submitSmsCode', challengeId, code),
@@ -12,14 +13,16 @@ export const auth = {
   clearBrowserData: () => ipcRenderer.invoke('auth:clearBrowserData'),
 };
 
-export const config = {
+export const config: ElectronAPI['config'] = {
   get: () => ipcRenderer.invoke('config:get'),
   // Subscribe to push updates from the main process. Fires after every setter
   // so the renderer-side configStore can mirror the latest AppConfig snapshot.
-  onUpdate: (callback: (cfg: unknown) => void) => {
-    const handler = (_e: Electron.IpcRendererEvent, cfg: unknown) => callback(cfg);
-    ipcRenderer.on('config:onUpdate', handler);
-    return () => ipcRenderer.removeListener('config:onUpdate', handler);
+  onUpdate: (callback: (cfg: AppConfig) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, cfg: AppConfig) => callback(cfg);
+    ipcRenderer.on('config:onUpdate', listener);
+    return () => {
+      ipcRenderer.removeListener('config:onUpdate', listener);
+    };
   },
   setOutputDirectory: (directory: string) => ipcRenderer.invoke('config:setOutputDirectory', directory),
   selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
@@ -162,7 +165,7 @@ export const config = {
     ipcRenderer.invoke('config:resetAIPrompt', type, variant),
 };
 
-export const windowNs = {
+export const windowNs: ElectronAPI['window'] = {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),
   close: () => ipcRenderer.invoke('window:close'),
@@ -172,12 +175,12 @@ export const windowNs = {
   setBusyState: (busy: boolean) => ipcRenderer.invoke('window:setBusyState', busy),
 };
 
-export const shell = {
+export const shell: ElectronAPI['shell'] = {
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
 };
 
-export const menu = {
+export const menu: ElectronAPI['menu'] = {
   openSettings: () => ipcRenderer.invoke('menu:requestOpenSettings'),
   onOpenSettings: (callback: () => void) => {
     const handler = () => callback();
@@ -194,26 +197,26 @@ export const menu = {
   toggleFullscreen: () => ipcRenderer.invoke('menu:toggleFullscreen'),
 };
 
-export const powerManagement = {
+export const powerManagement: ElectronAPI['powerManagement'] = {
   /** `holderId` names the consumer (tab, Web Capture, settings); the blocker stops when the last holder releases. */
   preventSleep: (holderId: string) => ipcRenderer.invoke('powerManagement:preventSleep', holderId),
   allowSleep: (holderId: string) => ipcRenderer.invoke('powerManagement:allowSleep', holderId),
   isPreventingSleep: () => ipcRenderer.invoke('powerManagement:isPreventingSleep'),
 };
 
-export const cache = {
+export const cache: ElectronAPI['cache'] = {
   getStats: () => ipcRenderer.invoke('cache:getStats'),
   clear: () => ipcRenderer.invoke('cache:clear'),
   resetAllData: () => ipcRenderer.invoke('cache:resetAllData'),
 };
 
-export const app = {
+export const app: ElectronAPI['app'] = {
   restart: () => ipcRenderer.invoke('app:restart'),
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
 };
 
-export const dialog = {
-  showMessageBox: (options: Electron.MessageBoxOptions) => ipcRenderer.invoke('dialog:showMessageBox', options),
+export const dialog: ElectronAPI['dialog'] = {
+  showMessageBox: (options: DialogOptions) => ipcRenderer.invoke('dialog:showMessageBox', options),
   showErrorBox: (title: string, content: string) => ipcRenderer.invoke('dialog:showErrorBox', title, content),
   openImageFile: () => ipcRenderer.invoke('dialog:openImageFile') as Promise<string | null>,
   openImageFiles: () => ipcRenderer.invoke('dialog:openImageFiles') as Promise<string[] | null>,

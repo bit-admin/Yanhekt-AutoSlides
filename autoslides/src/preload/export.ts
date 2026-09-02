@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
+import type { ElectronAPI } from './electronApi';
 
-export const pdfmaker = {
+export const pdfmaker: ElectronAPI['pdfmaker'] = {
   getFolders: () => ipcRenderer.invoke('pdfmaker:getFolders'),
   getImages: (folderPath: string) => ipcRenderer.invoke('pdfmaker:getImages', folderPath),
   getImageAsBase64: (imagePath: string) => ipcRenderer.invoke('pdfmaker:getImageAsBase64', imagePath),
@@ -24,7 +25,7 @@ export const pdfmaker = {
   },
 };
 
-export const noteExport = {
+export const noteExport: ElectronAPI['noteExport'] = {
   export: (payload: { title: string; content: string; format: 'pdf' | 'markdown' | 'docx' }) =>
     ipcRenderer.invoke('noteExport:export', payload) as Promise<{
       ok: boolean;
@@ -34,7 +35,7 @@ export const noteExport = {
     }>,
 };
 
-export const yuketang = {
+export const yuketang: ElectronAPI['yuketang'] = {
   exportLesson: (payload: { lessonId?: string; format: 'pdf' | 'images' }) =>
     ipcRenderer.invoke('yuketang:export', payload),
   getClassCapture: () => ipcRenderer.invoke('yuketang:getClassCapture'),

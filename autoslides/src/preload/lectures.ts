@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron';
+import type { ElectronAPI } from './electronApi';
 
 export type LectureVideoFileInfo = {
   name: string;
@@ -7,7 +8,7 @@ export type LectureVideoFileInfo = {
   mtimeMs: number;
 };
 
-export const lectures = {
+export const lectures: ElectronAPI['lectures'] = {
   listVideos: () =>
     ipcRenderer.invoke('lectures:listVideos') as Promise<LectureVideoFileInfo[]>,
   rename: (fromPath: string, toName: string) =>

@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
+import type { ElectronAPI } from './electronApi';
 
-export const tools = {
+export const tools: ElectronAPI['tools'] = {
   openWindow: (tab?: string) => ipcRenderer.invoke('tools:openWindow', tab),
   onSwitchTab: (callback: (tab: string) => void) => {
     const handler = (_event: unknown, tab: string) => callback(tab);
@@ -9,6 +10,6 @@ export const tools = {
   },
 };
 
-export const webCapture = {
+export const webCapture: ElectronAPI['webCapture'] = {
   getGuestPreloadPath: (): Promise<string> => ipcRenderer.invoke('webCapture:getGuestPreloadPath'),
 };

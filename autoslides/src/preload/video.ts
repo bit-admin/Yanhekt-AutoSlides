@@ -1,9 +1,10 @@
 import { ipcRenderer } from 'electron';
+import type { ElectronAPI, LiveStreamInput, RecordedSessionInput } from './electronApi';
 
-export const video = {
-  getLiveStreamUrls: (stream: Record<string, unknown>, token: string) =>
+export const video: ElectronAPI['video'] = {
+  getLiveStreamUrls: (stream: LiveStreamInput, token: string) =>
     ipcRenderer.invoke('video:getLiveStreamUrls', stream, token),
-  getVideoPlaybackUrls: (session: Record<string, unknown>, token: string) =>
+  getVideoPlaybackUrls: (session: RecordedSessionInput, token: string) =>
     ipcRenderer.invoke('video:getVideoPlaybackUrls', session, token),
   getScreenThumbnail: (req: {
     kind: 'live' | 'recorded';
@@ -41,7 +42,7 @@ type CompressLectureProgress = {
   message?: string;
 };
 
-export const compressLecture = {
+export const compressLecture: ElectronAPI['compressLecture'] = {
   selectInput: () => ipcRenderer.invoke('compressLecture:selectInput') as Promise<string | null>,
   selectOutput: (defaultPath?: string) => ipcRenderer.invoke('compressLecture:selectOutput', defaultPath) as Promise<string | null>,
   preview: (options: CompressLectureOptions) => ipcRenderer.invoke('compressLecture:preview', options),
@@ -65,7 +66,7 @@ export const compressLecture = {
   },
 };
 
-export const download = {
+export const download: ElectronAPI['download'] = {
   start: (downloadId: string, m3u8Url: string, outputName: string) =>
     ipcRenderer.invoke('download:start', downloadId, m3u8Url, outputName),
   cancel: (downloadId: string) => ipcRenderer.invoke('download:cancel', downloadId),

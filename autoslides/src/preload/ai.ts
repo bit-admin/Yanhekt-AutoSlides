@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
+import type { ElectronAPI } from './electronApi';
 
-export const ai = {
+export const ai: ElectronAPI['ai'] = {
   classifySingleImage: (base64Image: string, token?: string, modelOverride?: string) =>
     ipcRenderer.invoke('ai:classifySingleImage', base64Image, token, modelOverride),
   classifyMultipleImages: (base64Images: string[], token?: string, modelOverride?: string) =>
@@ -12,7 +13,7 @@ export const ai = {
   getExhaustedModels: () => ipcRenderer.invoke('ai:getExhaustedModels'),
 };
 
-export const copilot = {
+export const copilot: ElectronAPI['copilot'] = {
   requestDeviceCode: () => ipcRenderer.invoke('copilot:requestDeviceCode'),
   pollForAccessToken: (deviceCode: string, interval: number) =>
     ipcRenderer.invoke('copilot:pollForAccessToken', deviceCode, interval),

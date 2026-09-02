@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
+import type { ElectronAPI } from './electronApi';
 
-export const intranet = {
+export const intranet: ElectronAPI['intranet'] = {
   setEnabled: (enabled: boolean) => ipcRenderer.invoke('intranet:setEnabled', enabled),
   getStatus: () => ipcRenderer.invoke('intranet:getStatus'),
   getMappings: () => ipcRenderer.invoke('intranet:getMappings'),

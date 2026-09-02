@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron';
+import type { ElectronAPI } from './electronApi';
 import type { LectureIdentity } from '@common/lectureNaming';
 import type {
   NotesResult,
@@ -22,7 +23,7 @@ import type { SlideMetadataSource } from '@common/slideMetadataTypes';
  * electron-store) and performs the actual API requests — the Tools window has
  * no token of its own.
  */
-export const cloudNotes = {
+export const cloudNotes: ElectronAPI['cloudNotes'] = {
   list: (params: NoteListParams = {}): Promise<NotesResult<NoteListResult>> =>
     ipcRenderer.invoke('cloudNotes:list', params),
   get: (id: number): Promise<NotesResult<NoteDetail>> =>

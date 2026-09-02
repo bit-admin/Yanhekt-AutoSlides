@@ -1,4 +1,5 @@
 import { contextBridge } from 'electron';
+import type { ElectronAPI } from './electronApi';
 import { auth, config, windowNs, shell, menu, powerManagement, cache, app, dialog } from './platform';
 import { video, compressLecture, download } from './video';
 import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
@@ -12,7 +13,7 @@ import { localRelay } from './localRelay';
 import { cloudNotes } from './notes';
 import { lectures } from './lectures';
 
-contextBridge.exposeInMainWorld('electronAPI', {
+const electronAPI: ElectronAPI = {
   // Demo mode flag: set by `npm run demo` (DEMO_MODE=1). The main process
   // forwards it as an `--demo-mode` argv entry (process.env is not reliable in
   // the Vite-built preload), and we read it here synchronously before mount.
@@ -51,4 +52,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   update,
   cloudNotes,
   lectures,
-});
+};
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI);
