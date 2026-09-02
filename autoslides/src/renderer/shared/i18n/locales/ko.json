@@ -835,7 +835,7 @@
     "addAllToTasks": "모두 작업에 추가",
     "downloadAllCamera": "모든 카메라 다운로드",
     "downloadAllScreen": "모든 화면 다운로드",
-    "week": "주",
+    "weekNumber": "{n}주차",
     "monday": "월요일",
     "tuesday": "화요일",
     "wednesday": "수요일",

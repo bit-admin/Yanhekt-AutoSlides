@@ -130,7 +130,7 @@
                 <h4 class="session-title-text">{{ session.title }}</h4>
                 <div class="session-meta-row">
                   <span v-if="session.week_number && session.day" class="session-tag">
-                    {{ $t('sessions.week') }} {{ session.week_number }}{{ $t('sessions.week') === '第' ? '周' : '' }}, {{ getDayName(session.day) }}
+                    {{ $t('sessions.weekNumber', { n: session.week_number }) }}, {{ getDayName(session.day) }}
                   </span>
                   <span v-if="session.started_at" class="session-date-text">
                     {{ formatDate(session.started_at) }}

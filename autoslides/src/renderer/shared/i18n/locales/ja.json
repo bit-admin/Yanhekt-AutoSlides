@@ -835,7 +835,7 @@
     "addAllToTasks": "すべてをタスクに追加",
     "downloadAllCamera": "すべてのカメラをダウンロード",
     "downloadAllScreen": "すべての画面をダウンロード",
-    "week": "週",
+    "weekNumber": "第{n}週",
     "monday": "月曜日",
     "tuesday": "火曜日",
     "wednesday": "水曜日",

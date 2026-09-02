@@ -294,7 +294,7 @@
     "unpin": "Unsubscribe",
     "unsubscribe": "Unsubscribe",
     "wednesday": "Wednesday",
-    "week": "Week"
+    "weekNumber": "Week {n}"
   },
   "settings": {
     "chinese": "中文",

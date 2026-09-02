@@ -835,7 +835,7 @@
     "addAllToTasks": "Add All to Tasks",
     "downloadAllCamera": "Download All Camera",
     "downloadAllScreen": "Download All Screen",
-    "week": "Week",
+    "weekNumber": "Week {n}",
     "monday": "Monday",
     "tuesday": "Tuesday",
     "wednesday": "Wednesday",

@@ -835,7 +835,7 @@
     "addAllToTasks": "添加全部到幻灯片提取任务",
     "downloadAllCamera": "下载全部摄像头录像",
     "downloadAllScreen": "下载全部屏幕录像",
-    "week": "周",
+    "weekNumber": "第{n}周",
     "monday": "星期一",
     "tuesday": "星期二",
     "wednesday": "星期三",
