@@ -35,3 +35,10 @@ export function setLocale(locale: AppLocale) {
 export function getCurrentLocale(): AppLocale {
   return i18n.global.locale.value as AppLocale;
 }
+
+const LOCALE_TAGS: Record<AppLocale, string> = { en: "en-US", zh: "zh-CN" };
+
+/** BCP 47 tag for a UI locale — pass to `toLocale*()` / `Intl` instead of a hardcoded "en-US". */
+export function localeTag(locale: AppLocale = getCurrentLocale()): string {
+  return LOCALE_TAGS[locale] ?? "en-US";
+}

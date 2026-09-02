@@ -33,6 +33,18 @@ export function getCurrentLocale(): 'en' | 'zh' | 'ja' | 'ko' {
   return i18n.global.locale.value
 }
 
+const LOCALE_TAGS: Record<'en' | 'zh' | 'ja' | 'ko', string> = {
+  en: 'en-US',
+  zh: 'zh-CN',
+  ja: 'ja-JP',
+  ko: 'ko-KR'
+}
+
+/** BCP 47 tag for the active UI locale — pass to `toLocale*()` / `Intl` instead of a hardcoded 'en-US'. */
+export function localeTag(): string {
+  return LOCALE_TAGS[getCurrentLocale()] ?? 'en-US'
+}
+
 // Helper function to detect system language
 export function detectSystemLanguage(): 'en' | 'zh' | 'ja' | 'ko' {
   const systemLang = navigator.language || navigator.languages?.[0] || 'en'

@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import type { PinnedCourse, StoredAccount } from '@common/types';
+import type { LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 
 export const auth = {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
@@ -74,7 +74,7 @@ export const config = {
   getThemeMode: () => ipcRenderer.invoke('config:getThemeMode'),
   isDarkMode: () => ipcRenderer.invoke('config:isDarkMode'),
   getEffectiveTheme: () => ipcRenderer.invoke('config:getEffectiveTheme'),
-  setLanguageMode: (language: 'system' | 'en' | 'zh') => ipcRenderer.invoke('config:setLanguageMode', language),
+  setLanguageMode: (language: LanguageMode) => ipcRenderer.invoke('config:setLanguageMode', language),
   getLanguageMode: () => ipcRenderer.invoke('config:getLanguageMode'),
   setPreventSystemSleep: (prevent: boolean) => ipcRenderer.invoke('config:setPreventSystemSleep', prevent),
   setAuthToken: (token: string | null) => ipcRenderer.invoke('config:setAuthToken', token),

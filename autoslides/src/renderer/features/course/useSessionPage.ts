@@ -9,6 +9,7 @@ import type { Course } from './useCourseList'
 import { lookupCourseById, needsListHydration } from './lookupCourseById'
 import { upgradePinnedCourse } from './pinnedCourses'
 import { createLogger } from '@shared/utils/logger';
+import { localeTag } from '@shared/i18n'
 const log = createLogger('SessionPage');
 
 /** The slice of `Course` the sessions page consumes (a thin/pinned course may carry only this). */
@@ -355,7 +356,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const formatDate = (dateString: string): string => {
     try {
       const date = new Date(dateString)
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString(localeTag(), {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

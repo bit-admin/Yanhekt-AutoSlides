@@ -4,6 +4,7 @@ import { authStore } from "../stores/authStore";
 import type { Course } from "./useCourseList";
 import { lookupCourseById, needsListHydration } from "./lookupCourseById";
 import { upgradeSubscribedCourse } from "./subscribedCourses";
+import { localeTag } from "../i18n";
 
 // Ported from the desktop app's features/course/useSessionPage.ts with the
 // download/task-queue plumbing stripped (web step 1 is playback only).
@@ -196,7 +197,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const formatDate = (dateString: string): string => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
+      return date.toLocaleDateString(localeTag(), {
         year: "numeric",
         month: "short",
         day: "numeric",

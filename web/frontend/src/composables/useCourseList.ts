@@ -9,6 +9,7 @@ import {
 } from "../lib/api";
 import { authStore } from "../stores/authStore";
 import { openCourse } from "./courseSelection";
+import { localeTag } from "../i18n";
 
 // Ported from the desktop app's features/course/useCourseList.ts with the
 // Electron ApiClient/tokenManager swapped for the web data layer.
@@ -55,11 +56,11 @@ const trimImageUrl = (value?: string | null): string | undefined => {
 
 // Transform functions (shared by the course grid, Home page rows, and Search page)
 export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
-  const startTime = new Date(stream.schedule_started_at).toLocaleTimeString("en-US", {
+  const startTime = new Date(stream.schedule_started_at).toLocaleTimeString(localeTag(), {
     hour: "2-digit",
     minute: "2-digit",
   });
-  const endTime = new Date(stream.schedule_ended_at).toLocaleTimeString("en-US", {
+  const endTime = new Date(stream.schedule_ended_at).toLocaleTimeString(localeTag(), {
     hour: "2-digit",
     minute: "2-digit",
   });

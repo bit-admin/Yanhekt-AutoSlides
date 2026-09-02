@@ -3,6 +3,7 @@ import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, typ
 import { tokenManager } from '@shared/services/authService'
 import { openCourse } from './courseSelection'
 import { createLogger } from '@shared/utils/logger';
+import { localeTag } from '@shared/i18n'
 const log = createLogger('CourseList');
 
 export interface Course {
@@ -52,11 +53,11 @@ const trimImageUrl = (value?: string | null): string | undefined => {
 
 // Transform functions (shared by the course grid, Home page rows, and Search page)
 export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
-  const startTime = new Date(stream.schedule_started_at).toLocaleTimeString('en-US', {
+  const startTime = new Date(stream.schedule_started_at).toLocaleTimeString(localeTag(), {
     hour: '2-digit',
     minute: '2-digit'
   })
-  const endTime = new Date(stream.schedule_ended_at).toLocaleTimeString('en-US', {
+  const endTime = new Date(stream.schedule_ended_at).toLocaleTimeString(localeTag(), {
     hour: '2-digit',
     minute: '2-digit'
   })

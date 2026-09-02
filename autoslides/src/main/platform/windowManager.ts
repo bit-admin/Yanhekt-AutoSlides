@@ -75,13 +75,9 @@ export class WindowManager {
 
   private getTranslation(key: string): string {
     const languageMode = this.configService?.getLanguageMode() ?? 'system';
-    let locale: 'en' | 'zh' | 'ja' | 'ko' = 'en';
+    let locale: 'en' | 'zh' | 'ja' | 'ko';
 
-    if (languageMode === 'zh') {
-      locale = 'zh';
-    } else if (languageMode === 'en') {
-      locale = 'en';
-    } else {
+    if (languageMode === 'system') {
       // system: follow the OS locale (the menu/native dialogs are the only
       // main-process strings, so they track the system language directly).
       const systemLang = app.getLocale();
@@ -89,6 +85,9 @@ export class WindowManager {
       else if (systemLang.startsWith('ja')) locale = 'ja';
       else if (systemLang.startsWith('ko')) locale = 'ko';
       else locale = 'en';
+    } else {
+      // Explicit choice: every LanguageMode value has a translation table.
+      locale = languageMode;
     }
 
     const translations =

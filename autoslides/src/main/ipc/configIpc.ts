@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
 import type { AIServiceType } from '@main/platform/configService';
-import type { PinnedCourse, StoredAccount } from '@common/types';
+import type { LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('ConfigIpc');
 
@@ -243,7 +243,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getEffectiveTheme();
   });
 
-  ipcMain.handle('config:setLanguageMode', async (_event, language: 'system' | 'en' | 'zh') => {
+  ipcMain.handle('config:setLanguageMode', async (_event, language: LanguageMode) => {
     configService.setLanguageMode(language);
     windowManager.updateApplicationMenu();
     broadcastConfig();

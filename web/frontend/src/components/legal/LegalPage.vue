@@ -80,6 +80,7 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { localeTag, type AppLocale } from '../../i18n'
 import { LEGAL_DOCS, legalDoc, renderInline, type LegalDocId } from '../../legal'
 import { COPYRIGHT_YEAR } from '../../legal/meta'
 
@@ -89,7 +90,7 @@ const { locale } = useI18n()
 const doc = computed(() => legalDoc(props.docId))
 
 const formatDate = (iso: string): string =>
-  new Date(iso).toLocaleDateString(locale.value === 'zh' ? 'zh-CN' : 'en-US', {
+  new Date(iso).toLocaleDateString(localeTag(locale.value as AppLocale), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

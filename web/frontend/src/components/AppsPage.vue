@@ -195,6 +195,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { localeTag, type AppLocale } from '../i18n'
 import AssetRow from './apps/AssetRow.vue'
 import {
   detectPlatform,
@@ -287,7 +288,7 @@ const otherAssets = (id: AppId): ReleaseAsset[] =>
 
 const formatDate = (iso: string): string => {
   if (!iso) return ''
-  return new Date(iso).toLocaleDateString(locale.value === 'zh' ? 'zh-CN' : 'en-US', {
+  return new Date(iso).toLocaleDateString(localeTag(locale.value as AppLocale), {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
