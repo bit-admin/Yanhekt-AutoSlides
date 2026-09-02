@@ -190,23 +190,27 @@ function seedWatchNotesForOpenTabs(): void {
               },
               {
                 type: 'paragraph',
-                data: { text: 'Slides captured while watching. Yanhekt stores note images in public storage.' },
+                data: { text: 'T is compact and self-adjoint, so it has an orthonormal eigenbasis. Eigenvalues can accumulate only at 0.' },
               },
               {
                 type: 'image',
                 data: {
                   file: { url: demoResultImageDataUri({ name: 'Slide_001.png' }) },
-                  caption: 'Slide 1',
+                  caption: 'Spectral theorem — compact self-adjoint',
                   withBorder: false,
                   stretched: false,
                   withBackground: false,
                 },
               },
               {
+                type: 'paragraph',
+                data: { text: 'The operator norm equals the spectral radius: ‖T‖ = supₙ |λₙ|. Proof sketch: pick the eigenvector for the largest |λ|.' },
+              },
+              {
                 type: 'image',
                 data: {
                   file: { url: demoResultImageDataUri({ name: 'Slide_002.png' }) },
-                  caption: 'Slide 2',
+                  caption: 'Operator norm as max |λ|',
                   withBorder: false,
                   stretched: false,
                   withBackground: false,

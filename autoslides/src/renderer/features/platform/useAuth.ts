@@ -17,6 +17,9 @@ const isVerifyingToken = ref(false)
 // An in-flight SMS second factor. Shared like isBrowserLoginActive so whichever
 // surface hosts SignInModal (left panel or onboarding) shows the same prompt.
 const smsChallenge = ref<SmsChallengeState | null>(null)
+const smsCode = ref('')
+const smsError = ref('')
+const isSubmittingSmsCode = ref(false)
 
 export interface SmsChallengeState {
   challengeId: string
@@ -77,7 +80,7 @@ export interface UseAuthReturn {
   // Browser login state (shared across all instances)
   isBrowserLoginActive: Ref<boolean>
 
-  // SMS second-factor state (challenge shared; input state per-instance)
+  // SMS second-factor state (shared so onboarding footer and SignInModal agree)
   smsChallenge: Ref<SmsChallengeState | null>
   smsCode: Ref<string>
   smsError: Ref<string>
@@ -119,11 +122,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
   const username = ref('')
   const password = ref('')
   const isLoading = ref(false)
-
-  // SMS second-factor input state (per-instance; the challenge itself is shared)
-  const smsCode = ref('')
-  const smsError = ref('')
-  const isSubmittingSmsCode = ref(false)
 
   // Manual token auth state (per-instance)
   const manualToken = ref('')

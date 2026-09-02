@@ -14,6 +14,7 @@ import { configStore } from '@shared/services/configStore'
 import {
   DEMO_TOKEN,
   DEMO_DISPLAY_NAME,
+  DEMO_USER_BADGE,
   DEMO_EDIT_SLIDE_RECT,
   demoUser,
   demoSemesters,
@@ -173,8 +174,29 @@ export function installDemo(): void {
 
   configStore.cloudWatchSyncEnabled = true
   void window.electronAPI.config.setCloudWatchSyncEnabled(true).catch(() => undefined)
-  for (const account of demoStoredAccounts()) {
-    void window.electronAPI.config.upsertAccount(account).catch(() => undefined)
+  // Onboarding's cloud step keys off this flag + the managed groups. Demo
+  // groups already exist; stamp Kate as initialized so the step shows ready
+  // + sync/watch toggles instead of an Init button.
+  const initialized = new Set(configStore.cloudStorageInitializedUsers ?? [])
+  initialized.add(DEMO_USER_BADGE)
+  configStore.cloudStorageInitializedUsers = [...initialized]
+  void window.electronAPI.config.setCloudStorageInitialized(DEMO_USER_BADGE, true).catch(() => undefined)
+  const extraAccounts = demoStoredAccounts()
+  const kateAccount = {
+    badge: DEMO_USER_BADGE,
+    nickname: DEMO_DISPLAY_NAME,
+    displayName: DEMO_DISPLAY_NAME,
+    token: DEMO_TOKEN,
+    addedAt: Date.now() - 7 * 24 * 60 * 60 * 1000,
+    lastUsedAt: Date.now(),
+  }
+  // Plain objects for IPC (Recurring #1) — never iterate configStore.accounts into upsert.
+  const accounts = [kateAccount, ...extraAccounts]
+  configStore.accounts = accounts
+  for (const account of accounts) {
+    void window.electronAPI.config.upsertAccount(
+      JSON.parse(JSON.stringify(account)),
+    ).catch(() => undefined)
   }
 
   // Demo disables macOS vibrancy (opaque window for clean captures); this class

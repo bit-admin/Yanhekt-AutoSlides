@@ -3,6 +3,7 @@
   <div v-if="embedded" class="signin-embed">
     <SmsCodePanel
       v-if="smsChallenge"
+      embedded
       :code="smsCode"
       :error="smsError"
       :is-submitting="isSubmittingSmsCode"

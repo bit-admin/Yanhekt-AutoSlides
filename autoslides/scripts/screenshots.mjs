@@ -71,7 +71,8 @@ async function main() {
   }
 
   // Let demo auto-login + initial fetch settle.
-  await win.waitForTimeout(2500)
+  await win.waitForSelector('.nav-item', { timeout: 20000 })
+  await win.waitForTimeout(800)
 
   // Best-effort: dismiss the onboarding overlay if it somehow appears (demo
   // mode suppresses it in App.vue, but stay defensive).
@@ -248,7 +249,9 @@ async function main() {
   // whole tab renders, and the page height is freed so the footer trails the
   // content. Section geometry is recorded relative to the captured page top (so it
   // accounts for the header+tabs offset), letting process-docs split the long tabs.
-  const SETTINGS_CARD_WIDTH = 680
+  // Match SettingsPage `.settings-body { max-width: 720px }` so model-row
+  // controls (e.g. slide-classifier-v1 + two buttons) stay on one line.
+  const SETTINGS_CARD_WIDTH = 720
   const expandSettings = () => win.evaluate((cardW) => {
     // position:fixed lifts the page out of the layout's overflow:hidden ancestors
     // (.content-area/.layout/.app) so the full long card — including the footer
@@ -354,35 +357,75 @@ async function main() {
 
   // --- first-run onboarding wizard (web element shots, like settings) ------
   // Onboarding is first-run-only and suppressed in demo mode, so App.vue exposes
-  // a demo-only window.__demoSetOnboarding(bool) toggle. Each step is captured as
-  // a transparent-background element shot of the 460px card.
+  // a demo-only window.__demoSetOnboarding(bool, kind?) toggle. Each step is
+  // captured as a transparent-background element shot of the 460px card.
   await step('onboarding', async () => {
     await clickNav(0)
-    await win.evaluate(() => window.__demoSetOnboarding?.(true))
+    await win.evaluate(() => window.__demoSetOnboarding?.(true, 'first-run'))
     await win.waitForSelector('.onboarding-card', { timeout: 6000 })
     // Transparent backdrop (drop the dark overlay + blur) so omitBackground
     // gives clean rounded-corner cards, matching the settings-modal treatment.
-    await win.evaluate(() => {
+    const clearBackdrop = () => win.evaluate(() => {
       const ov = document.querySelector('.onboarding-overlay')
       if (ov) { ov.style.background = 'transparent'; ov.style.backdropFilter = 'none' }
     })
+    await clearBackdrop()
     const shotCard = async (name) => {
       await win.waitForTimeout(300)
       await win.locator('.onboarding-card').screenshot({ path: path.join(outDir, `${name}.png`), omitBackground: true })
       captured.push(name)
       console.log(`  ✓ ${name}.png (onboarding, web)`)
     }
-    // step 0 = welcome hero; remaining shots = dotted config steps before sign-in.
+    // Welcome hero, then all 6 config steps, then the All Set card.
     await shotCard('onboarding-welcome')
-    await win.locator('.hero-cta').click() // Get Started → step 1
-    const steps = ['onboarding-output', 'onboarding-connection', 'onboarding-audio',
-      'onboarding-ai']
-    for (let i = 0; i < steps.length; i++) {
+    await win.locator('.hero-cta').click() // Get Started → output
+    const steps = [
+      'onboarding-output',
+      'onboarding-connection',
+      'onboarding-audio',
+      'onboarding-ai',
+      'onboarding-signin',
+      'onboarding-cloud',
+    ]
+    for (const name of steps) {
       await win.waitForSelector('.onboarding-body', { timeout: 4000 })
-      await shotCard(steps[i])
-      if (i < steps.length - 1) await win.locator('.onboarding-footer .btn--primary').click()
+      if (name === 'onboarding-signin') {
+        // Unsigned form, then the embedded SMS panel, then the signed-in ready row.
+        // SMS is hosted inside SignInModal (embedded) — same shared smsChallenge.
+        await win.evaluate(() => {
+          window.__demoSetSmsChallenge?.(null)
+          window.__demoSetLoggedIn?.(false)
+        })
+        await win.waitForSelector('.signin-embed .sso-form', { timeout: 4000 })
+        await shotCard('onboarding-signin')
+        await win.evaluate(() => window.__demoSetSmsChallenge?.({
+          challengeId: 'demo-sms',
+          phoneHint: '138****2610',
+          expiresAt: Date.now() + 300000,
+        }))
+        await win.waitForSelector('.signin-embed .sms-panel', { timeout: 4000 })
+        await shotCard('onboarding-signin-sms')
+        await win.evaluate(() => {
+          window.__demoSetSmsChallenge?.(null)
+          window.__demoSetLoggedIn?.(true)
+        })
+        await win.waitForSelector('.cloud-inited-row', { timeout: 4000 })
+        await shotCard('onboarding-signin-ready')
+      } else {
+        await shotCard(name)
+      }
+      await win.locator('.onboarding-footer .btn--primary').click()
     }
-    // Dismiss (don't advance into the sign-in step) so later steps are clean.
+    await win.waitForSelector('.allset-hero', { timeout: 4000 })
+    await shotCard('onboarding-done')
+    await win.evaluate(() => window.__demoSetOnboarding?.(false))
+    await win.waitForSelector('.onboarding-card', { state: 'detached', timeout: 4000 }).catch(() => {})
+
+    // What's New is a distinct 5.0.0 hero (same catalog, different copy).
+    await win.evaluate(() => window.__demoSetOnboarding?.(true, 'whats-new'))
+    await win.waitForSelector('.onboarding-card[data-onboarding-kind="whats-new"]', { timeout: 6000 })
+    await clearBackdrop()
+    await shotCard('onboarding-whats-new')
     await win.evaluate(() => window.__demoSetOnboarding?.(false))
     await win.waitForSelector('.onboarding-card', { state: 'detached', timeout: 4000 }).catch(() => {})
   })
@@ -401,7 +444,8 @@ async function main() {
       await bw.evaluate((w) => { w.setContentSize(1200, 800); w.center() })
     } catch { /* best effort */ }
     if (readySelector) await child.waitForSelector(readySelector, { timeout: 8000 }).catch(() => {})
-    await child.waitForTimeout(1000)
+    // Yuketang's QR lives in an embedded <webview>; give the live page time to paint.
+    await child.waitForTimeout(name === 'tools-yuketang' ? 3500 : 1000)
     await shot(name, child)
     await child.close().catch(() => {})
     await win.waitForTimeout(400)
@@ -494,6 +538,7 @@ async function main() {
     await search.fill('Analysis')
     await search.press('Enter')
     await win.waitForSelector('.cn-index-course', { timeout: 8000 })
+    await win.waitForSelector('.semester-select', { timeout: 4000 }).catch(() => {})
     await win.waitForTimeout(600)
 
     // Pick Functional Analysis (its lectures match the slide SVGs' headers, and
@@ -516,6 +561,21 @@ async function main() {
     await win.waitForTimeout(600)
     await shot('lectures-library')
 
+    try {
+      await win.locator('.lectures-page .mode-pill').nth(1).click() // List
+      await win.waitForSelector('.lectures-page .folder-list .folder-item', { timeout: 8000 })
+      await win.waitForTimeout(600)
+      await shot('lectures-list')
+      await win.locator('.lectures-page .mode-pill').nth(0).click() // Library
+      await win.waitForSelector('.library-view .show-card', { timeout: 8000 })
+      await win.waitForTimeout(400)
+    } catch (e) {
+      skipped.push(`lectures-list — ${e.message}`)
+      console.warn(`  ⚠ skipped lectures-list: ${e.message}`)
+      await win.locator('.lectures-page .mode-pill').nth(0).click().catch(() => {})
+      await win.waitForTimeout(400)
+    }
+
     await win.locator('.show-card', { hasText: 'Functional Analysis' }).click()
     await win.waitForSelector('.episode-card', { timeout: 8000 })
     await win.waitForTimeout(600)
@@ -528,23 +588,46 @@ async function main() {
     await shot('lectures-player')
   })
 
-  // --- browser SSO login (real network) -----------------------------------
-  // The browser-login view embeds a <webview> pointed at the LIVE BIT SSO page,
-  // so this capture needs network — but it's fully reproducible, not manual.
-  // Done LAST: it signs out first (to reveal the "Sign In" banner), which wipes
-  // the demo session the other views depend on.
-  await step('login', async () => {
-    await clickNav(0)
-    // Clear the leftover search text from the earlier search step.
+  // User menu (Help / AutoSlides Project flyout). Capture from Home while still
+  // signed in — login below signs out and wipes the demo session.
+  // Filling the search input focuses Search (sidebar @focus); bounce back to Home.
+  const goHome = async () => {
+    await win.evaluate(() => window.__demoNavigate?.('home'))
+    await win.waitForSelector('[data-mode="home"]:not(.mode-hidden)', { timeout: 6000 })
+    await win.waitForTimeout(400)
+  }
+
+  await step('user-menu', async () => {
     await win.locator('.nav-search-input').fill('').catch(() => {})
-    // Sign out → logged-out state shows the "Sign In" banner.
-    await win.locator('.user-info .user-banner-main').click()
+    await goHome()
+    await win.locator('.user-info .user-banner').click()
+    await win.waitForSelector('.user-menu-expanded', { timeout: 6000 })
+    await win.locator('.user-menu-expanded .account-switcher').hover()
+    await win.waitForTimeout(400)
+    await shot('user-menu')
+    await win.locator('.user-info .user-banner').click()
+    await win.waitForSelector('.user-menu-expanded', { state: 'detached', timeout: 4000 }).catch(() => {})
+  })
+
+  // --- signed-out Home, then browser SSO login (real network) -------------
+  // Done LAST: signing out wipes the demo session the other views depend on.
+  await step('home-signed-out', async () => {
+    await win.locator('.user-info .user-banner').click()
     await win.waitForSelector('.user-menu-signout', { timeout: 6000 })
     await win.locator('.user-menu-signout').click()
     await win.waitForSelector('.signin-banner', { timeout: 6000 })
+    // mode-hidden is opacity:0 (still "visible" to Playwright) — navigate Home
+    // explicitly and wait for the welcome block on the *shown* pane.
+    await goHome()
+    await win.waitForSelector('[data-mode="home"]:not(.mode-hidden) .home-welcome', { timeout: 8000 })
+    await win.evaluate(() => document.querySelector('.hw-demo')?.classList.add('hw-demo--logos'))
     await win.waitForTimeout(400)
+    await shot('home-signed-out')
+  })
+
+  await step('login', async () => {
     // Open the sign-in menu → "Sign in with browser".
-    await win.locator('.signin-banner .user-banner-main').click()
+    await win.locator('.signin-banner').click()
     await win.waitForSelector('.signin-menu', { timeout: 6000 })
     // `.signin-option` also covers the UserMenuLinks rows — match by text.
     await win.locator('.signin-menu .signin-option', { hasText: /browser|浏览器/i }).click()
@@ -596,7 +679,10 @@ ${list}
 | Capture | docs/ target(s) | README section |
 |---------|-----------------|----------------|
 | login.png | login.png | A. 登录（浏览器 SSO，实时加载真实登录页） |
-| onboarding-*.png (×5) | onboarding-*.png | 首次启动向导（欢迎 + 4 个配置步骤，置于「4. 使用与设置」前） |
+| home-signed-out.png | home-signed-out.png | A. 未登录 Home（产品演示 + 登录 CTA） |
+| onboarding-welcome/output/connection/audio/ai/signin/signin-sms/signin-ready/cloud/done.png | onboarding-*.png | 首次启动向导（欢迎 + 配置步骤；登录为未登录 / SMS / 已登录三张） |
+| onboarding-whats-new.png | onboarding-whats-new.png | 5.0.0 What's New 欢迎页 |
+| user-menu.png | user-menu.png | 用户菜单（AutoSlides Project 子菜单） |
 | home.png | home.png | D. 基础页面（Home / 课程收藏夹） |
 | live.png | live.png | D. 直播课程网格 |
 | recorded.png | recorded.png | E. 录播课程网格 |
@@ -616,6 +702,7 @@ ${list}
 | cloud-index-recent.png | cloud-index-recent.png | 云盘（云索引）— 最近添加 |
 | cloud-index-browse.png | cloud-index-browse.png | 云盘（云索引）— 搜索浏览 + 幻灯片查看器 |
 | lectures-library.png | lectures-library.png | 讲座库 — 课程海报墙 |
+| lectures-list.png | lectures-list.png | 讲座库 — 列表视图 |
 | lectures-course.png | lectures-course.png | 讲座库 — 课程详情 / 分集 |
 | lectures-player.png | lectures-player.png | 讲座库 — 本地双流播放 + 幻灯片章节条 |
 | watch-notes.png | watch-notes.png | 观看模式笔记（右侧 Notes 面板） |
@@ -626,7 +713,6 @@ ${list}
 | advanced-ai.png | settings-ai-service.png + settings-ai-behaviour.png | C & I. AI（**拆分为 2 张**） |
 | advanced-ai-ml.png | settings-ai-ml.png | I. AI（ML 模式 / 严格度滑块） |
 | advanced-cloud.png | settings-cloud.png | I. 云存储 |
-| tools-compress.png | tools-compress.png | J. 讲座压缩 |
 | tools-webcapture.png | tools-webcapture.png | K. 网页捕获 |
 | tools-yuketang.png | tools-yuketang.png | K. 雨课堂 |
 

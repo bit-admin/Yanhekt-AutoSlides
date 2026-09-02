@@ -33,7 +33,10 @@ import { i18n } from './renderer/shared/i18n';
 import { loadConfig } from './renderer/shared/services/configStore';
 import { isDemoMode, loadAppVersion } from './renderer/shared/services/runtimeEnv';
 import { tokenManager } from './renderer/shared/services/authService';
+import { createLogger } from './renderer/shared/utils/logger';
 import { PostProcessingService } from './renderer/shared/services/postProcessingService';
+
+const log = createLogger('Renderer');
 import {
   classifyMultipleImages,
   classifySingleImage,
@@ -53,7 +56,12 @@ Promise.all([loadConfig(), loadAppVersion()]).then(async () => {
   // Demo mode: install the override registry (fake account/courses/queues) before
   // mount. Deleting src/renderer/demo/ + this guarded import drops demo mode.
   if (isDemoMode()) {
-    await import('./renderer/demo/bootstrap').then((m) => m.installDemo());
+    try {
+      const { installDemo } = await import('./renderer/demo/bootstrap');
+      installDemo();
+    } catch (err) {
+      log.error('installDemo failed', err);
+    }
   }
   await tokenManager.hydrate();
   app.mount('#app');

@@ -59,7 +59,7 @@ import MainContent from '@renderer/components/MainContent.vue'
 import RightPanel from '@renderer/components/download/RightPanel.vue'
 import BrowserLoginView from '@renderer/components/settings/BrowserLoginView.vue'
 import OnboardingModal from '@renderer/components/settings/OnboardingModal.vue'
-import { useAuth } from '@features/platform/useAuth'
+import { useAuth, type SmsChallengeState } from '@features/platform/useAuth'
 import { useSettings } from '@features/settings/useSettings'
 import { useAdvancedSettings } from '@features/settings/useAdvancedSettings'
 import { useCacheManagement } from '@features/platform/useCacheManagement'
@@ -172,7 +172,7 @@ provide(settingsContextKey, {
   phash: pHashExclusion,
 })
 
-const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken, isLoggedIn } = auth
+const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken, isLoggedIn, smsChallenge } = auth
 const { isWorkspacePage } = navigationStore
 
 // Onboarding / What's New. configStore + app version are loaded before mount.
@@ -217,22 +217,39 @@ const onBrowserLoginClose = () => {
 
 // Demo-only hooks for the screenshot script. Never exposed in prod.
 // - __demoSetOnboarding: render the onboarding wizard (otherwise first-run-only).
+//   Optional kind 'whats-new' uses the versioned What's New hero copy.
 // - __demoNavigate: drive the left-panel navigator (incl. Workspace pages) so the
 //   script doesn't depend on localized nav-item text.
+// - __demoSetLoggedIn / __demoSetSmsChallenge: preview the onboarding sign-in
+//   step as unsigned / SMS / signed-in without hitting CAS.
 if (isDemoMode()) {
   const w = window as unknown as {
-    __demoSetOnboarding?: (v: boolean) => void
+    __demoSetOnboarding?: (v: boolean, kind?: 'first-run' | 'whats-new') => void
     __demoNavigate?: (target: string) => void
+    __demoSetLoggedIn?: (v: boolean) => void
+    __demoSetSmsChallenge?: (challenge: SmsChallengeState | null) => void
   }
-  w.__demoSetOnboarding = (v) => {
+  w.__demoSetOnboarding = (v, kind = 'first-run') => {
     if (v) {
-      const forced = firstRunOnboarding()
-      onboardingKind.value = 'first-run'
-      onboardingSteps.value = forced.steps
+      if (kind === 'whats-new') {
+        const forced = resolveOnboarding({
+          onboardingCompleted: true,
+          lastOnboardingVersion: '4.4.1',
+          appVersion: getAppVersion(),
+        })
+        onboardingKind.value = forced.kind === 'none' ? 'first-run' : forced.kind
+        onboardingSteps.value = forced.steps
+      } else {
+        const forced = firstRunOnboarding()
+        onboardingKind.value = 'first-run'
+        onboardingSteps.value = forced.steps
+      }
     }
     showOnboarding.value = v
   }
   w.__demoNavigate = (target) => navigationStore.navigate(target as NavTarget)
+  w.__demoSetLoggedIn = (v) => { isLoggedIn.value = v }
+  w.__demoSetSmsChallenge = (challenge) => { smsChallenge.value = challenge }
 }
 
 // Baselines match the panel widths the old proportional layout produced at the

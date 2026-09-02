@@ -1,5 +1,5 @@
 <template>
-  <div class="sms-panel">
+  <div class="sms-panel" :class="{ 'sms-panel--embed': embedded }">
     <!-- The "code sent to …" prompt lives in the card's description slot rather
          than here, so this panel stays no taller than the credential form it
          replaces and the card keeps its usual height.
@@ -58,6 +58,8 @@ const props = defineProps<{
   /** A `SignInFailureReason`, or 'invalidFormat' from client-side validation. */
   error: string
   isSubmitting: boolean
+  /** Onboarding embed: keep original box size, center in the wizard card. */
+  embedded?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -251,5 +253,24 @@ watch(
 .sms-cancel:disabled {
   cursor: default;
   opacity: 0.6;
+}
+
+/* Onboarding: compact centered digits; note + Verify match the credential form. */
+.sms-panel--embed {
+  align-items: stretch;
+  max-width: none;
+}
+
+.sms-panel--embed .sms-digits {
+  justify-content: center;
+}
+
+.sms-panel--embed .sms-note,
+.sms-panel--embed .sms-error {
+  text-align: left;
+}
+
+.sms-panel--embed .sms-cancel {
+  align-self: center;
 }
 </style>

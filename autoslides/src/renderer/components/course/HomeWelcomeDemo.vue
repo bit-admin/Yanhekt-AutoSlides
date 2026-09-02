@@ -933,4 +933,19 @@ function exportX(i: number): number {
     transform: none;
   }
 }
+
+/* Screenshot freeze: skip the 26s storyboard and hold the logo lockup. */
+.hw-demo--logos .hw-hero,
+.hw-demo--logos .hw-art,
+.hw-demo--logos .hw-cap {
+  opacity: 0 !important;
+  animation: none !important;
+  visibility: hidden;
+}
+
+.hw-demo--logos .hw-end {
+  opacity: 1 !important;
+  animation: none !important;
+  transform: none;
+}
 </style>

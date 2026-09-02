@@ -186,7 +186,7 @@
 
 .model-row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 12px;
   align-items: center;
   justify-content: space-between;
@@ -197,9 +197,13 @@
 }
 
 .model-row .model-info {
+  flex: 1;
+  min-width: 0;
   font-size: 12px;
   color: var(--text-primary);
-  word-break: break-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .model-row .model-size {
@@ -210,7 +214,7 @@
 .model-row .model-actions {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .secondary-btn {
