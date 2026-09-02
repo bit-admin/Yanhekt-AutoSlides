@@ -560,7 +560,7 @@
                   @click="executePostProcessing()"
                   class="btn btn--primary"
                   :disabled="isPostProcessing"
-                  title="Execute post-processing on all saved slides"
+                  :title="$t('playback.postProcessTip')"
                 >
                   <svg v-if="!isPostProcessing" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -576,7 +576,7 @@
                   v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
                   @click="clearAllSlides"
                   class="btn btn--danger"
-                  title="Move all slides to trash"
+                  :title="$t('playback.clearAllTip')"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3,6 5,6 21,6"/>

@@ -50,14 +50,14 @@
     "signOut": "Sign Out"
   },
   "courses": {
-    "loading": "Loading courses...",
+    "loading": "Loading courses…",
     "noResults": "No Courses Found",
     "savedSearches": {
       "cancel": "Cancel",
       "confirm": "Save",
       "modalTitle": "Add Saved Search",
       "modeLabel": "Search mode",
-      "placeholder": "Enter a keyword...",
+      "placeholder": "Enter a keyword…",
       "remove": "Remove",
       "save": "Save Search",
       "empty": "Enter a keyword.",
@@ -102,7 +102,7 @@
     "coss": "COSS",
     "cvForge": "CV Forge",
     "itCentre": "IT Centre",
-    "notes": "AS Notes",
+    "notes": "Notes",
     "publicIndex": "Public Index",
     "publicRelay": "Public Relay",
     "shortLink": "Short Link"
@@ -137,7 +137,10 @@
     "searchPlaceholder": "Search",
     "slidesReview": "Slides",
     "subscriptions": "Subscriptions",
-    "notes": "Notes"
+    "notes": "Notes",
+    "back": "Back",
+    "clearSearch": "Clear search",
+    "toggleSearch": "Toggle search"
   },
   "notice": {
     "accept": "Got it",
@@ -197,7 +200,7 @@
     "lastPlayedPosition": "Last played position:",
     "leave": "Leave",
     "loadFailed": "Failed to load playback info",
-    "loadingVideoStreams": "Loading video streams...",
+    "loadingVideoStreams": "Loading video streams…",
     "mute": "Mute",
     "playbackSpeed": "Playback Speed",
     "postProcess": "Post-process",
@@ -216,7 +219,7 @@
       "aiRemoved": "{count} AI-filtered",
       "aiFailed": "{count} slides failed AI classification (kept; retried next pass)"
     },
-    "postProcessing": "Processing...",
+    "postProcessing": "Processing…",
     "professors": "Professors",
     "refresh": "Refresh",
     "retry": "Retry",
@@ -274,7 +277,7 @@
     "day": "Day",
     "failedToLoadSessions": "Failed to Load Course Sessions",
     "friday": "Friday",
-    "loadingSessions": "Loading sessions...",
+    "loadingSessions": "Loading sessions…",
     "monday": "Monday",
     "noCourseSelected": "No Course Selected",
     "noSessions": "No Sessions Found",
@@ -323,7 +326,7 @@
     "aiBuiltinRequiresLogin": "Sign in to use the built-in AI service.",
     "aiCopilotSignIn": "Sign in with GitHub",
     "aiCopilotOr": "or paste a token",
-    "aiCopilotTokenPlaceholder": "gho_... / ghu_...",
+    "aiCopilotTokenPlaceholder": "gho_… / ghu_…",
     "aiCopilotVerify": "Verify",
     "aiCopilotDisconnect": "Disconnect",
     "aiCopilotConnected": "Connected via GitHub Copilot · gpt-4.1",
@@ -339,7 +342,7 @@
     "aiCustomApiKey": "API key",
     "aiCustomModel": "Model",
     "aiCustomCorsNote": "The endpoint must be OpenAI-compatible and allow cross-origin (CORS) requests from the browser.",
-    "cloudNotesSection": "Cloud Notes",
+    "cloudNotesSection": "Notes",
     "enableCloudWatchSync": "Auto create and sync watch notes",
     "cloudWatchSyncDescription": "While extracting slides during playback, create a personal Watch Note and append cleared slides automatically.",
     "cloudWatchSyncProvisionFailed": "Couldn't set up cloud storage. Check your connection and try again.",

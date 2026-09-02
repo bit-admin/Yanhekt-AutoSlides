@@ -4,7 +4,7 @@
       <div class="modal-header">
         <h3>{{ slide.title }}</h3>
         <div class="modal-actions">
-          <button @click="$emit('delete', slide)" class="btn btn--danger modal-delete-btn" title="Move slide to trash">
+          <button @click="$emit('delete', slide)" class="btn btn--danger modal-delete-btn" :title="$t('playback.moveToTrashTip')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3,6 5,6 21,6"/>
               <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>

@@ -35,7 +35,7 @@
       class="masthead-btn back-search-btn"
       type="button"
       @click="showMobileSearch = false"
-      aria-label="Back"
+      :aria-label="$t('navigation.back')"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -63,7 +63,7 @@
             class="clear-btn"
             type="button"
             @click="clearSearch"
-            aria-label="Clear search"
+            :aria-label="$t('navigation.clearSearch')"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -71,7 +71,7 @@
             </svg>
           </button>
         </div>
-        <button class="search-btn" type="submit" aria-label="Search">
+        <button class="search-btn" type="submit" :aria-label="$t('navigation.search')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -88,7 +88,7 @@
         class="masthead-btn search-trigger-btn"
         type="button"
         @click="showMobileSearch = true"
-        aria-label="Toggle Search"
+        :aria-label="$t('navigation.toggleSearch')"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"></circle>

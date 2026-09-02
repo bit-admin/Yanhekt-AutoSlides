@@ -4,8 +4,8 @@
 // identical (version 1) so exports/telemetry stay compatible with desktop.
 // Web extractions are always watch-mode (`trigger: 'watch'`).
 // Change vs desktop: `aiClassifierMode` widened to `string | null` (the
-// desktop AIClassifierMode union isn't ported; AI filtering is not available
-// in the web version).
+// desktop AIClassifierMode union isn't ported; web AI filtering is always
+// the LLM `distinguish` path, so the value is informational only).
 
 export const SLIDE_METADATA_VERSION = 1;
 

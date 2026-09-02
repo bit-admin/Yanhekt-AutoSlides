@@ -50,14 +50,14 @@
     "signOut": "退出登录"
   },
   "courses": {
-    "loading": "加载课程中...",
+    "loading": "加载课程中…",
     "noResults": "未找到课程",
     "savedSearches": {
       "cancel": "取消",
       "confirm": "保存",
       "modalTitle": "添加搜索",
       "modeLabel": "搜索类型",
-      "placeholder": "输入关键词...",
+      "placeholder": "输入关键词…",
       "remove": "删除",
       "save": "保存搜索",
       "empty": "请输入关键词。",
@@ -102,7 +102,7 @@
     "coss": "COSS",
     "cvForge": "CV Forge",
     "itCentre": "IT 中心",
-    "notes": "AS 笔记",
+    "notes": "笔记",
     "publicIndex": "公共索引",
     "publicRelay": "公共中继",
     "shortLink": "短链接"
@@ -137,7 +137,10 @@
     "searchPlaceholder": "搜索",
     "slidesReview": "幻灯片",
     "subscriptions": "订阅",
-    "notes": "笔记"
+    "notes": "笔记",
+    "back": "返回",
+    "clearSearch": "清除搜索",
+    "toggleSearch": "切换搜索"
   },
   "notice": {
     "accept": "知道了",
@@ -197,7 +200,7 @@
     "lastPlayedPosition": "上次播放位置：",
     "leave": "离开",
     "loadFailed": "加载播放信息失败",
-    "loadingVideoStreams": "加载视频流中...",
+    "loadingVideoStreams": "加载视频流中…",
     "mute": "静音",
     "playbackSpeed": "播放速度",
     "postProcess": "执行后处理",
@@ -216,7 +219,7 @@
       "aiRemoved": "AI 过滤 {count} 个",
       "aiFailed": "{count} 张幻灯片 AI 分类失败（已保留，下次运行时重试）"
     },
-    "postProcessing": "处理中...",
+    "postProcessing": "处理中…",
     "professors": "教授",
     "refresh": "刷新",
     "retry": "重试",
@@ -274,7 +277,7 @@
     "day": "Day",
     "failedToLoadSessions": "加载课程课时失败",
     "friday": "Friday",
-    "loadingSessions": "加载课时中...",
+    "loadingSessions": "加载课时中…",
     "monday": "Monday",
     "noCourseSelected": "未选择课程",
     "noSessions": "未找到课时",
@@ -323,7 +326,7 @@
     "aiBuiltinRequiresLogin": "请先登录以使用内置 AI 服务。",
     "aiCopilotSignIn": "使用 GitHub 登录",
     "aiCopilotOr": "或粘贴令牌",
-    "aiCopilotTokenPlaceholder": "gho_... / ghu_...",
+    "aiCopilotTokenPlaceholder": "gho_… / ghu_…",
     "aiCopilotVerify": "验证",
     "aiCopilotDisconnect": "断开连接",
     "aiCopilotConnected": "已通过 GitHub Copilot 连接 · gpt-4.1",
@@ -339,7 +342,7 @@
     "aiCustomApiKey": "API 密钥",
     "aiCustomModel": "模型",
     "aiCustomCorsNote": "该端点须兼容 OpenAI 接口，并允许浏览器跨域（CORS）请求。",
-    "cloudNotesSection": "云笔记",
+    "cloudNotesSection": "笔记",
     "enableCloudWatchSync": "自动创建并同步随堂笔记",
     "cloudWatchSyncDescription": "在播放中提取幻灯片时，自动创建随堂笔记，并追加已通过后处理的幻灯片。",
     "cloudWatchSyncProvisionFailed": "无法设置云存储。请检查网络后重试。",
