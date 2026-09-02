@@ -1,7 +1,44 @@
 <template>
+  <!-- Embedded: form only, parent owns title/chrome (onboarding step). -->
+  <div v-if="embedded" class="signin-embed">
+    <SmsCodePanel
+      v-if="smsChallenge"
+      :code="smsCode"
+      :error="smsError"
+      :is-submitting="isSubmittingSmsCode"
+      @update:code="smsCode = $event"
+      @submit="submitSmsCode"
+      @cancel="cancelSmsChallenge"
+    />
+    <div v-else class="sso-form">
+      <div class="field-group">
+        <input
+          v-model="username"
+          type="text"
+          :placeholder="$t('auth.username')"
+          class="input-field"
+          @keyup.enter="login"
+        />
+        <input
+          v-model="password"
+          type="password"
+          :placeholder="$t('auth.password')"
+          class="input-field"
+          @keyup.enter="login"
+        />
+      </div>
+      <button @click="login" :disabled="isLoading" class="btn btn--primary signin-submit">
+        {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
+      </button>
+      <button type="button" class="browser-alt-link" @click="$emit('browser-login')">
+        {{ $t('auth.signInWithBrowser') }}
+      </button>
+    </div>
+  </div>
+
   <!-- While an SMS code is pending, a stray overlay click must not throw the
        half-finished flow away; the × (which cancels it properly) still does. -->
-  <div class="signin-overlay" @click="onOverlayClick">
+  <div v-else class="signin-overlay" @click="onOverlayClick">
     <div class="signin-card" @click.stop>
       <button
         v-if="showClose"
@@ -16,17 +53,6 @@
         </svg>
       </button>
 
-      <!-- Onboarding skip lives in the top-right corner (the slot a normal login
-           modal uses for its "×") — mutually exclusive with showClose. -->
-      <button
-        v-if="skipLabel"
-        type="button"
-        class="signin-skip-top"
-        @click="$emit('skip')"
-      >
-        {{ skipLabel }}
-      </button>
-
       <div class="signin-body">
         <h2 class="signin-title">
           {{ smsChallenge ? $t('auth.smsTitle') : $t('onboarding.signInTitle') }}
@@ -35,8 +61,6 @@
           {{ smsChallenge ? smsPrompt : $t('onboarding.signInDescription') }}
         </p>
 
-        <!-- CAS asked for a texted code. Same card, different body — so the
-             left-panel and onboarding hosts both get this step for free. -->
         <SmsCodePanel
           v-if="smsChallenge"
           :code="smsCode"
@@ -71,9 +95,6 @@
             {{ $t('auth.signInWithBrowser') }}
           </button>
         </div>
-
-        <!-- Onboarding-injected content (e.g. the cloud-storage setup checkbox). -->
-        <slot />
       </div>
     </div>
   </div>
@@ -89,16 +110,15 @@ const props = withDefaults(
   defineProps<{
     onLoginSuccess?: () => void
     showClose?: boolean
-    skipLabel?: string
+    embedded?: boolean
   }>(),
-  { showClose: true }
+  { showClose: true, embedded: false }
 )
 
 const emit = defineEmits<{
   (e: 'success'): void
   (e: 'browser-login'): void
   (e: 'close'): void
-  (e: 'skip'): void
 }>()
 
 const {
@@ -213,6 +233,14 @@ watch(isLoggedIn, (loggedIn) => {
   max-width: 360px;
 }
 
+.signin-embed {
+  width: 100%;
+}
+
+.signin-embed .sso-form {
+  max-width: none;
+}
+
 .sso-form {
   display: flex;
   flex-direction: column;
@@ -262,23 +290,6 @@ watch(isLoggedIn, (loggedIn) => {
 }
 
 .browser-alt-link:hover {
-  color: var(--text-secondary);
-  text-decoration: underline;
-}
-
-.signin-skip-top {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.signin-skip-top:hover {
   color: var(--text-secondary);
   text-decoration: underline;
 }

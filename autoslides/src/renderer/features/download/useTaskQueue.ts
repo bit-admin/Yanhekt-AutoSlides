@@ -83,7 +83,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   // State
   const currentTaskId = ref<string | null>(null)
   const isTaskMode = ref(false)
-  const taskSpeed = ref(10)
+  const taskSpeed = ref(16)
   const taskCompletionInProgress = ref<string | null>(null)
 
   // Track last reported progress
@@ -523,7 +523,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   const initConfig = async () => {
     try {
       const config = configStore
-      taskSpeed.value = config.taskSpeed || 10
+      taskSpeed.value = config.taskSpeed || 16
     } catch (configError) {
       log.error('Failed to load task queue config:', configError)
     }

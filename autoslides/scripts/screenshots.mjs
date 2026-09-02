@@ -372,11 +372,11 @@ async function main() {
       captured.push(name)
       console.log(`  ✓ ${name}.png (onboarding, web)`)
     }
-    // step 0 = welcome hero; steps 1..6 = the dotted config steps.
+    // step 0 = welcome hero; remaining shots = dotted config steps before sign-in.
     await shotCard('onboarding-welcome')
     await win.locator('.hero-cta').click() // Get Started → step 1
     const steps = ['onboarding-output', 'onboarding-connection', 'onboarding-audio',
-      'onboarding-taskspeed', 'onboarding-parallel', 'onboarding-ai']
+      'onboarding-ai']
     for (let i = 0; i < steps.length; i++) {
       await win.waitForSelector('.onboarding-body', { timeout: 4000 })
       await shotCard(steps[i])
@@ -596,7 +596,7 @@ ${list}
 | Capture | docs/ target(s) | README section |
 |---------|-----------------|----------------|
 | login.png | login.png | A. 登录（浏览器 SSO，实时加载真实登录页） |
-| onboarding-*.png (×7) | onboarding-*.png | 首次启动向导（欢迎 + 6 个配置步骤，置于「4. 使用与设置」前） |
+| onboarding-*.png (×5) | onboarding-*.png | 首次启动向导（欢迎 + 4 个配置步骤，置于「4. 使用与设置」前） |
 | home.png | home.png | D. 基础页面（Home / 课程收藏夹） |
 | live.png | live.png | D. 直播课程网格 |
 | recorded.png | recorded.png | E. 录播课程网格 |

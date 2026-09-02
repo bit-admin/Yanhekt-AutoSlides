@@ -1,50 +1,46 @@
 <template>
-  <!-- Final sign-in page: the shared SignInModal (same component the left-panel
-       "Sign in with SSO Account" button opens), so the two are identical. -->
-  <SignInModal
-    v-if="step === signInStep && !isLoggedIn"
-    :show-close="false"
-    :skip-label="$t('onboarding.skip')"
-    @skip="finish"
-    @success="onSignInSuccess"
-    @browser-login="onSignInBrowserLogin"
-  >
-    <label class="cloud-init-check">
-      <input v-model="initCloudStorage" type="checkbox" />
-      <span>{{ $t('onboarding.initCloudStorageLabel') }}</span>
-    </label>
-  </SignInModal>
-
-  <div v-else class="onboarding-overlay">
-    <div class="onboarding-card">
+  <div class="onboarding-overlay">
+    <div class="onboarding-card" :data-onboarding-kind="kind">
+      <button
+        v-if="isSignIn && !isLoggedIn"
+        type="button"
+        class="onboarding-close"
+        :aria-label="$t('advanced.cancel')"
+        @click="skipOnboarding"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
       <!-- Welcome intro -->
-      <template v-if="step === 0">
+      <template v-if="isWelcome">
         <div class="onboarding-hero">
-          <h2 class="hero-title">{{ $t('onboarding.welcomeTitle') }}</h2>
-          <p class="hero-subtitle">{{ $t('onboarding.welcomeSubtitle') }}</p>
+          <h2 class="hero-title">{{ $t(isWhatsNew ? 'onboarding.whatsNewTitle' : 'onboarding.welcomeTitle') }}</h2>
+          <p class="hero-subtitle">{{ $t(isWhatsNew ? 'onboarding.whatsNewSubtitle' : 'onboarding.welcomeSubtitle') }}</p>
           <button class="btn btn--primary btn--lg hero-cta" @click="next">
-            {{ $t('onboarding.getStarted') }}
+            {{ $t(isWhatsNew ? 'onboarding.whatsNewCta' : 'onboarding.getStarted') }}
           </button>
           <button class="skip-link" @click="finish">{{ $t('onboarding.skip') }}</button>
         </div>
       </template>
 
       <!-- Configuration steps -->
-      <template v-else-if="step <= configSteps">
+      <template v-else-if="isConfig">
         <div class="onboarding-progress">
           <span
-            v-for="n in configSteps"
-            :key="n"
+            v-for="(s, i) in configSteps"
+            :key="s.id"
             class="progress-dot"
-            :class="{ active: n === step, done: n < step }"
+            :class="{ active: s.id === currentId, done: i < configIndex }"
           />
         </div>
 
         <div class="onboarding-body">
-          <span class="step-label">{{ $t('onboarding.stepLabel', { current: step, total: configSteps }) }}</span>
+          <span class="step-label">{{ $t('onboarding.stepLabel', { current: configIndex + 1, total: configSteps.length }) }}</span>
 
-          <!-- 1. Output directory -->
-          <template v-if="step === 1">
+          <!-- Output directory -->
+          <template v-if="currentId === 'output'">
             <h3 class="step-title">{{ $t('onboarding.outputTitle') }}</h3>
             <p class="step-description">{{ $t('onboarding.outputDescription') }}</p>
             <div class="input-group">
@@ -59,8 +55,8 @@
             </div>
           </template>
 
-          <!-- 2. Connection mode -->
-          <template v-else-if="step === 2">
+          <!-- Connection mode -->
+          <template v-else-if="currentId === 'connection'">
             <h3 class="step-title">{{ $t('onboarding.connectionTitle') }}</h3>
             <p class="step-description">{{ $t('onboarding.connectionDescription') }}</p>
             <div class="mode-toggle">
@@ -79,8 +75,8 @@
             </div>
           </template>
 
-          <!-- 3. Audio mode -->
-          <template v-else-if="step === 3">
+          <!-- Audio mode -->
+          <template v-else-if="currentId === 'audio'">
             <h3 class="step-title">{{ $t('onboarding.audioTitle') }}</h3>
             <p class="step-description">{{ $t('onboarding.audioDescription') }}</p>
             <select v-model="muteMode" @change="setMuteMode" class="select-field">
@@ -91,37 +87,13 @@
             </select>
           </template>
 
-          <!-- 4. Task speed -->
-          <template v-else-if="step === 4">
-            <h3 class="step-title">{{ $t('onboarding.taskSpeedTitle') }}</h3>
-            <p class="step-description">{{ $t('onboarding.taskSpeedDescription') }}</p>
-            <select v-model="taskSpeed" @change="setTaskSpeed" class="select-field">
-              <option v-for="n in 16" :key="n" :value="n">{{ n }}x</option>
-            </select>
-          </template>
-
-          <!-- 5. Parallel tasks -->
-          <template v-else-if="step === 5">
-            <h3 class="step-title">{{ $t('onboarding.parallelTasksTitle') }}</h3>
-            <p class="step-description">{{ $t('onboarding.parallelTasksDescription') }}</p>
-            <select v-model.number="parallelTasks" @change="setParallelTasks" class="select-field">
-              <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
-            </select>
-          </template>
-
-          <!-- 6. GitHub Copilot AI filtering -->
-          <template v-else-if="step === 6">
-            <h3 class="step-title">{{ $t('onboarding.aiTitle') }}</h3>
-            <p class="step-description">{{ $t('onboarding.aiDescription') }}</p>
-
-            <!-- Connected -->
-            <div v-if="copilotConnected" class="copilot-user-row">
-              <img v-if="copilotAvatarUrl" :src="copilotAvatarUrl" class="copilot-avatar" alt="" />
-              <span class="copilot-username">{{ copilotUsername }}</span>
-            </div>
+          <!-- GitHub Copilot AI filtering -->
+          <template v-else-if="currentId === 'ai'">
+            <h3 class="step-title">{{ $t(aiTitleKey) }}</h3>
+            <p class="step-description">{{ $t(aiDescriptionKey) }}</p>
 
             <!-- Waiting for authorization -->
-            <div v-else-if="isCopilotLoading && copilotUserCode" class="copilot-waiting">
+            <div v-if="isCopilotLoading && copilotUserCode" class="copilot-waiting">
               <button class="copilot-code" @click="copyUserCode" :title="$t('advanced.ai.copilotClickToCopy')">
                 <span>{{ copilotUserCode }}</span>
                 <span v-if="copilotCodeCopied" class="copilot-code-copied">{{ $t('advanced.ai.copilotCopied') }}</span>
@@ -137,35 +109,111 @@
               </div>
             </div>
 
-            <!-- Idle -->
-            <template v-else>
-              <button class="copilot-oauth-btn" :disabled="isCopilotLoading" @click="loginGithub">
+            <template v-if="!(isCopilotLoading && copilotUserCode)">
+              <button
+                v-if="!isUsingGithubAi"
+                class="copilot-oauth-btn"
+                :disabled="isCopilotLoading"
+                @click="hasGithubAccount ? useGithubForAi() : loginGithub()"
+              >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
                 </svg>
-                {{ $t('onboarding.loginGithub') }}
+                {{ $t(hasGithubAccount ? 'onboarding.aiUseGithubCta' : 'onboarding.loginGithub') }}
+              </button>
+              <button
+                v-else
+                class="btn btn--primary ai-continue-btn"
+                @click="next"
+              >
+                {{ $t('onboarding.aiContinue') }}
               </button>
               <p v-if="copilotOAuthError" class="copilot-error-text">{{ $t('onboarding.copilotError') }}</p>
             </template>
 
-            <button v-if="!copilotConnected && !isCopilotLoading" class="skip-link ai-configure-later" @click="proceed">
+            <button v-if="!isUsingGithubAi && !isCopilotLoading" class="skip-link ai-configure-later" @click="proceed">
               {{ $t('onboarding.configureLater') }}
             </button>
           </template>
+
+          <!-- Sign in -->
+          <template v-else-if="currentId === 'signIn'">
+            <h3 class="step-title">{{ signInTitle }}</h3>
+            <p class="step-description">{{ signInDescription }}</p>
+            <div v-if="isLoggedIn" class="cloud-inited-row">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {{ $t('onboarding.signInReadyStatus', { name: userNickname }) }}
+            </div>
+            <SignInModal
+              v-else
+              embedded
+              @browser-login="onSignInBrowserLogin"
+            />
+          </template>
+
+          <!-- Cloud storage -->
+          <template v-else-if="currentId === 'cloud'">
+            <h3 class="step-title">{{ $t('onboarding.cloudTitle') }}</h3>
+            <p class="step-description cloud-step-description">{{ $t('onboarding.cloudDescription') }}</p>
+
+            <button
+              v-if="isLoggedIn && !cloudReady"
+              type="button"
+              class="btn btn--primary cloud-init-btn"
+              :disabled="cloudBusy"
+              @click="onInitCloud"
+            >
+              {{ cloudBusy ? $t('cloudNotes.initializing') : $t('cloudNotes.initStorage') }}
+            </button>
+            <p v-if="cloudStorageStore.status.value === 'error' && cloudStorageStore.lastError.value" class="cloud-storage-error">
+              {{ cloudStorageStore.lastError.value }}
+            </p>
+
+            <div v-if="cloudReady" class="cloud-inited-row">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {{ $t('advanced.cloudStorage.statusReady') }}
+            </div>
+            <div v-if="cloudReady" class="auto-post-processing-control">
+              <select
+                class="select-field sync-mode-select"
+                :value="configStore.cloudAutoSyncMode ?? 'disabled'"
+                @change="onAutoSyncChange"
+              >
+                <option value="disabled">{{ $t('onboarding.cloudSyncDisabled') }}</option>
+                <option value="edited">{{ $t('advanced.cloudStorage.syncModeEdited') }}</option>
+                <option value="reviewed">{{ $t('advanced.cloudStorage.syncModeReviewed') }}</option>
+              </select>
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  :checked="!!configStore.cloudWatchSyncEnabled"
+                  @change="onWatchSyncChange"
+                />
+                {{ $t('onboarding.cloudWatchSync') }}
+              </label>
+            </div>
+          </template>
         </div>
 
-        <div class="onboarding-footer">
-          <button class="btn" @click="back">{{ $t('onboarding.back') }}</button>
+        <div v-if="!(isSignIn && !isLoggedIn)" class="onboarding-footer">
+          <button class="btn" :disabled="index === 0" @click="back">{{ $t('onboarding.back') }}</button>
           <button class="btn btn--primary" @click="next">
             {{ $t('onboarding.next') }}
           </button>
         </div>
       </template>
 
-      <!-- Final step, already signed in (rare — e.g. a persisted token).
-           The not-signed-in path is the SignInModal rendered above. -->
-      <template v-else>
-        <div class="onboarding-hero">
+      <template v-else-if="isDone">
+        <div class="onboarding-hero allset-hero">
+          <div class="allset-mark" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
           <h2 class="hero-title">{{ $t('onboarding.allSetTitle') }}</h2>
           <p class="hero-subtitle">{{ $t('onboarding.allSetDescription') }}</p>
           <button class="btn btn--primary btn--lg hero-cta" @click="finish">
@@ -180,42 +228,57 @@
 <script setup lang="ts">
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('OnboardingModal');
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useSettings } from '@features/settings/useSettings'
 import { useCopilotOAuth } from '@features/ai/useCopilotOAuth'
 import { useAuth } from '@features/platform/useAuth'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
+import { configStore } from '@shared/services/configStore'
+import {
+  isConfigOnboardingStep,
+  type OnboardingKind,
+  type OnboardingStep,
+} from '@common/onboarding'
 import SignInModal from './SignInModal.vue'
+
+const props = defineProps<{
+  kind: OnboardingKind
+  steps: OnboardingStep[]
+}>()
 
 const emit = defineEmits<{
   (e: 'finish'): void
 }>()
 
-// Dotted configuration steps (1..configSteps). The SSO sign-in is a dedicated
-// terminal page that always comes last — even if more config steps are added.
-const configSteps = 6
-const signInStep = configSteps + 1
-const step = ref(0)
+const index = ref(0)
+const currentId = computed(() => props.steps[index.value]?.id ?? '')
+const { t } = useI18n()
+const isWhatsNew = computed(() => props.kind === 'whats-new')
+const isWelcome = computed(() => currentId.value === 'welcome')
+const isSignIn = computed(() => currentId.value === 'signIn')
+const isDone = computed(() => currentId.value === 'done')
+const isConfig = computed(() => isConfigOnboardingStep(currentId.value))
+const cloudReady = computed(() => cloudStorageStore.status.value === 'ready')
+const cloudBusy = computed(() =>
+  cloudStorageStore.status.value === 'checking' || cloudStorageStore.status.value === 'repairing'
+)
+const configSteps = computed(() => props.steps.filter(s => isConfigOnboardingStep(s.id)))
+const configIndex = computed(() => configSteps.value.findIndex(s => s.id === currentId.value))
 
 const settings = useSettings()
 const {
   outputDirectory,
   connectionMode,
   muteMode,
-  taskSpeed,
-  parallelTasks,
   selectOutputDirectory,
   setConnectionMode,
   setMuteMode,
-  setTaskSpeed,
-  setParallelTasks,
 } = settings
 
 // AI filtering step (GitHub Copilot)
 const {
   copilotGhoToken,
-  copilotUsername,
-  copilotAvatarUrl,
   copilotOAuthStep,
   copilotUserCode,
   copilotVerificationUri,
@@ -223,17 +286,51 @@ const {
   isCopilotLoading,
   startCopilotOAuth,
   cancelCopilotOAuth,
+  applyLoadedConfig,
 } = useCopilotOAuth()
 
-// Sign-in step (final, dedicated page)
-const { isLoggedIn, userId, openBrowserLogin } = useAuth()
+const {
+  isLoggedIn,
+  userId,
+  userNickname,
+  openBrowserLogin,
+  smsChallenge,
+  cancelSmsChallenge,
+} = useAuth()
 
-// Offer to provision the managed cloud-storage group on first sign-in (default on).
-const initCloudStorage = ref(true)
+const signInTitle = computed(() => {
+  if (smsChallenge.value) return t('auth.smsTitle')
+  if (isLoggedIn.value) return t('onboarding.signInReadyTitle')
+  return t('onboarding.signInTitle')
+})
+const signInDescription = computed(() => {
+  if (smsChallenge.value?.phoneHint) return t('auth.smsSentTo', { phone: smsChallenge.value.phoneHint })
+  if (smsChallenge.value) return t('auth.smsSentToBoundPhone')
+  if (isLoggedIn.value) return t('onboarding.signInReadyDescription')
+  return t('onboarding.signInDescription')
+})
 
-const copilotConnected = computed(
-  () => copilotOAuthStep.value === 'success' && !!copilotGhoToken.value
+const hasGithubAccount = computed(
+  () => !!(copilotGhoToken.value || configStore.aiFiltering?.copilotGhoToken)
 )
+const isUsingGithubAi = computed(() => {
+  const ai = configStore.aiFiltering
+  return ai?.serviceType === 'copilot' && ai?.classifierMode === 'llm'
+})
+const aiTitleKey = computed(() => {
+  if (isUsingGithubAi.value) return 'onboarding.aiReadyTitle'
+  if (hasGithubAccount.value) return 'onboarding.aiHasTokenTitle'
+  return 'onboarding.aiTitle'
+})
+const aiDescriptionKey = computed(() => {
+  if (isUsingGithubAi.value) return 'onboarding.aiReadyDescription'
+  if (hasGithubAccount.value) return 'onboarding.aiHasTokenDescription'
+  return 'onboarding.aiDescription'
+})
+// Only switch the live AI provider when the user opts in this session
+// (new GitHub sign-in, or "Use GitHub for AI filtering"). A stored token
+// plus footer Next / skip must not flip serviceType on dismiss.
+const adoptedGithubThisSession = ref(false)
 
 const copilotCodeCopied = ref(false)
 const copyUserCode = async () => {
@@ -253,14 +350,8 @@ const openVerificationUrl = () => {
   }
 }
 
-const loginGithub = async () => {
-  await startCopilotOAuth()
-}
-
-// If the user signed in with Copilot, switch the AI filtering service to it.
-// Otherwise leave the existing defaults untouched ("configure later").
 const persistAiChoice = async () => {
-  if (!copilotConnected.value) return
+  if (!adoptedGithubThisSession.value) return
   try {
     await window.electronAPI.config.setAIClassifierMode('llm')
     await window.electronAPI.config.setAIFilteringConfig({
@@ -272,42 +363,71 @@ const persistAiChoice = async () => {
   }
 }
 
+const loginGithub = async () => {
+  await startCopilotOAuth()
+  if (copilotOAuthStep.value !== 'success') return
+  adoptedGithubThisSession.value = true
+  await persistAiChoice()
+}
+
+const useGithubForAi = async () => {
+  adoptedGithubThisSession.value = true
+  await persistAiChoice()
+}
+
 onMounted(() => {
   settings.loadConfig()
+  const ai = configStore.aiFiltering
+  if (ai) void applyLoadedConfig(ai)
 })
 
 const next = () => {
-  if (step.value < signInStep) step.value += 1
+  if (index.value < props.steps.length - 1) index.value += 1
+  else void finish()
 }
 const back = () => {
-  if (step.value > 0) step.value -= 1
+  if (index.value > 0) index.value -= 1
 }
 const finish = async () => {
   await persistAiChoice()
   emit('finish')
 }
-// Forward action for the AI "configure later" link: advance to the next step
-// (the sign-in page), or finish if this somehow is the last one.
-const proceed = () => {
-  if (step.value < signInStep) next()
-  else finish()
+const skipOnboarding = () => {
+  if (smsChallenge.value) cancelSmsChallenge()
+  void finish()
+}
+const proceed = () => next()
+
+const onInitCloud = () => {
+  cloudStorageStore.setUser(userId.value)
+  void cloudStorageStore.initialize()
 }
 
-// Sign-in page handlers.
-const onSignInSuccess = () => {
-  if (initCloudStorage.value) {
-    // setUser first so initialize()'s flag-persist has the badge. Fire-and-forget:
-    // cloudStorageStore is a module singleton, so this survives the modal unmount,
-    // and its withLock serializes it against the LeftPanel launch watcher's refresh.
-    cloudStorageStore.setUser(userId.value)
-    void cloudStorageStore.initialize()
-  }
-  finish()
+const onAutoSyncChange = (event: Event) => {
+  const value = (event.target as HTMLSelectElement).value as 'disabled' | 'edited' | 'reviewed'
+  void window.electronAPI.config.setCloudAutoSyncMode(value)
 }
-const onSignInBrowserLogin = async () => {
-  // Browser login takes over the main window, which sits behind this overlay —
-  // so close onboarding first, then open it.
-  await finish()
+
+const onWatchSyncChange = (event: Event) => {
+  const checked = (event.target as HTMLInputElement).checked
+  void window.electronAPI.config.setCloudWatchSyncEnabled(checked)
+}
+
+watch(currentId, (id) => {
+  if (id === 'cloud' && !isLoggedIn.value) {
+    const signInIdx = props.steps.findIndex(s => s.id === 'signIn')
+    if (signInIdx >= 0) index.value = signInIdx
+    return
+  }
+  if (id !== 'cloud' || !isLoggedIn.value) return
+  cloudStorageStore.setUser(userId.value)
+  void cloudStorageStore.refresh()
+})
+
+const onSignInBrowserLogin = () => {
+  // Overlay would cover BrowserLoginView; App.vue v-shows us off while that
+  // view is active. Close without a token skips remaining onboarding; a
+  // successful token returns here on the signed-in step 7 state.
   openBrowserLogin()
 }
 </script>
@@ -325,9 +445,10 @@ const onSignInBrowserLogin = async () => {
 }
 
 .onboarding-card {
+  position: relative;
   width: 460px;
   max-width: calc(100vw - 48px);
-  min-height: 344px;
+  min-height: 360px;
   background-color: var(--bg-modal);
   border: 1px solid var(--border-color);
   border-radius: 16px;
@@ -335,6 +456,24 @@ const onSignInBrowserLogin = async () => {
   padding: 28px 28px 22px;
   display: flex;
   flex-direction: column;
+}
+
+.onboarding-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.onboarding-close:hover {
+  background-color: var(--bg-hover);
 }
 
 /* ── Welcome hero ─────────────────────────────────────── */
@@ -367,6 +506,23 @@ const onSignInBrowserLogin = async () => {
   min-width: 200px;
 }
 
+.allset-hero {
+  gap: 0;
+}
+
+.allset-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+
 /* ── Sign-in dedicated page ───────────────────────────── */
 .skip-link {
   margin-top: 14px;
@@ -383,20 +539,66 @@ const onSignInBrowserLogin = async () => {
   text-decoration: underline;
 }
 
-/* Cloud-storage setup checkbox on the sign-in step (injected into SignInModal). */
-.cloud-init-check {
+.cloud-ready-line {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 16px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--text-primary);
 }
 
-.cloud-init-check input {
-  cursor: pointer;
+.cloud-step-description {
+  margin-bottom: 10px;
+}
+
+.cloud-init-btn {
+  width: 100%;
+}
+
+.cloud-inited-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--success-border);
+  border-radius: 6px;
+  background-color: var(--success-bg);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cloud-storage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--text-muted);
+}
+
+.cloud-storage-dot.is-ready { background-color: var(--success); }
+.cloud-storage-dot.is-warning { background-color: var(--warning); }
+.cloud-storage-dot.is-error { background-color: var(--danger); }
+
+.cloud-storage-error {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: var(--danger);
+}
+
+.auto-post-processing-control .sync-mode-select {
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-input);
+  background-color: transparent;
+  min-height: unset;
+  padding: 8px 12px;
+}
+
+.auto-post-processing-control .sync-mode-select:focus {
+  box-shadow: none;
 }
 
 /* ── Stepped configuration ────────────────────────────── */
@@ -489,29 +691,6 @@ const onSignInBrowserLogin = async () => {
 .copilot-oauth-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.copilot-user-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background-color: var(--success-bg);
-  border: 1px solid var(--success-border);
-  border-radius: 6px;
-}
-
-.copilot-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-}
-
-.copilot-username {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
 }
 
 .copilot-waiting {
@@ -613,6 +792,10 @@ const onSignInBrowserLogin = async () => {
 .ai-configure-later {
   align-self: center;
   margin-top: 14px;
+}
+
+.ai-continue-btn {
+  width: 100%;
 }
 
 .onboarding-footer {

@@ -9,3 +9,19 @@
 export function isDemoMode(): boolean {
   return window.electronAPI?.isDemoMode === true
 }
+
+// App version is not part of AppConfig. Prefetch once before mount so onboarding
+// resolution in App.vue is synchronous (no empty-frame flash).
+let appVersion = ''
+
+export async function loadAppVersion(): Promise<void> {
+  try {
+    appVersion = (await window.electronAPI.app?.getVersion()) || ''
+  } catch {
+    appVersion = ''
+  }
+}
+
+export function getAppVersion(): string {
+  return appVersion
+}

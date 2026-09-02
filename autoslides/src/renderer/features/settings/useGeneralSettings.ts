@@ -56,7 +56,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempLanguageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
   const tempConnectionMode = ref<'internal' | 'external'>('external')
   const tempMuteMode = ref<MuteMode>('normal')
-  const tempTaskSpeed = ref(10)
+  const tempTaskSpeed = ref(16)
   const tempParallelTasks = ref(2)
   const tempMaxManualTabs = ref(3)
   const tempShowMorePlaybackSpeed = ref(false)

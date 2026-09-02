@@ -31,6 +31,7 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import { i18n } from './renderer/shared/i18n';
 import { loadConfig } from './renderer/shared/services/configStore';
+import { isDemoMode, loadAppVersion } from './renderer/shared/services/runtimeEnv';
 import { tokenManager } from './renderer/shared/services/authService';
 import { PostProcessingService } from './renderer/shared/services/postProcessingService';
 import {
@@ -48,10 +49,9 @@ if (navigator.userAgent.toLowerCase().includes('mac')) {
 
 const app = createApp(App);
 app.use(i18n);
-loadConfig().then(async () => {
+Promise.all([loadConfig(), loadAppVersion()]).then(async () => {
   // Demo mode: install the override registry (fake account/courses/queues) before
   // mount. Deleting src/renderer/demo/ + this guarded import drops demo mode.
-  const { isDemoMode } = await import('./renderer/shared/services/runtimeEnv');
   if (isDemoMode()) {
     await import('./renderer/demo/bootstrap').then((m) => m.installDemo());
   }

@@ -1,5 +1,5 @@
 import ElectronStore from 'electron-store';
-import { dialog } from 'electron';
+import { app, dialog } from 'electron';
 import * as fs from 'fs';
 import { ThemeService, ThemeMode } from './themeService';
 import {
@@ -180,6 +180,7 @@ export class ConfigService {
       savedSearchesRecorded: this.store.get('savedSearchesRecorded') ?? [],
       pinnedRecordedCourses: this.store.get('pinnedRecordedCourses') ?? [],
       onboardingCompleted: this.store.get('onboardingCompleted') ?? false,
+      lastOnboardingVersion: this.store.get('lastOnboardingVersion') ?? null,
       cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? [],
       cloudAutoSyncMode: this.store.get('cloudAutoSyncMode') ?? 'disabled',
       cloudAutoPublishAfterSync: this.store.get('cloudAutoPublishAfterSync') ?? false,
@@ -209,6 +210,13 @@ export class ConfigService {
 
   setOnboardingCompleted(completed: boolean): void {
     this.store.set('onboardingCompleted', completed);
+    // Stamp the running app version on any dismiss (finish or skip) so a skipped
+    // first-run is not mistaken for a v4 upgrade (completed + missing version).
+    if (completed) {
+      this.store.set('lastOnboardingVersion', app.getVersion());
+    } else {
+      this.store.delete('lastOnboardingVersion');
+    }
   }
 
   setCloudStorageInitialized(badge: string, initialized: boolean): void {

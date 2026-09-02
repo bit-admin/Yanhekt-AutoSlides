@@ -38,8 +38,6 @@ const COPY = {
   'onboarding-output': 'onboarding-output',
   'onboarding-connection': 'onboarding-connection',
   'onboarding-audio': 'onboarding-audio',
-  'onboarding-taskspeed': 'onboarding-taskspeed',
-  'onboarding-parallel': 'onboarding-parallel',
   'onboarding-ai': 'onboarding-ai',
   home: 'home',
   live: 'live',

@@ -58,7 +58,7 @@ export function useSettings(): UseSettingsReturn {
   const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 
   // Task settings
-  const taskSpeed = ref(10)
+  const taskSpeed = ref(16)
   const parallelTasks = ref(2)
   const maxManualTabs = ref(3)
   const showMorePlaybackSpeed = ref(false)
@@ -95,7 +95,7 @@ export function useSettings(): UseSettingsReturn {
       previewSeekSeconds.value = config.previewSeekSeconds ?? 150
 
       // Load task configuration
-      taskSpeed.value = config.taskSpeed || 10
+      taskSpeed.value = config.taskSpeed || 16
       parallelTasks.value = config.parallelTasks || 2
       maxManualTabs.value = config.maxManualTabs || 3
       showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false

@@ -340,13 +340,13 @@
     "aiCustomModel": "Model",
     "aiCustomCorsNote": "The endpoint must be OpenAI-compatible and allow cross-origin (CORS) requests from the browser.",
     "cloudNotesSection": "Cloud Notes",
-    "enableCloudWatchSync": "Watch-Mode Note Sync",
-    "cloudWatchSyncDescription": "While extracting slides during playback, create a personal cloud note and append cleared slides automatically.",
+    "enableCloudWatchSync": "Auto create and sync watch notes",
+    "cloudWatchSyncDescription": "While extracting slides during playback, create a personal Watch Note and append cleared slides automatically.",
     "cloudWatchSyncProvisionFailed": "Couldn't set up cloud storage. Check your connection and try again.",
     "cloudStorageTitle": "Cloud Storage",
-    "cloudStorageIntro": "AutoSlides sets up managed groups in your Yanhekt notes for watch-mode sync and desktop slide import.",
+    "cloudStorageIntro": "AutoSlides sets up managed groups in your Yanhekt notes for Watch Notes sync and desktop slide import.",
     "cloudStorageGroupDescription": "Desktop import target — extracted slides are stored here as notes.",
-    "cloudStorageGroupDescriptionUser": "Your personal watch-mode notes, with captured slides.",
+    "cloudStorageGroupDescriptionUser": "Your personal Watch Notes, with captured slides.",
     "cloudStorageStatusReady": "Initialized",
     "cloudStorageStatusUninitialized": "Not initialized",
     "cloudStorageStatusNotSignedIn": "Not signed in",
@@ -357,7 +357,7 @@
     "cloudStorageRefresh": "Refresh",
     "cloudStorageRefreshing": "Refreshing…",
     "cloudStorageInit": "Init cloud storage",
-    "cloudWatchSyncNeedInit": "Cloud storage is not ready. Initialize it above, then enable watch-mode sync."
+    "cloudWatchSyncNeedInit": "Cloud storage is not ready. Initialize it above, then enable Watch Notes sync."
   },
   "trash": {
     "active": "Extracted",

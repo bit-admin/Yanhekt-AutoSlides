@@ -22,7 +22,7 @@
       <!-- Browser Login View (replaces MainContent and RightPanel) -->
       <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (renderedMain + renderedRight) + 'px' }">
         <BrowserLoginView
-          @close="closeBrowserLogin"
+          @close="onBrowserLoginClose"
           @token-received="handleBrowserToken"
         />
       </div>
@@ -40,7 +40,13 @@
       </template>
     </div>
 
-    <OnboardingModal v-if="showOnboarding" @finish="completeOnboarding" />
+    <OnboardingModal
+      v-if="showOnboarding"
+      v-show="!isBrowserLoginActive"
+      :kind="onboardingKind"
+      :steps="onboardingSteps"
+      @finish="completeOnboarding"
+    />
   </div>
 </template>
 
@@ -62,7 +68,8 @@ import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import { settingsContextKey } from '@features/settings/settingsContext'
 import { navigationStore, type NavTarget } from '@features/course/navigationStore'
 import { configStore } from '@shared/services/configStore'
-import { isDemoMode } from '@shared/services/runtimeEnv'
+import { isDemoMode, getAppVersion } from '@shared/services/runtimeEnv'
+import { resolveOnboarding, type OnboardingKind, type OnboardingStep } from '@common/onboarding'
 import { layoutStore } from '@shared/services/layoutStore'
 import { rightPanelStore } from '@shared/services/rightPanelStore'
 import { TaskQueue } from '@shared/services/taskQueueService'
@@ -165,18 +172,47 @@ provide(settingsContextKey, {
   phash: pHashExclusion,
 })
 
-const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = auth
+const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken, isLoggedIn } = auth
 const { isWorkspacePage } = navigationStore
 
-// First-run onboarding. configStore is loaded before app.mount, so the flag is
-// available synchronously here. Existing installs are migrated to "completed"
-// in the main-process ConfigService, so only genuine first runs see the wizard.
-// Demo mode (screenshots) always skips it.
-const showOnboarding = ref(!configStore.onboardingCompleted && !isDemoMode())
+// Onboarding / What's New. configStore + app version are loaded before mount.
+// v4 upgrades have onboardingCompleted but no lastOnboardingVersion — the
+// resolver treats that as What's New covering every 5.0.0 baseline step.
+// Demo mode (screenshots) always skips it unless the demo hook forces it.
+const resolveCurrentOnboarding = () =>
+  resolveOnboarding({
+    onboardingCompleted: configStore.onboardingCompleted,
+    lastOnboardingVersion: configStore.lastOnboardingVersion,
+    appVersion: getAppVersion(),
+  })
+
+const firstRunOnboarding = () =>
+  resolveOnboarding({
+    onboardingCompleted: false,
+    lastOnboardingVersion: null,
+    appVersion: getAppVersion(),
+  })
+
+const initialOnboarding = isDemoMode()
+  ? { kind: 'none' as const, steps: [] as OnboardingStep[] }
+  : resolveCurrentOnboarding()
+
+const onboardingKind = ref<OnboardingKind>(
+  initialOnboarding.kind === 'none' ? 'first-run' : initialOnboarding.kind
+)
+const onboardingSteps = ref<OnboardingStep[]>(initialOnboarding.steps)
+const showOnboarding = ref(initialOnboarding.kind !== 'none')
 
 const completeOnboarding = () => {
   showOnboarding.value = false
   window.electronAPI.config.setOnboardingCompleted(true)
+}
+
+const onBrowserLoginClose = () => {
+  // Close without a token: skip remaining onboarding (same as the sign-in ×). A successful browser
+  // login goes through handleBrowserToken (not @close) and returns to the signed-in step.
+  if (showOnboarding.value && !isLoggedIn.value) completeOnboarding()
+  closeBrowserLogin()
 }
 
 // Demo-only hooks for the screenshot script. Never exposed in prod.
@@ -188,7 +224,14 @@ if (isDemoMode()) {
     __demoSetOnboarding?: (v: boolean) => void
     __demoNavigate?: (target: string) => void
   }
-  w.__demoSetOnboarding = (v) => { showOnboarding.value = v }
+  w.__demoSetOnboarding = (v) => {
+    if (v) {
+      const forced = firstRunOnboarding()
+      onboardingKind.value = 'first-run'
+      onboardingSteps.value = forced.steps
+    }
+    showOnboarding.value = v
+  }
   w.__demoNavigate = (target) => navigationStore.navigate(target as NavTarget)
 }
 

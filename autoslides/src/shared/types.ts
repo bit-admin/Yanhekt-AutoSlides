@@ -215,6 +215,13 @@ export interface AppConfig {
   savedSearchesRecorded: string[];
   pinnedRecordedCourses: PinnedCourse[];
   onboardingCompleted: boolean;
+  /**
+   * App version last acknowledged by finishing or skipping onboarding / What's New.
+   * null = never stamped (fresh install, or a v4 upgrade that only has
+   * onboardingCompleted). Do not default this to the current app version — absence
+   * is how we detect "updated from before 5.0.0".
+   */
+  lastOnboardingVersion: string | null;
   // Badges of accounts that have explicitly initialized AutoSlides cloud storage
   // (the managed note group + README). The server is the authority on whether the
   // group exists; this flag only distinguishes "never initialized" (features gated
