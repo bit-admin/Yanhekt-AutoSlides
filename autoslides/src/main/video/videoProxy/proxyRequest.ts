@@ -1,4 +1,4 @@
-import type { AxiosRequestConfig } from 'axios';
+import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import type * as http from 'http';
 import type * as https from 'https';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
@@ -82,4 +82,82 @@ export function buildAxiosConfig(
     config.responseType = opts.responseType;
   }
   return config;
+}
+
+export interface ResignFetchOptions {
+  intranetMapping: IntranetMappingService;
+  /** Resolved per attempt so agent rotation (intranet toggles) is honoured mid-retry. */
+  agents: () => ProxyAgents;
+  baseHeaders: Record<string, string>;
+  /** Per-request headers layered over `baseHeaders` (e.g. Range passthrough). */
+  extraHeaders?: Record<string, string>;
+  timeout: number;
+  responseType?: 'stream';
+  /** Linear backoff base: attempt n waits `backoffMs * n`. */
+  backoffMs: number;
+  maxRetries?: number;
+  log?: (message: string) => void;
+}
+
+/** Best-effort teardown of a streamed 403 body so the socket is released before retrying. */
+export function destroyStreamBody(response: AxiosResponse): void {
+  const data = response.data as { destroy?: () => void } | undefined;
+  if (data && typeof data.destroy === 'function') {
+    try {
+      data.destroy();
+    } catch {
+      // ignore — best-effort cleanup
+    }
+  }
+}
+
+/**
+ * GET a recorded-video URL, re-signing on 403.
+ *
+ * A 403 from the CDN means the `Xvideo_Token` or the signature was rejected.
+ * `signRecordedUrl` only recomputes the signature — it reuses the cached video
+ * token while it is inside its refresh window — so every retry first drops the
+ * cached token (`auth.invalidateToken()`) and mints a fresh one. This is the
+ * same policy as the desktop LAN relay and the cloud relay Worker; the desktop
+ * proxy used to retry three times with the stale token. Once retries are
+ * exhausted the token is invalidated one last time and the final 403 is
+ * returned for the caller to surface. Network errors / 5xx (which axios throws)
+ * propagate to the caller.
+ */
+export async function fetchRecordedWithResign(
+  auth: ProxyAuth,
+  rawUrl: string,
+  opts: ResignFetchOptions
+): Promise<AxiosResponse> {
+  const maxRetries = opts.maxRetries ?? 3;
+  let attempt = 0;
+
+  while (true) {
+    const { requestUrl, headers } = await signRecordedUrl(
+      auth, opts.intranetMapping, rawUrl, opts.baseHeaders
+    );
+    Object.assign(headers, opts.extraHeaders);
+    const axiosConfig = buildAxiosConfig(opts.intranetMapping, opts.agents(), headers, {
+      timeout: opts.timeout,
+      responseType: opts.responseType
+    });
+
+    const response = await axios.get(requestUrl, axiosConfig);
+
+    if (response.status !== 403) {
+      return response; // 200 (serve) or other status (caller surfaces it)
+    }
+
+    destroyStreamBody(response);
+    auth.invalidateToken();
+    if (attempt < maxRetries) {
+      attempt++;
+      opts.log?.(`Recorded request got 403, re-minting token and retrying (${attempt}/${maxRetries}) for: ${rawUrl}`);
+      await new Promise<void>(resolve => setTimeout(resolve, opts.backoffMs * attempt));
+      continue;
+    }
+
+    opts.log?.('Recorded 403 persisted after retries; token cache cleared');
+    return response; // exhausted — caller surfaces the 403
+  }
 }

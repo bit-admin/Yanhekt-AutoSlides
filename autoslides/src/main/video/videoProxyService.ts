@@ -13,7 +13,7 @@ import {
   rewriteM3u8TsUrls
 } from './videoProxy/urlHelpers';
 import { ProxyAuth } from './videoProxy/proxyAuth';
-import { signRecordedUrl, buildAxiosConfig } from './videoProxy/proxyRequest';
+import { buildAxiosConfig, fetchRecordedWithResign } from './videoProxy/proxyRequest';
 import { applyNoStoreHeaders, shouldForwardUpstreamHeader } from './videoProxy/httpHeaders';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('VideoProxy');
@@ -486,52 +486,25 @@ export class VideoProxyService {
   }
 
   /**
-   * GET a recorded-video URL (m3u8 or TS) with anti-hotlink signing and 403
-   * re-sign retry. Each attempt fetches a fresh token + signature.
-   *
-   * axios is configured with `validateStatus < 500`, so a 403 arrives as a
-   * RESOLVED response — we branch on `response.status`, not on a thrown error
-   * (the original code only retried 403s that happened to throw, so TS 403s were
-   * never retried and persistent-403 token invalidation almost never fired). On
-   * 403 we re-sign and retry with linear backoff; once retries are exhausted we
-   * invalidate the cached token so the next playback starts fresh and return the
-   * final 403 for the caller to surface. Network errors / 5xx (which axios
-   * throws) propagate to the caller.
+   * GET a recorded-video URL with 403 re-sign retries. Policy lives in
+   * `fetchRecordedWithResign` (shared with the LAN relay): each 403 invalidates
+   * the cached video token before re-signing, so a rejected/expired token is
+   * actually replaced rather than retried.
    */
-  private async getRecordedWithResign(
+  private getRecordedWithResign(
     rawUrl: string,
     opts: { timeout: number; responseType?: 'stream' },
     auth: ProxyAuth
   ): Promise<AxiosResponse> {
-    const maxRetries = 3;
-    let attempt = 0;
-
-    while (true) {
-      const { requestUrl, headers } = await signRecordedUrl(
-        auth, this.intranetMapping, rawUrl, this.BASE_HEADERS
-      );
-      const agents = this.resolveAgents();
-      const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, headers, opts);
-
-      const response = await axios.get(requestUrl, axiosConfig);
-
-      if (response.status !== 403) {
-        return response; // 200 (serve) or other status (caller surfaces it)
-      }
-
-      // 403: the signature/token was rejected. Re-sign and retry, or give up.
-      this.destroyStreamBody(response, opts.responseType);
-      if (attempt < maxRetries) {
-        attempt++;
-        log.debug(`Recorded request got 403, re-signing and retrying (${attempt}/${maxRetries}) for: ${rawUrl}`);
-        await this.delay(1000 * attempt);
-        continue;
-      }
-
-      log.debug('Clearing token cache due to persistent recorded 403 errors');
-      auth.invalidateToken();
-      return response; // exhausted — caller surfaces the 403
-    }
+    return fetchRecordedWithResign(auth, rawUrl, {
+      intranetMapping: this.intranetMapping,
+      agents: () => this.resolveAgents(),
+      baseHeaders: this.BASE_HEADERS,
+      timeout: opts.timeout,
+      responseType: opts.responseType,
+      backoffMs: 1000,
+      log: (message) => log.debug(message)
+    });
   }
 
   /**

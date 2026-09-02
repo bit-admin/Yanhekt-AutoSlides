@@ -188,7 +188,7 @@ windowManager.setConfigService(configService);
 const initializePowerManagement = async () => {
   const shouldPreventSleep = configService.getPreventSystemSleep();
   if (shouldPreventSleep) {
-    await powerManagementService.preventSleep();
+    await powerManagementService.preventSleep('settings');
   }
 };
 

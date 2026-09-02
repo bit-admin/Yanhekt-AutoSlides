@@ -257,9 +257,9 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   ipcMain.handle('config:setPreventSystemSleep', async (_event, prevent: boolean) => {
     configService.setPreventSystemSleep(prevent);
     if (prevent) {
-      await powerManagementService.preventSleep();
+      await powerManagementService.preventSleep('settings');
     } else {
-      await powerManagementService.allowSleep();
+      await powerManagementService.allowSleep('settings');
     }
     broadcastConfig();
     return configService.getConfig();

@@ -8,7 +8,7 @@
 //    keyed by the gho_/ghu_ token from the device flow;
 //  - custom: any OpenAI-compatible endpoint (must allow browser CORS).
 
-import { configStore } from '../../stores/configStore';
+import { configStore, type AIServiceType } from '../../stores/configStore';
 import { authStore } from '../../stores/authStore';
 import type { ClassificationValue, ClassifierCallbacks, SingleClassificationResult } from '../postProcessing/types';
 import { DISTINGUISH_LIVE_PROMPT } from './prompt';
@@ -62,25 +62,28 @@ interface RequestContext {
   baseUrl: string;
   apiKey: string;
   model: string;
+  serviceType: AIServiceType;
 }
 
 function resolveRequestContext(token: string | undefined): RequestContext {
   switch (configStore.aiServiceType) {
     case 'builtin': {
       if (!token) throw new Error('Builtin AI service requires a signed-in user token');
-      return { baseUrl: BUILTIN_API_BASE_URL, apiKey: token, model: BUILTIN_MODEL };
+      return { baseUrl: BUILTIN_API_BASE_URL, apiKey: token, model: BUILTIN_MODEL, serviceType: 'builtin' };
     }
     case 'copilot':
       return {
         baseUrl: `${COPILOT_PROXY_BASE_URL}/v1`,
         apiKey: configStore.aiCopilotToken,
         model: COPILOT_MODEL,
+        serviceType: 'copilot',
       };
     case 'custom':
       return {
         baseUrl: configStore.aiCustomBaseUrl.replace(/\/+$/, ''),
         apiKey: configStore.aiCustomApiKey,
         model: configStore.aiCustomModel,
+        serviceType: 'custom',
       };
     default:
       throw new Error(`Unknown AI service type: ${String(configStore.aiServiceType)}`);
@@ -109,6 +112,7 @@ export function createClassifier(): ClassifierCallbacks {
         model: ctx.model,
         prompt: DISTINGUISH_LIVE_PROMPT,
         base64Image,
+        serviceType: ctx.serviceType,
       });
       if (!result.ok) {
         return { success: false, error: result.error.message, errorKind: result.error.kind };

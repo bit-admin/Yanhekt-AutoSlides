@@ -10,7 +10,11 @@ export interface UsePerformanceOptimizationOptions {
   hls: ShallowRef<Hls | null>
   currentPlaybackRate: Ref<number>
   shouldVideoMute: ComputedRef<boolean>
+  /** Power-blocker holder id; defaults to a unique id per composable instance (i.e. per playback tab). */
+  powerHolderId?: string
 }
+
+let playbackHolderSeq = 0
 
 export interface UsePerformanceOptimizationReturn {
   // State
@@ -43,6 +47,7 @@ export interface UsePerformanceOptimizationReturn {
 }
 
 export function usePerformanceOptimization(options: UsePerformanceOptimizationOptions): UsePerformanceOptimizationReturn {
+  const powerHolderId = options.powerHolderId ?? `playback:${++playbackHolderSeq}`
   const { mode, videoPlayer, hls, currentPlaybackRate, shouldVideoMute } = options
 
   // State
@@ -194,7 +199,7 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
     }
 
     try {
-      await window.electronAPI.powerManagement?.preventSleep?.()
+      await window.electronAPI.powerManagement?.preventSleep?.(powerHolderId)
       log.debug('System sleep prevention requested')
     } catch (err) {
       log.debug('Power management request failed:', err)
@@ -203,7 +208,7 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
 
   const releasePowerManagement = async () => {
     try {
-      await window.electronAPI.powerManagement?.allowSleep?.()
+      await window.electronAPI.powerManagement?.allowSleep?.(powerHolderId)
       log.debug('System sleep prevention released')
     } catch (err) {
       log.debug('Power management release failed:', err)

@@ -2,12 +2,12 @@ import * as http from 'http';
 import * as https from 'https';
 import * as os from 'os';
 import * as url from 'url';
-import axios, { type AxiosResponse } from 'axios';
+import type { AxiosResponse } from 'axios';
 import { ApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { ProxyAuth } from './videoProxy/proxyAuth';
-import { signRecordedUrl, buildAxiosConfig, type ProxyAgents } from './videoProxy/proxyRequest';
+import { fetchRecordedWithResign, type ProxyAgents } from './videoProxy/proxyRequest';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('LocalRelay');
@@ -409,51 +409,24 @@ export class LocalRelayService {
   }
 
   /**
-   * Sign + fetch with 403 re-sign retries (mirrors VideoProxyService.getRecordedWithResign
-   * and the Worker fetchSignedMedia loop).
+   * Sign + fetch with 403 re-sign retries. Shares `fetchRecordedWithResign`
+   * with VideoProxyService (and mirrors the Worker fetchSignedMedia loop):
+   * every 403 drops the cached video token before the next attempt.
    */
-  private async fetchSigned(
+  private fetchSigned(
     rawUrl: string,
     auth: ProxyAuth,
     opts: { timeout: number; responseType?: 'stream'; range?: string | null }
   ): Promise<AxiosResponse> {
-    const maxRetries = 3;
-    let attempt = 0;
-
-    while (true) {
-      const { requestUrl, headers } = await signRecordedUrl(
-        auth,
-        this.intranetMapping,
-        rawUrl,
-        MEDIA_HEADERS
-      );
-      if (opts.range) {
-        headers['Range'] = opts.range;
-      }
-
-      const agents = this.resolveAgents();
-      const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, headers, {
-        timeout: opts.timeout,
-        responseType: opts.responseType
-      });
-
-      const response = await axios.get(requestUrl, axiosConfig);
-
-      if (response.status !== 403) {
-        return response;
-      }
-
-      this.destroyStreamBody(response);
-      if (attempt < maxRetries) {
-        attempt++;
-        auth.invalidateToken();
-        await this.delay(250 * attempt);
-        continue;
-      }
-
-      auth.invalidateToken();
-      return response;
-    }
+    return fetchRecordedWithResign(auth, rawUrl, {
+      intranetMapping: this.intranetMapping,
+      agents: () => this.resolveAgents(),
+      baseHeaders: MEDIA_HEADERS,
+      extraHeaders: opts.range ? { Range: opts.range } : undefined,
+      timeout: opts.timeout,
+      responseType: opts.responseType,
+      backoffMs: 250
+    });
   }
 
   // ---- Auth / whitelist ----------------------------------------------------
@@ -592,7 +565,4 @@ export class LocalRelayService {
     }
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
 }

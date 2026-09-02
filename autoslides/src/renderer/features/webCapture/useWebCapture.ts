@@ -76,6 +76,7 @@ const normalizeUrl = (raw: string): string => {
 }
 
 export function useWebCapture() {
+  const powerHolderId = `webCapture:${Date.now().toString(36)}`
   // ---- Reactive state ----
   const preloadPath = ref<string>('')
   const currentUrl = ref('')
@@ -395,7 +396,7 @@ export function useWebCapture() {
       slideExtractorInstance.value = extractor
 
       try {
-        await window.electronAPI.powerManagement.preventSleep()
+        await window.electronAPI.powerManagement.preventSleep(powerHolderId)
       } catch {
         // non-fatal
       }
@@ -492,7 +493,7 @@ export function useWebCapture() {
       slideExtractedHandler = null
     }
     try {
-      await window.electronAPI.powerManagement.allowSleep()
+      await window.electronAPI.powerManagement.allowSleep(powerHolderId)
     } catch {
       // non-fatal
     }

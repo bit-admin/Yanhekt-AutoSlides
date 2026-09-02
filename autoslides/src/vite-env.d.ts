@@ -813,8 +813,8 @@ interface ElectronAPI {
   };
 
   powerManagement: {
-    preventSleep: () => Promise<PowerManagementResponse>;
-    allowSleep: () => Promise<PowerManagementResponse>;
+    preventSleep: (holderId: string) => Promise<PowerManagementResponse>;
+    allowSleep: (holderId: string) => Promise<PowerManagementResponse>;
     isPreventingSleep: () => Promise<PowerManagementStatus>;
   };
 

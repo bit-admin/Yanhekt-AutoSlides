@@ -9,6 +9,7 @@
 // empty-choices 2xx gets one retry. 503 and other statuses fail fast.
 
 import { createLogger } from '../logger';
+import type { AIServiceType } from '../../stores/configStore';
 
 const log = createLogger('LLMClient');
 
@@ -45,6 +46,12 @@ export interface ChatImageRequest {
   base64Image: string;
   /** Extra headers merged over the defaults (e.g. builtin User-Agent). */
   extraHeaders?: Record<string, string>;
+  /**
+   * Provider kind. Copilot rejects/ignores `chat_template_kwargs`, so thinking
+   * control is only attached for builtin/custom hosts (mirrors Electron's
+   * llmApiService `omitThinking`).
+   */
+  serviceType?: AIServiceType;
 }
 
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -140,6 +147,7 @@ async function attemptChatCompletion(req: ChatImageRequest): Promise<LLMResult> 
       // Match Electron AI requestBody defaults (not user-configurable on web):
       // max_tokens/temperature/stream sent; top_p omitted; thinking forced off
       // so Agnes-style models don't burn the token budget on reasoning_content.
+      // Copilot never receives chat_template_kwargs (it rejects them).
       body: JSON.stringify({
         model: req.model,
         messages: [
@@ -157,7 +165,7 @@ async function attemptChatCompletion(req: ChatImageRequest): Promise<LLMResult> 
         max_tokens: 100,
         temperature: 0,
         stream: false,
-        chat_template_kwargs: { enable_thinking: false },
+        ...(req.serviceType === 'copilot' ? {} : { chat_template_kwargs: { enable_thinking: false } }),
       }),
     });
   } catch (error) {

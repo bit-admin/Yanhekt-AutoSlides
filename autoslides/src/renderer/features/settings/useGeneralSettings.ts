@@ -144,9 +144,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       const sleepResult = await window.electronAPI.config.setPreventSystemSleep(tempPreventSystemSleep.value)
       preventSystemSleep.value = sleepResult.preventSystemSleep
       if (preventSystemSleep.value) {
-        await window.electronAPI.powerManagement.preventSleep()
+        await window.electronAPI.powerManagement.preventSleep('settings')
       } else {
-        await window.electronAPI.powerManagement.allowSleep()
+        await window.electronAPI.powerManagement.allowSleep('settings')
       }
     }
 

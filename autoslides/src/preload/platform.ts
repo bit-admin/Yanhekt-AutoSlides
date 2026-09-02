@@ -204,8 +204,9 @@ export const menu = {
 };
 
 export const powerManagement = {
-  preventSleep: () => ipcRenderer.invoke('powerManagement:preventSleep'),
-  allowSleep: () => ipcRenderer.invoke('powerManagement:allowSleep'),
+  /** `holderId` names the consumer (tab, Web Capture, settings); the blocker stops when the last holder releases. */
+  preventSleep: (holderId: string) => ipcRenderer.invoke('powerManagement:preventSleep', holderId),
+  allowSleep: (holderId: string) => ipcRenderer.invoke('powerManagement:allowSleep', holderId),
   isPreventingSleep: () => ipcRenderer.invoke('powerManagement:isPreventingSleep'),
 };
 
