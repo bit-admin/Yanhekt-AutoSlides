@@ -1,0 +1,11 @@
+# Parsed by Workers static assets (never served as an asset itself, and never
+# applied to Worker responses — /playlist and /segment set their own CORS).
+#
+# /cf.txt doubles as a cross-origin reachability beacon: the web client fetches
+# it to tell "the relay is reachable from this browser" from "this browser is
+# being challenged or blocked at the relay's edge". It is a static asset, so the
+# probe costs no Worker request. Reading it cross-origin needs CORS, and the ASN
+# (set by the Response Header Transform Rule — see README.md) needs exposing.
+/cf.txt
+  Access-Control-Allow-Origin: *
+  Access-Control-Expose-Headers: x-client-asn

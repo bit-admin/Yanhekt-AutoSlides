@@ -13,6 +13,7 @@ import type { Env } from "./env";
 import { loginRouter } from "./routes/login";
 import { yanhektProxyRouter } from "./routes/yanhektProxy";
 import { relayProxyRouter } from "./routes/relayProxy";
+import { configRouter } from "./routes/config";
 import { shareProxyRouter } from "./routes/shareProxy";
 import { aiProxyRouter } from "./routes/aiProxy";
 
@@ -24,6 +25,7 @@ export function createApp<TEnv extends Env = Env>() {
     cors({ origin: "*", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Content-Type", "Authorization"], maxAge: 86400 }),
   );
 
+  app.route("/api/config", configRouter);
   app.route("/api/yanhekt", yanhektProxyRouter);
   app.route("/api/ai", aiProxyRouter);
   app.route("/api/share", shareProxyRouter);

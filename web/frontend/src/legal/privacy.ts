@@ -6,7 +6,8 @@ import type { LegalDoc } from "./types";
 //   - password / SMS / keepsake   -> src/routes/login.ts, src/lib/campusSso.ts,
 //                                    src/lib/resumeSeal.ts, stores/authStore.ts
 //   - API proxy (incl. notes)     -> src/routes/yanhektProxy.ts -> cbiz.yanhekt.cn
-//   - recorded video relay        -> lib/streamUrls.ts (same-origin /playlist;
+//   - recorded video relay        -> lib/streamUrls.ts (same-origin /playlist or
+//                                    the public relay origin, per /api/config;
 //                                    optional custom endpoint in config)
 //   - cloud notes / watch sync    -> stores/watchNotesStore.ts, stores/cloudStorageStore.ts,
 //                                    lib/notes/notesClient.ts  (MinIO upload + note content)
@@ -143,8 +144,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**為何需要轉送。** 瀏覽器無法直接呼叫平台的 API（跨來源及簽署要求），因此課程列表、播放資訊，以及閣下發起的雲筆記與圖像上傳，均經由本服務請求；本服務將其轉送至平台（cbiz.yanhekt.cn），再把回應傳回閣下。由於平台需要藉此識別閣下身分，閣下的權杖會隨該等請求一併傳送。",
         },
         {
-          en: "**4.2 Video.** Recorded lectures are streamed through the Service, which signs each Platform request; you may configure a different relay endpoint in Settings. Treat any generated stream URL as sensitive. Live streams are fetched by your browser directly from the Platform's content network where the Platform permits it.",
-          zh: "**影片。** 錄播課程經由本服務串流，由本服務為每個平台請求簽署；閣下可在設定中改用其他中轉端點。任何產生的串流網址均應視作敏感資料。在平台允許的情況下，直播由閣下的瀏覽器直接向平台的內容網絡獲取。",
+          en: "**4.2 Video.** Recorded lectures are streamed through the Service, which signs each Platform request. Depending on how the Service is configured, your browser may send those relay requests to the relay host directly rather than to this site; the relay is operated by the Developer either way, and access to it may be limited to certain networks. You may configure a different relay endpoint in Settings. Treat any generated stream URL as sensitive. Live streams are fetched by your browser directly from the Platform's content network where the Platform permits it.",
+          zh: "**影片。** 錄播課程經由本服務串流，由本服務為每個平台請求簽署。視乎本服務的設定，閣下的瀏覽器或會直接向中轉主機發出該等請求，而非經由本網站；兩者的中轉均由開發者營運，且其存取或僅限於特定網絡。閣下可在設定中改用其他中轉端點。任何產生的串流網址均應視作敏感資料。在平台允許的情況下，直播由閣下的瀏覽器直接向平台的內容網絡獲取。",
         },
         {
           en: "**4.3 No server-side user archive.** The Service is designed as a **stateless relay**: it does not operate a Developer database of your account, your viewing history, or the Content you access, and it does not retain school passwords after the login request completes (section 3). Mid-login state for SMS is sealed and held only by your browser for a few minutes. Ordinary request handling may involve ephemeral processing in memory on the edge in order to forward traffic; that is not a persistent archive of your activity for the Developer to browse later.",
@@ -214,8 +215,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**GitHub。** 「桌面應用」頁面會從 GitHub 獲取發佈資訊及文檔（如無法連接 GitHub，則改用例如 gh-proxy.org 的鏡像）。開啟該頁面時，會如一般網絡請求般向該等服務透露閣下的 IP 位址。連接 Copilot 亦會涉及 GitHub 的裝置授權流程。本服務的其他頁面不會為無關目的與其聯絡。",
         },
         {
-          en: "**6.4 Video relay.** Recorded video is signed and proxied by the Service (or by another relay endpoint you configure in Settings). Live streams do not use that path by default.",
-          zh: "**影片中轉。** 錄播影片由本服務簽署及代理（或由閣下在設定中指定的其他中轉端點處理）。直播預設不使用該路徑。",
+          en: "**6.4 Video relay.** Recorded video is signed and proxied by the Service — through this site, or, depending on configuration, by your browser reaching the relay host directly (or another relay endpoint you configure in Settings). Live streams do not use that path by default.",
+          zh: "**影片中轉。** 錄播影片由本服務簽署及代理 —— 或經由本網站，或視乎設定由閣下的瀏覽器直接連接中轉主機（亦可為閣下在設定中指定的其他中轉端點）。直播預設不使用該路徑。",
         },
         {
           en: "**6.5 Infrastructure.** Cloudflare and any other infrastructure providers used to host or protect the Service process technical traffic data as described in section 4.4.",

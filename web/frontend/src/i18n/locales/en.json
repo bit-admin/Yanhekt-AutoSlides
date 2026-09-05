@@ -82,7 +82,7 @@
   },
   "feedback": {
     "close": "Close",
-    "lead": "Found a bug, or want to suggest something? Pick whichever suits you.",
+    "lead": "Found a bug, or have a suggestion? Pick whichever suits you.",
     "openIssue": "Open an Issue",
     "openIssueDesc": "Report it on GitHub, where anyone can follow along.",
     "sendEmail": "Send Us an Email",
@@ -222,6 +222,14 @@
     "postProcessing": "Processing…",
     "professors": "Professors",
     "refresh": "Refresh",
+    "relayBlocked": {
+      "advice": "Try again on the campus network, or send us feedback.",
+      "body": "It may be that off-campus access to the video relay is turned off for this site. Recorded lectures are relayed through {host}, which admits campus networks; other networks may be challenged or blocked.",
+      "checkConnection": "Check Connection",
+      "network": "Your network (AS{asn}) is not one of them.",
+      "sendFeedback": "Send Feedback",
+      "title": "Recorded playback couldn't start."
+    },
     "retry": "Retry",
     "selectOneStreamToCopy": "Select one stream to copy its URL",
     "selectStream": "Select Stream",
@@ -304,7 +312,7 @@
     "language": "Language",
     "light": "Light",
     "relay": "Relay Server",
-    "relayDescription": "Recorded lectures stream through this site by default. For local development, point this at another relay (for example `wrangler dev` in the relay worker, or AutoSlides Desktop's LAN relay). Live streams are unaffected.",
+    "relayDescription": "Recorded lectures stream through this deployment's relay by default. For local development, point this at another relay (for example `wrangler dev` in the relay worker, or AutoSlides Desktop's LAN relay). Live streams are unaffected.",
     "relayEndpoint": "Relay server endpoint",
     "relayHttpNote": "This endpoint uses HTTP. Fine when this page is also HTTP (local dev); browsers block HTTP relays from HTTPS pages.",
     "relayInvalid": "Enter a valid http:// or https:// URL (host and optional port).",

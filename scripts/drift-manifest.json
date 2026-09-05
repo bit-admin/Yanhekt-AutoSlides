@@ -20,6 +20,8 @@
     "web/frontend/src/lib/postProcessing/phase3AI.ts": "5ebe2d0df23b8def7580a610d13f5388c17352be57e629f59e12a68c2c680681",
     "autoslides/src/renderer/shared/postProcessing/postCropDedup.ts": "b8fef1f90904f8f8d60d8436b7a1dc9b8690a15e4b5d8e12ce0e5ac332779456",
     "web/frontend/src/lib/postProcessing/postCropDedup.ts": "ef2ae431d3896bf6adaad2d42e8e618bdf7cb79c45d741ac83571432dfa7151e",
+    "autoslides/src/renderer/features/video/useVideoErrorRecovery.ts": "a30e58b66e52803987a5e14cd4171ccca7ac41fa10a3debd7174481555b30d92",
+    "web/frontend/src/composables/video/useVideoErrorRecovery.ts": "72cee25b411e01c74addac1a6fa6f116c9de18268a74903d49fbcfc1c212ca3e",
     "autoslides/src/shared/crypto.ts": "5ae08680ca466835c5b25b2854b124e9ae1ce0977d311484031b6bfffb0a8410",
     "web/src/lib/yanhekt.ts": "8c346a5d60194217f4626cc987d0ae6852d2f98a80a872fdc42cd0706b6a0be5",
     "relay/src/yanhekt.ts": "1a5fccedaafa1bcdaaf1d00189630bb18aa033f89ef54fdecda0378ae775f18b",

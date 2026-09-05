@@ -261,8 +261,8 @@ export const termsDoc: LegalDoc = {
           zh: "**平台及學校系統。** 課程資料、播放網址、筆記及上傳由平台處理；登入則由學校統一身份認證系統處理。其可用性、準確性及政策均非開發者所能控制。用戶對平台的使用仍受平台及機構自身條款約束。",
         },
         {
-          en: "**8.2 Relays and infrastructure.** Recorded playback is proxied by the Service, or by another relay endpoint the User configures. Hosting and edge security for the web Service may be provided by infrastructure providers such as Cloudflare. Those parties process technical traffic as needed to deliver the feature; their own terms may apply to their networks.",
-          zh: "**中轉及基礎設施。** 錄播播放由本服務代理，或由用戶設定的其他中轉端點代理。網頁服務的託管及邊緣安全或由 Cloudflare 等基礎設施供應商提供。該等各方按提供功能所需處理技術流量；其自身條款或適用於其網絡。",
+          en: "**8.2 Relays and infrastructure.** Recorded playback is proxied by the Service — through this site or, depending on configuration, by the User's browser reaching the relay host directly — or by another relay endpoint the User configures. Access to a relay may be restricted to particular networks, and edge security may challenge or refuse requests from others. Hosting and edge security for the web Service may be provided by infrastructure providers such as Cloudflare. Those parties process technical traffic as needed to deliver the feature; their own terms may apply to their networks.",
+          zh: "**中轉及基礎設施。** 錄播播放由本服務代理 —— 或經由本網站，或視乎設定由用戶的瀏覽器直接連接中轉主機 —— 亦可由用戶設定的其他中轉端點代理。中轉的存取或僅限於特定網絡，邊緣安全措施或會對其他網絡的請求作出驗證或拒絕。網頁服務的託管及邊緣安全或由 Cloudflare 等基礎設施供應商提供。該等各方按提供功能所需處理技術流量；其自身條款或適用於其網絡。",
         },
         {
           en: "**8.3 AI filtering.** When AI filtering is enabled, slide images may be sent to the AI provider the User has selected (built-in endpoint, GitHub Copilot via a proxy, or a custom OpenAI-compatible endpoint), solely for classification. The Developer does not warrant the accuracy of any classification. Custom endpoints and keys are chosen and controlled by the User; the Developer is not responsible for those providers.",

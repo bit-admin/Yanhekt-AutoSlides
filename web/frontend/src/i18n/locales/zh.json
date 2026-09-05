@@ -222,6 +222,14 @@
     "postProcessing": "处理中…",
     "professors": "教授",
     "refresh": "刷新",
+    "relayBlocked": {
+      "advice": "请连接校园网后重试，或向我们反馈。",
+      "body": "本站可能未开放校外访问录播中继。录播视频经 {host} 中继，该服务仅允许校园网络访问，其他网络可能会被验证或拦截。",
+      "checkConnection": "检查连接",
+      "network": "你当前的网络（AS{asn}）不在其中。",
+      "sendFeedback": "发送反馈",
+      "title": "无法开始播放录播。"
+    },
     "retry": "重试",
     "selectOneStreamToCopy": "请先选择单一视频流再复制地址",
     "selectStream": "选择视频源",
@@ -304,7 +312,7 @@
     "language": "语言",
     "light": "浅色",
     "relay": "中继服务器",
-    "relayDescription": "录播默认经本站完成延河课堂 URL 签名。本地开发时可改填其他中继地址（例如在 relay 目录运行 wrangler dev，或 AutoSlides 桌面版的局域网中继）。直播不受影响。",
+    "relayDescription": "录播默认使用本站配置的中继完成延河课堂 URL 签名。本地开发时可改填其他中继地址（例如在 relay 目录运行 wrangler dev，或 AutoSlides 桌面版的局域网中继）。直播不受影响。",
     "relayEndpoint": "中继服务器地址",
     "relayHttpNote": "当前地址为 HTTP。页面同为 HTTP 时可用（本地开发）；在 HTTPS 页面上浏览器会拦截 HTTP 中继。",
     "relayInvalid": "请输入有效的 http:// 或 https:// 地址（主机名与可选端口）。",

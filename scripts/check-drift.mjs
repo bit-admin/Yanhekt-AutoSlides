@@ -38,6 +38,13 @@ const GROUPS = [
   { name: 'phase3AI', files: ['autoslides/src/renderer/shared/postProcessing/phase3AI.ts', 'web/frontend/src/lib/postProcessing/phase3AI.ts'] },
   { name: 'postCropDedup', files: ['autoslides/src/renderer/shared/postProcessing/postCropDedup.ts', 'web/frontend/src/lib/postProcessing/postCropDedup.ts'] },
   {
+    name: 'videoErrorRecovery',
+    files: [
+      'autoslides/src/renderer/features/video/useVideoErrorRecovery.ts',
+      'web/frontend/src/composables/video/useVideoErrorRecovery.ts',
+    ],
+  },
+  {
     name: 'yanhektCrypto',
     files: ['autoslides/src/shared/crypto.ts', 'web/src/lib/yanhekt.ts', 'relay/src/yanhekt.ts', 'share/src/lib/yanhekt.ts'],
   },

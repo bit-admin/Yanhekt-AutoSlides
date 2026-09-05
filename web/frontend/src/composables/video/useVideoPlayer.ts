@@ -1,9 +1,15 @@
-import { ref, shallowRef, computed, nextTick, type Ref } from "vue";
+import { ref, shallowRef, computed, nextTick, watch, type Ref } from "vue";
 import Hls, { Events, ErrorDetails } from "hls.js";
-import { createFatalErrorReporter, createSingleStreamHlsErrorHandler } from "./useVideoErrorRecovery";
+import {
+  attachNetworkErrorSniffer,
+  createFatalErrorReporter,
+  createSingleStreamHlsErrorHandler,
+} from "./useVideoErrorRecovery";
 import { useDualStreamPlayer } from "./useDualStreamPlayer";
 import { authStore } from "../../stores/authStore";
-import { getRecordedPlaybackData, getLivePlaybackData, type PlaybackData } from "../../lib/streamUrls";
+import { getRecordedPlaybackData, getLivePlaybackData, getRelayBase, type PlaybackData } from "../../lib/streamUrls";
+import { ensureRuntimeConfig, runtimeConfigStore } from "../../stores/runtimeConfigStore";
+import { probeRelayReach } from "../../lib/relayDiagnostics";
 import type { Course } from "../useCourseList";
 import type { SessionData } from "../../lib/api";
 
@@ -29,6 +35,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   // Reactive state
   const loading = ref(true);
   const error = ref<string | null>(null);
+  // Set alongside `error` when the failure has a known cause worth explaining
+  // rather than just reporting. Currently only one: this deployment streams
+  // recorded video from the relay's own origin, and that origin would not
+  // answer this browser.
+  const errorKind = ref<"relay_offcampus" | null>(null);
   const playbackData = ref<PlaybackData | null>(null);
   const selectedStream = ref<string>("");
   const isPlaying = ref(false);
@@ -222,6 +233,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     handleTaskError,
     cleanupSingleVideoSource,
     onEnded: () => onEnded(),
+    // Lazy call: classifyRelayFailure is defined below this hook.
+    onNetworkError: () => classifyRelayFailure(),
   });
 
   const loadVideoStreams = async () => {
@@ -236,6 +249,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
       let result: PlaybackData;
 
+      // Recorded URLs depend on the deployment's relay policy; live doesn't.
+      if (mode === "recorded") {
+        await ensureRuntimeConfig();
+      }
+
       if (mode === "live" && course.value) {
         result = getLivePlaybackData(course.value);
       } else if (mode === "recorded" && session.value) {
@@ -245,6 +263,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       }
 
       playbackData.value = result;
+
+      // Warm the relay verdict while the player sets up: a blocked viewer's
+      // first error then resolves immediately instead of after a round trip.
+      const relayOrigin = relayPolicyOrigin();
+      if (relayOrigin) void probeRelayReach(relayOrigin);
 
       const streamKeys = Object.keys(result.streams);
       if (streamKeys.length > 0) {
@@ -266,6 +289,59 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       loading.value = false;
     }
   };
+
+  /**
+   * The relay origin this playback depends on, when the deployment sends the
+   * browser there itself. Null for live, for same-origin relaying, and when a
+   * custom Settings endpoint is in play (that relay is the user's own).
+   */
+  const relayPolicyOrigin = (): string | null => {
+    if (mode !== "recorded") return null;
+    const relay = runtimeConfigStore.config.value.relay;
+    if (relay.mode !== "direct" || !relay.origin) return null;
+    return getRelayBase() === relay.origin ? relay.origin : null;
+  };
+
+  /**
+   * Why did recorded playback fail? When the browser reaches the relay itself,
+   * the likeliest answer is that the relay's edge did not admit this network —
+   * and hls.js cannot tell us, because a challenge response is cross-origin
+   * with no CORS headers, so the request fails opaquely. Probe the relay's
+   * beacon (memoised per origin) and, when it is refusing us too, stop: the
+   * retry ladder cannot fix a network the relay will not serve, and the viewer
+   * would otherwise watch a spinner until every retry has been spent.
+   */
+  const classifyRelayFailure = (): void => {
+    const origin = relayPolicyOrigin();
+    if (!origin || errorKind.value) return;
+
+    void probeRelayReach(origin).then((reach) => {
+      // Only a definite refusal ends playback. A probe that timed out
+      // ("unknown") says nothing, and the normal retry ladder deserves its
+      // chance — as does a retry that got through while we were probing.
+      if (reach !== "blocked" || errorKind.value) return;
+      if (isPlaying.value || (videoPlayer.value?.readyState ?? 0) >= 2) return;
+
+      errorKind.value = "relay_offcampus";
+      // Stop the retry ladder; the message is now on screen.
+      hls.value?.stopLoad();
+      dual.cleanupDualVideoSources();
+      isVideoLoading.value = false;
+      isRetrying.value = false;
+      retryMessage.value = "";
+      if (!error.value) error.value = "Recorded playback could not be loaded from the relay";
+    });
+  };
+
+  // Backstop for paths with no error sniffer (native HLS on Safari/iOS): once a
+  // failure has surfaced, still say why.
+  watch(error, (message) => {
+    if (!message) {
+      errorKind.value = null;
+      return;
+    }
+    classifyRelayFailure();
+  });
 
   // Shared HLS scaffold for the two single-stream load paths.
   type SingleStreamErrorConfig = Omit<
@@ -299,6 +375,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.on(Events.MANIFEST_PARSED, () => {
           setTimeout(opts.onManifestParsed, 100);
         });
+
+        attachNetworkErrorSniffer(hls.value, classifyRelayFailure);
 
         const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError });
 
@@ -698,6 +776,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     isVideoMuted,
     isRetrying,
     retryMessage,
+    errorKind,
     maxVideoErrorRetries,
     dualAudioSource: dual.dualAudioSource,
     dualVolume: dual.dualVolume,

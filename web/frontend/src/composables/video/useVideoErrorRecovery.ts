@@ -1,7 +1,7 @@
 import type { Ref, ShallowRef } from "vue";
 import type Hls from "hls.js";
 import type { ErrorData } from "hls.js";
-import { Events, ErrorTypes } from "hls.js";
+import { Events, ErrorTypes, ErrorDetails } from "hls.js";
 
 // Ported near-verbatim from the desktop app's
 // features/video/useVideoErrorRecovery.ts (logger swapped for console).
@@ -21,6 +21,43 @@ export function createFatalErrorReporter(ctx: FatalErrorContext) {
     ctx.retryMessage.value = "";
     ctx.handleTaskError(message);
   };
+}
+
+/**
+ * True for failures that happened before any manifest was parsed. `startLoad()`
+ * cannot recover those — it resumes a stream hls.js already knows about, and a
+ * source whose manifest never loaded has nothing to resume, so retrying that
+ * way silently does nothing and the caller waits forever. Re-issuing
+ * `loadSource()` is the only thing that retries the manifest itself.
+ */
+function isManifestFailure(details: ErrorData["details"]): boolean {
+  return (
+    details === ErrorDetails.MANIFEST_LOAD_ERROR ||
+    details === ErrorDetails.MANIFEST_LOAD_TIMEOUT ||
+    details === ErrorDetails.MANIFEST_PARSING_ERROR
+  );
+}
+
+/** Retry a network failure the way that particular failure can be retried. */
+function retryNetworkLoad(hlsInstance: Hls, data: ErrorData): void {
+  const url = hlsInstance.url;
+  if (isManifestFailure(data.details) && url) {
+    hlsInstance.loadSource(url);
+    return;
+  }
+  hlsInstance.startLoad();
+}
+
+/**
+ * Watch every network-type error on an instance, fatal or not, without taking
+ * part in recovery. Used to spot a cause the retry ladder cannot fix (the relay
+ * refusing this network) and fail fast instead of spinning — see
+ * `lib/relayDiagnostics.ts`.
+ */
+export function attachNetworkErrorSniffer(hlsInstance: Hls, onNetworkError: (data: ErrorData) => void): void {
+  hlsInstance.on(Events.ERROR, (_event, data) => {
+    if (data.type === ErrorTypes.NETWORK_ERROR) onNetworkError(data);
+  });
 }
 
 /**
@@ -75,7 +112,7 @@ export function setupDualHlsErrorHandler(
         if (counters.networkErrorRecoveryCount < counters.maxRecoveryAttempts) {
           counters.networkErrorRecoveryCount++;
           setTimeout(() => {
-            hlsInstance.startLoad();
+            retryNetworkLoad(hlsInstance, data);
           }, 1000 * counters.networkErrorRecoveryCount);
         } else {
           opts.onFatal(`Network error: Unable to load ${label} stream after multiple attempts`);
@@ -154,7 +191,7 @@ export function createSingleStreamHlsErrorHandler(
           counters.networkErrorRecoveryCount++;
           setTimeout(() => {
             if (opts.hls.value) {
-              opts.hls.value.startLoad();
+              retryNetworkLoad(opts.hls.value, data);
             }
           }, 1000 * counters.networkErrorRecoveryCount);
         } else {

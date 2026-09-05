@@ -17,7 +17,27 @@
               <line x1="9" y1="9" x2="15" y2="15"/>
             </svg>
             <div class="error-details">
-              <p class="error-message">{{ error }}</p>
+              <p class="error-message">
+                {{ errorKind === 'relay_offcampus' ? $t('playback.relayBlocked.title') : error }}
+              </p>
+              <div v-if="errorKind === 'relay_offcampus'" class="error-hint">
+                <p>
+                  {{ $t('playback.relayBlocked.body', { host: relayHost }) }}
+                  <span v-if="relayAsn !== null">{{ $t('playback.relayBlocked.network', { asn: relayAsn }) }}</span>
+                  {{ $t('playback.relayBlocked.advice') }}
+                </p>
+                <div class="error-hint-actions">
+                  <a
+                    class="error-hint-link"
+                    :href="relayOrigin"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >{{ $t('playback.relayBlocked.checkConnection') }} ↗</a>
+                  <button type="button" class="error-hint-link" @click="showRelayFeedback = true">
+                    {{ $t('playback.relayBlocked.sendFeedback') }}
+                  </button>
+                </div>
+              </div>
               <div v-if="lastPlaybackPosition > 0" class="error-info">
                 <p class="playback-position">
                   <strong>{{ $t('playback.lastPlayedPosition') }}</strong> {{ formatPlaybackTime(Math.floor(lastPlaybackPosition)) }}
@@ -25,6 +45,7 @@
               </div>
             </div>
             <button @click="retryLoad" class="btn btn--primary">{{ $t('playback.retry') }}</button>
+            <FeedbackModal v-if="showRelayFeedback" @close="showRelayFeedback = false" />
           </div>
 
           <div v-else-if="playbackData" class="video-content">
@@ -632,7 +653,9 @@ import ExtractionFeaturesModal from './ExtractionFeaturesModal.vue'
 import { useShareSlideOverlay, type ShareOverlayError } from '../../composables/video/useShareSlideOverlay'
 import { hasSeenExtractionFeaturesPrompt } from '../../stores/extractionFeaturesPromptStore'
 import WatchNotesPanel from '../notes/WatchNotesPanel.vue'
+import FeedbackModal from '../FeedbackModal.vue'
 import { configStore } from '../../stores/configStore'
+import { runtimeConfigStore } from '../../stores/runtimeConfigStore'
 import { watchNotesStore } from '../../stores/watchNotesStore'
 import type { Course } from '../../composables/useCourseList'
 import { getCourseInfo, type SessionData } from '../../lib/api'
@@ -824,6 +847,7 @@ void screenVideoPlayer
 const {
   loading,
   error,
+  errorKind,
   playbackData,
   selectedStream,
   isPlaying,
@@ -841,6 +865,23 @@ const {
   dualDuration,
   dualCanSeek,
 } = videoPlayerComposable
+
+// Relay failure details, shown when the player classifies an error as the
+// public relay refusing this network (see useVideoPlayer's errorKind).
+const showRelayFeedback = ref(false)
+const relayOrigin = computed(() => runtimeConfigStore.config.value.relay.origin ?? '')
+const relayHost = computed(() => {
+  try {
+    return new URL(relayOrigin.value).host
+  } catch {
+    return relayOrigin.value
+  }
+})
+// Only name the network when we know it and it is not one the relay admits.
+const relayAsn = computed(() => {
+  const network = runtimeConfigStore.config.value.network
+  return !network.onAllowlist && typeof network.asn === 'number' ? network.asn : null
+})
 
 const {
   switchStream,
@@ -1584,6 +1625,47 @@ onUnmounted(async () => {
   justify-content: center;
   gap: 1rem;
   color: #aaaaaa;
+}
+
+/* The hint box below is a fixed width, which widens .error-details past the
+   headline's own width — so centre the headline explicitly rather than relying
+   on the flex column sizing to content. */
+.error-message {
+  text-align: center;
+}
+
+/* Sits on the always-dark player panel, like .retry-indicator below, so it
+   uses white alphas rather than theme surface tokens. */
+.error-hint {
+  max-width: 34rem;
+  margin: 0.5rem auto 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.error-hint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.625rem;
+}
+
+.error-hint-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #ffffff;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.error-hint-link:hover {
+  opacity: 0.8;
 }
 
 .video-content {

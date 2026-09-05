@@ -28,7 +28,10 @@ src/                Worker (TypeScript, Hono) — the tracked, public API
     login.ts         POST /api/login (200 | 202 sms_required | 401) and
                      POST /api/login/sms — campus SSO password login, in one
                      request or two when an SMS code is required
-    relayProxy.ts    GET /playlist|/segment — service-bind sibling relay/
+    relayProxy.ts    GET /playlist|/segment — service-bind sibling relay/,
+                     unless the relay policy sends browsers to the public relay
+    config.ts        GET /api/config — relay policy + caller's ASN, for the SPA
+    lib/relayPolicy.ts  binding-vs-direct relay policy (see below)
     shareProxy.ts    GET /api/share/get — service-bind sibling share/ (short links)
     aiProxy.ts       /api/ai/* — forward to AI_ORIGIN (strip /api/ai)
 frontend/            Vue 3 + TypeScript + Vite app — builds to ../dist/
@@ -75,13 +78,39 @@ or before today's date in `wrangler.jsonc`.
 
 Recorded video playback is same-origin (`/playlist`, `/segment`) on this
 Worker, which service-binds the sibling `relay/` Worker — see
-`../relay/README.md`. Short share links resolve same-origin at
+`../relay/README.md` and **Off-campus relaying** below. Short share links resolve same-origin at
 `GET /api/share/get?id=`, which service-binds sibling `share/` (`autoslides-share`)
 so the browser never talks to `share.ruc.edu.kg`. Builtin AI is `/api/ai/*`,
 forwarded by this Worker to `AI_ORIGIN` (a `vars` URL) with `User-Agent:
 AutoSlides/web`. Uncomment `services` / `AI_ORIGIN` in `wrangler.jsonc` after
 copying the example; unset, those routes 503. Settings → Relay Server can
 point HLS at a local `wrangler dev` of `relay/` instead.
+
+## Off-campus relaying (`RELAY_PUBLIC_ORIGIN`, `ALLOW_OFFCAMPUS_RELAY`)
+
+Reaching the relay over the `RELAY` service binding is a Worker-to-Worker hop, so
+the relay's own edge protection — in our deployment, a campus-network allowlist —
+never sees the viewer. Two `vars` decide whether that is on offer
+(`src/lib/relayPolicy.ts`):
+
+| Mode | Set | `/playlist`, `/segment` here | SPA streams from |
+|------|-----|------------------------------|------------------|
+| `direct` (default) | `RELAY_PUBLIC_ORIGIN` | **403** | that origin, so each viewer meets the relay's edge themselves |
+| `binding` | `ALLOW_OFFCAMPUS_RELAY: "true"` | proxy over the binding | this origin |
+| `binding` | neither | proxy over the binding | this origin |
+
+The 403 matters: without it, a hand-written same-origin URL (or Settings → Relay
+Server pointed back here) would walk around the gate.
+
+`GET /api/config` publishes the resolved policy to the SPA, plus the caller's own
+ASN — free from `request.cf` — so when recorded playback fails the player can say
+that this network is probably not one the relay admits, offer a link to the relay's
+connection page, and offer Feedback. It confirms that guess by fetching the relay's
+`/cf.txt` beacon without credentials (a static asset with CORS: no Worker request,
+and a challenge page has no CORS headers, so the fetch simply rejects).
+
+Keep both vars identical in `debug/wrangler.debug.jsonc` — the same rule as
+`SSO_RESUME_KEY`, since both configs deploy the same Worker.
 
 ## SMS second factor (`SSO_RESUME_KEY`)
 

@@ -1,6 +1,6 @@
 import { ref, shallowRef, computed, type Ref, type ShallowRef, type ComputedRef } from "vue";
 import Hls, { Events } from "hls.js";
-import { setupDualHlsErrorHandler } from "./useVideoErrorRecovery";
+import { attachNetworkErrorSniffer, setupDualHlsErrorHandler } from "./useVideoErrorRecovery";
 import type { VideoStream, DualAudioSource } from "./useVideoPlayer";
 
 /**
@@ -32,6 +32,8 @@ export interface DualStreamPlayerDeps {
   cleanupSingleVideoSource: () => void;
   /** Shared playback-ended handler. */
   onEnded: () => Promise<void>;
+  /** Called on any network-type HLS error, so the host can diagnose the cause. */
+  onNetworkError?: () => void;
 }
 
 export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
@@ -52,6 +54,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     handleTaskError,
     cleanupSingleVideoSource,
     onEnded,
+    onNetworkError,
   } = deps;
 
   const cameraHls = shallowRef<Hls | null>(null);
@@ -263,6 +266,8 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     hlsInstance.on(Events.MANIFEST_PARSED, () => {
       onSourceReady(video, label, seekToTime, shouldAutoPlay);
     });
+
+    if (onNetworkError) attachNetworkErrorSniffer(hlsInstance, onNetworkError);
 
     setupDualHlsErrorHandler(hlsInstance, video, label, {
       mode,

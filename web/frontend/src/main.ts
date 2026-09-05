@@ -4,6 +4,7 @@ import { i18n } from "./i18n";
 import { router } from "./router";
 import { authStore } from "./stores/authStore";
 import { initSettings } from "./stores/settingsStore";
+import { ensureRuntimeConfig } from "./stores/runtimeConfigStore";
 import "./styles/index.css";
 
 // Apply persisted theme + language and start following the OS scheme.
@@ -14,6 +15,10 @@ initSettings();
 // never auto-adopted — so the router never sees the secret in the URL. A
 // stored session is verified async; the UI shows the verifying state meanwhile.
 void authStore.initFromUrlOrStorage();
+
+// Deploy-time facts (where recorded video is relayed from). Started here so it
+// is usually settled before the first playback; recorded playback awaits it.
+void ensureRuntimeConfig();
 
 const app = createApp(App).use(i18n).use(router);
 

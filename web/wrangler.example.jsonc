@@ -47,6 +47,22 @@
     // on this host). Unset → those routes 503. The Worker sends User-Agent
     // `AutoSlides/web` on that fetch.
     // "AI_ORIGIN": "https://ai.example.com"
+
+    // Optional. Recorded-video relay policy (see src/lib/relayPolicy.ts).
+    //
+    // With RELAY_PUBLIC_ORIGIN set, the SPA streams recorded lectures straight
+    // from that origin, so each viewer meets the relay's own protection (a
+    // campus-network allowlist, in our deployment), and this Worker's
+    // /playlist + /segment answer 403.
+    //
+    // ALLOW_OFFCAMPUS_RELAY: "true" relays everyone through the RELAY binding
+    // on this Worker instead — a Worker-to-Worker hop, so the relay's edge
+    // never sees the viewer. Off by default.
+    //
+    // Neither set (the plain clone): the binding is used, exactly as before —
+    // there is no public origin to send a browser to, so there is no gate.
+    // "RELAY_PUBLIC_ORIGIN": "https://relay.example.com",
+    // "ALLOW_OFFCAMPUS_RELAY": "true"
   },
 
   // Optional same-account service bindings. Uncomment if you deploy ../relay
