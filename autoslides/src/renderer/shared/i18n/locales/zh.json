@@ -1468,14 +1468,15 @@
     "myRecordings": "我的录播",
     "featureTitleIn": "输入课程视频，",
     "featureTitleOut": "输出幻灯片。",
+    "intro": {
+      "watch": "播放一节延河课堂的课程录像",
+      "detect": "观看时自动发现每一次翻页并截取幻灯片",
+      "dedupe": "自动去掉近似重复的画面",
+      "seek": "点击任意幻灯片，视频跳到对应位置",
+      "export": "导出 PDF 或 PPTX，记录笔记，分享链接",
+      "credit": "由北京理工大学的学生倾情打造"
+    },
     "signInTo": "登录",
-    "demoWatch": "观看课程录像",
-    "demoExtract": "观看时提取幻灯片",
-    "demoDownloaded": "下载的视频",
-    "demoDownload": "下载课程视频到本地",
-    "demoWatchTimeline": "用幻灯片时间线观看课程",
-    "demoTimeline": "点幻灯片即可跳转",
-    "demoExport": "导出幻灯片、记录笔记和分享文件",
     "campusWarning": {
       "message": "当前处于内网模式，但未检测到校园网连接。你可以",
       "switchExternal": "切换到外网模式",

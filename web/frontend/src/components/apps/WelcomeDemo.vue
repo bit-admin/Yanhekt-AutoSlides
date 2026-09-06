@@ -1,8 +1,8 @@
 <template>
   <div class="hw-demo" aria-hidden="true">
     <div class="hw-hero">
-      <span class="hw-hero-in">{{ $t('home.featureTitleIn') }}</span>
-      <span class="hw-hero-out">{{ $t('home.featureTitleOut') }}</span>
+      <span class="hw-hero-in">{{ $t('apps.heroTitleIn') }}</span>
+      <span class="hw-hero-out">{{ $t('apps.heroTitleOut') }}</span>
     </div>
 
     <svg class="hw-art" viewBox="0 0 720 404" xmlns="http://www.w3.org/2000/svg">
@@ -131,12 +131,12 @@
     </svg>
 
     <div class="hw-caps">
-      <p class="hw-cap hw-cap--watch">{{ $t('home.intro.watch') }}</p>
-      <p class="hw-cap hw-cap--detect">{{ $t('home.intro.detect') }}</p>
-      <p class="hw-cap hw-cap--dedupe">{{ $t('home.intro.dedupe') }}</p>
-      <p class="hw-cap hw-cap--seek">{{ $t('home.intro.seek') }}</p>
-      <p class="hw-cap hw-cap--export">{{ $t('home.intro.export') }}</p>
-      <p class="hw-cap hw-cap--credit">{{ $t('home.intro.credit') }}</p>
+      <p class="hw-cap hw-cap--watch">{{ $t('apps.intro.watch') }}</p>
+      <p class="hw-cap hw-cap--detect">{{ $t('apps.intro.detect') }}</p>
+      <p class="hw-cap hw-cap--dedupe">{{ $t('apps.intro.dedupe') }}</p>
+      <p class="hw-cap hw-cap--seek">{{ $t('apps.intro.seek') }}</p>
+      <p class="hw-cap hw-cap--export">{{ $t('apps.intro.export') }}</p>
+      <p class="hw-cap hw-cap--credit">{{ $t('apps.intro.credit') }}</p>
     </div>
 
     <div class="hw-brand">
@@ -151,7 +151,11 @@
       </span>
       <span class="hw-brand-x">×</span>
       <span class="hw-brand-app">
-        <img class="hw-brand-app-icon" :src="autoslidesIconUrl" alt="" />
+        <svg class="hw-brand-app-icon" viewBox="0 0 30 22" fill="none" aria-hidden="true">
+          <rect width="30" height="22" rx="5" fill="#FF0000" />
+          <polygon points="12,6 20,11 12,16" fill="white" />
+          <line x1="6" y1="18" x2="24" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        </svg>
         <span class="hw-brand-app-name">AutoSlides</span>
       </span>
     </div>
@@ -159,12 +163,18 @@
 </template>
 
 <script setup lang="ts">
-import autoslidesIconUrl from '../../assets/autoslides-icon.png'
 import bitLogoUrl from '../../assets/bit-logo.svg?url'
 import bitLogoTextUrl from '../../assets/bit-logo-text.svg?url'
 import yanhektLogoUrl from '../../assets/yanhekt-logo.svg?url'
 
 /**
+ * Web copy of the Electron signed-out Home intro
+ * (autoslides/src/renderer/components/course/HomeWelcomeDemo.vue). Differences:
+ * the accent rides `--accent-deep` (the web accent is YouTube red), the
+ * AutoSlides mark is the site's play card, the logo filters are local because
+ * the web theme has no `--logo-*-filter` tokens, and the copy lives under
+ * `apps.*`.
+ *
  * One 16.6s take on a single clock (`--hw-dur`), no loop:
  *   0.0  lecture player fades in, "Lecture video in."
  *   1.5  playback: the playhead crosses the ruler while the similarity trace
@@ -237,7 +247,9 @@ const TRACE_PATH = (() => {
 <style scoped>
 .hw-demo {
   --hw-dur: 16.6s;
-  --hw-accent: var(--accent);
+  --hw-accent: var(--accent-deep);
+  --hw-logo-mono-filter: brightness(0.18);
+  --hw-logo-clip-filter: none;
   --sl-ink: var(--text-primary);
   --sl-line: var(--border-strong);
   --sl-accent: var(--hw-accent);
@@ -254,8 +266,8 @@ const TRACE_PATH = (() => {
   justify-content: center;
   column-gap: 0.35em;
   margin-bottom: 14px;
-  font-size: clamp(22px, 3.6vw, 30px);
-  font-weight: 600;
+  font-size: var(--hw-hero-size, clamp(22px, 3.6vw, 30px));
+  font-weight: var(--hw-hero-weight, 600);
   letter-spacing: -0.015em;
   line-height: 1.2;
   color: var(--text-primary);
@@ -525,7 +537,7 @@ const TRACE_PATH = (() => {
 }
 
 .hw-brand-clip--word img {
-  filter: var(--logo-clip-filter);
+  filter: var(--hw-logo-clip-filter);
   margin-left: calc(-24px * 54 / 40);
 }
 
@@ -545,7 +557,7 @@ const TRACE_PATH = (() => {
   display: block;
   height: 21px;
   width: auto;
-  filter: var(--logo-mono-filter);
+  filter: var(--hw-logo-mono-filter);
 }
 
 .hw-brand-app {
@@ -556,9 +568,8 @@ const TRACE_PATH = (() => {
 
 .hw-brand-app-icon {
   display: block;
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+  width: 30px;
+  height: 22px;
 }
 
 .hw-brand-app-name {
@@ -567,6 +578,11 @@ const TRACE_PATH = (() => {
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--text-primary);
+}
+
+html[data-theme='dark'] .hw-demo {
+  --hw-logo-mono-filter: none;
+  --hw-logo-clip-filter: brightness(0) invert(1);
 }
 
 /*

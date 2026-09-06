@@ -1468,14 +1468,15 @@
     "myRecordings": "내 녹화",
     "featureTitleIn": "강의 영상을 넣으면,",
     "featureTitleOut": "슬라이드가 나옵니다.",
+    "intro": {
+      "watch": "Yanhekt 강의 녹화를 재생하세요",
+      "detect": "시청하는 동안 슬라이드가 바뀔 때마다 자동으로 캡처합니다",
+      "dedupe": "거의 같은 캡처는 자동으로 제거됩니다",
+      "seek": "슬라이드를 클릭하면 영상의 해당 위치로 이동합니다",
+      "export": "PDF 또는 PPTX로 내보내고, 노트를 남기고, 링크로 공유하세요",
+      "credit": "베이징이공대학 학생들이 자부심을 담아 만들었습니다"
+    },
     "signInTo": "로그인",
-    "demoWatch": "강의 영상을 시청하세요",
-    "demoExtract": "시청하면서 슬라이드 추출",
-    "demoDownloaded": "다운로드한 영상",
-    "demoDownload": "강의 영상을 로컬에 다운로드하세요",
-    "demoWatchTimeline": "슬라이드 타임라인으로 강의를 시청하세요",
-    "demoTimeline": "슬라이드를 눌러 해당 위치로 이동",
-    "demoExport": "슬라이드 내보내기, 노트 작성, 파일 공유",
     "campusWarning": {
       "message": "내부 네트워크 모드가 켜져 있지만 캠퍼스 네트워크에 연결할 수 없습니다.",
       "switchExternal": "외부 네트워크로 전환",

@@ -1468,14 +1468,15 @@
     "myRecordings": "マイ録画",
     "featureTitleIn": "講義動画を入れて、",
     "featureTitleOut": "スライドが出る。",
+    "intro": {
+      "watch": "延河課堂の講義録画を再生",
+      "detect": "視聴中にスライドの切り替わりを検出して取り込み",
+      "dedupe": "ほぼ同じ画面は自動で除外",
+      "seek": "スライドをクリックすると動画のその位置へ移動",
+      "export": "PDF や PPTX に書き出し、ノートを取り、リンクで共有",
+      "credit": "北京理工大学の学生が誇りを持って開発しました"
+    },
     "signInTo": "サインイン",
-    "demoWatch": "講義映像を見る",
-    "demoExtract": "視聴しながらスライドを抽出",
-    "demoDownloaded": "ダウンロードした動画",
-    "demoDownload": "講義動画をローカルにダウンロード",
-    "demoWatchTimeline": "スライドタイムラインで講義を見る",
-    "demoTimeline": "スライドをタップしてシーク",
-    "demoExport": "スライドの書き出し、ノート、ファイル共有",
     "campusWarning": {
       "message": "内部ネットワークモードが有効ですが、学内ネットワークに接続できません。",
       "switchExternal": "外部ネットワークに切り替える",

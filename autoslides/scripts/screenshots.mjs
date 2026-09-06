@@ -620,7 +620,7 @@ async function main() {
     // explicitly and wait for the welcome block on the *shown* pane.
     await goHome()
     await win.waitForSelector('[data-mode="home"]:not(.mode-hidden) .home-welcome', { timeout: 8000 })
-    await win.evaluate(() => document.querySelector('.hw-demo')?.classList.add('hw-demo--logos'))
+    await win.evaluate(() => document.querySelector('.hw-demo')?.classList.add('hw-demo--final'))
     await win.waitForTimeout(400)
     await shot('home-signed-out')
   })

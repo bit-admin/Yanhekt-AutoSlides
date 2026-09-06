@@ -8,24 +8,28 @@
   "apps": {
     "allDownloads": "All downloads",
     "autoslides": {
-      "blurb": "The full Yanhekt client. Watch live and recorded lectures, download recordings, and extract slides while the video plays — there is no separate download step. Adds AI filtering, slide review, and PDF or PPTX export.",
-      "input": "Streams from Yanhekt"
+      "lead": "Watch Yanhekt lectures and get the slides while the video plays. Everything runs on your own machine."
     },
+    "availableFor": "Available for {platforms}.",
     "disclaimer": "AutoSlides is a third-party tool for personal study. It is not affiliated with, endorsed by, or connected to Beijing Institute of Technology.",
     "documentation": "Documentation",
     "download": "Download",
+    "downloadFor": "Download for {platform}",
+    "downloadsTitle": "Downloads",
     "errorBody": "GitHub and the mirror both failed to answer.",
-    "eyebrow": "Desktop apps",
     "extractor": {
-      "blurb": "A native tool for video you already have — screen recordings, conference talks, any MP4. Hardware decoding processes a lecture in as little as 10 seconds, then filters, crops, reviews, and exports to PDF.",
-      "input": "Reads video files"
+      "lead": "For video you already have. Hardware decoding turns a screen recording into slides in about ten seconds."
     },
-    "forYourPlatform": "For your {platform}",
-    "forkLead": "It depends on where the video comes from.",
-    "forkTitle": "Which one do you need?",
-    "heroLead": "Two desktop apps that watch a lecture for the moment the slide actually changes, and keep only those frames. Everything runs on your own machine.",
     "heroTitleIn": "Lecture video in.",
     "heroTitleOut": "Slides out.",
+    "intro": {
+      "watch": "Play a lecture recording from Yanhekt",
+      "detect": "Every slide change is spotted and captured while you watch",
+      "dedupe": "Near-duplicate captures are dropped automatically",
+      "seek": "Click any slide to jump to that moment in the video",
+      "export": "Export to PDF or PPTX, keep notes, and share a link",
+      "credit": "Proudly built by students of Beijing Institute of Technology"
+    },
     "kind": {
       "installer": "Installer",
       "package": "Package",
@@ -36,12 +40,18 @@
     "mirrorHint": "GitHub slow or unreachable? Mirror routes the same file through gh-proxy.org.",
     "mirrorTitle": "Download through gh-proxy.org",
     "openReleases": "Open releases page",
-    "otherPlatforms": "Other platforms",
+    "otherWays": "Other ways to use AutoSlides",
     "pageTitle": "Desktop Apps",
+    "readDocs": "Read documentation",
     "readmeErrorBody": "The documentation didn't load.",
     "releaseNotes": "Full notes",
     "retry": "Try again",
-    "ribbonCaption": "Only the frames where the slide changes are kept.",
+    "tiles": {
+      "web": "Web",
+      "extractor": "Extractor",
+      "github": "GitHub"
+    },
+    "versionOn": "{version}, {date}.",
     "viewOnGitHub": "GitHub",
     "whatsNew": "What's new in {version}"
   },

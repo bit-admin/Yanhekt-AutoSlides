@@ -8,24 +8,28 @@
   "apps": {
     "allDownloads": "全部下载",
     "autoslides": {
-      "blurb": "完整的延河课堂客户端。观看直播与录播、下载课程录像，并在播放的同时提取幻灯片，无需先把视频下载下来。另有 AI 过滤、幻灯片审查，以及 PDF / PPTX 导出。",
-      "input": "直接播放延河课堂"
+      "lead": "观看延河课堂的课程，视频播放的同时拿到幻灯片。全部处理都在你自己的电脑上完成。"
     },
+    "availableFor": "支持 {platforms}。",
     "disclaimer": "AutoSlides 为第三方工具，仅供个人学习之用，与北京理工大学无任何关联，亦未获其认可。",
     "documentation": "文档",
     "download": "下载",
+    "downloadFor": "下载 {platform} 版",
+    "downloadsTitle": "下载",
     "errorBody": "直连 GitHub 与镜像均无响应。",
-    "eyebrow": "桌面应用",
     "extractor": {
-      "blurb": "面向你已有的视频文件——屏幕录制、会议演讲，或任意 MP4。借助硬件解码，一节课的视频快至 10 秒即可处理完成，并支持过滤、裁剪、审查与导出 PDF。",
-      "input": "读取本地视频文件"
+      "lead": "面向你已有的视频。借助硬件解码，一段屏幕录制约十秒即可变成幻灯片。"
     },
-    "forYourPlatform": "适用于你的 {platform}",
-    "forkLead": "取决于你的视频从哪里来。",
-    "forkTitle": "你需要哪一个？",
-    "heroLead": "两款桌面应用，只在幻灯片真正切换的那一刻保留画面。全部处理都在你自己的电脑上完成。",
     "heroTitleIn": "输入课程视频，",
     "heroTitleOut": "输出幻灯片。",
+    "intro": {
+      "watch": "播放一节延河课堂的课程录像",
+      "detect": "观看时自动发现每一次翻页并截取幻灯片",
+      "dedupe": "自动去掉近似重复的画面",
+      "seek": "点击任意幻灯片，视频跳到对应位置",
+      "export": "导出 PDF 或 PPTX，记录笔记，分享链接",
+      "credit": "由北京理工大学的学生倾情打造"
+    },
     "kind": {
       "installer": "安装程序",
       "package": "软件包",
@@ -36,12 +40,18 @@
     "mirrorHint": "GitHub 太慢或无法访问？镜像会通过 gh-proxy.org 下载同一个文件。",
     "mirrorTitle": "通过 gh-proxy.org 下载",
     "openReleases": "打开 release 页面",
-    "otherPlatforms": "其他平台",
+    "otherWays": "使用 AutoSlides 的其他方式",
     "pageTitle": "桌面应用",
+    "readDocs": "查看文档",
     "readmeErrorBody": "文档未能加载。",
     "releaseNotes": "完整说明",
     "retry": "重试",
-    "ribbonCaption": "只有幻灯片发生变化的画面才会被保留。",
+    "tiles": {
+      "web": "网页版",
+      "extractor": "Extractor",
+      "github": "GitHub"
+    },
+    "versionOn": "{version}，{date}。",
     "viewOnGitHub": "GitHub",
     "whatsNew": "{version} 更新内容"
   },
