@@ -1252,7 +1252,7 @@ const confirmClearTrash = async () => {
   width: 14px;
   height: 14px;
   margin: 0;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
   cursor: pointer;
 }
 

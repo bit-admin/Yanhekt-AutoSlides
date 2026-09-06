@@ -427,7 +427,7 @@ defineExpose({
   height: 18px;
   margin: 0;
   cursor: pointer;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 .folder-item {

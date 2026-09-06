@@ -304,7 +304,7 @@
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 .prevent-sleep-control {
@@ -344,13 +344,13 @@
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 .external-link {
   color: var(--link-color);
   text-decoration: underline;
-  text-decoration-color: var(--border-strong);
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
   text-underline-offset: 2px;
   cursor: pointer;
 }
@@ -431,7 +431,7 @@
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 .downsampling-presets {

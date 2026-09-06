@@ -157,11 +157,13 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Warm paper rail, a step below the white content column, so the queue
+   cards (--bg-surface) actually read as cards. */
 .right-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-page-alt);
   color: var(--text-primary);
 }
 

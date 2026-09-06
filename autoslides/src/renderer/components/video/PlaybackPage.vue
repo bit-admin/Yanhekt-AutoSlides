@@ -1867,7 +1867,7 @@ onUnmounted(async () => {
   padding: 8px 12px;
   background-color: var(--bg-elevated);
   border-radius: 4px;
-  border-left: 3px solid var(--border-strong);
+  border: 1px solid var(--border-color);
 }
 
 .playback-position {

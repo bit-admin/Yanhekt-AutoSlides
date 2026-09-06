@@ -506,8 +506,10 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+/* Both side panels sit a step below the content column: warm paper rails
+   around a near-white page, the way Claude's desktop chrome reads. */
 .right-panel {
-  background-color: var(--bg-modal);
+  background-color: var(--bg-page-alt);
   border-left: 1px solid var(--border-color);
   flex-shrink: 0;
 }

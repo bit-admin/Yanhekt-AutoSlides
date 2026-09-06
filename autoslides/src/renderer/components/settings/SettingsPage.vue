@@ -151,7 +151,7 @@ onUnmounted(() => {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
   border-radius: 9px;
 }

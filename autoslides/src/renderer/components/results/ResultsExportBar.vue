@@ -315,7 +315,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   width: 14px;
   height: 14px;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 .reduce-config-group {
@@ -491,7 +491,7 @@ onBeforeUnmount(() => {
   height: 14px;
   margin: 0;
   cursor: pointer;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 .progress-text {

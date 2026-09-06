@@ -249,7 +249,7 @@ const apply = async () => {
   width: 13px;
   height: 13px;
   margin: 0;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
   cursor: pointer;
 }
 

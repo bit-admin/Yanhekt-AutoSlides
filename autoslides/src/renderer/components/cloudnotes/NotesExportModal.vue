@@ -197,7 +197,7 @@ defineExpose({ openFromFooter })
   flex-shrink: 0;
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
   pointer-events: none;
 }
 

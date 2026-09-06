@@ -251,7 +251,6 @@
             v-for="item in pHashExclusionList"
             :key="item.id"
             :class="['exclusion-item', {
-              'preset-item': item.isPreset,
               'disabled-item': item.isPreset && !item.isEnabled
             }]"
           >
@@ -274,22 +273,22 @@
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
               </button>
-              <button
-                @click="removeExclusionItem(item.id)"
-                :class="item.isPreset ? 'exclusion-toggle-btn' : 'exclusion-remove-btn'"
-                :title="item.isPreset ? (item.isEnabled ? $t('advanced.disableItem') : $t('advanced.enableItem')) : $t('advanced.removeItem')"
+              <!-- A preset can only be switched on or off, so it gets the
+                   checkbox that says so; only user items can be removed. -->
+              <label
+                v-if="item.isPreset"
+                class="exclusion-toggle"
+                :title="item.isEnabled ? $t('advanced.disableItem') : $t('advanced.enableItem')"
               >
-                <svg v-if="item.isPreset" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <template v-if="item.isEnabled">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M9 12l2 2 4-4"/>
-                  </template>
-                  <template v-else>
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                  </template>
-                </svg>
-                <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <input type="checkbox" :checked="item.isEnabled" @change="removeExclusionItem(item.id)" />
+              </label>
+              <button
+                v-else
+                @click="removeExclusionItem(item.id)"
+                class="exclusion-remove-btn"
+                :title="$t('advanced.removeItem')"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3,6 5,6 21,6"/>
                   <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
                 </svg>
@@ -617,7 +616,7 @@ const {
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 .verification-count-control {
@@ -673,7 +672,7 @@ const {
   cursor: pointer;
   width: 14px;
   height: 14px;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 .phase-toggle-text,
@@ -929,9 +928,6 @@ const {
   background-color: var(--bg-elevated);
 }
 
-.exclusion-item.preset-item {
-  border-left: 3px solid var(--accent);
-}
 
 .exclusion-item.disabled-item {
   opacity: 0.6;
@@ -990,7 +986,7 @@ const {
   margin-left: 8px;
 }
 
-.exclusion-edit-btn, .exclusion-remove-btn, .exclusion-toggle-btn {
+.exclusion-edit-btn, .exclusion-remove-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1023,14 +1019,21 @@ const {
   border-color: var(--danger-border);
 }
 
-.exclusion-toggle-btn {
-  color: var(--success);
+.exclusion-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
 }
 
-.exclusion-toggle-btn:hover {
-  background-color: var(--success-bg);
-  color: var(--success);
-  border-color: var(--success-border);
+.exclusion-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--control-accent);
+  cursor: pointer;
 }
 
 .exclusion-actions {

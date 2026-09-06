@@ -745,21 +745,18 @@
   </div>
 
   <div v-if="tempAiClassifierMode === 'llm'" class="advanced-setting-section">
-    <h4 class="ai-prompts-header">
-      {{ $t('advanced.ai.prompts') }}
-      <span
-        class="variant-badge"
-        :class="{ 'variant-badge-distinguish': tempDistinguishMaybeSlide }"
-      >
-        {{ tempDistinguishMaybeSlide
-          ? $t('advanced.ai.variantDistinguish')
-          : $t('advanced.ai.variantSimple') }}
-      </span>
-    </h4>
+    <h4>{{ $t('advanced.ai.prompts') }}</h4>
     <div class="setting-description ai-prompts-variant-hint">
       {{ tempDistinguishMaybeSlide
         ? $t('advanced.ai.variantDistinguishHint')
         : $t('advanced.ai.variantSimpleHint') }}
+    </div>
+    <!-- Which variant is being edited is only worth saying as the contract the
+         model has to answer with, so spell the classes out instead of tagging
+         the heading with a name the user then has to decode. -->
+    <div class="setting-description ai-prompts-contract">
+      <span>{{ $t('advanced.ai.responsesMustBe') }}</span>
+      <code v-for="name in promptClassNames" :key="name" class="json-example">{{ name }}</code>
     </div>
 
     <!-- Simple variant: slide / not_slide -->
@@ -869,13 +866,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import MlThresholdSlider from '../MlThresholdSlider.vue'
 
 const { advanced, cache, ai } = useSettingsContext()
 
 const { tempDistinguishMaybeSlide } = advanced.imageProcessing
+
+// The classification literals the prompts must produce. Not translated —
+// they are API values the model echoes back verbatim.
+const promptClassNames = computed(() =>
+  tempDistinguishMaybeSlide.value
+    ? ['slide', 'not_slide', 'may_be_slide_edit']
+    : ['slide', 'not_slide']
+)
 const { formatCacheSize } = cache
 
 const {
@@ -1559,32 +1564,18 @@ const openCopilotVerificationUrl = () => {
   margin-bottom: 16px;
 }
 
-.ai-prompts-header {
+.ai-prompts-variant-hint {
+  margin-bottom: 6px;
+}
+
+/* The classes the model must answer with — the useful half of the variant
+   badge this replaced, read as content rather than as a colored tag. */
+.ai-prompts-contract {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.variant-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  background-color: var(--badge-active-bg);
-  color: var(--badge-active-text);
-  border: 1px solid var(--badge-active-bg);
-}
-
-.variant-badge-distinguish {
-  background-color: var(--warning-bg);
-  color: var(--warning);
-  border-color: var(--warning-border);
-}
-
-.ai-prompts-variant-hint {
-  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 .ai-prompt-textarea {

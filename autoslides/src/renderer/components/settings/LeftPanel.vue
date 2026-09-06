@@ -1063,7 +1063,7 @@ defineExpose({
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: var(--accent);
+  accent-color: var(--control-accent);
 }
 
 /* Downsampling presets styles */

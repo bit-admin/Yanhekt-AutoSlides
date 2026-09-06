@@ -137,8 +137,10 @@
             >
               <div class="session-main">
                 <div class="session-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="5,3 19,12 5,21"/>
+                  <!-- Same generic-video glyph the Lectures list uses. -->
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="14" rx="2"/>
+                    <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/>
                   </svg>
                 </div>
                 <div class="session-info">
@@ -439,14 +441,11 @@ onMounted(() => {
   min-width: 0;
 }
 
+/* Bare outline glyph like every other list icon — no tinted tile around it. */
 .session-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  background-color: var(--bg-selected);
-  border-radius: 6px;
   color: var(--text-secondary);
   flex-shrink: 0;
 }
