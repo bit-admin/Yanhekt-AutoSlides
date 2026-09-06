@@ -151,8 +151,8 @@ function idxExportBarWidth(item: ShareExportItem): number {
 
 /* Destructive "Replace" — matches the Download panel's "Cancel All" outline. */
 .cn-imp-replace {
-  color: var(--danger-pink);
-  border-color: var(--danger-pink);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .cn-imp-replace:hover:not(:disabled) {

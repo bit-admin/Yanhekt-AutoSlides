@@ -185,8 +185,9 @@ function onAddAccount() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
+  background-color: var(--bg-selected);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 600;
 }

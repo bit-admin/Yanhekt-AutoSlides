@@ -467,8 +467,8 @@ watch(captureState, (val) => {
   top: -18px;
   left: 0;
   font-size: 10px;
-  color: var(--text-on-accent);
-  background-color: rgba(0, 122, 204, 0.8);
+  color: var(--text-on-fill);
+  background-color: rgba(0, 0, 0, 0.7);
   padding: 1px 5px;
   border-radius: 3px;
   white-space: nowrap;

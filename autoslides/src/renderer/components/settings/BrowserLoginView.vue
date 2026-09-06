@@ -24,7 +24,7 @@
         <span class="btn-text">{{ $t('browserLogin.refresh') }}</span>
       </button>
       <div class="control-spacer"></div>
-      <button class="btn control-btn token-btn" @click="getTokenManually" :title="$t('browserLogin.getToken')">
+      <button class="btn btn--primary control-btn token-btn" @click="getTokenManually" :title="$t('browserLogin.getToken')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -262,36 +262,8 @@ onUnmounted(() => {
   flex: 1;
 }
 
-.control-btn.close-btn {
-  background: var(--bg-surface);
-  color: var(--danger-bright);
-  border-color: var(--danger-bright);
-}
-
-.control-btn.close-btn:hover {
-  background: var(--danger-bright);
-  color: var(--text-on-accent);
-}
-
-.control-btn.close-btn svg {
-  stroke: currentColor;
-}
-
-.control-btn.token-btn {
-  background: var(--accent-deep);
-  color: var(--text-on-accent);
-  border-color: var(--accent-deep);
-}
-
-.control-btn.token-btn:hover {
-  background: var(--accent-deep-hover);
-  border-color: var(--accent-deep-hover);
-}
-
-.control-btn.token-btn svg {
-  stroke: var(--text-on-accent);
-}
-
+/* Close / Get Token are the shared .btn / .btn--primary; only Get Token is
+   filled (the one primary on this bar). */
 .control-btn svg {
   flex-shrink: 0;
 }
@@ -361,7 +333,7 @@ onUnmounted(() => {
 }
 
 .status-message.error {
-  color: var(--danger-bright);
+  color: var(--danger);
 }
 
 /* Responsive adjustments */

@@ -62,7 +62,7 @@
       <div class="actions">
         <button
           v-if="currentView === 'images'"
-          class="delete-btn"
+          class="btn btn--danger-outline delete-btn"
           @click="confirmDelete"
           :disabled="selectedActiveItems.length === 0 || isLoading"
         >
@@ -78,7 +78,7 @@
           :class="{ 'action-split-open': showRestoreMenu }"
         >
           <button
-            class="restore-btn action-split-main"
+            class="btn restore-btn action-split-main"
             @click="restoreSelected"
             :disabled="selectedRemovedItems.length === 0 || isLoading"
           >
@@ -89,7 +89,7 @@
             {{ $t('trash.restore') }}
           </button>
           <button
-            class="restore-btn action-split-toggle"
+            class="btn restore-btn action-split-toggle"
             :title="$t('trash.restoreAutoCropMoreOptions')"
             @click.stop="toggleRestoreMenu"
           >
@@ -115,7 +115,7 @@
           :class="{ 'action-split-open': showAutoCropMenu }"
         >
           <button
-            class="restore-btn auto-crop-btn action-split-main"
+            class="btn auto-crop-btn action-split-main"
             @click="handleAutoCropSelected"
             :disabled="!canAutoCropSelected || isLoading"
             :title="$t('trash.autoCropSelectedHint')"
@@ -126,7 +126,7 @@
             {{ $t('trash.autoCropSelected') }}
           </button>
           <button
-            class="restore-btn auto-crop-btn action-split-toggle"
+            class="btn auto-crop-btn action-split-toggle"
             :title="$t('trash.restoreAutoCropMoreOptions')"
             @click.stop="toggleAutoCropMenu"
           >
@@ -152,7 +152,7 @@
           :class="{ 'action-split-open': showRemoveDuplicatesMenu }"
         >
           <button
-            class="clear-btn dedup-btn action-split-main"
+            class="btn dedup-btn action-split-main"
             @click="handleRemoveDuplicates"
             :disabled="!canRemoveDuplicatesInCurrentFolder || isLoading"
             :title="$t('trash.removeDuplicatesHint')"
@@ -165,7 +165,7 @@
             {{ $t('trash.removeDuplicates') }}
           </button>
           <button
-            class="clear-btn dedup-btn action-split-toggle"
+            class="btn dedup-btn action-split-toggle"
             :title="$t('trash.restoreAutoCropMoreOptions')"
             @click.stop="toggleRemoveDuplicatesMenu"
           >
@@ -187,7 +187,7 @@
 
         <button
           v-if="currentView === 'folders'"
-          class="notes-btn"
+          class="btn notes-btn"
           :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value || cloudStorage.blocked.value"
           :title="cloudStorageBlockedTip"
           @click="onImportToNotes"
@@ -200,7 +200,7 @@
 
         <button
           v-if="currentView === 'folders'"
-          class="notes-btn"
+          class="btn notes-btn"
           :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value || cloudStorage.blocked.value"
           :title="cloudStorageBlockedTip"
           @click="onPublishToIndex"
@@ -215,7 +215,7 @@
 
         <button
           v-if="currentView === 'folders'"
-          class="delete-btn"
+          class="btn btn--danger-outline delete-btn"
           :disabled="!canClearSelectedFolders || isLoading || isGenerating"
           @click="handleClearSelectedFolders"
         >
@@ -226,7 +226,7 @@
         </button>
 
         <button
-          class="clear-btn"
+          class="btn clear-btn"
           @click="confirmClearTrash"
           :disabled="!canClearTrash || isLoading || isGenerating"
         >
@@ -1040,15 +1040,20 @@ const confirmClearTrash = async () => {
 .actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   row-gap: 6px;
 }
 
 /* Inline filter select — auto width instead of the shared full width */
+/* A native <select> sizes itself to its widest <option>; cap it so the
+   Reason filter (widest option "AI filtered (edit)") doesn't push the
+   action row onto a second line at normal window widths. */
 .filter-select {
   width: auto;
+  max-width: 132px;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .filter-group {
@@ -1066,30 +1071,23 @@ const confirmClearTrash = async () => {
 /* back/refresh use the shared .btn (base, :hover, :disabled all from
    components.css); svg.spinning rotation is shared too (.spinning). */
 
-.delete-btn,
+/* Toolbar actions are all the shared hairline .btn (Delete adds
+   .btn--danger-outline for a red label). Verbs are not color-coded. */
 .restore-btn,
+.auto-crop-btn,
+.dedup-btn,
 .notes-btn,
 .clear-btn {
-  display: flex;
-  align-items: center;
   gap: 5px;
   padding: 6px 10px;
-  border: none;
-  border-radius: 4px;
-  color: var(--text-on-accent);
-  font-size: 12px;
+  color: var(--text-primary);
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
 }
 
-.notes-btn {
-  background-color: var(--accent);
-}
-
-.notes-btn:hover:not(:disabled) {
-  background-color: var(--accent-hover);
+.delete-btn {
+  gap: 5px;
+  padding: 6px 10px;
+  font-weight: 500;
 }
 
 .actions-divider {
@@ -1099,56 +1097,7 @@ const confirmClearTrash = async () => {
   flex-shrink: 0;
 }
 
-.delete-btn {
-  background-color: var(--danger-strong);
-}
-
-.delete-btn:hover:not(:disabled) {
-  background-color: var(--danger-strong-hover);
-}
-
-.restore-btn {
-  background-color: var(--success-strong);
-}
-
-.restore-btn:hover:not(:disabled) {
-  background-color: var(--success-strong-hover);
-}
-
-.auto-crop-btn {
-  background-color: var(--accent);
-}
-
-.auto-crop-btn:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-}
-
-.clear-btn {
-  background-color: var(--neutral-strong);
-}
-
-.clear-btn:hover:not(:disabled) {
-  background-color: var(--neutral-strong-hover);
-}
-
-.dedup-btn {
-  background-color: var(--warning-strong);
-}
-
-.dedup-btn:hover:not(:disabled) {
-  background-color: var(--warning-strong-hover);
-}
-
-.delete-btn:disabled,
-.restore-btn:disabled,
-.clear-btn:disabled {
-  color: rgba(255, 255, 255, 0.55);
-  cursor: not-allowed;
-}
-
-/* Matches the shared .btn:disabled / Make PDF look (full-button fade) rather
-   than the text-only fade above — these buttons sit right next to Make PDF in
-   Select mode and are disabled far more often (whenever it's off). */
+/* Disabled: the shared .btn:disabled full-button fade. */
 .notes-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -1205,8 +1154,8 @@ const confirmClearTrash = async () => {
 .action-split-toggle {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 0 7px;
+  border-left: none;
+  padding: 0 5px;
   min-width: auto;
   display: inline-flex;
   align-items: center;
@@ -1221,36 +1170,25 @@ const confirmClearTrash = async () => {
   border-bottom-right-radius: 0;
 }
 
+/* Split-button menus are ordinary dropdown sheets: elevated surface,
+   hairline, shadow — not a continuation of a colored fill. */
 .action-split-menu {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background-color: var(--success-strong);
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
+  background-color: var(--bg-modal);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px var(--shadow-md);
   z-index: var(--z-overlay);
   overflow: hidden;
 }
 
-.action-split-auto-crop .action-split-menu {
-  background-color: var(--accent);
-}
-
-.action-split-auto-crop .action-split-menu-item:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-}
-
 .action-split-dedup .action-split-menu {
-  background-color: var(--warning-strong);
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-}
-
-.action-split-dedup .action-split-menu-item:hover:not(:disabled) {
-  background-color: var(--warning-strong-hover);
 }
 
 .action-split-dedup .action-split-menu-wide {
@@ -1271,19 +1209,19 @@ const confirmClearTrash = async () => {
   border: none;
   padding: 6px 10px;
   cursor: pointer;
-  color: var(--text-on-accent);
+  color: var(--text-primary);
 }
 
 .action-split-menu-item + .action-split-menu-item {
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  border-top: 1px solid var(--border-color);
 }
 
 .action-split-menu-item:hover:not(:disabled) {
-  background-color: var(--success-strong-hover);
+  background-color: var(--bg-hover);
 }
 
 .action-split-menu-item:disabled {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
@@ -1300,13 +1238,13 @@ const confirmClearTrash = async () => {
   gap: 6px;
   min-height: 30px;
   padding: 6px 10px;
-  color: var(--text-on-accent);
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .action-split-checkbox:hover {
-  background-color: var(--warning-strong-hover);
+  background-color: var(--bg-hover);
 }
 
 .action-split-checkbox input {

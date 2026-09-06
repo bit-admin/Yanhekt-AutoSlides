@@ -23,13 +23,18 @@
         <svg
           v-if="group.courseKey !== 'unrecognised'"
           class="course-icon"
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
           aria-hidden="true"
         >
-          <path d="M8 2L1 6l7 4 7-4L8 2z"/>
-          <path d="M4 7.5v4c0 1.2 1.8 2 4 2s4-.8 4-2v-4L8 10.5 4 7.5z"/>
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
         </svg>
         <span class="course-name">
           {{ group.courseKey === 'unrecognised' ? $t('lectures.unrecognised') : group.courseName }}
@@ -67,10 +72,21 @@
           />
         </div>
 
-        <div class="folder-icon" :class="iconClass(item.videoType)">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/>
-            <path d="M10 9l5 3-5 3V9z" fill="currentColor"/>
+        <!-- Stream type is said by the glyph (camera / monitor, as on the
+             Session page), not by a color. -->
+        <div class="folder-icon">
+          <svg v-if="item.videoType === 'camera'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <svg v-else-if="item.videoType === 'screen'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2"/>
+            <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/>
           </svg>
         </div>
 
@@ -126,7 +142,6 @@
 
 <script setup lang="ts">
 import type { LectureCourseGroup } from '@features/lectures/useLecturesPage'
-import type { LectureVideoType } from '@common/lectureVideoNaming'
 import EmptySetState from '../shell/EmptySetState.vue'
 
 const props = defineProps<{
@@ -159,11 +174,6 @@ const isGroupPartiallySelected = (group: LectureCourseGroup) => {
   return count > 0 && count < group.items.length
 }
 
-const iconClass = (type?: LectureVideoType) => {
-  if (type === 'screen') return 'folder-icon--screen'
-  if (type === 'camera') return 'folder-icon--camera'
-  return ''
-}
 </script>
 
 <style scoped>
@@ -204,20 +214,14 @@ const iconClass = (type?: LectureVideoType) => {
   flex-shrink: 0;
 }
 
-.course-icon path:first-child {
-  fill: var(--accent-strong);
-}
-
-.course-icon path:last-child {
-  fill: var(--accent);
+.course-icon {
+  color: var(--text-secondary);
 }
 
 .course-name {
   font-size: 13px;
-  font-weight: 700;
-  color: var(--link-color);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-primary);
   line-height: 1;
   white-space: nowrap;
   max-width: 60%;
@@ -327,15 +331,7 @@ const iconClass = (type?: LectureVideoType) => {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  color: var(--text-muted);
-}
-
-.folder-icon--screen {
-  color: var(--accent);
-}
-
-.folder-icon--camera {
-  color: var(--warning);
+  color: var(--text-secondary);
 }
 
 .folder-copy {
@@ -412,16 +408,11 @@ const iconClass = (type?: LectureVideoType) => {
   white-space: nowrap;
 }
 
-.meta-badge--screen {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--badge-active-bg, var(--bg-subtle));
-}
-
+.meta-badge--screen,
 .meta-badge--camera {
-  border-color: var(--warning);
-  color: var(--warning);
-  background: var(--warning-bg, var(--bg-subtle));
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+  background: var(--bg-selected);
 }
 
 .meta-badge--compressed {

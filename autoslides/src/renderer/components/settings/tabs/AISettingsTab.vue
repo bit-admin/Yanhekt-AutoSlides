@@ -1185,7 +1185,7 @@ const openCopilotVerificationUrl = () => {
 
 .copilot-disconnect-btn:hover {
   background-color: var(--danger);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
 }
 
 .copilot-auth-section {
@@ -1201,7 +1201,7 @@ const openCopilotVerificationUrl = () => {
   padding: 7px 14px;
   border: 1px solid var(--brand-github);
   background-color: var(--brand-github);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
   font-size: 12px;
   font-weight: 500;
   border-radius: 6px;
@@ -1250,7 +1250,7 @@ const openCopilotVerificationUrl = () => {
   border: 1px solid var(--danger-border);
   border-radius: 4px;
   font-size: 12px;
-  color: var(--danger-bright);
+  color: var(--danger);
 }
 
 .copilot-waiting {
@@ -1335,7 +1335,7 @@ const openCopilotVerificationUrl = () => {
 
 .copilot-cancel-btn:hover {
   background-color: var(--bg-hover);
-  color: var(--danger-bright);
+  color: var(--danger);
 }
 
 .copilot-model-setting {
@@ -1479,7 +1479,7 @@ const openCopilotVerificationUrl = () => {
 
 .model-chain-remove-btn:hover:not(:disabled) {
   background: var(--danger-bg);
-  color: var(--danger-bright);
+  color: var(--danger);
   border-color: var(--danger-border);
 }
 
@@ -1661,7 +1661,7 @@ const openCopilotVerificationUrl = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--danger-bright);
+  color: var(--danger);
   font-size: 13px;
 }
 

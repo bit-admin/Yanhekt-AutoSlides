@@ -184,35 +184,7 @@ const removeTask = (taskId: string) => {
   gap: 8px;
 }
 
-.clear-btn {
-  color: var(--text-secondary);
-  border-color: var(--text-secondary);
-}
-
-.clear-btn:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--text-secondary);
-}
-
-.start-btn {
-  color: var(--success);
-  border-color: var(--success);
-}
-
-.start-btn:hover:not(:disabled) {
-  background-color: var(--success-bg);
-  border-color: var(--success);
-}
-
-.pause-btn {
-  color: var(--warning);
-  border-color: var(--warning);
-}
-
-.pause-btn:hover {
-  background-color: var(--warning-bg);
-  border-color: var(--warning);
-}
+/* Start / Pause / Clear are plain hairline .btn — the icon says which. */
 
 .task-queue {
   display: flex;
@@ -243,27 +215,16 @@ const removeTask = (taskId: string) => {
   transition: all 0.2s;
 }
 
-.task-item-wrapper:hover .task-item {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
-}
-
-.task-item-wrapper.row-highlight .task-item {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
-}
-
-.task-item-wrapper:hover .post-process-affiliated-panel {
-  border-color: var(--accent);
-}
-
-.task-item-wrapper.row-highlight .post-process-affiliated-panel {
-  border-color: var(--accent);
-}
-
+.task-item-wrapper:hover .task-item,
+.task-item-wrapper.row-highlight .task-item,
 .task-item:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px var(--shadow-sm);
+}
+
+.task-item-wrapper:hover .post-process-affiliated-panel,
+.task-item-wrapper.row-highlight .post-process-affiliated-panel {
+  border-color: var(--border-strong);
 }
 
 .item-status {
@@ -307,7 +268,7 @@ const removeTask = (taskId: string) => {
 .cancel-item-btn {
   width: 24px;
   height: 24px;
-  color: var(--danger-pink);
+  color: var(--danger);
 }
 
 .cancel-item-btn:hover {

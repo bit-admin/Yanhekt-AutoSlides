@@ -192,7 +192,7 @@ watch([isLoggedIn, userId], ([loggedIn]) => {
   background-color: var(--danger-bg);
   border: 1px solid var(--danger-border);
   border-radius: 4px;
-  color: var(--danger-bright);
+  color: var(--danger);
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -250,8 +250,8 @@ watch([isLoggedIn, userId], ([loggedIn]) => {
 }
 
 .course-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px var(--shadow-sm);
 }
 
 .course-status {

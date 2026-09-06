@@ -2,7 +2,7 @@
   <div class="session-page">
     <div class="header">
       <div class="header-main">
-        <button @click="goBack" class="btn btn--ghost back-btn">
+        <button @click="goBack" class="btn back-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
@@ -89,30 +89,43 @@
 
         <div v-else class="sessions-container">
           <div class="batch-actions">
+            <!-- [verb] label [target]: the leading glyph is the action (+ / download),
+                 the trailing glyph is where it lands (Task queue / camera / screen).
+                 The same pairs repeat per row below, so the row icons need no labels. -->
             <button @click="addAllToQueue" class="btn batch-btn add-all-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14,2 14,8 20,8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <line x1="10" y1="9" x2="8" y2="9"/>
+              <svg class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"/>
               </svg>
-              {{ $t('sessions.addAllToTasks') }}
+              <span class="batch-label">{{ $t('sessions.addAllToTasks') }}</span>
+              <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 11l3 3 8-8"/>
+                <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+              </svg>
             </button>
             <button @click="downloadAllCamera" class="btn batch-btn download-camera-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7,10 12,15 17,10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span class="batch-label">{{ $t('sessions.downloadAllCamera') }}</span>
+              <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
-              {{ $t('sessions.downloadAllCamera') }}
             </button>
             <button @click="downloadAllScreen" class="btn batch-btn download-screen-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7,10 12,15 17,10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span class="batch-label">{{ $t('sessions.downloadAllScreen') }}</span>
+              <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                 <line x1="8" y1="21" x2="16" y2="21"/>
                 <line x1="12" y1="17" x2="12" y2="21"/>
               </svg>
-              {{ $t('sessions.downloadAllScreen') }}
             </button>
           </div>
           <div class="sessions-list custom-scrollbar">
@@ -144,23 +157,36 @@
                 </div>
               </div>
               <div class="session-actions">
-                <button @click.stop="addToQueue(session)" class="action-btn add-btn" :title="$t('sessions.addToTask')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14,2 14,8 20,8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <line x1="10" y1="9" x2="8" y2="9"/>
+                <!-- [+ ✓] : add to the Task queue -->
+                <button @click.stop="addToQueue(session)" class="action-btn action-pair add-btn" :title="$t('sessions.addToTask')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M9 11l3 3 8-8"/>
+                    <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
                   </svg>
                 </button>
-                <button @click.stop="downloadCamera(session)" class="action-btn camera-btn" :title="$t('sessions.downloadCamera')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <!-- [⤓ 📷] : download the camera stream -->
+                <button @click.stop="downloadCamera(session)" class="action-btn action-pair camera-btn" :title="$t('sessions.downloadCamera')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
                 </button>
-                <button @click.stop="downloadScreen(session)" class="action-btn screen-btn" :title="$t('sessions.downloadScreen')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <!-- [⤓ 🖥] : download the screen stream -->
+                <button @click.stop="downloadScreen(session)" class="action-btn action-pair screen-btn" :title="$t('sessions.downloadScreen')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                     <line x1="8" y1="21" x2="16" y2="21"/>
                     <line x1="12" y1="17" x2="12" y2="21"/>
@@ -310,7 +336,7 @@ onMounted(() => {
 }
 
 .pin-btn.active {
-  color: var(--accent);
+  color: var(--text-primary);
 }
 
 .course-details {
@@ -401,8 +427,8 @@ onMounted(() => {
 }
 
 .session-item:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px var(--shadow-sm);
 }
 
 .session-main {
@@ -419,9 +445,9 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background-color: var(--badge-active-bg);
+  background-color: var(--bg-selected);
   border-radius: 6px;
-  color: var(--accent);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -452,7 +478,7 @@ onMounted(() => {
 }
 
 .session-time {
-  color: var(--accent);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -470,87 +496,77 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-/* Soft tonal chips: tinted fill, neutral hairline border (color carried by the
-   fill), solid colored fill on hover */
+/* Three equal hairline buttons laid out [verb] label [target]: the glyphs
+   sit at the edges, the label stays centered. */
 .batch-btn {
   flex: 1;
+  display: grid;
+  grid-template-columns: 16px 1fr 16px;
+  align-items: center;
+  gap: 10px;
   min-height: 38px;
+  padding: 0 12px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
+  color: var(--text-primary);
   font-weight: 500;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.add-all-btn {
-  color: var(--success);
-  background-color: var(--success-bg);
+.batch-label {
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.add-all-btn:hover {
-  background-color: var(--success);
-  border-color: var(--success);
-  color: var(--text-on-accent);
+.batch-lead,
+.batch-trail {
+  color: var(--text-secondary);
 }
 
-.download-camera-btn {
-  color: var(--accent);
-  background-color: var(--badge-active-bg);
+.batch-btn:hover .batch-lead,
+.batch-btn:hover .batch-trail {
+  color: var(--text-primary);
 }
 
-.download-camera-btn:hover {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-on-accent);
-}
-
-.download-screen-btn {
-  color: var(--purple);
-  background-color: var(--purple-badge-bg);
-}
-
-.download-screen-btn:hover {
-  background-color: var(--purple);
-  border-color: var(--purple);
-  color: var(--text-on-accent);
-}
-
+/* Row actions are three [verb target] chips: [+ ✓] [⤓ 📷] [⤓ 🖥], echoing
+   the batch buttons above ([+] Add All to Tasks [✓], …). */
 .session-actions {
-  width: 108px;
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
-/* Quiet monochrome icon buttons: grey at rest, tint to their color on hover */
 .action-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: 0;
   background-color: transparent;
   color: var(--text-muted);
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
 }
 
-.add-btn:hover {
-  background-color: var(--success-bg);
-  color: var(--success);
+.action-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
-.camera-btn:hover {
-  background-color: var(--badge-active-bg);
-  color: var(--accent);
-}
-
-.screen-btn:hover {
-  background-color: var(--purple-hover-bg);
-  color: var(--purple);
+/* Two-glyph chip: verb glyph, then target glyph */
+.action-pair {
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-surface);
 }
 
 .error-message {

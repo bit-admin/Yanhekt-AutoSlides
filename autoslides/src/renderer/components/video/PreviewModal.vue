@@ -101,18 +101,18 @@ defineEmits<{
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid var(--text-secondary);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--text-secondary);
-  color: var(--text-on-accent);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .modal-close-btn:hover {
-  background-color: var(--text-muted);
-  border-color: var(--text-muted);
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .modal-body {

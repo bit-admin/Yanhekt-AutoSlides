@@ -166,7 +166,7 @@
   cursor: pointer;
   transition: all 0.2s;
   background: var(--brand-github);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
 }
 
 .installer-modal .download-btn:hover {
@@ -174,11 +174,14 @@
 }
 
 .installer-modal .download-btn.secondary {
-  background: var(--accent);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-input);
+  color: var(--text-primary);
 }
 
 .installer-modal .download-btn.secondary:hover {
-  background: var(--accent-hover);
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .installer-modal .download-btn svg {
@@ -207,7 +210,7 @@
 
 .installer-modal .progress-percent {
   font-size: 12px;
-  color: var(--accent);
+  color: var(--text-primary);
   font-weight: 600;
 }
 

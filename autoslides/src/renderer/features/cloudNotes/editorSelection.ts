@@ -15,8 +15,8 @@ const EDITORJS_BLOCK = '#e1f2ff'
 // Colors come from theme.css tokens (light + dark defined there); this module
 // only turns them into the literals Chromium requires inside ::selection.
 function colors(): { inline: string; block: string; fg: string } {
-  const bg = themeToken('--editor-selection-bg') || '#b5d4f5'
-  const fg = themeToken('--editor-selection-fg') || '#1a1a1a'
+  const bg = themeToken('--editor-selection-bg') || '#d9d9de'
+  const fg = themeToken('--editor-selection-fg') || '#1c1c1e'
   return { inline: bg, block: bg, fg }
 }
 

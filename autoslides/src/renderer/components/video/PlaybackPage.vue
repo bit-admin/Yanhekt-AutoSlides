@@ -2,7 +2,7 @@
   <div class="playback-page" :class="{ 'cinema-mode': isCinemaMode }">
     <div class="header">
       <div class="header-main">
-        <button @click="goBack" class="btn btn--ghost back-btn" :disabled="shouldDisableControls">
+        <button @click="goBack" class="btn back-btn" :disabled="shouldDisableControls">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
@@ -575,7 +575,7 @@
                 <button
                   v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
                   @click="clearAllSlides"
-                  class="btn btn--danger"
+                  class="btn btn--danger-outline"
                   :title="$t('playback.clearAllTip')"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1760,8 +1760,8 @@ onUnmounted(async () => {
   gap: 4px;
   margin-top: 4px;
   padding: 2px 6px;
-  background-color: var(--success);
-  color: var(--text-on-accent);
+  background-color: var(--success-bg);
+  color: var(--success);
   font-size: 12px;
   border-radius: 4px;
   width: fit-content;
@@ -1785,7 +1785,7 @@ onUnmounted(async () => {
 .download-btn:hover:not(:disabled),
 .refresh-btn:hover:not(:disabled),
 .expand-btn:hover {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
   background-color: var(--bg-hover);
 }
 
@@ -1847,7 +1847,7 @@ onUnmounted(async () => {
 }
 
 .error-state svg {
-  color: var(--danger-bright);
+  color: var(--danger);
 }
 
 .error-details {
@@ -1867,7 +1867,7 @@ onUnmounted(async () => {
   padding: 8px 12px;
   background-color: var(--bg-elevated);
   border-radius: 4px;
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--border-strong);
 }
 
 .playback-position {
@@ -1960,7 +1960,7 @@ onUnmounted(async () => {
   gap: 6px;
   padding: 6px 12px;
   background-color: rgba(220, 53, 69, 0.9);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
@@ -1981,7 +1981,7 @@ onUnmounted(async () => {
   gap: 12px;
   padding: 12px 20px;
   background-color: rgba(0, 0, 0, 0.8);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
@@ -2056,7 +2056,7 @@ onUnmounted(async () => {
   padding: 4px 8px;
   border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.65);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
   font-size: 12px;
   font-weight: 600;
 }
@@ -2288,7 +2288,7 @@ onUnmounted(async () => {
   gap: 8px;
   padding: 6px 12px;
   background-color: var(--badge-active-bg);
-  border: 1px solid var(--accent-deep);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--accent);
   font-size: 14px;

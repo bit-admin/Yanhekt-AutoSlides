@@ -3,7 +3,7 @@
     <div class="section-header">
       <h3>{{ $t('downloads.downloadList') }}</h3>
       <div class="queue-controls">
-        <button @click="cancelAllDownloads" class="btn btn--sm cancel-all-btn" title="Cancel All">
+        <button @click="cancelAllDownloads" class="btn btn--sm btn--danger-outline cancel-all-btn" title="Cancel All">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -239,25 +239,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   gap: 8px;
 }
 
-.cancel-all-btn {
-  color: var(--danger-pink);
-  border-color: var(--danger-pink);
-}
-
-.cancel-all-btn:hover {
-  background-color: var(--danger-bg);
-  border-color: var(--danger-hover);
-}
-
-.clear-btn {
-  color: var(--text-secondary);
-  border-color: var(--text-secondary);
-}
-
-.clear-btn:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--text-secondary);
-}
+/* Cancel All is the shared .btn--danger-outline; Clear is a plain .btn. */
 
 .download-queue {
   display: flex;
@@ -297,14 +279,10 @@ const extractionBarWidth = (item: DownloadItem): number => {
   transition: all 0.2s;
 }
 
-.download-item.row-highlight {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
-}
-
+.download-item.row-highlight,
 .download-item:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px var(--shadow-sm);
 }
 
 .item-status {
@@ -315,8 +293,8 @@ const extractionBarWidth = (item: DownloadItem): number => {
    (components.css). The downloading (pulse) + processing (spin) variants below
    are specific to the download queue. */
 .status-indicator.status-downloading {
-  color: var(--accent);
-  background-color: var(--badge-active-bg);
+  color: var(--text-primary);
+  background-color: var(--bg-selected);
   animation: pulse 2s infinite;
 }
 
@@ -414,7 +392,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 .ext-status-pending .ext-name { color: var(--text-muted); }
 .ext-status-completed .ext-name { color: var(--success); }
 .ext-status-error .ext-name,
-.ext-status-cancelled .ext-name { color: var(--danger-pink); }
+.ext-status-cancelled .ext-name { color: var(--danger); }
 
 .item-actions {
   flex-shrink: 0;
@@ -423,7 +401,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 .cancel-item-btn {
   width: 24px;
   height: 24px;
-  color: var(--danger-pink);
+  color: var(--danger);
 }
 
 .cancel-item-btn:hover {

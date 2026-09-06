@@ -593,8 +593,9 @@ defineExpose({
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
+  background-color: var(--bg-selected);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -848,7 +849,7 @@ defineExpose({
 
 .nav-search:focus-within,
 .nav-search.active {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .nav-search-icon {
@@ -899,13 +900,15 @@ defineExpose({
   background-color: var(--bg-hover);
 }
 
+/* Selected = a neutral wash + heavier ink (Finder sidebar), not a blue pill. */
 .nav-item.active {
-  background-color: var(--badge-active-bg);
-  color: var(--accent);
+  background-color: var(--bg-selected);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .nav-item.active:hover {
-  background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-hover));
+  background-color: color-mix(in srgb, var(--text-primary) 10%, var(--bg-hover));
 }
 
 .nav-item-icon {
@@ -1005,12 +1008,13 @@ defineExpose({
 
 /* Same active treatment as .nav-item.active (settings page is a real nav target). */
 .panel-action-button.active {
-  background-color: var(--badge-active-bg);
-  color: var(--accent);
+  background-color: var(--bg-selected);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .panel-action-button.active:hover {
-  background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-hover));
+  background-color: color-mix(in srgb, var(--text-primary) 10%, var(--bg-hover));
 }
 
 .panel-action-button.active .panel-action-icon {

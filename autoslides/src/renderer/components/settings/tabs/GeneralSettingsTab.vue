@@ -11,7 +11,7 @@
           class="text-input directory-input"
           :title="outputDirectory"
         />
-        <button @click="selectOutputDirectory" class="btn btn--primary">{{ $t('settings.browse') }}</button>
+        <button @click="selectOutputDirectory" class="btn">{{ $t('settings.browse') }}</button>
       </div>
     </div>
 
@@ -96,7 +96,7 @@
             <circle cx="12" cy="12" r="3"/>
           </svg>
         </button>
-        <button @click="verifyManualToken" :disabled="!manualToken || isVerifyingManualToken" class="btn btn--success">
+        <button @click="verifyManualToken" :disabled="!manualToken || isVerifyingManualToken" class="btn">
           {{ isVerifyingManualToken ? $t('advanced.verifying') : $t('advanced.verify') }}
         </button>
       </div>
@@ -167,7 +167,7 @@
         <button
           @click="clearCache"
           :disabled="isClearingCache || cacheStats.totalSize === 0"
-          class="btn btn--warning"
+          class="btn"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
@@ -180,7 +180,7 @@
         <button
           @click="resetAllData"
           :disabled="isResettingData"
-          class="btn btn--danger"
+          class="btn btn--danger-outline"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -285,7 +285,7 @@ const {
 
 .token-input {
   flex: 1;
-  font-family: 'Courier New', monospace;
+  font-family: ui-monospace, Menlo, monospace;
 }
 
 .token-status {
@@ -304,7 +304,7 @@ const {
 
 .token-status.error {
   background-color: var(--danger-bg);
-  color: var(--danger-bright);
+  color: var(--danger);
   border: 1px solid var(--danger-border);
 }
 
@@ -334,7 +334,7 @@ const {
 .cache-stat-value {
   color: var(--text-primary);
   font-weight: 600;
-  font-family: 'Courier New', monospace;
+  font-family: ui-monospace, Menlo, monospace;
 }
 
 .cache-actions {
@@ -365,7 +365,7 @@ const {
 
 .cache-status.error {
   background-color: var(--danger-bg);
-  color: var(--danger-bright);
+  color: var(--danger);
   border: 1px solid var(--danger-border);
 }
 

@@ -251,15 +251,18 @@
 }
 
 .preset-btn:hover {
-  background-color: var(--bg-elevated);
-  border-color: var(--accent);
-  color: var(--accent);
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
+/* Selected preset: raised paper (surface + shadow), not a filled slab. */
 .preset-btn.active {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-on-accent);
+  background-color: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .auto-post-processing-control {
@@ -274,7 +277,7 @@
 
 .auto-post-processing-control:hover {
   background-color: var(--bg-hover);
-  border-color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .auto-post-processing-control .checkbox-label {
@@ -317,7 +320,7 @@
 
 .prevent-sleep-control:hover {
   background-color: var(--bg-hover);
-  border-color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .prevent-sleep-control .checkbox-label {
@@ -346,14 +349,18 @@
 
 .external-link {
   color: var(--link-color);
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 2px;
   cursor: pointer;
 }
 
 .external-link:hover {
-  text-decoration: underline;
+  text-decoration-color: currentColor;
 }
 
+/* Segmented mode switch: the selected segment is raised paper on the
+   elevated track (macOS segmented control), never a filled slab. */
 .mode-btn {
   flex: 1;
   padding: 6px 8px;
@@ -368,12 +375,15 @@
 
 .mode-btn:hover {
   background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .mode-btn.active {
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  border-color: var(--accent);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  font-weight: 600;
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .downsampling-controls {
@@ -397,7 +407,7 @@
 
 .downsampling-control:hover {
   background-color: var(--bg-hover);
-  border-color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .downsampling-control .checkbox-label {

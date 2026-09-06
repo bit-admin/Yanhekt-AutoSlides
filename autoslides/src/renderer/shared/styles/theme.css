@@ -2,6 +2,15 @@
  * Shared theme tokens. Variables are declared on :root with light defaults
  * and overridden under prefers-color-scheme: dark. Component styles consume
  * these tokens so dark mode is automatic — no per-component media queries.
+ *
+ * Palette: "ink on paper", warm. Chrome is warm off-white / graphite / stone
+ * (a faint paper cast, never cool zinc, which reads as desaturated); --accent IS the
+ * ink (text-primary), so the one filled primary button, selection rings,
+ * progress, and focus borders are all monochrome. Color is reserved for
+ * content and status: --danger (errors, Live dot, Removed, destructive
+ * confirm), --success / --warning as status text + notice tint only, and
+ * --illustration-accent for the Home intro drawing. Never introduce a hue
+ * as a button fill or a "verb color".
  */
 
 :root {
@@ -15,60 +24,49 @@
      by construction. */
   --control-height: 30px;
 
-  /* Surfaces */
-  --bg-page: #f5f5f5;
-  --bg-page-alt: #f0f0f0;
-  --bg-surface: #ffffff;
-  --bg-elevated: #f8f9fa;
-  --bg-subtle: #fafafa;
-  --bg-modal: #ffffff;
+  /* Surfaces (paper) */
+  --bg-page: #f4f3ee;
+  --bg-page-alt: #edece6;
+  --bg-surface: #fcfbf8;
+  --bg-elevated: #f3f2ec;
+  --bg-subtle: #f8f7f3;
+  --bg-modal: #fdfcfa;
   --bg-input: #ffffff;
-  --bg-input-disabled: #f8f9fa;
-  --bg-hover: #e9ecef;
-  --bg-card: #ffffff;
+  --bg-input-disabled: #f3f2ec;
+  --bg-hover: #ebeae3;
+  --bg-card: #fdfcfa;
+  /* Selection wash: active nav / tab, selected card flood, neutral chips.
+     Translucent so it also reads on the macOS vibrancy sidebar. */
+  --bg-selected: rgba(48, 44, 36, 0.07);
 
-  /* Text */
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --text-muted: #999999;
+  /* Text (ink + graphite) */
+  --text-primary: #2a2926;
+  --text-secondary: #6b6963;
+  --text-muted: #9c9a92;
+  /* Text on an --accent fill. Flips with the theme (the primary button is
+     ink-on-paper in light, paper-on-ink in dark). */
   --text-on-accent: #ffffff;
-  --text-warning: #856404;
+  /* Text on a fill that is dark in BOTH themes: --danger, --brand-github,
+     black video scrims. Fixed white — never use --text-on-accent there. */
+  --text-on-fill: #ffffff;
+  --text-warning: #7a4b06;
 
-  /* Borders */
-  --border-color: #e0e0e0;
-  --border-strong: #adb5bd;
-  --border-input: #dddddd;
+  /* Borders (hairline) */
+  --border-color: #e7e5de;
+  --border-strong: #cfccc3;
+  --border-input: #dcdad2;
 
-  /* Accents */
-  --accent: #007acc;
-  --accent-hover: #0056b3;
-  --accent-strong: #005a9e;
-  --accent-deep: #007acc;
-  --accent-deep-hover: #0056b3;
+  /* Accent = ink. Primary fill, selection ring, progress, focus border. */
+  --accent: #2a2926;
+  --accent-hover: #161512;
 
-  /* Status */
-  --danger: #d32f2f;
-  --danger-hover: #b71c1c;
-  --danger-bright: #d32f2f;
-  --danger-pink: #d32f2f;
-  --success: #2e7d32;
-  --success-hover: #1b5e20;
-  --warning: #ed6c02;
-  --warning-btn: #ffc107;
-  --warning-btn-hover: #e0a800;
-
-  /* Solid action-button colors (white text on a saturated fill — e.g. Results
-     View delete/restore/dedup). Dark values are only moderately deepened so
-     white text keeps >=4.5:1 contrast; they are NOT the bright --danger/
-     --warning status hues, which white text would fail against. */
-  --danger-strong: #d9534f;
-  --danger-strong-hover: #c43d39;
-  --success-strong: #2c7a51;
-  --success-strong-hover: #236341;
-  --warning-strong: #9a6a14;
-  --warning-strong-hover: #81570f;
-  --neutral-strong: #6c757d;
-  --neutral-strong-hover: #5b646b;
+  /* Status. Text, dots, rings, and notice tints — not button fills, except
+     --danger inside a confirm footer. */
+  --danger: #d0342c;
+  --danger-hover: #b02820;
+  --success: #1f8f4e;
+  --success-hover: #17703d;
+  --warning: #b8700e;
 
   /* Overlays. --overlay-dark/-light swap with the theme (dimming scrims that
      sit on app surfaces). --overlay-scrim / --overlay-lightbox are fixed in
@@ -82,84 +80,76 @@
   /* Editor.js text selection. Chromium drops var() inside ::selection, so
      editorSelection.ts reads these tokens and injects literal colors; keep
      the light/dark pairs here, not in component CSS. */
-  --editor-selection-bg: #b5d4f5;
-  --editor-selection-fg: #1a1a1a;
-  --editor-selection-block-bg: color-mix(in srgb, var(--accent) 30%, transparent);
+  --editor-selection-bg: #dddbd3;
+  --editor-selection-fg: #2a2926;
+  --editor-selection-block-bg: rgba(48, 44, 36, 0.1);
 
   /* Brand lockups that must flip between dark-on-light and light-on-dark. */
   --logo-mono-filter: brightness(0.18);
   --logo-clip-filter: none;
 
   /* Scrollbar */
-  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+  --scrollbar-thumb: rgba(40, 36, 30, 0.18);
+  --scrollbar-thumb-hover: rgba(40, 36, 30, 0.28);
 
   /* Shadows */
-  --shadow-sm: rgba(0, 0, 0, 0.08);
-  --shadow-md: rgba(0, 0, 0, 0.12);
+  --shadow-sm: rgba(40, 36, 30, 0.07);
+  --shadow-md: rgba(40, 36, 30, 0.11);
   --shadow-lg: rgba(0, 0, 0, 0.2);
 
-  /* Badges */
-  --badge-active-bg: #e7f3ff;
-  --badge-active-text: #1768a8;
-  --badge-cropped-bg: #edf0f3;
-  --badge-cropped-text: #58616b;
-  --badge-removed-bg: #ffe8e6;
-  --badge-removed-text: #b63a30;
-  --badge-version-bg: #007acc;
-  --badge-version-text: #ffffff;
+  /* Badges. Everything but Removed is one neutral chip; the word carries
+     the meaning. */
+  --badge-active-bg: var(--bg-selected);
+  --badge-active-text: var(--text-primary);
+  --badge-cropped-bg: var(--bg-selected);
+  --badge-cropped-text: var(--text-secondary);
+  --badge-removed-bg: #fdecea;
+  --badge-removed-text: #b02820;
+  --badge-version-bg: var(--bg-elevated);
+  --badge-version-text: var(--text-primary);
 
-  /* Status backgrounds/borders */
-  --danger-bg: #ffe8e6;
-  --danger-border: #feb2b2;
-  --success-bg: #f0fff4;
-  --success-border: #9ae6b4;
-  --warning-bg: #fff8e1;
+  /* Status backgrounds/borders (notice tints, hover washes) */
+  --danger-bg: #fdecea;
+  --danger-border: #f3b8b3;
+  --success-bg: #eaf6ee;
+  --success-border: #b5dfc3;
+  --warning-bg: #fff6e5;
+  --warning-border: #f3ddb0;
 
-  /* Purple buttons (screen/download) */
-  --purple: #6f42c1;
-  --purple-hover-bg: #f3e5f5;
-  --purple-hover-border: #59359a;
-
-  /* Purple badge (network type) */
-  --purple-badge-bg: #f3e5f5;
-  --purple-badge-text: #7b1fa2;
-
-  /* Blue badge (network type) */
-  --blue-badge-bg: #e3f2fd;
-  --blue-badge-text: #1976d2;
-  --warning-border: #ffeaa7;
-
-  /* Reason badges (Results View trash chips) */
-  --reason-duplicate-bg: #fff2cc;
-  --reason-duplicate-text: #8a5b00;
-  --reason-exclusion-bg: #ede7ff;
-  --reason-exclusion-text: #6546c2;
-  --reason-ai-bg: #dff7ea;
-  --reason-ai-text: #257550;
-  --reason-ai-edit-bg: #fff3d6;
-  --reason-ai-edit-text: #955800;
+  /* Reason badges (Slides trash chips) — neutral; see Badges. */
+  --reason-duplicate-bg: var(--bg-selected);
+  --reason-duplicate-text: var(--text-secondary);
+  --reason-exclusion-bg: var(--bg-selected);
+  --reason-exclusion-text: var(--text-secondary);
+  --reason-ai-bg: var(--bg-selected);
+  --reason-ai-text: var(--text-secondary);
+  --reason-ai-edit-bg: var(--bg-selected);
+  --reason-ai-edit-text: var(--text-secondary);
 
   /* Form controls */
-  --focus-ring: rgba(0, 122, 204, 0.1);
-  --link-color: #007acc;
+  --focus-ring: rgba(48, 44, 36, 0.08);
+  --link-color: var(--text-primary);
 
   /* Hover tint (semi-transparent overlays for hover/active states) */
-  --hover-tint: rgba(0, 0, 0, 0.05);
-  --hover-tint-strong: rgba(0, 0, 0, 0.1);
+  --hover-tint: rgba(48, 44, 36, 0.05);
+  --hover-tint-strong: rgba(48, 44, 36, 0.1);
 
   /* Sidebar glass tint painted over macOS window vibrancy (main window left
      panel only; opaque platforms never see it) */
-  --bg-sidebar-glass: rgba(246, 246, 246, 0.15);
+  --bg-sidebar-glass: rgba(244, 243, 238, 0.2);
 
   /* GitHub brand (intentionally theme-independent: dark button, white text) */
   --brand-github: #24292e;
   --brand-github-hover: #1a1e22;
 
-  /* Queue status border-left colors (theme-independent semantic indicators) */
-  --status-queued: #9e9e9e;
-  --status-active: #9acd32;
-  --status-error: #ff9800;
+  /* Illustration-only hue: the Home intro drawing keeps its highlight
+     strokes chromatic so they read against the ink lines. Never chrome. */
+  --illustration-accent: #007acc;
+
+  /* Queue status border-left colors */
+  --status-queued: var(--border-strong);
+  --status-active: var(--text-primary);
+  --status-error: var(--danger);
 
   /* Z-index scale. --z-raised/--z-float are in-component layers (badges,
      hover chrome inside a card); --z-player-* is the lecture/playback overlay
@@ -182,66 +172,50 @@
     color-scheme: dark;
 
     /* Surfaces */
-    --bg-page: #1a1a1a;
-    --bg-page-alt: #222222;
-    --bg-surface: #1e1e1e;
-    --bg-elevated: #252525;
-    --bg-subtle: #252525;
-    --bg-modal: #2d2d2d;
-    --bg-input: #2d2d2d;
-    --bg-input-disabled: #2d2d2d;
-    --bg-hover: #353535;
-    --bg-card: #2d2d2d;
+    --bg-page: #1b1a18;
+    --bg-page-alt: #201f1c;
+    --bg-surface: #222220;
+    --bg-elevated: #2a2926;
+    --bg-subtle: #262522;
+    --bg-modal: #2c2b28;
+    --bg-input: #2a2926;
+    --bg-input-disabled: #242320;
+    --bg-hover: #33322e;
+    --bg-card: #2a2926;
+    --bg-selected: rgba(255, 250, 240, 0.09);
 
     /* Text */
-    --text-primary: #e0e0e0;
-    --text-secondary: #b0b0b0;
-    --text-muted: #888888;
-    --text-on-accent: #ffffff;
-    --text-warning: #d4b942;
+    --text-primary: #ecebe6;
+    --text-secondary: #aaa89f;
+    --text-muted: #7f7d75;
+    --text-on-accent: #111114;
+    --text-on-fill: #ffffff;
+    --text-warning: #e8c26a;
 
     /* Borders */
-    --border-color: #404040;
-    --border-strong: #555555;
-    --border-input: #404040;
+    --border-color: #34332f;
+    --border-strong: #4d4b45;
+    --border-input: #3d3c37;
 
-    /* Accents */
-    --accent: #4a9eff;
-    --accent-hover: #0080ff;
-    --accent-strong: #4da6ff;
-    --accent-deep: #2563eb;
-    --accent-deep-hover: #1d4ed8;
+    /* Accent = ink (paper-colored in dark) */
+    --accent: #ecebe6;
+    --accent-hover: #ffffff;
 
     /* Status */
-    --danger: #ef5350;
-    --danger-hover: #e53935;
-    --danger-bright: #ff6b6b;
-    --danger-pink: #f48fb1;
-    --success: #66bb6a;
-    --success-hover: #4caf50;
-    --warning: #ffa726;
-    --warning-btn: #f39c12;
-    --warning-btn-hover: #e67e22;
-
-    /* Solid action-button colors — deepened (not brightened) so white text
-       stays legible against dark surfaces. */
-    --danger-strong: #c0392b;
-    --danger-strong-hover: #a93226;
-    --success-strong: #2f8a5b;
-    --success-strong-hover: #246b48;
-    --warning-strong: #a87714;
-    --warning-strong-hover: #8f6310;
-    --neutral-strong: #7d868d;
-    --neutral-strong-hover: #6b747b;
+    --danger: #f0625a;
+    --danger-hover: #f47a73;
+    --success: #5cc27a;
+    --success-hover: #75d08f;
+    --warning: #e8a33d;
 
     /* Overlays (scrim / lightbox stay fixed — see light block) */
     --overlay-dark: rgba(0, 0, 0, 0.7);
     --overlay-light: rgba(255, 255, 255, 0.15);
 
-    /* Editor.js selection — opaque stand-ins for rgba(91,157,255,0.38) over the dark surface */
-    --editor-selection-bg: #3a5d88;
-    --editor-selection-fg: #f2f5f8;
-    --editor-selection-block-bg: rgba(91, 157, 255, 0.38);
+    /* Editor.js selection — opaque stand-ins over the dark surface */
+    --editor-selection-bg: #4d4b45;
+    --editor-selection-fg: #ecebe6;
+    --editor-selection-block-bg: rgba(255, 250, 240, 0.16);
 
     --logo-mono-filter: none;
     --logo-clip-filter: brightness(0) invert(1);
@@ -251,60 +225,32 @@
     --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
 
     /* Shadows */
-    --shadow-sm: rgba(0, 0, 0, 0.2);
-    --shadow-md: rgba(0, 0, 0, 0.3);
+    --shadow-sm: rgba(0, 0, 0, 0.25);
+    --shadow-md: rgba(0, 0, 0, 0.35);
     --shadow-lg: rgba(0, 0, 0, 0.5);
 
     /* Badges */
-    --badge-active-bg: #1a3a5c;
-    --badge-active-text: #6cb4ee;
-    --badge-cropped-bg: #2d3748;
-    --badge-cropped-text: #a0aec0;
-    --badge-removed-bg: #5c2020;
-    --badge-removed-text: #feb2b2;
-    --badge-version-bg: #4a9eff;
-    --badge-version-text: #ffffff;
+    --badge-removed-bg: #4a1f1c;
+    --badge-removed-text: #f5a39d;
 
     /* Status backgrounds/borders */
-    --danger-bg: #5c2020;
-    --danger-border: #c53030;
-    --success-bg: #1a4a2e;
-    --success-border: #276749;
-    --warning-bg: #4a3800;
-
-    /* Purple buttons (screen/download) */
-    --purple: #cc99ff;
-    --purple-hover-bg: #2d1a3d;
-    --purple-hover-border: #d9b3ff;
-
-    /* Purple badge (network type) */
-    --purple-badge-bg: #2d1b2e;
-    --purple-badge-text: #ba68c8;
-
-    /* Blue badge (network type) */
-    --blue-badge-bg: #1a2332;
-    --blue-badge-text: #64b5f6;
-    --warning-border: #665c2a;
-
-    /* Reason badges (Results View trash chips) */
-    --reason-duplicate-bg: #4a3a10;
-    --reason-duplicate-text: #f0c674;
-    --reason-exclusion-bg: #2d1b3d;
-    --reason-exclusion-text: #c4a5f0;
-    --reason-ai-bg: #1a4a2e;
-    --reason-ai-text: #9ae6b4;
-    --reason-ai-edit-bg: #4a3a00;
-    --reason-ai-edit-text: #e6c860;
+    --danger-bg: #4a1f1c;
+    --danger-border: #8a3a34;
+    --success-bg: #173a25;
+    --success-border: #2b6a42;
+    --warning-bg: #3f2f0e;
+    --warning-border: #6b5320;
 
     /* Hover tint */
     --hover-tint: rgba(255, 255, 255, 0.08);
     --hover-tint-strong: rgba(255, 255, 255, 0.15);
 
     /* Sidebar glass tint */
-    --bg-sidebar-glass: rgba(30, 30, 30, 0.25);
+    --bg-sidebar-glass: rgba(30, 29, 27, 0.25);
+
+    --illustration-accent: #4a9eff;
 
     /* Form controls */
-    --focus-ring: rgba(74, 158, 255, 0.15);
-    --link-color: #4a9eff;
+    --focus-ring: rgba(255, 250, 240, 0.12);
   }
 }

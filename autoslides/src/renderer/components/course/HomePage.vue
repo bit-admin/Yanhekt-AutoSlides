@@ -691,8 +691,8 @@ onMounted(() => {
 }
 
 .saved-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px var(--shadow-sm);
 }
 
 .saved-icon {
@@ -702,32 +702,16 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: var(--badge-active-bg);
-  color: var(--accent);
+  background: var(--bg-selected);
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
-/* Mode color coding: live = yellow, recorded = blue */
-.saved-card--live .saved-icon {
-  background: var(--warning-bg);
-  color: var(--warning);
-}
-
+/* Mode is carried by the icon + the mode word. Only "Live" keeps a hue — the
+   red word is the LED. */
 .saved-card--live .saved-mode {
-  color: var(--warning);
-}
-
-.saved-card--live:hover {
-  border-color: var(--warning);
-}
-
-.saved-card--recorded .saved-icon {
-  background: var(--blue-badge-bg);
-  color: var(--blue-badge-text);
-}
-
-.saved-card--recorded .saved-mode {
-  color: var(--blue-badge-text);
+  color: var(--danger);
+  font-weight: 500;
 }
 
 .saved-text {
@@ -853,7 +837,7 @@ onMounted(() => {
 
 .saved-remove:hover {
   background: var(--danger);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
 }
 
 /* Personal rows: single-row horizontal scroll */
@@ -883,8 +867,8 @@ onMounted(() => {
 }
 
 .preview-card:hover .preview-thumb {
-  border-color: var(--accent);
-  box-shadow: 0 4px 14px var(--focus-ring);
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px var(--shadow-sm);
 }
 
 .preview-img {
@@ -920,7 +904,7 @@ onMounted(() => {
   justify-content: center;
   padding-left: 2px;
   background: var(--overlay-dark);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
   pointer-events: none;
   transition: transform 0.2s;
 }
@@ -943,7 +927,7 @@ onMounted(() => {
 
 .preview-badge--id {
   background: var(--overlay-dark);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
   text-transform: none;
 }
 

@@ -237,7 +237,7 @@ const TRACE_PATH = (() => {
 <style scoped>
 .hw-demo {
   --hw-dur: 16.6s;
-  --hw-accent: var(--accent);
+  --hw-accent: var(--illustration-accent);
   --sl-ink: var(--text-primary);
   --sl-line: var(--border-strong);
   --sl-accent: var(--hw-accent);

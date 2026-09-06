@@ -956,8 +956,8 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 }
 
 .menu-option:hover:not(.disabled) {
-  background-color: var(--accent);
-  color: var(--text-on-accent);
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .menu-option.disabled {
@@ -983,7 +983,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 }
 
 .menu-option:hover:not(.disabled) .shortcut {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-secondary);
 }
 
 .menu-option--submenu {
@@ -997,7 +997,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 }
 
 .menu-option--submenu:hover .menu-option-chevron {
-  color: var(--text-on-accent);
+  color: var(--text-primary);
 }
 
 .dropdown-submenu {
@@ -1087,8 +1087,9 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 }
 
 .tab-chip.active {
-  background-color: var(--focus-ring);
-  color: var(--accent);
+  background-color: var(--bg-selected);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .tab-chip svg {
@@ -1113,7 +1114,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 }
 
 .tab-chip-dot.mode-recorded {
-  background-color: var(--accent);
+  background-color: var(--text-muted);
 }
 
 .tab-chip-close {
@@ -1259,8 +1260,9 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 
 /* Active state matches the Tools window tabs (.toolwin-tab.active) */
 .view-tab.active {
-  background-color: var(--focus-ring);
-  color: var(--accent);
+  background-color: var(--bg-selected);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .view-tab svg {
@@ -1307,12 +1309,12 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 
 .control-button.close:hover {
   background: #c42b1c;
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
 }
 
 .control-button.close:active {
   background: #a23216;
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
 }
 
 .control-button svg {

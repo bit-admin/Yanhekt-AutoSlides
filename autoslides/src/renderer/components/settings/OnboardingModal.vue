@@ -676,7 +676,7 @@ const onSignInBrowserLogin = () => {
   padding: 8px 14px;
   border: 1px solid var(--brand-github);
   background-color: var(--brand-github);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
   font-size: 12px;
   font-weight: 500;
   border-radius: 6px;
@@ -786,7 +786,7 @@ const onSignInBrowserLogin = () => {
 .copilot-error-text {
   margin: 8px 0 0;
   font-size: 12px;
-  color: var(--danger-bright);
+  color: var(--danger);
 }
 
 .ai-configure-later {

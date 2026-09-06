@@ -61,7 +61,7 @@ defineEmits<{
 }
 
 .slide-thumbnail:hover {
-  border-color: var(--accent);
+  border-color: var(--border-strong);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px var(--shadow-md);
 }
@@ -96,7 +96,7 @@ defineEmits<{
 .slide-title {
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -107,20 +107,20 @@ defineEmits<{
   color: rgba(255, 255, 255, 0.8);
 }
 
+/* Quiet scrim button at rest; red only while the pointer is on it. */
 .delete-btn {
   padding: 4px;
   border: none;
   border-radius: 4px;
-  background-color: rgba(220, 53, 69, 0.8);
-  color: var(--text-on-accent);
+  background-color: rgba(0, 0, 0, 0.55);
+  color: var(--text-on-fill);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   flex-shrink: 0;
 }
 
 .delete-btn:hover {
-  background-color: rgba(220, 53, 69, 1);
-  transform: scale(1.1);
+  background-color: var(--danger);
 }
 
 @media (max-width: 768px) {

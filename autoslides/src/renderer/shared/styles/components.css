@@ -91,10 +91,12 @@
   border-color: var(--accent-hover);
 }
 
+/* Filled destructive: only inside a confirm footer (the dialog that asks
+   "really delete?"). Page-level destructive actions use --danger-outline. */
 .btn--danger {
   background-color: var(--danger);
   border-color: var(--danger);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
 }
 
 .btn--danger:hover:not(:disabled) {
@@ -102,49 +104,18 @@
   border-color: var(--danger-hover);
 }
 
-.btn--success {
-  background-color: var(--success);
-  border-color: var(--success);
-  color: var(--text-on-accent);
-}
-
-.btn--success:hover:not(:disabled) {
-  background-color: var(--success-hover);
-  border-color: var(--success-hover);
-}
-
-.btn--warning {
-  background-color: var(--warning-btn);
-  border-color: var(--warning-btn);
-  color: var(--text-primary);
-}
-
-.btn--warning:hover:not(:disabled) {
-  background-color: var(--warning-btn-hover);
-  border-color: var(--warning-btn-hover);
-}
-
+/* Hairline destructive: a normal button whose label is red. */
 .btn--danger-outline {
-  background-color: var(--danger-bg);
-  border: 1px solid var(--danger-border);
   color: var(--danger);
 }
 
 .btn--danger-outline:hover:not(:disabled) {
-  background-color: var(--danger-border);
-  color: var(--text-on-accent);
+  background-color: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
-.btn--success-outline {
-  background-color: var(--success-bg);
-  border: 1px solid var(--success-border);
-  color: var(--success);
-}
-
-.btn--success-outline:hover:not(:disabled) {
-  background-color: var(--success-border);
-  color: var(--text-on-accent);
-}
+/* No --success / --warning button variants: verbs are not color-coded. */
 
 .btn--ghost {
   background: transparent;
@@ -215,8 +186,9 @@
 
 .badge--version {
   background-color: var(--badge-version-bg);
+  border: 1px solid var(--border-color);
   color: var(--badge-version-text);
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 16px;
   font-size: 14px;
 }
@@ -340,9 +312,9 @@
 }
 
 .toolwin-tab.active {
-  background-color: var(--focus-ring);
-  color: var(--accent);
-  font-weight: 500;
+  background-color: var(--bg-selected);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 /* === Tool-window controls (Windows minimize/maximize/close) === */
@@ -373,7 +345,7 @@
 
 .win-btn--close:hover {
   background-color: var(--danger);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
 }
 
 /* === Spinner === */
@@ -479,7 +451,7 @@
 }
 
 .status-indicator.status-error {
-  color: var(--danger-pink);
+  color: var(--danger);
   background-color: var(--danger-bg);
 }
 

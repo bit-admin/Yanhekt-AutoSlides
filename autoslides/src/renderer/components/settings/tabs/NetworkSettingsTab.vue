@@ -361,14 +361,10 @@ const statusClass = computed(() => {
   line-height: 1;
 }
 
-.type-badge.single {
-  background-color: var(--blue-badge-bg);
-  color: var(--blue-badge-text);
-}
-
+.type-badge.single,
 .type-badge.loadbalance {
-  background-color: var(--purple-badge-bg);
-  color: var(--purple-badge-text);
+  background-color: var(--bg-selected);
+  color: var(--text-secondary);
 }
 
 .mapping-expand-icon {
@@ -560,8 +556,8 @@ const statusClass = computed(() => {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  background-color: var(--blue-badge-bg);
-  color: var(--blue-badge-text);
+  background-color: var(--bg-selected);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 

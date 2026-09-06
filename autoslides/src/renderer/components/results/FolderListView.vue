@@ -22,9 +22,9 @@
           @click.stop
           @change="emitSelectCourse(group.folderNames)"
         />
-        <svg class="course-icon" width="16" height="16" viewBox="0 0 16 16">
-          <path d="M8 2L1 6l7 4 7-4L8 2z"/>
-          <path d="M4 7.5v4c0 1.2 1.8 2 4 2s4-.8 4-2v-4L8 10.5 4 7.5z"/>
+        <svg class="course-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
         </svg>
         <span class="course-name">{{ group.courseName }}</span>
         <span
@@ -82,9 +82,8 @@
         </div>
 
         <div class="folder-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24">
-            <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
-            <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
           </svg>
         </div>
 
@@ -346,13 +345,14 @@ defineExpose({
   flex-shrink: 0;
 }
 
-/* Two-tone course glyph, themed via accent tokens so it adapts to dark mode. */
-.course-icon path:first-child {
-  fill: var(--accent-strong);
+/* Course = the sidebar's pinned-course book, same stroke family. */
+.course-icon {
+  color: var(--text-secondary);
 }
 
-.course-icon path:last-child {
-  fill: var(--accent);
+/* Outline folder in the same stroke family as the sidebar icons. */
+.folder-icon svg {
+  color: var(--text-secondary);
 }
 
 .course-chevron {
@@ -373,10 +373,8 @@ defineExpose({
 
 .course-name {
   font-size: 13px;
-  font-weight: 700;
-  color: var(--link-color);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-primary);
   line-height: 1;
   white-space: nowrap;
   max-width: 60%;

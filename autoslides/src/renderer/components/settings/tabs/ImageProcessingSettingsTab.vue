@@ -303,7 +303,7 @@
         <button
           @click="addExclusionItem"
           :disabled="isAddingExclusion"
-          class="btn btn--success exclusion-add-btn"
+          class="btn exclusion-add-btn"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"/>
@@ -314,7 +314,7 @@
         <button
           v-if="pHashExclusionList.length > 0"
           @click="clearExclusionList"
-          class="btn btn--warning exclusion-clear-btn"
+          class="btn exclusion-clear-btn"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
@@ -1004,23 +1004,23 @@ const {
 }
 
 .exclusion-edit-btn {
-  color: var(--accent);
+  color: var(--text-secondary);
 }
 
 .exclusion-edit-btn:hover {
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  border-color: var(--accent);
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
 }
 
 .exclusion-remove-btn {
-  color: var(--danger-bright);
+  color: var(--danger);
 }
 
 .exclusion-remove-btn:hover {
-  background-color: var(--danger);
-  color: var(--text-on-accent);
-  border-color: var(--danger);
+  background-color: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger-border);
 }
 
 .exclusion-toggle-btn {
@@ -1028,9 +1028,9 @@ const {
 }
 
 .exclusion-toggle-btn:hover {
-  background-color: var(--success);
-  color: var(--text-on-accent);
-  border-color: var(--success);
+  background-color: var(--success-bg);
+  color: var(--success);
+  border-color: var(--success-border);
 }
 
 .exclusion-actions {

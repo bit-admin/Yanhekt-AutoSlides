@@ -174,9 +174,10 @@ onUnmounted(() => {
 }
 
 .settings-segment-btn.active {
-  background-color: var(--bg-elevated);
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .settings-body {

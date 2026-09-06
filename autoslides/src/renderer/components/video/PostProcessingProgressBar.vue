@@ -215,7 +215,7 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
 .pp-cancel-overlay:hover:not(:disabled) {
   background-color: var(--danger);
   border-color: var(--danger);
-  color: var(--text-on-accent);
+  color: var(--text-on-fill);
 }
 
 .pp-cancel-overlay:disabled {
