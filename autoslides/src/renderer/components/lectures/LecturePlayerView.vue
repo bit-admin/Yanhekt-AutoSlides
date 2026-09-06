@@ -222,6 +222,29 @@
                 <path d="M13 6v12l8.5-6L13 6zM12.5 12L4 6v12l8.5-6z"/>
               </svg>
             </button>
+
+            <!-- Named chapter toggle. A bare 18px glyph off in transport-right
+                 said nothing about what it opened; this names the chapter you
+                 are on and gives the control a real hit area. -->
+            <button
+              v-if="hasChapters"
+              class="chapter-trigger"
+              :class="{ 'is-open': slidesStripOpen }"
+              type="button"
+              :aria-expanded="slidesStripOpen"
+              :title="$t('playback.slideChapters')"
+              @click="toggleSlidesStrip"
+            >
+              <svg class="chapter-trigger-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="12" rx="2"/>
+                <path d="M7 20h10"/>
+                <path d="M8 8h5M8 11h8"/>
+              </svg>
+              <span class="chapter-trigger-label">{{ chapterTriggerLabel }}</span>
+              <svg class="chapter-trigger-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
           </div>
 
           <div class="transport-right">
@@ -401,23 +424,6 @@
               </svg>
             </button>
 
-            <!-- Toggle slide chapter strip (only when a matching timeline exists) -->
-            <button
-              v-if="hasChapters"
-              class="dual-icon-button"
-              type="button"
-              :class="{ 'is-active-control': slidesStripOpen }"
-              @click="toggleSlidesStrip"
-              :title="$t('playback.slideChapters')"
-              :aria-pressed="slidesStripOpen"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="12" rx="2"/>
-                <path d="M7 20h10"/>
-                <path d="M8 8h5M8 11h8"/>
-              </svg>
-            </button>
-
             <button
               class="dual-icon-button"
               type="button"
@@ -534,6 +540,15 @@ const {
 const slidesStripOpen = ref(true)
 watch(hasChapters, (available) => {
   if (available) slidesStripOpen.value = true
+})
+
+// Name the chapter being watched, as the strip card does; before the first one
+// resolves there is nothing to name, so fall back to the generic label.
+const chapterTriggerLabel = computed(() => {
+  const active = chapters.value.find(c => c.id === activeChapterId.value)
+  return active
+    ? t('playback.slideOrdinal', { number: String(active.index + 1).padStart(2, '0') })
+    : t('playback.slideChapters')
 })
 
 const rootEl = ref<HTMLElement | null>(null)
@@ -1078,9 +1093,65 @@ const onKeydown = (event: KeyboardEvent) => {
   color: rgba(255, 255, 255, 0.92);
 }
 
-.dual-icon-button.is-active-control {
-  color: var(--accent, #3b82f6);
+/* Named chapter toggle in the transport row (fixed-dark chrome: white ink,
+   white alphas — never theme tokens, which flip with the app theme). */
+.chapter-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  min-height: 28px;
+  margin-left: 4px;
+  padding: 4px 8px 4px 10px;
+  border: none;
+  border-radius: 100px;
   background: rgba(255, 255, 255, 0.12);
+  color: var(--text-on-fill);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chapter-trigger:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Open state has to stay legible as a state AND still answer a hover, so it
+   sits a step above the resting fill and lifts again on its own hover. */
+.chapter-trigger.is-open {
+  background: rgba(255, 255, 255, 0.26);
+}
+
+.chapter-trigger.is-open:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.chapter-trigger-icon,
+.chapter-trigger-chevron {
+  flex-shrink: 0;
+}
+
+.chapter-trigger-chevron {
+  opacity: 0.7;
+  transition: transform 0.18s ease;
+}
+
+/* Points down while the strip it discloses is showing. */
+.chapter-trigger.is-open .chapter-trigger-chevron {
+  transform: rotate(90deg);
+}
+
+.chapter-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dual-icon-button.is-active-control {
+  color: var(--text-on-fill);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .stage:fullscreen {

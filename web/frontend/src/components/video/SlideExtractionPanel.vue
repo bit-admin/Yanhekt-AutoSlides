@@ -1,114 +1,121 @@
 <template>
   <div class="slide-extraction-panel">
     <div class="extraction-header">
-      <label
-        class="extraction-toggle"
-        :class="{ enabled: enabled && !shareOverlay, disabled: toggleDisabled }"
-        @click.prevent="onToggleClick"
-      >
-        <input
-          type="checkbox"
-          :checked="enabled && !shareOverlay"
-          :disabled="toggleDisabled"
-          tabindex="-1"
-        />
-        <span class="toggle-slider"></span>
-        <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
-      </label>
+      <!-- Status group: toggle + live counter, kept together as one unit. -->
+      <div class="extraction-status">
+        <label
+          class="extraction-toggle"
+          :class="{ enabled: enabled && !shareOverlay, disabled: toggleDisabled }"
+          @click.prevent="onToggleClick"
+        >
+          <input
+            type="checkbox"
+            :checked="enabled && !shareOverlay"
+            :disabled="toggleDisabled"
+            tabindex="-1"
+          />
+          <span class="toggle-slider"></span>
+          <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
+        </label>
 
-      <div class="slide-counter" :class="{ active: enabled || shareOverlay }">
-        <svg class="counter-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-          <circle cx="9" cy="9" r="2"/>
-          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-        </svg>
-        <span class="counter-text">
-          <strong class="count-num">{{ slides.length }}</strong> {{ $t('playback.slides') }}
-          <span v-if="shareOverlay" class="counter-status-pill">{{ $t('playback.shared') }}</span>
-          <span v-else-if="enabled" class="counter-status-pill">{{ $t('playback.extracted') }}</span>
-        </span>
-        <span
-          v-if="enabled && !shareOverlay && status.verificationState === 'verifying'"
-          class="verification-dot"
-          :title="`${status.currentVerification}`"
-        ></span>
+        <div class="slide-counter" :class="{ active: enabled || shareOverlay }">
+          <svg class="counter-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="9" cy="9" r="2"/>
+            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+          </svg>
+          <span class="counter-text">
+            <strong class="count-num">{{ slides.length }}</strong> {{ $t('playback.slides') }}
+            <span v-if="shareOverlay" class="counter-status-pill">{{ $t('playback.shared') }}</span>
+            <span v-else-if="enabled" class="counter-status-pill">{{ $t('playback.extracted') }}</span>
+          </span>
+          <span
+            v-if="enabled && !shareOverlay && status.verificationState === 'verifying'"
+            class="verification-dot"
+            :title="`${status.currentVerification}`"
+          ></span>
+        </div>
       </div>
 
-      <button
-        v-if="slides.length > 0 && !shareOverlay"
-        class="btn btn--sm btn-postprocess"
-        :class="{ 'btn--primary': postStatus?.state !== 'running', 'is-processing': isPostProcessing }"
-        :disabled="isPostProcessing"
-        :title="$t('playback.postProcess')"
-        @click="$emit('postProcess')"
-      >
-        <svg v-if="!isPostProcessing" class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-          <path d="m2 17 10 5 10-5"/>
-          <path d="m2 12 10 5 10-5"/>
-        </svg>
-        <span v-else class="processing-spinner"></span>
-        <span>{{ isPostProcessing ? $t('playback.postProcessing') : $t('playback.postProcess') }}</span>
-      </button>
+      <!-- Action group: wraps to its own full-width row on narrow screens
+           instead of one button dangling right of the counter. -->
+      <div class="extraction-actions">
+        <button
+          v-if="slides.length > 0 && !shareOverlay"
+          class="btn btn--sm btn-postprocess"
+          :class="{ 'btn--primary': postStatus?.state !== 'running', 'is-processing': isPostProcessing }"
+          :disabled="isPostProcessing"
+          :title="$t('playback.postProcess')"
+          @click="$emit('postProcess')"
+        >
+          <svg v-if="!isPostProcessing" class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="m2 17 10 5 10-5"/>
+            <path d="m2 12 10 5 10-5"/>
+          </svg>
+          <span v-else class="processing-spinner"></span>
+          <span>{{ isPostProcessing ? $t('playback.postProcessing') : $t('playback.postProcess') }}</span>
+        </button>
 
-      <button
-        v-if="showShare"
-        type="button"
-        class="btn btn--sm share-link-btn"
-        :disabled="shareBusy"
-        :title="shareOverlay ? $t('playback.clearSharedSlides') : $t('playback.loadFromLinkHint')"
-        @click="shareOverlay ? $emit('clearShare') : $emit('loadShare')"
-      >
-        <svg
-          v-if="!shareOverlay"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+        <button
+          v-if="showShare"
+          type="button"
+          class="btn btn--sm share-link-btn"
+          :disabled="shareBusy"
+          :title="shareOverlay ? $t('playback.clearSharedSlides') : $t('playback.loadFromLinkHint')"
+          @click="shareOverlay ? $emit('clearShare') : $emit('loadShare')"
         >
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-        </svg>
-        <svg
-          v-else
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          aria-hidden="true"
-        >
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-        {{ shareOverlay ? $t('playback.clearSharedSlides') : $t('playback.loadFromLink') }}
-      </button>
+          <svg
+            v-if="!shareOverlay"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          <svg
+            v-else
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          <span>{{ shareOverlay ? $t('playback.clearSharedSlides') : $t('playback.loadFromLink') }}</span>
+        </button>
 
-      <button
-        v-if="slides.length > 0"
-        class="collapse-btn"
-        :class="{ collapsed }"
-        :title="$t('playback.slides')"
-        @click="collapsed = !collapsed"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
+        <button
+          v-if="slides.length > 0"
+          class="collapse-btn"
+          :class="{ collapsed }"
+          :title="$t('playback.slides')"
+          @click="collapsed = !collapsed"
         >
-          <polyline points="6,9 12,15 18,9"/>
-        </svg>
-      </button>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <polyline points="6,9 12,15 18,9"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Premium Post-Processing Progress Dashboard -->
@@ -346,8 +353,23 @@ const postLine = computed(() => {
 .extraction-header {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.75rem 1.25rem;
   flex-wrap: wrap;
+}
+
+.extraction-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.extraction-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 
 .extraction-toggle {
@@ -506,13 +528,11 @@ const postLine = computed(() => {
 }
 
 .share-link-btn {
-  margin-left: auto;
   gap: 0.375rem;
   font-weight: 600;
 }
 
 .collapse-btn {
-  margin-left: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -524,10 +544,6 @@ const postLine = computed(() => {
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.share-link-btn + .collapse-btn {
-  margin-left: 0;
 }
 
 .collapse-btn:hover {
@@ -676,6 +692,43 @@ const postLine = computed(() => {
 .gallery-wrapper {
   overflow: hidden;
   border-top: 1px dashed var(--border-color);
+}
+
+@media (max-width: 640px) {
+  .slide-extraction-panel {
+    padding: 0.875rem 1rem;
+  }
+
+  /* One row of chrome, one row of buttons — the long "Load slides timeline
+     from link" label gets the full width instead of hanging off the end. */
+  .extraction-actions {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* Buttons share the row while they fit, then wrap to a line each rather
+     than shrinking their labels to nothing. */
+  .extraction-actions .btn {
+    flex: 1 1 10rem;
+    min-width: 0;
+  }
+
+  .extraction-actions .btn span:not(.processing-spinner) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Keep the collapse chevron a circle while the buttons beside it flex. */
+  .collapse-btn {
+    flex: 0 0 auto;
+  }
+
+  .dashboard-progress {
+    flex-direction: column;
+    gap: 0.625rem;
+  }
 }
 
 /* Transitions */

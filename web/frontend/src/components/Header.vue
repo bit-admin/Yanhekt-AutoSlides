@@ -311,7 +311,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   height: var(--header-height);
-  padding: 0 1rem;
+  /* viewport-fit=cover lets content sit under a landscape notch — keep the
+     brand and avatar clear of it. */
+  padding: 0 max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left));
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
   position: relative;

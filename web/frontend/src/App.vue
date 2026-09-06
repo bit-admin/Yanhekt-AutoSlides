@@ -39,7 +39,9 @@
       </div>
     </div>
 
-    <!-- Responsive Mobile Bottom Navigation Bar -->
+    <!-- Responsive Mobile Bottom Navigation Bar. Four tabs only: the three
+         browse modes plus More, which holds Slides / Notes / Settings and the
+         rest of the desktop rail (hidden entirely under 768px). -->
     <nav v-if="isMobile && !playbackStore.cinema.value" class="mobile-bottom-nav">
       <button :class="['bottom-nav-item', { active: activeNav === 'home' }]" @click="navigate('home')">
         <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -48,7 +50,7 @@
         </svg>
         <span class="bottom-nav-label">{{ $t('navigation.home') }}</span>
       </button>
-      
+
       <button :class="['bottom-nav-item', { active: activeNav === 'live' }]" @click="navigate('live')">
         <div class="bottom-nav-icon-wrap">
           <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -69,33 +71,21 @@
         <span class="bottom-nav-label">{{ $t('navigation.recorded') }}</span>
       </button>
 
-      <button :class="['bottom-nav-item', { active: activeNav === 'slides' }]" @click="navigate('slides')">
+      <button
+        :class="['bottom-nav-item', { active: moreOpen || MORE_NAVS.includes(activeNav) }]"
+        :aria-expanded="moreOpen"
+        @click="moreOpen = !moreOpen"
+      >
         <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-          <circle cx="9" cy="9" r="2"/>
-          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
-        <span class="bottom-nav-label">{{ $t('navigation.slidesReview') }}</span>
-      </button>
-
-      <button :class="['bottom-nav-item', { active: activeNav === 'notes' }]" @click="navigate('notes')">
-        <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/>
-          <line x1="16" y1="17" x2="8" y2="17"/>
-        </svg>
-        <span class="bottom-nav-label">{{ $t('navigation.notes') }}</span>
-      </button>
-
-      <button :class="['bottom-nav-item', { active: activeNav === 'settings' }]" @click="navigate('settings')">
-        <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-        <span class="bottom-nav-label">{{ $t('settings.settings') }}</span>
+        <span class="bottom-nav-label">{{ $t('navigation.moreLinks') }}</span>
       </button>
     </nav>
+
+    <MobileMoreSheet v-if="isMobile && moreOpen" @close="moreOpen = false" />
     </template>
 
     <!-- First-run notice. Skipped on full-page routes so its own Terms/Privacy
@@ -113,13 +103,19 @@ import FirstRunNotice from './components/FirstRunNotice.vue'
 import Header from './components/Header.vue'
 import LeftPanel from './components/LeftPanel.vue'
 import MainContent from './components/MainContent.vue'
+import MobileMoreSheet from './components/MobileMoreSheet.vue'
 import { noticeStore } from './stores/noticeStore'
 import { playbackStore } from './stores/playbackStore'
-import { navigationStore } from './stores/navigationStore'
+import { navigationStore, type NavTarget } from './stores/navigationStore'
 
 const { isSidebarCollapsed, activeNav, navigate } = navigationStore
 
 const isMobile = ref(false)
+
+// Destinations that live behind the bottom bar's More tab, so the tab still
+// reads as selected while one of them is open.
+const MORE_NAVS: NavTarget[] = ['slides', 'notes', 'settings', 'subscriptions']
+const moreOpen = ref(false)
 
 const route = useRoute()
 const isFullPage = computed(() => route.meta.fullPage === true)
@@ -134,6 +130,7 @@ const fullPageCacheKey = (r: RouteLocationNormalizedLoaded) => {
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768
+  if (!isMobile.value) moreOpen.value = false
 }
 
 onMounted(() => {
@@ -151,6 +148,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  /* dvh keeps the bottom bar on screen while mobile browser chrome
+     collapses/expands; vh above is the fallback for older engines. */
+  height: 100dvh;
   overflow: hidden;
   background-color: var(--bg-page);
 }
@@ -164,7 +164,7 @@ onUnmounted(() => {
 .layout {
   display: flex;
   flex: 1;
-  height: calc(100vh - var(--header-height));
+  height: calc(100dvh - var(--header-height));
   min-height: 0;
   position: relative;
 }
@@ -195,12 +195,16 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-around;
   height: 3.5rem;
+  /* Sit above the iOS home indicator without shrinking the tap targets. */
+  height: calc(3.5rem + env(safe-area-inset-bottom));
+  padding: 0 max(0.5rem, env(safe-area-inset-right)) env(safe-area-inset-bottom)
+    max(0.5rem, env(safe-area-inset-left));
   background-color: var(--bg-surface);
   border-top: 1px solid var(--border-color);
   position: relative;
-  z-index: 99;
+  z-index: var(--z-overlay);
   box-shadow: 0 -1px 3px var(--shadow-sm);
-  padding: 0 0.5rem;
+  flex-shrink: 0;
 }
 
 .bottom-nav-item {
@@ -209,12 +213,14 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   flex: 1;
-  height: 100%;
+  min-width: 0;
+  height: 3.5rem;
   border: none;
   background: transparent;
   color: var(--text-primary);
   cursor: pointer;
   padding: 0.25rem 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bottom-nav-item.active {
@@ -239,11 +245,15 @@ onUnmounted(() => {
 .bottom-nav-label {
   font-size: 0.625rem;
   margin-top: 0.25rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
   .layout {
-    height: calc(100vh - var(--header-height) - 3.5rem);
+    height: calc(100dvh - var(--header-height) - 3.5rem - env(safe-area-inset-bottom));
   }
 }
 </style>

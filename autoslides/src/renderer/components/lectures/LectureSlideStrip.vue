@@ -178,7 +178,7 @@ watch(
 }
 
 .slide-card:focus-visible {
-  outline: 2px solid var(--accent, #3b82f6);
+  outline: 2px solid var(--text-on-fill);
   outline-offset: 2px;
 }
 
@@ -199,8 +199,8 @@ watch(
 }
 
 .slide-card.is-active .card-thumb-wrap {
-  border-color: var(--accent, #3b82f6);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #3b82f6) 55%, transparent);
+  border-color: var(--text-on-fill);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
 .card-thumb {
@@ -231,8 +231,8 @@ watch(
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.02em;
-  color: #fff;
-  background: color-mix(in srgb, var(--accent, #3b82f6) 88%, #000);
+  color: #111114;
+  background: var(--text-on-fill);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 

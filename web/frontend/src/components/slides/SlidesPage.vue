@@ -30,7 +30,9 @@
       </div>
 
       <div class="sw-chrome-right">
-        <RouterLink class="sw-back" :to="{ name: 'home' }">
+        <!-- Mobile drops it: the header has no room for a labelled link, and
+             the brand lockup on the left goes home too. -->
+        <RouterLink v-if="!isMobile" class="sw-back" :to="{ name: 'home' }">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="m15 18-6-6 6-6" />
           </svg>
@@ -635,7 +637,6 @@ onActivated(() => {
     transform: translateX(0);
   }
 
-  .sw-back span,
   .sw-chrome-btn {
     font-size: 0.75rem;
   }

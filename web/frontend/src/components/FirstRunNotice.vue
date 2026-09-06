@@ -121,7 +121,7 @@ const ITEMS = [
 
 .notice {
   width: min(34rem, 100%);
-  max-height: min(44rem, calc(100vh - 3rem));
+  max-height: min(44rem, calc(100dvh - 3rem));
   border-radius: 0.75rem;
 }
 

@@ -115,6 +115,7 @@ watch(() => props.docId, () => document.querySelector('.legal-page')?.scrollTo(0
 <style scoped>
 .legal-page {
   height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   background-color: var(--bg-page);
   color: var(--text-primary);

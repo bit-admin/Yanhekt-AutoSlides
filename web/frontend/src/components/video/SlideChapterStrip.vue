@@ -24,13 +24,7 @@
           </span>
           <span class="card-time">{{ formatTime(chapter.startTime) }}</span>
         </div>
-        <div class="card-label">
-          {{
-            $t('playback.slideOrdinal', {
-              number: String(chapter.index + 1).padStart(2, '0'),
-            })
-          }}
-        </div>
+        <div class="card-label">{{ $t('playback.slideOrdinal', { number: chapterOrdinal(chapter) }) }}</div>
       </button>
     </div>
   </div>
@@ -38,8 +32,12 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue'
-import type { SlideChapterCard } from '../../composables/video/useShareSlideOverlay'
-import { SHARE_SEEK_INSET_SEC } from '../../composables/video/useShareSlideOverlay'
+import {
+  chapterOrdinal,
+  chapterSeekTarget,
+  formatChapterTime as formatTime,
+  type SlideChapterCard,
+} from '../../composables/video/useShareSlideOverlay'
 
 const props = defineProps<{
   chapters: SlideChapterCard[]
@@ -52,21 +50,8 @@ const emit = defineEmits<{
 
 const scrollEl = ref<HTMLElement | null>(null)
 
-const formatTime = (seconds: number): string => {
-  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
-  const s = Math.floor(seconds)
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const r = s % 60
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
-  return `${m}:${String(r).padStart(2, '0')}`
-}
-
 const onSeekChapter = (chapter: SlideChapterCard): void => {
-  const t = chapter.startTime
-  const target =
-    Number.isFinite(t) && t > 0 ? t + SHARE_SEEK_INSET_SEC : Math.max(0, t || 0)
-  emit('seek', target)
+  emit('seek', chapterSeekTarget(chapter))
 }
 
 function scrollActiveIntoView(): void {

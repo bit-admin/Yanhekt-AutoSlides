@@ -4,14 +4,14 @@
       <!-- Left Column: Video + Meta Details -->
       <div class="main-video-section">
         <!-- Video Player Panel -->
-        <div class="player-panel-container">
+        <div class="player-panel-container" :class="{ 'is-error': !!error && !loading }">
           <div v-if="loading" class="player-loading-state">
             <div class="spinner spinner--lg"></div>
             <p>{{ $t('playback.loadingVideoStreams') }}</p>
           </div>
 
           <div v-else-if="error" class="player-loading-state error-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg class="error-state-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
               <line x1="15" y1="9" x2="9" y2="15"/>
               <line x1="9" y1="9" x2="15" y2="15"/>
@@ -44,7 +44,6 @@
                 </p>
               </div>
             </div>
-            <button @click="retryLoad" class="btn btn--primary">{{ $t('playback.retry') }}</button>
             <FeedbackModal v-if="showRelayFeedback" @close="showRelayFeedback = false" />
           </div>
 
@@ -115,11 +114,12 @@
                   :format-time="formatPlaybackTime"
                   :chapters="shareOverlay.chapters.value"
                   :active-chapter-id="shareOverlay.activeChapterId.value"
-                  :strip-open="slidesStripOpen"
+                  :strip-open="chaptersOpen"
+                  :strip-inline="!chaptersAsSheet"
                   @toggle-playback="toggleSinglePlayback"
                   @seek-input="onSingleSeekInput"
                   @seek-chapter="seekToChapter"
-                  @toggle-strip="slidesStripOpen = !slidesStripOpen"
+                  @toggle-strip="toggleChapters"
                   @volume-input="applySingleVolume"
                   @toggle-mute="toggleSingleMute"
                   @toggle-speed-panel="toggleSpeedPanel"
@@ -203,10 +203,18 @@
                   @mouseleave="pointerOverControls = false"
                 >
                   <SlideChapterStrip
-                    v-if="shareOverlay.hasChapters.value && slidesStripOpen"
+                    v-if="shareOverlay.hasChapters.value && slidesStripOpen && !chaptersAsSheet"
                     :chapters="shareOverlay.chapters.value"
                     :active-chapter-id="shareOverlay.activeChapterId.value"
                     @seek="seekToChapter"
+                  />
+
+                  <SlideChapterTrigger
+                    v-if="shareOverlay.hasChapters.value && chaptersAsSheet"
+                    :chapters="shareOverlay.chapters.value"
+                    :active-chapter-id="shareOverlay.activeChapterId.value"
+                    :open="chaptersOpen"
+                    @toggle="toggleChapters"
                   />
 
                   <div class="dual-controls-main-row">
@@ -226,6 +234,15 @@
                       </button>
 
                       <span class="dual-time">{{ formatPlaybackTime(dualCurrentTime) }} / {{ dualCanSeek ? formatPlaybackTime(dualDuration) : $t('playback.dual.live') }}</span>
+
+                      <SlideChapterTrigger
+                        v-if="shareOverlay.hasChapters.value && !chaptersAsSheet"
+                        inline
+                        :chapters="shareOverlay.chapters.value"
+                        :active-chapter-id="shareOverlay.activeChapterId.value"
+                        :open="chaptersOpen"
+                        @toggle="toggleChapters"
+                      />
                     </div>
 
                     <div class="dual-controls-right">
@@ -317,21 +334,6 @@
                           </button>
                         </div>
                       </div>
-
-                      <button
-                        v-if="shareOverlay.hasChapters.value"
-                        class="dual-icon-button"
-                        :class="{ 'is-active-control': slidesStripOpen }"
-                        :title="$t('playback.slideChapters')"
-                        :aria-pressed="slidesStripOpen"
-                        @click="slidesStripOpen = !slidesStripOpen"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                          <rect x="3" y="4" width="18" height="12" rx="2"/>
-                          <path d="M7 20h10"/>
-                          <path d="M8 8h5M8 11h8"/>
-                        </svg>
-                      </button>
 
                       <button
                         class="dual-icon-button"
@@ -517,7 +519,7 @@
 
             <!-- Show more / less trigger -->
             <button class="description-toggle-btn" @click.stop="descriptionExpanded = !descriptionExpanded">
-              {{ descriptionExpanded ? 'Show less' : '...more' }}
+              {{ descriptionExpanded ? $t('playback.showLess') : $t('playback.showMore') }}
             </button>
           </div>
         </div>
@@ -540,6 +542,14 @@
           @post-process="slideExtraction.executePostProcessing()"
           @load-share="openShareModal"
           @clear-share="shareOverlay.clear()"
+        />
+
+        <SlideChapterSheet
+          v-if="chaptersAsSheet && chapterSheetOpen && shareOverlay.hasChapters.value"
+          :chapters="shareOverlay.chapters.value"
+          :active-chapter-id="shareOverlay.activeChapterId.value"
+          @seek="seekToChapter"
+          @close="chapterSheetOpen = false"
         />
 
         <ShareSlideModal
@@ -649,6 +659,8 @@ import SingleStreamControls from './SingleStreamControls.vue'
 import SlideExtractionPanel from './SlideExtractionPanel.vue'
 import ShareSlideModal from './ShareSlideModal.vue'
 import SlideChapterStrip from './SlideChapterStrip.vue'
+import SlideChapterSheet from './SlideChapterSheet.vue'
+import SlideChapterTrigger from './SlideChapterTrigger.vue'
 import ExtractionFeaturesModal from './ExtractionFeaturesModal.vue'
 import { useShareSlideOverlay, type ShareOverlayError } from '../../composables/video/useShareSlideOverlay'
 import { hasSeenExtractionFeaturesPrompt } from '../../stores/extractionFeaturesPromptStore'
@@ -718,9 +730,12 @@ const SIDEBAR_DEFAULT = 400 // matches the previous 25rem fixed width
 const SIDEBAR_MIN = 280
 const SIDEBAR_STORAGE_KEY = 'autoslides.playback.sidebarWidth'
 const STACK_BREAKPOINT = 1120
+// Matches the app shell's own mobile breakpoint (App.vue / Header.vue).
+const MOBILE_BREAKPOINT = 768
 
 const playbackWrapper = ref<HTMLElement | null>(null)
 const isStackedLayout = ref(false)
+const isNarrowLayout = ref(false)
 const resizing = ref(false)
 const layoutTick = ref(0)
 
@@ -777,6 +792,7 @@ const sidebarStyle = computed(() => {
 
 function onWindowResize(): void {
   isStackedLayout.value = window.innerWidth <= STACK_BREAKPOINT
+  isNarrowLayout.value = window.innerWidth <= MOBILE_BREAKPOINT
   layoutTick.value += 1
 }
 
@@ -886,7 +902,6 @@ const relayAsn = computed(() => {
 const {
   switchStream,
   changePlaybackRate,
-  retryLoad,
   onVideoError,
   onCanPlay,
   onEnded,
@@ -953,6 +968,27 @@ watch(
     if (available) slidesStripOpen.value = true
   },
 )
+
+// A phone's player panel is ~220px tall, which leaves the in-player strip's
+// cards barely taller than the seek bar. Under the mobile breakpoint the same
+// chapters open as a full-width sheet instead — except in fullscreen, which is
+// landscape and wide, where the strip is the better fit and a body-level sheet
+// would not paint over the fullscreen element anyway.
+const chaptersAsSheet = computed(
+  () => isNarrowLayout.value && !isSingleFullscreen.value && !isDualFullscreen.value,
+)
+// Unlike the strip, the sheet is modal, so it only ever opens on a tap.
+const chapterSheetOpen = ref(false)
+const chaptersOpen = computed(() =>
+  chaptersAsSheet.value ? chapterSheetOpen.value : slidesStripOpen.value,
+)
+const toggleChapters = () => {
+  if (chaptersAsSheet.value) chapterSheetOpen.value = !chapterSheetOpen.value
+  else slidesStripOpen.value = !slidesStripOpen.value
+}
+watch(chaptersAsSheet, (asSheet) => {
+  if (!asSheet) chapterSheetOpen.value = false
+})
 watch(
   () => shareOverlay.hasPendingSeek.value,
   (pending) => {
@@ -1668,6 +1704,70 @@ onUnmounted(async () => {
   opacity: 0.8;
 }
 
+/* Phone-only player messages. The panel is a hard 16:9, so at 393px wide it is
+   ~220px tall — less than half what these need, and content was clipped away.
+   Strip the decorative chrome and let the error panel grow to its content;
+   desktop keeps all of it, since it has the room. */
+@media (max-width: 768px) {
+  .player-panel-container.is-error {
+    aspect-ratio: auto;
+    min-height: 11rem;
+  }
+
+  .error-state {
+    height: auto;
+    gap: 0.75rem;
+    padding: 1.25rem 1rem;
+    box-sizing: border-box;
+  }
+
+  .error-state-icon {
+    display: none;
+  }
+
+  .error-message {
+    margin: 0;
+  }
+
+  /* .error-details is a plain block, so the .error-state flex gap does not
+     separate these two — the hint keeps its own top margin. */
+  .error-hint {
+    margin: 0.75rem auto 0;
+    padding: 0;
+    border: none;
+  }
+
+  .error-hint p {
+    margin: 0;
+  }
+
+  .error-info {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+
+  .playback-position {
+    margin: 0;
+  }
+
+  /* Preparing playback: the overlay floats over that same short panel, and its
+     hint runs to five lines here, so the spinner is what gives. The seek
+     overlay keeps its spinner — "Buffering…" alone has nothing else moving. */
+  .warming-overlay:not(.seek-buffering-overlay) .warming-spinner {
+    display: none;
+  }
+
+  .warming-overlay {
+    gap: 0.625rem;
+    padding: 1rem;
+  }
+
+  .warming-hint {
+    font-size: 0.75rem;
+  }
+}
+
 .video-content {
   width: 100%;
   height: 100%;
@@ -1850,6 +1950,8 @@ onUnmounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .instructor-avatar {
@@ -1868,6 +1970,14 @@ onUnmounted(async () => {
 .channel-text {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+.instructor-name,
+.course-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .instructor-name {
@@ -1949,12 +2059,19 @@ onUnmounted(async () => {
 
 .description-details-content {
   color: var(--text-primary);
-  max-height: 2.8rem;
+  /* Clamp on a line boundary — a fixed max-height sliced the second row of
+     text in half on narrow screens. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
 }
 
 .description-box.expanded .description-details-content {
-  max-height: none;
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
 }
 
 .description-details-content p {
@@ -1982,7 +2099,7 @@ onUnmounted(async () => {
   background-color: var(--bg-page-alt);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - var(--header-height) - 3rem);
+  height: calc(100dvh - var(--header-height) - 3rem);
   flex-shrink: 0;
 }
 
@@ -2278,13 +2395,30 @@ onUnmounted(async () => {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
+  .video-info-title {
+    font-size: 1.0625rem;
+    line-height: 1.5rem;
+  }
+  /* Full-width action row: the stream <select> and Refresh share the line
+     rather than each claiming a pill's worth of the title row. */
   .action-pills {
     margin-top: 0.25rem;
     width: 100%;
   }
+  .action-pill-select-wrapper,
+  .action-pill-select {
+    flex: 1;
+    min-width: 0;
+  }
+  .action-pill-btn {
+    flex-shrink: 0;
+  }
   .subscribe-pill {
-    margin-left: auto;
+    margin-left: 0.5rem;
+  }
+  .description-box {
+    padding: 0.75rem;
   }
 }
 </style>

@@ -14,6 +14,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Keeps dialogs off the screen edge on phones; harmless on desktop. */
+  padding: 1rem;
+  box-sizing: border-box;
   z-index: var(--z-modal);
 }
 

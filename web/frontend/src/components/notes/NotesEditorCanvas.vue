@@ -22,7 +22,9 @@
         <template v-if="saveStatus === 'saving'">{{ $t('cloudNotes.saving') }}</template>
         <template v-else>{{ $t('cloudNotes.saved') }}</template>
       </span>
-      <RouterLink class="nec-back" :to="{ name: 'home' }" :title="$t('cloudNotes.backToApp')">
+      <!-- Mobile drops it: the topbar is already tight, and the sidebar's
+           brand lockup goes home too. -->
+      <RouterLink v-if="!mobile" class="nec-back" :to="{ name: 'home' }" :title="$t('cloudNotes.backToApp')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="m15 18-6-6 6-6" />
         </svg>
@@ -806,6 +808,7 @@ function onGroupChange(e: Event): void {
   right: 0;
   z-index: 40;
   min-width: 260px;
+  max-width: calc(100vw - 24px);
   padding: 12px;
   border-radius: 10px;
   border: 1px solid var(--nt-border, rgba(0, 0, 0, 0.08));

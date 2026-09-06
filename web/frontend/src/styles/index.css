@@ -27,6 +27,8 @@ body {
 
 #app {
   height: 100vh;
+  /* dvh tracks the collapsing browser chrome on mobile; vh is the fallback. */
+  height: 100dvh;
   overflow: hidden;
 }
 

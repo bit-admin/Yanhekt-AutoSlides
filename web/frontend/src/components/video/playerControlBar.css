@@ -284,4 +284,32 @@
   .dual-seek {
     min-width: 0;
   }
+
+  /* Phones have hardware volume keys, and iOS ignores `video.volume`
+     outright — the slider was dead weight crowding the time readout. Mute
+     goes with it, the way every mobile player drops both. */
+  .single-volume {
+    display: none;
+  }
+
+  /* Reclaim the freed width for the timestamp and tighten the button run so
+     the row fits at 360px without wrapping. */
+  .dual-controls-section {
+    padding: 1.25rem 0.375rem 0.5rem;
+  }
+
+  .dual-controls-left,
+  .dual-controls-right {
+    gap: 0.125rem;
+  }
+
+  .dual-icon-button {
+    width: 2.125rem;
+    height: 2.125rem;
+  }
+
+  .dual-time {
+    min-width: 0;
+    font-size: 0.75rem;
+  }
 }

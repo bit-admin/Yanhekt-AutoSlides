@@ -278,7 +278,9 @@
     "shared": "Shared",
     "slideChapters": "Slides",
     "slideOrdinal": "Slide {number}",
-    "watching": "Watching"
+    "watching": "Watching",
+    "showMore": "Show More",
+    "showLess": "Show Less"
   },
   "searchPage": {
     "academicYear": "{start}–{end} Academic Year",

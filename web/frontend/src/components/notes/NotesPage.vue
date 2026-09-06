@@ -63,7 +63,7 @@
           </svg>
         </button>
         <div class="nw-gated-topbar-spacer" />
-        <RouterLink class="nw-gated-back" :to="{ name: 'home' }" :title="$t('cloudNotes.backToApp')">
+        <RouterLink v-if="!isMobile" class="nw-gated-back" :to="{ name: 'home' }" :title="$t('cloudNotes.backToApp')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="m15 18-6-6 6-6" />
           </svg>

@@ -48,6 +48,31 @@ export interface SlideChapterCard {
   imageUrl: string
 }
 
+/** `01`, `02`, … — the number a chapter shows on every surface that lists it. */
+export function chapterOrdinal(chapter: SlideChapterCard): string {
+  return String(chapter.index + 1).padStart(2, '0')
+}
+
+/** `m:ss` / `h:mm:ss`, as the chapter strip and chapter sheet both label cards. */
+export function formatChapterTime(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
+  const s = Math.floor(seconds)
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const r = s % 60
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+  return `${m}:${String(r).padStart(2, '0')}`
+}
+
+/**
+ * Where to land when a chapter card is tapped: nudged just past the boundary so
+ * the seek resolves inside the chapter rather than on the frame before it.
+ */
+export function chapterSeekTarget(chapter: SlideChapterCard): number {
+  const t = chapter.startTime
+  return Number.isFinite(t) && t > 0 ? t + SHARE_SEEK_INSET_SEC : Math.max(0, t || 0)
+}
+
 function sameDigitId(
   a: string | number | null | undefined,
   b: string | number | null | undefined,

@@ -784,6 +784,7 @@ async function analyzeImages() {
   --lab-accent: var(--accent);
 
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg-page);
   color: var(--lab-ink);
   overflow: auto;

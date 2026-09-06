@@ -332,6 +332,7 @@ onMounted(() => {
   --app-autoslides-solid: #d40000;
   --app-extractor-solid: #5233dd;
   height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
   background-color: var(--bg-page);
   color: var(--text-primary);

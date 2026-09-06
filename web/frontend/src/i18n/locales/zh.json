@@ -278,7 +278,9 @@
     "shared": "已载入",
     "slideChapters": "幻灯片",
     "slideOrdinal": "第 {number} 张",
-    "watching": "正在观看"
+    "watching": "正在观看",
+    "showMore": "展开",
+    "showLess": "收起"
   },
   "searchPage": {
     "academicYear": "{start}–{end} 学年",
