@@ -265,7 +265,11 @@ const TRACE_PATH = (() => {
   animation: hw-hero-in var(--hw-dur) linear both;
 }
 
+/* The two halves are the two sides of the transformation, so they are not the
+   same color: what goes in is ink, what comes out is the drawing's own accent
+   — the same hue the slides light up with below. */
 .hw-hero-out {
+  color: var(--hw-accent);
   animation: hw-hero-out var(--hw-dur) linear both;
 }
 
