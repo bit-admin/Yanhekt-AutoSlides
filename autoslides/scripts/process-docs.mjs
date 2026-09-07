@@ -16,9 +16,9 @@
 //     docs image (the source is still copied whole elsewhere). Used for the
 //     extractor-install image, which is just the top "Auto Extraction After
 //     Download" section of the Playback settings tab.
-//     docs image (the source is still copied whole elsewhere). Used for the
-//     extractor-install image, which is just the top "Auto Extraction After
-//     Download" section of the Playback settings tab.
+//   - REGION_CROP: a rectangle of a window capture (account-switcher flyout,
+//     etc.) is lifted into a standalone docs image. Prefers a CSS box recorded
+//     in sections.json; falls back to fractions of the PNG.
 //   - Appends an "## Image processing applied" log to out/screenshots/NOTES.md.
 //
 // No manual images: every docs/*.png comes from a capture. (docs/login.png is the
@@ -93,7 +93,7 @@ const COPY_ALIASES = {
 // Hide live login QR codes in docs outputs. Fractions of image width/height so
 // the cover survives DPR. Applied to the COPY dest and any aliases of `src`.
 const COVER = {
-  'tools-yuketang': { x0: 0.396, y0: 0.360, x1: 0.602, y1: 0.656, rxFrac: 0.012 },
+  'tools-yuketang': { x0: 0.396, y0: 0.373, x1: 0.602, y1: 0.647, rxFrac: 0.012 },
 }
 
 // Long settings tabs split into bands at section-title boundaries. `at` lists
@@ -113,6 +113,59 @@ const SPLIT = {
 // docs image (the source is still copied whole via COPY). Uses sections.json.
 const CROP = {
   'advanced-playback': { to: 'Download', out: 'extractor-install' },
+  // 基础设置 walkthrough: tab pills + General block only (not Auth/Appearance/Cache).
+  'advanced-general': { to: 'Authentication', out: 'settings-general-basics' },
+}
+
+// Extra bands of a long capture for the 基础设置 walkthrough. Prefer a recorded
+// `.setting-label` top (`toLabel`) / section title (`from`); y0/y1 are PNG-row
+// fallbacks for captures that predate label recording.
+const BAND = [
+  {
+    src: 'advanced-image',
+    out: 'settings-image-basics',
+    toLabel: 'SSIM Threshold',
+    y1: 468,
+  },
+  {
+    src: 'advanced-image',
+    out: 'settings-postprocess-basics',
+    from: 'Post-Processing',
+    toLabel: 'Hamming Distance Threshold for pHash (256-bit)',
+    y0: 951,
+    y1: 1389,
+  },
+  // README D. AI 设置: classifier + service type, without Request Settings.
+  {
+    src: 'advanced-ai',
+    out: 'settings-ai-service',
+    to: 'Request Settings',
+    y1: 558,
+  },
+  // README 设置 > AI: Request Settings + completion params table.
+  {
+    src: 'advanced-ai',
+    out: 'settings-ai-request',
+    from: 'Request Settings',
+    to: 'AI Behaviour',
+    y0: 558,
+    y1: 1449,
+  },
+]
+
+// Window-capture corner crops. `out` is a docs/ basename. If sections.json has
+// `{ contentWidth, contentHeight, crop: { x, y, width, height } }` in CSS px
+// (screenshots.mjs records this for user-menu), that box is mapped onto the
+// PNG (native shots include drop-shadow margins). Otherwise x0/y0/x1/y1 are
+// fractions of the PNG — calibrated on a 1440×900 native capture.
+const REGION_CROP = {
+  'user-menu': {
+    out: 'user-menu-switcher',
+    x0: 16 / 1552,
+    y0: 560 / 1012,
+    x1: 616 / 1552,
+    y1: 1,
+  },
 }
 
 const log = []
@@ -246,6 +299,75 @@ function main() {
     cropped++
     console.log(`  ✓ ${src}.png [0..${h}] → docs/${cfg.out}.png`)
     log.push(`- crop \`${src}.png\` rows 0–${h} (down to "${cfg.to}" section) → \`docs/${cfg.out}.png\``)
+  }
+
+  // --- BAND (walkthrough slices of a long tab) -----------------------------
+  for (const cfg of BAND) {
+    const from = path.join(srcDir, `${cfg.src}.png`)
+    if (!existsSync(from)) { warn(`missing capture: ${cfg.src}.png (band skipped)`); continue }
+    const pngW = parseInt(identify(from, '%w'), 10)
+    const pngH = parseInt(identify(from, '%h'), 10)
+    const geom = manifest[cfg.src]
+    const scale = geom?.height ? pngH / geom.height : 1
+    let y0 = cfg.y0 ?? 0
+    let y1 = cfg.y1 ?? pngH
+    if (cfg.from && geom?.sections) {
+      const sec = geom.sections.find((s) => s.title === cfg.from)
+      if (sec) y0 = Math.round(sec.top * scale)
+    }
+    if (cfg.toLabel && geom?.labels) {
+      const lab = geom.labels.find((l) => l.title === cfg.toLabel)
+      if (lab) y1 = Math.round(lab.top * scale)
+    } else if (cfg.to && geom?.sections) {
+      const sec = geom.sections.find((s) => s.title === cfg.to)
+      if (sec) y1 = Math.round(sec.top * scale)
+    }
+    y0 = Math.max(0, Math.min(pngH, y0))
+    y1 = Math.max(y0 + 1, Math.min(pngH, y1))
+    const h = y1 - y0
+    const to = path.join(docsDir, `${cfg.out}.png`)
+    execFileSync('magick', [from, '-crop', `${pngW}x${h}+0+${y0}`, '+repage', to])
+    outputs.push(to)
+    cropped++
+    console.log(`  ✓ ${cfg.src}.png [${y0}..${y1}] → docs/${cfg.out}.png`)
+    log.push(`- band \`${cfg.src}.png\` rows ${y0}–${y1} → \`docs/${cfg.out}.png\``)
+  }
+
+  // --- REGION_CROP (window-shot corners) -----------------------------------
+  for (const [src, cfg] of Object.entries(REGION_CROP)) {
+    const from = path.join(srcDir, `${src}.png`)
+    if (!existsSync(from)) { warn(`missing capture: ${src}.png (region crop skipped)`); continue }
+    const pngW = parseInt(identify(from, '%w'), 10)
+    const pngH = parseInt(identify(from, '%h'), 10)
+    const geom = manifest[src]
+    let x, y, w, h
+    if (geom?.crop && geom.contentWidth && geom.contentHeight) {
+      const contentW = geom.contentWidth * dpr
+      const contentH = geom.contentHeight * dpr
+      const ox = (pngW - contentW) / 2
+      const oy = (pngH - contentH) / 2
+      const pad = 24 * dpr
+      x = Math.round(ox + geom.crop.x * dpr - pad)
+      y = Math.round(oy + geom.crop.y * dpr - pad)
+      w = Math.round(geom.crop.width * dpr + 2 * pad)
+      h = Math.round(geom.crop.height * dpr + 2 * pad)
+    } else {
+      x = Math.round(cfg.x0 * pngW)
+      y = Math.round(cfg.y0 * pngH)
+      w = Math.round((cfg.x1 - cfg.x0) * pngW)
+      h = Math.round((cfg.y1 - cfg.y0) * pngH)
+    }
+    x = Math.max(0, x)
+    y = Math.max(0, y)
+    w = Math.max(1, Math.min(pngW - x, w))
+    h = Math.max(1, Math.min(pngH - y, h))
+    const to = path.join(docsDir, `${cfg.out}.png`)
+    execFileSync('magick', [from, '-crop', `${w}x${h}+${x}+${y}`, '+repage', to])
+    outputs.push(to)
+    cropped++
+    const via = geom?.crop ? 'DOM box' : 'fractions'
+    console.log(`  ✓ ${src}.png [${x},${y} ${w}×${h}] (${via}) → docs/${cfg.out}.png`)
+    log.push(`- region-crop \`${src}.png\` ${w}×${h}+${x}+${y} (${via}) → \`docs/${cfg.out}.png\``)
   }
 
   // --- DPR NORMALIZE --------------------------------------------------------

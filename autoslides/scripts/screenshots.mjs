@@ -282,7 +282,14 @@ async function main() {
         bottom: Math.round(r.bottom - pRect.top),
       }
     })
-    return { tabName, width: Math.round(pRect.width), height: Math.round(pRect.height), dpr: window.devicePixelRatio, sections }
+    const labels = [...(visible?.querySelectorAll('.setting-label') || [])].map((el) => {
+      const r = el.getBoundingClientRect()
+      return {
+        title: (el.textContent || '').trim(),
+        top: Math.round(r.top - pRect.top),
+      }
+    })
+    return { tabName, width: Math.round(pRect.width), height: Math.round(pRect.height), dpr: window.devicePixelRatio, sections, labels }
   }, name)
 
   const shotSettings = async (name) => {
@@ -604,6 +611,26 @@ async function main() {
     await win.waitForSelector('.user-menu-expanded', { timeout: 6000 })
     await win.locator('.user-menu-expanded .account-switcher').hover()
     await win.waitForTimeout(400)
+    // CSS box of the banner + dropup + Switch Account flyout, so process-docs
+    // can crop the native window shot down to that corner.
+    const menuGeom = await win.evaluate(() => {
+      const rects = ['.user-info', '.account-flyout']
+        .map((sel) => document.querySelector(sel)?.getBoundingClientRect())
+        .filter(Boolean)
+        .map((r) => ({ x: r.x, y: r.y, r: r.x + r.width, b: r.y + r.height }))
+      if (!rects.length) return null
+      const pad = 16
+      const x = Math.max(0, Math.min(...rects.map((b) => b.x)) - pad)
+      const y = Math.max(0, Math.min(...rects.map((b) => b.y)) - pad)
+      const right = Math.max(...rects.map((b) => b.r)) + pad
+      const bottom = Math.max(...rects.map((b) => b.b)) + pad
+      return {
+        contentWidth: window.innerWidth,
+        contentHeight: window.innerHeight,
+        crop: { x, y, width: right - x, height: bottom - y },
+      }
+    }).catch(() => null)
+    if (menuGeom) sectionsManifest['user-menu'] = menuGeom
     await shot('user-menu')
     await win.locator('.user-info .user-banner').click()
     await win.waitForSelector('.user-menu-expanded', { state: 'detached', timeout: 4000 }).catch(() => {})
@@ -682,7 +709,7 @@ ${list}
 | home-signed-out.png | home-signed-out.png | A. 未登录 Home（产品演示 + 登录 CTA） |
 | onboarding-welcome/output/connection/audio/ai/signin/signin-sms/signin-ready/cloud/done.png | onboarding-*.png | 首次启动向导（欢迎 + 配置步骤；登录为未登录 / SMS / 已登录三张） |
 | onboarding-whats-new.png | onboarding-whats-new.png | 5.0.0 What's New 欢迎页 |
-| user-menu.png | user-menu.png | 用户菜单（AutoSlides Project 子菜单） |
+| user-menu.png | user-menu.png, user-menu-switcher.png | A. 登录 — 用户菜单 / 切换账号飞出层（后者由 process-docs 从窗口照裁出） |
 | home.png | home.png | D. 基础页面（Home / 课程收藏夹） |
 | live.png | live.png | D. 直播课程网格 |
 | recorded.png | recorded.png | E. 录播课程网格 |
