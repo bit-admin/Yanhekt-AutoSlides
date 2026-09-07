@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "wrangler dev",
     "dev:web": "vite",
-    "build": "vite build",
+    "demo": "vite --config vite.demo.config.ts",
+    "build": "vite build && npm run build:demo",
+    "build:demo": "vite build --config vite.demo.config.ts",
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "typecheck:web": "vue-tsc -p frontend --noEmit"
+    "typecheck:web": "vue-tsc -p frontend --noEmit",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@editorjs/code": "^2.8.0",
@@ -39,6 +42,7 @@
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^22.20.1",
     "@vitejs/plugin-vue": "^6.0.2",
+    "playwright": "^1.61.0",
     "typescript": "^5.7.2",
     "vite": "^7.2.6",
     "vitest": "^4.1.11",

@@ -28,6 +28,7 @@ import { configStore } from '../../stores/configStore'
 import { watchNotesStore } from '../../stores/watchNotesStore'
 import type { Course } from '../useCourseList'
 import type { SessionData } from '../../lib/api'
+import { demoHooks } from '../../lib/demoRegistry'
 import { createLogger } from '../../lib/logger'
 const log = createLogger('VideoSlideExtraction')
 
@@ -71,6 +72,22 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   // Set when frame capture is impossible in this browser (tainted canvas on
   // the Safari native-HLS path); the panel swaps the toggle for a notice.
   const captureNotSupported = ref(false)
+
+  // Demo build: the player shows a poster rather than a video, so there are no
+  // frames to compare. Open with a run already in progress and its captures on
+  // the strip — what a real extraction looks like a third of the way through.
+  if (__DEMO__ && demoHooks.playback) {
+    const seed = demoHooks.playback.extraction()
+    isSlideExtractionEnabled.value = true
+    currentFolder.value = seed.folder
+    extractedSlides.value = seed.slides.map((slide) => ({ ...slide, imageData: null }))
+    slideExtractionStatus.value = {
+      isRunning: true,
+      slideCount: seed.slides.length,
+      verificationState: 'none',
+      currentVerification: 0,
+    }
+  }
 
   // Course titles are not unique (re-offered courses, parallel sections), and
   // the IndexedDB folder store is keyed by this name — without the id block two

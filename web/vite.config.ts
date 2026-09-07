@@ -8,6 +8,10 @@ import vue from "@vitejs/plugin-vue";
 export default defineConfig({
   root: "frontend",
   plugins: [vue()],
+  // Compile-time off switch for the demo build's hooks (see vite.demo.config.ts).
+  // A constant, so Rollup drops those branches — and everything under
+  // frontend/src/demo/ — from the production bundle.
+  define: { __DEMO__: "false" },
   build: {
     outDir: "../dist",
     emptyOutDir: true,

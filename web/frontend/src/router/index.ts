@@ -1,5 +1,5 @@
 import { watch } from "vue";
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory, createWebHistory } from "vue-router";
 import { i18n } from "../i18n";
 import type { NavTarget } from "../stores/navigationStore";
 import HomePage from "../components/course/HomePage.vue";
@@ -32,7 +32,11 @@ declare module "vue-router" {
 }
 
 export const router = createRouter({
-  history: createWebHistory(),
+  // The demo build is a plain static bundle under /demo/, where a deep link
+  // has to resolve to one real file: Workers' SPA fallback serves the ROOT
+  // index.html for anything it does not recognise, which would hand /demo/live
+  // to the real app. Hash routes keep every URL pointing at /demo/index.html.
+  history: __DEMO__ ? createWebHashHistory(import.meta.env.BASE_URL) : createWebHistory(),
   routes: [
     {
       name: "home",

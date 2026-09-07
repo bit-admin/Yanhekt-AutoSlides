@@ -171,6 +171,8 @@ const FOOTER_LINKS = computed(() => [
   { href: 'https://coss.ruc.edu.kg', labelKey: 'footerLinks.coss' },
   { href: 'https://cv.ruc.edu.kg', labelKey: 'footerLinks.cvForge' },
   { href: 'https://s.ruc.edu.kg', labelKey: 'footerLinks.shortLink' },
+  // The no-login tour of this app. Nothing else on the page points at it.
+  { href: '/demo/', labelKey: 'footerLinks.demo' },
 ])
 
 const go = (nav: NavTarget) => {

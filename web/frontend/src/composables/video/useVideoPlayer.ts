@@ -10,6 +10,7 @@ import { authStore } from "../../stores/authStore";
 import { getRecordedPlaybackData, getLivePlaybackData, getRelayBase, type PlaybackData } from "../../lib/streamUrls";
 import { ensureRuntimeConfig, runtimeConfigStore } from "../../stores/runtimeConfigStore";
 import { probeRelayReach } from "../../lib/relayDiagnostics";
+import { demoHooks } from "../../lib/demoRegistry";
 import type { Course } from "../useCourseList";
 import type { SessionData } from "../../lib/api";
 
@@ -355,6 +356,20 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     errorConfig: SingleStreamErrorConfig;
   }) => {
     if (!videoPlayer.value || !currentStreamData.value) {
+      return;
+    }
+
+    // Demo build: no media exists, so hand the element a poster and a frozen
+    // clock instead of pointing hls.js at a manifest that would 404 and take
+    // the retry ladder with it.
+    if (__DEMO__ && demoHooks.playback) {
+      dual.cleanupDualVideoSources();
+      cleanupSingleVideoSource();
+      demoHooks.playback.attach(
+        videoPlayer.value,
+        isScreenRecordingSelected.value ? "screen" : "camera",
+      );
+      isVideoLoading.value = false;
       return;
     }
 

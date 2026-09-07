@@ -2,6 +2,7 @@ import { ref, shallowRef, computed, type Ref, type ShallowRef, type ComputedRef 
 import Hls, { Events } from "hls.js";
 import { attachNetworkErrorSniffer, setupDualHlsErrorHandler } from "./useVideoErrorRecovery";
 import type { VideoStream, DualAudioSource } from "./useVideoPlayer";
+import { demoHooks } from "../../lib/demoRegistry";
 
 /**
  * Dual-stream (camera + screen) playback subsystem — ported near-verbatim
@@ -302,6 +303,17 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     const screenStream = screenStreamData.value;
 
     if (!cameraVideo || !screenVideo || !cameraStream || !screenStream) {
+      return;
+    }
+
+    // Demo build: both panes get a poster and a frozen clock — see
+    // lib/demoRegistry.ts. No manifest is fetched, so nothing can fail.
+    if (__DEMO__ && demoHooks.playback) {
+      cleanupSingleVideoSource();
+      cleanupDualVideoSources();
+      demoHooks.playback.attach(cameraVideo, "camera");
+      demoHooks.playback.attach(screenVideo, "screen");
+      isVideoLoading.value = false;
       return;
     }
 

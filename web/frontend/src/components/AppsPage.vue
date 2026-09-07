@@ -528,7 +528,7 @@ html[data-theme='dark'] .apps-page {
 /* The app in its own window. The three dots are the only chrome; the demo
    provides the rest, headline included. */
 .window {
-  width: min(56rem, 100%);
+  width: min(64rem, 100%);
   margin-top: 4rem;
   border: 1px solid var(--border-color);
   border-radius: 1rem;

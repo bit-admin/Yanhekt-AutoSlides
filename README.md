@@ -51,9 +51,7 @@
 - 工作区 `云存储` 同步延河课堂笔记、导入导出幻灯片、浏览 `公共索引`；观看时可记 `随堂笔记`。
 - 校园网登录支持短信验证码；可保存并切换多个学工号。
 
-<p align="center">
-  <img src="docs/home.png" width="70%" alt="主页" />
-</p>
+<sup>1</sup> 以有线方式连接到校园网时，下载峰值速率可达120MB/s；在 Wi-Fi 下速率较慢。
 
 ### 相关项目
 
@@ -61,7 +59,7 @@
   <thead>
     <tr>
       <th width="155">项目 / 类别</th>
-      <th width="190">GitHub 仓库</th>
+      <th width="190">仓库 / 文档</th>
       <th>描述</th>
     </tr>
   </thead>
@@ -71,10 +69,10 @@
         <a href="https://learn.ruc.edu.kg">网页版</a> 👈
       </td>
       <td>
-        <a href="https://github.com/bit-admin/Yanhe-Web">bit&#8209;admin/Yanhe-Web</a>
+        <a href="web/README.md">web/README.md</a>
       </td>
       <td>
-        观看全校课程，在移动设备上运行幻灯片提取；记录笔记并导出为文档。
+        浏览器里的 AutoSlides：免安装，边看边提取幻灯片，导出 PDF / ZIP，同步延河课堂云端笔记；手机与平板同样可用。查看<a href="https://learn.ruc.edu.kg/demo/">在线演示</a>👈。
       </td>
     </tr>
     <tr>
@@ -91,7 +89,16 @@
 
 ---
 
-<sup>1</sup> 以有线方式连接到校园网时，下载峰值速率可达120MB/s；在 Wi-Fi 下速率较慢。
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/home.png" alt="AutoSlides 桌面版主页" /></td>
+    <td width="48%" align="center"><img src="docs/home-web.png" alt="AutoSlides 网页版主页" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>桌面版</b></td>
+    <td align="center"><b>网页版</b></td>
+  </tr>
+</table>
 
 ## 🚀 快速开始
 
