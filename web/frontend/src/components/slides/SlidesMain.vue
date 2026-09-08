@@ -709,4 +709,67 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
     font-size: 1.2rem;
   }
 }
+
+/* Phones: the toolbar's two groups become two full-width rows instead of a
+   flat wrap that left the actions dangling right of an empty gutter. */
+@media (max-width: 640px) {
+  .sm-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.4rem;
+    padding: 0.45rem 0.75rem;
+  }
+
+  .sm-toolbar-left,
+  .sm-toolbar-right {
+    margin-left: 0;
+    gap: 0.35rem;
+  }
+
+  /* Segmented control spans the row, thirds like iOS. */
+  .sm-segments {
+    display: flex;
+    width: 100%;
+  }
+
+  .sm-seg {
+    flex: 1;
+    padding: 0.34rem 0.4rem;
+    text-align: center;
+  }
+
+  /* The grid is one column at any density on a phone, so the size control is
+     dead weight — same call as the volume slider in the player. */
+  .sm-size {
+    display: none;
+  }
+
+  .sm-btn {
+    padding: 0.4rem 0.5rem;
+  }
+
+  /* Reason chips scroll sideways rather than stacking two rows deep; the row
+     bleeds to the edge so a clipped chip hints there is more. */
+  .sm-reasons {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 0.35rem;
+  }
+
+  .sm-reasons::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sm-chip {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .sm-heading {
+    padding-top: 0.6rem;
+  }
+}
 </style>

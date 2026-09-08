@@ -537,8 +537,10 @@ onUnmounted(() => {
   border-radius: 6px;
 }
 
-.ns-row-wrap:hover .ns-row-action {
+.ns-row-wrap:hover .ns-row-action,
+.ns-row-wrap:focus-within .ns-row-action {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .ns-row {
@@ -612,6 +614,19 @@ onUnmounted(() => {
 
 .ns-row-action {
   opacity: 0;
+  /* Invisible but still hit-testable would put a silent delete target at the
+     end of every row on touch. */
+  pointer-events: none;
+}
+
+/* No hover on a phone: iOS spends the first tap applying it — revealing this
+   button — and swallows the click, so opening a note took two taps. Showing
+   the action outright removes the hover dependency (same as SlidesSidebar). */
+@media (hover: none) {
+  .ns-row-action {
+    opacity: 0.75;
+    pointer-events: auto;
+  }
 }
 
 .ns-row-action:hover {

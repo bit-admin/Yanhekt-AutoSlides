@@ -39,106 +39,110 @@
         </div>
 
         <div class="viewer-top-right">
-          <!-- Crop-mode actions live in the top bar (Apple Photos–style). -->
-          <template v-if="isCropMode">
-            <button
-              type="button"
-              class="viewer-text-btn"
-              :disabled="isLoading || isAutoCropDetecting"
-              @click="cancelCropMode"
-            >
-              {{ $t('trash.cancel') }}
-            </button>
-            <button
-              type="button"
-              class="viewer-text-btn"
-              :disabled="isLoading || isAutoCropDetecting"
-              @click="startAutoCropMode"
-            >
-              {{ isAutoCropDetecting ? '…' : $t('trash.autoCrop') }}
-            </button>
-            <button
-              type="button"
-              class="viewer-text-btn viewer-text-btn--accent"
-              :disabled="!canApplyCrop || isLoading || isAutoCropDetecting"
-              @click="applyCrop"
-            >
-              {{ $t('trash.applyCrop') }}
-            </button>
-          </template>
-          <template v-else-if="item.status === 'active'">
-            <button
-              v-if="canSetBaseline"
-              type="button"
-              class="viewer-text-btn"
-              :disabled="isLoading || isCurrentBaseline"
-              :title="
-                isCurrentBaseline
-                  ? $t('trash.currentBaselineTooltip')
-                  : $t('trash.useAsCropBaselineHint')
-              "
-              @click="onSetBaseline"
-            >
-              {{ $t('trash.useAsCropBaseline') }}
-            </button>
-            <!-- Uncropped: crop icon only. Cropped: Revert only (no crop+revert together). -->
-            <button
-              v-if="canStartCrop"
-              type="button"
-              class="viewer-icon-btn"
-              :title="$t('trash.crop')"
-              :aria-label="$t('trash.crop')"
-              :disabled="isLoading"
-              @click="startCropMode"
-            >
-              <!-- Standard crop tool: two overlapping L-brackets (Photos / Lucide crop) -->
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M6 2v14a2 2 0 0 0 2 2h14" />
-                <path d="M18 22V8a2 2 0 0 0-2-2H2" />
-              </svg>
-            </button>
-            <button
-              v-else-if="canRestoreCrop"
-              type="button"
-              class="viewer-text-btn viewer-text-btn--danger"
-              :disabled="isLoading"
-              :title="$t('trash.revertCrop')"
-              @click="restoreCrop"
-            >
-              {{ $t('trash.revertCrop') }}
-            </button>
-            <button
-              type="button"
-              class="viewer-icon-btn viewer-icon-btn--danger"
-              :title="$t('trash.delete')"
-              @click="$emit('delete', item)"
-            >
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              </svg>
-            </button>
-          </template>
-          <template v-else>
-            <button
-              v-if="item.reason === 'ai_filtered_edit'"
-              type="button"
-              class="viewer-text-btn"
-              :disabled="isLoading"
-              :title="$t('trash.autoCrop')"
-              @click="$emit('auto-crop', item)"
-            >
-              {{ $t('trash.autoCrop') }}
-            </button>
-            <button
-              type="button"
-              class="viewer-text-btn"
-              :disabled="isLoading"
-              @click="$emit('restore', item)"
-            >
-              {{ $t('trash.restore') }}
-            </button>
-          </template>
+          <!-- Contextual actions: their own row under the title on phones. -->
+          <div class="viewer-top-actions">
+            <!-- Crop-mode actions live in the top bar (Apple Photos–style). -->
+            <template v-if="isCropMode">
+              <button
+                type="button"
+                class="viewer-text-btn"
+                :disabled="isLoading || isAutoCropDetecting"
+                @click="cancelCropMode"
+              >
+                {{ $t('trash.cancel') }}
+              </button>
+              <button
+                type="button"
+                class="viewer-text-btn"
+                :disabled="isLoading || isAutoCropDetecting"
+                @click="startAutoCropMode"
+              >
+                {{ isAutoCropDetecting ? '…' : $t('trash.autoCrop') }}
+              </button>
+              <button
+                type="button"
+                class="viewer-text-btn viewer-text-btn--accent"
+                :disabled="!canApplyCrop || isLoading || isAutoCropDetecting"
+                @click="applyCrop"
+              >
+                {{ $t('trash.applyCrop') }}
+              </button>
+            </template>
+            <template v-else-if="item.status === 'active'">
+              <button
+                v-if="canSetBaseline"
+                type="button"
+                class="viewer-text-btn"
+                :disabled="isLoading || isCurrentBaseline"
+                :title="
+                  isCurrentBaseline
+                    ? $t('trash.currentBaselineTooltip')
+                    : $t('trash.useAsCropBaselineHint')
+                "
+                @click="onSetBaseline"
+              >
+                {{ $t('trash.useAsCropBaseline') }}
+              </button>
+              <!-- Uncropped: crop icon only. Cropped: Revert only (no crop+revert together). -->
+              <button
+                v-if="canStartCrop"
+                type="button"
+                class="viewer-icon-btn"
+                :title="$t('trash.crop')"
+                :aria-label="$t('trash.crop')"
+                :disabled="isLoading"
+                @click="startCropMode"
+              >
+                <!-- Standard crop tool: two overlapping L-brackets (Photos / Lucide crop) -->
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+                  <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+                </svg>
+              </button>
+              <button
+                v-else-if="canRestoreCrop"
+                type="button"
+                class="viewer-text-btn viewer-text-btn--danger"
+                :disabled="isLoading"
+                :title="$t('trash.revertCrop')"
+                @click="restoreCrop"
+              >
+                {{ $t('trash.revertCrop') }}
+              </button>
+              <button
+                type="button"
+                class="viewer-icon-btn viewer-icon-btn--danger"
+                :title="$t('trash.delete')"
+                @click="$emit('delete', item)"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </template>
+            <template v-else>
+              <button
+                v-if="item.reason === 'ai_filtered_edit'"
+                type="button"
+                class="viewer-text-btn"
+                :disabled="isLoading"
+                :title="$t('trash.autoCrop')"
+                @click="$emit('auto-crop', item)"
+              >
+                {{ $t('trash.autoCrop') }}
+              </button>
+              <button
+                type="button"
+                class="viewer-text-btn"
+                :disabled="isLoading"
+                @click="$emit('restore', item)"
+              >
+                {{ $t('trash.restore') }}
+              </button>
+            </template>
+          </div>
+
           <button
             type="button"
             class="viewer-icon-btn"
@@ -523,6 +527,12 @@ html[data-theme='dark'] .viewer-top {
   justify-content: flex-end;
 }
 
+.viewer-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .viewer-top-center {
   text-align: center;
   min-width: 0;
@@ -602,6 +612,7 @@ html[data-theme='dark'] .viewer-icon-btn:hover:not(:disabled) {
 
 .viewer-text-btn {
   border: none;
+  white-space: nowrap;
   background: transparent;
   color: #0071e3;
   font-size: 0.875rem;
@@ -888,6 +899,48 @@ html[data-theme='dark'] .viewer-thumb.active {
 }
 
 @media (max-width: 768px) {
+  /* Two rows on a phone: back · title · close, then the contextual actions
+     across the full width. One row cannot hold "Use as Crop Baseline" plus
+     Revert plus the icons without shredding the title. */
+  .viewer-top {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'back title close'
+      'actions actions actions';
+    gap: 0.25rem 0.5rem;
+    padding: 0.3rem 0.4rem 0.35rem;
+  }
+
+  .viewer-top-left {
+    grid-area: back;
+  }
+
+  .viewer-top-center {
+    grid-area: title;
+    padding: 0;
+  }
+
+  /* Lift the wrapper so its two children land in their own grid areas. */
+  .viewer-top-right {
+    display: contents;
+  }
+
+  .viewer-top-actions {
+    grid-area: actions;
+    justify-content: center;
+    /* Crop mode carries three buttons; let them scroll rather than wrap. */
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .viewer-top-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .viewer-top-right > .viewer-icon-btn {
+    grid-area: close;
+  }
+
   .viewer-stage {
     padding: 0.5rem 0.5rem 0.35rem;
   }

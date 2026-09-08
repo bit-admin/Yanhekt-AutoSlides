@@ -297,6 +297,8 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                               <polyline v-if="dualAudioSource === 'screen'" points="20,6 9,17 4,12"/>
                               <rect v-else x="4" y="5" width="16" height="10" rx="2"/>
+                              <path v-if="dualAudioSource !== 'screen'" d="M8 19h8"/>
+                              <path v-if="dualAudioSource !== 'screen'" d="M12 15v4"/>
                             </svg>
                             <span>{{ $t('playback.dual.screenAudio') }}</span>
                           </button>
@@ -308,6 +310,7 @@
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                               <polyline v-if="dualAudioSource === 'camera'" points="20,6 9,17 4,12"/>
                               <path v-else d="M23 7l-7 5 7 5V7z"/>
+                              <rect v-if="dualAudioSource !== 'camera'" x="1" y="5" width="15" height="14" rx="2"/>
                             </svg>
                             <span>{{ $t('playback.dual.cameraAudio') }}</span>
                           </button>
@@ -667,6 +670,7 @@ import { hasSeenExtractionFeaturesPrompt } from '../../stores/extractionFeatures
 import WatchNotesPanel from '../notes/WatchNotesPanel.vue'
 import FeedbackModal from '../FeedbackModal.vue'
 import { configStore } from '../../stores/configStore'
+import { togglePlayerFullscreen } from '../../lib/fullscreen'
 import { runtimeConfigStore } from '../../stores/runtimeConfigStore'
 import { watchNotesStore } from '../../stores/watchNotesStore'
 import type { Course } from '../../composables/useCourseList'
@@ -1289,11 +1293,10 @@ const toggleDualFullscreen = async () => {
   if (!container) return
 
   try {
-    if (document.fullscreenElement === container) {
-      await document.exitFullscreen()
-    } else {
-      await container.requestFullscreen()
-    }
+    // iPhone has no element fullscreen, so the fallback can only take one of
+    // the two streams into the system player — the screen recording is the
+    // one worth filling a phone with.
+    await togglePlayerFullscreen(container, screenVideoPlayer.value ?? cameraVideoPlayer.value)
   } catch (err) {
     console.error('Error toggling dual fullscreen:', err)
   }
@@ -1342,11 +1345,7 @@ const toggleSingleFullscreen = async () => {
   if (!container) return
 
   try {
-    if (document.fullscreenElement === container) {
-      await document.exitFullscreen()
-    } else {
-      await container.requestFullscreen()
-    }
+    await togglePlayerFullscreen(container, videoPlayer.value)
   } catch (err) {
     console.error('Error toggling single fullscreen:', err)
   }

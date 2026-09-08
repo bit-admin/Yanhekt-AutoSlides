@@ -707,10 +707,18 @@ const postLine = computed(() => {
     flex-wrap: wrap;
   }
 
+  /* Toggle on the left, counter pushed to the right edge, so the chrome row
+     reads as one line instead of two words adrift in the middle. */
+  .extraction-status {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   /* Buttons share the row while they fit, then wrap to a line each rather
-     than shrinking their labels to nothing. */
+     than shrinking their labels to nothing. The basis leaves room for the
+     chevron at the end — at 10rem it was pushed onto a line of its own. */
   .extraction-actions .btn {
-    flex: 1 1 10rem;
+    flex: 1 1 8rem;
     min-width: 0;
   }
 

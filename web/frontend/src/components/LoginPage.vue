@@ -555,6 +555,9 @@ watch(
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
+  /* The shell is positioned and comes later in the DOM, so on phones — where
+     the card stretches under this corner — it would swallow the taps. */
+  z-index: var(--z-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1169,12 +1172,39 @@ html[data-theme='dark'] .login-lang-menu {
 }
 
 /* ===== Responsive ===== */
+/* Phone layout drops the card entirely, the way Google's sign-in does: the
+   sheet colour becomes the page, content runs to the gutters, and the footer
+   is pinned to the bottom of the viewport instead of hugging the card. */
 @media (max-width: 720px) {
+  .login-page {
+    align-items: stretch;
+    padding: 1.5rem 1.5rem 1rem;
+    background-color: var(--bg-surface);
+  }
+
+  html[data-theme='dark'] .login-page {
+    background-color: var(--bg-elevated);
+  }
+
+  .login-shell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .login-card,
+  html[data-theme='dark'] .login-card {
+    flex: 1;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
   .login-grid {
     grid-template-columns: 1fr;
     gap: 2rem;
     min-height: 0;
-    padding: 2.5rem 2rem;
+    padding: 2rem 0 0;
   }
 
   .login-title {
@@ -1185,6 +1215,17 @@ html[data-theme='dark'] .login-lang-menu {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
+    padding: 2rem 0 0;
+  }
+
+  /* Pull the button's own padding back so its label lines up with the links. */
+  .login-lang {
+    margin-left: -0.625rem;
+  }
+
+  .login-legal {
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
   }
 }
 </style>

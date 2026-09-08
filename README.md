@@ -50,8 +50,22 @@
 - 工作区 `课程视频` 管理本地录像，双流同步播放，可按幻灯片时间轴跳转，并压缩、重命名屏幕录像。
 - 工作区 `云存储` 同步延河课堂笔记、导入导出幻灯片、浏览 `公共索引`；观看时可记 `随堂笔记`。
 - 校园网登录支持短信验证码；可保存并切换多个学工号。
+- 另有 `网页版` 支持移动设备使用<sup>2</sup>。
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/home.png" alt="AutoSlides 桌面版主页" /></td>
+    <td width="48%" align="center"><img src="docs/home-web.png" alt="AutoSlides 网页版主页" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>桌面版</b></td>
+    <td align="center"><b>网页版</b></td>
+  </tr>
+</table>
 
 <sup>1</sup> 以有线方式连接到校园网时，下载峰值速率可达120MB/s；在 Wi-Fi 下速率较慢。
+
+<sup>2</sup> 网页版直连延河课堂直播服务器，并通过中继服务器提供录播视频播放支持；录播播放速率可能受限。
 
 ### 相关项目
 
@@ -72,7 +86,7 @@
         <a href="web/README.md">web/README.md</a>
       </td>
       <td>
-        浏览器里的 AutoSlides：免安装，边看边提取幻灯片，导出 PDF / ZIP，同步延河课堂云端笔记；手机与平板同样可用。查看<a href="https://learn.ruc.edu.kg/demo/">在线演示</a>👈。
+        浏览器里的 AutoSlides：免安装，边看边提取幻灯片，导出 PDF / ZIP，同步延河课堂云端笔记；手机与平板同样可用。查看<a href="https://learn.ruc.edu.kg/demo/">在线演示</a> 👈。
       </td>
     </tr>
     <tr>
@@ -88,17 +102,6 @@
 </table>
 
 ---
-
-<table>
-  <tr>
-    <td width="50%" align="center"><img src="docs/home.png" alt="AutoSlides 桌面版主页" /></td>
-    <td width="48%" align="center"><img src="docs/home-web.png" alt="AutoSlides 网页版主页" /></td>
-  </tr>
-  <tr>
-    <td align="center"><b>桌面版</b></td>
-    <td align="center"><b>网页版</b></td>
-  </tr>
-</table>
 
 ## 🚀 快速开始
 

@@ -34,14 +34,15 @@
 
 ## ✨ 这是什么
 
-AutoSlides Web 是 [AutoSlides 桌面版](../README.md)的浏览器版本，运行在 [learn.ruc.edu.kg](https://learn.ruc.edu.kg)。打开网页就能用：浏览与播放延河课堂的直播和录播，一边看一边把幻灯片提取出来，导出 PDF / ZIP，或同步到延河课堂的云端笔记。手机、平板、电脑都可以，不需要安装任何东西。
+AutoSlides Web 是 [AutoSlides 桌面版](../README.md) 的浏览器版本，运行在 [learn.ruc.edu.kg](https://learn.ruc.edu.kg) 👈 打开网页就能用：浏览与播放延河课堂的直播和录播，一边看一边把幻灯片提取出来，导出 PDF / ZIP，或同步到延河课堂的云端笔记。手机、平板、电脑都可以，不需要安装任何东西。
 
 幻灯片的提取、去重和 AI 过滤全部在你自己的浏览器里完成，提取结果保存在浏览器的本地数据库（IndexedDB）中，不会上传到本站服务器。
 
 > [!NOTE]
 > 录播播放需要经由中继服务器完成延河课堂的 URL 签名，本站部署的中继只对校园网开放。校外网络可以正常浏览、搜索、看直播和管理已提取的幻灯片，录播播放会提示当前网络无法访问中继。
 
-静态演示站：[learn.ruc.edu.kg/demo/](https://learn.ruc.edu.kg/demo/)
+- 检查中继服务器可用性：[relay.ruc.edu.kg](https://relay.ruc.edu.kg) 👈
+- 静态演示：[learn.ruc.edu.kg/demo/](https://learn.ruc.edu.kg/demo/) 👈
 
 ## 🚀 开始使用
 
@@ -208,20 +209,6 @@ AutoSlides Web 是 [AutoSlides 桌面版](../README.md)的浏览器版本，运�
 | 外部提取器 | 不支持 | 可搭配 AutoSlides Extractor（C++） |
 | 雨课堂、网页捕获 | 不支持 | 支持 |
 
-## ❓ 常见问题
-
-**录播打不开，一直转圈或提示网络问题。**
-录播需要经过中继服务器签名，而本站的中继只对校园网开放。请连接校园网后重试；直播、搜索和已提取的幻灯片不受影响。
-
-**我的幻灯片存在哪里？换台设备还在吗？**
-存在当前浏览器的 IndexedDB 里，不会上传到本站。换设备、换浏览器或清除网站数据都会丢失，重要的结果请及时导出 PDF / ZIP，或同步到云端笔记。
-
-**Safari / iPhone 上能用吗？**
-可以。Safari 与 iOS 走系统原生 HLS 播放；受浏览器画布安全策略限制，这条路径上无法逐帧抓取，届时提取面板会给出提示。
-
-**占用空间越来越大怎么办？**
-在幻灯片工作区删除不再需要的相册即可，浏览器会随之释放空间。
-
 ## 🛠 开发
 
 本目录是一个 Cloudflare Worker：`src/` 是 Hono 编写的 API（延河课堂代理、统一身份认证登录、录播中继策略、分享链接与 AI 转发），`frontend/` 是 Vue 3 + Vite 前端，构建产物 `dist/` 通过 Worker 的 ASSETS 绑定提供。
@@ -239,17 +226,13 @@ npm run typecheck && npm run typecheck:web && npm test
 npm run deploy                             # 构建并发布
 ```
 
-两个开发服务器一起跑是常规工作流：Vite 在 :5173 热重载界面，并把 `/api/*`、`/playlist`、`/segment` 代理到 :8787 上的 Worker。注意本地 `wrangler dev` 不接受未来的 `compatibility_date`。
-
-演示站是同一份前端的第二次构建（`vite.demo.config.ts`）：编译期常量 `__DEMO__` 打开路由的 hash 模式与播放器的占位实现，入口改为 `frontend/src/demo/main.ts`，由它先隔离存储、再接管 `fetch`，然后才加载真正的 `main.ts`。正式构建里 `__DEMO__` 为 `false`，整个 `frontend/src/demo/` 会被摇树移除。截图脚本 `scripts/screenshots.mjs` 需要 ImageMagick（`magick`）用于把 2× 截图缩放回 1×。
-
 三处部署相关的配置：
 
 - `RELAY_PUBLIC_ORIGIN` / `ALLOW_OFFCAMPUS_RELAY` — 决定浏览器是直接连公开中继（默认，本 Worker 的 `/playlist`、`/segment` 返回 403），还是经由 service binding 中转。`GET /api/config` 把结果连同来访者的 ASN 一起告诉前端。
 - `SSO_RESUME_KEY` — Worker 用来加密短信验证过程中那份「未完成的登录状态」的随机字符串（`openssl rand -base64 32` 自行生成），并非任何机构颁发的凭据。留空也能部署，只是需要短信验证的账号会被引导去用 Token 登录。
 - `AI_ORIGIN` 与 `services`（`RELAY`、`SHARE`）— 未配置时对应路由返回 503。
 
-`wrangler.jsonc` 已 gitignore，请从 `wrangler.example.jsonc` 复制一份再填写。录播中继的更多说明见 [`../relay/README.md`](../relay/README.md)。
+录播中继的更多说明见 [`../relay/README.md`](../relay/README.md)。
 
 ---
 

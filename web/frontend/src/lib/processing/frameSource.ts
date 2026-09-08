@@ -4,9 +4,13 @@
  *
  * Web changes: the DOM-selector lookup (`buildVideoSelector`/`getVideoElement`)
  * is dropped — the web app always supplies a `videoElementProvider`. A tainted
- * canvas (Safari native-HLS without CORS) now throws `CanvasTaintedError`
- * instead of being swallowed, so the caller can surface an "unsupported in
- * this browser" state rather than silently capturing nothing.
+ * canvas now throws `CanvasTaintedError` instead of being swallowed, so the
+ * caller can surface an "unsupported in this browser" state rather than
+ * silently capturing nothing. In our own deployment this is a guard, not a
+ * known limitation: every <video> carries `crossorigin="anonymous"` and the
+ * relay/CDN answer with CORS headers, so Safari's native-HLS path captures
+ * frames like everyone else — a source without CORS fails to play at all
+ * rather than tainting.
  */
 
 import { createLogger } from '../logger';
