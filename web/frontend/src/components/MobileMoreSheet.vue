@@ -165,7 +165,6 @@ const FOOTER_LINKS = computed(() => [
   { href: 'https://it.ruc.edu.kg', labelKey: 'footerLinks.itCentre' },
   { href: 'https://relay.ruc.edu.kg', labelKey: 'footerLinks.publicRelay' },
   { href: 'https://share.ruc.edu.kg', labelKey: 'footerLinks.publicIndex' },
-  { href: 'https://notes.ruc.edu.kg', labelKey: 'footerLinks.notes' },
   { href: router.resolve({ name: 'image-comparison' }).href, labelKey: 'lab.imageComparison' },
   { href: 'https://copilot.ruc.edu.kg', labelKey: 'footerLinks.copilot' },
   { href: 'https://coss.ruc.edu.kg', labelKey: 'footerLinks.coss' },

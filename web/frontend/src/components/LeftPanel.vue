@@ -258,8 +258,7 @@ const FOOTER_LINKS = computed(() => [
   { href: 'https://it.ruc.edu.kg', labelKey: 'footerLinks.itCentre' },
   { href: 'https://relay.ruc.edu.kg', labelKey: 'footerLinks.publicRelay' },
   { href: 'https://share.ruc.edu.kg', labelKey: 'footerLinks.publicIndex' },
-  { href: 'https://notes.ruc.edu.kg', labelKey: 'footerLinks.notes' },
-  // Lab sits after Notes; in-app route opened as its own tab (same idea as Apps).
+  // Lab is an in-app route opened as its own tab (same idea as Apps).
   { href: router.resolve({ name: 'image-comparison' }).href, labelKey: 'lab.imageComparison' },
   { href: 'https://copilot.ruc.edu.kg', labelKey: 'footerLinks.copilot' },
   { href: 'https://coss.ruc.edu.kg', labelKey: 'footerLinks.coss' },
