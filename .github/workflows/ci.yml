@@ -117,6 +117,25 @@ jobs:
 
       - run: npm ci
       - name: Build application (package only)
-        run: npm run package
+        # Retried because packaging always re-fetches the release's SHASUMS256.txt —
+        # @electron/get verifies even a cached Electron zip with cacheMode Bypass, and
+        # got does not retry streamed downloads, so a single transient GitHub 500 (500
+        # out of Forge's Copying files stage) would fail the job.
+        shell: pwsh
+        run: |
+          # A failing npm must not throw: GitHub's pwsh wrapper sets ErrorActionPreference
+          # to 'stop', and pwsh 7.4+ applies that to native exit codes too.
+          $ErrorActionPreference = 'Continue'
+          $PSNativeCommandUseErrorActionPreference = $false
+          for ($i = 1; $i -le 3; $i++) {
+            npm run package
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($i -lt 3) {
+              Write-Host "::warning::package failed (attempt $i/3), retrying in 30s"
+              Remove-Item -Recurse -Force out -ErrorAction SilentlyContinue
+              Start-Sleep -Seconds 30
+            }
+          }
+          exit 1
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false

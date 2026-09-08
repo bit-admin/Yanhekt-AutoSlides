@@ -30,9 +30,27 @@ jobs:
         npm run lint
 
     - name: Build NSIS installer
+      # Retried because packaging always re-fetches the release's SHASUMS256.txt —
+      # @electron/get verifies even a cached Electron zip with cacheMode Bypass, and
+      # got does not retry streamed downloads, so a single transient GitHub 500 aborts
+      # the build ("Response code 500" out of Forge's Copying files stage).
+      shell: pwsh
+      working-directory: autoslides
       run: |
-        cd autoslides
-        npm run make:win
+        # A failing npm must not throw: GitHub's pwsh wrapper sets ErrorActionPreference
+        # to 'stop', and pwsh 7.4+ applies that to native exit codes too.
+        $ErrorActionPreference = 'Continue'
+        $PSNativeCommandUseErrorActionPreference = $false
+        for ($i = 1; $i -le 3; $i++) {
+          npm run make:win
+          if ($LASTEXITCODE -eq 0) { exit 0 }
+          if ($i -lt 3) {
+            Write-Host "::warning::make:win failed (attempt $i/3), retrying in 30s"
+            Remove-Item -Recurse -Force out -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 30
+          }
+        }
+        exit 1
       env:
         # Disable code signing for CI builds
         CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -79,9 +97,18 @@ jobs:
         npm run lint
 
     - name: Build Linux packages
+      # Same transient-500 exposure as the Windows job — see the note there.
+      working-directory: autoslides
       run: |
-        cd autoslides
-        npm run make:linux
+        for i in 1 2 3; do
+          if npm run make:linux; then exit 0; fi
+          if [ "$i" -lt 3 ]; then
+            echo "::warning::make:linux failed (attempt $i/3), retrying in 30s"
+            rm -rf out
+            sleep 30
+          fi
+        done
+        exit 1
 
     - name: List build output
       run: |
