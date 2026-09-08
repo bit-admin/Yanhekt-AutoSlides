@@ -1,6 +1,6 @@
-# yanhekt-proxy
+# Yanhekt-Proxy
 
-A standalone Cloudflare Worker that proxies **recorded** yanhekt videos through their
+A standalone Cloudflare Worker that proxies **recorded** Yanhekt videos through their
 signed-URL anti-hotlink scheme, so any HLS player can stream them. It's a cloud port of
 AutoSlides' local Node proxy (`autoslides/src/main/video/videoProxyService.ts`).
 

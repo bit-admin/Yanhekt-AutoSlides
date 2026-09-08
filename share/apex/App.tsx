@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { demoHooks } from '../src/lib/demoRegistry';
 import { readPageSemesterIds } from '../src/lib/searchQuery';
 import { groupLectures, schoolYearRank, semesterRank } from './lectureSort';
 import { SemesterSelect, type IndexSemester } from './SemesterSelect';
@@ -66,6 +67,18 @@ const API = '/v2/api';
 
 function lectureUrl(l: Pick<Lecture, 'courseId' | 'sessionId'>): string {
   return `/?c=${encodeURIComponent(l.courseId)}&s=${encodeURIComponent(l.sessionId)}`;
+}
+
+/** Where the v1 viewer lives, relative to this build's base ('/' in production). */
+const V1_BASE = `${import.meta.env.BASE_URL}v1/`;
+
+/**
+ * The viewer URL for one indexed file. Short links are resolved by the Worker,
+ * so the demo — which has no Worker — hands back an equivalent long link.
+ */
+function viewerHref(shareId: string): string {
+  if (__DEMO__ && demoHooks.viewerHref) return demoHooks.viewerHref(shareId);
+  return `${V1_BASE}s/${shareId}`;
 }
 
 function semesterLabel(semester?: string): string {
@@ -239,7 +252,7 @@ function Home({
     // A full URL → open as-is; a bare fragment/payload → open under /v1/.
     if (/^https?:\/\//.test(v)) window.location.href = v;
     else if (v.startsWith('/v1/')) window.location.href = v;
-    else window.location.href = `/v1/${v.startsWith('#') ? v : `#${v.replace(/^#/, '')}`}`;
+    else window.location.href = `${V1_BASE}${v.startsWith('#') ? v : `#${v.replace(/^#/, '')}`}`;
   }, [pasteLink]);
 
   const hasResults = results !== null;
@@ -514,7 +527,7 @@ function Home({
         ) : (
           <div className="result-list">
             {recentFiles.map((f) => (
-              <a key={f.shareId} className="result-item" href={`/v1/s/${f.shareId}`}>
+              <a key={f.shareId} className="result-item" href={viewerHref(f.shareId)}>
                 <div className="result-title">
                   <span className="result-course">{f.courseTitle || 'Untitled course'}</span>
                   {f.sessionTitle && <span className="result-session"> {f.sessionTitle}</span>}
@@ -575,7 +588,7 @@ function FilePanel({
       ) : (
         <div className="version-list">
           {versions.map((v, i) => (
-            <a key={v.shareId} className="version" href={`/v1/s/${v.shareId}`}>
+            <a key={v.shareId} className="version" href={viewerHref(v.shareId)}>
               <span className="version-ord">Slides #{i + 1}</span>
               {v.createdAt && <span className="version-date">{new Date(v.createdAt).toLocaleDateString()}</span>}
               <span className="version-count">{v.imageCount ?? '?'} slides</span>

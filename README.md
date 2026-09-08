@@ -72,8 +72,8 @@
 <table>
   <thead>
     <tr>
-      <th width="155">项目 / 类别</th>
-      <th width="190">仓库 / 文档</th>
+      <th width="100">项目 / 类别</th>
+      <th width="230">仓库 / 文档</th>
       <th>描述</th>
     </tr>
   </thead>
@@ -87,6 +87,28 @@
       </td>
       <td>
         浏览器里的 AutoSlides：免安装，边看边提取幻灯片，导出 PDF / ZIP，同步延河课堂云端笔记；手机与平板同样可用。查看<a href="https://learn.ruc.edu.kg/demo/">在线演示</a> 👈。
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="https://share.ruc.edu.kg">公共索引</a> 👈
+      </td>
+      <td>
+        <a href="share/README.md">share/README.md</a>
+      </td>
+      <td>
+        AutoSlides 的分享端：把整套课件做成一条链接分享出去，或公开到公共索引，让别人按课程、老师、学院搜到——提取一门课之前，也可以先来看看有没有人上传过。查看<a href="https://share.ruc.edu.kg/demo/">在线演示</a> 👈。
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <a href="https://relay.ruc.edu.kg">公共中继</a> 👈
+      </td>
+      <td>
+        <a href="relay/README.md">relay/README.md</a>
+      </td>
+      <td>
+        录播视频中继：把延河课堂的签名防盗链处理为任何 HLS 播放器都能播的地址，网页版的录播播放经由它完成。只对校园网开放，在此<a href="https://relay.ruc.edu.kg">检查网络连接</a> 👈。
       </td>
     </tr>
     <tr>

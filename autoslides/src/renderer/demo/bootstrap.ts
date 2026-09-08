@@ -34,6 +34,8 @@ import {
   demoNoteGroups,
   demoNotesList,
   demoNoteDetail,
+  demoNoteImageUrls,
+  demoShortShareUrl,
   demoNextNoteIdValue,
   demoIndexStats,
   demoIndexSearch,
@@ -124,7 +126,23 @@ export function installDemo(): void {
     groupCreate: async () => ({ ok: true, data: undefined }),
     groupDelete: async () => ({ ok: true, data: undefined }),
     uploadImage: async () => ({ ok: true, data: { url: demoResultImageDataUri({}) } }),
+    // Sharing offline: mint plausible URLs instead of posting to share.ruc.edu.kg.
+    shortenShareUrl: async (fragment: string) => ({
+      ok: true,
+      data: { url: demoShortShareUrl(fragment) },
+    }),
+    publishToIndex: async (fragment, source) => ({
+      ok: true,
+      data: {
+        shareId: demoShortShareUrl(fragment).split('/').pop() ?? 'demo',
+        indexUrl: `https://share.ruc.edu.kg/?c=${source.courseId}&s=${source.sessionId}`,
+        duplicate: false,
+      },
+    }),
   }
+  // Note images are data URIs so they render offline; sharing needs the
+  // public-storage URLs their uploaded counterparts would have had.
+  overrides.noteImageUrls = demoNoteImageUrls
   // Fake Cloud Index: the Drive page's index mode browses a fabricated public
   // index over the same demo courses; share links resolve to the slide SVGs.
   overrides.cloudIndexProvider = {

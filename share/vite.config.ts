@@ -9,6 +9,8 @@ import react from '@vitejs/plugin-react';
 // the sibling autoslides project.
 export default defineConfig({
   base: '/v1/',
+  // Compile-time constant: dead-codes every demo branch out of the real build.
+  define: { __DEMO__: 'false' },
   plugins: [react()],
   server: {
     fs: { allow: ['..'] },

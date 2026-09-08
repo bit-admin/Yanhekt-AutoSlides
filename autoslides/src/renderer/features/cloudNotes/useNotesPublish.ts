@@ -3,6 +3,7 @@ import { buildSharePayload, encodeSharePayload } from '@common/shareLink'
 import { shareTimelineDeltaFromNote } from '@common/shareTimeline'
 import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 import { configStore } from '@shared/services/configStore'
+import { overrides } from '@shared/overrideRegistry'
 import type { useCloudNotes } from './useCloudNotes'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
@@ -38,7 +39,8 @@ export function useNotesPublish(cn: CloudNotesApi) {
     const source = meta?.slides?.source
     if (!source?.courseId || !source?.sessionId) return { ok: false, reason: 'not-indexable' }
 
-    const urls = noteImageUrls(content)
+    const noteUrls = noteImageUrls(content)
+    const urls = overrides.noteImageUrls?.(noteUrls) ?? noteUrls
     if (urls.length === 0) return { ok: false, reason: 'no-images' }
 
     const embed = configStore.cloudShareEmbedTimeline !== false
@@ -57,7 +59,8 @@ export function useNotesPublish(cn: CloudNotesApi) {
     // Editing implies reviewing.
     const plainReview = { reviewed: !!rev?.reviewed || edited, edited }
 
-    const r = await window.electronAPI.cloudNotes.publishToIndex(fragment, plainSource, plainReview)
+    const notes = overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
+    const r = await notes.publishToIndex(fragment, plainSource, plainReview)
     if (!r.ok) return { ok: false, error: r.error }
     return { ok: true, indexUrl: r.data.indexUrl, duplicate: r.data.duplicate }
   }

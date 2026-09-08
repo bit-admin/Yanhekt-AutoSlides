@@ -24,6 +24,7 @@ import type {
   IndexRemovalResult,
   ShareImportResult,
 } from '@common/notesTypes'
+import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 
 export interface ResultImageItem {
   reason?: string
@@ -66,6 +67,12 @@ export interface CloudNotesProvider {
   groupCreate(name: string): Promise<NotesResult<void>>
   groupDelete(id: number): Promise<NotesResult<void>>
   uploadImage(bytes: ArrayBuffer, filename: string, mime: string): Promise<NotesResult<UploadedImage>>
+  shortenShareUrl(fragment: string): Promise<NotesResult<{ url: string }>>
+  publishToIndex(
+    fragment: string,
+    source: SlideMetadataSource,
+    review: { reviewed: boolean; edited: boolean },
+  ): Promise<NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>>
 }
 
 // Drop-in for the subset of window.electronAPI.cloudNotes that the Cloud Index
@@ -134,6 +141,12 @@ export interface RuntimeOverrides {
   playbackDemo?: PlaybackDemo
   /** Backing data source for the Cloud Notes page (groups + notes + content). */
   cloudNotesProvider?: CloudNotesProvider
+  /**
+   * Rewrites a note's image URLs before a share payload is built from them.
+   * Sharing counts (and encodes) only public-storage URLs, so a data source
+   * that fabricates its images has no shareable slides without this.
+   */
+  noteImageUrls?: (urls: string[]) => string[]
   /** Backing data source for the Drive page's Cloud Index mode (browse + viewer). */
   cloudIndexProvider?: CloudIndexProvider
   /** Backing reads for the Lectures workspace (library / list / posters / rename). */

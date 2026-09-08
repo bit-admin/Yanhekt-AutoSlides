@@ -2,6 +2,7 @@
 //
 //   npm run screenshots:build   # (re)capture into autoslides/out/screenshots
 //   npm run docs:images         # this script: rename/split/copy → ../docs
+//   node scripts/process-docs.mjs --only cloud-notes-share   # just that capture
 //
 // What it does:
 //   - COPY: rename each non-split capture 1:1 into docs/ (native window shots
@@ -36,6 +37,21 @@ const repoRoot = path.resolve(projectRoot, '..')                  // repo root
 const srcDir = path.join(projectRoot, 'out', 'screenshots')
 const docsDir = path.join(repoRoot, 'docs')
 
+// --only <capture,…> limits processing to those CAPTURE names (the left-hand
+// side of the maps below), so refreshing one image cannot rewrite the other
+// fifty. Pairs with `node scripts/screenshots.mjs --only <same names>`.
+const onlyArg = process.argv.find((a) => a.startsWith('--only'))
+const only = onlyArg
+  ? new Set(
+      (onlyArg.includes('=') ? onlyArg.split('=')[1] : process.argv[process.argv.indexOf(onlyArg) + 1] || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean),
+    )
+  : null
+/** True when this capture is excluded by --only. */
+const skipSrc = (src) => !!only && !only.has(src)
+
 // capture name (without .png) → docs/ name (without .png). 1:1 verbatim copy.
 const COPY = {
   login: 'login',
@@ -68,6 +84,7 @@ const COPY = {
   pdfmaker: 'pdfmaker',
   'cloud-notes': 'cloud-notes',
   'cloud-notes-editor': 'cloud-notes-editor',
+  'cloud-notes-share': 'cloud-notes-share',
   'cloud-index-recent': 'cloud-index-recent',
   'cloud-index-browse': 'cloud-index-browse',
   'tools-webcapture': 'tools-webcapture',
@@ -194,6 +211,7 @@ function main() {
   let copied = 0
   const coverFiles = []
   for (const [src, dst] of Object.entries(COPY)) {
+    if (skipSrc(src)) continue
     const from = path.join(srcDir, `${src}.png`)
     const to = path.join(docsDir, `${dst}.png`)
     if (!existsSync(from)) { warn(`missing capture: ${src}.png (skipped)`); continue }
@@ -206,6 +224,7 @@ function main() {
   }
 
   for (const [src, aliases] of Object.entries(COPY_ALIASES)) {
+    if (skipSrc(src)) continue
     const from = path.join(srcDir, `${src}.png`)
     if (!existsSync(from)) { warn(`missing capture: ${src}.png (alias skipped)`); continue }
     for (const dst of aliases) {
@@ -245,6 +264,7 @@ function main() {
   const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : {}
   let split = 0
   for (const [src, cfg] of Object.entries(SPLIT)) {
+    if (skipSrc(src)) continue
     const from = path.join(srcDir, `${src}.png`)
     if (!existsSync(from)) { warn(`missing capture: ${src}.png (split skipped)`); continue }
     const geom = manifest[src]
@@ -283,6 +303,7 @@ function main() {
   // --- CROP -----------------------------------------------------------------
   let cropped = 0
   for (const [src, cfg] of Object.entries(CROP)) {
+    if (skipSrc(src)) continue
     const from = path.join(srcDir, `${src}.png`)
     if (!existsSync(from)) { warn(`missing capture: ${src}.png (crop skipped)`); continue }
     const geom = manifest[src]
@@ -303,6 +324,7 @@ function main() {
 
   // --- BAND (walkthrough slices of a long tab) -----------------------------
   for (const cfg of BAND) {
+    if (skipSrc(cfg.src)) continue
     const from = path.join(srcDir, `${cfg.src}.png`)
     if (!existsSync(from)) { warn(`missing capture: ${cfg.src}.png (band skipped)`); continue }
     const pngW = parseInt(identify(from, '%w'), 10)
@@ -335,6 +357,7 @@ function main() {
 
   // --- REGION_CROP (window-shot corners) -----------------------------------
   for (const [src, cfg] of Object.entries(REGION_CROP)) {
+    if (skipSrc(src)) continue
     const from = path.join(srcDir, `${src}.png`)
     if (!existsSync(from)) { warn(`missing capture: ${src}.png (region crop skipped)`); continue }
     const pngW = parseInt(identify(from, '%w'), 10)

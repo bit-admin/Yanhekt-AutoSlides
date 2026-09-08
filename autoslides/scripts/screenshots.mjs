@@ -2,6 +2,7 @@
 //
 //   npm run package        # once, to produce .vite/ (re-run when app code changes)
 //   npm run screenshots    # drives the unpackaged build in demo mode, writes PNGs
+//   node scripts/screenshots.mjs --only cloud-notes-share   # just that view
 //
 // We launch the UNPACKAGED Forge build (local electron + .vite/build/main.js):
 // the packaged .app disables the EnableNodeCliInspectArguments / RunAsNode fuses,
@@ -11,7 +12,7 @@
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { fileURLToPath } from 'node:url'
-import { existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync, readFileSync, statSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 
@@ -34,6 +35,20 @@ if (forceNative && process.platform !== 'darwin') {
 }
 const macChrome = process.platform === 'darwin' && !forceWeb // native unless explicitly disabled
 console.log(`  capture mode: ${macChrome ? 'native (macOS window chrome)' : 'web (page contents)'}`)
+
+// --only <a,b> limits the run to those steps. The demo builds its dates from
+// "now", so every capture differs slightly run to run — when only one image
+// needs refreshing, this keeps the other fifty out of the diff.
+const onlyArg = process.argv.find((a) => a.startsWith('--only'))
+const only = onlyArg
+  ? new Set(
+      (onlyArg.includes('=') ? onlyArg.split('=')[1] : process.argv[process.argv.indexOf(onlyArg) + 1] || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean),
+    )
+  : null
+if (only) console.log(`  only: ${[...only].join(', ')}`)
 
 if (!existsSync(mainEntry)) {
   console.error(`\n✗ Build not found: ${mainEntry}\n  Run "npm run package" first (it produces .vite/), then "npm run screenshots".\n`)
@@ -120,6 +135,7 @@ async function main() {
   }
 
   const step = async (name, fn) => {
+    if (only && !only.has(name)) return
     try {
       await fn()
     } catch (e) {
@@ -529,6 +545,22 @@ async function main() {
     await shot('cloud-notes-editor')
   })
 
+  // The Share dialog, on a note that has already been shared AND published, so
+  // all three rows show a URL: the long link, the short link, and the Public
+  // Index page. (Notes 102/103 open on the buttons instead — same dialog, one
+  // step earlier in the flow.)
+  await step('cloud-notes-share', async () => {
+    await gotoWorkspace('cloud-notes', '.cloud-notes-tab')
+    await win.waitForSelector('.cn-note-item', { timeout: 8000 })
+    await win.locator('.cn-note-item', { hasText: 'Complex Analysis' }).first().click()
+    await win.waitForSelector('.cn-editor img', { timeout: 8000 })
+    await win.locator('.cn-share-btn').click()
+    await win.waitForSelector('.cn-share-box .cn-share-url', { timeout: 8000 })
+    await win.waitForTimeout(700)
+    await shot('cloud-notes-share')
+    await win.locator('.cn-share-box .dialog-btn').click()
+  })
+
   // Cloud Index (the Drive page's index mode): recently-added feed, then a
   // search → course list + sessions + the right-panel slide viewer. Backed by
   // the demo cloudIndexProvider override (fabricated index, no network).
@@ -672,7 +704,14 @@ async function main() {
   const runDpr = await win.evaluate(() => window.devicePixelRatio).catch(() => 1)
 
   await app.close()
-  writeFileSync(path.join(outDir, 'sections.json'), JSON.stringify(sectionsManifest, null, 2))
+  // A filtered run only measures the steps it ran, so merge onto whatever a
+  // previous full run recorded — overwriting would strip the settings-tab
+  // geometry that process-docs.mjs splits the long tabs with.
+  const sectionsPath = path.join(outDir, 'sections.json')
+  const priorSections = existsSync(sectionsPath)
+    ? JSON.parse(readFileSync(sectionsPath, 'utf8'))
+    : {}
+  writeFileSync(sectionsPath, JSON.stringify({ ...priorSections, ...sectionsManifest }, null, 2))
   console.log(`  ✓ sections.json`)
   writeFileSync(path.join(outDir, 'meta.json'), JSON.stringify({ dpr: runDpr }, null, 2))
   console.log(`  ✓ meta.json (dpr ${runDpr})`)

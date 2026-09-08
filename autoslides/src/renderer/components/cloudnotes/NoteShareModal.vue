@@ -93,6 +93,7 @@ import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 import type { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import type { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
+import { overrides } from '@shared/overrideRegistry'
 
 const props = defineProps<{
   cn: ReturnType<typeof useCloudNotes>
@@ -133,7 +134,8 @@ async function open(): Promise<void> {
   const note = props.cn.selectedNote.value
   if (!note) return
   const content = await props.getContent()
-  const urls = noteImageUrls(content)
+  const noteUrls = noteImageUrls(content)
+  const urls = overrides.noteImageUrls?.(noteUrls) ?? noteUrls
   const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
   const metaForShare = readNoteMetadata(content)
   const embed = configStore.cloudShareEmbedTimeline !== false
@@ -231,7 +233,8 @@ async function onGetShortLink(): Promise<void> {
   shareShortening.value = true
   shareShortError.value = ''
   try {
-    const res = await window.electronAPI.cloudNotes.shortenShareUrl(shareFragment.value)
+    const notes = overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
+    const res = await notes.shortenShareUrl(shareFragment.value)
     if (!res.ok) { shareShortError.value = t('cloudNotes.shareShortError'); return }
     const url = res.data.url
     shareShortUrl.value = url

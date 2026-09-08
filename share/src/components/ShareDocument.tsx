@@ -79,7 +79,8 @@ export function ShareDocument({ payload, images, meta, fragment }: ShareDocument
   const byline = [meta?.instructor, meta?.college, term].filter(Boolean).join(' · ');
   const stem = fileStem(payload, meta);
   const isShortLink = SHORT_PATH.test(location.pathname);
-  const fragmentUrl = `${location.origin}/v1#${fragment}`;
+  // BASE_URL is '/v1/' in production and '/demo/v1/' in the demo build.
+  const fragmentUrl = `${location.origin}${import.meta.env.BASE_URL}#${fragment}`;
 
   const copyLink = async (kind: Exclude<Copied, null>, text: string) => {
     const ok = await copyText(text);

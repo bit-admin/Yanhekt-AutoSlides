@@ -42,6 +42,7 @@ import type { SlideMetadata } from '@common/slideMetadataTypes'
 import { SLIDE_METADATA_VERSION } from '@common/slideMetadataTypes'
 import type { SlideTimeline } from '@common/sidecars'
 import { SLIDE_TIMELINE_VERSION } from '@common/sidecars'
+import { NOTE_METADATA_VERSION, buildNoteMetadataBlock } from '@common/notesContent'
 import type { StoredAccount } from '@common/types'
 
 export const DEMO_TOKEN = 'DEMO_MODE_TOKEN'
@@ -576,6 +577,15 @@ interface DemoNoteSpec {
   kind: 'readme' | 'managed' | 'plain'
   /** managed: number of slide image blocks. */
   slides?: number
+  /**
+   * managed recorded notes: the lecture this note was imported from. A real
+   * imported note carries the source folder's sidecars in its metadata block,
+   * and that identity is what makes it publishable to the Public Index.
+   */
+  source?: { courseId: string; week: number; title: string }
+  /** managed notes that have already been shared / published. */
+  shareUrl?: string
+  indexUrl?: string
   /** readme/plain: body paragraphs. */
   body?: string[]
 }
@@ -583,9 +593,19 @@ interface DemoNoteSpec {
 // Order = display order (server sorts by created time; README pinned on top).
 const DEMO_NOTES: DemoNoteSpec[] = [
   { id: 101, title: README_NOTE_TITLE, groupId: 0, kind: 'readme' },
-  { id: 102, title: buildManagedNoteTitle('Functional Analysis - Lecture 9', { courseId: '501', sessionId: demoSessionId('501', 9) }), groupId: 1, kind: 'managed', slides: 4 },
-  { id: 103, title: buildManagedNoteTitle('Real Analysis - Lecture 11', { courseId: '401', sessionId: demoSessionId('401', 11) }), groupId: 1, kind: 'managed', slides: 3 },
-  { id: 104, title: buildManagedNoteTitle('Complex Analysis - Lecture 9', { courseId: '410', sessionId: demoSessionId('410', 9) }), groupId: 1, kind: 'managed', slides: 3 },
+  { id: 102, title: buildManagedNoteTitle('Functional Analysis - Lecture 9', { courseId: '501', sessionId: demoSessionId('501', 9) }), groupId: 1, kind: 'managed', slides: 4, source: { courseId: '501', week: 9, title: 'Functional Analysis' } },
+  { id: 103, title: buildManagedNoteTitle('Real Analysis - Lecture 11', { courseId: '401', sessionId: demoSessionId('401', 11) }), groupId: 1, kind: 'managed', slides: 3, source: { courseId: '401', week: 11, title: 'Real Analysis' } },
+  // Already shared and already published — so Share opens on the finished state.
+  {
+    id: 104,
+    title: buildManagedNoteTitle('Complex Analysis - Lecture 9', { courseId: '410', sessionId: demoSessionId('410', 9) }),
+    groupId: 1,
+    kind: 'managed',
+    slides: 3,
+    source: { courseId: '410', week: 9, title: 'Complex Analysis' },
+    shareUrl: 'https://share.ruc.edu.kg/v1/s/7fQ2mXbA9d',
+    indexUrl: `https://share.ruc.edu.kg/?c=410&s=${demoSessionId('410', 9)}`,
+  },
   { id: 108, title: buildManagedNoteTitle('Functional Analysis - Lecture 12', { courseId: '501', liveId: '50112' }), groupId: 3, kind: 'managed', slides: 3 },
   {
     id: 105,
@@ -620,10 +640,76 @@ function slideDataUri(title: string, page: string): string {
   return `data:image/svg+xml,${encodeURIComponent(slideSvg(title, page))}`
 }
 
+/**
+ * Note images are inline SVG so they render with no network, but a share link
+ * encodes public-storage object hashes and skips anything else — so a demo note
+ * would have nothing to share. Map each image onto the coss URL its uploaded
+ * counterpart would have had; the shape is what `parseCossImageUrl` reads.
+ */
+/**
+ * A short link for a share fragment, minted the way the Worker does it: an id
+ * derived from the fragment, so asking twice gives the same link back.
+ */
+export function demoShortShareUrl(fragment: string): string {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let h = 0x811c9dc5
+  for (let i = 0; i < fragment.length; i += 1) {
+    h ^= fragment.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  let id = ''
+  for (let i = 0; i < 10; i += 1) {
+    id += alphabet[h % alphabet.length]
+    h = Math.imul(h ^ (h >>> 7), 0x01000193) >>> 0
+  }
+  return `https://share.ruc.edu.kg/v1/s/${id}`
+}
+
+export function demoNoteImageUrls(urls: string[]): string[] {
+  return urls.map((url, i) => {
+    let h = 0x811c9dc5
+    let hex = ''
+    let seed = `${i}:${url}`
+    while (hex.length < 32) {
+      for (let k = 0; k < seed.length; k += 1) {
+        h ^= seed.charCodeAt(k)
+        h = Math.imul(h, 0x01000193) >>> 0
+      }
+      hex += h.toString(16).padStart(8, '0')
+      seed += '.'
+    }
+    return `https://coss.yanhekt.cn/images/2026/9/${hex.slice(0, 32)}.png`
+  })
+}
+
+/**
+ * The managed metadata block a real imported note ends with: the source folder's
+ * `metadata.json` and `timeline.json` plus the note's own cloud fields. Sharing
+ * reads the course/session identity out of here — a note without it can be
+ * link-shared but not published to the Public Index.
+ */
+function demoNoteMetadataBlock(spec: DemoNoteSpec): EditorJsBlock | null {
+  if (!spec.source) return null
+  const folderPath = `${DEMO_OUTPUT_ROOT}/${demoFolderName(spec.source.title, spec.source.week, spec.source.courseId)}`
+  return buildNoteMetadataBlock({
+    v: NOTE_METADATA_VERSION,
+    slides: demoMetadata(folderPath),
+    timeline: demoTimeline(folderPath),
+    note: {
+      displayName: managedNoteDisplayName(spec.title),
+      imageCount: spec.slides ?? 3,
+      importedAt: isoAt(-2, 9, 0),
+      ...(spec.shareUrl ? { shareUrl: spec.shareUrl } : {}),
+      ...(spec.indexUrl ? { indexUrl: spec.indexUrl } : {}),
+    },
+  })
+}
+
 function demoNoteBlocks(spec: DemoNoteSpec): EditorJsBlock[] {
   if (spec.kind === 'managed') {
     const count = spec.slides ?? 3
     const picks = SLIDE_TITLES.slice(0, count)
+    const metadata = demoNoteMetadataBlock(spec)
     return [
       { type: 'header', data: { text: managedNoteDisplayName(spec.title), level: 2 } },
       { type: 'paragraph', data: { text: `${count} slides · imported from AutoSlides` } },
@@ -638,6 +724,7 @@ function demoNoteBlocks(spec: DemoNoteSpec): EditorJsBlock[] {
           withBackground: false,
         },
       })),
+      ...(metadata ? [metadata] : []),
     ]
   }
   if (spec.kind === 'readme') {

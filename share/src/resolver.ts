@@ -1,4 +1,5 @@
 import type { SharePayload } from '../../autoslides/src/shared/shareLink';
+import { demoHooks } from './lib/demoRegistry';
 import {
   buildCossListUrl,
   resolveShareImages,
@@ -39,5 +40,9 @@ async function listFolder(prefix: string): Promise<Map<string, string>> {
 
 /** Resolve a payload's short-hash image refs to full CDN URLs. */
 export function resolveImages(payload: SharePayload): Promise<ResolvedImage[]> {
+  // Slide pixels reach the page through <img src> and new Image(), neither of
+  // which the demo's fetch stub can see — so the demo substitutes the whole
+  // resolver rather than the bucket listing.
+  if (__DEMO__ && demoHooks.resolveImages) return demoHooks.resolveImages(payload);
   return resolveShareImages(payload, listFolder);
 }

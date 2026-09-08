@@ -54,6 +54,8 @@ function makeServer(opts: { groups?: NoteGroup[]; notes?: NoteSummary[]; groupLi
       data: { current_page: 1, data: notes, total: notes.length, per_page: '500', last_page: 1 },
     }),
     get: async () => ({ ok: false, error: 'unused' }),
+    shortenShareUrl: async () => ({ ok: false, error: 'unused' }),
+    publishToIndex: async () => ({ ok: false, error: 'unused' }),
     create: noteCreate,
     updateTitle: async (id, title) => {
       const n = notes.find((x) => x.id === id)
