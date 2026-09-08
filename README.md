@@ -72,8 +72,8 @@
 <table>
   <thead>
     <tr>
-      <th width="100">项目 / 类别</th>
-      <th width="230">仓库 / 文档</th>
+      <th width="120">项目 / 类别</th>
+      <th width="190">仓库 / 文档</th>
       <th>描述</th>
     </tr>
   </thead>

@@ -1,56 +1,119 @@
-# Yanhekt-Proxy
+# AutoSlides Relay
 
-A standalone Cloudflare Worker that proxies **recorded** Yanhekt videos through their
-signed-URL anti-hotlink scheme, so any HLS player can stream them. It's a cloud port of
-AutoSlides' local Node proxy (`autoslides/src/main/video/videoProxyService.ts`).
+A Cloudflare Worker that proxies **recorded** Yanhekt HLS through their signed-URL
+anti-hotlink scheme, so any HLS player can stream it. Cloud port of AutoSlides'
+local Node proxy (`autoslides/src/main/video/videoProxyService.ts`) — recorded
+path only; live streams (IP failover, no signing) are out of scope.
+
+Live deployment: [relay.ruc.edu.kg](https://relay.ruc.edu.kg).
+
+AutoSlides Web (`learn.ruc.edu.kg`) streams recorded lectures from here. The
+desktop app does **not** — it runs its own `localhost` proxy. No D1, KV, or other
+bindings: Cache API only.
+
+> [!NOTE]
+> This origin is campus-network only (Cloudflare WAF on the zone, not Worker
+> code). Open [relay.ruc.edu.kg](https://relay.ruc.edu.kg) to check whether your
+> browser can reach it. Off-campus browsing, live playback, and slide review on
+> the web app still work; recorded playback will not.
 
 ## How it works
 
-1. **Mint a video token** — `GET https://cbiz.yanhekt.cn/v1/auth/video/token?id=0` with the
-   caller's `Authorization: Bearer <loginToken>`. The response carries `expired_at`/`now`
-   (~600s lifetime); the token is cached in the **Workers Cache API** for its real remaining
-   lifetime (minus a 30s safety margin), keyed by `MD5(loginToken)`. Concurrent cache-misses in
-   one isolate are coalesced into a single fetch.
-2. **Sign each media URL** — insert `MD5(MAGIC + "_100")` before the filename, then append
-   `Xvideo_Token` / `Xclient_Timestamp` / `Xclient_Signature` (`MD5(MAGIC + "_v1_" + ts)`) /
-   `Xclient_Version=v1` / `Platform=yhkt_user`. (`MAGIC = 1138b69dfef641d9d7ba49137d2d4875`.)
-   Web Crypto has no MD5, so a small pure-JS MD5 is bundled (`src/md5.ts`).
-3. **Stream media** — segments are fetched (with `Range` passthrough) and streamed straight
-   back. On `403` the token is re-minted and the URL re-signed, up to 3 attempts.
-4. **Shared VOD cache** — recorded content is immutable and byte-identical for every viewer,
-   so raw m3u8 bodies and full `200` segment bodies are cached in the Workers Cache API for
-   6h, keyed by upstream URL alone (deliberately shared across login tokens). Segments are
-   `tee()`-streamed: the client gets first bytes immediately while the cache fills in the
-   background. `Range` requests are served as `206` from a cached full body by the Cache API
-   itself; a ranged cold miss streams through uncached (partial responses can't be `put`).
-   The cache is per-PoP and free-plan eviction is aggressive — treat it as best-effort.
-   Because cache hits never reach upstream, login tokens are format-checked up front
-   (32 hex chars) and malformed ones get an early `403`.
+1. **Gate the request** — `t=` must be 32 hex chars (`/^[0-9a-f]{32}$/i`); `u=`
+   must be `http(s)` on `yanhekt.cn` or `*.yanhekt.cn`. Failures 403 **before**
+   any cache lookup or upstream fetch, so junk cannot ride the shared VOD cache.
+   `t=` is an access-format gate. It is **not** sent to Yanhekt (no user Bearer
+   on token mint, no `t=` on CDN fetches). It is rewritten into every playlist
+   child URL so later `/segment` hits keep the same check.
+2. **Mint one anonymous video token** — `GET https://cbiz.yanhekt.cn/v1/auth/video/token?id=0`
+   with Yanhekt client-signature headers and **no** `Authorization`. Cached in
+   the Workers Cache API under a single key (`…/token/anon`) for the remaining
+   lifetime minus 30s (floor 60s). Concurrent misses in one isolate coalesce.
+3. **Sign each media URL** — path-hash insert plus `Xvideo_Token` /
+   `Xclient_Timestamp` / `Xclient_Signature` / `Xclient_Version=v1` /
+   `Platform=yhkt_user`. Same formulas as desktop `@common/crypto`
+   (`src/yanhekt.ts`); Workers Web Crypto has no MD5, so `src/md5.ts` is bundled.
+4. **Stream** — playlists are rewritten so variant / segment / `#EXT-X-KEY` URIs
+   come back through this origin. Segments pass `Range` through. A CDN `403`
+   invalidates the cached token, re-mints, re-signs, and retries — up to 3
+   attempts.
+5. **Shared VOD cache** — recorded bytes are immutable and identical for every
+   viewer, so raw m3u8 bodies and full `200` segment bodies are cached 6h, keyed
+   by `md5(upstream URL)` alone (deliberately shared across `t=` values).
+   Segments are `tee()`-streamed: the client gets first bytes immediately while
+   the cache fills in the background (`waitUntil` keeps filling if the player
+   aborts). `Range` hits are sliced as `206` from a cached full body by the
+   Cache API; a ranged cold miss streams through uncached (`put` rejects
+   partials). Per-PoP, best-effort.
 
 ## Routes
 
 | Route | Purpose |
 |-------|---------|
-| `GET /` | Static page to generate a playable URL + test it with hls.js. Connection details are read in the browser from `/cdn-cgi/trace` (Cloudflare edge, not this Worker) and the optional `x-client-asn` header on `/cf.txt` |
-| `GET /cf.txt` | Tiny static file so the page can read `x-client-asn` without a Worker API, and so another origin can probe whether this relay is reachable from a given browser |
-| `GET /playlist?u=<m3u8 url>&t=<loginToken>` | Fetch + sign the m3u8, rewrite segment/variant/key lines back through the proxy |
-| `GET /segment?u=<media url>&t=<loginToken>` | Fetch + sign a segment and stream it (supports `Range`) |
+| `GET /` | Static page: paste a token + `.m3u8`, generate a playable URL, test with hls.js. Connection details come from `/cdn-cgi/trace` (Cloudflare edge, not this Worker) and the optional `x-client-asn` header on `/cf.txt`. |
+| `GET /cf.txt` | Static `ok` — ASN header beacon and cross-origin reachability probe. |
+| `GET /playlist?u=<m3u8>&t=<token>` | Fetch + sign the playlist, rewrite child lines back through the proxy. |
+| `GET /segment?u=<url>&t=<token>` | Fetch + sign a segment and stream it (`Range` supported). |
 
-Playlist and segment routes accept `&nocache=1` to bypass the shared VOD cache (read and write); `/playlist`
-propagates the flag into the segment URLs it emits, so setting it once on the playlist opts
-the whole playback session out.
+`OPTIONS` → `204`. Other methods → `405`. Other paths → `404`.
 
-All responses are CORS-open (`Access-Control-Allow-Origin: *`).
+`&nocache=1` on either media route skips the shared VOD cache (read and write).
+`/playlist` copies the flag onto every URL it emits, so setting it once opts the
+whole session out. Token cache is unaffected.
 
-`/cdn-cgi/trace` does not include ASN. To show Cloudflare's ASN, add a **Response Header Transform Rule** on `GET /cf.txt` that sets `x-client-asn` to `to_string(ip.src.asnum)` (`cf-*` header names are reserved). That header is evaluated per request at the edge; it is not a Worker route and does not consume Worker request quota.
+Worker responses are CORS-open (`Access-Control-Allow-Origin: *`). Static `/`
+and `/cf.txt` are Workers Assets — they do not run Worker code and do not count
+as Worker requests.
+
+Errors (all CORS, `text/plain`):
+
+| Status | When |
+|--------|------|
+| `400` | Missing `u` or `t` |
+| `403` | Malformed `t=`, `u=` not `yanhekt.cn` / `*.yanhekt.cn`, or upstream playlist 403 |
+| `502` | Upstream playlist non-403 failure, or a thrown proxy error |
+
+## Access
+
+**`t=` is not a Yanhekt login.** Any well-formed 32-hex string passes the gate
+and can use the shared anonymous video token plus the shared VOD cache. A
+well-formed but expired, revoked, or invented token still gets cache hits until
+the entry expires or is evicted — cache hits never revalidate upstream. The
+regex only stops malformed junk.
+
+**This deployment's real gate is the zone WAF** (campus ASNs, currently AS4847
+and AS23910 / CERNET2). That list lives in Cloudflare, not in `src/`. A clone
+with no edge rule is an open Yanhekt-VOD proxy for anyone who can supply 32 hex
+chars.
+
+`/cdn-cgi/trace` does not include ASN. To surface it, add a **Response Header
+Transform Rule** on `GET /cf.txt` that sets `x-client-asn` to
+`to_string(ip.src.asnum)` (`cf-*` header names are reserved). Evaluated per
+request at the edge; not a Worker route.
 
 `public/_headers` puts `Access-Control-Allow-Origin: *` and
-`Access-Control-Expose-Headers: x-client-asn` on `/cf.txt` alone. That makes it a
-cross-origin **reachability beacon**: the AutoSlides web client fetches it (without
-credentials, like an HLS player) when recorded playback fails, and reads the outcome —
-a readable `ok` means this relay is reachable from that browser, while a rejected
-fetch means the request never got past the edge (a challenge page carries no CORS
-headers). Static assets bypass the Worker, so probing costs no Worker request.
+`Access-Control-Expose-Headers: x-client-asn` on `/cf.txt` only. AutoSlides Web
+fetches that file credential-less (like hls.js) when recorded playback fails: a
+readable `ok` means this origin is reachable; a rejected fetch means the request
+never got past the edge (a challenge page has no CORS headers). That is how the
+web client distinguishes “off-campus / challenged” from a generic HLS error
+instead of retrying forever.
+
+Web's own policy (`RELAY_PUBLIC_ORIGIN` / `ALLOW_OFFCAMPUS_RELAY`) decides
+whether the browser talks to this origin (`direct`, production default) or to
+the web Worker, which then service-binds here (`binding` — the relay edge never
+sees the viewer). Details: [`web/README.md`](../web/README.md).
+
+## Cache
+
+| What | Key | TTL |
+|------|-----|-----|
+| Anonymous video token | `…/token/anon` | server expiry − 30s, min 60s |
+| Raw m3u8 body | `…/m3u8/${md5(url)}` | 6h (`21600`) |
+| Full segment body | `…/seg/${md5(url)}` | 6h |
+
+Rewriting the playlist (injecting the caller's `t=` and origin) happens on
+every `/playlist` response, including cache hits.
 
 ## Develop & deploy
 
@@ -58,35 +121,39 @@ headers). Static assets bypass the Worker, so probing costs no Worker request.
 cd relay
 npm install
 cp wrangler.example.jsonc wrangler.jsonc   # then set your own `routes` custom domain
-npm run dev        # local: http://localhost:8787
-npm run deploy     # publish to your Cloudflare account (wrangler login first)
+npm run typecheck
+npm test                 # t= gate, host allowlist, 403 re-mint, nocache, rewrite
+npm run dev              # local: http://localhost:8787
+npm run deploy           # wrangler login first
 ```
 
-`wrangler.jsonc` is gitignored (it holds the live custom domain); commit changes
-to `wrangler.example.jsonc` instead. Your Cloudflare credentials come from
-`wrangler login` and never live in this repo.
+The example config also sets:
+
+- **Smart Placement** on `cvideo.yanhekt.cn` — run the isolate close to the
+  video origin, since every cache miss proxies there.
+- **`observability.enabled: false`** — query strings carry `t=`. Leave it off
+  or scrub logs if that matters.
 
 ### Quick test
 
 ```bash
 # Rewritten playlist
-curl "http://localhost:8787/playlist?u=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))' 'https://cvideo.yanhekt.cn/.../index.m3u8')&t=<loginToken>"
+curl "http://localhost:8787/playlist?u=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1]))' 'https://cvideo.yanhekt.cn/.../index.m3u8')&t=<32-hex>"
 
 # A segment (take a line from the playlist output)
 curl -I "http://localhost:8787/segment?u=...&t=..."
 curl -I -H 'Range: bytes=0-1023' "http://localhost:8787/segment?u=...&t=..."  # -> 206
 ```
 
-Or just open `/` in a browser, paste the token + `.m3u8` URL, and hit **Test play**.
+Or open `/`, paste a 32-hex token + `.m3u8` URL, and hit **Test play**.
 
 ## Caveats
 
-- **The login token is embedded in the generated URL** (so HLS players can fetch every
-  segment). Anyone with the URL can stream as that user until the token expires. Treat
-  generated URLs as secrets. Query strings may also appear in Worker logs — see
-  `observability` in `wrangler.jsonc`.
-- **Recorded videos only.** Live streams (which use IP failover, not signing) are out of scope.
-- **The VOD cache is shared across tokens.** A cache hit never revalidates the login token
-  upstream — a well-formed but expired/revoked token can still be served already-cached
-  media until the entry expires or is evicted. The early format check only rejects
-  malformed tokens.
+- **Recorded videos only.** Live is a different CDN path.
+- **Treat generated URLs as secrets anyway.** They embed `t=`, they work in any
+  HLS player, and on a clone without WAF any well-formed `t=` is enough to
+  stream (and to drain the shared cache).
+- **Electron in-app playback is a different proxy** (`/recorded?originalUrl=&loginToken=`
+  on localhost). The desktop *can* expose this same `/playlist`+`/segment` API
+  on the LAN (`localRelayService`) for phones / a custom web `relayEndpoint`;
+  that is opt-in and not used inside the desktop player.

@@ -175,7 +175,7 @@
 
 ## 🛠 开发
 
-本目录是一个 Cloudflare Worker，外加两个 React + Vite 前端：`src/` 是 v1 幻灯片分享页与 Worker（KV 短链接、D1 索引、延河课堂元数据代理），`apex/` 是公共索引站点，`demo/` 是发布在 `/demo/` 的演示站。
+本目录是一个 Cloudflare Worker，外加两个 React + Vite 前端：`src/` 是 v1 幻灯片分享页与 Worker（KV 短链接、D1 索引、延河课堂元数据代理），`apex/` 是公共索引站点。
 
 ```sh
 npm install
@@ -197,8 +197,6 @@ wrangler kv namespace create SHARE_KV          # v1 短链接 + 首页统计缓�
 wrangler d1 create autoslides-index-v2         # v2 索引
 npm run db:migrate                             # 应用 migrations/（db:migrate:local 用于本地）
 ```
-
-把返回的 id 填进 `wrangler.jsonc`，并把 `routes` 改成你自己的域名。`wrangler.jsonc` 是 gitignore 的（里面是真实 id 与域名），要改配置请改 `wrangler.example.jsonc`。Cloudflare 凭据来自 `wrangler login`，不会进入本仓库。
 
 ---
 
