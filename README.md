@@ -676,7 +676,39 @@
 
 ## 🏗️ 架构设计
 
-图像分析算法（SSIM、pHash、ML 分类、自动裁剪）的技术细节和数学推导请参阅 [AutoSlides Image Analysis Technical Report](docs/image-analysis-technical-report.pdf)。
+本仓库包含四个被 git 跟踪的项目。根 README 同时是桌面应用的用户手册；开发者完整说明请参阅 **[docs/architecture.md](docs/architecture.md)**.
+
+| 目录 | 角色 | 线上地址 / 产物 |
+|------|------|-----------------|
+| [`autoslides/`](autoslides/) | Electron 桌面客户端（Vue 3 + Vite + Forge） | GitHub Releases |
+| [`web/`](web/) | 浏览器客户端：Hono Worker + Vue 3 SPA | [learn.ruc.edu.kg](https://learn.ruc.edu.kg) · [`web/README.md`](web/README.md) |
+| [`share/`](share/) | 分享查看器 + 公共索引（Worker + 两套 React SPA） | [share.ruc.edu.kg](https://share.ruc.edu.kg) · [`share/README.md`](share/README.md) |
+| [`relay/`](relay/) | 录播 HLS 防盗链中继（Worker，无 D1/KV） | [relay.ruc.edu.kg](https://relay.ruc.edu.kg) · [`relay/README.md`](relay/README.md) |
+
+图像分析算法（SSIM、pHash、ML 分类、自动裁剪）的数学推导请参阅 [AutoSlides Image Analysis Technical Report](docs/image-analysis-technical-report.pdf).
+
+### 四个项目如何协作
+
+```mermaid
+flowchart LR
+  Desktop["autoslides/<br/>Electron"]
+  Web["web/<br/>learn.ruc.edu.kg"]
+  Share["share/<br/>share.ruc.edu.kg"]
+  Relay["relay/<br/>relay.ruc.edu.kg"]
+  Yanhekt["Yanhekt<br/>cbiz / cvideo / coss"]
+
+  Desktop -->|本地 127.0.0.1 代理| Yanhekt
+  Desktop -->|发布 fragment| Share
+  Web -->|目录 / 登录 / 笔记| Yanhekt
+  Web -->|录播 HLS| Relay
+  Relay -->|签名后拉流| Yanhekt
+  Share -->|匿名元数据 + 公开图片| Yanhekt
+```
+
+- **直播**：桌面和网页都直连延河课堂 CDN（桌面可选校园网 IP 映射）。
+- **录播**：桌面走主进程本地 HTTP 代理（`videoProxyService`）；网页走 `relay/`。生产默认是 `direct` 模式——浏览器直连 `relay.ruc.edu.kg`，应用中继服务的校园网边缘策略；此时网页 Worker 同源的 `/playlist`、`/segment` 会 403。
+- **幻灯片**：桌面写本地 `slides_*` 文件夹（附带 `metadata.json` / `timeline.json`）；网页写 IndexedDB。
+- **分享**：两端把 v2/v3 fragment 发到 `share/`。索引只存课程 / 场次 ID 和图片指纹，标题在读取时从延河课堂拉取；图片从公开 COSS 列举解析。
 
 ### 为什么推荐组合使用 `AutoSlides` 和 `AutoSlides Extractor`？
 
@@ -684,7 +716,7 @@
 
 ### 开发者指南
 
-所有开发命令都在 `autoslides/` 子目录中运行：
+**桌面**（`autoslides/`）：
 
 ```bash
 cd autoslides
@@ -692,6 +724,7 @@ npm start              # 启动开发服务器（热重载）
 npm run demo           # 以演示模式启动（虚构账户/课程，用于干净的截图）
 npm run lint           # 运行 ESLint（含领域边界规则）
 npm test               # 运行单元测试 (Vitest)
+npx tsc --noEmit && npx vue-tsc --noEmit
 npm run package        # 打包应用
 npm run make:mac       # 生成 macOS DMG
 npm run make:win       # 生成 Windows 安装包
@@ -703,6 +736,25 @@ npm run make:linux     # 生成 Linux AppImage/deb
 ```bash
 npm run screenshots:build   # 演示模式下重新截图（重新打包 + 截图）
 npm run docs:images         # 重命名/拆分/复制到 ../docs（处理记录见 out/screenshots/NOTES.md）
+```
+
+**网页 / 索引 / 中继**（各自目录；先 `cp wrangler.example.jsonc wrangler.jsonc`）：
+
+```bash
+cd web
+npm run build && npm run dev    # wrangler :8787，需先 build 出 dist/
+# 另开终端：
+npm run dev:web                 # Vite :5173，把 /api 代理到 :8787
+
+cd share && npm run db:migrate && npm run deploy
+cd relay && npm run dev         # 无前端构建
+```
+
+部分必须保持行为一致的算法文件是有意复制的，由根目录 [`scripts/check-drift.mjs`](scripts/check-drift.mjs) 进行检查。改了 Electron ↔ 网页的复制文件之后：
+
+```bash
+node scripts/check-drift.mjs            # 与 CI 同一条
+node scripts/check-drift.mjs --update   # 移植完成（或有意保持分叉）后再盖章
 ```
 
 ---
