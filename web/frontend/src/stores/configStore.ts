@@ -51,8 +51,10 @@ export interface WebConfig {
   // Seek recorded lectures to the playhead Yanhekt has for this account, and
   // keep reporting it while playing. Desktop parity: `resumeFromServerProgress`
   // (the desktop's second toggle covers its Lectures workspace, which the web
-  // client does not have). Off by default: it sends the playhead to a
-  // third-party server and changes where a video starts.
+  // client does not have). **On by default**, like Yanhekt's own player: the
+  // position is the user's own, on the platform they are signed in to. Safe
+  // against any relay — only the mid-session heartbeat rides `/segment`;
+  // resume and the pause/close report go through `/api/yanhekt` regardless.
   resumeFromServerProgress: boolean;
   // Run post-processing (pHash phases) automatically after each saved slide
   // during watch-mode extraction. Desktop parity: `autoPostProcessingLive`.
@@ -94,7 +96,7 @@ const defaults = (): WebConfig => ({
   subscribedRecordedCourses: [],
   sidebarCollapsed: false,
   relayEndpoint: "",
-  resumeFromServerProgress: false,
+  resumeFromServerProgress: true,
   autoPostProcessingLive: true,
   cloudWatchSyncEnabled: false,
   cloudStorageInitializedUsers: [],
