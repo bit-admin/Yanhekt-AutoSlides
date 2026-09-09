@@ -8,6 +8,8 @@ import {
   formatEpisodeToken,
   formatLectureVideoDisplayName,
   formatSemesterToken,
+  isLectureAudioExt,
+  isLectureVideoExt,
   parseLectureVideoName,
   withAscompTag,
 } from './lectureVideoNaming';
@@ -232,5 +234,51 @@ describe('allocateUniqueFileName', () => {
   it('appends (n) on collision', () => {
     const existing = new Set(['a.mp4', 'a (2).mp4']);
     expect(allocateUniqueFileName('a.mp4', existing)).toBe('a (3).mp4');
+  });
+});
+
+// Yanhekt's classroom SubAudio stem rides the same naming grammar as the two
+// video assets, so it must parse identically — the ONLY thing that separates
+// it downstream is `videoType`/`ext`.
+describe('mic audio (.aac)', () => {
+  it('parses an audio_… legacy download name', () => {
+    const parsed = parseLectureVideoName(
+      'audio_泛函分析_第1周_星期三_第2大节__c62313s751843.aac',
+    );
+    expect(parsed.courseId).toBe('62313');
+    expect(parsed.sessionId).toBe('751843');
+    expect(parsed.videoType).toBe('audio');
+    expect(parsed.ext).toBe('.aac');
+    expect(parsed.recognised).toBe(true);
+  });
+
+  it('parses an Emby-renamed [vtype=audio] name', () => {
+    const parsed = parseLectureVideoName(
+      '泛函分析 - S01E02 - 第1周 [yhid=c62313s751843] [vtype=audio].aac',
+    );
+    expect(parsed.videoType).toBe('audio');
+    expect(parsed.hasEmbyTags).toBe(true);
+    expect(parsed.hasVtypeTag).toBe(true);
+    expect(parsed.ext).toBe('.aac');
+  });
+
+  it('keeps the .aac extension through a rename', () => {
+    expect(
+      buildLectureVideoFileName({
+        stem: '泛函分析 - S01E02 - 第1周',
+        courseId: '62313',
+        sessionId: '751843',
+        videoType: 'audio',
+        ext: '.aac',
+      }),
+    ).toBe('泛函分析 - S01E02 - 第1周 [yhid=c62313s751843] [vtype=audio].aac');
+  });
+
+  it('separates audio from video extensions', () => {
+    expect(isLectureAudioExt('.aac')).toBe(true);
+    expect(isLectureAudioExt('.AAC')).toBe(true);
+    expect(isLectureAudioExt('.mp4')).toBe(false);
+    expect(isLectureVideoExt('.mp4')).toBe(true);
+    expect(isLectureVideoExt('.aac')).toBe(false);
   });
 });

@@ -1,9 +1,13 @@
 import { reactive, ref } from 'vue'
 import { buildDownloadFileName } from './downloadNaming'
 import { ExtractionQueue } from './extractionQueueService'
+import { ApiClient } from './apiClient'
+import { tokenManager } from './authService'
 import { overrides } from '../overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('Download');
+
+const apiClient = new ApiClient()
 
 export type DownloadStatus = 'queued' | 'downloading' | 'processing' | 'completed' | 'error'
 
@@ -30,7 +34,12 @@ export interface DownloadItem {
   // stamp the extracted folder's metadata. Optional because a queued item may
   // predate a known course (e.g. a thin/pinned course with no id).
   courseId?: string
-  videoType: 'camera' | 'screen'
+  // 'audio' is Yanhekt's classroom mic stem (a plain .aac sidecar), not a
+  // stream. Modelling it here rather than as a parallel queue is deliberate:
+  // dedupe, the item id and the queue panel all keep working untouched, and
+  // extractionOrchestrator already gates auto-extract on 'screen', so audio
+  // items are excluded from slide extraction for free.
+  videoType: 'camera' | 'screen' | 'audio'
   status: DownloadStatus
   progress: number
   error?: string
@@ -236,7 +245,7 @@ class DownloadServiceClass {
     }
   }
 
-  private async getSessionVideoUrl(sessionId: string, videoType: 'camera' | 'screen'): Promise<{ url: string } | null> {
+  private async getSessionVideoUrl(sessionId: string, videoType: DownloadItem['videoType']): Promise<{ url: string } | null> {
     try {
       // Import DataStore dynamically to avoid circular dependencies
       const { DataStore } = await import('./dataStore')
@@ -245,6 +254,18 @@ class DownloadServiceClass {
       if (!sessionData) {
         log.error('Session data not found for:', sessionId)
         return null
+      }
+
+      // Mic audio is not in the stored session data at all — the session list
+      // endpoint does not carry it, so it has to be resolved from the video id.
+      if (videoType === 'audio') {
+        const token = tokenManager.getToken()
+        const audioUrl = await apiClient.getMicAudioUrl(sessionData.video_id, token || '')
+        if (!audioUrl) {
+          log.error('No mic audio for session:', sessionId)
+          return null
+        }
+        return { url: audioUrl }
       }
 
       // Get the appropriate video URL based on type
@@ -350,9 +371,14 @@ class DownloadServiceClass {
         cleanupListeners = () => {}
       }
 
-      // Start the download with sanitized file name
+      // Start the download with sanitized file name. Both channels broadcast on
+      // the same progress/completed/error events, so the listeners above serve
+      // either kind.
       const sanitizedName = buildDownloadFileName(item)
-      window.electronAPI.download.start(item.id, m3u8Url, sanitizedName)
+      const started = item.videoType === 'audio'
+        ? window.electronAPI.download.startAudio(item.id, m3u8Url, sanitizedName)
+        : window.electronAPI.download.start(item.id, m3u8Url, sanitizedName)
+      started
         .catch((error: Error) => {
           if (!completed) {
             completed = true

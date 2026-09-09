@@ -18,6 +18,7 @@ export interface ApiTransport {
   subscribeCourse(token: string, courseId: string): Promise<void>;
   unsubscribeCourse(token: string, courseId: string): Promise<void>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
+  getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }>;
   getAvailableSemesters(): Promise<SemesterOption[]>;
 }
 
@@ -32,7 +33,19 @@ const realApiTransport: ApiTransport = {
   unsubscribeCourse: (token, courseId) => window.electronAPI.api.unsubscribeCourse(token, courseId),
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
+  getVideoAssets: (videoId, token) => window.electronAPI.api.getVideoAssets(videoId, token),
 };
+
+/**
+ * Memo for mic-audio lookups, keyed by video id.
+ *
+ * A mic URL costs a whole extra request (GET /v1/video is the only hop that
+ * carries it), and three separate surfaces ask for the same one: the session
+ * page's per-row download, "Download All Audio", and opening playback. The
+ * answer is immutable for a finished recording, so it is cached for the life
+ * of the renderer — including the negative answer, which is the common case.
+ */
+const audioUrlCache = new Map<string, string | undefined>();
 
 export class ApiClient {
   // Resolved lazily per call so an override registered after construction (and
@@ -131,6 +144,27 @@ export class ApiClient {
     } catch (error) {
       log.error('Failed to get course info:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Mic-audio URL for a video id, or undefined when the lecture has none.
+   *
+   * Never throws: a missing mic track is ordinary, and every caller treats a
+   * failure the same way as an absent one. A network failure is deliberately
+   * NOT cached, so a retry can still succeed.
+   */
+  async getMicAudioUrl(videoId: string, token: string): Promise<string | undefined> {
+    if (!videoId) return undefined;
+    if (audioUrlCache.has(videoId)) return audioUrlCache.get(videoId);
+
+    try {
+      const { audioUrl } = await this.transport.getVideoAssets(videoId, token);
+      audioUrlCache.set(videoId, audioUrl);
+      return audioUrl;
+    } catch (error) {
+      log.error('Failed to get mic audio URL:', error);
+      return undefined;
     }
   }
 

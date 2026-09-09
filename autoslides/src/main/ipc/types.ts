@@ -5,6 +5,7 @@ import type { IntranetMappingService } from '@main/platform/intranetMappingServi
 import type { VideoProxyService } from '@main/video/videoProxyService';
 import type { ThumbnailService } from '@main/video/thumbnailService';
 import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
+import type { AudioDownloadService } from '@main/video/audioDownloadService';
 import type { PowerManagementService } from '@main/platform/powerManagementService';
 import type { AIPromptsService } from '@main/ai/aiPromptsService';
 import type { AIFilteringService } from '@main/ai/aiFilteringService';
@@ -36,6 +37,7 @@ export interface IpcServices {
   thumbnailService: ThumbnailService;
   localLecturePosterService: LocalLecturePosterService;
   m3u8DownloadService: M3u8DownloadService;
+  audioDownloadService: AudioDownloadService;
   powerManagementService: PowerManagementService;
   aiPromptsService: AIPromptsService;
   aiFilteringService: AIFilteringService;

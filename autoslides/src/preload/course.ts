@@ -18,5 +18,7 @@ export const api: ElectronAPI['api'] = {
     ipcRenderer.invoke('api:unsubscribeCourse', token, courseId),
   getCourseInfo: (courseId: string, token: string) =>
     ipcRenderer.invoke('api:getCourseInfo', courseId, token),
+  getVideoAssets: (videoId: string, token: string) =>
+    ipcRenderer.invoke('api:getVideoAssets', videoId, token),
   getAvailableSemesters: () => ipcRenderer.invoke('api:getAvailableSemesters'),
 };

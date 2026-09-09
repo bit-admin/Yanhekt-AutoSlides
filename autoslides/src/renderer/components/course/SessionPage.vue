@@ -127,6 +127,19 @@
                 <line x1="12" y1="17" x2="12" y2="21"/>
               </svg>
             </button>
+            <button @click="downloadAllAudio" class="btn batch-btn download-audio-btn">
+              <svg class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7,10 12,15 17,10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span class="batch-label">{{ $t('sessions.downloadAllAudio') }}</span>
+              <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="2" width="6" height="11" rx="3"/>
+                <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                <line x1="12" y1="18" x2="12" y2="22"/>
+              </svg>
+            </button>
           </div>
           <div class="sessions-list custom-scrollbar">
             <div
@@ -194,6 +207,19 @@
                     <line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
                 </button>
+                <!-- [⤓ 🎙] : download the classroom mic audio (resolved on click) -->
+                <button @click.stop="downloadAudio(session)" class="action-btn action-pair audio-btn" :title="$t('sessions.downloadAudio')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="9" y="2" width="6" height="11" rx="3"/>
+                    <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                    <line x1="12" y1="18" x2="12" y2="22"/>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -239,9 +265,11 @@ const {
   addToQueue,
   downloadCamera,
   downloadScreen,
+  downloadAudio,
   addAllToQueue,
   downloadAllCamera,
   downloadAllScreen,
+  downloadAllAudio,
   formatDuration,
   getDayName,
   formatDate
@@ -491,14 +519,17 @@ onMounted(() => {
 
 .batch-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 16px;
 }
 
-/* Three equal hairline buttons laid out [verb] label [target]: the glyphs
-   sit at the edges, the label stays centered. */
+/* Four equal hairline buttons laid out [verb] label [target]: the glyphs
+   sit at the edges, the label stays centered. They wrap rather than squeeze —
+   the localized labels ("Download All Mic Audio", "下载全部麦克风音频") do not
+   survive a quarter-width column at narrow window sizes. */
 .batch-btn {
-  flex: 1;
+  flex: 1 1 200px;
   display: grid;
   grid-template-columns: 16px 1fr 16px;
   align-items: center;

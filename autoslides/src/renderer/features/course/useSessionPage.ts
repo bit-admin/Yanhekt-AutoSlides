@@ -2,7 +2,7 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { ApiClient, type SessionData, type CourseInfoResponse } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import { DataStore } from '@shared/services/dataStore'
-import { DownloadService, type DownloadQueueAddResult } from '@shared/services/downloadService'
+import { DownloadService, type DownloadItem, type DownloadQueueAddResult } from '@shared/services/downloadService'
 import { TaskQueue, type TaskQueueAddResult } from '@shared/services/taskQueueService'
 import { lectureLabel } from '@common/lectureNaming'
 import type { Course } from './useCourseList'
@@ -58,11 +58,13 @@ export interface UseSessionPageReturn {
   addToQueue: (session: Session) => void
   downloadCamera: (session: Session) => void
   downloadScreen: (session: Session) => void
+  downloadAudio: (session: Session) => Promise<void>
 
   // Batch actions
   addAllToQueue: () => void
   downloadAllCamera: () => void
   downloadAllScreen: () => void
+  downloadAllAudio: () => Promise<void>
 
   // Formatting utilities
   formatDuration: (seconds: number) => string
@@ -130,7 +132,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   }
 
   // Helper: Add session to download queue
-  const addSessionToDownload = (session: Session, videoType: 'camera' | 'screen'): DownloadQueueAddResult => {
+  const addSessionToDownload = (session: Session, videoType: DownloadItem['videoType']): DownloadQueueAddResult => {
     storeSessionData(session)
     // `name` stays the raw human-readable label — it is sanitized once, later,
     // by buildDownloadFileName (sanitizeDownloadName, which differs from
@@ -284,6 +286,31 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     }
   }
 
+  /**
+   * Mic audio is resolved lazily, on click.
+   *
+   * The session list does not carry the mic URL — only GET /v1/video does — so
+   * the button cannot know in advance whether this lecture has one. Probing
+   * every row up front would cost one request per session on every course-page
+   * open, for a track most lectures do not have. Resolving here costs one
+   * request, and ApiClient memoises the answer (including "none") for the rest
+   * of the session, so the queue's own later lookup is free.
+   */
+  const downloadAudio = async (session: Session): Promise<void> => {
+    const audioUrl = await apiClient.getMicAudioUrl(session.video_id, tokenManager.getToken() || '')
+    if (!audioUrl) {
+      notify(t('sessions.noMicAudio'))
+      return
+    }
+
+    const result = addSessionToDownload(session, 'audio')
+    if (!result.added) {
+      notify(t('sessions.alreadyInDownloadQueueAudio'))
+    } else {
+      onSwitchToDownload(result.item.id)
+    }
+  }
+
   // Batch actions
   const addAllToQueue = (): void => {
     let addedCount = 0
@@ -327,6 +354,50 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       notify(t('sessions.addedToDownloadQueueScreen', { count: addedCount }))
     } else {
       notify(t('sessions.allInDownloadQueueScreen'))
+    }
+  }
+
+  /**
+   * Resolve every session's mic URL, then queue the ones that have one.
+   *
+   * Capped concurrency because this is the one place that fans out: a course
+   * can hold 30+ sessions and firing them all at once would hammer cbiz for no
+   * gain. Sessions with no mic track are skipped silently — that is the normal
+   * case, not an error worth a dialog per row.
+   */
+  const downloadAllAudio = async (): Promise<void> => {
+    const token = tokenManager.getToken() || ''
+    const all = [...sessions.value]
+    const withAudio: Session[] = []
+
+    const CONCURRENCY = 4
+    let cursor = 0
+    const worker = async (): Promise<void> => {
+      while (cursor < all.length) {
+        const session = all[cursor++]
+        if (await apiClient.getMicAudioUrl(session.video_id, token)) {
+          withAudio.push(session)
+        }
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, all.length) }, worker))
+
+    if (withAudio.length === 0) {
+      notify(t('sessions.noMicAudioAny'))
+      return
+    }
+
+    let addedCount = 0
+    withAudio.forEach(session => {
+      const result = addSessionToDownload(session, 'audio')
+      if (result.added) addedCount++
+    })
+
+    if (addedCount > 0) {
+      onSwitchToDownload()
+      notify(t('sessions.addedToDownloadQueueAudio', { count: addedCount }))
+    } else {
+      notify(t('sessions.allInDownloadQueueAudio'))
     }
   }
 
@@ -391,11 +462,13 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     addToQueue,
     downloadCamera,
     downloadScreen,
+    downloadAudio,
 
     // Batch actions
     addAllToQueue,
     downloadAllCamera,
     downloadAllScreen,
+    downloadAllAudio,
 
     // Formatting utilities
     formatDuration,

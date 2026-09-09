@@ -16,7 +16,45 @@ import {
   type ParsedLectureIds,
 } from './lectureNaming';
 
-export type LectureVideoType = 'screen' | 'camera';
+/**
+ * Which recorded asset a local lecture file holds.
+ *
+ * `audio` is Yanhekt's classroom SubAudio stem — a plain `.aac` sidecar that
+ * lives next to the VOD (see docs/architecture.md §9.6). It is a media file
+ * like the other two and shares the whole naming grammar, but it is NOT a
+ * video: callers that pick a poster source, decide a stream mode or set a
+ * `<video>.src` must exclude it explicitly.
+ */
+export type LectureVideoType = 'screen' | 'camera' | 'audio';
+
+/**
+ * The extensions the Lectures workspace treats as local lecture media.
+ *
+ * Single source of truth: the main-process directory scan (lecturesIpc), the
+ * asmedia:// streaming protocol and the renderer's file→session bucketing all
+ * read these, so a format can never be visible to one and invisible to another.
+ * Video and audio are kept apart because the distinction is load-bearing —
+ * only a video may source a poster or back a `<video>` element.
+ */
+export const LECTURE_VIDEO_EXTENSIONS: ReadonlySet<string> = new Set(['.mp4', '.mkv']);
+
+/** Yanhekt's classroom SubAudio stem. */
+export const LECTURE_AUDIO_EXTENSIONS: ReadonlySet<string> = new Set(['.aac']);
+
+export const LECTURE_MEDIA_EXTENSIONS: ReadonlySet<string> = new Set([
+  ...LECTURE_VIDEO_EXTENSIONS,
+  ...LECTURE_AUDIO_EXTENSIONS,
+]);
+
+/** True for an extension (with leading dot, any case) that holds audio only. */
+export function isLectureAudioExt(ext: string): boolean {
+  return LECTURE_AUDIO_EXTENSIONS.has(ext.toLowerCase());
+}
+
+/** True for an extension (with leading dot, any case) that carries video. */
+export function isLectureVideoExt(ext: string): boolean {
+  return LECTURE_VIDEO_EXTENSIONS.has(ext.toLowerCase());
+}
 
 /** Video preset recorded in `[ascomp=…]` after a successful Lectures compress. */
 export type LectureCompressPresetTag = 'tiny' | 'small' | 'readable';
@@ -46,10 +84,10 @@ export interface ParsedLectureVideo extends ParsedLectureIds {
 }
 
 const YANHEKT_ID_TAG = /\[yhid=(c(\d+)(?:s(\d+))?(?:l(\d+))?)\]/i;
-const VTYPE_TAG = /\[vtype=(screen|camera)\]/i;
+const VTYPE_TAG = /\[vtype=(screen|camera|audio)\]/i;
 /** After `[vtype=…]`: records which Lectures compress preset was applied. */
 const ASCOMP_TAG = /\[ascomp=(tiny|small|readable)\]/i;
-const LEGACY_TYPE_PREFIX = /^(screen|camera)_/i;
+const LEGACY_TYPE_PREFIX = /^(screen|camera|audio)_/i;
 
 function isCompressPreset(value: string): value is LectureCompressPresetTag {
   return value === 'tiny' || value === 'small' || value === 'readable';

@@ -15,6 +15,7 @@ import {
 } from '@main/video/asmediaProtocol';
 import { FFmpegService } from '@main/infra/ffmpegService';
 import { M3u8DownloadService } from '@main/video/m3u8DownloadService';
+import { AudioDownloadService } from '@main/video/audioDownloadService';
 import { PowerManagementService } from '@main/platform/powerManagementService';
 import { AIPromptsService } from '@main/ai/aiPromptsService';
 import { AIFilteringService } from '@main/ai/aiFilteringService';
@@ -172,6 +173,7 @@ const thumbnailService = new ThumbnailService(videoProxyService, ffmpegService);
 const localLecturePosterService = new LocalLecturePosterService(configService, ffmpegService);
 const compressLectureService = new CompressLectureService(ffmpegService);
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
+const audioDownloadService = new AudioDownloadService(configService, intranetMappingService);
 const powerManagementService = new PowerManagementService();
 const aiPromptsService = new AIPromptsService();
 const llmApiService = new LLMApiService(configService);
@@ -222,6 +224,7 @@ registerAllIpcHandlers({
   thumbnailService,
   localLecturePosterService,
   m3u8DownloadService,
+  audioDownloadService,
   powerManagementService,
   aiPromptsService,
   aiFilteringService,

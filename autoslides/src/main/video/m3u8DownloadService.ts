@@ -1,8 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import http from 'http';
-import https from 'https';
-import os from 'os';
 import axios, { type AxiosInstance } from 'axios';
 import { spawn } from 'child_process';
 import { pipeline } from 'stream/promises';
@@ -11,6 +8,7 @@ import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { ApiClient } from '@main/platform/apiClient';
 import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '@common/crypto';
+import { createIntranetAxios, type IntranetAxiosBundle } from '@main/infra/intranetAxios';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('M3u8Download');
 
@@ -151,8 +149,7 @@ class M3u8Downloader {
   private numRetries: number;
   private ffmpegProcess: any = null;
   private axiosInstance: AxiosInstance | null = null;
-  private httpAgent: http.Agent | null = null;
-  private httpsAgent: https.Agent | null = null;
+  private axiosBundle: IntranetAxiosBundle | null = null;
   private abortController: AbortController | null = null;
 
 
@@ -336,63 +333,18 @@ class M3u8Downloader {
       return this.axiosInstance;
     }
 
-    // Bind outbound sockets to the configured intranet interface IP ONLY when
-    // this download is running in intranet mode. In external mode we use plain
-    // unbound agents so non-intranet traffic is unaffected. If the saved IP is
-    // no longer present on any interface (NIC unplugged, VPN disconnected), we
-    // fall back to unbound agents to avoid EADDRNOTAVAIL.
-    const maxSockets = Math.max(1, this.maxWorkers);
-    const maxFreeSockets = Math.min(4, maxSockets);
-    const httpOpts: http.AgentOptions = {
-      keepAlive: true,
-      keepAliveMsecs: 10000,
-      maxSockets,
-      maxFreeSockets
-    };
-    const httpsOpts: https.AgentOptions = {
-      keepAlive: true,
-      keepAliveMsecs: 10000,
-      maxSockets,
-      maxFreeSockets
-    };
-
-    if (this.isIntranetMode) {
-      const selected = this.intranetMapping.getInterfaceIp();
-      if (selected && M3u8Downloader.isInterfaceIpAvailable(selected)) {
-        httpOpts.localAddress = selected;
-        httpsOpts.localAddress = selected;
-      } else if (selected) {
-        log.warn(`[m3u8Download] Selected intranet interface IP ${selected} is not currently available; falling back to system default.`);
-      }
-    }
-
-    this.httpAgent = new http.Agent(httpOpts);
-    this.httpsAgent = new https.Agent(httpsOpts);
-
-    const instance = axios.create({
-      timeout: 30000,
-      httpAgent: this.httpAgent,
-      httpsAgent: this.httpsAgent
+    // Agent construction, NIC binding and the Host-preserving rewrite all live
+    // in createIntranetAxios — shared with the mic-audio downloader so the two
+    // cannot drift apart on intranet behaviour.
+    const bundle = createIntranetAxios({
+      intranetMapping: this.intranetMapping,
+      isIntranetMode: this.isIntranetMode,
+      maxSockets: this.maxWorkers,
     });
 
-    if (this.isIntranetMode) {
-      // Apply intranet mapping
-      instance.interceptors.request.use((config) => {
-        if (config.url) {
-          const mappedUrl = this.intranetMapping.rewriteUrl(config.url);
-          if (mappedUrl !== config.url) {
-            const originalHost = new URL(config.url).hostname;
-            config.url = mappedUrl;
-            config.headers = config.headers || {};
-            config.headers['Host'] = originalHost;
-          }
-        }
-        return config;
-      });
-    }
-
-    this.axiosInstance = instance;
-    return instance;
+    this.axiosBundle = bundle;
+    this.axiosInstance = bundle.instance;
+    return bundle.instance;
   }
 
   private cleanup(): void {
@@ -405,23 +357,10 @@ class M3u8Downloader {
   }
 
   private destroyNetworkResources(): void {
-    this.httpAgent?.destroy();
-    this.httpsAgent?.destroy();
-    this.httpAgent = null;
-    this.httpsAgent = null;
+    this.axiosBundle?.destroy();
+    this.axiosBundle = null;
     this.axiosInstance = null;
     this.abortController = null;
-  }
-
-  private static isInterfaceIpAvailable(ip: string): boolean {
-    const ifaces = os.networkInterfaces();
-    for (const addrs of Object.values(ifaces)) {
-      if (!addrs) continue;
-      for (const addr of addrs) {
-        if (!addr.internal && addr.address === ip) return true;
-      }
-    }
-    return false;
   }
 
   private async getM3u8Info(m3u8Url: string, numRetries: number): Promise<void> {

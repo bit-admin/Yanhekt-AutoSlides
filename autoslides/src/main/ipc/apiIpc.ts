@@ -36,6 +36,10 @@ export function registerApiIpcHandlers(services: IpcServices): void {
     return await apiClient.getCourseInfo(courseId, token);
   });
 
+  ipcMain.handle('api:getVideoAssets', async (_event, videoId: string, token: string) => {
+    return apiClient.getVideoAssets(videoId, token);
+  });
+
   ipcMain.handle('api:getAvailableSemesters', async () => {
     return await apiClient.getAvailableSemesters();
   });

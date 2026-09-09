@@ -489,6 +489,8 @@ export interface ElectronAPI {
     subscribeCourse: (token: string, courseId: string) => Promise<void>;
     unsubscribeCourse: (token: string, courseId: string) => Promise<void>;
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
+    /** Mic-audio URL for one video id (GET /v1/video). Absent when the room recorded no mic. */
+    getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;
     getAvailableSemesters: () => Promise<SemesterOption[]>;
   };
   intranet: {
@@ -544,6 +546,8 @@ export interface ElectronAPI {
 
   download: {
     start: (downloadId: string, m3u8Url: string, outputName: string) => Promise<void>;
+    /** Mic-audio sidecar: a plain unsigned `.aac`, so no login token. Reports on the same channels as `start`. */
+    startAudio: (downloadId: string, audioUrl: string, outputName: string) => Promise<void>;
     cancel: (downloadId: string) => Promise<void>;
     cleanupTempFiles: (outputName: string) => Promise<void>;
     onProgress: (callback: (downloadId: string, progress: DownloadProgress) => void) => () => void;

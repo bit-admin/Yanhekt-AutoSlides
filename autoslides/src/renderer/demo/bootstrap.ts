@@ -66,6 +66,8 @@ const demoApiTransport: ApiTransport = {
   subscribeCourse: async () => undefined,
   unsubscribeCourse: async () => undefined,
   getCourseInfo: async (courseId: string) => demoCourseInfo(courseId),
+  // Demo ships no media, so no lecture has a mic track.
+  getVideoAssets: async () => ({}),
   getAvailableSemesters: async () => demoSemesters(),
 }
 

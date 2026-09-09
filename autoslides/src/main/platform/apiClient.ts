@@ -73,6 +73,17 @@ interface SessionListApiResponse extends BaseApiResponse {
   }>;
 }
 
+// GET /v1/video?id= — the ONLY cbiz hop that returns the classroom SubAudio
+// sidecar. Deliberately narrow: `main`/`vga` duplicate what the session list
+// already gave us, and `audio_origin` has been identical to `audio` in every
+// sample, so only `audio` is modelled.
+interface VideoDetailApiResponse extends BaseApiResponse {
+  data: {
+    id: number | string;
+    audio?: string;
+  };
+}
+
 interface VideoTokenApiResponse extends BaseApiResponse {
   data: {
     token: string;
@@ -576,6 +587,31 @@ export class ApiClient {
   async getSessionById(sessionId: string, token: string): Promise<unknown> {
     const url = `https://cbiz.yanhekt.cn/v1/course/session?session_id=${encodeURIComponent(sessionId)}&with_video=true`;
     return this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
+  }
+
+  /**
+   * Recover the classroom **mic audio** URL for one video id.
+   *
+   * `GET /v1/video?id=` is the only hop that carries `audio` — it is absent
+   * from the authenticated `/v2/course/session/list` `videos[]` that
+   * {@link getCourseInfo} reads, and from `/v1/course/session`. So a mic track
+   * costs one extra request per video and cannot be a field passthrough;
+   * callers are expected to memoise by video id.
+   *
+   * Proved anonymous-ok (2026-09-09), hence `allowAnonymous`. Yanhekt only
+   * populates `audio` when the room recorded a Bluetooth mic, so an empty
+   * string is the normal "this lecture has none" answer, not an error.
+   */
+  async getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }> {
+    const url = `https://cbiz.yanhekt.cn/v1/video?id=${encodeURIComponent(videoId)}`;
+    const response = await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true }) as VideoDetailApiResponse;
+
+    if (response.code !== 0 && response.code !== "0") {
+      throw new Error(`Failed to get video assets: ${response.message}`);
+    }
+
+    const audio = response.data?.audio?.trim();
+    return { audioUrl: audio || undefined };
   }
 
   // Parse semester name to extract school year and semester info
