@@ -25,10 +25,11 @@ Each package has its own `package.json` / lockfile. Commands always run **inside
 6. [`web/` — browser client](#6-web--browser-client)
 7. [`share/` — viewer and public index](#7-share--viewer-and-public-index)
 8. [`relay/` — recorded HLS proxy](#8-relay--recorded-hls-proxy)
-9. [Cross-cutting protocols](#9-cross-cutting-protocols)
-10. [Extraction and post-processing](#10-extraction-and-post-processing)
-11. [Gotchas](#11-gotchas)
-12. [CI, tests, and how to verify a change](#12-ci-tests-and-how-to-verify-a-change)
+9. [Yanhekt API](#9-yanhekt-api)
+10. [Cross-cutting protocols](#10-cross-cutting-protocols)
+11. [Extraction and post-processing](#11-extraction-and-post-processing)
+12. [Gotchas](#12-gotchas)
+13. [CI, tests, and how to verify a change](#13-ci-tests-and-how-to-verify-a-change)
 
 ---
 
@@ -357,7 +358,7 @@ Pure TS, no Node/Electron IO:
 
 - **Dual-stream HLS.** `useVideoPlayer` + `useDualStreamPlayer`. Drift sync, one audible stream.
 - **Video proxy.** Per-login-token `Map` so two accounts do not clobber one signing session. `getRecordedWithResign` re-signs on a resolved 403. Always strip upstream cache validators and set `Cache-Control: no-store` on proxied m3u8/TS — otherwise Chromium `userData/Cache` fills with hundreds of MB per lecture (HLS.js already buffers in memory).
-- **Prefer anonymous Yanhekt requests** (`preferAnonymousApiRequests`, default false). When on **and** the method opted in, omit `Authorization`. Opted-in: course list/info first hop, public live list, search live, video token. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes. `getTagList` is always unauth.
+- **Prefer anonymous Yanhekt requests** (`preferAnonymousApiRequests`, default false). When on **and** the method opted in, omit `Authorization`. Opted-in: course list/info first hop, public live list, search live, video token. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes. `getTagList` is always unauth. Full matrix: [§9.3](#93-auth-vs-anonymous).
 - **Campus SSO SMS.** `main/platform/campusSso/`. Three outcomes from `loginAndGetToken`: token, failure (`reason`), or `smsChallenge`. Live CAS jar parked in `pendingVerifications.ts` (300s). Captcha is detected, never solved. Browser login is the escape hatch.
 - **Multi-account.** Active account = `StoredAccount` whose token matches the standalone `authToken` key. Switching changes `userId` but **not** `isLoggedIn` — surfaces that only watch `isLoggedIn` show stale data. In-flight downloads captured their token at start.
 - **Drive.** Yanhekt `/v1/note*` + MinIO. `cloudStorageStore` serializes provisioning of `ASnote` + `ASuser`. Server `/v1/note/list` **ignores** `groupId` — load the full catalog (`pageSize=500`) and filter client-side. Keyword search is **server-side** (`keyword=`). Ungroup = recreate the note. Batch import/export is ASnote-gated. Index mode is a toggle inside Drive, not a separate nav target.
@@ -718,19 +719,504 @@ Up to **3** attempts: invalidate cached token, re-mint, re-sign, retry. Surface 
 
 ---
 
-## 9. Cross-cutting protocols
+## 9. Yanhekt API
 
-### 9.1 Yanhekt video signing
+Yanhekt (`yanhekt.cn`) is the campus lecture platform every package talks to. This section is the contract: hosts, headers, which calls need a login token, and the JSON shapes we actually read. Examples below were probed **2026-09-09** against course **62313** / session **751843** (泛函分析, Functional Analysis, 2025–2026 第一学期) unless noted. Personal fields from the probe token (`badge`, `nickname`, `phone`, note titles, enrolled-only lists) are redacted.
 
-Used by desktop `videoProxyService`, `relay/src/yanhekt.ts`, and conceptually the same constants on web (web does not sign; the relay does).
+Writes were **not** live-tested; request bodies come from our clients.
 
-1. Path encrypt: insert `md5(VIDEO_MAGIC + "_100")` immediately before the final path component.
-2. Query: `Xvideo_Token` (from `/v1/auth/video/token`), `Xclient_Timestamp`, `Xclient_Signature = md5(VIDEO_MAGIC + "_v1_" + timestamp)`, `Xclient_Version=v1`, `Platform=yhkt_user`.
-3. API (cbiz) client signature: `md5(VIDEO_MAGIC + "_v1_undefined")`.
+### 9.1 Hosts and envelope
 
-CDN requests **never** send the user Bearer.
+| Host | Role |
+|---|---|
+| `cbiz.yanhekt.cn` | Business REST (`/v1`, `/v2`) |
+| `cvideo.yanhekt.cn` | Recorded HLS (`.m3u8` / `.ts`) |
+| `clive8.yanhekt.cn` … `clive15.yanhekt.cn` | Live HLS (unsigned, CORS-open) |
+| `coss.yanhekt.cn` | Public MinIO/COS (`/images/…`) |
+| `www.yanhekt.cn` | Official SPA. **Spoof this Origin** on server-side cbiz calls |
+| `sso.bit.edu.cn` | Campus CAS (login only; not Yanhekt) |
 
-### 9.2 Share payload
+Almost every cbiz response is:
+
+```json
+{ "code": 0, "message": "", "data": {} }
+```
+
+`code` is a number **or** a numeric string (`0` / `"0"`). Success is `code === 0 || String(code) === "0"`. HTTP status is **200 even on auth failure** — do not key off status. Strict-auth failures may also set `displayable` and `module` (e.g. `/v1/user` after logout: `"displayable": true, "module": "user_regular_runtime", "data": []`).
+
+| `code` | Meaning (observed / handled) |
+|---|---|
+| `0` | OK. Some gated GETs still return this with `data: []` (see [§9.3](#93-auth-vs-anonymous)) |
+| `61101113` | `用户未登录` — no/invalid Bearer on a strict-auth endpoint |
+| `12111010` | Course not found (`GET /v1/course`) |
+| `13001001` | Auth failed (desktop error map) |
+| `99151011` | Upstream down (desktop error map) |
+
+`data` is **not** always an object:
+
+- Laravel paginator: `{ current_page, data: [...], last_page, per_page, total, … }` (`/v2/course/list`, public `/v2/live/list`, `/v1/note/list`, …).
+- Bare array: authenticated `/v2/course/session/list`, `/v1/note/group/list`, `/v1/tag/list`.
+- Silent empty array **and** `code: 0`: unauth session list, unauth personal live, unauth private course list.
+- Single object: `/v1/course`, `/v1/course/session`, `/v1/video`, `/v1/user`, `/v1/auth/video/token`.
+
+Ids arrive as **JSON numbers**. Normalise with `String(...)` at router / `Map` / share-payload boundaries.
+
+### 9.2 Headers and signatures
+
+Server-side callers (Electron main, `web/` Worker, `share/`, `relay/`) send:
+
+```http
+Origin: https://www.yanhekt.cn
+Referer: https://www.yanhekt.cn/
+Xdomain-Client: web_user
+Xclient-Version: v1
+Xclient-Signature: 72b77856f6df3f563ab6e658631cac3d
+Xclient-Timestamp: <unix seconds>
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) … Chrome/140.0.0.0 Safari/537.3
+Authorization: Bearer <32-hex login token>   # omit on anonymous-ok GETs
+```
+
+`Xclient-Signature` is the constant `md5(VIDEO_MAGIC + "_v1_undefined")` with `VIDEO_MAGIC = 1138b69dfef641d9d7ba49137d2d4875`. The suffix `"undefined"` is a literal, not a missing value. Golden tests pin `72b77856f6df3f563ab6e658631cac3d`. It does **not** incorporate the path, body, token, or timestamp.
+
+For public course/session/list/video **metadata** GETs, live probes show the signature is cosmetic: the headers that actually matter are **`Xdomain-Client: web_user`** plus **`Origin: https://www.yanhekt.cn`** (or that Referer). We still send the full set so we match the official SPA and the authenticated routes.
+
+**Browser on `learn.ruc.edu.kg` cannot call cbiz.** A foreign Origin is HTTP **403** at the edge (not merely missing CORS). `web/src/routes/yanhektProxy.ts` spoofs the official Origin. The SPA must still send `Authorization: Bearer <32-hex>` on every `/api/yanhekt/*` request (malformed → 403 **before** upstream) so the Worker is not an open proxy; the Worker then **strips** Bearer on anonymous-ok GETs.
+
+Notes (`/v1/note*`, MinIO) only require `Authorization` + `Xdomain-Client: web_user` + official Origin; desktop `notesService` does not send `Xclient-*`.
+
+CDN signing is a **different** scheme — [§9.6](#96-recorded-vod-and-the-cdn). CDN requests never send the user Bearer.
+
+### 9.3 Auth vs anonymous
+
+A 32-hex **login token** comes from campus CAS ([§9.8](#98-campus-cas)). It is not a JWT we parse.
+
+Two failure modes when Bearer is missing:
+
+1. **Strict** — `code: 61101113`, `message: "用户未登录"`.
+2. **Silent empty** — `code: 0` and `data: []` (the official UI shows “请登录后再次尝试” for session list). A bogus Bearer does **not** unlock these.
+
+| Endpoint | Unauth (no Bearer) | Auth |
+|---|---|---|
+| `GET /v2/course/list` | Full catalog page | Same |
+| `GET /v1/course?id=` | Full course detail | Same + `user_mapping_type` may change (`0` → `2` on the probe) |
+| `GET /v1/course/session?session_id=` | Full session + nested `course` + historical `live` + `video_ids`. `user_progress: []` | Same public fields. Still **no** `videos[]`. `user_progress` is a **watch-history object** if this account has played the session, else still `[]` |
+| `GET /v1/tag/list?with_sub=true` | Full tag tree | Same |
+| `GET /v2/live/list` (no `user_relationship_type`, or `=0`) | Public catalog | Same |
+| `GET /v2/live/list?keyword=` | Public search | Same |
+| `GET /v1/video?id=` | VOD URLs + duration | Same |
+| `GET /v1/auth/video/token?id=0` | 16-char token, TTL **600s** | Same |
+| `GET /v2/course/session/list?course_id=` | `code: 0`, `data: []` | Bare array of sessions **with** `videos[]` |
+| `GET /v2/live/list?user_relationship_type=1` | `code: 0`, `data: []` (bare array) | Paginated personal lives |
+| `GET /v2/course/private/list?…` | `code: 0`, `data: []` (bare array) | Paginated enrolled courses |
+| `GET /v1/user` | `61101113` | Profile |
+| `GET /v1/course/subscription/list` | `61101113` | Paginated subscriptions |
+| `GET /v1/note/list`, `GET /v1/note`, `GET /v1/note/group/list` | `61101113` | Account notes |
+| `GET /v1/cas/logout` | n/a | Best-effort revoke |
+| `PUT /v1/course/session/user/progress` | (not probed unauth) | Official SPA heartbeat. AutoSlides does not call it |
+| `POST/PUT/DELETE` notes, subscribe, MinIO | Auth required (from our clients) | — |
+
+**Desktop** (`preferAnonymousApiRequests`, default **false**): when the flag is on **and** the method opted in, omit `Authorization`. Opted-in: course list, `/v1/course` first hop, public live list, live search, video token. Always unauth: `getTagList`. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes.
+
+**Web Worker** strips Bearer upstream for: `GET /v1/tag/list`, `GET /v2/course/list`, exact `GET /v1/course`, `GET /v1/course/session`, `GET /v2/live/list` when `user_relationship_type !== "1"`. Prefix matching on GET would otherwise treat `/v1/course/subscription/list` as anonymous — the omit list uses **exact** `/v1/course` so subscription stays authenticated.
+
+**Share** never sends a user Bearer except `GET /v1/user` on publish / removal. **Relay** never sends one; it mints the anonymous video token.
+
+Auth protects **discovery** (enumerate sessions of a course, personal catalogs, notes) and account APIs. It does **not** protect VOD once `session_id` or `video_id` is known ([§9.6](#96-recorded-vod-and-the-cdn)).
+
+### 9.4 Identity
+
+Four id namespaces. Do not mix them.
+
+| Id | What it is | Example (泛函分析) |
+|---|---|---|
+| **course** | Offering in a term (`/v1/course?id=`, `/v2/course/list`) | `62313` |
+| **session** | One calendar slot of that course (`/v1/course/session?session_id=`) | `751843` |
+| **live / broadcast** | One live capture of a session (`/v2/live/list` row `id`; nested `live.id`) | `652885` |
+| **video** | One recorded asset (`videos[].id` / `video_ids[]` / `/v1/video?id=`) | `456913` |
+
+**`session_id` is globally unique** and enough to recover `course_id`. `GET /v1/course/session?session_id=751843` (anonymous) returns `course_id: 62313` plus a nested `course` (names, college, term). Share already fans this out; desktop course pages still enumerate via the **list** hop, which needs `course_id` **and** a login token.
+
+Live identity is a separate namespace. A finished session’s nested `live.id` is the broadcast id (`l` in share payloads). Live-list rows carry the real course id on `session.course_id` (present on sampled rows); nested `course.id` is often missing.
+
+`GET /v1/video?id=` returns `course_id: 0` and `session_id: 0` — you cannot go video → session.
+
+Share payload v2/v3 stores `c` / `s` / `l` (course / session / live). `c` is denormalised convenience for recorded links; Index D1 is ids-only and hydrates titles from Yanhekt at read time.
+
+### 9.5 Catalog, course, session, live
+
+Used by desktop `ApiClient`, web `/api/yanhekt/*`, share `lib/yanhekt.ts`. Query `semesters[]` is repeated for each tag id (empty = all terms). `keyword` on course list accepts a name **or** a numeric course id (`keyword=62313` returns one row).
+
+#### `GET /v2/course/list`
+
+Anonymous. Paginator. **Only** this list (and subscribe/private list) returns `classrooms[]`. Professors here are **strings**.
+
+```json
+{
+  "code": 0,
+  "message": "",
+  "data": {
+    "current_page": 1,
+    "last_page": 1,
+    "per_page": "2",
+    "total": 1,
+    "data": [
+      {
+        "id": 62313,
+        "name_zh": "泛函分析",
+        "name_en": "Functional Analysis",
+        "code": "100171139",
+        "number": "20252026110017113901",
+        "school_year": "2025-2026",
+        "semester": "1",
+        "college_name": "数学与统计学院",
+        "college_code": "217",
+        "participant_count": 61,
+        "image_url": "https://coss.yanhekt.cn/images/colleges/shuxue.png",
+        "professors": ["石靖"],
+        "classrooms": [
+          { "id": 289, "name": "文萃楼F302", "number": "2701C3002X" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+(`semester` is a **string** on the list, a **number** on `/v1/course`. Writers stringify.)
+
+#### `GET /v1/course?id=62313&with_professor_badges=true`
+
+Anonymous. Single object. **No `classrooms`.** Professors are objects. Cover often comes from `image_url` or `college.image_url`.
+
+```json
+{
+  "code": 0,
+  "data": {
+    "id": 62313,
+    "name_zh": "泛函分析",
+    "name_en": "Functional Analysis",
+    "school_year": "2025-2026",
+    "semester": 1,
+    "college_name": "数学与统计学院",
+    "image_url": "https://coss.yanhekt.cn/images/colleges/shuxue.png",
+    "professor_badges": ["6120120125"],
+    "professors": [
+      { "id": 4344, "name": "石靖", "title": "副教授", "badge": "6120120125" }
+    ],
+    "college": { "id": 36, "name": "数学与统计学院", "name_en": "School of Mathematics and Statistics" },
+    "tags": [
+      { "param": "degrees", "name": "本科" },
+      { "param": "colleges", "name": "数学与统计学院" },
+      { "param": "attributes", "name": "专业课" },
+      { "id": 100, "param": "semesters", "name": "2025-2026 第一学期" }
+    ]
+  }
+}
+```
+
+Desktop `getCourseInfo` uses this hop (anonymous-ok) then the session **list** (auth). Share uses it to fill professors when session-nested `course` is thin.
+
+#### `GET /v2/course/session/list?course_id=62313`
+
+**Auth required** (`data: []` if not). Bare array (not a paginator). This is how desktop/web hydrate playback: `videos[].main` / `videos[].vga` are the unsigned VOD URLs we later sign.
+
+Probe: **29** sessions; first row is `751843`:
+
+```json
+{
+  "code": 0,
+  "data": [
+    {
+      "id": 751843,
+      "course_id": 62313,
+      "title": "第1周 星期三 第2大节",
+      "week_number": 4,
+      "day": "3",
+      "started_at": "2025-09-17 09:55:00",
+      "ended_at": "2025-09-17 11:30:00",
+      "location": "2701C3002X",
+      "video_ids": [456913],
+      "videos": [
+        {
+          "id": 456913,
+          "duration": "5936",
+          "format": "m3u8",
+          "main": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/Video1/Video1.m3u8",
+          "vga": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/VGA/VGA.m3u8",
+          "start_main": "0",
+          "start_vga": "21"
+        }
+      ]
+    }
+  ]
+}
+```
+
+`day` is a string here, a number on session-by-id. Other keys we do not require: `badge`, `section_start` / `section_end`, `is_live`, `is_record`, `week_type`.
+
+#### `GET /v1/course/session?session_id=751843&with_video=true`
+
+Anonymous. Desktop `getSessionById` is **unused** (kept so the two session hops stay distinct). Share `fetchSession` / `fetchLectureMeta` use this. Nested `course` has **no professors** and empty `image_url`; overlay `/v1/course` for those. `with_video=true` still does **not** attach `videos[]` — only `video_ids`. Recover VOD via `/v1/video?id=` or the authenticated list.
+
+```json
+{
+  "code": 0,
+  "data": {
+    "id": 751843,
+    "course_id": 62313,
+    "title": "第1周 星期三 第2大节",
+    "week_number": 4,
+    "day": 3,
+    "started_at": "2025-09-17 09:55:00",
+    "ended_at": "2025-09-17 11:30:00",
+    "location": "2701C3002X",
+    "badge": "6120120125",
+    "video_ids": [456913],
+    "course": {
+      "id": 62313,
+      "name_zh": "泛函分析",
+      "name_en": "Functional Analysis",
+      "college_name": "数学与统计学院",
+      "school_year": "2025-2026",
+      "semester": 1,
+      "image_url": ""
+    },
+    "live": {
+      "id": 652885,
+      "source_id": 62313,
+      "status": 3,
+      "title": "泛函分析",
+      "subtitle": "文萃楼F302",
+      "target": "https://clive13.yanhekt.cn/live/23375_Video1.m3u8",
+      "target_vga": "https://clive13.yanhekt.cn/live/23375_VGA.m3u8",
+      "target_room": "https://clive13.yanhekt.cn/live/23375_Video2.m3u8"
+    },
+    "user_progress": []
+  }
+}
+```
+
+Finished `live.target*` URLs 404 on the CDN; they are useful while `status` is live. Auth does **not** add `videos[]` here.
+
+**`user_progress`.** Anonymous (and auth when this account has never played the session) is `[]` — that is what the 泛函分析 probe returned even with Bearer. After a watch, the same GET with Bearer returns an **object** instead of an array:
+
+```json
+{
+  "id": "<row id>",
+  "badge": "<account badge>",
+  "session_id": 751843,
+  "progress_overall": "5936",
+  "progress_current": "2300",
+  "status": 0,
+  "created_at": "<first watch>",
+  "updated_at": "<last heartbeat>"
+}
+```
+
+`progress_overall` / `progress_current` are decimal **strings** of integer seconds. `overall` matches session duration; `current` is the playhead. AutoSlides does not read this field.
+
+#### `PUT /v1/course/session/user/progress`
+
+Official SPA, while a recorded session is playing. **Auth required.** Not used by AutoSlides; not on the web Worker allowlist.
+
+```http
+PUT /v1/course/session/user/progress
+Content-Type: application/json
+Authorization: Bearer <32-hex>
+Xdomain-Client: web_user
+
+{"session_id":"751843","seconds":2305}
+```
+
+```json
+{ "code": 0, "message": "", "data": { "success": true } }
+```
+
+`session_id` is a string; `seconds` is the current playhead (same unit as `progress_current`). The official player posts this as a heartbeat; a later `GET /v1/course/session?session_id=` then shows the object above.
+
+#### `GET /v2/live/list`
+
+`page`, `page_size` (desktop default 16), optional `keyword`, optional `user_relationship_type` (`0` / omitted = public catalog, **anonymous-ok**; `1` = personal, **auth**, unauth → empty array).
+
+Public catalog is a paginator (probe: thousands of rows). A row:
+
+```json
+{
+  "id": 770304,
+  "title": "物理光学课程实践",
+  "subtitle": "理教楼403",
+  "status": 1,
+  "schedule_started_at": "2026-09-09 15:15:00",
+  "schedule_ended_at": "2026-09-09 17:40:00",
+  "participant_count": 126,
+  "img": "https://coss.yanhekt.cn/images/colleges/guangdian.png",
+  "source_id": 73385,
+  "target": "https://clive10.yanhekt.cn/live/10429_Video1.m3u8",
+  "target_vga": "https://clive10.yanhekt.cn/live/10429_VGA.m3u8",
+  "target_room": "https://clive10.yanhekt.cn/live/10429_Video2.m3u8",
+  "course": { "id": null, "image_url": "" },
+  "session": { "course_id": 73385, "professor": null, "section_group_title": "第2周 星期三 第4大节" }
+}
+```
+
+Our `LiveStream.status` comment is `0=ended, 1=live, 2=upcoming`. Live-list rows in this probe used `1` (same-day) and `2` (later days); a **finished** session’s nested `live.status` was `3`. Prefer schedule timestamps. Cover: use `img`, not `course.image_url` (often `""`). Course id: use `session.course_id` (or `source_id`), not `course.id`.
+
+#### `GET /v1/tag/list?with_sub=true`
+
+Always unauth in desktop (`getTagList` deletes Authorization). Four top-level tags: `degrees`, `semesters`, `colleges`, `attributes`. We only walk `param === "semesters"` → `children[]` `{ id, name, sort }`. Probe (newest first by `sort`): `110` = `2026-2027 第一学期`, `107` = `2025-2026 第二学期`, `100` = `2025-2026 第一学期`, … (13 children). `parseSemesterName` turns `2025-2026 第一学期` into `{ schoolYear: 2025, semester: 1, labelEn: "2025 Fall" }` (share’s `labelEn` is `Fall 2025` — same data, different word order).
+
+#### Personal course lists (auth)
+
+- `GET /v2/course/private/list?page=&page_size=&user_relationship_type=1&with_introduction=true` — enrolled courses. Unauth: empty array. Shape of a row matches course list (string professors, `classrooms[]`).
+- `GET /v1/course/subscription/list?page=&page_size=` — **strict** auth (`61101113`). Default upstream `page_size` is **4** if omitted; always pass an explicit size. Rows are richer (`professor_names`, object `professors`, `college`, `professor_badges`, …). Desktop pins vs web subscriptions: [product names](#product-names-are-per-surface-owner-rulings).
+- `POST /v1/course/subscription` body `{ "course_id": "<id>" }`; `DELETE` same URL + same JSON body. `Content-Type: application/json` is required on DELETE-with-body. Success `{ code: 0 }`. (Not live-tested.)
+
+### 9.6 Recorded VOD and the CDN
+
+#### `GET /v1/auth/video/token?id=0`
+
+Anonymous. `id=0` is what we send (the official site sometimes sends a badge; `0` is accepted). Returns a **16-char** token, `now` / `expired_at` unix seconds, TTL **600s**. Relay caches it under a synthetic key with expiry minus 30s (floor 60s). Desktop caches per login token with a configurable refresh window.
+
+```json
+{ "code": 0, "data": { "token": "<16-char>", "expired_at": 1788945263, "now": 1788944663 } }
+```
+
+#### `GET /v1/video?id=456913`
+
+Anonymous. Not on the web allowlist; desktop does not call it in production (session **list** already has `videos[]`). Documented because session-by-id only returns `video_ids`:
+
+```json
+{
+  "code": 0,
+  "data": {
+    "id": 456913,
+    "course_id": 0,
+    "session_id": 0,
+    "format": "m3u8",
+    "main": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/Video1/Video1.m3u8",
+    "vga": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/VGA/VGA.m3u8",
+    "audio": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/SubAudio/09_53_19_21.aac",
+    "audio_origin": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/SubAudio/09_53_19_21.aac",
+    "duration": "5936",
+    "start_main": "0",
+    "start_vga": "21"
+  }
+}
+```
+
+`main` = camera, `vga` = screen. Those two `.m3u8` URLs are **not** playable raw (CDN **403** until path-encrypt + query signature). AutoSlides never calls this endpoint in production — the authenticated session **list** already has `videos[].main` / `vga`.
+
+**`audio` / `audio_origin` — classroom SubAudio sidecar.** Among the cbiz hops this repo uses, **only** `GET /v1/video` returns them. They are absent from:
+
+- authenticated `/v2/course/session/list` `videos[]` (same video id `456913` has `main`/`vga`/`start_*` but no `audio*`)
+- anonymous `/v1/course/session` (no `videos[]` at all, only `video_ids`)
+- live list (`target` / `target_vga` / `target_room` only)
+
+The file sits next to the VOD as `…/{asset}/0/SubAudio/{HH}_{MM}_{SS}_{ms}.aac`. The timestamp is the recorder clock, typically ~1–2 minutes before `started_at` (this lecture: `09_53_19_21` vs session `09:55:00`). It is **not** referenced from the signed HLS playlists — `Video1.m3u8` / `VGA.m3u8` are plain `#EXTINF` + `.ts` lists (no `#EXT-X-MEDIA`, no `.aac`). Official playback uses whatever audio is already muxed into those TS segments.
+
+Unlike the playlists, the AAC is **unsigned and world-readable**: a bare `GET` with no Origin, token, or signature returns HTTP 200, `Accept-Ranges: bytes`, ADTS magic `0xFFF1`. This lecture was 96 253 248 bytes for 5936 s (~130 kbps) — a speech-rate classroom mic stem, not a second HLS. AutoSlides does not download or play it.
+
+#### Path encrypt + query signature
+
+Used by desktop `videoProxyService` / `m3u8DownloadService` / LAN relay and by `relay/src/yanhekt.ts`. Web does not sign; it asks the relay.
+
+1. Path: insert `md5(VIDEO_MAGIC + "_100")` = `c3d47d7b3aa8caf2983b313cb6cd142f` immediately before the filename.
+2. Query: `Xvideo_Token` (from the token endpoint), `Xclient_Timestamp`, `Xclient_Signature = md5(VIDEO_MAGIC + "_v1_" + timestamp)`, `Xclient_Version=v1`, `Platform=yhkt_user`.
+
+```
+https://cvideo.yanhekt.cn/vod/…/Video1/c3d47d7b3aa8caf2983b313cb6cd142f/Video1.m3u8
+  ?Xvideo_Token=…&Xclient_Timestamp=…&Xclient_Signature=…&Xclient_Version=v1&Platform=yhkt_user
+```
+
+A CDN **403** means the video token or signature was rejected. Retry: drop the cached token, re-mint, re-sign (desktop, LAN relay, and cloud relay: up to 3 attempts). Never send the user Bearer to `cvideo`.
+
+Live `clive*.yanhekt.cn` URLs play **unsigned**. Desktop may rewrite the host to a campus-intranet IP and bind the NIC; web plays the raw URL.
+
+### 9.7 Account, notes, MinIO, logout
+
+#### `GET /v1/user`
+
+Strict auth. Share `verifyUser` reads `data.badge` (publisher id) and `data.nickname`. Desktop/web also read `gender`, `phone`. Probe keys (values redacted): `id`, `badge`, `nickname`, `gender`, `phone`, `avatar`, `email`, `university_id`, `type`, `supervisor`, `password_first`. Unauth: `61101113`.
+
+#### `GET /v1/cas/logout`
+
+Best-effort revoke. Desktop `ApiClient.revokeToken` / web `revokeToken` fire-and-forget so local sign-out never waits. `deactivate` / account-switch **must not** call this (token stays valid for the other account). Live response: `{ "code": 0, "message": "", "data": { "success": true } }`. A subsequent `GET /v1/user` with the same Bearer is `61101113`.
+
+#### Notes (`/v1/note*`) — always auth, `61101113` if not
+
+Desktop `notesService` / web `notesClient` via the Worker allowlist. Group filter is **client-side** (list ignores `groupId`); `keyword=` **is** server-side. Group names max **6** characters (`ASnote` / `ASuser`). `note_group_id: 0` is rejected (`笔记分组ID不能小于1`); ungroup = create + copy + delete.
+
+| Method | Path | Body / query | `data` we read |
+|---|---|---|---|
+| `GET` | `/v1/note/list?with_brief=false&keyword=&page=&page_size=&with_page=true` | — | Paginator. List `content` is `""` — fetch detail to edit. Keys include `id`, `uuid`, `title`, `note_group_id`, `version`, `created_at`, `updated_at` |
+| `GET` | `/v1/note?id=` | — | Same plus stringified Editor.js `content`, `client_time`, `content_updated_time` |
+| `POST` | `/v1/note` | `{ content: "", version: 2 }` | `{ id }` |
+| `PUT` | `/v1/note` | `{ id, title, note_group_id? }` | `code: 0` |
+| `PUT` | `/v1/note/content` | `{ id, content }` | `code: 0` |
+| `DELETE` | `/v1/note` | `{ id }` | `code: 0` |
+| `GET` | `/v1/note/group/list?with_note=false` | — | Array `{ id, name, notes, user_id? }`. Lookup managed groups **by name**, not id |
+| `POST` | `/v1/note/group` | `{ name }` | `code: 0` (no id; re-list) |
+| `DELETE` | `/v1/note/group` | `{ id }` | `code: 0` |
+
+Writes inferred from `notesService.ts` / `notesClient.ts`.
+
+#### `POST /v1/minio/upload`
+
+Auth. `multipart/form-data`: `file` (image blob), `bucket=notes`. Response `{ host, path }` → public URL `host+path` on `coss.yanhekt.cn` (same bytes hash to the same URL). Worker forwards body + `Content-Type` verbatim.
+
+Public reads need no auth:
+
+- `GET https://coss.yanhekt.cn/images/{YYYY}/{M}/{md5}.png`
+- S3 `GET https://coss.yanhekt.cn/images?list-type=2&prefix={YYYY/M/}&max-keys=1000` (`credentials: omit`) — share-link short hashes → full keys
+- Default cover `https://coss.yanhekt.cn/images/front_cover.png`
+
+### 9.8 Campus CAS
+
+Not Yanhekt, but it is how we mint the 32-hex token. Desktop `campusSso/casFlow.ts`; web `lib/campusSso.ts` (Worker-only — `sso.bit.edu.cn` has no CORS).
+
+`SERVICE_URL = https://cbiz.yanhekt.cn/v1/cas/callback`.
+
+| Step | Call | Notes |
+|---|---|---|
+| 1 | `GET https://sso.bit.edu.cn/cas/login?service=…callback` | HTML: `#login-page-flowkey` (`execution`), `#login-croypto` (AES key), form action |
+| 2 | `GET …/cas/api/protected/user/findCaptchaCount/{username}` | If a graphic captcha is required, **fail** with `captcha_required` — we never solve it |
+| 3 | `POST` form action | `username`, AES-ECB password, `type=UsernamePassword`, `execution`, `croypto`. 302 → ticket; 200 + 2FA markers → SMS flow |
+| 4 | `POST …/sms/getPhoneNumberByUserId` | RSA **PKCS#1 v1.5** + AES envelope (`hasCrypto`, `privateKey`). Web needs `nodejs_compat` |
+| 5 | `POST …/sms/publicNoToken/sendSmsCode` | `{ phone, businessNo: "0008" }` |
+| 6 | `POST …/sms/checkToken` | `{ phone, token: code, delete: false, trustDevice: true }` |
+| 7 | `POST` 2FA form | `type=smsLogin`, `password=<code>`, `trustDevice=true`. 302 → ticket |
+| 8 | `GET https://cbiz.yanhekt.cn/v1/cas/callback?ticket=ST-…` | 302 `Location` with `?token=<32-hex>` |
+
+Desktop parks the live CAS cookie jar in memory for 300s (dies on renderer reload). Web AES-GCM-seals that bag into a `resumeToken` (`SSO_RESUME_KEY`; unset → 2FA accounts fall back to token-paste). Durable `trustDevice` cookies skip SMS on a known device (desktop `ssoDeviceCookies`; web `deviceKeepsake`). Browser login / paste-token remain the escape hatch.
+
+### 9.9 Who calls what
+
+| Call | Desktop | Web SPA | `web/` Worker | `share/` | `relay/` |
+|---|---|---|---|---|---|
+| Course list / detail / tags | `ApiClient` | `/api/yanhekt/…` | proxy; Bearer stripped | anonymous `fetchCourse*` / `fetchSemesters` | — |
+| Session list | `getCourseInfo` (auth) | same | proxy; Bearer kept | — | — |
+| Session by id | unused `getSessionById` | unused (Worker would strip Bearer) | allowlisted `GET /v1/course/session` | `fetchSession` | — |
+| Watch progress PUT | — | — | not allowlisted | — | — |
+| Public live / search | anonymous-ok | proxy; stripped | stripped | — | — |
+| Personal live / private courses / subscribe | auth | proxy; kept | kept | — | — |
+| `/v1/user` | `verifyToken` | proxy | kept; debug also `POST /api/verify-token` | `verifyUser` on publish | — |
+| Logout | `revokeToken` | proxy | kept | — | — |
+| Notes + MinIO | `notesService` | `/api/yanhekt/v1/note*` | kept | — | — |
+| Video token | `getVideoToken` (anonymous-ok) | — | not allowlisted | — | anonymous mint `id=0` |
+| Sign VOD | main-process proxy / LAN relay | — | — | — | `/playlist` `/segment` |
+| Live HLS | optional intranet map | **direct CDN** | — | — | — |
+| COSS list/get | `notesService` / `shareResolve` | `shareResolve` | — | `resolver.ts` | — |
+| CAS | `campusSso/` | `/api/login` | `campusSso.ts` | — | — |
+
+---
+
+## 10. Cross-cutting protocols
+
+### 10.1 Yanhekt video signing
+
+Full contract (headers, anonymous vs auth, VOD path encrypt, live unsigned CDN): [§9](#9-yanhekt-api), especially [§9.6](#96-recorded-vod-and-the-cdn). CDN requests **never** send the user Bearer.
+
+### 10.2 Share payload
 
 Canonical: `autoslides/src/shared/shareLink.ts`.
 
@@ -742,7 +1228,7 @@ Canonical: `autoslides/src/shared/shareLink.ts`.
 
 `t` (v3) = `idx:delta,idx:delta,…` — 0-based index into `h`, integer seconds since the previous cue (first delta is absolute). Reappearances reuse `idx`. Viewer rebuilds `timeline.json` via `@common/shareTimeline`; it is **not** stored on the server. Download-ZIP `timeline.json` is reconstructed the same way.
 
-### 9.3 Slide sidecars (desktop disk; web mirrors the schema)
+### 10.3 Slide sidecars (desktop disk; web mirrors the schema)
 
 **`metadata.json`** (`SLIDE_METADATA_VERSION = 1`): `kind` (`recorded`/`live`) + `trigger` (`auto`/`watch`) drive `isWatchExtraction()`. `edited` is latched only by **human** crop/trash/delete, never by automated post-processing. `reviewed` sets on a ~2s dwell in Slides. All updaters no-op when the file is absent (no backfill). Single writer: `slideMetadataService`; renderer goes through `slideMetadataClient` (JSON-clone first).
 
@@ -750,13 +1236,13 @@ Canonical: `autoslides/src/shared/shareLink.ts`.
 
 Consumers: Lectures slides strip (`deriveCues`); Slides preview Metadata (`appearancesForFile`); v3 share links.
 
-### 9.4 Managed note content
+### 10.4 Managed note content
 
 Every AutoSlides-imported Editor.js note ends with a `code` block under sentinel `autoslides`, carrying `slides` (folder `metadata.json` or null), `timeline` (full `timeline.json` or null), and `note` (displayName / imageCount / importedAt / shareUrl). `noteImageUrls` ignores the block. Watch-mode titles look like `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节` (live uses `l`). Disk `slides_*` folder names are unchanged.
 
 ---
 
-## 10. Extraction and post-processing
+## 11. Extraction and post-processing
 
 Maths: [technical report](image-analysis-technical-report.pdf). Engineering:
 
@@ -781,7 +1267,7 @@ AI dispatch in watch mode is **arity-based**: 1 image → single-image endpoint 
 
 ---
 
-## 11. Gotchas
+## 12. Gotchas
 
 ### Vue proxies cannot cross structured clone
 
@@ -825,7 +1311,7 @@ Index search/lecture pages will show empty names if Yanhekt is unreachable, not 
 
 ### Anonymous vs authenticated Yanhekt
 
-Marking a personal endpoint `allowAnonymous` (desktop) or stripping Bearer (web) yields 401. The allowlists are the spec — copy them, don't guess. Session **list** is authenticated; session **detail by id** is anonymous-ok (desktop unused; Index uses it).
+The matrix is [§9.3](#93-auth-vs-anonymous). Two unauth failure modes: `code: 61101113` (`用户未登录`) on strict endpoints (`/v1/user`, notes, subscription list), versus `code: 0` + `data: []` on session **list** / personal live / private course list. Marking a personal endpoint `allowAnonymous` (desktop) or stripping Bearer (web) yields empty data or `61101113`, not HTTP 401. Session **detail by id** is anonymous-ok (desktop unused; Index uses it). Copy the allowlists; don't guess.
 
 ### Multi-account stale UI
 
@@ -857,7 +1343,7 @@ CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each 
 
 ---
 
-## 12. CI, tests, and how to verify a change
+## 13. CI, tests, and how to verify a change
 
 ### Workflows
 
@@ -901,6 +1387,7 @@ Leaving `SSO_RESUME_KEY` unset is valid. Leaving `AI_ORIGIN` unset 503s `/api/ai
 | User walkthrough, screenshots | root [`README.md`](../README.md) |
 | Web user/clone guide | [`web/README.md`](../web/README.md) |
 | Share encoding + Index privacy | [`share/README.md`](../share/README.md) |
+| Yanhekt cbiz / CDN / CAS | this document [§9](#9-yanhekt-api) |
 | Relay signing + cache | [`relay/README.md`](../relay/README.md) |
 | SSIM / pHash / ML / crop maths | [`docs/image-analysis-technical-report.pdf`](image-analysis-technical-report.pdf) |
 | Drift groups | [`scripts/check-drift.mjs`](../scripts/check-drift.mjs) |
