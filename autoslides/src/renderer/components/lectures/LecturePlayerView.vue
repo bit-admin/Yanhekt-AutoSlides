@@ -146,9 +146,8 @@
       -->
       <audio v-if="hasMicAudio" :ref="setMicRef" preload="auto" class="mic-audio-track"></audio>
 
-      <div v-if="isLoading" class="player-loading">
-        <div class="spinner"></div>
-      </div>
+      <!-- Same ring as the playback page, for the initial attach and any stall. -->
+      <BufferingOverlay v-if="isLoading || isBuffering" />
 
       <!-- Bottom overlay controls -->
       <div
@@ -490,6 +489,7 @@ import { useLectureSlideChapters } from '@features/lectures/useLectureSlideChapt
 import { navigationStore } from '@features/course/navigationStore'
 import { tabStore } from '@features/course/tabStore'
 import LectureSlideStrip from './LectureSlideStrip.vue'
+import BufferingOverlay from '@renderer/components/video/BufferingOverlay.vue'
 import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger'
 
@@ -509,6 +509,7 @@ const {
   streamMode,
   isPlaying,
   isLoading,
+  isBuffering,
   currentTime,
   duration,
   volume,
@@ -992,29 +993,6 @@ const onKeydown = (event: KeyboardEvent) => {
 .single-video-player {
   width: 100%;
   height: 100%;
-}
-
-.player-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: var(--z-dropdown);
-}
-
-.spinner {
-  width: 28px;
-  height: 28px;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 /* ── Bottom overlay ──────────────────────────────────────────────── */

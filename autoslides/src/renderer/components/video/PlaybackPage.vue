@@ -236,6 +236,7 @@
             </svg>
             <span>{{ muteMode === 'mute_all' ? $t('playback.mutedByApp') : muteMode === 'mute_live' ? $t('playback.liveMuted') : $t('playback.recordedMuted') }}</span>
           </div>
+          <BufferingOverlay v-if="isBuffering" />
           <!-- Retry Indicator -->
           <div v-if="isRetrying" class="retry-indicator">
             <div class="retry-spinner"></div>
@@ -339,6 +340,7 @@
               <span>{{ $t(globalMuteModeLabelKey) }}</span>
             </div>
 
+            <BufferingOverlay v-if="isBuffering" />
 
             <div v-if="isRetrying" class="retry-indicator">
               <div class="retry-spinner"></div>
@@ -670,6 +672,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'v
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
 import { tabStore } from '@features/course/tabStore'
+import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { layoutStore } from '@shared/services/layoutStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
 import { useSlideExtraction, type Course, type Session } from '@features/video/useSlideExtraction'
@@ -685,6 +688,7 @@ import { useSlideGallery } from '@features/video/useSlideGallery'
 import PostProcessingProgressBar from './PostProcessingProgressBar.vue'
 import SlideGallery from './SlideGallery.vue'
 import PreviewModal from './PreviewModal.vue'
+import BufferingOverlay from './BufferingOverlay.vue'
 import DualStreamControls from './DualStreamControls.vue'
 import SingleStreamControls from './SingleStreamControls.vue'
 import { fromPlaybackStatus } from '@shared/postProcessing/displayAdapter'
@@ -833,6 +837,20 @@ slideExtraction.videoElementProvider.value = () => videoPlayerComposable.videoPl
 const videoPlayer = videoPlayerComposable.videoPlayer
 const cameraVideoPlayer = videoPlayerComposable.cameraVideoPlayer
 const screenVideoPlayer = videoPlayerComposable.screenVideoPlayer
+
+// Whichever of the three is mounted; in dual the pair is synced, so one
+// starving stream holds up both and the single overlay covers it.
+const { isBuffering } = useBufferingIndicator(
+  [videoPlayer, cameraVideoPlayer, screenVideoPlayer],
+  // While the page is showing its own load/error state the player is not even
+  // rendered; a torn-down element must not leave the ring spinning behind it.
+  // Read off the composable, not the destructured refs below — this runs during
+  // setup, before those consts are initialised.
+  {
+    suppress: () =>
+      Boolean(videoPlayerComposable.loading.value || videoPlayerComposable.error.value),
+  },
+)
 const micAudioPlayer = videoPlayerComposable.micAudioPlayer
 const singleAudioSource = videoPlayerComposable.singleAudioSource
 

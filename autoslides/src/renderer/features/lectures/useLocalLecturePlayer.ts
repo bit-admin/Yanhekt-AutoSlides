@@ -11,6 +11,7 @@ import { createWatchProgressSync } from '@shared/services/watchProgressService'
 import { configStore } from '@shared/services/configStore'
 import { ApiClient } from '@shared/services/apiClient'
 import { getHlsConfig } from '@features/video/hlsConfig'
+import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { setupDualHlsErrorHandler } from '@features/video/useVideoErrorRecovery'
 import { createMediaSyncLoop, syncFollower } from '@features/video/mediaSync'
 import type { LibraryFileRef, LibrarySession, LocalStreamMode } from './libraryModel'
@@ -211,6 +212,16 @@ export function useLocalLecturePlayer() {
       log.warn('unregisterClient failed', error)
     }
   }
+
+  // The three <video> refs never leave this composable, so the indicator is built
+  // here and the view gets only the boolean.
+  const { isBuffering } = useBufferingIndicator(
+    [screenVideoEl, cameraVideoEl, singleVideoEl],
+    // A fatal HLS error leaves the element parked at readyState 0 without ever
+    // setting `video.error` (the failure is in MSE, not the element), so the
+    // ring would spin behind the message this player shows instead.
+    { suppress: () => Boolean(errorMessage.value) },
+  )
 
   const ensureProxyClient = async () => {
     if (proxyClientId) return
@@ -938,6 +949,7 @@ export function useLocalLecturePlayer() {
     streamMode,
     isPlaying,
     isLoading,
+    isBuffering,
     currentTime,
     duration,
     volume,
