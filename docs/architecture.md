@@ -1118,7 +1118,7 @@ Unlike the playlists, the AAC is **unsigned and world-readable**: a bare `GET` w
 
 **It is zero-aligned with the video, despite the filename.** `ffprobe` over HTTP reports `aac, 32000 Hz, stereo, duration 5934.74 s` against the API's video `duration: 5936` — so the `09_53_19` is a recorder-clock *label*, not a lead-in, and no offset correction is needed. Do not re-derive this from the filename arithmetic; it looks like a ~100 s lead and is not one.
 
-**What AutoSlides does with it (22.30–22.33).** Yanhekt's own UI warns 音源为蓝牙话筒，若老师未使用蓝牙话筒，则该路音频没有声音 — the track exists per-room and is silent when the teacher did not wear the mic, which is why nothing about it is assumed to be present.
+**What AutoSlides does with it.** Yanhekt's own UI warns 音源为蓝牙话筒，若老师未使用蓝牙话筒，则该路音频没有声音 — the track exists per-room and is silent when the teacher did not wear the mic, which is why nothing about it is assumed to be present.
 
 - **Resolution is lazy and memoised.** Because only `/v1/video` carries the URL, knowing whether a lecture has a mic track costs one request per video id. The session page therefore always shows its mic button and resolves on click; `ApiClient.getMicAudioUrl` caches the answer, including the negative one.
 - **Download** is `main/video/audioDownloadService.ts`, not the m3u8 downloader (no signing, no playlist, no ffmpeg). It writes `<outputDir>/audio_…__c<course>s<session>.aac` via a `.part` temp, and shares the intranet-aware axios factory (`main/infra/intranetAxios.ts`) with the m3u8 path so the campus host rewrite applies. `DownloadItem.videoType` gained `'audio'`; `download:cancel` routes by which service owns the id.
@@ -1208,7 +1208,7 @@ Desktop parks the live CAS cookie jar in memory for 300s (dies on renderer reloa
 | Watch progress PUT | — | — | not allowlisted | — | — |
 | Public live / search | anonymous-ok | proxy; stripped | stripped | — | — |
 | Personal live / private courses / subscribe | auth | proxy; kept | kept | — | — |
-| `/v1/user` | `verifyToken` | proxy | kept; debug also `POST /api/verify-token` | `verifyUser` on publish | — |
+| `/v1/user` | `verifyToken` | proxy | kept | `verifyUser` on publish | — |
 | Logout | `revokeToken` | proxy | kept | — | — |
 | Notes + MinIO | `notesService` | `/api/yanhekt/v1/note*` | kept | — | — |
 | Video token | `getVideoToken` (anonymous-ok) | — | not allowlisted | — | anonymous mint `id=0` |
