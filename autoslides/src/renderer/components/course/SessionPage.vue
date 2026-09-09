@@ -519,23 +519,26 @@ onMounted(() => {
 
 .batch-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
-/* Four equal hairline buttons laid out [verb] label [target]: the glyphs
-   sit at the edges, the label stays centered. They wrap rather than squeeze —
-   the localized labels ("Download All Mic Audio", "下载全部麦克风音频") do not
-   survive a quarter-width column at narrow window sizes. */
+/* Four equal hairline buttons on ONE row, laid out [verb] label [target]: the
+   glyphs sit at the edges, the label stays centered. `min-width: 0` overrides
+   the flex default of `auto`, which would otherwise refuse to shrink a column
+   below its label and push the fourth button onto a second row.
+   Padding and gaps are tighter than a normal .btn because four columns share
+   the panel: at 12px type every pixel of chrome comes straight out of the
+   label, which would otherwise ellipsise ("Download All Ca…"). */
 .batch-btn {
-  flex: 1 1 200px;
+  flex: 1 1 0;
+  min-width: 0;
   display: grid;
   grid-template-columns: 16px 1fr 16px;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   min-height: 38px;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   color: var(--text-primary);
