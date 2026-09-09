@@ -95,6 +95,12 @@ function yanhekt(path: string, params: URLSearchParams, method: string): Respons
     return envelope({ id: params.get("id") ?? "", audio: "" });
   }
 
+  // Watch progress. The demo has no server-side history and must not pretend
+  // to write any — `[]` is exactly what Yanhekt returns for a never-watched
+  // session, so the player starts at 0 whether or not the toggle is on.
+  if (path === "/v1/course/session") return envelope({ user_progress: [] });
+  if (path === "/v1/course/session/user/progress") return envelope({ success: true });
+
   if (path === "/v1/note/group/list") return envelope(demo.demoNoteGroups());
   if (path === "/v1/note/list") return envelope(demo.demoNoteList(params.get("keyword") ?? ""));
   if (path === "/v1/note") {

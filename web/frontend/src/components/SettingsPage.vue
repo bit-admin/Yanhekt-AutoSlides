@@ -38,6 +38,21 @@
         </div>
 
         <div class="advanced-setting-section">
+          <h4>{{ $t('settings.videoPlaybackSection') }}</h4>
+          <div class="setting-item">
+            <label class="setting-toggle">
+              <input
+                type="checkbox"
+                :checked="configStore.resumeFromServerProgress"
+                @change="onResumeFromServerProgressChange"
+              />
+              <span>{{ $t('settings.enableResumeServerProgress') }}</span>
+            </label>
+            <div class="setting-description">{{ $t('settings.resumeServerProgressDescription') }}</div>
+          </div>
+        </div>
+
+        <div class="advanced-setting-section">
           <h4>{{ $t('settings.slideExtractionSection') }}</h4>
           <div class="setting-item">
             <label class="setting-toggle">
@@ -549,6 +564,11 @@ const onThemeChange = (e: Event) => {
 
 const onLanguageChange = (e: Event) => {
   setLanguageMode((e.target as HTMLSelectElement).value as LanguageMode)
+}
+
+const onResumeFromServerProgressChange = (e: Event) => {
+  configStore.resumeFromServerProgress = (e.target as HTMLInputElement).checked
+  persistConfig()
 }
 
 const onAutoPostProcessingChange = (e: Event) => {

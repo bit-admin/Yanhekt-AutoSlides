@@ -13,6 +13,11 @@
  * cache (read AND write); /playlist propagates the flag into the segment
  * URLs it emits.
  *
+ * Optional &sid=<session id> opts into watch-progress reporting: /playlist
+ * carries it into the segment URLs it emits, and each /segment request then
+ * reports the playhead the caller put in &p= to Yanhekt in the background.
+ * See "Watch progress" below for why this rides an existing request.
+ *
  * Caching (Cache API): one shared video TOKEN (anonymous mint, ~its real
  * lifetime), plus raw VOD m3u8 bodies and full 200 segment bodies keyed by
  * upstream URL alone — recorded content is immutable and byte-identical for
@@ -24,6 +29,7 @@ import { getClientSignature, signMediaUrl } from './yanhekt';
 interface Env {}
 
 const TOKEN_ENDPOINT = 'https://cbiz.yanhekt.cn/v1/auth/video/token?id=0';
+const PROGRESS_ENDPOINT = 'https://cbiz.yanhekt.cn/v1/course/session/user/progress';
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3';
 
@@ -52,6 +58,23 @@ function tokenHeaders(): Record<string, string> {
 // media for free. NOTE: this is a format check only — a well-formed but
 // expired/revoked token still gets cache hits until the entry expires.
 export const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i;
+
+// Optional watch-progress params. Both are caller-supplied and reach Yanhekt,
+// so they are validated as strict integers rather than passed through.
+const SESSION_ID_RE = /^[0-9]{1,12}$/;
+const SECONDS_RE = /^[0-9]{1,7}$/;
+
+/** `sid=` if it is a plausible session id, else null (absent = feature off). */
+export function parseSessionId(raw: string | null): string | null {
+  return raw && SESSION_ID_RE.test(raw) ? raw : null;
+}
+
+/** `p=` if it is a plausible playhead in seconds, else null. */
+export function parseSeconds(raw: string | null): number | null {
+  if (!raw || !SECONDS_RE.test(raw)) return null;
+  const seconds = Number(raw);
+  return seconds > 0 ? seconds : null;
+}
 
 // The relay signs and fetches whatever `u` points at, so restrict it to
 // Yanhekt hosts — otherwise any token holder can use the relay as an open
@@ -283,6 +306,53 @@ export async function fetchSignedMedia(
   return last as Response; // exhausted — surface the final 403
 }
 
+// ---- Watch progress -------------------------------------------------------
+// Yanhekt keeps a per-account playhead for each recorded session and the
+// official player PUTs it every 5 seconds while playing. Doing that from the
+// browser would cost one Worker request per heartbeat — ~1000 for a 90-minute
+// lecture, four times what the segments themselves cost. But the browser is
+// already asking us for a segment every ~20s, and a fetch *inside* a Worker is
+// a subrequest, which is not billed as a request. So the heartbeat rides along:
+// the player appends its true playhead as `p=` to each segment URL (the relay
+// cannot infer it — hls.js fetches up to a full buffer ahead of the playhead)
+// and we forward it in the background while the segment streams.
+//
+// This is the one place the relay forwards `t=` to Yanhekt, as the Bearer the
+// progress API requires. It only ever happens when the caller opts in by
+// sending `sid=`, so a deployment whose player never sends it behaves exactly
+// as before.
+
+// Collapses the burst of fragment fetches hls.js issues at one playhead on
+// open into a single PUT. Per-isolate and therefore best-effort; the cost of
+// missing is one redundant PUT, so it is deliberately not made durable.
+const lastProgress = new Map<string, number>();
+
+async function reportProgress(
+  sessionId: string,
+  seconds: number,
+  loginToken: string
+): Promise<void> {
+  const key = `${loginToken}:${sessionId}`;
+  if (lastProgress.get(key) === seconds) return;
+  // Unbounded growth would outlive any usefulness; the map is a dedupe hint.
+  if (lastProgress.size > 500) lastProgress.clear();
+  lastProgress.set(key, seconds);
+
+  try {
+    await fetch(PROGRESS_ENDPOINT, {
+      method: 'PUT',
+      headers: {
+        ...tokenHeaders(),
+        Authorization: `Bearer ${loginToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ session_id: sessionId, seconds }),
+    });
+  } catch {
+    // A dropped heartbeat costs nothing — the next segment is ~20s away.
+  }
+}
+
 // ---- m3u8 rewriting -------------------------------------------------------
 
 export function rewriteM3u8(
@@ -290,10 +360,14 @@ export function rewriteM3u8(
   baseUrl: string,
   origin: string,
   t: string,
-  noCache: boolean
+  noCache: boolean,
+  sid: string | null = null
 ): string {
   const tEnc = encodeURIComponent(t);
-  const suffix = noCache ? '&nocache=1' : '';
+  // `sid` rides into every child URL (nested variant playlists included) so the
+  // segment requests that follow can report progress. Safe to bake in: only the
+  // RAW upstream m3u8 is cached — this rewrite happens per request.
+  const suffix = `${noCache ? '&nocache=1' : ''}${sid ? `&sid=${sid}` : ''}`;
   const proxify = (abs: string): string => {
     const route = abs.split('?')[0].toLowerCase().endsWith('.m3u8') ? 'playlist' : 'segment';
     return `${origin}/${route}?u=${encodeURIComponent(abs)}&t=${tEnc}${suffix}`;
@@ -353,17 +427,25 @@ export default {
         if (!LOGIN_TOKEN_RE.test(t)) return text('Invalid login token', 403);
         if (!isAllowedUpstream(u)) return text('Upstream host not allowed', 403);
         const noCache = url.searchParams.get('nocache') === '1';
+        // Optional, and never fatal: bad values just mean "don't report".
+        const sid = parseSessionId(url.searchParams.get('sid'));
 
         if (url.pathname === '/playlist') {
           const raw = await getRawPlaylist(u, ctx, noCache);
           if (raw.status !== 200) {
             return text(`Upstream playlist request failed with status ${raw.status}`, raw.status === 403 ? 403 : 502);
           }
-          const rewritten = rewriteM3u8(raw.body, u, origin, t, noCache);
+          const rewritten = rewriteM3u8(raw.body, u, origin, t, noCache, sid);
           return text(rewritten, 200, 'application/vnd.apple.mpegurl');
         }
 
         const res = await getSegment(u, ctx, request.headers.get('Range'), noCache);
+        const seconds = parseSeconds(url.searchParams.get('p'));
+        // Only for media that actually reached the viewer, and in the background
+        // so the segment is never held up by the heartbeat.
+        if (sid && seconds !== null && res.status < 400) {
+          ctx.waitUntil(reportProgress(sid, seconds, t));
+        }
         return streamMedia(res);
       }
 

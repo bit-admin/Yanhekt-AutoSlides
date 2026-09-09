@@ -48,6 +48,12 @@ export interface WebConfig {
   // https page cannot fetch an http relay — see
   // settingsStore.setRelayEndpoint / isMixedContentRelay.
   relayEndpoint: string;
+  // Seek recorded lectures to the playhead Yanhekt has for this account, and
+  // keep reporting it while playing. Desktop parity: `resumeFromServerProgress`
+  // (the desktop's second toggle covers its Lectures workspace, which the web
+  // client does not have). Off by default: it sends the playhead to a
+  // third-party server and changes where a video starts.
+  resumeFromServerProgress: boolean;
   // Run post-processing (pHash phases) automatically after each saved slide
   // during watch-mode extraction. Desktop parity: `autoPostProcessingLive`.
   autoPostProcessingLive: boolean;
@@ -88,6 +94,7 @@ const defaults = (): WebConfig => ({
   subscribedRecordedCourses: [],
   sidebarCollapsed: false,
   relayEndpoint: "",
+  resumeFromServerProgress: false,
   autoPostProcessingLive: true,
   cloudWatchSyncEnabled: false,
   cloudStorageInitializedUsers: [],
@@ -135,6 +142,7 @@ function load(): WebConfig {
     merged.notesFontSet = "default";
   }
 
+  merged.resumeFromServerProgress = !!merged.resumeFromServerProgress;
   merged.notesSmallText = !!merged.notesSmallText;
   merged.notesFullWidth = !!merged.notesFullWidth;
 
@@ -185,6 +193,7 @@ export function persistConfig(): void {
     sidebarCollapsed: configStore.sidebarCollapsed,
     // Empty = built-in; a non-empty origin is a custom endpoint and is stored.
     relayEndpoint: (configStore.relayEndpoint || "").trim(),
+    resumeFromServerProgress: !!configStore.resumeFromServerProgress,
     autoPostProcessingLive: configStore.autoPostProcessingLive,
     cloudWatchSyncEnabled: configStore.cloudWatchSyncEnabled,
     cloudStorageInitializedUsers: [...configStore.cloudStorageInitializedUsers],

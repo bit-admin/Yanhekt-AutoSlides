@@ -1,5 +1,5 @@
 import { ref, shallowRef, computed, type Ref, type ShallowRef, type ComputedRef } from "vue";
-import Hls, { Events } from "hls.js";
+import Hls, { Events, type FragmentLoaderConstructor } from "hls.js";
 import { attachNetworkErrorSniffer, setupDualHlsErrorHandler } from "./useVideoErrorRecovery";
 import { createMediaSyncLoop, syncFollower } from "./mediaSync";
 import type { VideoStream, DualAudioSource } from "./useVideoPlayer";
@@ -40,6 +40,12 @@ export interface DualStreamPlayerDeps {
   onEnded: () => Promise<void>;
   /** Called on any network-type HLS error, so the host can diagnose the cause. */
   onNetworkError?: () => void;
+  /**
+   * hls.js fragment loader that turns segment fetches into watch-progress
+   * heartbeats. Attached to the **master** instance only — both streams sit at
+   * the same playhead, so letting each report would just double the traffic.
+   */
+  getProgressFragmentLoader?: () => FragmentLoaderConstructor | undefined;
 }
 
 export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
@@ -63,6 +69,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     cleanupSingleVideoSource,
     onEnded,
     onNetworkError,
+    getProgressFragmentLoader,
   } = deps;
 
   const cameraHls = shallowRef<Hls | null>(null);
@@ -316,7 +323,13 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     seekToTime?: number,
     shouldAutoPlay?: boolean,
   ) => {
-    const hlsInstance = new Hls(getHlsConfig(mode));
+    // getDualMasterVideo() prefers the screen element, so that is the instance
+    // whose playhead the heartbeat should follow.
+    const fLoader = label === "screen" ? getProgressFragmentLoader?.() : undefined;
+    const hlsInstance = new Hls({
+      ...getHlsConfig(mode),
+      ...(fLoader ? { fLoader } : {}),
+    });
     hlsRef.value = hlsInstance;
 
     hlsInstance.loadSource(stream.url);

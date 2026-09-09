@@ -14,6 +14,8 @@ import { probeRelayReach } from "../../lib/relayDiagnostics";
 import { demoHooks } from "../../lib/demoRegistry";
 import type { Course } from "../useCourseList";
 import { getMicAudioUrl, type SessionData } from "../../lib/api";
+import { createWatchProgressSync } from "./useWatchProgress";
+import { configStore } from "../../stores/configStore";
 
 // Trimmed port of the desktop app's features/video/useVideoPlayer.ts: the
 // Electron proxy client, config store, mute policy, and slide-extraction
@@ -129,6 +131,40 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
     const masterVideo = dual.getDualMasterVideo();
     return Boolean(masterVideo && !masterVideo.paused);
+  };
+
+  /**
+   * Yanhekt's own watch position for this recorded session. The two accessors
+   * above already cover single *and* dual playback. Reporting rides the relay's
+   * segment requests, so it costs nothing; where that is unavailable (native
+   * HLS, or a relay that ignores `sid`) the position is recorded on pause and
+   * close instead of falling back to a billed heartbeat.
+   */
+  const resumeProgressEnabled = () =>
+    mode === "recorded" && configStore.resumeFromServerProgress === true;
+
+  const progressSync = createWatchProgressSync({
+    sessionId: () => (mode === "recorded" ? session.value?.session_id : undefined),
+    enabled: resumeProgressEnabled,
+    getCurrentTime: getCurrentPlaybackTime,
+    isPlaying: isAnyVideoPlaying,
+  });
+
+  // Resolved once per open. A cold open loads the source more than once — the
+  // stream-data watcher re-runs it — and each load tears the previous Hls
+  // instance down, so this must survive until it has actually stuck. It is
+  // dropped once the playhead has genuinely moved past it (the user seeking, or
+  // a stream switch re-loading mid-lecture), so a later load never yanks anyone
+  // back here.
+  let pendingResumeSeconds: number | null = null;
+
+  const resumeStartPosition = (): number | undefined => {
+    if (pendingResumeSeconds === null) return undefined;
+    if (getCurrentPlaybackTime() > pendingResumeSeconds + 2) {
+      pendingResumeSeconds = null;
+      return undefined;
+    }
+    return pendingResumeSeconds;
   };
 
   // Mode-specific HLS configuration — copied verbatim from the desktop app.
@@ -334,6 +370,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     onEnded: () => onEnded(),
     // Lazy call: classifyRelayFailure is defined below this hook.
     onNetworkError: () => classifyRelayFailure(),
+    getProgressFragmentLoader: () => progressSync.fragmentLoader(),
   });
 
   const loadVideoStreams = async () => {
@@ -359,8 +396,20 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         // The mic URL is not on the session — only GET /v1/video carries it.
         // Memoised, so re-opening the same lecture costs nothing. Live has no
         // mic track at all. A failed resolve must not fail video playback.
+        // Kicked off alongside the mic lookup so honoring the saved position
+        // adds no serial latency to opening a lecture.
+        const resumePromise = progressSync.resume();
         const resolvedMicUrl = await getMicAudioUrl(String(session.value.video_id), token);
-        result = getRecordedPlaybackData(session.value, token, resolvedMicUrl);
+        // `sid` is what opts the relay into reporting: without it the segment
+        // requests stay exactly what they were.
+        result = getRecordedPlaybackData(
+          session.value,
+          token,
+          resolvedMicUrl,
+          resumeProgressEnabled() ? String(session.value.session_id) : undefined,
+        );
+        pendingResumeSeconds = await resumePromise;
+        progressSync.start();
       } else {
         throw new Error("Invalid playback parameters");
       }
@@ -456,6 +505,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     catchLogLabel: string;
     onManifestParsed: () => void;
     errorConfig: SingleStreamErrorConfig;
+    /**
+     * Seek target for a fresh open. Passed into hls.js rather than assigned to
+     * the element: `currentTime` right after MANIFEST_PARSED is clamped back to
+     * 0 while MSE still has no duration.
+     */
+    startPosition?: number;
   }) => {
     if (!videoPlayer.value || !currentStreamData.value) {
       return;
@@ -484,7 +539,14 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       const videoUrl = currentStreamData.value.url;
 
       if (Hls.isSupported()) {
-        hls.value = new Hls(getHlsConfig(mode));
+        // Turns every segment fetch into a watch-progress heartbeat; undefined
+        // when there is nothing to report, leaving hls.js its own loader.
+        const fLoader = progressSync.fragmentLoader();
+        hls.value = new Hls({
+          ...getHlsConfig(mode),
+          ...(opts.startPosition !== undefined ? { startPosition: opts.startPosition } : {}),
+          ...(fLoader ? { fLoader } : {}),
+        });
 
         hls.value.loadSource(videoUrl);
         hls.value.attachMedia(videoPlayer.value);
@@ -594,10 +656,19 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const loadVideoSource = () =>
     setupHlsSource({
       catchLogLabel: "Failed to load video source:",
+      startPosition: resumeStartPosition(),
       onManifestParsed: () => {
         if (!videoPlayer.value) return;
         videoPlayer.value.playbackRate = mode === "recorded" ? currentPlaybackRate.value : 1;
         if (mode !== "recorded") currentPlaybackRate.value = 1;
+
+        // startPosition above already put hls.js at the resume point; this
+        // covers native HLS (which has no such option) and a manifest that
+        // parsed before the position was resolved.
+        const resumeAt = resumeStartPosition();
+        if (resumeAt !== undefined && Math.abs(videoPlayer.value.currentTime - resumeAt) > 1) {
+          videoPlayer.value.currentTime = resumeAt;
+        }
 
         videoPlayer.value.play().catch(() => {
           /* Ignore manifest parsed play error */
@@ -747,6 +818,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   };
 
   const cleanup = () => {
+    // Before the elements go: stop() sends the final position, and it can only
+    // read it while there is still a player to read it from.
+    progressSync.stop();
     cleanupSingleVideoSource();
     dual.cleanupDualVideoSources();
   };

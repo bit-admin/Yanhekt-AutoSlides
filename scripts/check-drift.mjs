@@ -32,6 +32,7 @@ const GROUPS = [
   { name: 'notesTypes', files: ['autoslides/src/shared/notesTypes.ts', 'web/frontend/src/lib/notes/notesTypes.ts'] },
   { name: 'sanitizeFileName', files: ['autoslides/src/shared/sanitizeFileName.ts', 'web/frontend/src/lib/sanitizeFileName.ts'] },
   { name: 'slideMetadataTypes', files: ['autoslides/src/shared/slideMetadataTypes.ts', 'web/frontend/src/lib/slideMetadataTypes.ts'] },
+  { name: 'watchProgress', files: ['autoslides/src/shared/watchProgress.ts', 'web/frontend/src/lib/watchProgress.ts'] },
   { name: 'changeDetection', files: ['autoslides/src/renderer/shared/processing/changeDetection.ts', 'web/frontend/src/lib/processing/changeDetection.ts'] },
   { name: 'phase1Duplicates', files: ['autoslides/src/renderer/shared/postProcessing/phase1Duplicates.ts', 'web/frontend/src/lib/postProcessing/phase1Duplicates.ts'] },
   { name: 'phase2Exclusion', files: ['autoslides/src/renderer/shared/postProcessing/phase2Exclusion.ts', 'web/frontend/src/lib/postProcessing/phase2Exclusion.ts'] },

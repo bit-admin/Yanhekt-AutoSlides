@@ -45,8 +45,15 @@ export function getRelayBase(): string {
   return relay.mode === "direct" && relay.origin ? relay.origin : "";
 }
 
-function relayPlaylistUrl(m3u8Url: string, loginToken: string): string {
-  const query = `/playlist?u=${encodeURIComponent(m3u8Url)}&t=${encodeURIComponent(loginToken)}`;
+/**
+ * `reportSessionId` opts this stream into watch-progress reporting: the relay
+ * carries `sid` into every segment URL it emits, and each segment request then
+ * PUTs the playhead the player appended as `p=`. Omitting it is the off switch
+ * — an older relay simply ignores the param, so nothing breaks either way.
+ */
+function relayPlaylistUrl(m3u8Url: string, loginToken: string, reportSessionId?: string): string {
+  const sid = reportSessionId ? `&sid=${encodeURIComponent(reportSessionId)}` : "";
+  const query = `/playlist?u=${encodeURIComponent(m3u8Url)}&t=${encodeURIComponent(loginToken)}${sid}`;
   const base = getRelayBase();
   return base ? `${base}${query}` : query;
 }
@@ -61,6 +68,7 @@ export function getRecordedPlaybackData(
   session: SessionData,
   loginToken: string,
   audioUrl?: string,
+  reportSessionId?: string,
 ): PlaybackData {
   const streams: Record<string, VideoStream> = {};
 
@@ -69,7 +77,7 @@ export function getRecordedPlaybackData(
     streams.main = {
       type: "camera",
       name: "Camera",
-      url: relayPlaylistUrl(original, loginToken),
+      url: relayPlaylistUrl(original, loginToken, reportSessionId),
       original_url: original,
     };
   }
@@ -79,7 +87,7 @@ export function getRecordedPlaybackData(
     streams.vga = {
       type: "screen",
       name: "Screen",
-      url: relayPlaylistUrl(original, loginToken),
+      url: relayPlaylistUrl(original, loginToken, reportSessionId),
       original_url: original,
     };
   }

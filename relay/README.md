@@ -22,9 +22,11 @@ bindings: Cache API only.
 1. **Gate the request** — `t=` must be 32 hex chars (`/^[0-9a-f]{32}$/i`); `u=`
    must be `http(s)` on `yanhekt.cn` or `*.yanhekt.cn`. Failures 403 **before**
    any cache lookup or upstream fetch, so junk cannot ride the shared VOD cache.
-   `t=` is an access-format gate. It is **not** sent to Yanhekt (no user Bearer
-   on token mint, no `t=` on CDN fetches). It is rewritten into every playlist
-   child URL so later `/segment` hits keep the same check.
+   `t=` is an access-format gate: it is not sent to the CDN and not used to mint
+   the video token. It is rewritten into every playlist child URL so later
+   `/segment` hits keep the same check. The one exception is watch progress
+   (below), which needs it as the Bearer the Yanhekt API requires — and only
+   when the caller opts in with `sid=`.
 2. **Mint one anonymous video token** — `GET https://cbiz.yanhekt.cn/v1/auth/video/token?id=0`
    with Yanhekt client-signature headers and **no** `Authorization`. Cached in
    the Workers Cache API under a single key (`…/token/anon`) for the remaining
@@ -55,6 +57,19 @@ bindings: Cache API only.
 | `GET /playlist?u=<m3u8>&t=<token>` | Fetch + sign the playlist, rewrite child lines back through the proxy. |
 | `GET /segment?u=<url>&t=<token>` | Fetch + sign a segment and stream it (`Range` supported). |
 
+`&sid=<session id>` opts into **watch progress**. `/playlist` carries it into
+every segment line it emits; a `/segment` request that also has `&p=<seconds>`
+then reports that playhead to Yanhekt (`PUT /v1/course/session/user/progress`,
+with `t=` as the Bearer) in the background while the segment streams.
+
+The player supplies `p=`, because the relay cannot work it out: an HLS client
+fetches up to a full buffer ahead of where the viewer actually is, so a
+segment's own media offset would resume the lecture roughly a minute late. The
+point of doing it here at all is that a `fetch` inside a Worker is a
+*subrequest*, which is not billed as a request — a 5-second heartbeat sent from
+the browser would cost ~1000 Worker requests per 90-minute lecture. Malformed
+`sid`/`p`, or either one missing, simply means no report; nothing 400s.
+
 `OPTIONS` → `204`. Other methods → `405`. Other paths → `404`.
 
 `&nocache=1` on either media route skips the shared VOD cache (read and write).
@@ -75,8 +90,10 @@ Errors (all CORS, `text/plain`):
 
 ## Access
 
-**`t=` is not a Yanhekt login.** Any well-formed 32-hex string passes the gate
-and can use the shared anonymous video token plus the shared VOD cache. A
+**`t=` is not checked as a Yanhekt login.** Any well-formed 32-hex string passes
+the gate and can use the shared anonymous video token plus the shared VOD cache.
+(It *is* forwarded verbatim as the Bearer on a watch-progress report, but Yanhekt
+rejecting it there is swallowed and changes nothing about playback.) A
 well-formed but expired, revoked, or invented token still gets cache hits until
 the entry expires or is evicted — cache hits never revalidate upstream. The
 regex only stops malformed junk.
@@ -122,7 +139,7 @@ cd relay
 npm install
 cp wrangler.example.jsonc wrangler.jsonc   # then set your own `routes` custom domain
 npm run typecheck
-npm test                 # t= gate, host allowlist, 403 re-mint, nocache, rewrite
+npm test                 # t= gate, host allowlist, 403 re-mint, nocache, rewrite, progress
 npm run dev              # local: http://localhost:8787
 npm run deploy           # wrangler login first
 ```
@@ -152,7 +169,8 @@ Or open `/`, paste a 32-hex token + `.m3u8` URL, and hit **Test play**.
 - **Recorded videos only.** Live is a different CDN path.
 - **Treat generated URLs as secrets anyway.** They embed `t=`, they work in any
   HLS player, and on a clone without WAF any well-formed `t=` is enough to
-  stream (and to drain the shared cache).
+  stream (and to drain the shared cache). A URL carrying `sid=` additionally
+  lets its holder overwrite that account's saved watch position.
 - **Electron in-app playback is a different proxy** (`/recorded?originalUrl=&loginToken=`
   on localhost). The desktop *can* expose this same `/playlist`+`/segment` API
   on the LAN (`localRelayService`) for phones / a custom web `relayEndpoint`;

@@ -4,6 +4,8 @@
  * this site's Worker proxy (/api/yanhekt/*), which injects the signature
  * headers and forwards to cbiz.yanhekt.cn.
  */
+import { parseUserProgress, progressBucket, resumePositionFor } from "./watchProgress";
+
 
 export interface UserData {
   badge: string;
@@ -443,6 +445,57 @@ export async function getMicAudioUrl(videoId: string, token: string): Promise<st
   } catch (error) {
     console.error("Failed to get mic audio URL:", error);
     return undefined;
+  }
+}
+
+/**
+ * This account's saved watch position for a recorded session, as the second to
+ * seek to — or null for "start at the beginning".
+ *
+ * The Worker keeps the Bearer on this hop deliberately: `user_progress` is the
+ * one field on it that only exists for the account holding the token. Never
+ * throws — an unwatched session, a logged-out account and a network failure are
+ * all the same answer to the only caller that asks.
+ */
+export async function getResumePosition(sessionId: string, token: string): Promise<number | null> {
+  const id = String(sessionId || "").trim();
+  if (!id || !token) return null;
+
+  try {
+    const data = await request<{ user_progress?: unknown }>(
+      `/v1/course/session?session_id=${encodeURIComponent(id)}&with_video=true`,
+      token,
+    );
+    return resumePositionFor(parseUserProgress(data?.user_progress));
+  } catch (error) {
+    console.warn("Failed to read server watch progress:", error);
+    return null;
+  }
+}
+
+/**
+ * Report the playhead directly. This is the *only* billed report the client
+ * makes, and it fires just at the edges — on pause and on close — because that
+ * is when segment fetches, and with them the free relay-side heartbeat, stop.
+ * There is deliberately no wall-clock fallback for browsers that cannot
+ * piggyback. `seconds` is expected on the 5-second grid the official player uses.
+ *
+ * `keepalive` so a report fired from `pagehide` survives the page going away.
+ * Never throws — a dropped heartbeat costs nothing.
+ */
+export async function reportWatchProgress(sessionId: string, seconds: number, token: string): Promise<void> {
+  const id = String(sessionId || "").trim();
+  if (!id || !token || !(seconds > 0)) return;
+
+  try {
+    await fetch(`${PROXY_BASE}/v1/course/session/user/progress`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: id, seconds: progressBucket(seconds) }),
+      keepalive: true,
+    });
+  } catch (error) {
+    console.warn("Failed to report watch progress:", error);
   }
 }
 

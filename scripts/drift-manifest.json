@@ -10,6 +10,8 @@
     "web/frontend/src/lib/sanitizeFileName.ts": "109eab0819d187eaaad4f14cd099881d4149aede960a040ba64b89b36ed0c484",
     "autoslides/src/shared/slideMetadataTypes.ts": "6246f4e7534019c4e927f79e5536ebcd9d4d4ab46d2c453bc1b03879e5a70799",
     "web/frontend/src/lib/slideMetadataTypes.ts": "ea8e5da181c72809c30ade810daa5218034cc258898949de329aba1465a0058f",
+    "autoslides/src/shared/watchProgress.ts": "60997df5c8e4ae69a1679f2b4a77d09d6ad169b6834230fa83b2d6d8ccae9a90",
+    "web/frontend/src/lib/watchProgress.ts": "766a702d58329de12af17fcf4d4192cb43aa4a02facd1ab1f1dd6c51f54823c9",
     "autoslides/src/renderer/shared/processing/changeDetection.ts": "8f3d8acd4b4e9e7e0ce89406e6ac459291c2092457593f7554a87424accce677",
     "web/frontend/src/lib/processing/changeDetection.ts": "1fa1d1ad66eb1cb69e9d86ae1f98cc4274d6f9b988f5a1e317e669ac56ba95ee",
     "autoslides/src/renderer/shared/postProcessing/phase1Duplicates.ts": "853eeae2be232dd69fc68bf7646802e68d51fd2370063e960223c8cc4bcb9b09",

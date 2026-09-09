@@ -799,7 +799,7 @@ Two failure modes when Bearer is missing:
 |---|---|---|
 | `GET /v2/course/list` | Full catalog page | Same |
 | `GET /v1/course?id=` | Full course detail | Same + `user_mapping_type` may change (`0` → `2` on the probe) |
-| `GET /v1/course/session?session_id=` | Full session + nested `course` + historical `live` + `video_ids`. `user_progress: []` | Same public fields. Still **no** `videos[]`. `user_progress` is a **watch-history object** if this account has played the session, else still `[]`. Desktop reads it via `getSessionProgress` (never anonymous) |
+| `GET /v1/course/session?session_id=` | Full session + nested `course` + historical `live` + `video_ids`. `user_progress: []` | Same public fields. Still **no** `videos[]`. `user_progress` is a **watch-history object** if this account has played the session, else still `[]`. Desktop reads it via `getSessionProgress`; the web Worker keeps the Bearer on this hop for the same reason — **never anonymous** |
 | `GET /v1/tag/list?with_sub=true` | Full tag tree | Same |
 | `GET /v2/live/list` (no `user_relationship_type`, or `=0`) | Public catalog | Same |
 | `GET /v2/live/list?keyword=` | Public search | Same |
@@ -1019,7 +1019,7 @@ Desktop reads it through `ApiClient.getSessionProgress` — the same hop as `get
 
 #### `PUT /v1/course/session/user/progress`
 
-Official SPA, while a recorded session is playing. **Auth required.** Not used by AutoSlides; not on the web Worker allowlist.
+Official SPA, while a recorded session is playing. **Auth required.** Used by both AutoSlides clients (opt-in, default off); allowlisted as an exact-match `PUT` on the web Worker.
 
 ```http
 PUT /v1/course/session/user/progress
@@ -1037,6 +1037,8 @@ Xdomain-Client: web_user
 `session_id` is a string; `seconds` is the current playhead (same unit as `progress_current`). The official player posts this as a heartbeat; a later `GET /v1/course/session?session_id=` then shows the object above.
 
 Desktop sends it from `renderer/shared/services/watchProgressService.ts`, shared by the playback page and the Lectures player: a **wall-clock** 5 s interval reporting `floor(currentTime / 5) * 5` whenever that bucket changes and the video is playing, plus one final report on teardown. Wall-clock rather than `timeupdate` because a watch tab may run at 16x, where media time would fire several PUTs a second. Both surfaces are opt-in (`resumeFromServerProgress` / `resumeFromServerProgressLectures`, default off); **task-queue tabs never resume or report** — a batch extraction must cover the lecture from 0.
+
+**Web sends it from the relay instead.** A 5 s interval would cost ~1000 Worker requests per 90-minute lecture — four times what streaming it costs — so the heartbeat rides a request the browser is already making. `getRecordedPlaybackData` adds `&sid=<session id>` to the relay playlist URL; `relay/`'s rewriter carries it into every segment line; and an hls.js `fLoader` appends the live playhead as `&p=<floor(t/5)*5>` to each segment fetch. The relay then PUTs it inside `ctx.waitUntil` — a **subrequest**, which Cloudflare does not bill as a request. The relay cannot derive the position itself: hls.js fetches up to a full 30 s buffer ahead, so a segment's own media offset would resume the lecture roughly a minute late. The only billed reports are at the edges: **on pause** (the play→pause edge, spotted in a purely local 5 s tick so it covers every way a video can stop, in single and dual mode) and **on close** (`stop()` plus a `pagehide` handler). There is deliberately no wall-clock fallback for sessions that cannot piggyback — native HLS, or a relay that ignores `sid` — because that would reintroduce exactly the per-lecture-minute cost the design exists to avoid; those viewers still resume correctly and lose only granularity if the tab is killed mid-play. Native HLS is narrower than "Safari": `Hls.isSupported()` is true wherever `ManagedMediaSource`, `MediaSource` or `WebKitMediaSource` exists, so desktop Safari, iPadOS and iOS 17.1+ all piggyback — it is iPhones before 17.1 and MSE-disabled browsers that do not. Dual streams report from the **master** instance only. This is the one place `relay/` forwards `t=` to Yanhekt, as the Bearer the progress API requires, and it only happens when the caller sends `sid`.
 
 #### `GET /v2/live/list`
 
@@ -1208,8 +1210,8 @@ Desktop parks the live CAS cookie jar in memory for 300s (dies on renderer reloa
 |---|---|---|---|---|---|
 | Course list / detail / tags | `ApiClient` | `/api/yanhekt/…` | proxy; Bearer stripped | anonymous `fetchCourse*` / `fetchSemesters` | — |
 | Session list | `getCourseInfo` (auth) | same | proxy; Bearer kept | — | — |
-| Session by id | unused `getSessionById`; `getSessionProgress` (auth) reads `user_progress` | unused (Worker would strip Bearer) | allowlisted `GET /v1/course/session` | `fetchSession` | — |
-| Watch progress PUT | `reportSessionProgress` (watch + Lectures, opt-in) | — | not allowlisted | — | — |
+| Session by id | unused `getSessionById`; `getSessionProgress` (auth) reads `user_progress` | `getResumePosition` reads `user_progress` | allowlisted; **Bearer kept** (it carries `user_progress`) | `fetchSession` | — |
+| Watch progress PUT | `reportSessionProgress` (watch + Lectures, opt-in) | tail + native-HLS only; the rest rides `/segment` | exact-match `PUT` allowlist | — | piggybacked on `/segment?…&sid=&p=` |
 | Public live / search | anonymous-ok | proxy; stripped | stripped | — | — |
 | Personal live / private courses / subscribe | auth | proxy; kept | kept | — | — |
 | `/v1/user` | `verifyToken` | proxy | kept | `verifyUser` on publish | — |

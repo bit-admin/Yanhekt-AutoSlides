@@ -42,7 +42,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     "/v1/note/group/list",
   ],
   POST: ["/v1/note", "/v1/note/group", "/v1/minio/upload", "/v1/course/subscription"],
-  PUT: ["/v1/note", "/v1/note/content"],
+  PUT: ["/v1/note", "/v1/note/content", "/v1/course/session/user/progress"],
   DELETE: ["/v1/note", "/v1/note/group", "/v1/course/subscription"],
 };
 
@@ -76,6 +76,13 @@ function parseLoginToken(authHeader: string | undefined): string | null {
  *                  (/v1/video), getVideoToken
  *   never        : session list, personal live/course, subscriptions,
  *                  /v1/user, logout, notes, MinIO
+ *
+ * `/v1/course/session` is the exception that proves the rule: its public fields
+ * are anonymous-ok, but `user_progress` — this account's saved playhead, which
+ * the resume feature reads — only exists for the holder of the Bearer. Electron
+ * documents the same hop as never-anonymous for exactly this reason
+ * (apiClient.getSessionProgress). Stripping the token here would silently turn
+ * every resume into "no history".
  * yanhektProxy.test.ts asserts this table.
  */
 function isAnonymousUpstream(method: string, path: string, search: URLSearchParams): boolean {
@@ -83,7 +90,6 @@ function isAnonymousUpstream(method: string, path: string, search: URLSearchPara
   if (path === "/v1/tag/list" || path.startsWith("/v1/tag/list/")) return true;
   if (path === "/v2/course/list" || path.startsWith("/v2/course/list/")) return true;
   if (path === "/v1/course") return true;
-  if (path === "/v1/course/session") return true;
   if (path === "/v1/video") return true;
   if (path === "/v2/live/list" || path.startsWith("/v2/live/list/")) {
     return search.get("user_relationship_type") !== "1";

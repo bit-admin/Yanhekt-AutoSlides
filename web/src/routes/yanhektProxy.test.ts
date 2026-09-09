@@ -111,6 +111,45 @@ describe("/api/yanhekt proxy", () => {
     expect(upstreamCall(2).headers["Content-Type"]).toBe("application/json");
   });
 
+  it("keeps the Bearer on session detail, the hop that carries user_progress", async () => {
+    await app.request(
+      "/api/yanhekt/v1/course/session?session_id=831116&with_video=true",
+      { headers: { Authorization: `Bearer ${TOKEN}` } },
+      env(),
+    );
+    const call = upstreamCall();
+    expect(call.url).toBe("https://cbiz.yanhekt.cn/v1/course/session?session_id=831116&with_video=true");
+    // Anonymous here would silently mean "never watched" for every account.
+    expect(call.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("forwards the watch-progress heartbeat", async () => {
+    const res = await app.request(
+      "/api/yanhekt/v1/course/session/user/progress",
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: "831116", seconds: 3105 }),
+      },
+      env(),
+    );
+    expect(res.status).toBe(200);
+    const call = upstreamCall();
+    expect(call.url).toBe("https://cbiz.yanhekt.cn/v1/course/session/user/progress");
+    expect(call.method).toBe("PUT");
+    expect(call.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
+  it("does not widen the progress write allowance to its subpaths", async () => {
+    const res = await app.request(
+      "/api/yanhekt/v1/course/session/user/progress/831116",
+      { method: "PUT", headers: { Authorization: `Bearer ${TOKEN}` } },
+      env(),
+    );
+    expect(res.status).toBe(404);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("does not widen a GET prefix allowance into a write", async () => {
     const res = await app.request(
       "/api/yanhekt/v1/course/123",
