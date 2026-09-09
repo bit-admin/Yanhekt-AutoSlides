@@ -6,6 +6,7 @@
 import { formatLectureDisplayName, parseLectureIds } from '@common/lectureNaming'
 import {
   episodeIndexForSession,
+  isLectureAudioExt,
   formatEpisodeToken,
   formatSemesterToken,
   type LectureCompressPresetTag,
@@ -34,6 +35,12 @@ export interface LibrarySession {
   startedAt?: string | null
   screen?: LibraryFileRef
   camera?: LibraryFileRef
+  /**
+   * Local classroom mic stem (`.aac`). NOT a video: it never sources a poster,
+   * never backs a `<video>` and never influences the stream mode — it only
+   * supplies an alternative audio track for whatever video is playing.
+   */
+  audio?: LibraryFileRef
   videoId?: string
   duration?: number
   /** Yanhekt camera (main) HLS URL — used when the camera file is not on disk. */
@@ -70,6 +77,8 @@ export interface LibraryCourse {
   fileCount: number
   /** Sessions that have both screen and camera. */
   dualCount: number
+  /** Sessions with a local mic `.aac` on disk. */
+  micCount: number
 }
 
 export type LocalStreamMode = 'dual' | 'screen' | 'camera'
@@ -227,6 +236,7 @@ export function buildLibraryCourses(
     sessionId: string
     screen?: LibraryFileRef
     camera?: LibraryFileRef
+    audio?: LibraryFileRef
     fallbackTitle: string
     slideFolderPath?: string
   }
@@ -261,10 +271,17 @@ export function buildLibraryCourses(
     const session = ensureSession(course, sessionId, sessionLabelFromItem(item))
 
     const type = item.videoType
-    if (type === 'screen' || type === 'camera') {
+    if (type === 'screen' || type === 'camera' || type === 'audio') {
       const ref = toFileRef(item, type)
       const existing = session[type]
       session[type] = existing ? pickBetter(existing, ref) : ref
+    } else if (isLectureAudioExt(item.ext)) {
+      // Untyped but audio by extension. Must be caught BEFORE the screen
+      // fallback below: filed as `screen` it would set a `<video>.src` to an
+      // .aac ("failed to decode") and spawn ffmpeg for a poster that cannot
+      // exist — and via pickBetter it could shadow the real screen recording.
+      const ref = toFileRef(item, 'audio')
+      session.audio = session.audio ? pickBetter(session.audio, ref) : ref
     } else if (!session.screen && !session.camera) {
       // Recognised but missing type — treat as screen so it remains playable.
       session.screen = toFileRef(item, 'screen')
@@ -291,7 +308,7 @@ export function buildLibraryCourses(
     const sessions: LibrarySession[] = []
 
     for (const sess of bucket.sessions.values()) {
-      if (!sess.screen && !sess.camera && !sess.slideFolderPath) continue
+      if (!sess.screen && !sess.camera && !sess.audio && !sess.slideFolderPath) continue
 
       const metaSession = meta?.sessions.find((s) => String(s.session_id) === String(sess.sessionId))
       const episode = meta
@@ -307,6 +324,7 @@ export function buildLibraryCourses(
         startedAt: metaSession?.started_at,
         screen: sess.screen,
         camera: sess.camera,
+        audio: sess.audio,
         videoId: metaSession?.video_id,
         duration: metaSession?.duration,
         mainUrl: metaSession?.mainUrl,
@@ -336,9 +354,16 @@ export function buildLibraryCourses(
 
     let fileCount = 0
     let dualCount = 0
+    let micCount = 0
     for (const s of sessions) {
       if (s.screen) fileCount += 1
       if (s.camera) fileCount += 1
+      // Mic stems are files on disk, so they count toward FILES. "Dual" stays
+      // strictly about having both video angles — audio is not a third angle.
+      if (s.audio) {
+        fileCount += 1
+        micCount += 1
+      }
       if (s.screen && s.camera) dualCount += 1
     }
 
@@ -355,6 +380,7 @@ export function buildLibraryCourses(
       episodeCount: sessions.length,
       fileCount,
       dualCount,
+      micCount,
     })
   }
 
@@ -427,5 +453,5 @@ export function formatSessionDate(
 
 /** Total bytes of screen+camera files on a session. */
 export function sessionTotalBytes(session: LibrarySession): number {
-  return (session.screen?.size || 0) + (session.camera?.size || 0)
+  return (session.screen?.size || 0) + (session.camera?.size || 0) + (session.audio?.size || 0)
 }

@@ -10,6 +10,7 @@ import {
   isCameraOnline,
   isScreenOnline,
   sessionHasDual,
+  sessionTotalBytes,
   sessionHasLocalVideo,
   slideSeedFromFolder,
   type LibraryFileRef,
@@ -23,6 +24,9 @@ function item(partial: Partial<LectureVideoItem> & Pick<LectureVideoItem, 'name'
   return {
     size: 1,
     mtimeMs: 1,
+    // Derived rather than defaulted, so a fixture named *.aac behaves like the
+    // real scan does — the extension is load-bearing for untyped files.
+    ext: partial.name.includes('.') ? partial.name.slice(partial.name.lastIndexOf('.')).toLowerCase() : '',
     displayName: partial.displayName || partial.name,
     recognised: true,
     hasEmbyTags: true,
@@ -305,5 +309,98 @@ describe('hybridOnlineKind', () => {
     expect(isCameraOnline(session)).toBe(true)
     expect(sessionHasLocalVideo(session)).toBe(false)
     expect(defaultStreamMode(session)).toBe('dual')
+  })
+})
+
+// Yanhekt's classroom mic stem. The recurring hazard is that an .aac gets
+// filed as a video: it would then set a <video>.src (undecodable), source a
+// poster that cannot exist, and via pickBetter shadow the real recording.
+describe('mic audio (.aac)', () => {
+  const screenFile = () =>
+    item({
+      name: 'a [yhid=c1s2] [vtype=screen].mp4',
+      path: '/out/a-scr.mp4',
+      courseId: '1',
+      sessionId: '2',
+      videoType: 'screen',
+      mtimeMs: 10,
+      size: 100,
+    })
+
+  it('files a tagged .aac as audio, not as a video', () => {
+    const courses = buildLibraryCourses([
+      screenFile(),
+      item({
+        name: 'a [yhid=c1s2] [vtype=audio].aac',
+        path: '/out/a-mic.aac',
+        courseId: '1',
+        sessionId: '2',
+        videoType: 'audio',
+        mtimeMs: 99,
+        size: 5,
+      }),
+    ])
+
+    const session = courses[0].sessions[0]
+    expect(session.audio?.path).toBe('/out/a-mic.aac')
+    expect(session.screen?.path).toBe('/out/a-scr.mp4')
+    expect(session.camera).toBeUndefined()
+    // A newer mtime must NOT let the mic stem win the screen slot.
+    expect(session.posterSourcePath).toBe('/out/a-scr.mp4')
+  })
+
+  it('files an untyped .aac as audio via its extension', () => {
+    // No [vtype=] and no legacy prefix — only the extension says it is audio.
+    const courses = buildLibraryCourses([
+      item({
+        name: 'a [yhid=c1s2].aac',
+        path: '/out/bare.aac',
+        courseId: '1',
+        sessionId: '2',
+        mtimeMs: 5,
+      }),
+    ])
+
+    const session = courses[0].sessions[0]
+    expect(session.audio?.path).toBe('/out/bare.aac')
+    expect(session.screen).toBeUndefined()
+  })
+
+  it('keeps an audio-only session and leaves it without a poster', () => {
+    const courses = buildLibraryCourses([
+      item({
+        name: 'audio_lecture__c1s2.aac',
+        path: '/out/only.aac',
+        courseId: '1',
+        sessionId: '2',
+        videoType: 'audio',
+      }),
+    ])
+
+    expect(courses).toHaveLength(1)
+    const session = courses[0].sessions[0]
+    expect(session.audio?.path).toBe('/out/only.aac')
+    // Nothing local can be decoded to a frame; the video plays online instead.
+    expect(session.posterSourcePath).toBeUndefined()
+    expect(sessionHasLocalVideo(session)).toBe(false)
+  })
+
+  it('counts mic files in FILES but never in Dual', () => {
+    const courses = buildLibraryCourses([
+      screenFile(),
+      item({
+        name: 'a [yhid=c1s2] [vtype=audio].aac',
+        path: '/out/a-mic.aac',
+        courseId: '1',
+        sessionId: '2',
+        videoType: 'audio',
+        size: 5,
+      }),
+    ])
+
+    expect(courses[0].fileCount).toBe(2)
+    expect(courses[0].micCount).toBe(1)
+    expect(courses[0].dualCount).toBe(0)
+    expect(sessionTotalBytes(courses[0].sessions[0])).toBe(105)
   })
 })

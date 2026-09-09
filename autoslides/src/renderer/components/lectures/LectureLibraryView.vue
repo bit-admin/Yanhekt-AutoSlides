@@ -113,6 +113,9 @@
               <span v-if="activeCourse.dualCount > 0" class="chip chip--accent">
                 {{ $t('lectures.libraryDual') }} · {{ activeCourse.dualCount }}
               </span>
+              <span v-if="activeCourse.micCount > 0" class="chip chip--count">
+                {{ $t('lectures.libraryMicAudio') }} · {{ activeCourse.micCount }}
+              </span>
               <span v-if="activeCourse.college" class="chip">{{ activeCourse.college }}</span>
             </div>
 
@@ -216,6 +219,9 @@
                   <span v-else-if="session.camera" class="ep-badge">{{ $t('lectures.camera') }}</span>
                   <span v-if="!session.screen && !session.camera" class="ep-badge ep-badge--online">
                     {{ $t('lectures.streamOnline') }}
+                  </span>
+                  <span v-if="session.audio" class="ep-badge" :title="$t('lectures.micAudioHint')">
+                    {{ $t('lectures.micAudio') }}
                   </span>
                   <span
                     v-if="session.screen?.compressPreset"

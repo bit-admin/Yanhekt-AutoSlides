@@ -4,17 +4,21 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { fromAsmediaUrl } from '@common/asmediaUrl';
 import { parseHttpRange } from '@common/httpRange';
+import { LECTURE_MEDIA_EXTENSIONS } from '@common/lectureVideoNaming';
 import { expandTilde, hasTraversalSegment, isPathInsideRoot } from '@main/infra/pathUtils';
 import type { ConfigService } from '@main/platform/configService';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('AsmediaProtocol');
 
-const VIDEO_EXTENSIONS = new Set(['.mp4', '.mkv']);
+const MEDIA_EXTENSIONS = LECTURE_MEDIA_EXTENSIONS;
 
 const MIME_BY_EXT: Record<string, string> = {
   '.mp4': 'video/mp4',
   '.mkv': 'video/x-matroska',
+  // Yanhekt serves the mic stem as application/octet-stream; naming it here
+  // saves the renderer relying on Chromium's content sniffing.
+  '.aac': 'audio/aac',
 };
 
 /**
@@ -177,7 +181,7 @@ export function installAsmediaProtocol(configService: ConfigService): void {
 
       const resolved = path.resolve(filePath);
       const ext = path.extname(resolved).toLowerCase();
-      if (!VIDEO_EXTENSIONS.has(ext)) {
+      if (!MEDIA_EXTENSIONS.has(ext)) {
         return new Response('Unsupported media type', { status: 415 });
       }
 

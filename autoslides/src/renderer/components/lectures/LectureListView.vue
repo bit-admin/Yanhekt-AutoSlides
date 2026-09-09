@@ -84,6 +84,11 @@
             <line x1="8" y1="21" x2="16" y2="21"/>
             <line x1="12" y1="17" x2="12" y2="21"/>
           </svg>
+          <svg v-else-if="item.videoType === 'audio'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="2" width="6" height="11" rx="3"/>
+            <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+            <line x1="12" y1="18" x2="12" y2="22"/>
+          </svg>
           <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="3" y="5" width="18" height="14" rx="2"/>
             <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/>
@@ -98,7 +103,7 @@
                 v-if="item.videoType"
                 class="meta-badge"
                 :class="'meta-badge--' + item.videoType"
-              >{{ item.videoType === 'screen' ? $t('lectures.screen') : $t('lectures.camera') }}</span>
+              >{{ videoTypeLabel(item.videoType) }}</span>
               <span
                 v-if="item.compressPreset"
                 class="meta-badge meta-badge--compressed"
@@ -141,7 +146,9 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { LectureCourseGroup } from '@features/lectures/useLecturesPage'
+import type { LectureVideoType } from '@common/lectureVideoNaming'
 import EmptySetState from '../shell/EmptySetState.vue'
 
 const props = defineProps<{
@@ -160,6 +167,17 @@ const emit = defineEmits<{
   (e: 'select-group', paths: string[]): void
   (e: 'open', path: string): void
 }>()
+
+const { t } = useI18n()
+
+// Exhaustive rather than a screen/else ternary: a mic .aac would otherwise be
+// labelled "Camera".
+const videoTypeLabel = (type?: LectureVideoType): string => {
+  if (type === 'screen') return t('lectures.screen')
+  if (type === 'camera') return t('lectures.camera')
+  if (type === 'audio') return t('lectures.micAudio')
+  return ''
+}
 
 const isGroupingActive = (group: LectureCourseGroup) =>
   props.groupByCourse && !!group.courseName && group.courseKey !== 'unrecognised'
@@ -409,7 +427,8 @@ const isGroupPartiallySelected = (group: LectureCourseGroup) => {
 }
 
 .meta-badge--screen,
-.meta-badge--camera {
+.meta-badge--camera,
+.meta-badge--audio {
   border-color: var(--border-color);
   color: var(--text-secondary);
   background: var(--bg-selected);

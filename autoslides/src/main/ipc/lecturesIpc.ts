@@ -2,12 +2,15 @@ import { ipcMain, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { expandTilde, hasTraversalSegment, isPathInsideRoot } from '@main/infra/pathUtils';
+import { LECTURE_MEDIA_EXTENSIONS } from '@common/lectureVideoNaming';
 import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('LecturesIpc');
 
-const VIDEO_EXTENSIONS = new Set(['.mp4', '.mkv']);
+// Shared with asmediaProtocol and the renderer's bucketing so a format can
+// never be scannable but unplayable (or vice versa). Includes the mic .aac.
+const MEDIA_EXTENSIONS = LECTURE_MEDIA_EXTENSIONS;
 
 function assertNoTraversal(targetPath: string): void {
   if (hasTraversalSegment(targetPath)) {
@@ -34,7 +37,7 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
       for (const entry of entries) {
         if (!entry.isFile()) continue;
         const ext = path.extname(entry.name).toLowerCase();
-        if (!VIDEO_EXTENSIONS.has(ext)) continue;
+        if (!MEDIA_EXTENSIONS.has(ext)) continue;
         // Skip in-progress compress temps
         if (entry.name.includes('.compressing.tmp')) continue;
 

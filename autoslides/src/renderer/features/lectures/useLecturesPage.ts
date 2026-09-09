@@ -17,6 +17,9 @@ export interface LectureVideoItem {
   path: string
   size: number
   mtimeMs: number
+  /** Lowercased extension incl. the dot. Distinguishes a mic `.aac` from a video
+   *  when the filename carries no type tag — see buildLibraryCourses. */
+  ext: string
   displayName: string
   courseId?: string
   sessionId?: string
@@ -83,6 +86,7 @@ export function useLecturesPage() {
           path: row.path,
           size: row.size,
           mtimeMs: row.mtimeMs,
+          ext: parsed.ext,
           displayName: formatLectureVideoDisplayName(row.name),
           courseId: parsed.courseId,
           sessionId: parsed.sessionId,
