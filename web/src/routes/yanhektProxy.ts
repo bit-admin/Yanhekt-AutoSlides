@@ -36,6 +36,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     "/v1/course",
     "/v2/course/session/list",
     "/v1/tag/list",
+    "/v1/video",
     "/v1/note",
     "/v1/note/list",
     "/v1/note/group/list",
@@ -71,7 +72,8 @@ function parseLoginToken(authHeader: string | undefined): string | null {
  *   anonymous-ok : getCourseList (/v2/course/list), getCourseInfo first hop
  *                  (/v1/course), public getLiveList / searchLiveList
  *                  (/v2/live/list, user_relationship_type !== 1),
- *                  getTagList (/v1/tag/list, always), getVideoToken
+ *                  getTagList (/v1/tag/list, always), getVideoAssets
+ *                  (/v1/video), getVideoToken
  *   never        : session list, personal live/course, subscriptions,
  *                  /v1/user, logout, notes, MinIO
  * yanhektProxy.test.ts asserts this table.
@@ -82,6 +84,7 @@ function isAnonymousUpstream(method: string, path: string, search: URLSearchPara
   if (path === "/v2/course/list" || path.startsWith("/v2/course/list/")) return true;
   if (path === "/v1/course") return true;
   if (path === "/v1/course/session") return true;
+  if (path === "/v1/video") return true;
   if (path === "/v2/live/list" || path.startsWith("/v2/live/list/")) {
     return search.get("user_relationship_type") !== "1";
   }

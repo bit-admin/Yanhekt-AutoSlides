@@ -315,14 +315,20 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
   }
 
-  const singleSyncLoop = createMediaSyncLoop(() => {
+  const syncSingleMic = () => {
     const video = videoPlayer.value
     const micAudio = micAudioPlayer.value
-    if (!video || !micAudio || video.readyState < 2) return
+    if (!video || !micAudio) return
+    if (video.readyState < 2) {
+      if (!micAudio.paused) micAudio.pause()
+      return
+    }
     micAudio.playbackRate = video.playbackRate
     syncFollower(video, micAudio)
     applySingleAudioState()
-  })
+  }
+
+  const singleSyncLoop = createMediaSyncLoop(syncSingleMic)
 
   const attachSingleMicAudio = (seekToTime?: number) => {
     const micAudio = micAudioPlayer.value
@@ -338,6 +344,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
     applySingleAudioState()
     singleSyncLoop.start()
+    syncSingleMic()
   }
 
   const detachSingleMicAudio = () => {
@@ -353,9 +360,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     singleAudioSource.value = source
     if (source === 'mic') {
       attachSingleMicAudio(videoPlayer.value?.currentTime)
-      if (videoPlayer.value && !videoPlayer.value.paused) {
-        micAudioPlayer.value?.play().catch(() => { /* Ignore mic play error */ })
-      }
     } else {
       detachSingleMicAudio()
     }
@@ -511,6 +515,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.on(Events.MANIFEST_PARSED, () => {
           setTimeout(opts.onManifestParsed, 100)
         })
+
+        if (singleAudioSource.value === 'mic') {
+          attachSingleMicAudio(videoPlayer.value?.currentTime)
+        }
 
         const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError })
 
@@ -682,17 +690,16 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, currentPlaybackRate.value, slideExtractorInstance.value)
         isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
 
-        if (wasPlaying) {
-          try {
-            await videoPlayer.value.play()
-          } catch (err) {
+        if (singleAudioSource.value === 'mic') {
+          attachSingleMicAudio(currentTime)
+        }
+
+        try {
+          await videoPlayer.value.play()
+          syncSingleMic()
+        } catch (err) {
+          if (wasPlaying) {
             log.warn('Could not resume playback:', err)
-          }
-        } else {
-          try {
-            await videoPlayer.value.play()
-          } catch {
-            // Ignore play errors - can occur during stream switching
           }
         }
       }
@@ -715,6 +722,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       if (screenVideoPlayer.value) {
         screenVideoPlayer.value.playbackRate = mode === 'recorded' ? playbackRateNumber : 1
       }
+      if (micAudioPlayer.value) {
+        micAudioPlayer.value.playbackRate = mode === 'recorded' ? playbackRateNumber : 1
+      }
       if (mode !== 'recorded') {
         currentPlaybackRate.value = 1
       }
@@ -724,6 +734,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     if (videoPlayer.value) {
       const playbackRateNumber = Number(currentPlaybackRate.value)
       videoPlayer.value.playbackRate = playbackRateNumber
+      if (micAudioPlayer.value) {
+        micAudioPlayer.value.playbackRate = playbackRateNumber
+      }
 
       if (slideExtractorInstance.value) {
         slideExtractorInstance.value.setPlaybackRate(playbackRateNumber)
@@ -841,6 +854,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   }
 
   const onCanPlay = () => {
+    syncSingleMic()
     if (isRetrying.value) {
       setTimeout(() => {
         isRetrying.value = false

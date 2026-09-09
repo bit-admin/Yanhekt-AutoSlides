@@ -49,6 +49,20 @@
 
           <div v-else-if="playbackData" class="video-content">
             <div class="player-panel">
+              <!--
+                Classroom mic track. One element for BOTH modes, deliberately
+                outside the single/dual v-if so it survives a mode switch — a
+                remount would drop the ref, restart the ~100MB fetch and lose
+                the play position. Rendered only when this lecture actually
+                has a mic track.
+              -->
+              <audio
+                v-if="hasMicAudio"
+                ref="micAudioPlayer"
+                preload="auto"
+                class="mic-audio-track"
+              ></audio>
+
               <!-- Single-stream player -->
               <div
                 v-if="!isDualStreamSelected"
@@ -116,7 +130,12 @@
                   :active-chapter-id="shareOverlay.activeChapterId.value"
                   :strip-open="chaptersOpen"
                   :strip-inline="!chaptersAsSheet"
+                  :has-mic-audio="hasMicAudio"
+                  :show-audio-panel="showDualAudioPanel"
+                  :audio-source="singleAudioSource"
                   @toggle-playback="toggleSinglePlayback"
+                  @toggle-audio-panel="toggleDualAudioPanel"
+                  @set-audio-source="setSingleAudio"
                   @seek-input="onSingleSeekInput"
                   @seek-chapter="seekToChapter"
                   @toggle-strip="toggleChapters"
@@ -313,6 +332,22 @@
                               <rect v-if="dualAudioSource !== 'camera'" x="1" y="5" width="15" height="14" rx="2"/>
                             </svg>
                             <span>{{ $t('playback.dual.cameraAudio') }}</span>
+                          </button>
+                          <button
+                            v-if="hasMicAudio"
+                            class="dual-popover-option"
+                            :class="{ active: dualAudioSource === 'mic' }"
+                            @click="setDualAudio('mic')"
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <polyline v-if="dualAudioSource === 'mic'" points="20,6 9,17 4,12"/>
+                              <template v-else>
+                                <rect x="9" y="2" width="6" height="11" rx="3"/>
+                                <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                                <line x1="12" y1="18" x2="12" y2="22"/>
+                              </template>
+                            </svg>
+                            <span>{{ $t('playback.dual.micAudio') }}</span>
                           </button>
                         </div>
                       </div>
@@ -861,6 +896,7 @@ const videoPlayerComposable = useVideoPlayer({
 const videoPlayer = videoPlayerComposable.videoPlayer
 const cameraVideoPlayer = videoPlayerComposable.cameraVideoPlayer
 const screenVideoPlayer = videoPlayerComposable.screenVideoPlayer
+const micAudioPlayer = videoPlayerComposable.micAudioPlayer
 void cameraVideoPlayer
 void screenVideoPlayer
 
@@ -884,6 +920,8 @@ const {
   dualCurrentTime,
   dualDuration,
   dualCanSeek,
+  hasMicAudio,
+  singleAudioSource,
 } = videoPlayerComposable
 
 // Relay failure details, shown when the player classifies an error as the
@@ -915,6 +953,8 @@ const {
   setDualAudioSource,
   setDualVolume,
   applyDualAudioState,
+  setSingleAudioSource,
+  applySingleAudioState,
   onDualTimeUpdate: applyDualTimeUpdate,
   onDualPlayStateChanged,
   onDualEnded,
@@ -1308,15 +1348,30 @@ const toggleSinglePlayback = () => {
   if (!video) return
   if (video.paused) {
     video.play().catch(() => {})
+    const micAudio = micAudioPlayer.value
+    if (
+      singleAudioSource.value === 'mic' &&
+      !isVideoLoading.value &&
+      video.readyState >= 2 &&
+      micAudio
+    ) {
+      try { micAudio.currentTime = video.currentTime } catch { /* Ignore */ }
+      micAudio.play().catch(() => {})
+    }
   } else {
     video.pause()
+    micAudioPlayer.value?.pause()
   }
 }
 
 const seekSingle = (time: number) => {
   const video = videoPlayer.value
   if (!video || !Number.isFinite(video.duration)) return
-  video.currentTime = Math.min(Math.max(time, 0), video.duration)
+  const bounded = Math.min(Math.max(time, 0), video.duration)
+  video.currentTime = bounded
+  if (singleAudioSource.value === 'mic' && micAudioPlayer.value) {
+    micAudioPlayer.value.currentTime = bounded
+  }
 }
 
 const seekToChapter = (time: number) => {
@@ -1355,10 +1410,15 @@ const applySingleVolume = (value: number) => {
   const clamped = Math.min(1, Math.max(0, value))
   singleVolume.value = clamped
   if (clamped > 0) lastNonZeroVolume.value = clamped
-  const video = videoPlayer.value
-  if (video && !shouldVideoMute.value) {
-    video.volume = clamped
-  }
+  // Routing between the video's own track and the mic element belongs to the
+  // player composable; this only owns the slider's value.
+  applySingleAudioState(clamped)
+}
+
+const setSingleAudio = (source: 'video' | 'mic') => {
+  setSingleAudioSource(source)
+  applySingleAudioState(singleVolume.value)
+  showDualAudioPanel.value = false
 }
 
 const toggleSingleMute = () => {
@@ -1472,10 +1532,9 @@ watch(
 
       singleDuration.value = Number.isFinite(newPlayer.duration) ? newPlayer.duration : 0
       singleCurrentTime.value = newPlayer.currentTime || 0
-      if (!shouldVideoMute.value) {
-        singleVolume.value = newPlayer.volume
-        if (newPlayer.volume > 0) lastNonZeroVolume.value = newPlayer.volume
-      }
+      // Slider is the source of truth — do not read video.volume back, or a
+      // mic-selected `volume = 0` on the video would zero the slider.
+      applySingleAudioState(singleVolume.value)
 
       const onBufferWaiting = () => {
         if (slideExtraction.isSlideExtractionEnabled.value) {
@@ -1614,6 +1673,10 @@ onUnmounted(async () => {
 </script>
 
 <style scoped>
+.mic-audio-track {
+  display: none;
+}
+
 .playback-page {
   display: flex;
   flex-direction: column;

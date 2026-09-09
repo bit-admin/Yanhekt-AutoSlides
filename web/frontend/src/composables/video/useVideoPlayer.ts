@@ -6,13 +6,14 @@ import {
   createSingleStreamHlsErrorHandler,
 } from "./useVideoErrorRecovery";
 import { useDualStreamPlayer } from "./useDualStreamPlayer";
+import { createMediaSyncLoop, syncFollower } from "./mediaSync";
 import { authStore } from "../../stores/authStore";
 import { getRecordedPlaybackData, getLivePlaybackData, getRelayBase, type PlaybackData } from "../../lib/streamUrls";
 import { ensureRuntimeConfig, runtimeConfigStore } from "../../stores/runtimeConfigStore";
 import { probeRelayReach } from "../../lib/relayDiagnostics";
 import { demoHooks } from "../../lib/demoRegistry";
 import type { Course } from "../useCourseList";
-import type { SessionData } from "../../lib/api";
+import { getMicAudioUrl, type SessionData } from "../../lib/api";
 
 // Trimmed port of the desktop app's features/video/useVideoPlayer.ts: the
 // Electron proxy client, config store, mute policy, and slide-extraction
@@ -20,7 +21,7 @@ import type { SessionData } from "../../lib/api";
 // recorded, raw m3u8 for live) and a native-HLS fallback covers Safari/iOS.
 
 export const DUAL_STREAM_KEY = "__dual__";
-export type DualAudioSource = "screen" | "camera";
+export type DualAudioSource = "screen" | "camera" | "mic";
 
 export type { VideoStream, PlaybackData } from "../../lib/streamUrls";
 
@@ -51,6 +52,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const videoPlayer = ref<HTMLVideoElement | null>(null);
   const cameraVideoPlayer = ref<HTMLVideoElement | null>(null);
   const screenVideoPlayer = ref<HTMLVideoElement | null>(null);
+  const micAudioPlayer = ref<HTMLAudioElement | null>(null);
   const hls = shallowRef<Hls | null>(null);
   const currentPlaybackRate = ref(1);
   const isVideoMuted = ref(false);
@@ -90,6 +92,14 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     if (!playbackData.value) return null;
     return Object.values(playbackData.value.streams).find((stream) => stream.type === "screen") || null;
   });
+
+  /**
+   * Classroom mic track for this lecture, or null when it has none.
+   * Read off a sibling field rather than `streams` on purpose — `streams` is
+   * the list of video feeds.
+   */
+  const micAudioUrl = computed(() => playbackData.value?.audioUrl || null);
+  const hasMicAudio = computed(() => Boolean(micAudioUrl.value));
 
   const hasDualStreams = computed(() => {
     return Boolean(cameraStreamData.value && screenStreamData.value);
@@ -199,6 +209,91 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     // task queue, so errors surface only through the `error` ref.
   };
 
+  // ── Single-stream mic audio ────────────────────────────────────────────────
+  // Dual mode routes audio inside useDualStreamPlayer; single mode has no such
+  // subsystem (and, before the mic track, no sync loop at all), so it lives here.
+
+  /** In single-stream mode the choice is between the stream's own audio and the mic. */
+  const singleAudioSource = ref<"video" | "mic">("video");
+  /** Last volume applied by the UI slider, so routing changes can re-apply it. */
+  const singleVolumeLevel = ref(1);
+
+  /**
+   * Route the audible track in single-stream mode. Uses the same
+   * `muted = false` + `volume = 0` convention as everywhere else in the player.
+   */
+  const applySingleAudioState = (volume?: number) => {
+    if (volume !== undefined) {
+      singleVolumeLevel.value = Math.min(1, Math.max(0, volume));
+    }
+    const level = shouldVideoMute.value ? 0 : singleVolumeLevel.value;
+    const video = videoPlayer.value;
+    const micAudio = micAudioPlayer.value;
+    const useMic = singleAudioSource.value === "mic" && hasMicAudio.value;
+
+    if (video) {
+      video.volume = useMic ? 0 : level;
+      video.muted = false;
+    }
+    if (micAudio) {
+      micAudio.volume = useMic ? level : 0;
+      micAudio.muted = false;
+    }
+  };
+
+  const syncSingleMic = () => {
+    const video = videoPlayer.value;
+    const micAudio = micAudioPlayer.value;
+    if (!video || !micAudio) return;
+    // Match the warming overlay: isVideoLoading is cleared on canplay, which
+    // is slightly later than readyState >= 2.
+    if (isVideoLoading.value) {
+      if (!micAudio.paused) micAudio.pause();
+      return;
+    }
+    micAudio.playbackRate = video.playbackRate;
+    syncFollower(video, micAudio);
+    applySingleAudioState();
+  };
+
+  const singleSyncLoop = createMediaSyncLoop(syncSingleMic);
+
+  const attachSingleMicAudio = (seekToTime?: number) => {
+    const micAudio = micAudioPlayer.value;
+    const url = micAudioUrl.value;
+    if (!micAudio || !url || singleAudioSource.value !== "mic") return;
+
+    if (micAudio.src !== url) {
+      micAudio.src = url;
+      micAudio.preload = "auto";
+    }
+    if (seekToTime !== undefined && Number.isFinite(seekToTime)) {
+      micAudio.currentTime = seekToTime;
+    }
+    applySingleAudioState();
+    singleSyncLoop.start();
+    syncSingleMic();
+  };
+
+  const detachSingleMicAudio = () => {
+    singleSyncLoop.stop();
+    const micAudio = micAudioPlayer.value;
+    if (!micAudio) return;
+    micAudio.pause();
+    micAudio.removeAttribute("src");
+    micAudio.load();
+  };
+
+  const setSingleAudioSource = (source: "video" | "mic") => {
+    singleAudioSource.value = source;
+    if (source === "mic") {
+      attachSingleMicAudio(videoPlayer.value?.currentTime);
+    } else {
+      detachSingleMicAudio();
+    }
+    applySingleAudioState();
+  };
+
   const cleanupSingleVideoSource = () => {
     if (hls.value) {
       hls.value.destroy();
@@ -209,6 +304,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       videoPlayer.value.load();
       usingNativeHls = false;
     }
+    detachSingleMicAudio();
   };
 
   const onEnded = async () => {
@@ -221,6 +317,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     mode,
     cameraVideoPlayer,
     screenVideoPlayer,
+    micAudioPlayer,
+    micAudioUrl,
     currentPlaybackRate,
     shouldVideoMute,
     isVideoMuted,
@@ -258,7 +356,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       if (mode === "live" && course.value) {
         result = getLivePlaybackData(course.value);
       } else if (mode === "recorded" && session.value) {
-        result = getRecordedPlaybackData(session.value, token);
+        // The mic URL is not on the session — only GET /v1/video carries it.
+        // Memoised, so re-opening the same lecture costs nothing. Live has no
+        // mic track at all. A failed resolve must not fail video playback.
+        const resolvedMicUrl = await getMicAudioUrl(String(session.value.video_id), token);
+        result = getRecordedPlaybackData(session.value, token, resolvedMicUrl);
       } else {
         throw new Error("Invalid playback parameters");
       }
@@ -414,6 +516,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         );
       } else {
         throw new Error("HLS is not supported in this browser");
+      }
+
+      if (singleAudioSource.value === "mic") {
+        attachSingleMicAudio(videoPlayer.value?.currentTime);
       }
     } catch (err: unknown) {
       console.error(opts.catchLogLabel, err);
@@ -591,8 +697,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         videoPlayer.value.currentTime = currentTime;
         videoPlayer.value.playbackRate = mode === "recorded" ? currentPlaybackRate.value : 1;
 
+        if (singleAudioSource.value === "mic") {
+          attachSingleMicAudio(currentTime);
+        }
+
         try {
           await videoPlayer.value.play();
+          syncSingleMic();
         } catch (err) {
           if (wasPlaying) {
             console.warn("Could not resume playback:", err);
@@ -618,6 +729,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       if (screenVideoPlayer.value) {
         screenVideoPlayer.value.playbackRate = mode === "recorded" ? playbackRateNumber : 1;
       }
+      if (micAudioPlayer.value) {
+        micAudioPlayer.value.playbackRate = mode === "recorded" ? playbackRateNumber : 1;
+      }
       if (mode !== "recorded") {
         currentPlaybackRate.value = 1;
       }
@@ -626,6 +740,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
     if (videoPlayer.value) {
       videoPlayer.value.playbackRate = Number(currentPlaybackRate.value);
+    }
+    if (micAudioPlayer.value) {
+      micAudioPlayer.value.playbackRate = Number(currentPlaybackRate.value);
     }
   };
 
@@ -739,6 +856,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
   const onCanPlay = () => {
     isVideoLoading.value = false;
+    syncSingleMic();
     if (isRetrying.value) {
       setTimeout(() => {
         isRetrying.value = false;
@@ -786,6 +904,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     videoPlayer,
     cameraVideoPlayer,
     screenVideoPlayer,
+    micAudioPlayer,
     hls,
     currentPlaybackRate,
     isVideoMuted,
@@ -806,6 +925,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     currentStreamData,
     cameraStreamData,
     screenStreamData,
+    micAudioUrl,
+    hasMicAudio,
+    singleAudioSource,
     dualCanSeek: dual.dualCanSeek,
 
     // The one piece of error-tracking state read externally (the error
@@ -829,6 +951,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     setDualAudioSource: dual.setDualAudioSource,
     setDualVolume: dual.setDualVolume,
     applyDualAudioState: dual.applyDualAudioState,
+    setSingleAudioSource,
+    applySingleAudioState,
     cleanup,
     getHlsConfig,
 

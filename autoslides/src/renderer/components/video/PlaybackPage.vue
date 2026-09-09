@@ -1243,15 +1243,25 @@ const toggleSinglePlayback = () => {
   if (!video) return
   if (video.paused) {
     video.play().catch(() => { /* Ignore play rejection (autoplay/buffer) */ })
+    const micAudio = micAudioPlayer.value
+    if (singleAudioSource.value === 'mic' && video.readyState >= 2 && micAudio) {
+      try { micAudio.currentTime = video.currentTime } catch { /* Ignore */ }
+      micAudio.play().catch(() => { /* Ignore mic play error */ })
+    }
   } else {
     video.pause()
+    micAudioPlayer.value?.pause()
   }
 }
 
 const seekSingle = (time: number) => {
   const video = videoPlayer.value
   if (!video || !Number.isFinite(video.duration)) return
-  video.currentTime = Math.min(Math.max(time, 0), video.duration)
+  const bounded = Math.min(Math.max(time, 0), video.duration)
+  video.currentTime = bounded
+  if (singleAudioSource.value === 'mic' && micAudioPlayer.value) {
+    micAudioPlayer.value.currentTime = bounded
+  }
 }
 
 const onSingleSeekInput = (next: number) => {

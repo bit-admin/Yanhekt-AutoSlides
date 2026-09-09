@@ -187,10 +187,12 @@
       "exitFullscreen": "退出全屏",
       "fullscreen": "全屏",
       "live": "直播",
+      "micAudio": "麦克风音频",
       "moreOptions": "更多选项",
       "pause": "暂停",
       "play": "播放",
       "screenAudio": "屏幕录制音频",
+      "streamAudio": "视频自带音频",
       "swapOrder": "交换顺序"
     },
     "duration": "时长",

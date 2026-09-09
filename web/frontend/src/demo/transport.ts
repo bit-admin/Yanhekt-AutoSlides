@@ -89,6 +89,11 @@ function yanhekt(path: string, params: URLSearchParams, method: string): Respons
   if (path === "/v2/course/session/list") {
     return envelope(demo.demoSessionRows(params.get("course_id") ?? ""));
   }
+  // Classroom mic sidecar. Demo lectures have none — returning "" keeps
+  // `hasMicAudio` false so the player never mounts an <audio> element.
+  if (path === "/v1/video") {
+    return envelope({ id: params.get("id") ?? "", audio: "" });
+  }
 
   if (path === "/v1/note/group/list") return envelope(demo.demoNoteGroups());
   if (path === "/v1/note/list") return envelope(demo.demoNoteList(params.get("keyword") ?? ""));

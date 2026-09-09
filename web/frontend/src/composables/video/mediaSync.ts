@@ -10,7 +10,7 @@
 // simply calls syncFollower for each follower it owns.
 
 /** How often a running sync loop ticks. */
-export const SYNC_INTERVAL_MS = 1500
+export const SYNC_INTERVAL_MS = 1500;
 
 /**
  * How far a follower may drift before it is snapped back.
@@ -19,7 +19,7 @@ export const SYNC_INTERVAL_MS = 1500
  * (each correction is audible on an audio track), tight enough that lip-sync
  * against the video never becomes distracting.
  */
-export const DRIFT_THRESHOLD_S = 0.75
+export const DRIFT_THRESHOLD_S = 0.75;
 
 /**
  * Drag one follower back into line with the master: mirror its play/pause
@@ -34,61 +34,63 @@ export function syncFollower(
   driftThresholdS: number = DRIFT_THRESHOLD_S,
 ): void {
   // The classroom AAC is a progressive file and is often playable seconds
-  // before HLS has a frame. Hold the follower until the master can lead,
-  // otherwise picking mic audio during buffering starts sound against a
-  // still-black player and the two clocks never meet.
+  // before HLS has a frame. If the master is still warming, hold the
+  // follower — otherwise picking "Mic Audio" during "Preparing playback…"
+  // starts sound against a black player.
   if (master.readyState < 2) {
-    if (!follower.paused) follower.pause()
-    return
+    if (!follower.paused) follower.pause();
+    return;
   }
 
-  if (follower.readyState < 2) return
+  if (follower.readyState < 2) return;
 
   const snapIfDrifted = (): void => {
-    const drift = Math.abs((follower.currentTime || 0) - (master.currentTime || 0))
-    if (!Number.isFinite(drift) || drift <= driftThresholdS) return
+    const drift = Math.abs((follower.currentTime || 0) - (master.currentTime || 0));
+    if (!Number.isFinite(drift) || drift <= driftThresholdS) return;
     try {
-      follower.currentTime = master.currentTime
+      follower.currentTime = master.currentTime;
     } catch {
       // Seek can throw while the element is re-buffering; the next tick retries.
     }
-  }
+  };
 
   if (!master.paused && follower.paused) {
     // Align before play so a follower that sat at 0 during warmup does not
     // audibly start at the wrong timestamp.
-    snapIfDrifted()
-    void follower.play().catch(() => { /* Ignore sync play errors */ })
+    snapIfDrifted();
+    void follower.play().catch(() => {
+      /* Ignore sync play errors */
+    });
   } else if (master.paused && !follower.paused) {
-    follower.pause()
+    follower.pause();
   }
 
   // Only correct while the master is actually advancing: snapping during a
   // pause fights the user's own scrubbing.
-  if (!master.paused) snapIfDrifted()
+  if (!master.paused) snapIfDrifted();
 }
 
 export interface MediaSyncLoop {
-  start(): void
-  stop(): void
+  start(): void;
+  stop(): void;
 }
 
 /** A restartable interval. `start` is idempotent — it never stacks timers. */
 export function createMediaSyncLoop(onTick: () => void, intervalMs = SYNC_INTERVAL_MS): MediaSyncLoop {
-  let handle: ReturnType<typeof setInterval> | null = null
+  let handle: ReturnType<typeof setInterval> | null = null;
 
   const stop = (): void => {
     if (handle) {
-      clearInterval(handle)
-      handle = null
+      clearInterval(handle);
+      handle = null;
     }
-  }
+  };
 
   return {
     start(): void {
-      stop()
-      handle = setInterval(onTick, intervalMs)
+      stop();
+      handle = setInterval(onTick, intervalMs);
     },
     stop,
-  }
+  };
 }

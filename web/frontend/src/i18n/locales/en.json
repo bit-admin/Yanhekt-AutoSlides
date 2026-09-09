@@ -187,10 +187,12 @@
       "exitFullscreen": "Exit Fullscreen",
       "fullscreen": "Fullscreen",
       "live": "Live",
+      "micAudio": "Mic Audio",
       "moreOptions": "More Options",
       "pause": "Pause",
       "play": "Play",
       "screenAudio": "Screen Audio",
+      "streamAudio": "Stream Audio",
       "swapOrder": "Swap Order"
     },
     "duration": "Duration",

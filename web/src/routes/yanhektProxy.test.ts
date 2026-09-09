@@ -80,6 +80,18 @@ describe("/api/yanhekt proxy", () => {
     expect(upstreamCall().headers.Authorization).toBeUndefined();
   });
 
+  it("allows /v1/video and strips the Bearer upstream", async () => {
+    const res = await app.request(
+      "/api/yanhekt/v1/video?id=12345",
+      { headers: { Authorization: `Bearer ${TOKEN}` } },
+      env(),
+    );
+    expect(res.status).toBe(200);
+    const call = upstreamCall();
+    expect(call.url).toBe("https://cbiz.yanhekt.cn/v1/video?id=12345");
+    expect(call.headers.Authorization).toBeUndefined();
+  });
+
   it("keeps the Bearer for the session list, /v1/user and note writes", async () => {
     await app.request(
       "/api/yanhekt/v2/course/session/list?course_id=1",

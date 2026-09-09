@@ -416,6 +416,36 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
   };
 }
 
+interface VideoDetailData {
+  id: number | string;
+  audio?: string;
+}
+
+const audioUrlCache = new Map<string, string | undefined>();
+
+/**
+ * Classroom mic sidecar for a recorded video. The URL lives only on
+ * GET /v1/video (anonymous upstream); the session list does not carry it.
+ * Memoised by video id, including known-absent, so a playback tab, a
+ * stream switch and a re-open of the same lecture share one request.
+ * Network failures are not cached.
+ */
+export async function getMicAudioUrl(videoId: string, token: string): Promise<string | undefined> {
+  const id = String(videoId || "").trim();
+  if (!id) return undefined;
+  if (audioUrlCache.has(id)) return audioUrlCache.get(id);
+
+  try {
+    const data = await request<VideoDetailData>(`/v1/video?id=${encodeURIComponent(id)}`, token);
+    const audioUrl = data?.audio?.trim() || undefined;
+    audioUrlCache.set(id, audioUrl);
+    return audioUrl;
+  } catch (error) {
+    console.error("Failed to get mic audio URL:", error);
+    return undefined;
+  }
+}
+
 function parseSemesterName(name: string): { schoolYear: number; semester: number; labelEn: string } {
   // Parse format like "2025-2026 第一学期" or "2024-2025 第二学期"
   const match = name.match(/(\d{4})-(\d{4})\s+(第[一二]学期)/);

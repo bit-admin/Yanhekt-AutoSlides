@@ -1,6 +1,7 @@
 import { ref, shallowRef, computed, type Ref, type ShallowRef, type ComputedRef } from "vue";
 import Hls, { Events } from "hls.js";
 import { attachNetworkErrorSniffer, setupDualHlsErrorHandler } from "./useVideoErrorRecovery";
+import { createMediaSyncLoop, syncFollower } from "./mediaSync";
 import type { VideoStream, DualAudioSource } from "./useVideoPlayer";
 import { demoHooks } from "../../lib/demoRegistry";
 
@@ -15,6 +16,10 @@ export interface DualStreamPlayerDeps {
   mode: "live" | "recorded";
   cameraVideoPlayer: Ref<HTMLVideoElement | null>;
   screenVideoPlayer: Ref<HTMLVideoElement | null>;
+  /** Classroom mic stem, synced to the master video. Null until the element mounts. */
+  micAudioPlayer: Ref<HTMLAudioElement | null>;
+  /** Raw mic AAC URL, or null when this lecture has none. */
+  micAudioUrl: ComputedRef<string | null>;
   currentPlaybackRate: Ref<number>;
   shouldVideoMute: ComputedRef<boolean>;
   isVideoMuted: Ref<boolean>;
@@ -42,6 +47,8 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     mode,
     cameraVideoPlayer,
     screenVideoPlayer,
+    micAudioPlayer,
+    micAudioUrl,
     currentPlaybackRate,
     shouldVideoMute,
     isVideoMuted,
@@ -65,7 +72,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
   const dualCurrentTime = ref(0);
   const dualDuration = ref(0);
 
-  let dualSyncInterval: ReturnType<typeof setInterval> | null = null;
+  const dualSyncLoop = createMediaSyncLoop(() => syncDualStreams());
   let isApplyingDualAudioState = false;
   // Tracks videos playing via native HLS (Safari) so cleanup clears their src.
   const nativeVideos = new Set<HTMLVideoElement>();
@@ -79,14 +86,12 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
   };
 
   const stopDualSync = () => {
-    if (dualSyncInterval) {
-      clearInterval(dualSyncInterval);
-      dualSyncInterval = null;
-    }
+    dualSyncLoop.stop();
   };
 
   const cleanupDualVideoSources = () => {
     stopDualSync();
+    detachMicAudio();
 
     if (cameraHls.value) {
       cameraHls.value.destroy();
@@ -112,6 +117,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     try {
       const cameraVideo = cameraVideoPlayer.value;
       const screenVideo = screenVideoPlayer.value;
+      const micAudio = micAudioPlayer.value;
 
       if (shouldVideoMute.value) {
         if (cameraVideo) {
@@ -123,6 +129,11 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
           screenVideo.volume = 0;
           screenVideo.muted = false;
           screenVideo.setAttribute("data-muted-by-app", "true");
+        }
+        if (micAudio) {
+          micAudio.volume = 0;
+          micAudio.muted = false;
+          micAudio.setAttribute("data-muted-by-app", "true");
         }
         isVideoMuted.value = true;
         return;
@@ -138,6 +149,12 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
         screenVideo.volume = dualAudioSource.value === "screen" ? dualVolume.value : 0;
         screenVideo.muted = false;
         screenVideo.removeAttribute("data-muted-by-app");
+      }
+
+      if (micAudio) {
+        micAudio.volume = dualAudioSource.value === "mic" ? dualVolume.value : 0;
+        micAudio.muted = false;
+        micAudio.removeAttribute("data-muted-by-app");
       }
 
       isVideoMuted.value = false;
@@ -176,7 +193,11 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     const cameraVideo = cameraVideoPlayer.value;
     const screenVideo = screenVideoPlayer.value;
     if (!cameraVideo || !screenVideo) return;
-    if (cameraVideo.readyState < 2 || screenVideo.readyState < 2) return;
+    if (cameraVideo.readyState < 2 || screenVideo.readyState < 2) {
+      // Overlay is still up; don't let the already-buffered AAC run ahead.
+      micAudioPlayer.value?.pause();
+      return;
+    }
 
     // Both streams now have enough data to play — dismiss the warm-up overlay.
     isVideoLoading.value = false;
@@ -193,17 +214,11 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
 
     applyDualAudioState();
 
-    if (!screenVideo.paused && cameraVideo.paused) {
-      cameraVideo.play().catch(() => {
-        /* Ignore sync play errors */
-      });
-    } else if (screenVideo.paused && !cameraVideo.paused) {
-      cameraVideo.pause();
-    }
-
-    const drift = Math.abs(cameraVideo.currentTime - screenVideo.currentTime);
-    if (!screenVideo.paused && Number.isFinite(drift) && drift > 0.75) {
-      cameraVideo.currentTime = screenVideo.currentTime;
+    syncFollower(screenVideo, cameraVideo);
+    const micAudio = micAudioPlayer.value;
+    if (micAudio) {
+      micAudio.playbackRate = screenVideo.playbackRate;
+      syncFollower(screenVideo, micAudio);
     }
 
     updateDualPlaybackState();
@@ -214,7 +229,50 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     // Run once immediately so a warm re-load dismisses the overlay without
     // waiting a full interval, then poll for drift/readiness.
     syncDualStreams();
-    dualSyncInterval = setInterval(syncDualStreams, 1500);
+    dualSyncLoop.start();
+  };
+
+  /**
+   * Point the mic element at the progressive `.aac`. No hls.js: a single file
+   * with Range support is cheaper as a plain `src`. A mic that fails to load
+   * must never take down video playback — the video's own audio is still there.
+   */
+  const attachMicAudio = (seekToTime?: number, shouldAutoPlay?: boolean) => {
+    const micAudio = micAudioPlayer.value;
+    const url = micAudioUrl.value;
+    if (!micAudio || !url) return;
+
+    if (micAudio.src !== url) {
+      micAudio.src = url;
+      micAudio.preload = "auto";
+    }
+    if (seekToTime !== undefined && Number.isFinite(seekToTime)) {
+      micAudio.currentTime = seekToTime;
+    }
+    applyDualAudioState();
+    // Never autoplay here: the AAC is ready long before HLS, so a play()
+    // would start sound during the warming overlay. playDualStreams /
+    // syncFollower start it once the master video is actually playable.
+    if (
+      shouldAutoPlay !== false &&
+      screenVideoPlayer.value &&
+      !screenVideoPlayer.value.paused &&
+      screenVideoPlayer.value.readyState >= 2 &&
+      cameraVideoPlayer.value &&
+      cameraVideoPlayer.value.readyState >= 2
+    ) {
+      micAudio.play().catch(() => {
+        /* Ignore mic autoplay error */
+      });
+    }
+  };
+
+  const detachMicAudio = () => {
+    const micAudio = micAudioPlayer.value;
+    if (!micAudio) return;
+    micAudio.pause();
+    micAudio.removeAttribute("src");
+    micAudio.load();
   };
 
   const onSourceReady = (
@@ -334,6 +392,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
       } else {
         throw new Error("HLS is not supported in this browser");
       }
+      attachMicAudio(seekToTime, shouldAutoPlay);
       startDualSync();
     } catch (err: unknown) {
       console.error("Failed to load dual video sources:", err);
@@ -365,6 +424,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
   const pauseDualStreams = () => {
     cameraVideoPlayer.value?.pause();
     screenVideoPlayer.value?.pause();
+    micAudioPlayer.value?.pause();
     isPlaying.value = false;
   };
 
@@ -389,6 +449,9 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     }
     if (cameraVideoPlayer.value) {
       cameraVideoPlayer.value.currentTime = boundedTime;
+    }
+    if (micAudioPlayer.value) {
+      micAudioPlayer.value.currentTime = boundedTime;
     }
 
     dualCurrentTime.value = boundedTime;

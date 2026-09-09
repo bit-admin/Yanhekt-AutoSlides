@@ -214,7 +214,11 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     const cameraVideo = cameraVideoPlayer.value
     const screenVideo = screenVideoPlayer.value
     if (!cameraVideo || !screenVideo) return
-    if (cameraVideo.readyState < 2 || screenVideo.readyState < 2) return
+    if (cameraVideo.readyState < 2 || screenVideo.readyState < 2) {
+      // Videos are still buffering; don't let the already-ready AAC run ahead.
+      micAudioPlayer.value?.pause()
+      return
+    }
 
     if (mode === 'recorded') {
       const playbackRateNumber = Number(currentPlaybackRate.value)
@@ -242,6 +246,10 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
   }
 
   const startDualSync = () => {
+    stopDualSync()
+    // Tick once now so a play/pause/ready transition does not wait a full
+    // interval before the mic (and the other pane) catch up.
+    syncDualStreams()
     dualSyncLoop.start()
   }
 
@@ -319,7 +327,17 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
       micAudio.currentTime = seekToTime
     }
     applyDualAudioState()
-    if (shouldAutoPlay !== false) {
+    // Never autoplay here: the AAC is ready long before HLS, so a play()
+    // would start sound while the videos are still buffering. playDualStreams /
+    // syncFollower start it once the master video is actually playable.
+    if (
+      shouldAutoPlay !== false &&
+      screenVideoPlayer.value &&
+      !screenVideoPlayer.value.paused &&
+      screenVideoPlayer.value.readyState >= 2 &&
+      cameraVideoPlayer.value &&
+      cameraVideoPlayer.value.readyState >= 2
+    ) {
       micAudio.play().catch(() => { /* Ignore mic autoplay error */ })
     }
   }
@@ -372,12 +390,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     applyDualAudioState()
 
     try {
-      const micAudio = micAudioPlayer.value
-      await Promise.allSettled([
-        cameraVideo.play(),
-        screenVideo.play(),
-        ...(micAudio ? [micAudio.play()] : []),
-      ])
+      await Promise.allSettled([cameraVideo.play(), screenVideo.play()])
       isPlaying.value = true
       startDualSync()
     } catch (playError) {

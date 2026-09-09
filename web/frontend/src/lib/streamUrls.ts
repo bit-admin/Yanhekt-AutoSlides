@@ -29,6 +29,8 @@ export interface VideoStream {
 
 export interface PlaybackData {
   streams: Record<string, VideoStream>;
+  /** Classroom mic AAC, when present. Kept out of `streams` — it is not a video. */
+  audioUrl?: string;
 }
 
 /**
@@ -55,7 +57,11 @@ function fixUrlEscaping(url: string): string {
 }
 
 /** Recorded sessions: main_url = camera, vga_url = screen; keys match the desktop app. */
-export function getRecordedPlaybackData(session: SessionData, loginToken: string): PlaybackData {
+export function getRecordedPlaybackData(
+  session: SessionData,
+  loginToken: string,
+  audioUrl?: string,
+): PlaybackData {
   const streams: Record<string, VideoStream> = {};
 
   if (session.main_url) {
@@ -78,7 +84,7 @@ export function getRecordedPlaybackData(session: SessionData, loginToken: string
     };
   }
 
-  return { streams };
+  return { streams, audioUrl: audioUrl || undefined };
 }
 
 /** Live streams: target = camera, target_vga = screen; played directly. */
