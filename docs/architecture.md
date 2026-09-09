@@ -1114,7 +1114,16 @@ Anonymous. Not on the web allowlist; desktop does not call it in production (ses
 
 The file sits next to the VOD as `…/{asset}/0/SubAudio/{HH}_{MM}_{SS}_{ms}.aac`. The timestamp is the recorder clock, typically ~1–2 minutes before `started_at` (this lecture: `09_53_19_21` vs session `09:55:00`). It is **not** referenced from the signed HLS playlists — `Video1.m3u8` / `VGA.m3u8` are plain `#EXTINF` + `.ts` lists (no `#EXT-X-MEDIA`, no `.aac`). Official playback uses whatever audio is already muxed into those TS segments.
 
-Unlike the playlists, the AAC is **unsigned and world-readable**: a bare `GET` with no Origin, token, or signature returns HTTP 200, `Accept-Ranges: bytes`, ADTS magic `0xFFF1`. This lecture was 96 253 248 bytes for 5936 s (~130 kbps) — a speech-rate classroom mic stem, not a second HLS. AutoSlides does not download or play it.
+Unlike the playlists, the AAC is **unsigned and world-readable**: a bare `GET` with no Origin, token, or signature returns HTTP 200, `Accept-Ranges: bytes`, ADTS magic `0xFFF1`. This lecture was 96 253 248 bytes for 5936 s (~130 kbps) — a speech-rate classroom mic stem, not a second HLS.
+
+**It is zero-aligned with the video, despite the filename.** `ffprobe` over HTTP reports `aac, 32000 Hz, stereo, duration 5934.74 s` against the API's video `duration: 5936` — so the `09_53_19` is a recorder-clock *label*, not a lead-in, and no offset correction is needed. Do not re-derive this from the filename arithmetic; it looks like a ~100 s lead and is not one.
+
+**What AutoSlides does with it (22.30–22.33).** Yanhekt's own UI warns 音源为蓝牙话筒，若老师未使用蓝牙话筒，则该路音频没有声音 — the track exists per-room and is silent when the teacher did not wear the mic, which is why nothing about it is assumed to be present.
+
+- **Resolution is lazy and memoised.** Because only `/v1/video` carries the URL, knowing whether a lecture has a mic track costs one request per video id. The session page therefore always shows its mic button and resolves on click; `ApiClient.getMicAudioUrl` caches the answer, including the negative one.
+- **Download** is `main/video/audioDownloadService.ts`, not the m3u8 downloader (no signing, no playlist, no ffmpeg). It writes `<outputDir>/audio_…__c<course>s<session>.aac` via a `.part` temp, and shares the intranet-aware axios factory (`main/infra/intranetAxios.ts`) with the m3u8 path so the campus host rewrite applies. `DownloadItem.videoType` gained `'audio'`; `download:cancel` routes by which service owns the id.
+- **Playback** proxies it at `GET /audio?originalUrl=` on the local video proxy — unsigned, but proxied so intranet mode can rewrite the host. Range is forwarded and 206 passed through. The proxied URL is exposed as a sibling `audioUrl` on `VideoPlaybackUrls`, never as a `streams` entry (`streams` is the *video* stream list, enumerated by the stream picker and by the task queue).
+- **On disk** it is a first-class Lectures asset: `[vtype=audio]`, counted in FILES, never in "Dual", and never a poster source or a `<video>` source.
 
 #### Path encrypt + query signature
 
