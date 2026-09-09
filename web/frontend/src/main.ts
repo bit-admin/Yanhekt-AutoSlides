@@ -5,6 +5,12 @@ import { router } from "./router";
 import { authStore } from "./stores/authStore";
 import { initSettings } from "./stores/settingsStore";
 import { ensureRuntimeConfig } from "./stores/runtimeConfigStore";
+// Side-effect import: registers the subscription-list refresh on authStore's
+// onIdentityReady hook. Named here rather than left to whichever component
+// happens to import it first, so the wiring is visible at the entry point.
+// Imports are evaluated before this module's body, so it is registered well
+// before initFromUrlOrStorage below can fire the hook.
+import "./composables/subscribedCourses";
 import "./styles/index.css";
 
 // Apply persisted theme + language and start following the OS scheme.

@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { fileURLToPath } from "node:url";
+import { featureFlags, manualChunks } from "./vite.shared";
 
 const DEMO_ENTRY = fileURLToPath(new URL("./frontend/src/demo/main.ts", import.meta.url));
 
@@ -23,7 +24,7 @@ const DEMO_ENTRY = fileURLToPath(new URL("./frontend/src/demo/main.ts", import.m
 export default defineConfig({
   root: "frontend",
   base: "/demo/",
-  define: { __DEMO__: "true" },
+  define: { __DEMO__: "true", ...featureFlags },
   plugins: [
     vue(),
     {
@@ -58,5 +59,6 @@ export default defineConfig({
     // Top-level await in the demo entry (installDemo runs before the app is
     // imported) needs a modern target.
     target: "es2022",
+    rollupOptions: { output: { manualChunks } },
   },
 });

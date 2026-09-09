@@ -2,18 +2,39 @@ import { watch } from "vue";
 import { createRouter, createWebHashHistory, createWebHistory } from "vue-router";
 import { i18n } from "../i18n";
 import type { NavTarget } from "../stores/navigationStore";
+// Eager: the browse tabs. These are what a cold visit lands on and what the
+// sidebar flips between constantly, so switching must never wait on a network
+// round-trip. They live behind MainContent's KeepAlive.
 import HomePage from "../components/course/HomePage.vue";
 import CoursePage from "../components/course/CoursePage.vue";
 import SearchPage from "../components/course/SearchPage.vue";
 import RecordedCourseRoute from "../components/course/RecordedCourseRoute.vue";
-import SlidesPage from "../components/slides/SlidesPage.vue";
-import NotesPage from "../components/notes/NotesPage.vue";
-import SettingsPage from "../components/SettingsPage.vue";
-import PlayerRoute from "../components/video/PlayerRoute.vue";
-import LoginPage from "../components/LoginPage.vue";
-import AppsPage from "../components/AppsPage.vue";
-import LegalPage from "../components/legal/LegalPage.vue";
-import ImageComparisonPage from "../components/lab/ImageComparisonPage.vue";
+
+// Lazy: the player, Settings, and the full-page workspaces. Each is the ONLY
+// path by which a heavy dependency enters the graph, so a static import here
+// would put it in the entry chunk and charge every visitor for it:
+//
+//   PlayerRoute         → PlaybackPage → hls.js          (~618 kB minified)
+//   NotesPage           → Editor.js + its tools          (~394 kB)
+//   SlidesPage          → the extraction/export pipeline
+//   AppsPage            → the vendored github-markdown stylesheets
+//   SettingsPage        → cloudStorageStore → the lib/notes client stack
+//
+// vue-router awaits the loader inside the navigation guard, so the view still
+// renders in one paint — there is no flash of an empty route. KeepAlive keeps
+// working on the cached ones (Slides/Notes): it unwraps the async component
+// before matching its `include` list by name.
+// Settings is a sidebar entry but a rare destination, not something you flip
+// between — and it was the one eager route dragging the cloud-storage/notes
+// client stack (cloudStorageStore → lib/notes/*, ~37 kB) into first paint.
+const SettingsPage = () => import("../components/SettingsPage.vue");
+const SlidesPage = () => import("../components/slides/SlidesPage.vue");
+const NotesPage = () => import("../components/notes/NotesPage.vue");
+const PlayerRoute = () => import("../components/video/PlayerRoute.vue");
+const LoginPage = () => import("../components/LoginPage.vue");
+const AppsPage = () => import("../components/AppsPage.vue");
+const LegalPage = () => import("../components/legal/LegalPage.vue");
+const ImageComparisonPage = () => import("../components/lab/ImageComparisonPage.vue");
 
 // Routes are the source of truth for navigation; navigationStore is a thin
 // façade over this instance. Exported as a module singleton so the singleton

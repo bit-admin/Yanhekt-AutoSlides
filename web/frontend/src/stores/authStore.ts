@@ -58,14 +58,33 @@ function storeToken(value: string | null) {
   }
 }
 
-/** Soft-fail subscription list sync after identity is ready. Dynamic import
- *  avoids a static cycle with composables/subscribedCourses (which reads authStore). */
-function scheduleSubscriptionSync(): void {
-  void import("../composables/subscribedCourses")
-    .then((m) => m.syncSubscribedCoursesFromServer())
-    .catch(() => {
-      /* ignore — last-known local list stays */
-    });
+/**
+ * Listeners fired once a token has been verified and `userData` is populated.
+ *
+ * This hook exists to keep the dependency arrow pointing one way. Things that
+ * refresh on sign-in (the subscription list, today) need to read the token, so
+ * they import authStore — which means authStore must not import them back.
+ * A dynamic import used to paper over that cycle, but it never actually broke
+ * it: ten eager modules import subscribedCourses statically, so the bundler
+ * kept it in the entry chunk anyway and only warned about the mixed style.
+ *
+ * Consumers register here instead, and main.ts performs the wiring at startup.
+ * A listener that throws must never take down sign-in.
+ */
+const identityReadyListeners = new Set<() => void>();
+
+export function onIdentityReady(listener: () => void): void {
+  identityReadyListeners.add(listener);
+}
+
+function notifyIdentityReady(): void {
+  for (const listener of identityReadyListeners) {
+    try {
+      listener();
+    } catch {
+      /* a failed refresh must not block a successful sign-in */
+    }
+  }
 }
 
 /** Verify + adopt a token (from paste Verify, or password login). */
@@ -76,7 +95,7 @@ async function adoptToken(candidate: string): Promise<{ success: boolean; error?
     if (result.valid && result.userData) {
       storeToken(candidate);
       userData.value = result.userData;
-      scheduleSubscriptionSync();
+      notifyIdentityReady();
       return { success: true };
     }
     return {
@@ -120,7 +139,7 @@ async function initFromUrlOrStorage(): Promise<void> {
       const result = await verifyToken(token.value);
       if (result.valid && result.userData) {
         userData.value = result.userData;
-        scheduleSubscriptionSync();
+        notifyIdentityReady();
       } else if (!result.networkError) {
         // Definitively invalid — clear it. On network errors keep the token
         // so a transient outage doesn't sign the user out.

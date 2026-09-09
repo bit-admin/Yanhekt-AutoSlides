@@ -1,6 +1,6 @@
 import { computed } from "vue";
 import { configStore, persistConfig, type SubscribedCourse } from "../stores/configStore";
-import { authStore } from "../stores/authStore";
+import { authStore, onIdentityReady } from "../stores/authStore";
 import {
   getSubscriptionList,
   subscribeCourse,
@@ -261,3 +261,11 @@ export const openSubscribedCourse = (course: SubscribedCourse): void => {
   const full = getSubscribedCourse(course.id);
   if (full) openCourse("recorded", full);
 };
+
+// Refresh from the server whenever a session becomes valid (launch hydrate,
+// paste-Verify, password login). Registered rather than called from authStore
+// so the import only ever points this way — see onIdentityReady. Failures are
+// swallowed inside the sync itself; the last-known local list stays.
+onIdentityReady(() => {
+  void syncSubscribedCoursesFromServer();
+});
