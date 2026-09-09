@@ -9,6 +9,7 @@ import { toAsmediaUrl } from '@common/asmediaUrl'
 import { tokenManager } from '@shared/services/authService'
 import { getHlsConfig } from '@features/video/hlsConfig'
 import { setupDualHlsErrorHandler } from '@features/video/useVideoErrorRecovery'
+import { createMediaSyncLoop, syncFollower } from '@features/video/mediaSync'
 import type { LibraryFileRef, LibrarySession, LocalStreamMode } from './libraryModel'
 import {
   canPlayCamera,
@@ -23,8 +24,6 @@ import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LocalLecturePlayer')
 
-const DRIFT_THRESHOLD_S = 0.75
-const SYNC_INTERVAL_MS = 1500
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 
 export type DualAudioSource = 'screen' | 'camera'
@@ -59,7 +58,8 @@ export function useLocalLecturePlayer() {
   const screenError = ref('')
   const cameraError = ref('')
 
-  let syncTimer: ReturnType<typeof setInterval> | null = null
+  // Arrow-wrapped so the loop can be declared before syncDual exists.
+  const syncLoop = createMediaSyncLoop(() => syncDual())
   const onlineHls = new Map<string, Hls>()
   let proxyClientId: string | null = null
   let demoClockTimer: ReturnType<typeof setInterval> | null = null
@@ -105,10 +105,7 @@ export function useLocalLecturePlayer() {
   }
 
   const stopSync = () => {
-    if (syncTimer) {
-      clearInterval(syncTimer)
-      syncTimer = null
-    }
+    syncLoop.stop()
   }
 
   const stopDemoClock = () => {
@@ -299,26 +296,12 @@ export function useLocalLecturePlayer() {
     if (!master || !slave) return
 
     applyRate()
-    const drift = Math.abs((master.currentTime || 0) - (slave.currentTime || 0))
-    if (drift > DRIFT_THRESHOLD_S) {
-      try {
-        slave.currentTime = master.currentTime
-      } catch (error) {
-        log.warn('Dual drift seek failed', error)
-      }
-    }
-    if (!master.paused && slave.paused) {
-      void slave.play().catch(() => undefined)
-    }
-    if (master.paused && !slave.paused) {
-      slave.pause()
-    }
+    syncFollower(master, slave)
     applyAudio()
   }
 
   const startDualSync = () => {
-    stopSync()
-    syncTimer = setInterval(syncDual, SYNC_INTERVAL_MS)
+    syncLoop.start()
   }
 
   const onVideoError = (kind: 'screen' | 'camera' | 'single', file?: LibraryFileRef) => {

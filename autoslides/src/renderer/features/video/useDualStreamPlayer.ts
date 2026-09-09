@@ -1,6 +1,7 @@
 import { ref, shallowRef, computed, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import Hls, { Events } from 'hls.js'
 import { setupDualHlsErrorHandler } from './useVideoErrorRecovery'
+import { createMediaSyncLoop, syncFollower } from './mediaSync'
 import type { VideoStream, DualAudioSource } from './useVideoPlayer'
 import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
@@ -89,7 +90,9 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
   const dualCurrentTime = ref(0)
   const dualDuration = ref(0)
 
-  let dualSyncInterval: ReturnType<typeof setInterval> | null = null
+  // The tick is wrapped in an arrow so the loop can be declared here, before
+  // syncDualStreams itself exists.
+  const dualSyncLoop = createMediaSyncLoop(() => syncDualStreams())
   let isApplyingDualAudioState = false
 
   const dualCanSeek = computed(() => {
@@ -101,10 +104,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
   }
 
   const stopDualSync = () => {
-    if (dualSyncInterval) {
-      clearInterval(dualSyncInterval)
-      dualSyncInterval = null
-    }
+    dualSyncLoop.stop()
   }
 
   const cleanupDualVideoSources = () => {
@@ -206,23 +206,14 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
 
     applyDualAudioState()
 
-    if (!screenVideo.paused && cameraVideo.paused) {
-      cameraVideo.play().catch(() => { /* Ignore sync play errors */ })
-    } else if (screenVideo.paused && !cameraVideo.paused) {
-      cameraVideo.pause()
-    }
-
-    const drift = Math.abs(cameraVideo.currentTime - screenVideo.currentTime)
-    if (!screenVideo.paused && Number.isFinite(drift) && drift > 0.75) {
-      cameraVideo.currentTime = screenVideo.currentTime
-    }
+    // Screen is the master clock (see getDualMasterVideo).
+    syncFollower(screenVideo, cameraVideo)
 
     updateDualPlaybackState()
   }
 
   const startDualSync = () => {
-    stopDualSync()
-    dualSyncInterval = setInterval(syncDualStreams, 1500)
+    dualSyncLoop.start()
   }
 
   const setupDualHlsErrorHandling = (hlsInstance: Hls, video: HTMLVideoElement, label: string) => {
