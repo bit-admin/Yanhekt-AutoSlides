@@ -16,6 +16,7 @@ export interface UseSettingsReturn {
   parallelTasks: Ref<number>
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
+  preferMicAudioByDefault: Ref<boolean>
   developerMode: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
@@ -62,6 +63,7 @@ export function useSettings(): UseSettingsReturn {
   const parallelTasks = ref(2)
   const maxManualTabs = ref(3)
   const showMorePlaybackSpeed = ref(false)
+  const preferMicAudioByDefault = ref(false)
   const developerMode = ref(false)
   const enableAIFiltering = ref(true)
   const tempEnableAIFiltering = ref(true)
@@ -99,6 +101,7 @@ export function useSettings(): UseSettingsReturn {
       parallelTasks.value = config.parallelTasks || 2
       maxManualTabs.value = config.maxManualTabs || 3
       showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
+      preferMicAudioByDefault.value = config.preferMicAudioByDefault ?? false
       developerMode.value = config.developerMode ?? false
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
       tempEnableAIFiltering.value = enableAIFiltering.value
@@ -192,6 +195,7 @@ export function useSettings(): UseSettingsReturn {
     parallelTasks,
     maxManualTabs,
     showMorePlaybackSpeed,
+    preferMicAudioByDefault,
     developerMode,
     enableAIFiltering,
     tempEnableAIFiltering,

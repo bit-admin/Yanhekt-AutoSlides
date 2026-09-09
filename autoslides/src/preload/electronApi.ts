@@ -145,6 +145,8 @@ export interface RecordedSessionInput {
   duration?: string | number;
   main_url?: string;
   vga_url?: string;
+  /** Unsigned SubAudio `.aac`; resolved by the renderer via api.getVideoAssets. */
+  audio_url?: string;
 }
 
 /** Why a campus SSO sign-in did not produce a token. Mirrors SignInReason in main. */
@@ -204,6 +206,8 @@ export interface VideoStreamResponse {
   streams: {
     [key: string]: StreamInfo;
   };
+  /** Proxied mic track, when this lecture has one. Not a `streams` entry — it is not a video. */
+  audioUrl?: string;
 }
 
 export interface IntranetMapping {
@@ -359,6 +363,7 @@ export interface ElectronAPI {
     setPreviewFromVideo: (enabled: boolean) => Promise<AppConfig>;
     setPreviewSeekSeconds: (seconds: number) => Promise<AppConfig>;
     setShowMorePlaybackSpeed: (enabled: boolean) => Promise<AppConfig>;
+    setPreferMicAudioByDefault: (enabled: boolean) => Promise<AppConfig>;
     setDeveloperMode: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;

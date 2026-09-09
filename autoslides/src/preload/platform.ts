@@ -39,6 +39,7 @@ export const config: ElectronAPI['config'] = {
   setPreviewFromVideo: (enabled: boolean) => ipcRenderer.invoke('config:setPreviewFromVideo', enabled),
   setPreviewSeekSeconds: (seconds: number) => ipcRenderer.invoke('config:setPreviewSeekSeconds', seconds),
   setShowMorePlaybackSpeed: (enabled: boolean) => ipcRenderer.invoke('config:setShowMorePlaybackSpeed', enabled),
+  setPreferMicAudioByDefault: (enabled: boolean) => ipcRenderer.invoke('config:setPreferMicAudioByDefault', enabled),
   setDeveloperMode: (enabled: boolean) => ipcRenderer.invoke('config:setDeveloperMode', enabled),
   setAutoPostProcessing: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessing', enabled),
   setAutoPostProcessingLive: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessingLive', enabled),

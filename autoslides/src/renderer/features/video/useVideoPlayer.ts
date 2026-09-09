@@ -2,6 +2,8 @@ import { ref, shallowRef, computed, nextTick, type Ref, type ShallowRef, type Co
 import Hls, { Events, ErrorDetails } from 'hls.js'
 import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
+import { createMediaSyncLoop, syncFollower } from './mediaSync'
+import { ApiClient } from '@shared/services/apiClient'
 import type { SlideExtractionHandle } from '@shared/processing'
 import { createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './useVideoErrorRecovery'
 import { useDualStreamPlayer } from './useDualStreamPlayer'
@@ -12,8 +14,17 @@ import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('VideoPlayer');
 
+const apiClient = new ApiClient()
+
 export const DUAL_STREAM_KEY = '__dual__'
-export type DualAudioSource = 'screen' | 'camera'
+/**
+ * Which element supplies the audible track.
+ *
+ * `mic` is Yanhekt's classroom microphone stem — a separate <audio> element
+ * synced to the video, not one of the video's own tracks. It is only offered
+ * when the lecture actually has one.
+ */
+export type DualAudioSource = 'screen' | 'camera' | 'mic'
 
 // Types for video player
 export interface VideoStream {
@@ -30,6 +41,8 @@ export interface PlaybackData {
   title: string
   duration?: string
   streams: { [key: string]: VideoStream }
+  /** Proxied mic track, when present. Kept out of `streams` — it is not a video. */
+  audioUrl?: string
 }
 
 // Session input type matching the video proxy service
@@ -136,6 +149,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const videoPlayer = ref<HTMLVideoElement | null>(null)
   const cameraVideoPlayer = ref<HTMLVideoElement | null>(null)
   const screenVideoPlayer = ref<HTMLVideoElement | null>(null)
+  const micAudioPlayer = ref<HTMLAudioElement | null>(null)
   const hls = shallowRef<Hls | null>(null)
   const currentPlaybackRate = ref(1)
   const connectionMode = ref<'internal' | 'external'>('external')
@@ -186,6 +200,17 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     if (!playbackData.value) return null
     return Object.values(playbackData.value.streams).find(stream => stream.type === 'screen') || null
   })
+
+  /**
+   * Proxied mic track for this lecture, or null when it has none.
+   *
+   * Read off a sibling field rather than `streams` on purpose — see the
+   * VideoPlaybackUrls comment in videoProxyService.
+   */
+  const micAudioUrl = computed(() => playbackData.value?.audioUrl || null)
+
+  /** Whether the mic option should be offered at all. */
+  const hasMicAudio = computed(() => Boolean(micAudioUrl.value))
 
   const hasDualStreams = computed(() => {
     return Boolean(cameraStreamData.value && screenStreamData.value)
@@ -246,11 +271,103 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
   }
 
+  // ── Single-stream mic audio ────────────────────────────────────────────────
+  // Dual mode routes audio inside useDualStreamPlayer; single mode has no such
+  // subsystem (and, before the mic track, no sync loop at all), so it lives here.
+
+  /** In single-stream mode the choice is between the stream's own audio and the mic. */
+  const singleAudioSource = ref<'video' | 'mic'>('video')
+  /** Last volume applied by the UI slider, so routing changes can re-apply it. */
+  const singleVolumeLevel = ref(1)
+
+  /**
+   * Suppress the mic while slide extraction is running.
+   *
+   * Task mode plays at up to 16x, where a rate-shifted speech track is noise,
+   * and `muteMode: 'mute_recorded'` already silences playback in that flow —
+   * so an attached element would decode ~100MB for nothing.
+   */
+  const micAudioUsable = computed(() =>
+    Boolean(micAudioUrl.value) && !slideExtractorInstance.value && !shouldVideoMute.value,
+  )
+
+  /**
+   * Route the audible track in single-stream mode. Uses the same
+   * `muted = false` + `volume = 0` convention as everywhere else in the player,
+   * so preventUnmute's re-assertions stay consistent.
+   */
+  const applySingleAudioState = (volume?: number) => {
+    if (volume !== undefined) {
+      singleVolumeLevel.value = Math.min(1, Math.max(0, volume))
+    }
+    const level = shouldVideoMute.value ? 0 : singleVolumeLevel.value
+    const video = videoPlayer.value
+    const micAudio = micAudioPlayer.value
+    const useMic = singleAudioSource.value === 'mic' && micAudioUsable.value
+
+    if (video) {
+      video.volume = useMic ? 0 : level
+      video.muted = false
+    }
+    if (micAudio) {
+      micAudio.volume = useMic ? level : 0
+      micAudio.muted = false
+    }
+  }
+
+  const singleSyncLoop = createMediaSyncLoop(() => {
+    const video = videoPlayer.value
+    const micAudio = micAudioPlayer.value
+    if (!video || !micAudio || video.readyState < 2) return
+    micAudio.playbackRate = video.playbackRate
+    syncFollower(video, micAudio)
+    applySingleAudioState()
+  })
+
+  const attachSingleMicAudio = (seekToTime?: number) => {
+    const micAudio = micAudioPlayer.value
+    const url = micAudioUrl.value
+    if (!micAudio || !url || !micAudioUsable.value) return
+
+    if (micAudio.src !== url) {
+      micAudio.src = url
+      micAudio.preload = 'auto'
+    }
+    if (seekToTime !== undefined && Number.isFinite(seekToTime)) {
+      micAudio.currentTime = seekToTime
+    }
+    applySingleAudioState()
+    singleSyncLoop.start()
+  }
+
+  const detachSingleMicAudio = () => {
+    singleSyncLoop.stop()
+    const micAudio = micAudioPlayer.value
+    if (!micAudio) return
+    micAudio.pause()
+    micAudio.removeAttribute('src')
+    micAudio.load()
+  }
+
+  const setSingleAudioSource = (source: 'video' | 'mic') => {
+    singleAudioSource.value = source
+    if (source === 'mic') {
+      attachSingleMicAudio(videoPlayer.value?.currentTime)
+      if (videoPlayer.value && !videoPlayer.value.paused) {
+        micAudioPlayer.value?.play().catch(() => { /* Ignore mic play error */ })
+      }
+    } else {
+      detachSingleMicAudio()
+    }
+    applySingleAudioState()
+  }
+
   const cleanupSingleVideoSource = () => {
     if (hls.value) {
       hls.value.destroy()
       hls.value = null
     }
+    detachSingleMicAudio()
   }
 
   // Dual-stream (camera + screen) subsystem. onEnded is wrapped so this can be
@@ -259,6 +376,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     mode,
     cameraVideoPlayer,
     screenVideoPlayer,
+    micAudioPlayer,
+    micAudioUrl,
     currentPlaybackRate,
     shouldVideoMute,
     isVideoMuted,
@@ -312,7 +431,15 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         result = await window.electronAPI.video.getLiveStreamUrls(serializableStreamData, token)
       } else if (mode === 'recorded' && session.value) {
         const serializableSession = createSerializableCopy(session.value)
-        result = await window.electronAPI.video.getVideoPlaybackUrls(serializableSession, token)
+        // The mic URL is not on the session — only GET /v1/video carries it —
+        // so resolve it here and hand it to the proxy alongside the streams.
+        // ApiClient memoises, so re-opening the same lecture costs nothing.
+        // Live has no mic track at all (the live list has no audio field).
+        const resolvedMicUrl = await apiClient.getMicAudioUrl(serializableSession.video_id, token)
+        result = await window.electronAPI.video.getVideoPlaybackUrls(
+          { ...serializableSession, audio_url: resolvedMicUrl },
+          token,
+        )
       } else {
         throw new Error('Invalid playback parameters')
       }
@@ -323,6 +450,14 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       if (streamKeys.length > 0) {
         const screenStream = streamKeys.find(key => result.streams[key].type === 'screen')
         selectedStream.value = screenStream || streamKeys[0]
+
+        // Apply the user's default once per tab open, and only when this
+        // lecture actually has a mic track. Read straight off configStore —
+        // the default matters only at open time, so no broadcast is needed.
+        if (configStore.preferMicAudioByDefault && micAudioUsable.value) {
+          singleAudioSource.value = 'mic'
+          dual.setDualAudioSource('mic')
+        }
 
         await nextTick()
         await loadVideoSource()
@@ -790,6 +925,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     videoPlayer,
     cameraVideoPlayer,
     screenVideoPlayer,
+    micAudioPlayer,
+    singleAudioSource,
     hls,
     currentPlaybackRate,
     connectionMode,
@@ -805,6 +942,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     dualDuration: dual.dualDuration,
 
     // Computed
+    micAudioUrl,
+    hasMicAudio,
+    micAudioUsable,
     shouldVideoMute,
     isScreenRecordingSelected,
     isDualStreamSelected,
@@ -832,6 +972,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     pauseDualStreams: dual.pauseDualStreams,
     seekDualStreams: dual.seekDualStreams,
     setDualAudioSource: dual.setDualAudioSource,
+    setSingleAudioSource,
+    applySingleAudioState,
     setDualVolume: dual.setDualVolume,
     applyDualAudioState: dual.applyDualAudioState,
     cleanup,

@@ -127,6 +127,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setPreferMicAudioByDefault', async (_event, enabled: boolean) => {
+    configService.setPreferMicAudioByDefault(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
     configService.setDeveloperMode(enabled);
     // Local Relay is developer-only: turning Developer mode off persist-disables

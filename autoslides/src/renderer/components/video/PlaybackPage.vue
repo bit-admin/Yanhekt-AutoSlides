@@ -191,6 +191,19 @@
           @toggle-cinema-mode="toggleCinemaMode"
         />
 
+        <!--
+          Classroom mic track. One element for BOTH modes, deliberately outside
+          the single/dual v-if so it survives a mode switch — a remount would
+          drop the ref, restart the ~100MB fetch and lose the play position.
+          Rendered only when this lecture actually has a mic track.
+        -->
+        <audio
+          v-if="hasMicAudio"
+          ref="micAudioPlayer"
+          preload="auto"
+          class="mic-audio-track"
+        ></audio>
+
         <!-- Video Player -->
         <div
           v-if="!isDualStreamSelected"
@@ -247,6 +260,9 @@
             :playback-rate-options="playbackRateOptions"
             :show-speed-panel="showSpeedPanel"
             :show-more-panel="showDualMorePanel"
+            :has-mic-audio="micAudioUsable"
+            :show-audio-panel="showDualAudioPanel"
+            :audio-source="singleAudioSource"
             :is-fullscreen="isSingleFullscreen"
             :is-cinema-mode="isCinemaMode"
             :is-picture-in-picture="isPictureInPicture"
@@ -257,6 +273,8 @@
             @volume-input="applySingleVolume"
             @toggle-mute="toggleSingleMute"
             @toggle-speed-panel="toggleSpeedPanel"
+            @toggle-audio-panel="toggleDualAudioPanel"
+            @set-audio-source="setSingleAudio"
             @set-playback-rate="setPlaybackRateFromPanel"
             @toggle-fullscreen="toggleSingleFullscreen"
             @toggle-more-panel="toggleDualMorePanel"
@@ -424,6 +442,22 @@
                         <rect v-if="dualAudioSource !== 'camera'" x="1" y="5" width="15" height="14" rx="2"/>
                       </svg>
                       <span>{{ $t('playback.dual.cameraAudio') }}</span>
+                    </button>
+                    <button
+                      v-if="micAudioUsable"
+                      class="dual-popover-option"
+                      :class="{ active: dualAudioSource === 'mic' }"
+                      @click="setDualAudio('mic')"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polyline v-if="dualAudioSource === 'mic'" points="20,6 9,17 4,12"/>
+                        <template v-else>
+                          <rect x="9" y="2" width="6" height="11" rx="3"/>
+                          <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                          <line x1="12" y1="18" x2="12" y2="22"/>
+                        </template>
+                      </svg>
+                      <span>{{ $t('playback.dual.micAudio') }}</span>
                     </button>
                   </div>
                 </div>
@@ -786,6 +820,8 @@ slideExtraction.videoElementProvider.value = () => videoPlayerComposable.videoPl
 const videoPlayer = videoPlayerComposable.videoPlayer
 const cameraVideoPlayer = videoPlayerComposable.cameraVideoPlayer
 const screenVideoPlayer = videoPlayerComposable.screenVideoPlayer
+const micAudioPlayer = videoPlayerComposable.micAudioPlayer
+const singleAudioSource = videoPlayerComposable.singleAudioSource
 
 // Initialize post-processing composable
 const postProcessing = usePostProcessing({
@@ -886,6 +922,8 @@ const {
   hasDualStreams,
   currentStreamData,
   dualAudioSource,
+  hasMicAudio,
+  micAudioUsable,
   dualVolume,
   dualCurrentTime,
   dualDuration,
@@ -996,6 +1034,8 @@ const {
   toggleDualPlayback,
   seekDualStreams,
   setDualAudioSource,
+  setSingleAudioSource,
+  applySingleAudioState,
   setDualVolume,
   applyDualAudioState,
   onDualTimeUpdate,
@@ -1241,10 +1281,15 @@ const applySingleVolume = (value: number) => {
   const clamped = Math.min(1, Math.max(0, value))
   singleVolume.value = clamped
   if (clamped > 0) lastNonZeroVolume.value = clamped
-  const video = videoPlayer.value
-  if (video && !shouldVideoMute.value) {
-    video.volume = clamped
-  }
+  // Routing between the video's own track and the mic element belongs to the
+  // player composable; this only owns the slider's value.
+  applySingleAudioState(clamped)
+}
+
+const setSingleAudio = (source: 'video' | 'mic') => {
+  setSingleAudioSource(source)
+  applySingleAudioState(singleVolume.value)
+  showDualAudioPanel.value = false
 }
 
 const toggleSingleMute = () => {

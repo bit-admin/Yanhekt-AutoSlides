@@ -140,6 +140,12 @@
         />
       </div>
 
+      <!--
+        Classroom mic track. Outside the dual/single stages so switching modes
+        does not remount it and lose the play position.
+      -->
+      <audio v-if="hasMicAudio" :ref="setMicRef" preload="auto" class="mic-audio-track"></audio>
+
       <div v-if="isLoading" class="player-loading">
         <div class="spinner"></div>
       </div>
@@ -354,7 +360,7 @@
             </div>
 
             <!-- Dual audio source -->
-            <div v-if="isDualMode" class="dual-popover-anchor">
+            <div v-if="isDualMode || hasMicAudio" class="dual-popover-anchor">
               <button
                 class="dual-icon-button"
                 type="button"
@@ -368,21 +374,43 @@
                 </svg>
               </button>
               <div v-if="showAudioPanel" class="dual-popover dual-audio-popover">
+                <!-- In single mode there is no screen/camera choice, so the
+                     video's own track is offered as one option. -->
+                <template v-if="isDualMode">
+                  <button
+                    type="button"
+                    class="dual-popover-option"
+                    :class="{ active: dualAudioSource === 'screen' }"
+                    @click="setAudio('screen')"
+                  >
+                    <span>{{ $t('playback.dual.screenAudio') }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="dual-popover-option"
+                    :class="{ active: dualAudioSource === 'camera' }"
+                    @click="setAudio('camera')"
+                  >
+                    <span>{{ $t('playback.dual.cameraAudio') }}</span>
+                  </button>
+                </template>
                 <button
+                  v-else
                   type="button"
                   class="dual-popover-option"
-                  :class="{ active: dualAudioSource === 'screen' }"
-                  @click="setAudio('screen')"
+                  :class="{ active: dualAudioSource !== 'mic' }"
+                  @click="setAudio(streamMode === 'camera' ? 'camera' : 'screen')"
                 >
-                  <span>{{ $t('playback.dual.screenAudio') }}</span>
+                  <span>{{ $t('playback.dual.streamAudio') }}</span>
                 </button>
                 <button
+                  v-if="hasMicAudio"
                   type="button"
                   class="dual-popover-option"
-                  :class="{ active: dualAudioSource === 'camera' }"
-                  @click="setAudio('camera')"
+                  :class="{ active: dualAudioSource === 'mic' }"
+                  @click="setAudio('mic')"
                 >
-                  <span>{{ $t('playback.dual.cameraAudio') }}</span>
+                  <span>{{ $t('playback.dual.micAudio') }}</span>
                 </button>
               </div>
             </div>
@@ -457,7 +485,7 @@ import {
   type LocalStreamMode,
 } from '@features/lectures/libraryModel'
 import { formatEpisodeToken } from '@common/lectureVideoNaming'
-import { useLocalLecturePlayer } from '@features/lectures/useLocalLecturePlayer'
+import { useLocalLecturePlayer, type DualAudioSource } from '@features/lectures/useLocalLecturePlayer'
 import { useLectureSlideChapters } from '@features/lectures/useLectureSlideChapters'
 import { navigationStore } from '@features/course/navigationStore'
 import { tabStore } from '@features/course/tabStore'
@@ -499,6 +527,8 @@ const {
   bindScreenEl,
   bindCameraEl,
   bindSingleEl,
+  bindMicEl,
+  hasMicAudio,
   open,
   syncSession,
   setStreamMode,
@@ -562,6 +592,9 @@ const setCameraRef = (el: unknown) => {
 }
 const setSingleRef = (el: unknown) => {
   bindSingleEl((el as HTMLVideoElement | null) ?? null)
+}
+const setMicRef = (el: unknown) => {
+  bindMicEl((el as HTMLAudioElement | null) ?? null)
 }
 
 const seToken = computed(() => {
@@ -651,7 +684,7 @@ const toggleStreamPanel = () => {
   showAudioPanel.value = false
   showSpeedPanel.value = false
 }
-const setAudio = (source: 'screen' | 'camera') => {
+const setAudio = (source: DualAudioSource) => {
   setDualAudioSource(source)
   showAudioPanel.value = false
 }

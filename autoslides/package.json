@@ -49,12 +49,13 @@
     "typescript-eslint": "^8.48.1",
     "vite": "^7.2.6",
     "vite-plugin-static-copy": "^4.1.0",
-    "vitest": "^4.1.8",
+    "vitest": "^4.1.11",
     "vue-tsc": "^3.2.6"
   },
   "overrides": {
     "tar": "^7.5.11",
     "tmp": "^0.2.4",
+    "js-yaml": "^4.3.2",
     "extract-zip": "$extract-zip",
     "image-size": "$image-size"
   },

@@ -18,6 +18,10 @@ export interface DualStreamPlayerDeps {
   mode: 'live' | 'recorded'
   cameraVideoPlayer: Ref<HTMLVideoElement | null>
   screenVideoPlayer: Ref<HTMLVideoElement | null>
+  /** Classroom mic stem, synced to the master video. Null until the element mounts. */
+  micAudioPlayer: Ref<HTMLAudioElement | null>
+  /** Proxied mic URL, or null when this lecture has none. */
+  micAudioUrl: ComputedRef<string | null>
   currentPlaybackRate: Ref<number>
   shouldVideoMute: ComputedRef<boolean>
   isVideoMuted: Ref<boolean>
@@ -69,6 +73,8 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     mode,
     cameraVideoPlayer,
     screenVideoPlayer,
+    micAudioPlayer,
+    micAudioUrl,
     currentPlaybackRate,
     shouldVideoMute,
     isVideoMuted,
@@ -119,6 +125,8 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
       screenHls.value.destroy()
       screenHls.value = null
     }
+
+    detachMicAudio()
   }
 
   const applyDualAudioState = () => {
@@ -128,6 +136,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     try {
       const cameraVideo = cameraVideoPlayer.value
       const screenVideo = screenVideoPlayer.value
+      const micAudio = micAudioPlayer.value
 
       if (shouldVideoMute.value) {
         if (cameraVideo) {
@@ -139,6 +148,13 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
           screenVideo.volume = 0
           screenVideo.muted = false
           screenVideo.setAttribute('data-muted-by-app', 'true')
+        }
+        // The app-wide mute policy outranks the source choice — the mic is
+        // another audible track, so it obeys it too.
+        if (micAudio) {
+          micAudio.volume = 0
+          micAudio.muted = false
+          micAudio.setAttribute('data-muted-by-app', 'true')
         }
         isVideoMuted.value = true
         return
@@ -154,6 +170,12 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
         screenVideo.volume = dualAudioSource.value === 'screen' ? dualVolume.value : 0
         screenVideo.muted = false
         screenVideo.removeAttribute('data-muted-by-app')
+      }
+
+      if (micAudio) {
+        micAudio.volume = dualAudioSource.value === 'mic' ? dualVolume.value : 0
+        micAudio.muted = false
+        micAudio.removeAttribute('data-muted-by-app')
       }
 
       isVideoMuted.value = false
@@ -206,8 +228,15 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
 
     applyDualAudioState()
 
-    // Screen is the master clock (see getDualMasterVideo).
+    // Screen is the master clock (see getDualMasterVideo). The mic stem is a
+    // second follower — never a master: it is ~1s shorter than the video, so
+    // driving the timeline from it would truncate the seek bar.
     syncFollower(screenVideo, cameraVideo)
+    const micAudio = micAudioPlayer.value
+    if (micAudio) {
+      micAudio.playbackRate = screenVideo.playbackRate
+      syncFollower(screenVideo, micAudio)
+    }
 
     updateDualPlaybackState()
   }
@@ -269,6 +298,40 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     setupDualHlsErrorHandling(hlsInstance, video, label)
   }
 
+  /**
+   * Point the mic element at the proxied `.aac`.
+   *
+   * No hls.js: this is a single progressive file with Range support, so a plain
+   * `src` is both sufficient and cheaper. Errors are swallowed to a warning —
+   * a mic track that fails to load must never take down video playback, since
+   * the video's own audio is still there.
+   */
+  const attachMicAudio = (seekToTime?: number, shouldAutoPlay?: boolean) => {
+    const micAudio = micAudioPlayer.value
+    const url = micAudioUrl.value
+    if (!micAudio || !url) return
+
+    if (micAudio.src !== url) {
+      micAudio.src = url
+      micAudio.preload = 'auto'
+    }
+    if (seekToTime !== undefined && Number.isFinite(seekToTime)) {
+      micAudio.currentTime = seekToTime
+    }
+    applyDualAudioState()
+    if (shouldAutoPlay !== false) {
+      micAudio.play().catch(() => { /* Ignore mic autoplay error */ })
+    }
+  }
+
+  const detachMicAudio = () => {
+    const micAudio = micAudioPlayer.value
+    if (!micAudio) return
+    micAudio.pause()
+    micAudio.removeAttribute('src')
+    micAudio.load()
+  }
+
   const loadDualVideoSources = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
     if (overrides.playbackDemo) return // demo posters only — never load real dual sources
     const cameraVideo = cameraVideoPlayer.value
@@ -290,6 +353,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
 
       attachDualHls(cameraVideo, cameraStream, cameraHls, 'camera', seekToTime, shouldAutoPlay)
       attachDualHls(screenVideo, screenStream, screenHls, 'screen', seekToTime, shouldAutoPlay)
+      attachMicAudio(seekToTime, shouldAutoPlay)
       startDualSync()
     } catch (err: unknown) {
       log.error('Failed to load dual video sources:', err)
@@ -308,7 +372,12 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     applyDualAudioState()
 
     try {
-      await Promise.allSettled([cameraVideo.play(), screenVideo.play()])
+      const micAudio = micAudioPlayer.value
+      await Promise.allSettled([
+        cameraVideo.play(),
+        screenVideo.play(),
+        ...(micAudio ? [micAudio.play()] : []),
+      ])
       isPlaying.value = true
       startDualSync()
     } catch (playError) {
@@ -319,6 +388,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
   const pauseDualStreams = () => {
     cameraVideoPlayer.value?.pause()
     screenVideoPlayer.value?.pause()
+    micAudioPlayer.value?.pause()
     isPlaying.value = false
   }
 
@@ -343,6 +413,9 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     }
     if (cameraVideoPlayer.value) {
       cameraVideoPlayer.value.currentTime = boundedTime
+    }
+    if (micAudioPlayer.value) {
+      micAudioPlayer.value.currentTime = boundedTime
     }
 
     dualCurrentTime.value = boundedTime

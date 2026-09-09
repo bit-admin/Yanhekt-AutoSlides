@@ -20,6 +20,7 @@ export interface UseGeneralSettingsOptions {
   parallelTasks: Ref<number>
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
+  preferMicAudioByDefault: Ref<boolean>
   preventSystemSleep: Ref<boolean>
   developerMode: Ref<boolean>
 }
@@ -41,6 +42,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     parallelTasks,
     maxManualTabs,
     showMorePlaybackSpeed,
+    preferMicAudioByDefault,
     preventSystemSleep,
     developerMode
   } = options
@@ -60,6 +62,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempParallelTasks = ref(2)
   const tempMaxManualTabs = ref(3)
   const tempShowMorePlaybackSpeed = ref(false)
+  const tempPreferMicAudioByDefault = ref(false)
   const tempPreventSystemSleep = ref(true)
   const tempDeveloperMode = ref(false)
 
@@ -79,6 +82,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempParallelTasks.value = parallelTasks.value
     tempMaxManualTabs.value = maxManualTabs.value
     tempShowMorePlaybackSpeed.value = showMorePlaybackSpeed.value
+    tempPreferMicAudioByDefault.value = preferMicAudioByDefault.value
     tempPreventSystemSleep.value = preventSystemSleep.value
     tempDeveloperMode.value = developerMode.value
   }
@@ -133,6 +137,13 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     const maxTabsResult = await window.electronAPI.config.setMaxManualTabs(tempMaxManualTabs.value)
     maxManualTabs.value = maxTabsResult.maxManualTabs
 
+    if (tempPreferMicAudioByDefault.value !== preferMicAudioByDefault.value) {
+      const micResult = await window.electronAPI.config.setPreferMicAudioByDefault(tempPreferMicAudioByDefault.value)
+      preferMicAudioByDefault.value = micResult.preferMicAudioByDefault ?? false
+      // No broadcast event needed: the default is only read when a playback tab
+      // opens, and configStore is already kept in sync by config:onUpdate.
+    }
+
     if (tempShowMorePlaybackSpeed.value !== showMorePlaybackSpeed.value) {
       const showMoreResult = await window.electronAPI.config.setShowMorePlaybackSpeed(tempShowMorePlaybackSpeed.value)
       showMorePlaybackSpeed.value = showMoreResult.showMorePlaybackSpeed ?? false
@@ -178,6 +189,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempParallelTasks,
     tempMaxManualTabs,
     tempShowMorePlaybackSpeed,
+    tempPreferMicAudioByDefault,
     tempPreventSystemSleep,
     tempDeveloperMode,
 

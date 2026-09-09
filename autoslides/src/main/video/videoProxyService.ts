@@ -40,6 +40,15 @@ export interface VideoPlaybackUrls {
   title: string;
   duration?: string;
   streams: { [key: string]: VideoStream };
+  /**
+   * Proxied classroom mic track, when this lecture has one.
+   *
+   * A sibling field rather than a `streams` entry on purpose: `streams` is
+   * enumerated as the list of *video* streams — the stream picker renders every
+   * key as a selectable option, and the task queue scans it to find the screen
+   * recording. A mic entry there would show up as an unplayable video choice.
+   */
+  audioUrl?: string;
 }
 
 export interface TokenCache {
@@ -66,6 +75,8 @@ export interface RecordedSessionInput {
   duration?: string | number;
   main_url?: string;
   vga_url?: string;
+  /** Unsigned SubAudio `.aac`, resolved by the caller via GET /v1/video. */
+  audio_url?: string;
 }
 
 export class VideoProxyService {
@@ -276,6 +287,13 @@ export class VideoProxyService {
         };
       }
 
+      // The mic sidecar is unsigned, so it needs no ProxyAuth — it only rides
+      // the proxy for the intranet rewrite.
+      if (session.audio_url) {
+        const fixedAudioUrl = this.fixUrlEscaping(session.audio_url);
+        result.audioUrl = `http://localhost:${proxyPort}/audio?originalUrl=${encodeURIComponent(fixedAudioUrl)}`;
+      }
+
       return result;
     } catch (error) {
       log.error('Failed to get video playback URLs:', error);
@@ -409,6 +427,11 @@ export class VideoProxyService {
           } else if (pathname === '/live') {
             // Live stream m3u8 request
             await this.handleLiveM3u8Request(req, res, parsedUrl);
+          } else if (pathname === '/audio' && parsedUrl.query.originalUrl) {
+            // Classroom mic sidecar. Guarded on originalUrl so a bare /audio
+            // still falls through to the TS handler, whose fallback branch
+            // treats any unmatched path as a segment filename.
+            await this.handleAudioRequest(req, res, parsedUrl);
           } else {
             // Direct TS file request (from HLS.js)
             await this.handleTsRequest(req, res, parsedUrl);
@@ -561,6 +584,80 @@ export class VideoProxyService {
    * Pipe a successful upstream TS response to the client, or surface a non-200
    * status as a plain error (never pipe an error body as if it were segment data).
    */
+  /**
+   * Serve the classroom mic sidecar.
+   *
+   * Nothing is signed here: unlike the HLS playlists, the `.aac` is unsigned
+   * and world-readable, so it needs no video token, no path encryption and no
+   * user Bearer (which must never reach the CDN anyway).
+   *
+   * It still goes through the proxy rather than straight from the renderer for
+   * one reason: intranet mode. The file sits on the same cvideo host as the
+   * video, and only the main process can rewrite the host to a campus IP while
+   * preserving the original Host header.
+   */
+  private async handleAudioRequest(req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
+    const { originalUrl } = parsedUrl.query;
+
+    if (!originalUrl || typeof originalUrl !== 'string') {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Missing originalUrl parameter for audio');
+      return;
+    }
+
+    const audioUrl = this.fixUrlEscaping(originalUrl);
+    const headers: Record<string, string> = {
+      ...this.BASE_HEADERS,
+      "Host": this.extractHostFromUrl(audioUrl)
+    };
+
+    // Forward the client's Range verbatim — this is a ~100MB progressive file
+    // and the <audio> element seeks by asking for byte ranges.
+    if (req.headers.range) {
+      headers['Range'] = req.headers.range;
+    }
+
+    // Same shape as every other proxied request: rewrite for intranet, then
+    // re-attach the real hostname so the upstream vhost still matches.
+    const requestUrl = this.intranetMapping.rewriteUrl(audioUrl);
+    if (requestUrl !== audioUrl) {
+      headers['Host'] = new URL(audioUrl).hostname;
+    }
+
+    const response = await axios.get(
+      requestUrl,
+      buildAxiosConfig(this.intranetMapping, this.resolveAgents(), headers, {
+        timeout: 30000,
+        responseType: 'stream',
+      }),
+    );
+
+    // 206 is the normal answer to a Range request, so this cannot reuse
+    // pipeUpstream, which rejects anything that is not a plain 200.
+    if (response.status !== 200 && response.status !== 206) {
+      this.destroyStreamBody(response, 'stream');
+      res.writeHead(response.status, { 'Content-Type': 'text/plain' });
+      res.end(`Audio request failed with status ${response.status}`);
+      return;
+    }
+
+    Object.keys(response.headers).forEach(key => {
+      if (shouldForwardUpstreamHeader(key)) {
+        res.setHeader(key, response.headers[key] as string);
+      }
+    });
+    // Upstream sends application/octet-stream; name it so the renderer does not
+    // have to rely on content sniffing.
+    res.setHeader('Content-Type', 'audio/aac');
+    // Same reasoning as the HLS segments, only more so: caching a ~100MB file
+    // per lecture into userData/Cache is not something we want, and Range makes
+    // re-reads cheap anyway.
+    applyNoStoreHeaders(res);
+
+    res.writeHead(response.status);
+    response.data.pipe(res);
+  }
+
   private pipeUpstream(res: http.ServerResponse, response: AxiosResponse): void {
     if (response.status !== 200) {
       this.destroyStreamBody(response, 'stream');

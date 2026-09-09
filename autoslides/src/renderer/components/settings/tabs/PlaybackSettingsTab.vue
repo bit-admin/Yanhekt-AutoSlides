@@ -236,6 +236,19 @@
       </select>
     </div>
     <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.preferMicAudio') }}</label>
+      <div class="setting-description">{{ $t('advanced.preferMicAudioDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            v-model="tempPreferMicAudioByDefault"
+          />
+          {{ $t('advanced.enablePreferMicAudio') }}
+        </label>
+      </div>
+    </div>
+    <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.showMorePlaybackSpeed') }}</label>
       <div class="setting-description">{{ $t('advanced.showMorePlaybackSpeedDescription') }}</div>
       <div class="prevent-sleep-control">
@@ -313,6 +326,7 @@ const videoTokenRefreshOptions = computed(() => [
 
 const {
   tempShowMorePlaybackSpeed,
+  tempPreferMicAudioByDefault,
   tempPreventSystemSleep,
   tempMaxConcurrentDownloads,
   tempDownloadMaxWorkers,

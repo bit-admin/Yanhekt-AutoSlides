@@ -7,6 +7,7 @@ import { computed, onBeforeUnmount, ref, shallowRef, type Ref } from 'vue'
 import Hls, { Events } from 'hls.js'
 import { toAsmediaUrl } from '@common/asmediaUrl'
 import { tokenManager } from '@shared/services/authService'
+import { ApiClient } from '@shared/services/apiClient'
 import { getHlsConfig } from '@features/video/hlsConfig'
 import { setupDualHlsErrorHandler } from '@features/video/useVideoErrorRecovery'
 import { createMediaSyncLoop, syncFollower } from '@features/video/mediaSync'
@@ -24,9 +25,12 @@ import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LocalLecturePlayer')
 
+const apiClient = new ApiClient()
+
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3]
 
-export type DualAudioSource = 'screen' | 'camera'
+/** `mic` is a local `.aac` (or its online counterpart) synced to the video. */
+export type DualAudioSource = 'screen' | 'camera' | 'mic'
 
 function findStreamUrl(
   streams: { [key: string]: { type: string; url: string } },
@@ -40,6 +44,8 @@ export function useLocalLecturePlayer() {
   const screenVideoEl = shallowRef<HTMLVideoElement | null>(null)
   const cameraVideoEl = shallowRef<HTMLVideoElement | null>(null)
   const singleVideoEl = shallowRef<HTMLVideoElement | null>(null)
+  /** Classroom mic track — always a follower, never the clock master. */
+  const micAudioEl = shallowRef<HTMLAudioElement | null>(null)
 
   const session = ref<LibrarySession | null>(null)
   const streamMode = ref<LocalStreamMode>('screen')
@@ -51,6 +57,8 @@ export function useLocalLecturePlayer() {
   const isMuted = ref(false)
   const playbackRate = ref(1)
   const dualAudioSource = ref<DualAudioSource>('screen')
+  /** Proxied mic URL for a session with no local `.aac`. Null when unresolved. */
+  const onlineMicUrl = ref<string | null>(null)
   const isOrderSwapped = ref(false)
   const errorMessage = ref('')
   /** Paths that failed to decode (for Open Externally). */
@@ -102,6 +110,9 @@ export function useLocalLecturePlayer() {
   }
   const bindSingleEl = (el: HTMLVideoElement | null) => {
     singleVideoEl.value = el
+  }
+  const bindMicEl = (el: HTMLAudioElement | null) => {
+    micAudioEl.value = el
   }
 
   const stopSync = () => {
@@ -163,7 +174,7 @@ export function useLocalLecturePlayer() {
     }
   }
 
-  const clearVideo = (video: HTMLVideoElement | null) => {
+  const clearVideo = (video: HTMLMediaElement | null) => {
     if (!video) return
     try {
       video.pause()
@@ -212,6 +223,8 @@ export function useLocalLecturePlayer() {
     clearVideo(screenVideoEl.value)
     clearVideo(cameraVideoEl.value)
     clearVideo(singleVideoEl.value)
+    clearVideo(micAudioEl.value)
+    onlineMicUrl.value = null
     isPlaying.value = false
     isLoading.value = false
     currentTime.value = 0
@@ -244,26 +257,35 @@ export function useLocalLecturePlayer() {
     const screen = screenVideoEl.value
     const camera = cameraVideoEl.value
     const single = singleVideoEl.value
+    const mic = micAudioEl.value
     const vol = isMuted.value ? 0 : Math.min(1, Math.max(0, volume.value))
+    const useMic = dualAudioSource.value === 'mic' && hasMicAudio.value
 
     if (isDualMode.value) {
       if (screen) {
         screen.muted = false
-        screen.volume = dualAudioSource.value === 'screen' ? vol : 0
+        screen.volume = !useMic && dualAudioSource.value === 'screen' ? vol : 0
       }
       if (camera) {
         camera.muted = false
-        camera.volume = dualAudioSource.value === 'camera' ? vol : 0
+        camera.volume = !useMic && dualAudioSource.value === 'camera' ? vol : 0
       }
     } else if (single) {
       single.muted = false
-      single.volume = vol
+      // Single mode has no screen/camera choice, so anything but mic means the
+      // video's own audio.
+      single.volume = useMic ? 0 : vol
+    }
+
+    if (mic) {
+      mic.muted = false
+      mic.volume = useMic ? vol : 0
     }
   }
 
   const applyRate = () => {
     const rate = playbackRate.value
-    for (const v of [screenVideoEl.value, cameraVideoEl.value, singleVideoEl.value]) {
+    for (const v of [screenVideoEl.value, cameraVideoEl.value, singleVideoEl.value, micAudioEl.value]) {
       if (v) v.playbackRate = rate
     }
   }
@@ -285,18 +307,27 @@ export function useLocalLecturePlayer() {
 
   const onPlayStateChanged = () => {
     updateClock()
-    if (isPlaying.value && isDualMode.value) {
+    if (isPlaying.value && (isDualMode.value || hasMicAudio.value)) {
       startDualSync()
     }
   }
 
+  /**
+   * One tick for both modes. In single mode there is no slave video, but the
+   * mic still has to be dragged along — which is why this runs whenever a mic
+   * track is attached, not only in dual mode.
+   */
   const syncDual = () => {
     const master = masterVideo()
+    if (!master) return
+
     const slave = slaveVideo()
-    if (!master || !slave) return
+    const mic = micAudioEl.value
+    if (!slave && !mic) return
 
     applyRate()
-    syncFollower(master, slave)
+    if (slave) syncFollower(master, slave)
+    if (mic) syncFollower(master, mic)
     applyAudio()
   }
 
@@ -431,6 +462,76 @@ export function useLocalLecturePlayer() {
     }
   }
 
+  /**
+   * Where the mic track comes from: the local `.aac` when one is on disk,
+   * otherwise the proxied online URL once resolved.
+   */
+  const micSrc = computed(() => {
+    const local = session.value?.audio
+    if (local) return toAsmediaUrl(local.path)
+    return onlineMicUrl.value
+  })
+
+  const hasMicAudio = computed(() => Boolean(micSrc.value))
+
+  /**
+   * Resolve the online mic track for a session with no local `.aac`.
+   *
+   * Registers a proxy client even when both videos are local: the mic still
+   * streams through the local proxy (for the intranet rewrite), and the proxy
+   * shuts itself down as soon as its last client unregisters — so without this
+   * the audio URL would 404 the moment a fully-local session released it.
+   */
+  const resolveOnlineMicUrl = async (sess: LibrarySession): Promise<void> => {
+    onlineMicUrl.value = null
+    if (sess.audio || !sess.videoId) return
+
+    const token = tokenManager.getToken()
+    if (!token) return
+
+    try {
+      const audioUrl = await apiClient.getMicAudioUrl(String(sess.videoId), token)
+      if (!audioUrl) return
+
+      await ensureProxyClient()
+      const payload = JSON.parse(JSON.stringify({
+        session_id: sess.sessionId,
+        video_id: sess.videoId,
+        title: sess.title,
+        duration: sess.duration,
+        audio_url: audioUrl,
+      }))
+      const result = await window.electronAPI.video.getVideoPlaybackUrls(payload, token)
+      onlineMicUrl.value = result.audioUrl || null
+    } catch (error) {
+      // A missing mic track must never break video playback.
+      log.warn('Failed to resolve online mic audio', error)
+    }
+  }
+
+  const attachMicAudio = (seekTo?: number, autoplay?: boolean) => {
+    const mic = micAudioEl.value
+    const url = micSrc.value
+    if (!mic || !url) return
+
+    if (mic.src !== url) {
+      mic.src = url
+      mic.preload = 'auto'
+    }
+    if (seekTo && seekTo > 0) {
+      try {
+        mic.currentTime = seekTo
+      } catch {
+        /* seek after metadata */
+      }
+    }
+    applyAudio()
+    applyRate()
+    if (autoplay) {
+      void mic.play().catch(() => undefined)
+    }
+  }
+
   const attachSingle = async (autoplay: boolean, seekTo?: number) => {
     const sess = session.value
     const video = singleVideoEl.value
@@ -452,10 +553,12 @@ export function useLocalLecturePlayer() {
           /* seek after metadata */
         }
       }
+      attachMicAudio(seekTo, autoplay)
       if (autoplay) {
         await video.play().catch(() => undefined)
         isPlaying.value = !video.paused
       }
+      if (hasMicAudio.value) startDualSync()
       return
     }
 
@@ -472,6 +575,8 @@ export function useLocalLecturePlayer() {
     attachOnlineHls(video, url, kind, seekTo, autoplay, 'single')
     applyAudio()
     applyRate()
+    attachMicAudio(seekTo, autoplay)
+    if (hasMicAudio.value) startDualSync()
   }
 
   const attachSources = async (autoplay: boolean, seekTo?: number, keepError = false) => {
@@ -501,7 +606,14 @@ export function useLocalLecturePlayer() {
         ? !sess.camera
         : !sess.screen
 
-    if (!needsOnline) {
+    // Resolve before the release decision below, which reads onlineMicUrl.
+    if (!overrides.playbackDemo) {
+      await resolveOnlineMicUrl(sess)
+    }
+
+    // Keep the proxy alive when the mic streams online, even if both videos
+    // are local — the mic rides the same proxy.
+    if (!needsOnline && !onlineMicUrl.value) {
       await releaseProxyClient()
     }
 
@@ -565,6 +677,7 @@ export function useLocalLecturePlayer() {
         }
         applyAudio()
         applyRate()
+        attachMicAudio(seekTo, autoplay)
         startDualSync()
         if (autoplay) {
           const master = masterVideo()
@@ -624,6 +737,13 @@ export function useLocalLecturePlayer() {
   }
 
   const setDualAudioForMode = (mode: LocalStreamMode, sess: LibrarySession) => {
+    // A mic file on disk was downloaded on purpose, so it wins by default —
+    // deliberately NOT gated on the app-wide "mic by default" setting, which
+    // governs online playback only. An online-only mic does not auto-select.
+    if (sess.audio) {
+      dualAudioSource.value = 'mic'
+      return
+    }
     if (mode === 'camera') {
       dualAudioSource.value = 'camera'
       return
@@ -656,14 +776,20 @@ export function useLocalLecturePlayer() {
       return
     }
     applyAudio()
+    const mic = micAudioEl.value
     if (isDualMode.value) {
       await Promise.allSettled([
         screenVideoEl.value?.play() ?? Promise.resolve(),
         cameraVideoEl.value?.play() ?? Promise.resolve(),
+        mic?.play() ?? Promise.resolve(),
       ])
       startDualSync()
     } else {
       await singleVideoEl.value?.play().catch(() => undefined)
+      if (mic) {
+        void mic.play().catch(() => undefined)
+        startDualSync()
+      }
     }
     updateClock()
   }
@@ -674,6 +800,7 @@ export function useLocalLecturePlayer() {
     screenVideoEl.value?.pause()
     cameraVideoEl.value?.pause()
     singleVideoEl.value?.pause()
+    micAudioEl.value?.pause()
     isPlaying.value = false
   }
 
@@ -709,7 +836,7 @@ export function useLocalLecturePlayer() {
     // otherwise a lagging slave can yank the master back via sync.
     stopSync()
 
-    const applySeek = (video: HTMLVideoElement | null) => {
+    const applySeek = (video: HTMLMediaElement | null) => {
       if (!video) return
       // HAVE_METADATA is enough — do NOT clamp to video.seekable.
       // Progressive download often reports seekable as only the buffered prefix
@@ -727,12 +854,13 @@ export function useLocalLecturePlayer() {
       applySeek(slaveVideo())
       if (isPlaying.value) {
         setTimeout(() => {
-          if (isPlaying.value && isDualMode.value) startDualSync()
+          if (isPlaying.value && (isDualMode.value || hasMicAudio.value)) startDualSync()
         }, 250)
       }
     } else {
       applySeek(singleVideoEl.value)
     }
+    applySeek(micAudioEl.value)
 
     // Optimistic UI — timeupdate will correct once the Range body arrives.
     currentTime.value = bounded
@@ -781,6 +909,7 @@ export function useLocalLecturePlayer() {
     playbackRate,
     playbackRateOptions,
     dualAudioSource,
+    hasMicAudio,
     isOrderSwapped,
     errorMessage,
     failedPaths,
@@ -798,6 +927,7 @@ export function useLocalLecturePlayer() {
     bindScreenEl,
     bindCameraEl,
     bindSingleEl,
+    bindMicEl,
     open,
     syncSession,
     setStreamMode,

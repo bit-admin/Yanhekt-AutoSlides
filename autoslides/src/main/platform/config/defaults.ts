@@ -175,6 +175,7 @@ export const defaultConfig: AppConfig = {
   parallelTasks: 2,
   maxManualTabs: 3,
   showMorePlaybackSpeed: false,
+  preferMicAudioByDefault: false,
   autoPostProcessing: true,
   autoPostProcessingLive: true,
   enableAIFiltering: true,

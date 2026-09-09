@@ -190,6 +190,9 @@ export interface AppConfig {
   // How many playback tabs the user may open manually (default 3). Same caps.
   maxManualTabs: number;
   showMorePlaybackSpeed: boolean;
+  // Select Yanhekt's classroom mic track as the audio source when a lecture has
+  // one. Off by default: the mic is silent whenever the teacher did not wear it.
+  preferMicAudioByDefault: boolean;
   autoPostProcessing: boolean;
   autoPostProcessingLive: boolean;
   enableAIFiltering: boolean;

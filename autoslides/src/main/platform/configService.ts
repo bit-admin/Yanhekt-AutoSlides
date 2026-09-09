@@ -159,6 +159,7 @@ export class ConfigService {
       parallelTasks: this.store.get('parallelTasks') ?? 2,
       maxManualTabs: this.store.get('maxManualTabs') ?? 3,
       showMorePlaybackSpeed: this.store.get('showMorePlaybackSpeed') ?? false,
+      preferMicAudioByDefault: this.store.get('preferMicAudioByDefault') ?? false,
       autoPostProcessing: this.store.get('autoPostProcessing'),
       autoPostProcessingLive: this.store.get('autoPostProcessingLive') ?? true,
       enableAIFiltering: this.store.get('enableAIFiltering') ?? true,
@@ -433,6 +434,10 @@ export class ConfigService {
 
   setShowMorePlaybackSpeed(enabled: boolean): void {
     this.store.set('showMorePlaybackSpeed', enabled);
+  }
+
+  setPreferMicAudioByDefault(enabled: boolean): void {
+    this.store.set('preferMicAudioByDefault', enabled);
   }
 
   getDeveloperMode(): boolean {

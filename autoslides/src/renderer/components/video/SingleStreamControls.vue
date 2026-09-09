@@ -62,6 +62,57 @@
           />
         </div>
 
+        <!--
+          Audio source. Single-stream offers two options — the stream's own
+          audio and the classroom mic — so it only appears when a mic track
+          exists. Mirrors the dual bar's popover.
+        -->
+        <div v-if="hasMicAudio" class="dual-popover-anchor">
+          <button
+            class="dual-icon-button"
+            @click="emit('toggle-audio-panel')"
+            :disabled="shouldDisableControls || shouldVideoMute"
+            :title="$t('playback.dual.audioSource')"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M4 14v-2a8 8 0 0 1 16 0v2"/>
+              <rect x="3" y="14" width="4" height="6" rx="1.5"/>
+              <rect x="17" y="14" width="4" height="6" rx="1.5"/>
+            </svg>
+          </button>
+          <div v-if="showAudioPanel" class="dual-popover dual-audio-popover">
+            <button
+              class="dual-popover-option"
+              :class="{ active: audioSource === 'video' }"
+              @click="emit('set-audio-source', 'video')"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polyline v-if="audioSource === 'video'" points="20,6 9,17 4,12"/>
+                <template v-else>
+                  <rect x="3" y="5" width="18" height="14" rx="2"/>
+                  <path d="M10 9l5 3-5 3V9z"/>
+                </template>
+              </svg>
+              <span>{{ $t('playback.dual.streamAudio') }}</span>
+            </button>
+            <button
+              class="dual-popover-option"
+              :class="{ active: audioSource === 'mic' }"
+              @click="emit('set-audio-source', 'mic')"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polyline v-if="audioSource === 'mic'" points="20,6 9,17 4,12"/>
+                <template v-else>
+                  <rect x="9" y="2" width="6" height="11" rx="3"/>
+                  <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                  <line x1="12" y1="18" x2="12" y2="22"/>
+                </template>
+              </svg>
+              <span>{{ $t('playback.dual.micAudio') }}</span>
+            </button>
+          </div>
+        </div>
+
         <div v-if="mode === 'recorded'" class="dual-popover-anchor">
           <button
             class="dual-speed-button"
@@ -179,6 +230,10 @@ defineProps<{
   playbackRateOptions: number[]
   showSpeedPanel: boolean
   showMorePanel: boolean
+  /** Whether this lecture has a usable classroom mic track. */
+  hasMicAudio: boolean
+  showAudioPanel: boolean
+  audioSource: 'video' | 'mic'
   isFullscreen: boolean
   isCinemaMode: boolean
   isPictureInPicture: boolean
@@ -192,6 +247,8 @@ const emit = defineEmits<{
   (e: 'volume-input', value: number): void
   (e: 'toggle-mute'): void
   (e: 'toggle-speed-panel'): void
+  (e: 'toggle-audio-panel'): void
+  (e: 'set-audio-source', source: 'video' | 'mic'): void
   (e: 'set-playback-rate', rate: number): void
   (e: 'toggle-fullscreen'): void
   (e: 'toggle-more-panel'): void
