@@ -42,6 +42,8 @@ export interface UseAdvancedSettingsOptions {
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
   preferMicAudioByDefault: Ref<boolean>
+  resumeFromServerProgress: Ref<boolean>
+  resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>

@@ -364,6 +364,8 @@ export interface ElectronAPI {
     setPreviewSeekSeconds: (seconds: number) => Promise<AppConfig>;
     setShowMorePlaybackSpeed: (enabled: boolean) => Promise<AppConfig>;
     setPreferMicAudioByDefault: (enabled: boolean) => Promise<AppConfig>;
+    setResumeFromServerProgress: (enabled: boolean) => Promise<AppConfig>;
+    setResumeFromServerProgressLectures: (enabled: boolean) => Promise<AppConfig>;
     setDeveloperMode: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;
@@ -496,6 +498,10 @@ export interface ElectronAPI {
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
     /** Mic-audio URL for one video id (GET /v1/video). Absent when the room recorded no mic. */
     getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;
+    /** Raw `user_progress` off GET /v1/course/session — `[]`, an object, or null. Parse with `@common/watchProgress`. */
+    getSessionProgress: (sessionId: string, token: string) => Promise<unknown>;
+    /** PUT the playhead for a recorded session (5-second grid, like the official player). */
+    reportSessionProgress: (sessionId: string, seconds: number, token: string) => Promise<void>;
     getAvailableSemesters: () => Promise<SemesterOption[]>;
   };
   intranet: {

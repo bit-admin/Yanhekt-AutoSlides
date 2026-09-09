@@ -572,6 +572,11 @@ export class ApiClient {
     }
   }
 
+  /** Session detail *by id* — shared by {@link getSessionById} and {@link getSessionProgress}. */
+  private sessionDetailUrl(sessionId: string): string {
+    return `https://cbiz.yanhekt.cn/v1/course/session?session_id=${encodeURIComponent(sessionId)}&with_video=true`;
+  }
+
   /**
    * Unused by the Electron app. Documented so the two session endpoints stay distinct.
    *
@@ -585,8 +590,62 @@ export class ApiClient {
    * those via `GET /v1/video?id=` using `video_ids`.
    */
   async getSessionById(sessionId: string, token: string): Promise<unknown> {
-    const url = `https://cbiz.yanhekt.cn/v1/course/session?session_id=${encodeURIComponent(sessionId)}&with_video=true`;
-    return this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
+    return this.makeRequest('GET', this.sessionDetailUrl(sessionId), token, undefined, { allowAnonymous: true });
+  }
+
+  /**
+   * This account's saved watch position for one recorded session.
+   *
+   * Same hop as {@link getSessionById}, but **never anonymous**: `user_progress`
+   * is the one field on it that only exists for the account holding the Bearer,
+   * so Settings → Network "prefer anonymous requests" must not reach it. The raw
+   * field is returned untouched — it is `[]` for a session this account has never
+   * played and an object afterwards; `@common/watchProgress` does the parsing.
+   */
+  async getSessionProgress(sessionId: string, token: string): Promise<unknown> {
+    const response = await this.makeRequest('GET', this.sessionDetailUrl(sessionId), token) as BaseApiResponse & {
+      data?: { user_progress?: unknown };
+    };
+
+    if (response.code !== 0 && response.code !== "0") {
+      throw new Error(`Failed to get session progress: ${response.message}`);
+    }
+
+    return response.data?.user_progress ?? null;
+  }
+
+  /**
+   * Report the playhead for one recorded session (the official player's heartbeat).
+   *
+   * `seconds` is expected on a 5-second grid — that is all the official site ever
+   * sends, and matching it keeps our traffic indistinguishable from a browser's.
+   */
+  async reportSessionProgress(sessionId: string, seconds: number, token: string): Promise<void> {
+    try {
+      const url = 'https://cbiz.yanhekt.cn/v1/course/session/user/progress';
+      const response = await this.makeRequest('PUT', url, token, {
+        session_id: String(sessionId),
+        seconds,
+      }) as BaseApiResponse;
+
+      if (response.code !== 0 && response.code !== "0") {
+        let errorMessage = response.message;
+        switch (response.code) {
+          case 13001001:
+            errorMessage = "Authentication failed, please check if token is valid";
+            break;
+          case 99151011:
+            errorMessage = "Remote server error or is temporarily down, please try again later";
+            break;
+          default:
+            errorMessage = `API error: ${response.message} (code: ${response.code})`;
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (error: unknown) {
+      log.error('Failed to report session progress:', error);
+      throw error;
+    }
   }
 
   /**

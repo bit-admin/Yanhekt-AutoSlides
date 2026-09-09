@@ -21,6 +21,8 @@ export interface UseGeneralSettingsOptions {
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
   preferMicAudioByDefault: Ref<boolean>
+  resumeFromServerProgress: Ref<boolean>
+  resumeFromServerProgressLectures: Ref<boolean>
   preventSystemSleep: Ref<boolean>
   developerMode: Ref<boolean>
 }
@@ -43,6 +45,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     maxManualTabs,
     showMorePlaybackSpeed,
     preferMicAudioByDefault,
+    resumeFromServerProgress,
+    resumeFromServerProgressLectures,
     preventSystemSleep,
     developerMode
   } = options
@@ -63,6 +67,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempMaxManualTabs = ref(3)
   const tempShowMorePlaybackSpeed = ref(false)
   const tempPreferMicAudioByDefault = ref(false)
+  const tempResumeFromServerProgress = ref(false)
+  const tempResumeFromServerProgressLectures = ref(false)
   const tempPreventSystemSleep = ref(true)
   const tempDeveloperMode = ref(false)
 
@@ -83,6 +89,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempMaxManualTabs.value = maxManualTabs.value
     tempShowMorePlaybackSpeed.value = showMorePlaybackSpeed.value
     tempPreferMicAudioByDefault.value = preferMicAudioByDefault.value
+    tempResumeFromServerProgress.value = resumeFromServerProgress.value
+    tempResumeFromServerProgressLectures.value = resumeFromServerProgressLectures.value
     tempPreventSystemSleep.value = preventSystemSleep.value
     tempDeveloperMode.value = developerMode.value
   }
@@ -144,6 +152,18 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       // opens, and configStore is already kept in sync by config:onUpdate.
     }
 
+    // Both resume toggles are read when a lecture opens, so — like the mic
+    // default above — configStore's own config:onUpdate sync is enough.
+    if (tempResumeFromServerProgress.value !== resumeFromServerProgress.value) {
+      const resumeResult = await window.electronAPI.config.setResumeFromServerProgress(tempResumeFromServerProgress.value)
+      resumeFromServerProgress.value = resumeResult.resumeFromServerProgress ?? false
+    }
+
+    if (tempResumeFromServerProgressLectures.value !== resumeFromServerProgressLectures.value) {
+      const resumeLecturesResult = await window.electronAPI.config.setResumeFromServerProgressLectures(tempResumeFromServerProgressLectures.value)
+      resumeFromServerProgressLectures.value = resumeLecturesResult.resumeFromServerProgressLectures ?? false
+    }
+
     if (tempShowMorePlaybackSpeed.value !== showMorePlaybackSpeed.value) {
       const showMoreResult = await window.electronAPI.config.setShowMorePlaybackSpeed(tempShowMorePlaybackSpeed.value)
       showMorePlaybackSpeed.value = showMoreResult.showMorePlaybackSpeed ?? false
@@ -190,6 +210,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempMaxManualTabs,
     tempShowMorePlaybackSpeed,
     tempPreferMicAudioByDefault,
+    tempResumeFromServerProgress,
+    tempResumeFromServerProgressLectures,
     tempPreventSystemSleep,
     tempDeveloperMode,
 

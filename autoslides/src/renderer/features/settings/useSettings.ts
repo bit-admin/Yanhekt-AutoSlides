@@ -17,6 +17,8 @@ export interface UseSettingsReturn {
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
   preferMicAudioByDefault: Ref<boolean>
+  resumeFromServerProgress: Ref<boolean>
+  resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
@@ -64,6 +66,8 @@ export function useSettings(): UseSettingsReturn {
   const maxManualTabs = ref(3)
   const showMorePlaybackSpeed = ref(false)
   const preferMicAudioByDefault = ref(false)
+  const resumeFromServerProgress = ref(false)
+  const resumeFromServerProgressLectures = ref(false)
   const developerMode = ref(false)
   const enableAIFiltering = ref(true)
   const tempEnableAIFiltering = ref(true)
@@ -102,6 +106,8 @@ export function useSettings(): UseSettingsReturn {
       maxManualTabs.value = config.maxManualTabs || 3
       showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
       preferMicAudioByDefault.value = config.preferMicAudioByDefault ?? false
+      resumeFromServerProgress.value = config.resumeFromServerProgress ?? false
+      resumeFromServerProgressLectures.value = config.resumeFromServerProgressLectures ?? false
       developerMode.value = config.developerMode ?? false
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
       tempEnableAIFiltering.value = enableAIFiltering.value
@@ -196,6 +202,8 @@ export function useSettings(): UseSettingsReturn {
     maxManualTabs,
     showMorePlaybackSpeed,
     preferMicAudioByDefault,
+    resumeFromServerProgress,
+    resumeFromServerProgressLectures,
     developerMode,
     enableAIFiltering,
     tempEnableAIFiltering,

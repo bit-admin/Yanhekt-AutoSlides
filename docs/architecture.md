@@ -799,7 +799,7 @@ Two failure modes when Bearer is missing:
 |---|---|---|
 | `GET /v2/course/list` | Full catalog page | Same |
 | `GET /v1/course?id=` | Full course detail | Same + `user_mapping_type` may change (`0` → `2` on the probe) |
-| `GET /v1/course/session?session_id=` | Full session + nested `course` + historical `live` + `video_ids`. `user_progress: []` | Same public fields. Still **no** `videos[]`. `user_progress` is a **watch-history object** if this account has played the session, else still `[]` |
+| `GET /v1/course/session?session_id=` | Full session + nested `course` + historical `live` + `video_ids`. `user_progress: []` | Same public fields. Still **no** `videos[]`. `user_progress` is a **watch-history object** if this account has played the session, else still `[]`. Desktop reads it via `getSessionProgress` (never anonymous) |
 | `GET /v1/tag/list?with_sub=true` | Full tag tree | Same |
 | `GET /v2/live/list` (no `user_relationship_type`, or `=0`) | Public catalog | Same |
 | `GET /v2/live/list?keyword=` | Public search | Same |
@@ -812,7 +812,7 @@ Two failure modes when Bearer is missing:
 | `GET /v1/course/subscription/list` | `61101113` | Paginated subscriptions |
 | `GET /v1/note/list`, `GET /v1/note`, `GET /v1/note/group/list` | `61101113` | Account notes |
 | `GET /v1/cas/logout` | n/a | Best-effort revoke |
-| `PUT /v1/course/session/user/progress` | (not probed unauth) | Official SPA heartbeat. AutoSlides does not call it |
+| `PUT /v1/course/session/user/progress` | (not probed unauth) | Official SPA heartbeat. Desktop sends it while a *watched* recording plays (`reportSessionProgress`), gated on the resume settings |
 | `POST/PUT/DELETE` notes, subscribe, MinIO | Auth required (from our clients) | — |
 
 **Desktop** (`preferAnonymousApiRequests`, default **false**): when the flag is on **and** the method opted in, omit `Authorization`. Opted-in: course list, `/v1/course` first hop, public live list, live search, video token. Always unauth: `getTagList`. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes.
@@ -1013,7 +1013,9 @@ Finished `live.target*` URLs 404 on the CDN; they are useful while `status` is l
 }
 ```
 
-`progress_overall` / `progress_current` are decimal **strings** of integer seconds. `overall` matches session duration; `current` is the playhead. AutoSlides does not read this field.
+`progress_overall` / `progress_current` are decimal **strings** of integer seconds. `overall` matches session duration; `current` is the playhead.
+
+Desktop reads it through `ApiClient.getSessionProgress` — the same hop as `getSessionById` but **never** `allowAnonymous`, since the field only exists for the account holding the Bearer. Parsing (`[]` vs object, the strings, the "already finished" rule) is pure and lives in `@common/watchProgress`; a saved position under 10 s, or within 15 s of `overall`, resolves to "start at 0".
 
 #### `PUT /v1/course/session/user/progress`
 
@@ -1033,6 +1035,8 @@ Xdomain-Client: web_user
 ```
 
 `session_id` is a string; `seconds` is the current playhead (same unit as `progress_current`). The official player posts this as a heartbeat; a later `GET /v1/course/session?session_id=` then shows the object above.
+
+Desktop sends it from `renderer/shared/services/watchProgressService.ts`, shared by the playback page and the Lectures player: a **wall-clock** 5 s interval reporting `floor(currentTime / 5) * 5` whenever that bucket changes and the video is playing, plus one final report on teardown. Wall-clock rather than `timeupdate` because a watch tab may run at 16x, where media time would fire several PUTs a second. Both surfaces are opt-in (`resumeFromServerProgress` / `resumeFromServerProgressLectures`, default off); **task-queue tabs never resume or report** — a batch extraction must cover the lecture from 0.
 
 #### `GET /v2/live/list`
 
@@ -1204,8 +1208,8 @@ Desktop parks the live CAS cookie jar in memory for 300s (dies on renderer reloa
 |---|---|---|---|---|---|
 | Course list / detail / tags | `ApiClient` | `/api/yanhekt/…` | proxy; Bearer stripped | anonymous `fetchCourse*` / `fetchSemesters` | — |
 | Session list | `getCourseInfo` (auth) | same | proxy; Bearer kept | — | — |
-| Session by id | unused `getSessionById` | unused (Worker would strip Bearer) | allowlisted `GET /v1/course/session` | `fetchSession` | — |
-| Watch progress PUT | — | — | not allowlisted | — | — |
+| Session by id | unused `getSessionById`; `getSessionProgress` (auth) reads `user_progress` | unused (Worker would strip Bearer) | allowlisted `GET /v1/course/session` | `fetchSession` | — |
+| Watch progress PUT | `reportSessionProgress` (watch + Lectures, opt-in) | — | not allowlisted | — | — |
 | Public live / search | anonymous-ok | proxy; stripped | stripped | — | — |
 | Personal live / private courses / subscribe | auth | proxy; kept | kept | — | — |
 | `/v1/user` | `verifyToken` | proxy | kept | `verifyUser` on publish | — |

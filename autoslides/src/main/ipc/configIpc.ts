@@ -133,6 +133,18 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setResumeFromServerProgress', async (_event, enabled: boolean) => {
+    configService.setResumeFromServerProgress(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setResumeFromServerProgressLectures', async (_event, enabled: boolean) => {
+    configService.setResumeFromServerProgressLectures(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
     configService.setDeveloperMode(enabled);
     // Local Relay is developer-only: turning Developer mode off persist-disables

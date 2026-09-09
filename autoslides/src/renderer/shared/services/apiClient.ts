@@ -1,9 +1,11 @@
 import { overrides } from '../overrideRegistry'
+import { parseUserProgress, progressBucket, resumePositionFor, type SessionWatchProgress } from '@common/watchProgress';
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesApiClient');
 
 import type { TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
+export type { SessionWatchProgress };
 
 // The data source ApiClient delegates to. Default = the real preload bridge;
 // a registered `overrides.apiTransport` (demo mode) returns fabricated data of
@@ -19,6 +21,8 @@ export interface ApiTransport {
   unsubscribeCourse(token: string, courseId: string): Promise<void>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
   getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }>;
+  getSessionProgress(sessionId: string, token: string): Promise<unknown>;
+  reportSessionProgress(sessionId: string, seconds: number, token: string): Promise<void>;
   getAvailableSemesters(): Promise<SemesterOption[]>;
 }
 
@@ -34,6 +38,9 @@ const realApiTransport: ApiTransport = {
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
   getVideoAssets: (videoId, token) => window.electronAPI.api.getVideoAssets(videoId, token),
+  getSessionProgress: (sessionId, token) => window.electronAPI.api.getSessionProgress(sessionId, token),
+  reportSessionProgress: (sessionId, seconds, token) =>
+    window.electronAPI.api.reportSessionProgress(sessionId, seconds, token),
 };
 
 /**
@@ -165,6 +172,35 @@ export class ApiClient {
     } catch (error) {
       log.error('Failed to get mic audio URL:', error);
       return undefined;
+    }
+  }
+
+  /**
+   * This account's saved watch position for a recorded session, as the second to
+   * seek to — or null for "start at the beginning".
+   *
+   * Never throws: an unwatched session, a logged-out account and a network
+   * failure are all the same answer to the only caller that asks.
+   */
+  async getResumePosition(sessionId: string, token: string): Promise<number | null> {
+    try {
+      const raw = await this.transport.getSessionProgress(sessionId, token);
+      return resumePositionFor(parseUserProgress(raw));
+    } catch (error) {
+      log.warn('Failed to read server watch progress:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Report the playhead, floored onto the official player's 5-second grid.
+   * Never throws — a dropped heartbeat costs nothing and the next one is 5s away.
+   */
+  async reportWatchProgress(sessionId: string, seconds: number, token: string): Promise<void> {
+    try {
+      await this.transport.reportSessionProgress(sessionId, progressBucket(seconds), token);
+    } catch (error) {
+      log.warn('Failed to report watch progress:', error);
     }
   }
 

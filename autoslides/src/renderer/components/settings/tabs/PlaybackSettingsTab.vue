@@ -262,6 +262,32 @@
       </div>
     </div>
     <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.resumeServerProgress') }}</label>
+      <div class="setting-description">{{ $t('advanced.resumeServerProgressDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            v-model="tempResumeFromServerProgress"
+          />
+          {{ $t('advanced.enableResumeServerProgress') }}
+        </label>
+      </div>
+    </div>
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.resumeServerProgressLectures') }}</label>
+      <div class="setting-description">{{ $t('advanced.resumeServerProgressLecturesDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            v-model="tempResumeFromServerProgressLectures"
+          />
+          {{ $t('advanced.enableResumeServerProgressLectures') }}
+        </label>
+      </div>
+    </div>
+    <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.preventSystemSleep') }}</label>
       <div class="setting-description">{{ $t('advanced.preventSystemSleepDescription') }}</div>
       <div class="prevent-sleep-control">
@@ -327,6 +353,8 @@ const videoTokenRefreshOptions = computed(() => [
 const {
   tempShowMorePlaybackSpeed,
   tempPreferMicAudioByDefault,
+  tempResumeFromServerProgress,
+  tempResumeFromServerProgressLectures,
   tempPreventSystemSleep,
   tempMaxConcurrentDownloads,
   tempDownloadMaxWorkers,

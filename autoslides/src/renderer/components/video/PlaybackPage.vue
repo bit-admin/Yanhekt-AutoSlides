@@ -339,6 +339,7 @@
               <span>{{ $t(globalMuteModeLabelKey) }}</span>
             </div>
 
+
             <div v-if="isRetrying" class="retry-indicator">
               <div class="retry-spinner"></div>
               <span>{{ retryMessage }}</span>
@@ -668,6 +669,7 @@ const log = createLogger('PlaybackPage');
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
+import { tabStore } from '@features/course/tabStore'
 import { layoutStore } from '@shared/services/layoutStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
 import { useSlideExtraction, type Course, type Session } from '@features/video/useSlideExtraction'
@@ -794,12 +796,23 @@ const slideGallery = useSlideGallery({
   t
 })
 
+// Watch mode only: a task tab must always cover the lecture from 0, so the
+// server's saved position is honored (and reported) for manual tabs alone. The
+// tab record is the authoritative test — taskQueue.isTaskMode only flips once
+// the coordinator has actually started the task, well after this page mounts.
+const isManualWatchTab = () =>
+  tabStore.state.tabs.find(t => t.id === props.tabId)?.origin === 'manual'
+
 // Initialize video player composable
 const videoPlayerComposable = useVideoPlayer({
   mode: props.mode,
   streamId: props.streamId,
   session: sessionRef,
-  slideExtractorInstance: slideExtraction.slideExtractorInstance
+  slideExtractorInstance: slideExtraction.slideExtractorInstance,
+  resumeProgressEnabled: () =>
+    props.mode === 'recorded'
+    && configStore.resumeFromServerProgress === true
+    && isManualWatchTab()
 })
 
 // Sync sharedPlaybackRate with video player's currentPlaybackRate
@@ -2052,6 +2065,7 @@ onUnmounted(async () => {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 
 .video-player {
   width: 100%;

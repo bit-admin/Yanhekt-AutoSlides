@@ -176,6 +176,8 @@ export const defaultConfig: AppConfig = {
   maxManualTabs: 3,
   showMorePlaybackSpeed: false,
   preferMicAudioByDefault: false,
+  resumeFromServerProgress: false,
+  resumeFromServerProgressLectures: false,
   autoPostProcessing: true,
   autoPostProcessingLive: true,
   enableAIFiltering: true,

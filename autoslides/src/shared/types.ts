@@ -193,6 +193,15 @@ export interface AppConfig {
   // Select Yanhekt's classroom mic track as the audio source when a lecture has
   // one. Off by default: the mic is silent whenever the teacher did not wear it.
   preferMicAudioByDefault: boolean;
+  // Honor Yanhekt's own per-account watch position: seek there when a recorded
+  // lecture opens in a *watch* tab, and report the playhead back while it plays.
+  // Off by default — it changes where a video starts and sends the playhead to
+  // Yanhekt. Task-queue tabs always start from 0 regardless.
+  resumeFromServerProgress: boolean;
+  // Same behavior for the Lectures workspace player (local files and online
+  // streams alike). Separate key: a local library is watched differently, and
+  // this one needs a login where the rest of Lectures does not.
+  resumeFromServerProgressLectures: boolean;
   autoPostProcessing: boolean;
   autoPostProcessingLive: boolean;
   enableAIFiltering: boolean;

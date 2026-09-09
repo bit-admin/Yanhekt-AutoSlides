@@ -160,6 +160,8 @@ export class ConfigService {
       maxManualTabs: this.store.get('maxManualTabs') ?? 3,
       showMorePlaybackSpeed: this.store.get('showMorePlaybackSpeed') ?? false,
       preferMicAudioByDefault: this.store.get('preferMicAudioByDefault') ?? false,
+      resumeFromServerProgress: this.store.get('resumeFromServerProgress') ?? false,
+      resumeFromServerProgressLectures: this.store.get('resumeFromServerProgressLectures') ?? false,
       autoPostProcessing: this.store.get('autoPostProcessing'),
       autoPostProcessingLive: this.store.get('autoPostProcessingLive') ?? true,
       enableAIFiltering: this.store.get('enableAIFiltering') ?? true,
@@ -438,6 +440,14 @@ export class ConfigService {
 
   setPreferMicAudioByDefault(enabled: boolean): void {
     this.store.set('preferMicAudioByDefault', enabled);
+  }
+
+  setResumeFromServerProgress(enabled: boolean): void {
+    this.store.set('resumeFromServerProgress', enabled);
+  }
+
+  setResumeFromServerProgressLectures(enabled: boolean): void {
+    this.store.set('resumeFromServerProgressLectures', enabled);
   }
 
   getDeveloperMode(): boolean {

@@ -40,6 +40,14 @@ export function registerApiIpcHandlers(services: IpcServices): void {
     return apiClient.getVideoAssets(videoId, token);
   });
 
+  ipcMain.handle('api:getSessionProgress', async (_event, sessionId: string, token: string) => {
+    return apiClient.getSessionProgress(sessionId, token);
+  });
+
+  ipcMain.handle('api:reportSessionProgress', async (_event, sessionId: string, seconds: number, token: string) => {
+    return apiClient.reportSessionProgress(sessionId, seconds, token);
+  });
+
   ipcMain.handle('api:getAvailableSemesters', async () => {
     return await apiClient.getAvailableSemesters();
   });

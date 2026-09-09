@@ -7,6 +7,8 @@ import { computed, onBeforeUnmount, ref, shallowRef, type Ref } from 'vue'
 import Hls, { Events } from 'hls.js'
 import { toAsmediaUrl } from '@common/asmediaUrl'
 import { tokenManager } from '@shared/services/authService'
+import { createWatchProgressSync } from '@shared/services/watchProgressService'
+import { configStore } from '@shared/services/configStore'
 import { ApiClient } from '@shared/services/apiClient'
 import { getHlsConfig } from '@features/video/hlsConfig'
 import { setupDualHlsErrorHandler } from '@features/video/useVideoErrorRecovery'
@@ -215,7 +217,22 @@ export function useLocalLecturePlayer() {
     proxyClientId = await window.electronAPI.video.registerClient()
   }
 
+  /**
+   * Yanhekt's saved position for this session, for local files as much as online
+   * streams: the lecture is the same one either way, so watching half of it on
+   * disk should still move the position the website shows. Off by default and
+   * inert without a login — the whole Lectures library works signed out.
+   */
+  const progressSync = createWatchProgressSync({
+    sessionId: () => session.value?.sessionId,
+    enabled: () => configStore.resumeFromServerProgressLectures === true,
+    getCurrentTime: () => masterVideo()?.currentTime ?? currentTime.value,
+    isPlaying: () => isPlaying.value,
+  })
+
   const destroy = () => {
+    // First: the reset below zeroes currentTime, and stop() reports one last position.
+    progressSync.stop()
     stopDemoClock()
     stopSync()
     destroyOnlineHls()
@@ -356,6 +373,7 @@ export function useLocalLecturePlayer() {
     video: HTMLVideoElement,
     file: LibraryFileRef,
     kind: 'screen' | 'camera' | 'single',
+    seekTo?: number,
   ) => {
     video.src = toAsmediaUrl(file.path)
     video.preload = 'metadata'
@@ -364,6 +382,15 @@ export function useLocalLecturePlayer() {
     const onLoaded = () => {
       applyRate()
       applyAudio()
+      // A fresh `src` is never seekable yet, so the position has to land here —
+      // before updateClock, or the clock would publish 0 and flicker the bar.
+      if (seekTo !== undefined && seekTo > 0 && Number.isFinite(seekTo)) {
+        try {
+          video.currentTime = seekTo
+        } catch (seekError) {
+          log.warn(`Could not seek ${kind} file to ${seekTo}s:`, seekError)
+        }
+      }
       updateClock()
       isLoading.value = false
     }
@@ -387,7 +414,13 @@ export function useLocalLecturePlayer() {
       throw new Error('HLS is not supported in this browser')
     }
 
-    const hlsInstance = new Hls(getHlsConfig('recorded'))
+    // startPosition, not just the currentTime assignment below: at MANIFEST_PARSED
+    // MSE has no duration yet, so the element can clamp that seek back to 0.
+    const hlsInstance = new Hls(
+      seekToTime !== undefined && seekToTime > 0 && Number.isFinite(seekToTime)
+        ? { ...getHlsConfig('recorded'), startPosition: seekToTime }
+        : getHlsConfig('recorded'),
+    )
     onlineHls.set(key, hlsInstance)
     hlsInstance.loadSource(url)
     hlsInstance.attachMedia(video)
@@ -543,12 +576,14 @@ export function useLocalLecturePlayer() {
     const file = kind === 'camera' ? sess.camera : sess.screen
     clearVideo(video)
     if (file) {
-      wireElement(video, file, 'single')
+      wireElement(video, file, 'single', seekTo)
       applyAudio()
       applyRate()
-      if (seekTo && seekTo > 0) {
+      // A file already carrying metadata (a re-attach) can seek right away; a
+      // fresh one is handled by wireElement's loadedmetadata handler.
+      if (seekTo && seekTo > 0 && video.readyState >= 1) {
         try {
-          if (video.readyState >= 1) video.currentTime = seekTo
+          video.currentTime = seekTo
         } catch {
           /* seek after metadata */
         }
@@ -666,12 +701,12 @@ export function useLocalLecturePlayer() {
         clearVideo(screen)
         clearVideo(camera)
         if (sess.screen) {
-          wireElement(screen, sess.screen, 'screen')
+          wireElement(screen, sess.screen, 'screen', seekTo)
         } else {
           attachOnlineHls(screen, streams!.screen!, 'screen', seekTo, autoplay)
         }
         if (sess.camera) {
-          wireElement(camera, sess.camera, 'camera')
+          wireElement(camera, sess.camera, 'camera', seekTo)
         } else {
           attachOnlineHls(camera, streams!.camera!, 'camera', seekTo, autoplay)
         }
@@ -710,7 +745,9 @@ export function useLocalLecturePlayer() {
     setDualAudioForMode(streamMode.value, next)
     currentTime.value = 0
     duration.value = 0
-    await attachSources(autoplay)
+    const resumeAt = await progressSync.resume()
+    await attachSources(autoplay, resumeAt ?? undefined)
+    progressSync.start()
   }
 
   const syncSession = (next: LibrarySession) => {

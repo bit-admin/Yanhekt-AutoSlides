@@ -4,6 +4,7 @@ import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
 import { createMediaSyncLoop, syncFollower } from './mediaSync'
 import { ApiClient } from '@shared/services/apiClient'
+import { createWatchProgressSync } from '@shared/services/watchProgressService'
 import type { SlideExtractionHandle } from '@shared/processing'
 import { createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './useVideoErrorRecovery'
 import { useDualStreamPlayer } from './useDualStreamPlayer'
@@ -61,6 +62,12 @@ export interface UseVideoPlayerOptions {
   session: Ref<SessionInput | null>
   slideExtractorInstance: Ref<SlideExtractionHandle | null>
   onTaskError?: (message: string) => void
+  /**
+   * Whether this player may honor and report Yanhekt's saved watch position.
+   * A closure because only the caller knows whether its tab is a manual watch
+   * tab (task tabs must always start from 0) — see PlaybackPage.
+   */
+  resumeProgressEnabled?: () => boolean
 }
 
 export interface UseVideoPlayerReturn {
@@ -244,6 +251,36 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
     const masterVideo = dual.getDualMasterVideo()
     return Boolean(masterVideo && !masterVideo.paused)
+  }
+
+  /**
+   * Yanhekt's own watch position for this recorded session. Disabled unless the
+   * caller opted in (watch tabs only), so task tabs never resume or report.
+   * Both helpers above already cover single *and* dual playback.
+   */
+  const progressSync = createWatchProgressSync({
+    sessionId: () => (mode === 'recorded' ? session.value?.session_id : undefined),
+    enabled: () => options.resumeProgressEnabled?.() === true,
+    getCurrentTime: getCurrentPlaybackTime,
+    isPlaying: isAnyVideoPlaying,
+  })
+
+  // Resolved once per open. A cold open calls loadVideoSource up to three times
+  // — loadVideoStreams plus PlaybackPage's element and stream-data watchers —
+  // and each call tears the previous HLS instance down, so this must survive
+  // until it has actually stuck: clearing it on the first parsed manifest left
+  // the *surviving* load starting at 0. It is dropped once the playhead has
+  // genuinely moved past it (the user seeking, or a stream switch re-loading
+  // mid-lecture), so a later load never yanks anyone back here.
+  let pendingResumeSeconds: number | null = null
+
+  const resumeStartPosition = (): number | undefined => {
+    if (pendingResumeSeconds === null) return undefined
+    if (getCurrentPlaybackTime() > pendingResumeSeconds + 2) {
+      pendingResumeSeconds = null
+      return undefined
+    }
+    return pendingResumeSeconds
   }
 
   // Helper function to create a serializable copy of an object and fix URL escaping
@@ -435,6 +472,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         result = await window.electronAPI.video.getLiveStreamUrls(serializableStreamData, token)
       } else if (mode === 'recorded' && session.value) {
         const serializableSession = createSerializableCopy(session.value)
+        // In flight while the proxy resolves the stream URLs — a resume must not
+        // cost the user a second round trip before playback starts.
+        const resumePromise = progressSync.resume()
         // The mic URL is not on the session — only GET /v1/video carries it —
         // so resolve it here and hand it to the proxy alongside the streams.
         // ApiClient memoises, so re-opening the same lecture costs nothing.
@@ -444,6 +484,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
           { ...serializableSession, audio_url: resolvedMicUrl },
           token,
         )
+        pendingResumeSeconds = await resumePromise
+        progressSync.start()
       } else {
         throw new Error('Invalid playback parameters')
       }
@@ -494,6 +536,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     catchLogLabel: string
     onManifestParsed: () => void
     errorConfig: SingleStreamErrorConfig
+    /**
+     * Where hls.js should begin loading fragments. Assigning `currentTime` after
+     * MANIFEST_PARSED is not enough on its own — at that point MSE has no
+     * duration yet and the element clamps the seek back to 0.
+     */
+    startPosition?: number
   }) => {
     if (overrides.playbackDemo) return // demo posters only — never load a real source
     if (!videoPlayer.value || !currentStreamData.value) {
@@ -507,7 +555,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       const videoUrl = currentStreamData.value.url
 
       if (Hls.isSupported()) {
-        hls.value = new Hls(getHlsConfig(mode))
+        hls.value = new Hls(
+          opts.startPosition !== undefined
+            ? { ...getHlsConfig(mode), startPosition: opts.startPosition }
+            : getHlsConfig(mode),
+        )
 
         hls.value.loadSource(videoUrl)
         hls.value.attachMedia(videoPlayer.value)
@@ -599,10 +651,18 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const loadVideoSource = () =>
     setupHlsSource({
       catchLogLabel: 'Failed to load video source:',
+      startPosition: resumeStartPosition(),
       onManifestParsed: () => {
         if (!videoPlayer.value) return
         currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, currentPlaybackRate.value, slideExtractorInstance.value)
         isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
+
+        // startPosition above already put hls at the resume point; this only
+        // covers a manifest that parsed before the position was resolved.
+        const resumeAt = resumeStartPosition()
+        if (resumeAt !== undefined && Math.abs(videoPlayer.value.currentTime - resumeAt) > 1) {
+          videoPlayer.value.currentTime = resumeAt
+        }
 
         videoPlayer.value.play().catch(() => { /* Ignore manifest parsed play error */ })
       },
@@ -745,6 +805,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   }
 
   const cleanup = () => {
+    // Before the elements are torn down — stop() reports one last position.
+    progressSync.stop()
     cleanupSingleVideoSource()
     dual.cleanupDualVideoSources()
   }

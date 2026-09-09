@@ -139,6 +139,8 @@ const advancedSettings = useAdvancedSettings(
     maxManualTabs: settings.maxManualTabs,
     showMorePlaybackSpeed: settings.showMorePlaybackSpeed,
     preferMicAudioByDefault: settings.preferMicAudioByDefault,
+    resumeFromServerProgress: settings.resumeFromServerProgress,
+    resumeFromServerProgressLectures: settings.resumeFromServerProgressLectures,
     developerMode: settings.developerMode,
     enableAIFiltering: settings.enableAIFiltering,
     tempEnableAIFiltering: settings.tempEnableAIFiltering
