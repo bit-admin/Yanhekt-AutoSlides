@@ -1,9 +1,14 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import { rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { featureFlags, manualChunks } from "./vite.shared";
 
 const DEMO_ENTRY = fileURLToPath(new URL("./frontend/src/demo/main.ts", import.meta.url));
+const OPENCV_STUB = fileURLToPath(
+  new URL("./frontend/src/demo/opencvStub.ts", import.meta.url),
+);
+const HLS_STUB = fileURLToPath(new URL("./frontend/src/demo/hlsStub.ts", import.meta.url));
 
 // The demo build: the same Vue app, wired to fabricated data, published as a
 // plain static bundle under /demo/ so anyone can click through the interface
@@ -40,6 +45,28 @@ export default defineConfig({
       },
     },
     {
+      // Drop the copy of public/fonts/ that Vite mirrors into dist/demo.
+      //
+      // These are the self-hosted faces for the notes editor and PDF export —
+      // 32 MB, most of it SimSun and SimHei, and more than everything else in
+      // the build combined. The demo cannot use its own copy anyway:
+      // notesFontSets.ts names them by root-absolute URL ("/fonts/SimHei.ttf"),
+      // which are runtime strings Vite does not rewrite for `base`, so a demo
+      // page fetches them from the root deploy regardless. Keeping them here
+      // would duplicate 32 MB into every deploy for files nothing requests.
+      //
+      // The rest of public/ stays: index.html's icon links DO get rewritten to
+      // /demo/*, so those copies are the ones actually served.
+      name: "autoslides-demo-drop-fonts",
+      apply: "build",
+      closeBundle() {
+        rmSync(fileURLToPath(new URL("./dist/demo/fonts", import.meta.url)), {
+          recursive: true,
+          force: true,
+        });
+      },
+    },
+    {
       // Build: transformIndexHtml runs after bundling, too late to change what
       // is bundled — so swap the entry as it resolves. Only the HTML entry
       // matches: index.html asks for the root-absolute "/src/main.ts" while
@@ -53,6 +80,18 @@ export default defineConfig({
       },
     },
   ],
+  // Swap the two engines the demo cannot use for stubs. Both are dead code
+  // here — the demo seeds ready-made slides instead of running the extractor,
+  // and routes playback through demoHooks.playback instead of hls.js — but
+  // Rollup cannot prove it, so together they would be 11.5 MB of the build.
+  // Aliasing keeps this a demo-build concern: no branch in the worker, no
+  // extra seam in production. See frontend/src/demo/{opencvStub,hlsStub}.ts.
+  resolve: {
+    alias: {
+      "@techstark/opencv-js": OPENCV_STUB,
+      "hls.js": HLS_STUB,
+    },
+  },
   build: {
     outDir: "../dist/demo",
     emptyOutDir: true,

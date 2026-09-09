@@ -172,6 +172,10 @@ const allFilteredSelected = computed(() => {
 
 const exportDisabled = computed(
   () =>
+    // The demo is a static demonstration. Its slides are seeded SVG data URLs
+    // with no session behind them, so the export controls stay visible — the
+    // feature is part of what the demo is showing — but never run.
+    __DEMO__ ||
     slidesExport.isExporting.value ||
     rv.isLoading.value ||
     !rv.folderItems.value.some((item) => item.status === 'active'),

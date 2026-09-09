@@ -114,7 +114,7 @@
           type="button"
           class="nec-export-btn"
           :class="{ open: exportOpen }"
-          :disabled="canExport && exportBusy"
+          :disabled="exportInert || (canExport && exportBusy)"
           :aria-expanded="exportOpen"
           :title="canExport ? $t('cloudNotes.exportTip') : $t('cloudNotes.exportAsnoteTip')"
           @click="toggleExport"
@@ -384,6 +384,10 @@ const menuRoot = ref<HTMLElement | null>(null)
 const exportOpen = ref(false)
 const exportRoot = ref<HTMLElement | null>(null)
 const exportBusy = ref(false)
+// Export is inert in the demo build, the same as on the Slides page: nothing
+// there is a real note, and a static demonstration should not hand back files.
+// The control stays visible so the affordance still reads in screenshots.
+const exportInert = __DEMO__
 const exportError = ref('')
 const shareOpen = ref(false)
 const shareRoot = ref<HTMLElement | null>(null)
@@ -515,7 +519,7 @@ async function onCopyContents(): Promise<void> {
 
 async function runExport(format: NoteExportFormat): Promise<void> {
   // ASnote notes only show the desktop-export tip; never run file export there.
-  if (!props.canExport || exportBusy.value) return
+  if (exportInert || !props.canExport || exportBusy.value) return
   exportBusy.value = true
   exportError.value = ''
   try {

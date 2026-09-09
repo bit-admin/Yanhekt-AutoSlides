@@ -35,6 +35,12 @@ export function useSlidesExport() {
    * and handed to the browser as a download.
    */
   async function exportFolder(folderName: string, format: ExportFormat): Promise<boolean> {
+    // The demo is a static demonstration and hands back no files. `__DEMO__` is
+    // a compile-time constant, so this is not just a guard: it makes the rest of
+    // the function dead in the demo build, and pdf-lib / fflate / UPNG go with
+    // it. (The disabled button in SlidesPage keeps the affordance visible; this
+    // is what actually keeps the encoders out of the bundle.)
+    if (__DEMO__) return false
     if (isExporting.value) return false
 
     isExporting.value = true
