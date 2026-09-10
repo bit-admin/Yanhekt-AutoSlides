@@ -323,9 +323,12 @@
           >
             <button
               class="cn-note-item"
-              :class="{ active: cn.selectedNoteId.value === note.id }"
+              :class="{
+                active: cn.selectedNoteId.value === note.id,
+                'is-opening': cn.openingNoteId.value === note.id,
+              }"
               :title="noteListTitle(note)"
-              @click="ed.openNote(note.id)"
+              @click="onOpenNote(note.id)"
             >
               <span class="cn-note-title">{{ noteListTitle(note) }}</span>
               <span class="cn-note-meta">{{ note.updated_at }}</span>
@@ -583,6 +586,23 @@ function groupLabel(g: { id: number; name: string }): string {
 }
 
 const cn = useCloudNotes()
+
+/**
+ * Sidebar row click.
+ *
+ * Re-clicking the note that is already open is a no-op. Beyond saving a
+ * round-trip this is a correctness fix: `ed.openNote` skips `flushSave` when the
+ * id is unchanged, and the remount that followed tore the editor down — clearing
+ * its pending 1s save timer and silently discarding an edit typed a moment ago.
+ *
+ * Only the click path is guarded. The cross-page open request and the
+ * import-conflict handler still call `ed.openNote` directly, because they may
+ * need to (re)mount the editor for a selection made while the pane was hidden.
+ */
+function onOpenNote(id: number): void {
+  if (cn.selectedNoteId.value === id) return
+  void ed.openNote(id)
+}
 
 function noteListTitle(note: { title: string; note_group_id: number }): string {
   const managed = cn.managedGroups.value.some((g) => g.id === note.note_group_id)
@@ -1783,6 +1803,12 @@ watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
 }
 
 /* Active = subtle tinted bg + accent text (matches LeftPanel .nav-item.active) */
+/* Detail fetch in flight — the row dims rather than moving, so a slow note
+   never shifts the list under the cursor. */
+.cn-note-item.is-opening {
+  opacity: 0.55;
+}
+
 .cn-note-item.active {
   background-color: var(--badge-active-bg);
   color: var(--accent);

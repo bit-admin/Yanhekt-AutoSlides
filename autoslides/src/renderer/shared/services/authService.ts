@@ -1,6 +1,7 @@
 // Type definitions are available globally
 
 import { overrides } from '../overrideRegistry'
+import { invalidateAll } from './requestCache'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesAuth');
 
@@ -64,8 +65,14 @@ export class TokenManager {
   private cachedToken: string | null = null;
 
   saveToken(token: string): void {
+    const previous = this.cachedToken;
     this.cachedToken = token;
     window.electronAPI?.config?.setAuthToken?.(token);
+    // This app is multi-account: switchAccount lands here with a different
+    // token but the same isLoggedIn. Cached reads are keyed by token, which
+    // keeps entries apart, but clearing outright is the actual boundary — one
+    // account must never be served another's personal lists.
+    if (previous !== token) invalidateAll();
   }
 
   getToken(): string | null {
@@ -94,6 +101,7 @@ export class TokenManager {
   clearToken(): void {
     this.cachedToken = null;
     window.electronAPI?.config?.setAuthToken?.(null);
+    invalidateAll();
   }
 
   hasToken(): boolean {

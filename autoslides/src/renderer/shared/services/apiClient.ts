@@ -1,4 +1,5 @@
 import { overrides } from '../overrideRegistry'
+import { cached, invalidate } from './requestCache'
 import { parseUserProgress, progressBucket, resumePositionFor, type SessionWatchProgress } from '@common/watchProgress';
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesApiClient');
@@ -44,6 +45,101 @@ const realApiTransport: ApiTransport = {
 };
 
 /**
+ * How long a resolved read may be reused, per transport method.
+ *
+ * Mirrors the web client's per-endpoint table (`web/frontend/src/lib/api.ts`).
+ * Reads not listed here still **coalesce** — a second identical call while one
+ * is in flight joins it — they are simply never memoized.
+ *
+ * Auth- and playhead-sensitive methods are excluded outright — see
+ * UNCACHED_METHODS below.
+ */
+const READ_TTL_MS: Partial<Record<keyof ApiTransport, number>> = {
+  getAvailableSemesters: 60 * 60 * 1000,
+  getCourseInfo: 5 * 60 * 1000,
+  getCourseList: 60 * 1000,
+  getPersonalCourseList: 60 * 1000,
+  getSubscriptionList: 60 * 1000,
+  getPersonalLiveList: 30 * 1000,
+  searchLiveList: 30 * 1000,
+  getVideoAssets: 5 * 60 * 1000,
+};
+
+/**
+ * Writes that make cached reads wrong — a subscribe changes the subscription
+ * list and the course lists that mirror it, so it drops every cached read.
+ *
+ * `reportSessionProgress` is deliberately **not** here. It is a write, but it
+ * writes this account's playhead and invalidates no list — and it is the
+ * wall-clock 5-second watch heartbeat, so invalidating on it would empty the
+ * cache every five seconds for the whole of a lecture.
+ */
+const WRITE_METHODS: ReadonlySet<keyof ApiTransport> = new Set([
+  'subscribeCourse',
+  'unsubscribeCourse',
+]);
+
+/**
+ * Methods that pass straight through — never cached, coalesced or invalidating.
+ *
+ * `verifyToken` is the account-switch gate and must always reach the server.
+ * `reportSessionProgress` is the 5s heartbeat (see above); coalescing it would
+ * also be wrong, since two reports a second apart carry different seconds.
+ * `getSessionProgress` is the account's live watch position — a memo there
+ * would resurrect a stale playhead when a lecture is reopened.
+ */
+const UNCACHED_METHODS: ReadonlySet<keyof ApiTransport> = new Set([
+  'verifyToken',
+  'reportSessionProgress',
+  'getSessionProgress',
+]);
+
+/**
+ * Wrap a transport so identical concurrent reads share one round-trip, and
+ * listed reads are briefly memoized.
+ *
+ * The desktop app has no request quota to protect, but it does have several
+ * mounted playback tabs and a parallel task queue that ask the same questions at
+ * once, plus grids that refetch on every visit to their sidebar tab.
+ *
+ * Only the **real** transport is wrapped — a demo override is left exactly as
+ * it is, so `renderer/demo/` stays a deletable add-on.
+ *
+ * Keys include the caller's token: the app is multi-account, and switching
+ * accounts must never serve the previous account's personal lists. That alone
+ * is not the safety boundary — `tokenManager` clears the whole cache on any
+ * identity change — but it keeps two accounts' entries apart in the meantime.
+ */
+function withRequestCache(transport: ApiTransport): ApiTransport {
+  const wrapped = {} as Record<string, unknown>;
+  for (const name of Object.keys(transport) as (keyof ApiTransport)[]) {
+    const fn = transport[name] as (...args: unknown[]) => Promise<unknown>;
+    if (UNCACHED_METHODS.has(name)) {
+      wrapped[name] = fn;
+      continue;
+    }
+    if (WRITE_METHODS.has(name)) {
+      wrapped[name] = async (...args: unknown[]) => {
+        try {
+          return await fn(...args);
+        } finally {
+          // A subscribe changes the subscription list and the course lists that
+          // mirror it, so a write drops every cached read.
+          invalidate('');
+        }
+      };
+      continue;
+    }
+    const ttl = READ_TTL_MS[name] ?? 0;
+    wrapped[name] = (...args: unknown[]) =>
+      cached(`${name}|${JSON.stringify(args)}`, ttl, () => fn(...args));
+  }
+  return wrapped as unknown as ApiTransport;
+}
+
+const cachedRealTransport = withRequestCache(realApiTransport);
+
+/**
  * Memo for mic-audio lookups, keyed by video id.
  *
  * A mic URL costs a whole extra request (GET /v1/video is the only hop that
@@ -58,7 +154,7 @@ export class ApiClient {
   // Resolved lazily per call so an override registered after construction (and
   // after this module is first imported) is still honored.
   private get transport(): ApiTransport {
-    return overrides.apiTransport ?? realApiTransport;
+    return overrides.apiTransport ?? cachedRealTransport;
   }
 
   async verifyToken(token: string): Promise<TokenVerificationResult> {

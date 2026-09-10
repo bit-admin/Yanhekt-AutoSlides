@@ -7,6 +7,7 @@ import type {
 } from '@common/notesTypes'
 import { isManagedGroupName, isUserGroupName, isAutoSlidesGroupName, README_NOTE_TITLE } from '@common/notesTypes'
 import { overrides } from '@shared/overrideRegistry'
+import { withNoteReadCoalescing } from './noteReadCoalescing'
 
 const PAGE_SIZE = 20
 /** Page size used when fetching the full note set (server honours large sizes). */
@@ -31,8 +32,16 @@ const SEARCH_DEBOUNCE_MS = 300
  */
 export function useCloudNotes() {
   // Demo mode swaps the whole data source for fabricated notes (offline); in
-  // production this is the real IPC namespace.
-  const cloudNotesApi = overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
+  // production this is the real IPC namespace, wrapped so a repeat click on a
+  // sidebar row joins the fetch already in flight instead of starting a second.
+  //
+  // Coalescing only, never a memo: a note is a document the user is editing, so
+  // a cached body could show them content they have already changed. With no
+  // memo there is nothing to go stale, which is also why writes from other
+  // surfaces (watch notes, import/export) need no invalidation hook here.
+  const cloudNotesApi = withNoteReadCoalescing(
+    overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes,
+  )
 
   const groups = ref<NoteGroup[]>([])
   /** Complete note set (all groups), loaded via loadAll(). */
@@ -62,6 +71,10 @@ export function useCloudNotes() {
 
   /** Bumps on every new search so in-flight keyword pages discard stale results. */
   let searchGen = 0
+  /** Bumps on every openNote so a stale detail fetch cannot win a rapid A→B→A. */
+  let openGen = 0
+  /** The note whose detail is being fetched; dims its sidebar row. */
+  const openingNoteId = ref<number | null>(null)
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null)
@@ -241,12 +254,26 @@ export function useCloudNotes() {
   }
 
   /** Load full note detail into the editor pane. */
+  /**
+   * Load full note detail into the editor pane.
+   *
+   * Guarded by a generation counter (same idea as `searchGen`) so a slow fetch
+   * for note A cannot land after the user moved to B and clobber the newer
+   * selection. The losing call still returns its data to its own caller — it
+   * just no longer owns `selectedNote`.
+   */
   async function openNote(id: number): Promise<NoteDetail | null> {
     error.value = ''
-    const res = await cloudNotesApi.get(id)
-    const data = unwrap(res)
-    if (data) selectedNote.value = data
-    return data
+    const gen = ++openGen
+    openingNoteId.value = id
+    try {
+      const res = await cloudNotesApi.get(id)
+      const data = unwrap(res)
+      if (data && gen === openGen) selectedNote.value = data
+      return data
+    } finally {
+      if (gen === openGen) openingNoteId.value = null
+    }
   }
 
   function closeNote(): void {
@@ -419,6 +446,7 @@ export function useCloudNotes() {
     totalPages,
     filteredCount,
     loading,
+    openingNoteId,
     saving,
     error,
     notSignedIn,

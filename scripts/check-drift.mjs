@@ -53,6 +53,13 @@ const GROUPS = [
     ],
   },
   {
+    name: 'requestCache',
+    files: [
+      'autoslides/src/renderer/shared/services/requestCache.ts',
+      'web/frontend/src/lib/requestCache.ts',
+    ],
+  },
+  {
     name: 'yanhektCrypto',
     files: ['autoslides/src/shared/crypto.ts', 'web/src/lib/yanhekt.ts', 'relay/src/yanhekt.ts', 'share/src/lib/yanhekt.ts'],
   },
