@@ -89,7 +89,7 @@
             </svg>
           </span>
           <div class="saved-text">
-            <span class="saved-label">{{ c.title }}</span>
+            <span class="saved-label">{{ courseDisplayTitle(c) }}</span>
             <span class="saved-mode">{{ $t('navigation.recorded') }}</span>
           </div>
           <button
@@ -209,7 +209,7 @@
               </div>
             </div>
             <div class="preview-meta">
-              <h3 class="preview-title">{{ course.title }}</h3>
+              <h3 class="preview-title" :class="courseTitleSizeClass(courseDisplayTitle(course))">{{ courseDisplayTitle(course) }}</h3>
               <p class="preview-subtitle">{{ liveSubtitle(course) }}</p>
             </div>
           </div>
@@ -248,7 +248,7 @@
               <span class="preview-badge preview-badge--id">#{{ course.id }}</span>
             </div>
             <div class="preview-meta">
-              <h3 class="preview-title">{{ course.title }}</h3>
+              <h3 class="preview-title" :class="courseTitleSizeClass(courseDisplayTitle(course))">{{ courseDisplayTitle(course) }}</h3>
               <p class="preview-subtitle">{{ recordedSubtitle(course) }}</p>
             </div>
           </div>
@@ -277,6 +277,7 @@ import { useHomeThumbnails } from '@features/course/useHomeThumbnails'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { openCourse } from '@features/course/courseSelection'
 import { getCourseStatusClass, getCourseStatusText, type Course } from '@features/course/useCourseList'
+import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@shared/i18n/displayNames'
 import { mergedSavedSearches, addSavedSearch, removeSavedSearch, savedSearchesLive, savedSearchesRecorded } from '@features/course/savedSearches'
 import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
 import { useCampusNetworkCheck } from '@features/platform/useCampusNetworkCheck'
@@ -336,12 +337,14 @@ const resolveCourseCover = (imageUrl?: string | null): string => {
 const markCoverFailed = (id: string): void => { coverFailed.add(id) }
 
 // One compact meta line under each preview (instructor · semester).
-// Recorded `time` is already "YYYY-YYYY Fall/Spring" from transformCourseDataToCourse;
+// Recorded courses render the term through `academicTermLabel` so it follows the UI
+// language (`course.time` is the pre-rendered English fallback for legacy pins);
 // live streams have no semester fields, so they show instructor only.
 const liveSubtitle = (course: Course): string =>
   course.instructor || ''
 const recordedSubtitle = (course: Course): string =>
-  [course.instructor, course.time].filter(Boolean).join(' · ')
+  [course.instructor, academicTermLabel(course.school_year, course.semester, course.time)]
+    .filter(Boolean).join(' · ')
 
 // Lazily generate a card's preview the first time it scrolls near the viewport.
 const intersectObservers = new WeakMap<Element, IntersectionObserver>()
@@ -966,6 +969,15 @@ onMounted(() => {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Long English course names step down instead of truncating (see CoursePage). */
+.preview-title.is-long {
+  font-size: 12px;
+}
+
+.preview-title.is-longer {
+  font-size: 11px;
 }
 
 .preview-subtitle {

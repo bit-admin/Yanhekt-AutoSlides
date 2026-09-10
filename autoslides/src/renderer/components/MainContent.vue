@@ -329,6 +329,7 @@ const handleTaskNavigation = (task: TaskContext) => {
   const course = {
     id: courseId,
     title: courseTitle,
+    titleEn: courseInfo?.titleEn,
     instructor: courseInfo?.instructor || 'Auto Task',
     time: courseInfo?.time || sessionData.started_at,
     status: 1,

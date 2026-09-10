@@ -15,7 +15,7 @@ const log = createLogger('SessionPage');
 /** The slice of `Course` the sessions page consumes (a thin/pinned course may carry only this). */
 export type SessionCourse = Pick<
   Course,
-  | 'id' | 'title' | 'instructor' | 'time'
+  | 'id' | 'title' | 'titleEn' | 'instructor' | 'time'
   | 'classrooms' | 'college_name' | 'participant_count'
   | 'professors' | 'school_year' | 'semester'
 >
@@ -99,6 +99,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     return {
       ...base,
       title: base.title || extra.title || '',
+      titleEn: base.titleEn || extra.titleEn,
       instructor: base.instructor || extra.instructor || '',
       professors: base.professors && base.professors.length > 0 ? base.professors : extra.professors,
       college_name: base.college_name || extra.college_name,
@@ -117,6 +118,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
         id: c.id,
         title: c.title,
+        titleEn: c.titleEn,
         instructor: c.instructor,
         time: c.time,
         classrooms: c.classrooms,
@@ -213,6 +215,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       const semesterStr = response.semester != null ? String(response.semester) : undefined
       fetchedCourseInfo.value = {
         title: response.title,
+        titleEn: response.title_en,
         instructor: response.professor,
         professors: response.professors,
         college_name: response.college_name || listCourse?.college_name,
@@ -231,6 +234,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
         upgradePinnedCourse({
           ...listCourse,
           title: response.title || listCourse.title,
+          titleEn: response.title_en || listCourse.titleEn,
           instructor: response.professor || listCourse.instructor,
           professors: (response.professors && response.professors.length > 0)
             ? response.professors

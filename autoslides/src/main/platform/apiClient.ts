@@ -43,6 +43,9 @@ interface CourseListApiResponse extends BaseApiResponse {
 interface CourseInfoApiResponse extends BaseApiResponse {
   data: {
     name_zh: string;
+    // English course name. Yanhekt ships it on /v1/course alongside name_zh, but
+    // it is frequently absent — callers must fall back to name_zh.
+    name_en?: string;
     professors: Array<{ name: string }>;
     // Present on the /v1/course single-course response (confirmed against the
     // live API). Note: `classrooms` is NOT returned here — only on the course
@@ -528,6 +531,7 @@ export class ApiClient {
       }
 
       const name = courseData.data.name_zh.trim();
+      const nameEn = courseData.data.name_en?.trim() || undefined;
 
       const professorNames = (courseData.data.professors || [])
         .map(p => p.name?.trim())
@@ -558,6 +562,7 @@ export class ApiClient {
       return {
         course_id: courseId,
         title: name,
+        title_en: nameEn,
         professor: professor,
         professors: professorNames,
         college_name: courseData.data.college_name,

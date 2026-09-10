@@ -9,7 +9,7 @@
           {{ $t('playback.back') }}
         </button>
         <div class="title-info">
-          <h2>{{ course?.title || $t('playback.unknownCourse') }}</h2>
+          <h2>{{ courseDisplayTitle(course) || $t('playback.unknownCourse') }}</h2>
           <p v-if="session">{{ session.title }}</p>
           <p v-if="course?.session?.section_group_title && props.mode === 'live'">{{ course.session.section_group_title }}</p>
           <div v-if="!isVisible && isPlaying" class="background-mode-indicator">
@@ -72,7 +72,7 @@
         </div>
         <div class="course-detail-item" v-if="course?.time">
           <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
-          <span class="detail-value">{{ course.time }}</span>
+          <span class="detail-value">{{ academicTermLabel(course.school_year, course.semester, course.time) }}</span>
         </div>
         <div class="course-detail-item" v-if="course?.classrooms && course.classrooms.length > 0">
           <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
@@ -671,6 +671,7 @@ const log = createLogger('PlaybackPage');
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
+import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames'
 import { tabStore } from '@features/course/tabStore'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { layoutStore } from '@shared/services/layoutStore'

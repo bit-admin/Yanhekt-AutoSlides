@@ -1505,6 +1505,8 @@
   "searchPage": {
     "semesterFall": "Fall {year}",
     "semesterSpring": "Spring {year}",
+    "termRangeFall": "{range} Fall",
+    "termRangeSpring": "{range} Spring",
     "academicYear": "{start}–{end} Academic Year",
     "semesterPlaceholder": "Semester",
     "allSemesters": "All semesters",

@@ -63,6 +63,9 @@ export interface LiveListResponse {
 export interface CourseData {
   id: string;
   name_zh: string;
+  /** English course name. Present on /v2/course/list and /v1/course; often absent.
+   *  Display only — never let it reach a filename, note title, or Index upload. */
+  name_en?: string;
   professors: string[];
   classrooms: { name: string }[];
   school_year: string;
@@ -86,6 +89,9 @@ export interface CourseListResponse {
 export interface SubscriptionCourseRow {
   id: number | string;
   name_zh: string;
+  /** English course name. Present on /v2/course/list and /v1/course; often absent.
+   *  Display only — never let it reach a filename, note title, or Index upload. */
+  name_en?: string;
   professor_names?: string[];
   professors?: Array<{ name?: string } | string>;
   classrooms?: Array<{ name: string }>;
@@ -121,7 +127,11 @@ export interface SessionData {
 
 export interface CourseInfoResponse {
   course_id: string;
+  /** Chinese course name (name_zh). The canonical title — filenames, note titles,
+   *  and metadata.json all derive from this one. */
   title: string;
+  /** English course name (name_en), when the API supplied one. Display only. */
+  title_en?: string;
   professor: string;
   // Rich course context surfaced from /v1/course so callers (e.g. the sessions
   // page) can hydrate a thin course — notably one opened from a pin, which

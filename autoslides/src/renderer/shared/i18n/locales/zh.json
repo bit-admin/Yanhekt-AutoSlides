@@ -1505,6 +1505,8 @@
   "searchPage": {
     "semesterFall": "{year}年秋季学期",
     "semesterSpring": "{year}年春季学期",
+    "termRangeFall": "{range} 秋季学期",
+    "termRangeSpring": "{range} 春季学期",
     "academicYear": "{start}–{end} 学年",
     "semesterPlaceholder": "学期",
     "allSemesters": "全部学期",

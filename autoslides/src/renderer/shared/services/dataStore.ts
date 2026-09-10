@@ -16,6 +16,8 @@ export interface SessionDataWithMeta extends SessionData {
   courseInfo?: {
     id: string;
     title: string;
+    /** English course name for display; carried so a task tab's header can localize. */
+    titleEn?: string;
     instructor: string;
     time: string;
     classrooms?: { name: string }[];
@@ -98,6 +100,8 @@ export class DataStore {
   static setSessionDataWithCourse(sessionId: string, data: SessionData, courseInfo: {
     id: string;
     title: string;
+    /** English course name for display; carried so a task tab's header can localize. */
+    titleEn?: string;
     instructor: string;
     time: string;
     classrooms?: { name: string }[];

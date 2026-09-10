@@ -44,6 +44,7 @@ const toPlain = (courses: PinnedCourse[]): PinnedCourse[] =>
   courses.map(c => ({
     id: c.id,
     title: c.title,
+    titleEn: c.titleEn,
     instructor: c.instructor,
     time: c.time,
     classrooms: c.classrooms?.map(r => ({ name: r.name })),
@@ -58,6 +59,7 @@ const toPlain = (courses: PinnedCourse[]): PinnedCourse[] =>
 const toPlainOne = (course: PinnedCourse | Course): PinnedCourse => ({
   id: String(course.id),
   title: course.title,
+  titleEn: course.titleEn,
   instructor: course.instructor,
   time: course.time,
   classrooms: course.classrooms?.map(r => ({ name: r.name })),
@@ -93,6 +95,7 @@ export function mapSubscriptionRowToPinnedCourse(row: SubscriptionCourseRow): Pi
   return {
     id: String(row.id),
     title: row.name_zh ?? '',
+    titleEn: row.name_en,
     instructor: professors.length ? professors.join(', ') : undefined,
     classrooms: row.classrooms
       ?.map(c => ({ name: c.name }))
@@ -204,6 +207,7 @@ export const upgradePinnedCourse = (course: PinnedCourse | Course): void => {
   const merged: PinnedCourse = {
     id: String(existing.id),
     title: incoming.title || existing.title,
+    titleEn: incoming.titleEn || existing.titleEn,
     instructor: incoming.instructor || existing.instructor,
     time: incoming.time || existing.time,
     classrooms: incoming.classrooms?.length ? incoming.classrooms : existing.classrooms,
@@ -258,6 +262,7 @@ export const openPinnedCourse = (c: PinnedCourse): void => {
   openCourse('recorded', {
     id: c.id,
     title: c.title,
+    titleEn: c.titleEn,
     instructor: c.instructor ?? '',
     time: c.time ?? '',
     classrooms: c.classrooms,

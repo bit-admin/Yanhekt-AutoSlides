@@ -19,7 +19,17 @@ export interface Course {
    * one course group together instead of looking like two courses.
    */
   courseId?: string
+  /**
+   * The Chinese course name (`name_zh`). **Canonical** — on-disk folder names,
+   * download filenames, Drive note titles, metadata.json and Index uploads all
+   * derive from this. Never swap it for a localized string.
+   */
   title: string
+  /**
+   * The English course name (`name_en`), when Yanhekt supplied one. **Display
+   * only** — render it through `courseDisplayTitle()`, never into a filename.
+   */
+  titleEn?: string
   instructor: string
   time: string
   status?: number
@@ -91,6 +101,7 @@ export const transformCourseDataToCourse = (courseData: CourseData): Course => {
   return {
     id: courseData.id,
     title: courseData.name_zh,
+    titleEn: courseData.name_en,
     instructor: professors,
     time: timeInfo,
     professors: courseData.professors,

@@ -63,7 +63,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { formatAcademicTerm } from '@common/academicTerm'
+import { academicTermLabel } from '@shared/i18n/displayNames'
 import type { IndexViewerDetail } from '@features/cloudNotes/useCloudIndexBrowse'
 
 const props = defineProps<{
@@ -83,7 +83,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-/** Matches the /v1 share viewer: "N slides · instructor · college · 2025-2026 Fall · shared via AutoSlides". */
+/** Matches the /v1 share viewer: "N slides · instructor · college · 2025-2026 Fall · shared via AutoSlides"
+ *  (the term follows the UI language; the share site itself stays English). */
 const byline = computed(() => {
   const d = props.detail
   if (!d) return ''
@@ -91,7 +92,7 @@ const byline = computed(() => {
     t('cloudIndex.slideCount', { n: d.imageCount }),
     d.instructor,
     d.college,
-    formatAcademicTerm(d.schoolYear, d.semester),
+    academicTermLabel(d.schoolYear, d.semester),
     t('cloudIndex.sharedVia'),
   ].filter(Boolean).join(' · ')
 })

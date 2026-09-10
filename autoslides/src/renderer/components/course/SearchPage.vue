@@ -56,13 +56,13 @@
             #{{ course.id }}
           </div>
           <div class="course-info">
-            <h3 class="course-title">{{ course.title }}</h3>
+            <h3 class="course-title" :class="courseTitleSizeClass(courseDisplayTitle(course))">{{ courseDisplayTitle(course) }}</h3>
             <p class="course-instructor">{{ course.instructor }}</p>
             <p class="course-location" v-if="mode === 'live' && course.subtitle">{{ course.subtitle }}</p>
             <p class="course-location" v-if="mode === 'recorded' && course.classrooms">
               {{ course.classrooms.map(c => c.name).join(', ') }}
             </p>
-            <p class="course-time">{{ course.time }}</p>
+            <p class="course-time">{{ academicTermLabel(course.school_year, course.semester, course.time) }}</p>
             <p class="course-section" v-if="mode === 'live' && course.session?.section_group_title">{{ course.session.section_group_title }}</p>
             <p class="course-section" v-if="mode === 'recorded' && course.college_name">{{ course.college_name }}</p>
             <p class="course-participants" v-if="course.participant_count !== undefined">
@@ -101,6 +101,7 @@
 import { useI18n } from 'vue-i18n'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
+import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@shared/i18n/displayNames'
 import { useAuth } from '@features/platform/useAuth'
 import SemesterSelect from './SemesterSelect.vue'
 import EmptySetState from '../shell/EmptySetState.vue'
@@ -323,15 +324,30 @@ const {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.2;
+  /* Fixed px line box, not a ratio: the size steps below must not change the
+     height of a line, or `min-height` stops matching the clamp (see below). */
+  line-height: 15px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  /* Always reserve two lines so the info block starts at the same height
-     on every card, whether the name wraps or not. */
-  min-height: 2.4em;
+  /* Always reserve two lines so the info block starts at the same height on
+     every card, whether the name wraps or not. This must equal exactly two line
+     boxes: `line-clamp` does not remove the later lines, it only draws the
+     ellipsis and lets `overflow: hidden` clip them, so any extra height here
+     bleeds a sliver of line 3 into view. */
+  min-height: 30px;
+}
+
+/* English course names run far longer than the Chinese ones these cards were
+   sized for. Step the size down rather than truncate inside the two lines. */
+.course-title.is-long {
+  font-size: 11px;
+}
+
+.course-title.is-longer {
+  font-size: 10px;
 }
 
 .course-instructor {

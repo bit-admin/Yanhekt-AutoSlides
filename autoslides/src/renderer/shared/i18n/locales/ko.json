@@ -1505,6 +1505,8 @@
   "searchPage": {
     "semesterFall": "{year}년 가을학기",
     "semesterSpring": "{year}년 봄학기",
+    "termRangeFall": "{range} 가을학기",
+    "termRangeSpring": "{range} 봄학기",
     "academicYear": "{start}–{end} 학년도",
     "semesterPlaceholder": "학기",
     "allSemesters": "모든 학기",

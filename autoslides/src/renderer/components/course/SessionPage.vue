@@ -8,7 +8,7 @@
           </svg>
           {{ $t('sessions.backToCourses') }}
         </button>
-        <h2>{{ course?.title }}</h2>
+        <h2>{{ courseDisplayTitle(course) }}</h2>
         <button
           @click="searchInIndex"
           class="btn index-search-btn"
@@ -47,7 +47,7 @@
         </div>
         <div class="course-detail-item" v-if="courseDetails?.time">
           <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
-          <span class="detail-value">{{ courseDetails.time }}</span>
+          <span class="detail-value">{{ academicTermLabel(courseDetails.school_year, courseDetails.semester, courseDetails.time) }}</span>
         </div>
         <div class="course-detail-item" v-if="courseDetails?.classrooms && courseDetails.classrooms.length > 0">
           <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
@@ -235,6 +235,7 @@ import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
 import { isPinned, togglePinnedCourse } from '@features/course/pinnedCourses'
 import { navigationStore } from '@features/course/navigationStore'
+import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames'
 import { useAuth } from '@features/platform/useAuth'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 

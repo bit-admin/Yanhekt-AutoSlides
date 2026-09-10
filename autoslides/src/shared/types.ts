@@ -319,7 +319,10 @@ export interface LectureRenameOptions {
 // load recovers list fields via `lookupCourseById` and upgrades the snapshot.
 export interface PinnedCourse {
   id: string;
+  /** Chinese course name — canonical, feeds filenames once the pin is opened. */
   title: string;
+  /** English course name, when the API had one. Display only; absent on legacy pins. */
+  titleEn?: string;
   instructor?: string;
   time?: string;
   classrooms?: { name: string }[];

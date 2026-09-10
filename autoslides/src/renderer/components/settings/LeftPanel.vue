@@ -82,12 +82,12 @@
         <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.pinned') }}</div>
         <div class="nav-items">
           <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
-            <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPinnedCourse(c)" :title="c.title">
+            <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPinnedCourse(c)" :title="courseDisplayTitle(c)">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
               </svg>
-              <span class="pinned-label">{{ c.title }}</span>
+              <span class="pinned-label">{{ courseDisplayTitle(c) }}</span>
             </button>
             <button class="pinned-unpin" @click.stop="removePinnedCourse(c.id)" :title="$t('sessions.unpin')" :aria-label="$t('sessions.unpin')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -279,6 +279,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { usePinyinName } from '@features/platform/usePinyinName'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
+import { courseDisplayTitle } from '@shared/i18n/displayNames'
 import { settingsLauncher } from '@features/settings/settingsLauncher'
 import { useSearchPage } from '@features/course/useSearchPage'
 import {
