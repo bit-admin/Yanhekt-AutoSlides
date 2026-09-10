@@ -32,6 +32,10 @@ export function registerApiIpcHandlers(services: IpcServices): void {
     return await apiClient.unsubscribeCourse(token, courseId);
   });
 
+  ipcMain.handle('api:getCourseNames', async (_event, courseId: string, token: string) => {
+    return await apiClient.getCourseNames(courseId, token);
+  });
+
   ipcMain.handle('api:getCourseInfo', async (_event, courseId: string, token: string) => {
     return await apiClient.getCourseInfo(courseId, token);
   });

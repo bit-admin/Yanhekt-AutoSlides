@@ -1,9 +1,10 @@
-import { ref, computed, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, type CourseListResponse } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import { openCourse } from './courseSelection'
+import { hydrateLiveTitles } from './liveCourseTitles'
 import { createLogger } from '@shared/utils/logger';
-import { localeTag } from '@shared/i18n'
+import { localeTag, getCurrentLocale } from '@shared/i18n'
 const log = createLogger('CourseList');
 
 export interface Course {
@@ -173,7 +174,18 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   // Computed
   const paginatedCourses = computed(() => courses.value)
 
+  // Switching the UI to English must fill in the live titles that were skipped
+  // while another locale was active — nothing else refetches this grid.
+  watch(getCurrentLocale, () => {
+    if (mode.value === 'live') void hydrateLiveTitles(courses.value)
+  })
+
   const fetchPersonalCourses = async (resetPage = true) => {
+    // Re-entrancy guard: infinite scroll and the activeNav watcher can both land
+    // while a fetch is running, and two overlapping runs would append the same
+    // page twice. loadMore has its own guard; this covers everyone else.
+    if (isLoading.value) return
+
     const token = tokenManager.getToken()
     if (!token) {
       errorMessage.value = ''
@@ -194,6 +206,9 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
         courses.value = response.data.map(transformLiveStreamToCourse)
         totalPages.value = response.last_page
         currentPage.value = response.current_page
+        // Live rows carry no name_en; fill it per course id, in the background.
+        // Never awaited — the grid renders on the Chinese title immediately.
+        void hydrateLiveTitles(courses.value)
       } else {
         const requestOptions = {
           page: currentPage.value,

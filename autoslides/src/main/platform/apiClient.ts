@@ -490,6 +490,35 @@ export class ApiClient {
     }
   }
 
+  /**
+   * Course names only, from the single `/v1/course?id=` hop.
+   *
+   * Deliberately not {@link getCourseInfo}: that also pages the session list and
+   * **throws** when a course has none, which is exactly the case for a course
+   * that has only ever been broadcast live. Live rows carry no `name_en` of
+   * their own, so this is how a live card gets an English title.
+   *
+   * Anonymous-ok, like getCourseInfo's first hop. Returns null rather than
+   * throwing — a missing English title is never worth failing a render over.
+   */
+  async getCourseNames(
+    courseId: string,
+    token: string,
+  ): Promise<{ nameZh: string; nameEn?: string } | null> {
+    try {
+      const url = `https://cbiz.yanhekt.cn/v1/course?id=${encodeURIComponent(courseId)}`;
+      const response = await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
+      const payload = response as CourseInfoApiResponse;
+      if (payload.code !== 0 && payload.code !== '0') return null;
+      const nameZh = payload.data?.name_zh?.trim() ?? '';
+      const nameEn = payload.data?.name_en?.trim() || undefined;
+      return nameZh || nameEn ? { nameZh, nameEn } : null;
+    } catch (error: unknown) {
+      log.warn('Failed to read course names:', error);
+      return null;
+    }
+  }
+
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
     try {
       const courseApiUrl = `https://cbiz.yanhekt.cn/v1/course?id=${courseId}&with_professor_badges=true`;

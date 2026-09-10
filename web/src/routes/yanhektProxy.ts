@@ -31,6 +31,9 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     "/v1/user",
     "/v1/cas/logout",
     "/v2/live/list",
+    // Broadcast detail by id — the only way to resolve a live id without
+    // paging the whole live list. See isAnonymousUpstream.
+    "/v1/live",
     "/v2/course/list",
     "/v2/course/private/list",
     "/v1/course",
@@ -91,6 +94,9 @@ function isAnonymousUpstream(method: string, path: string, search: URLSearchPara
   if (path === "/v2/course/list" || path.startsWith("/v2/course/list/")) return true;
   if (path === "/v1/course") return true;
   if (path === "/v1/video") return true;
+  // Exact, not prefix — same caution as /v1/course above: a future
+  // /v1/live/<something> personal endpoint must not inherit the omit.
+  if (path === "/v1/live") return true;
   if (path === "/v2/live/list" || path.startsWith("/v2/live/list/")) {
     return search.get("user_relationship_type") !== "1";
   }

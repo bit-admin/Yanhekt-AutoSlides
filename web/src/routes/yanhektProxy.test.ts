@@ -92,6 +92,31 @@ describe("/api/yanhekt proxy", () => {
     expect(call.headers.Authorization).toBeUndefined();
   });
 
+  it("allows live detail by id and strips the Bearer upstream", async () => {
+    const res = await app.request(
+      "/api/yanhekt/v1/live?id=766560&with_session=true&with_course=true",
+      { headers: { Authorization: `Bearer ${TOKEN}` } },
+      env(),
+    );
+    expect(res.status).toBe(200);
+    const call = upstreamCall();
+    expect(call.url).toBe(
+      "https://cbiz.yanhekt.cn/v1/live?id=766560&with_session=true&with_course=true",
+    );
+    expect(call.headers.Authorization).toBeUndefined();
+  });
+
+  it("does not extend the live-detail Bearer omit to a subpath", async () => {
+    // The allowlist keeps prefix semantics for reads, so /v1/live/<x> still
+    // forwards — but it must forward *authenticated*, like /v1/course does.
+    await app.request(
+      "/api/yanhekt/v1/live/766560",
+      { headers: { Authorization: `Bearer ${TOKEN}` } },
+      env(),
+    );
+    expect(upstreamCall().headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
   it("keeps the Bearer for the session list, /v1/user and note writes", async () => {
     await app.request(
       "/api/yanhekt/v2/course/session/list?course_id=1",

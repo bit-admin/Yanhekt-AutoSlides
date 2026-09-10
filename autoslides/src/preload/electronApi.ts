@@ -495,6 +495,10 @@ export interface ElectronAPI {
     getSubscriptionList: (token: string, options?: { page?: number; pageSize?: number }) => Promise<SubscriptionListResponse>;
     subscribeCourse: (token: string, courseId: string) => Promise<void>;
     unsubscribeCourse: (token: string, courseId: string) => Promise<void>;
+    /** Names only, via the single `/v1/course?id=` hop. Unlike getCourseInfo this
+     *  does not need the course to have sessions, so it works for live-only
+     *  courses. Resolves null when the course or its names are unavailable. */
+    getCourseNames: (courseId: string, token: string) => Promise<{ nameZh: string; nameEn?: string } | null>;
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
     /** Mic-audio URL for one video id (GET /v1/video). Absent when the room recorded no mic. */
     getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;

@@ -39,10 +39,16 @@ import { authStore } from '../../stores/authStore'
 import { playbackStore } from '../../stores/playbackStore'
 import { takeCourse, takeSession } from '../../stores/courseTransfer'
 import { getSubscribedCourse, upgradeSubscribedCourse } from '../../composables/subscribedCourses'
-import { getCourseInfo, getLiveList, getPersonalLiveList, type SessionData } from '../../lib/api'
+import { getCourseInfo, getLiveById, type LiveStream, type SessionData } from '../../lib/api'
 import { transformLiveStreamToCourse, type Course } from '../../composables/useCourseList'
 import { lookupCourseById, needsListHydration } from '../../composables/lookupCourseById'
 import { courseDisplayTitle } from '../../i18n/displayNames'
+import { getCurrentLocale } from '../../i18n'
+import {
+  liveCourseTitleEn,
+  rememberLiveCourseTitleEn,
+  wantsEnglishTitle,
+} from '../../composables/liveCourseTitles'
 
 // Route component for /player/live/:courseId and
 // /player/recorded/:courseId/:sessionId. Owns playback hydration: in-app
@@ -50,11 +56,6 @@ import { courseDisplayTitle } from '../../i18n/displayNames'
 // zero fetches); a cold load (deep link, refresh) rebuilds them from the API.
 // The instance is keyed by fullPath in MainContent, so params never change
 // within its lifetime.
-
-// How many public live-list pages the cold-load scan reads before giving up
-// (there is no fetch-live-by-id endpoint; the personal list is scanned fully).
-const LIVE_SCAN_PAGE_SIZE = 50
-const LIVE_SCAN_MAX_PAGES = 5
 
 type PlayerState = 'verifying' | 'signed-out' | 'loading' | 'ready' | 'not-found' | 'error'
 
@@ -179,34 +180,59 @@ const hydrateRecorded = async (token: string): Promise<void> => {
   }
 }
 
+/**
+ * Fill `titleEn` on a live course that arrived from a list row. No-op unless the
+ * UI is English, the course is live, and its English name is still unknown.
+ */
+const fillLiveTitleEn = async (): Promise<void> => {
+  if (mode !== 'live' || !wantsEnglishTitle()) return
+  const realCourseId = course.value?.courseId
+  const token = authStore.token.value
+  if (!realCourseId || !token || course.value?.titleEn) return
+  const titleEn = await liveCourseTitleEn(realCourseId, token)
+  // The tab may have moved on while the lookup was in flight.
+  if (titleEn && course.value && course.value.courseId === realCourseId) {
+    course.value = { ...course.value, titleEn }
+  }
+}
+
 const hydrateLive = async (token: string): Promise<void> => {
-  // Raw list entries carry numeric ids at runtime — compare as strings.
-  const matches = (id?: string | number) => id != null && id !== "" && String(id) === courseId
-  // Personal list first (small, most likely hit), then the public list up to
-  // a hard page cap — best-effort by design.
-  for (let page = 1; page <= LIVE_SCAN_MAX_PAGES; page++) {
-    const response = await getPersonalLiveList(token, page, LIVE_SCAN_PAGE_SIZE)
-    const hit = response.data.find((s) => matches(s.id) || matches(s.live_id))
-    if (hit) {
-      course.value = transformLiveStreamToCourse(hit)
-      // Real course id rides on courseId (broadcast stays in `id`). List lookup
-      // fills classrooms for adaptive SSIM / metadata without renaming the stream.
-      await fillListFields(token, course.value.courseId, false)
+  // `courseId` is the route param, which for live is really the BROADCAST id.
+  // getLiveById resolves it directly; this used to page the personal list and
+  // then the public list looking for a matching row, up to ten requests.
+  let detail: LiveStream
+  try {
+    detail = await getLiveById(courseId, token)
+  } catch (error: unknown) {
+    // 直播不存在 (12131011) is the expected answer for a stale or bad link, and
+    // is a 'not-found', not an error worth a Retry button. Anything else — a
+    // network failure, an upstream outage — keeps the retryable error state.
+    if (error instanceof Error && /12131011|直播不存在/.test(error.message)) {
+      state.value = 'not-found'
       return
     }
-    if (page >= response.last_page) break
+    throw error
   }
-  for (let page = 1; page <= LIVE_SCAN_MAX_PAGES; page++) {
-    const response = await getLiveList(token, page, LIVE_SCAN_PAGE_SIZE)
-    const hit = response.data.find((s) => matches(s.id) || matches(s.live_id))
-    if (hit) {
-      course.value = transformLiveStreamToCourse(hit)
-      await fillListFields(token, course.value.courseId, false)
-      return
-    }
-    if (page >= response.last_page) break
+
+  course.value = transformLiveStreamToCourse(detail)
+  // Free English title: unlike a live-list row, the by-id payload nests the full
+  // course, name_en included. Seed the cache so a later warm open of the same
+  // course skips its lookup too.
+  const detailTitleEn = detail.course?.name_en
+  if (course.value.courseId) rememberLiveCourseTitleEn(course.value.courseId, detailTitleEn)
+  if (wantsEnglishTitle()) {
+    course.value = { ...course.value, titleEn: detailTitleEn }
   }
-  state.value = 'not-found'
+  // Real course id rides on courseId (broadcast stays in `id`). List lookup
+  // fills classrooms for adaptive SSIM / metadata, plus participant_count,
+  // which the live-detail payload does not carry.
+  await fillListFields(token, course.value.courseId, false)
+  // Fallback for a course the list lookup cannot see (keyword search on the id
+  // can miss). Live detail nests its own classrooms, so adaptive SSIM still
+  // gets a room name even then.
+  if (course.value && needsListHydration(course.value) && detail.course?.classrooms?.length) {
+    course.value = { ...course.value, classrooms: detail.course.classrooms }
+  }
 }
 
 const hydrate = async (): Promise<void> => {
@@ -244,6 +270,11 @@ const hydrate = async (): Promise<void> => {
 
   // Title + session (or live course) already in hand: only fill missing classrooms.
   if (course.value?.title && (mode === 'live' || session.value)) {
+    // A live card handed over from the grid has no English name — list rows
+    // never carry one. Cached per course, so this is one request per course
+    // ever, and none outside an English UI. Deliberately not awaited: playback
+    // must not wait on a cosmetic title.
+    void fillLiveTitleEn()
     if (needsListHydration(course.value)) {
       state.value = 'loading'
       errorMessage.value = ''
@@ -289,6 +320,12 @@ watch(
   },
   { immediate: true },
 )
+
+// Switching the UI to English mid-playback still has to resolve the title —
+// hydrate() already ran, and nothing else refetches a live tab.
+watch(getCurrentLocale, () => {
+  void fillLiveTitleEn()
+})
 
 // The hydrated course names the tab (browse routes use meta.titleKey instead).
 watch([state, course], () => {

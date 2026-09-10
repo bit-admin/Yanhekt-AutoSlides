@@ -673,6 +673,7 @@ import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
 import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames'
 import { tabStore } from '@features/course/tabStore'
+import { hydrateLiveTitles } from '@features/course/liveCourseTitles'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { layoutStore } from '@shared/services/layoutStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
@@ -1676,6 +1677,12 @@ onMounted(async () => {
 
   // Update SSIM threshold based on classroom information
   slideExtraction.updateSSIMThresholdForClassrooms()
+
+  // A live tab opened before the grid finished hydrating carries no English
+  // title. The lookup is cached per course, so this is usually free.
+  if (props.mode === 'live' && props.course) {
+    void hydrateLiveTitles([props.course])
+  }
 
   // Add event listeners
   window.addEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)

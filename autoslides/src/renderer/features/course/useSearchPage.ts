@@ -4,10 +4,14 @@ import { tokenManager } from '@shared/services/authService'
 import { navigationStore } from './navigationStore'
 import { openCourse } from './courseSelection'
 import { transformLiveStreamToCourse, transformCourseDataToCourse, type Course } from './useCourseList'
+import { hydrateLiveTitles } from './liveCourseTitles'
+import { getCurrentLocale } from '@shared/i18n'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('SearchPage');
 
 const SEARCH_DEBOUNCE_MS = 400
+/** Settle time for semester checkbox runs — shorter than typing. */
+const SEMESTER_DEBOUNCE_MS = 250
 const RESULTS_PER_PAGE = 16
 
 const apiClient = new ApiClient()
@@ -24,6 +28,12 @@ const availableSemesters = ref<SemesterOption[]>([])
 const selectedSemesterIds = ref<number[]>([])
 const semesterInitialized = ref(false)
 const results = ref<Course[]>([])
+
+// Results persist across navigation, so a language switch has to fill in the
+// live titles that were skipped while another locale was active.
+watch(getCurrentLocale, () => {
+  if (mode.value === 'live') void hydrateLiveTitles(results.value)
+})
 const currentPage = ref(1)
 const totalPages = ref(1)
 const isLoading = ref(false)
@@ -84,6 +94,8 @@ const executeSearch = async (resetPage = true) => {
       const response: LiveListResponse = await apiClient.searchLiveList(token, keyword.value.trim(), currentPage.value, RESULTS_PER_PAGE)
       if (seq !== requestSeq) return
       results.value = response.data.map(transformLiveStreamToCourse)
+      // Live rows have no name_en — fill it per course, in the background.
+      void hydrateLiveTitles(results.value)
       totalPages.value = response.last_page
       currentPage.value = response.current_page
     } else {
@@ -136,11 +148,25 @@ const setMode = async (m: 'live' | 'recorded') => {
   await executeSearch()
 }
 
-const setSemesters = async (ids: number[]) => {
+/**
+ * Semester checkboxes emit one change per click, so firing a search per toggle
+ * put one course-list request on the wire for every box the user touched — the
+ * `requestSeq` guard dropped the stale *results*, but the requests had already
+ * been sent. Debounce so picking four semesters costs one search.
+ *
+ * Reuses `debounceTimer` (and so `cancelPendingSearch`) rather than adding a
+ * second timer, so a keystroke and a semester toggle cannot both be pending.
+ */
+const setSemesters = (ids: number[]) => {
   selectedSemesterIds.value = ids
   semesterInitialized.value = true
-  await executeSearch()
+  cancelPendingSearch()
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null
+    void executeSearch()
+  }, SEMESTER_DEBOUNCE_MS)
 }
+
 
 // Focusing the sidebar search bar opens the Search page; the first visit runs
 // an initial search immediately (empty keyword is a valid search).

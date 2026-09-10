@@ -1,7 +1,9 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { ApiClient, type LiveListResponse, type CourseListResponse } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import { transformLiveStreamToCourse, transformCourseDataToCourse, type Course } from './useCourseList'
+import { hydrateLiveTitles } from './liveCourseTitles'
+import { getCurrentLocale } from '@shared/i18n'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('HomePage');
 
@@ -12,6 +14,10 @@ export function useHomePage() {
 
   const liveStreams = ref<Course[]>([])
   const recordings = ref<Course[]>([])
+
+  // Home only loads once per user, so a language switch would otherwise leave
+  // the live row on its Chinese titles for the rest of the session.
+  watch(getCurrentLocale, () => void hydrateLiveTitles(liveStreams.value))
   const isLoadingLive = ref(false)
   const isLoadingRecorded = ref(false)
   const liveError = ref('')
@@ -23,6 +29,8 @@ export function useHomePage() {
     try {
       const response: LiveListResponse = await apiClient.getPersonalLiveList(token, 1, ROW_PAGE_SIZE)
       liveStreams.value = (response?.data ?? []).map(transformLiveStreamToCourse)
+      // Live rows have no name_en — fill it per course, in the background.
+      void hydrateLiveTitles(liveStreams.value)
     } catch (error: unknown) {
       log.error('Failed to load personal live streams:', error)
       liveError.value = (error instanceof Error && error.message) || 'Failed to load live streams'

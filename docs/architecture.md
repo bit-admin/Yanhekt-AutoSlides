@@ -481,7 +481,7 @@ Every SPA request to `/api/yanhekt/*` must send `Authorization: Bearer <32-hex>`
 
 When forwarding to cbiz:
 
-- **Omit** the user Bearer on anonymous-safe GETs: `/v2/course/list`, `/v1/course`, `/v1/course/session`, `/v1/tag/list`, `/v2/live/list` except `user_relationship_type=1`.
+- **Omit** the user Bearer on anonymous-safe GETs: `/v2/course/list`, `/v1/course`, `/v1/live`, `/v1/course/session`, `/v1/tag/list`, `/v2/live/list` except `user_relationship_type=1`. `/v1/course` and `/v1/live` match **exactly**, not by prefix, so a subpath cannot inherit the omit.
 - **Keep** it for session list, personal lists, subscriptions, notes, `/v1/user`, logout, MinIO.
 
 The SPA still sends a token on `getAvailableSemesters`; the Worker strips it upstream. Query strings are forwarded **verbatim** (PHP-style `semesters[]=`). Non-GET bodies stream as raw `ArrayBuffer` with the incoming `Content-Type` (MinIO multipart).
@@ -803,6 +803,7 @@ Two failure modes when Bearer is missing:
 | `GET /v1/tag/list?with_sub=true` | Full tag tree | Same |
 | `GET /v2/live/list` (no `user_relationship_type`, or `=0`) | Public catalog | Same |
 | `GET /v2/live/list?keyword=` | Public search | Same |
+| `GET /v1/live?id=&with_session=true&with_course=true` | Full broadcast detail | Same |
 | `GET /v1/video?id=` | VOD URLs + duration | Same |
 | `GET /v1/auth/video/token?id=0` | 16-char token, TTL **600s** | Same |
 | `GET /v2/course/session/list?course_id=` | `code: 0`, `data: []` | Bare array of sessions **with** `videos[]` |
@@ -817,7 +818,7 @@ Two failure modes when Bearer is missing:
 
 **Desktop** (`preferAnonymousApiRequests`, default **false**): when the flag is on **and** the method opted in, omit `Authorization`. Opted-in: course list, `/v1/course` first hop, public live list, live search, video token. Always unauth: `getTagList`. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes.
 
-**Web Worker** strips Bearer upstream for: `GET /v1/tag/list`, `GET /v2/course/list`, exact `GET /v1/course`, `GET /v1/course/session`, `GET /v2/live/list` when `user_relationship_type !== "1"`. Prefix matching on GET would otherwise treat `/v1/course/subscription/list` as anonymous — the omit list uses **exact** `/v1/course` so subscription stays authenticated.
+**Web Worker** strips Bearer upstream for: `GET /v1/tag/list`, `GET /v2/course/list`, exact `GET /v1/course`, exact `GET /v1/live`, `GET /v1/course/session`, `GET /v2/live/list` when `user_relationship_type !== "1"`. Prefix matching on GET would otherwise treat `/v1/course/subscription/list` as anonymous — the omit list uses **exact** `/v1/course` so subscription stays authenticated.
 
 **Share** never sends a user Bearer except `GET /v1/user` on publish / removal. **Relay** never sends one; it mints the anonymous video token.
 
@@ -836,7 +837,7 @@ Four id namespaces. Do not mix them.
 
 **`session_id` is globally unique** and enough to recover `course_id`. `GET /v1/course/session?session_id=751843` (anonymous) returns `course_id: 62313` plus a nested `course` (names, college, term). Share already fans this out; desktop course pages still enumerate via the **list** hop, which needs `course_id` **and** a login token.
 
-Live identity is a separate namespace. A finished session’s nested `live.id` is the broadcast id (`l` in share payloads). Live-list rows carry the real course id on `session.course_id` (present on sampled rows); nested `course.id` is often missing.
+Live identity is a separate namespace. A finished session’s nested `live.id` is the broadcast id (`l` in share payloads). Live-list rows carry the real course id on `session.course_id` (present on sampled rows); nested `course.id` is often missing. **A broadcast id is resolvable on its own**: `GET /v1/live?id=<live id>&with_session=true&with_course=true` (anonymous) returns the broadcast plus its session and full course — including `course.id` and `classrooms[]`, neither of which a list row has. Never page the live list to find a row by id.
 
 `GET /v1/video?id=` returns `course_id: 0` and `session_id: 0` — you cannot go video → session.
 
@@ -1065,7 +1066,33 @@ Public catalog is a paginator (probe: thousands of rows). A row:
 }
 ```
 
+**No `name_en` anywhere on a live row** — not at the top level, not on the nested `course`, which also has no `id`. An English UI therefore falls back to the Chinese broadcast title unless something resolves it: use the row's `session.course_id` with `GET /v1/course?id=` (anonymous, ~1.6 KB), cached per **course** so a weekly course costs one lookup for all its broadcasts. Desktop does this on every live surface (`features/course/liveCourseTitles.ts`); web does it on the player only, and a cold deep link gets it free from `/v1/live?id=`.
+
 Our `LiveStream.status` comment is `0=ended, 1=live, 2=upcoming`. Live-list rows in this probe used `1` (same-day) and `2` (later days); a **finished** session’s nested `live.status` was `3`. Prefer schedule timestamps. Cover: use `img`, not `course.image_url` (often `""`). Course id: use `session.course_id` (or `source_id`), not `course.id`.
+
+#### `GET /v1/live?id=766560&with_session=true&with_course=true`
+
+Broadcast detail **by id**, anonymous-ok. Probed 2026-09-11 against live `766560` / course `68437`.
+
+**Both `with_*` flags are required.** Omitting either answers `61101114 系统繁忙` with `data: []` — a hard error, not a partial payload. Unknown id → `12131011 直播不存在`; missing `id` → `61101210`.
+
+This is the only way to resolve a broadcast id without paging the live list, and it is what `web/` uses for a cold deep link to `/player/live/:id` (`PlayerRoute.hydrateLive`). Desktop has no equivalent path — it always opens live from an in-hand list row.
+
+The payload is a live-list row **plus** more, so `transformLiveStreamToCourse` consumes it unchanged:
+
+| Field | List row | `/v1/live?id=` |
+|---|---|---|
+| `id`, `title`, `subtitle`, `status`, `schedule_*`, `target`, `target_vga`, `img` | yes | identical |
+| `session` | 5 keys (`badge`, `course_id`, `number`, `section_group`, `section_group_title`) | 21 keys — adds `id`, `title`, `week_number`, `day`, `started_at`/`ended_at`, `location`, `professor` |
+| `course.id` | **null** | real course id |
+| `course.name_en` | absent | present |
+| `course.classrooms[]` | **absent** | present — the only live-side source, and what adaptive SSIM needs |
+| `participant_count` | present (e.g. `69`) | **absent** |
+| `looking_count` | absent | present — *current viewers*, not enrolment. Do **not** map it onto `participant_count` |
+
+`session.professor` can still be `null` here (observed on `770335`), same as on list rows — keep the optional chaining.
+
+`course.name_en` arrives HTML-escaped on some courses (`Design &#97;nd Practice of Opto-electronic system`) — the dirty-`name_en` case: render through `usableEnglishTitle()`, which decodes entities before its CJK check.
 
 #### `GET /v1/tag/list?with_sub=true`
 
