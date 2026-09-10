@@ -41,6 +41,7 @@ const MAX_SUBSCRIPTION_PAGES = 50;
 const toPlain = (course: SubscribedCourse | Course): SubscribedCourse => ({
   id: String(course.id),
   title: course.title,
+  titleEn: course.titleEn,
   instructor: course.instructor,
   time: course.time,
   classrooms: course.classrooms?.map((r) => ({ name: r.name })),
@@ -74,6 +75,7 @@ export function mapSubscriptionRowToSubscribedCourse(
   return {
     id: String(row.id),
     title: row.name_zh ?? "",
+    titleEn: row.name_en,
     instructor: professors.length ? professors.join(", ") : undefined,
     classrooms: row.classrooms
       ?.map((c) => ({ name: c.name }))
@@ -218,6 +220,7 @@ export const upgradeSubscribedCourse = (course: SubscribedCourse | Course): void
   list[idx] = {
     id: String(existing.id),
     title: incoming.title || existing.title,
+    titleEn: incoming.titleEn || existing.titleEn,
     instructor: incoming.instructor || existing.instructor,
     time: incoming.time || existing.time,
     classrooms: incoming.classrooms?.length ? incoming.classrooms : existing.classrooms,
@@ -245,6 +248,7 @@ export const getSubscribedCourse = (id: string): Course | null => {
   return {
     id: String(snapshot.id),
     title: snapshot.title,
+    titleEn: snapshot.titleEn,
     instructor: snapshot.instructor ?? "",
     time: snapshot.time ?? "",
     classrooms: snapshot.classrooms,

@@ -22,7 +22,10 @@ export type AIServiceType = "builtin" | "copilot" | "custom";
 // `lookupCourseById` and upgrade the snapshot. Ported from desktop PinnedCourse.
 export interface SubscribedCourse {
   id: string;
+  /** Chinese course name — canonical; feeds folder keys once the course is opened. */
   title: string;
+  /** English course name, when the API had one. Display only; absent on legacy snapshots. */
+  titleEn?: string;
   instructor?: string;
   time?: string;
   classrooms?: { name: string }[];

@@ -142,10 +142,10 @@
                   @click="clickSubscribedCourse(c)"
                 >
                   <div class="bell-avatar" :style="{ backgroundColor: getAvatarBg(c.title) }">
-                    {{ getInitials(c.title) }}
+                    {{ getInitials(courseDisplayTitle(c)) }}
                   </div>
                   <div class="bell-item-info">
-                    <span class="bell-item-title" :title="c.title">{{ c.title }}</span>
+                    <span class="bell-item-title" :title="courseDisplayTitle(c)">{{ courseDisplayTitle(c) }}</span>
                     <span v-if="c.instructor" class="bell-item-sub">{{ c.instructor }}</span>
                   </div>
                 </button>
@@ -196,6 +196,7 @@ import { authStore } from '../stores/authStore'
 import { useSearchPage } from '../composables/useSearchPage'
 import { subscribedRecordedCourses, openSubscribedCourse } from '../composables/subscribedCourses'
 import { getAvatarBg, getInitials } from '../composables/courseCover'
+import { courseDisplayTitle } from '../i18n/displayNames'
 import type { SubscribedCourse } from '../stores/configStore'
 
 const { navigate, toggleSidebar } = navigationStore

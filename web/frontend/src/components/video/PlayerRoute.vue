@@ -42,6 +42,7 @@ import { getSubscribedCourse, upgradeSubscribedCourse } from '../../composables/
 import { getCourseInfo, getLiveList, getPersonalLiveList, type SessionData } from '../../lib/api'
 import { transformLiveStreamToCourse, type Course } from '../../composables/useCourseList'
 import { lookupCourseById, needsListHydration } from '../../composables/lookupCourseById'
+import { courseDisplayTitle } from '../../i18n/displayNames'
 
 // Route component for /player/live/:courseId and
 // /player/recorded/:courseId/:sessionId. Owns playback hydration: in-app
@@ -76,6 +77,7 @@ const errorMessage = ref('')
 const attachListFields = (base: Course, list: Course): Course => ({
   ...base,
   title: base.title || list.title,
+  titleEn: base.titleEn || list.titleEn,
   instructor: base.instructor || list.instructor,
   time: base.time || list.time,
   professors: base.professors && base.professors.length > 0 ? base.professors : list.professors,
@@ -100,6 +102,7 @@ const fillListFields = async (
     upgradeSubscribedCourse({
       ...list,
       title: course.value.title || list.title,
+      titleEn: course.value.titleEn || list.titleEn,
       instructor: course.value.instructor || list.instructor,
       professors: course.value.professors?.length ? course.value.professors : list.professors,
       college_name: course.value.college_name || list.college_name,
@@ -125,6 +128,7 @@ const hydrateRecorded = async (token: string): Promise<void> => {
   const fetched: Course = {
     id: courseId,
     title: info.title || '',
+    titleEn: info.title_en,
     instructor: info.professor || '',
     time: info.school_year
       ? `${info.school_year} ${Number(info.semester) === 1 ? 'Fall' : 'Spring'}`
@@ -141,6 +145,7 @@ const hydrateRecorded = async (token: string): Promise<void> => {
     ? {
         ...base,
         title: base.title || fetched.title,
+        titleEn: base.titleEn || fetched.titleEn,
         instructor: base.instructor || fetched.instructor,
         time: base.time || fetched.time,
         professors: base.professors && base.professors.length > 0 ? base.professors : fetched.professors,
@@ -154,6 +159,7 @@ const hydrateRecorded = async (token: string): Promise<void> => {
     upgradeSubscribedCourse({
       ...listCourse,
       title: merged.title || listCourse.title,
+      titleEn: merged.titleEn || listCourse.titleEn,
       instructor: merged.instructor || listCourse.instructor,
       professors: merged.professors?.length ? merged.professors : listCourse.professors,
       college_name: merged.college_name || listCourse.college_name,
@@ -287,7 +293,7 @@ watch(
 // The hydrated course names the tab (browse routes use meta.titleKey instead).
 watch([state, course], () => {
   if (state.value === 'ready' && course.value?.title) {
-    document.title = `${course.value.title} - AutoSlides`
+    document.title = `${courseDisplayTitle(course.value)} - AutoSlides`
   }
 })
 

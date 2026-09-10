@@ -71,13 +71,13 @@
               <button
                 :class="['nav-item', 'subscribed-item', { active: activeSubscribed === c.id }]"
                 @click="openSubscribedCourse(c)"
-                :title="c.title"
+                :title="courseDisplayTitle(c)"
               >
                 <!-- Subscription Style Circle Initials Avatar -->
                 <div class="subscribed-avatar" :style="{ backgroundColor: getAvatarBg(c.title) }">
-                  {{ getInitials(c.title) }}
+                  {{ getInitials(courseDisplayTitle(c)) }}
                 </div>
-                <span class="subscribed-label">{{ c.title }}</span>
+                <span class="subscribed-label">{{ courseDisplayTitle(c) }}</span>
               </button>
               <button
                 class="subscribed-unpin"
@@ -246,6 +246,7 @@ import { navigationStore } from '../stores/navigationStore'
 import { authStore } from '../stores/authStore'
 import { subscribedRecordedCourses, openSubscribedCourse, removeSubscribedCourse } from '../composables/subscribedCourses'
 import { getAvatarBg, getInitials } from '../composables/courseCover'
+import { courseDisplayTitle } from '../i18n/displayNames'
 
 const { activeNav, activeSubscribed, navigate, isSidebarCollapsed } = navigationStore
 

@@ -61,6 +61,9 @@ export interface LiveListResponse {
 export interface CourseData {
   id: string;
   name_zh: string;
+  /** English course name. Present on /v2/course/list and /v1/course; often absent.
+   *  Display only — never let it reach a folder key, note title, or slide metadata. */
+  name_en?: string;
   professors: string[];
   classrooms: { name: string }[];
   school_year: string;
@@ -83,6 +86,9 @@ export interface CourseListResponse {
 export interface SubscriptionCourseRow {
   id: number | string;
   name_zh: string;
+  /** English course name. Present on /v2/course/list and /v1/course; often absent.
+   *  Display only — never let it reach a folder key, note title, or slide metadata. */
+  name_en?: string;
   professor_names?: string[];
   professors?: Array<{ name?: string } | string>;
   classrooms?: Array<{ name: string }>;
@@ -118,7 +124,11 @@ export interface SessionData {
 
 export interface CourseInfoResponse {
   course_id: string;
+  /** Chinese course name (name_zh). The canonical title — the IndexedDB folder key,
+   *  slide metadata and managed note titles all derive from this one. */
   title: string;
+  /** English course name (name_en), when the API supplied one. Display only. */
+  title_en?: string;
   professor: string;
   professors?: string[];
   college_name?: string;
@@ -155,6 +165,9 @@ interface BaseApiResponse {
 interface CourseInfoApiResponse extends BaseApiResponse {
   data: {
     name_zh: string;
+    // English course name, when the teacher filled it in. Frequently absent or a
+    // placeholder — callers must fall back to name_zh.
+    name_en?: string;
     professors: Array<{ name: string }>;
     school_year?: string;
     semester?: number | string;
@@ -378,6 +391,7 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
   }
 
   const name = courseData.name_zh.trim();
+  const nameEn = courseData.name_en?.trim() || undefined;
   const professorNames = (courseData.professors || [])
     .map((p) => p.name?.trim())
     .filter((n): n is string => !!n);
@@ -408,6 +422,7 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
   return {
     course_id: String(courseId),
     title: name,
+    title_en: nameEn,
     professor,
     professors: professorNames,
     college_name: courseData.college_name || courseData.college?.name,

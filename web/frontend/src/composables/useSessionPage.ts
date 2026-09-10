@@ -14,6 +14,7 @@ export type SessionCourse = Pick<
   Course,
   | "id"
   | "title"
+  | "titleEn"
   | "instructor"
   | "time"
   | "classrooms"
@@ -72,6 +73,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     return {
       ...base,
       title: base.title || extra.title || "",
+      titleEn: base.titleEn || extra.titleEn,
       instructor: base.instructor || extra.instructor || "",
       professors: base.professors && base.professors.length > 0 ? base.professors : extra.professors,
       college_name: base.college_name || extra.college_name,
@@ -127,6 +129,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       const detailImageUrl = response.image_url?.trim() || undefined;
       fetchedCourseInfo.value = {
         title: response.title,
+        titleEn: response.title_en,
         instructor: response.professor,
         professors: response.professors,
         college_name: response.college_name || listCourse?.college_name,
@@ -145,6 +148,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
         upgradeSubscribedCourse({
           ...listCourse,
           title: response.title || listCourse.title,
+          titleEn: response.title_en || listCourse.titleEn,
           instructor: response.professor || listCourse.instructor,
           professors: (response.professors && response.professors.length > 0)
             ? response.professors

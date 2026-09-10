@@ -49,8 +49,8 @@
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
               </div>
-              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(course.title)">
-                {{ course.title }}
+              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(courseDisplayTitle(course))">
+                {{ courseDisplayTitle(course) }}
               </div>
               <!-- Badges -->
               <span v-if="mode === 'live'" class="video-badge" :class="getLiveBadgeClass(course.status)">
@@ -68,13 +68,13 @@
             <!-- Description Meta -->
             <div class="video-detail-row">
               <div class="instructor-avatar" :style="{ backgroundColor: getAvatarBg(course.instructor || course.title) }">
-                {{ getInitials(course.instructor || course.title) }}
+                {{ getInitials(course.instructor || courseDisplayTitle(course)) }}
               </div>
               <div class="video-meta">
-                <h3 class="video-title" :title="course.title">{{ course.title }}</h3>
+                <h3 class="video-title" :class="courseTitleSizeClass(courseDisplayTitle(course))" :title="courseDisplayTitle(course)">{{ courseDisplayTitle(course) }}</h3>
                 <p class="video-instructor">{{ course.instructor }}</p>
                 <p class="video-stats">
-                  {{ course.time }}
+                  {{ academicTermLabel(course.school_year, course.semester, course.time) }}
                   <span v-if="(mode === 'recorded' || mode === 'subscriptions') && course.classrooms"> · {{ course.classrooms.map(c => c.name).join(', ') }}</span>
                   <span v-if="mode === 'live' && course.subtitle"> · {{ course.subtitle }}</span>
                 </p>
@@ -99,6 +99,7 @@ import { useCourseList } from '../../composables/useCourseList'
 import { navigationStore } from '../../stores/navigationStore'
 import { authStore } from '../../stores/authStore'
 import { resolveCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
+import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '../../i18n/displayNames'
 import { useKeepScroll } from '../../composables/useKeepScroll'
 import NoCoursesEmpty from './NoCoursesEmpty.vue'
 
@@ -407,6 +408,7 @@ const getLiveBadgeClass = (status?: number) => {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
+  /* Fixed line box, so the size steps below keep two lines inside max-height. */
   line-height: 1.25rem;
   max-height: 2.5rem;
   display: -webkit-box;
@@ -414,6 +416,16 @@ const getLiveBadgeClass = (status?: number) => {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* English course names run far longer than the Chinese ones these cards were
+   sized for. Step the size down rather than truncate inside the two lines. */
+.video-title.is-long {
+  font-size: 0.875rem;
+}
+
+.video-title.is-longer {
+  font-size: 0.8125rem;
 }
 
 .video-instructor {

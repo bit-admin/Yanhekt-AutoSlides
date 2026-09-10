@@ -455,11 +455,11 @@
             <div class="channel-main">
               <!-- Circular Avatar -->
               <div class="instructor-avatar" :style="{ backgroundColor: getAvatarBg(course?.instructor || course?.title || 'Course') }">
-                {{ getInitials(course?.instructor || course?.title || 'CS') }}
+                {{ getInitials(course?.instructor || courseDisplayTitle(course) || 'CS') }}
               </div>
               <div class="channel-text">
                 <span class="instructor-name">{{ course?.instructor }}</span>
-                <span class="course-name">{{ course?.title }}</span>
+                <span class="course-name">{{ courseDisplayTitle(course) }}</span>
               </div>
               
               <!-- Subscribe style Pin button (recorded only) -->
@@ -527,7 +527,7 @@
                 {{ formatDate(session.started_at) }}
               </span>
               <span class="description-stats" v-else-if="course?.time">
-                {{ course.time }}
+                {{ academicTermLabel(course.school_year, course.semester, course.time) }}
               </span>
               <span class="description-stats" v-if="session?.duration">
                 · {{ formatDuration(session.duration) }}
@@ -643,7 +643,7 @@
 
         <template v-if="activeSidebarView === 'sessions'">
           <div class="playlist-header">
-            <h3 class="playlist-title">{{ course?.title }}</h3>
+            <h3 class="playlist-title">{{ courseDisplayTitle(course) }}</h3>
             <span class="playlist-subtitle">{{ $t('playback.sessionsCount', { count: siblingSessions.length }) }}</span>
           </div>
 
@@ -713,6 +713,7 @@ import { getCourseInfo, type SessionData } from '../../lib/api'
 import { authStore } from '../../stores/authStore'
 import { isSubscribed, toggleSubscribedCourse } from '../../composables/subscribedCourses'
 import { resolveCourseCover, getAvatarBg, getInitials } from '../../composables/courseCover'
+import { courseDisplayTitle, academicTermLabel } from '../../i18n/displayNames'
 
 const props = defineProps<{
   course: Course | null
@@ -874,10 +875,12 @@ const playbackRateOptions = [1, 1.25, 1.5, 2]
 const courseRef = toRef(props, 'course')
 const sessionRef = computed(() => props.session ?? null)
 
-// "Course · session" under the player — recorded uses session.title,
-// live uses section_group_title (same source as extraction folder names).
+// "Course · session" under the player — recorded uses session.title, live uses
+// section_group_title (the same session source as extraction folder names). The
+// course half is the *display* title, so it may be English while the folder key
+// stays Chinese; this string is rendered only, never written anywhere.
 const videoInfoTitle = computed(() => {
-  const courseTitle = props.course?.title?.trim() || ''
+  const courseTitle = courseDisplayTitle(props.course).trim()
   const sessionTitle =
     (props.session?.title ||
       (props.mode === 'live' ? props.course?.session?.section_group_title : undefined) ||

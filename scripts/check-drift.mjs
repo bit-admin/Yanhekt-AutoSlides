@@ -39,6 +39,13 @@ const GROUPS = [
   { name: 'phase3AI', files: ['autoslides/src/renderer/shared/postProcessing/phase3AI.ts', 'web/frontend/src/lib/postProcessing/phase3AI.ts'] },
   { name: 'postCropDedup', files: ['autoslides/src/renderer/shared/postProcessing/postCropDedup.ts', 'web/frontend/src/lib/postProcessing/postCropDedup.ts'] },
   {
+    name: 'displayNames',
+    files: [
+      'autoslides/src/renderer/shared/i18n/displayNames.ts',
+      'web/frontend/src/i18n/displayNames.ts',
+    ],
+  },
+  {
     name: 'videoErrorRecovery',
     files: [
       'autoslides/src/renderer/features/video/useVideoErrorRecovery.ts',

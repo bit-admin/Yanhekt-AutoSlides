@@ -290,6 +290,8 @@
     "semesterFall": "{year}年秋季学期",
     "semesterPlaceholder": "学期",
     "semesterSpring": "{year}年春季学期",
+    "termRangeFall": "{range} 秋季学期",
+    "termRangeSpring": "{range} 春季学期",
     "semestersSelected": "已选 {count} 个学期"
   },
   "sessions": {

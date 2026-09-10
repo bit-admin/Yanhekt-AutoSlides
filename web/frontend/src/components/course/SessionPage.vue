@@ -7,8 +7,8 @@
           <!-- Playlist Thumbnail Cover -->
           <div class="playlist-cover-container">
             <img :src="resolveCourseCover(course?.imageUrl ?? courseDetails?.imageUrl)" class="playlist-cover" alt="" />
-            <div v-if="courseDetails?.title" class="video-cover-overlay-text" :style="getOverlayTextStyle(courseDetails.title)">
-              {{ courseDetails.title }}
+            <div v-if="courseDetails?.title" class="video-cover-overlay-text" :style="getOverlayTextStyle(courseDisplayTitle(courseDetails))">
+              {{ courseDisplayTitle(courseDetails) }}
             </div>
             <div class="playlist-cover-overlay">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -20,7 +20,7 @@
 
           <!-- Playlist Details -->
           <div class="playlist-info">
-            <h2 class="playlist-title">{{ courseDetails?.title }}</h2>
+            <h2 class="playlist-title">{{ courseDisplayTitle(courseDetails) }}</h2>
             
             <!-- YouTube Subscribe Style Pin Button + Public Index search -->
             <div class="playlist-actions">
@@ -61,7 +61,7 @@
               </div>
               <div class="course-detail-item" v-if="courseDetails?.time">
                 <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
-                <span class="detail-value">{{ courseDetails.time }}</span>
+                <span class="detail-value">{{ academicTermLabel(courseDetails.school_year, courseDetails.semester, courseDetails.time) }}</span>
               </div>
               <div class="course-detail-item" v-if="courseDetails?.classrooms && courseDetails.classrooms.length > 0">
                 <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
@@ -151,6 +151,7 @@ import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '../../composables/useSessionPage'
 import { isSubscribed, toggleSubscribedCourse } from '../../composables/subscribedCourses'
 import { resolveCourseCover, getOverlayTextStyle } from '../../composables/courseCover'
+import { courseDisplayTitle, academicTermLabel } from '../../i18n/displayNames'
 import { useKeepScroll } from '../../composables/useKeepScroll'
 import { SHARE_ORIGIN } from '../../lib/notes/shareLink'
 

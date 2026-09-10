@@ -22,7 +22,17 @@ export interface Course {
   id: string;
   /** The real course id; only set for live, where `id` is a broadcast id. */
   courseId?: string;
+  /**
+   * The Chinese course name (`name_zh`). **Canonical** — the IndexedDB folder key,
+   * slide metadata `source.courseTitle` and managed note titles all derive from
+   * this. Never swap it for a localized string.
+   */
   title: string;
+  /**
+   * The English course name (`name_en`), when Yanhekt supplied one. **Display
+   * only** — render it through `courseDisplayTitle()`, never into a folder key.
+   */
+  titleEn?: string;
   instructor: string;
   time: string;
   status?: number;
@@ -96,6 +106,7 @@ export const transformCourseDataToCourse = (courseData: CourseData): Course => {
   return {
     id: String(courseData.id),
     title: courseData.name_zh,
+    titleEn: courseData.name_en,
     instructor: professors,
     time: timeInfo,
     professors: courseData.professors,
@@ -133,6 +144,7 @@ export const transformSubscriptionRowToCourse = (row: SubscriptionCourseRow): Co
   return {
     id: String(row.id),
     title: row.name_zh || "Untitled",
+    titleEn: row.name_en,
     instructor: professors.length ? professors.join(", ") : "Unknown",
     time: timeInfo,
     professors: professors.length ? professors : undefined,

@@ -290,6 +290,8 @@
     "semesterFall": "Fall {year}",
     "semesterPlaceholder": "Semester",
     "semesterSpring": "Spring {year}",
+    "termRangeFall": "{range} Fall",
+    "termRangeSpring": "{range} Spring",
     "semestersSelected": "{count} semesters"
   },
   "sessions": {

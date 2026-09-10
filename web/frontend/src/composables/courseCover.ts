@@ -38,13 +38,23 @@ export const getOverlayTextStyle = (title?: string | null) => {
   if (!title) return { fontSize: '8cqw' }
   const len = title.trim().length
 
-  let fontSize = '7cqw'
+  // The first three steps are sized for Chinese names (the cover is a square,
+  // and a 4-character title wants to fill it). English names run far longer, so
+  // two more steps continue the ladder past the old `7cqw` floor — anything at
+  // or below 32 characters keeps exactly the size it had before, which is what
+  // holds the demo screenshots (longest fabricated title is 30) and every
+  // realistic Chinese title steady.
+  let fontSize = '4.5cqw'
   if (len <= 4) {
     fontSize = '14cqw'
   } else if (len <= 8) {
     fontSize = '11cqw'
   } else if (len <= 12) {
     fontSize = '8.5cqw'
+  } else if (len <= 32) {
+    fontSize = '7cqw'
+  } else if (len <= 48) {
+    fontSize = '5.5cqw'
   }
 
   return { fontSize }

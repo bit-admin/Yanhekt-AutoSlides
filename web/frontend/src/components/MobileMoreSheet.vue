@@ -61,8 +61,8 @@
             class="mms-item mms-item--sub"
             @click="openCourse(c)"
           >
-            <span class="mms-avatar" :style="{ backgroundColor: getAvatarBg(c.title) }">{{ getInitials(c.title) }}</span>
-            <span class="mms-sub-label">{{ c.title }}</span>
+            <span class="mms-avatar" :style="{ backgroundColor: getAvatarBg(c.title) }">{{ getInitials(courseDisplayTitle(c)) }}</span>
+            <span class="mms-sub-label">{{ courseDisplayTitle(c) }}</span>
           </button>
         </div>
 
@@ -146,6 +146,7 @@ import { navigationStore, type NavTarget } from '../stores/navigationStore'
 import { authStore } from '../stores/authStore'
 import { subscribedRecordedCourses, openSubscribedCourse } from '../composables/subscribedCourses'
 import { getAvatarBg, getInitials } from '../composables/courseCover'
+import { courseDisplayTitle } from '../i18n/displayNames'
 import type { SubscribedCourse } from '../stores/configStore'
 
 const emit = defineEmits<{ close: [] }>()

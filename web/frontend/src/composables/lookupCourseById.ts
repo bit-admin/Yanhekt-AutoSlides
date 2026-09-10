@@ -42,6 +42,7 @@ function courseFromListRow(courseData: CourseData): Course {
   return {
     id: String(courseData.id),
     title: courseData.name_zh,
+    titleEn: courseData.name_en,
     instructor: professors,
     time: `${courseData.school_year} ${semesterText}`,
     professors: courseData.professors,

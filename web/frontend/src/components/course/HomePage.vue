@@ -23,7 +23,7 @@
           @click="openSubscribedCourse(c)"
         >
           <span class="chip-dot"></span>
-          <span class="chip-label">{{ c.title }}</span>
+          <span class="chip-label">{{ courseDisplayTitle(c) }}</span>
           <span
             class="chip-remove"
             :title="$t('sessions.unsubscribe')"
@@ -113,8 +113,8 @@
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
               </div>
-              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(course.title)">
-                {{ course.title }}
+              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(courseDisplayTitle(course))">
+                {{ courseDisplayTitle(course) }}
               </div>
               <!-- Pulse LIVE Badge -->
               <span class="video-badge badge-live">
@@ -131,12 +131,12 @@
             <!-- Avatar + Meta Row -->
             <div class="video-detail-row">
               <div class="instructor-avatar" :style="{ backgroundColor: getAvatarBg(course.instructor || course.title) }">
-                {{ getInitials(course.instructor || course.title) }}
+                {{ getInitials(course.instructor || courseDisplayTitle(course)) }}
               </div>
               <div class="video-meta">
-                <h3 class="video-title" :title="course.title">{{ course.title }}</h3>
+                <h3 class="video-title" :class="courseTitleSizeClass(courseDisplayTitle(course))" :title="courseDisplayTitle(course)">{{ courseDisplayTitle(course) }}</h3>
                 <p class="video-instructor">{{ course.instructor }}</p>
-                <p class="video-stats">{{ course.time }} · {{ course.subtitle || $t('home.liveSession') }}</p>
+                <p class="video-stats">{{ academicTermLabel(course.school_year, course.semester, course.time) }} · {{ course.subtitle || $t('home.liveSession') }}</p>
               </div>
             </div>
           </div>
@@ -173,8 +173,8 @@
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
               </div>
-              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(course.title)">
-                {{ course.title }}
+              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(courseDisplayTitle(course))">
+                {{ courseDisplayTitle(course) }}
               </div>
               <!-- Course ID Badge -->
               <span class="video-badge badge-id">#{{ course.id }}</span>
@@ -188,12 +188,12 @@
             <!-- Avatar + Meta Row -->
             <div class="video-detail-row">
               <div class="instructor-avatar" :style="{ backgroundColor: getAvatarBg(course.instructor || course.title) }">
-                {{ getInitials(course.instructor || course.title) }}
+                {{ getInitials(course.instructor || courseDisplayTitle(course)) }}
               </div>
               <div class="video-meta">
-                <h3 class="video-title" :title="course.title">{{ course.title }}</h3>
+                <h3 class="video-title" :class="courseTitleSizeClass(courseDisplayTitle(course))" :title="courseDisplayTitle(course)">{{ courseDisplayTitle(course) }}</h3>
                 <p class="video-instructor">{{ course.instructor }}</p>
-                <p class="video-stats">{{ course.time }} · {{ course.college_name || $t('home.academicCourse') }}</p>
+                <p class="video-stats">{{ academicTermLabel(course.school_year, course.semester, course.time) }} · {{ course.college_name || $t('home.academicCourse') }}</p>
               </div>
             </div>
           </div>
@@ -232,6 +232,7 @@ import { mergedSavedSearches, addSavedSearch, removeSavedSearch, savedSearchesLi
 import { subscribedRecordedCourses, openSubscribedCourse, removeSubscribedCourse } from '../../composables/subscribedCourses'
 import { authStore } from '../../stores/authStore'
 import { resolveCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
+import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '../../i18n/displayNames'
 import { navigationStore } from '../../stores/navigationStore'
 import { useKeepScroll } from '../../composables/useKeepScroll'
 
@@ -792,6 +793,7 @@ watch(activeNav, (nav) => {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
+  /* Fixed line box, so the size steps below keep two lines inside max-height. */
   line-height: 1.25rem;
   max-height: 2.5rem;
   display: -webkit-box;
@@ -799,6 +801,16 @@ watch(activeNav, (nav) => {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* English course names run far longer than the Chinese ones these cards were
+   sized for. Step the size down rather than truncate inside the two lines. */
+.video-title.is-long {
+  font-size: 0.875rem;
+}
+
+.video-title.is-longer {
+  font-size: 0.8125rem;
 }
 
 .video-instructor {
