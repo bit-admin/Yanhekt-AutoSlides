@@ -20,6 +20,7 @@ import type {
   UploadedImage,
 } from './notesTypes';
 import { createLogger } from '../logger';
+import { coalesce, invalidate } from '../requestCache';
 
 const log = createLogger('NotesClient');
 
@@ -64,7 +65,10 @@ function requireToken(): string {
   return token;
 }
 
-async function request<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
+/** Cache-key prefix for note reads; also what a write invalidates. */
+const NOTE_READ_PREFIX = 'notes GET ';
+
+async function send<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
   const token = requireToken();
   const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
   const init: RequestInit = { method, headers };
@@ -82,6 +86,31 @@ async function request<T>(method: string, path: string, body?: Record<string, un
     throw new Error(payload.message || `Note API error code ${payload.code}`);
   }
   return payload.data;
+}
+
+/**
+ * Note reads are **coalesced but never memoized**. Coalescing is what stops a
+ * repeat click on a sidebar row from firing a second `GET /v1/note?id=` — the
+ * second click joins the request already in flight. A memo is deliberately not
+ * offered here: a note is a document the user is actively editing, and serving
+ * a cached body after a save would show them stale content.
+ *
+ * Writes drop any live read entry so a read started before the write cannot be
+ * joined after it.
+ */
+async function request<T>(method: string, path: string, body?: Record<string, unknown>): Promise<T> {
+  if (method !== 'GET') {
+    try {
+      return await send<T>(method, path, body);
+    } finally {
+      invalidate(NOTE_READ_PREFIX);
+    }
+  }
+  // Key on the token so an account switch cannot join another account's read.
+  const token = authStore.token.value ?? '';
+  return coalesce(`${NOTE_READ_PREFIX}${path}|${token.slice(0, 8)}`, () =>
+    send<T>(method, path, body),
+  );
 }
 
 /** Wrap a call into the NotesResult envelope, mapping auth failures. */

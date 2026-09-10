@@ -7,6 +7,7 @@ import {
   type SignInReason,
   type UserData,
 } from "../lib/api";
+import { invalidateAll } from "../lib/requestCache";
 
 // Module-singleton auth state (mirrors the desktop app's useAuth shared refs).
 // The token persists in localStorage; verification goes through the Worker
@@ -50,12 +51,18 @@ const userNickname = computed(() => userData.value?.nickname ?? "");
 const userId = computed(() => userData.value?.badge ?? "");
 
 function storeToken(value: string | null) {
+  const previous = token.value;
   token.value = value;
   if (value === null) {
     localStorage.removeItem(STORAGE_KEY);
   } else {
     localStorage.setItem(STORAGE_KEY, value);
   }
+  // Cached reads are keyed on a token prefix, which is a good enough cache key
+  // but not a security boundary. Clearing outright on every identity change
+  // (sign-in, sign-out, account switch) is trivially correct, and these are
+  // rare enough that throwing the cache away costs nothing.
+  if (previous !== value) invalidateAll();
 }
 
 /**

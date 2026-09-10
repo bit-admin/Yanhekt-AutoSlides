@@ -221,6 +221,11 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   const paginatedCourses = computed(() => courses.value);
 
   const fetchPersonalCourses = async (resetPage = true) => {
+    // Re-entrancy guard: infinite scroll and the activeNav watcher can both
+    // land while a fetch is running, and two overlapping runs would append the
+    // same page twice. loadMore has its own guard; this covers everyone else.
+    if (isLoading.value) return;
+
     const token = authStore.token.value;
     if (!token) {
       errorMessage.value = "Please login first";

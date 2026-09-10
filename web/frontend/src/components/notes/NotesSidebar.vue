@@ -149,10 +149,10 @@
           type="button"
           class="ns-icon-btn"
           :title="$t('cloudNotes.refreshList')"
-          :disabled="loading"
+          :disabled="busy"
           @click="emit('refresh')"
         >
-          <svg :class="{ spinning: loading }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg :class="{ spinning: busy }" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
             <path d="M21 3v5h-5" />
             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
@@ -167,7 +167,7 @@
         <button
           type="button"
           class="ns-row ns-page-row"
-          :class="{ active: selectedNoteId === note.id }"
+          :class="{ active: selectedNoteId === note.id, 'is-opening': openingNoteId === note.id }"
           :title="noteListTitle(note)"
           @click="emit('open-note', note.id)"
         >
@@ -237,6 +237,10 @@ const props = defineProps<{
   notes: NoteSummary[]
   selectedNoteId: number | null
   loading: boolean
+  /** True for the whole of init() — groups and notes. Drives the Refresh button. */
+  busy: boolean
+  /** Note whose detail is being fetched, so its row can read as pending. */
+  openingNoteId: number | null
   page: number
   totalPages: number
   mobile: boolean
@@ -566,6 +570,12 @@ onUnmounted(() => {
 .ns-row.active {
   background: var(--nt-sidebar-active, rgba(0, 0, 0, 0.08));
   font-weight: 500;
+}
+
+/* Detail fetch in flight — the row dims rather than moving, so a slow note
+   never shifts the list under the cursor. */
+.ns-row.is-opening {
+  opacity: 0.55;
 }
 
 .ns-row--muted {

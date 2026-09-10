@@ -19,6 +19,8 @@
       :notes="cn.notes.value"
       :selected-note-id="cn.selectedNoteId.value"
       :loading="cn.loading.value"
+      :busy="cn.busy.value"
+      :opening-note-id="cn.openingNoteId.value"
       :page="cn.page.value"
       :total-pages="cn.totalPages.value"
       :mobile="isMobile"
@@ -327,6 +329,15 @@ function onSetGroup(id: number | ''): void {
 }
 
 async function onOpenNote(id: number): Promise<void> {
+  // Re-clicking the note that is already open is a no-op, matching the guard
+  // syncFromRoute has had all along. Beyond saving a round-trip this is a
+  // correctness fix: openNote skips flushSave when the id is unchanged, and the
+  // remount that followed tore down the editor — clearing its pending 1s save
+  // timer and silently discarding an edit typed in the last second.
+  if (cn.selectedNoteId.value === id) {
+    if (isMobile.value) sidebarOpen.value = false
+    return
+  }
   await ed.openNote(id)
   routeToNote(id)
   if (isMobile.value) sidebarOpen.value = false

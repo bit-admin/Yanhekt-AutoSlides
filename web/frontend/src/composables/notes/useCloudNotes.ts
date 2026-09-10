@@ -49,6 +49,8 @@ export function useCloudNotes() {
   const filteredCount = ref(0);
 
   const loading = ref(false);
+  /** True for the whole of init() — groups *and* notes. See init(). */
+  const busy = ref(false);
   const saving = ref(false);
   const error = ref('');
   /** Set when no token is stored — the user must sign in first. */
@@ -56,6 +58,10 @@ export function useCloudNotes() {
 
   /** Bumps on every new search so in-flight keyword pages discard stale results. */
   let searchGen = 0;
+  /** Bumps on every openNote so a stale detail fetch cannot win a rapid A→B→A. */
+  let openGen = 0;
+  /** The note whose detail is currently being fetched; dims its sidebar row. */
+  const openingNoteId = ref<number | null>(null);
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null);
@@ -237,13 +243,26 @@ export function useCloudNotes() {
     applyView();
   }
 
-  /** Load full note detail into the editor pane. */
+  /**
+   * Load full note detail into the editor pane.
+   *
+   * Guarded by a generation counter (same idea as `searchGen` above) so a slow
+   * fetch for note A cannot land after the user has already moved to B and
+   * clobber the newer selection. The losing call still returns its data to its
+   * own caller — it just no longer owns `selectedNote`.
+   */
   async function openNote(id: number): Promise<NoteDetail | null> {
     error.value = '';
-    const res = await notesClient.get(id);
-    const data = unwrap(res);
-    if (data) selectedNote.value = data;
-    return data;
+    const gen = ++openGen;
+    openingNoteId.value = id;
+    try {
+      const res = await notesClient.get(id);
+      const data = unwrap(res);
+      if (data && gen === openGen) selectedNote.value = data;
+      return data;
+    } finally {
+      if (gen === openGen) openingNoteId.value = null;
+    }
   }
 
   function closeNote(): void {
@@ -366,9 +385,21 @@ export function useCloudNotes() {
     return res.ok;
   }
 
-  /** Initial load — groups + the complete note set. */
+  /**
+   * Initial load — groups + the complete note set.
+   *
+   * `busy` covers both halves. `loading` alone does not: it is set by loadAll /
+   * fetchKeywordMatches but never by refreshGroups, so a Refresh button bound to
+   * it re-enables while the group list is still in flight.
+   */
   async function init(): Promise<void> {
-    await Promise.all([refreshGroups(), loadAll()]);
+    if (busy.value) return;
+    busy.value = true;
+    try {
+      await Promise.all([refreshGroups(), loadAll()]);
+    } finally {
+      busy.value = false;
+    }
   }
 
   return {
@@ -386,9 +417,11 @@ export function useCloudNotes() {
     totalPages,
     filteredCount,
     loading,
+    busy,
     saving,
     error,
     notSignedIn,
+    openingNoteId,
     // actions
     init,
     refreshGroups,

@@ -5,6 +5,7 @@
  * headers and forwards to cbiz.yanhekt.cn.
  */
 import { parseUserProgress, progressBucket, resumePositionFor } from "./watchProgress";
+import { cached, invalidate } from "./requestCache";
 
 
 export interface UserData {
@@ -36,6 +37,12 @@ export interface LiveStream {
   course?: {
     id?: number | string;
     image_url?: string;
+    /** Only on `GET /v1/live?id=` detail — list rows carry no classrooms at
+     *  all, and their `course` object has no `id` either. */
+    classrooms?: Array<{ name: string }>;
+    /** Also detail-only. This is the single source of an English title for a
+     *  live broadcast; list rows have no `name_en` anywhere. Display only. */
+    name_en?: string;
   };
   session?: {
     // The real course id behind this broadcast (present on every sampled live
@@ -216,9 +223,60 @@ function unwrapEnvelope<T>(data: BaseApiResponse & { data: T }): T {
   return data.data;
 }
 
-/** Fetch through the Worker proxy and unwrap the {code, message, data} envelope. */
+/**
+ * How long a resolved GET may be reused, by upstream path prefix. Every entry
+ * here is a Worker invocation saved: the proxy answers `no-store`, so without
+ * this a nav ping-pong between two sidebar tabs re-fetches both lists each time.
+ *
+ * TTLs are deliberately short and per-endpoint rather than one global number —
+ * a semester tree is stable for months, a live list is not. Paths with no entry
+ * (`/v1/user`, `/v1/video`) are never memoized; they still coalesce.
+ */
+const GET_TTL_MS: ReadonlyArray<readonly [prefix: string, ttlMs: number]> = [
+  ["/v1/tag/list", 60 * 60 * 1000],
+  // Course detail is static within a session. This is what collapses the three
+  // getCourseInfo runs a single lecture open used to make (session page, then
+  // PlayerRoute, then PlaybackPage) into one.
+  ["/v2/course/session/list", 5 * 60 * 1000],
+  ["/v1/course/subscription/list", 60 * 1000],
+  ["/v2/course/private/list", 60 * 1000],
+  ["/v2/course/list", 60 * 1000],
+  // Never memoize: this hop carries `user_progress`, the account's live watch
+  // position. A memo would resurrect a stale playhead when a lecture is
+  // reopened. First match wins, so this must stay above the /v1/course rule.
+  ["/v1/course/session", 0],
+  ["/v1/course", 5 * 60 * 1000],
+  // Live status genuinely changes while the user is looking at it.
+  ["/v2/live/list", 30 * 1000],
+  ["/v1/live", 30 * 1000],
+];
+
+/** First matching prefix wins, so ordering in GET_TTL_MS is load-bearing.
+ *  Exported for api.test.ts. */
+export function ttlFor(path: string): number {
+  const hit = GET_TTL_MS.find(([prefix]) => path.startsWith(prefix));
+  return hit ? hit[1] : 0;
+}
+
+/**
+ * Cache key for a GET. The token rides in it (truncated — this is a cache key,
+ * not a credential) so switching accounts can never be served the previous
+ * account's data; sign-out additionally clears the whole cache.
+ */
+function cacheKey(path: string, token: string | null): string {
+  return `GET ${path}|${token ? token.slice(0, 8) : "anon"}`;
+}
+
+/**
+ * Fetch through the Worker proxy and unwrap the {code, message, data} envelope.
+ *
+ * GETs are coalesced (a repeat click joins the in-flight request instead of
+ * issuing a second one) and, where GET_TTL_MS allows, briefly memoized.
+ */
 async function request<T>(path: string, token: string | null): Promise<T> {
-  return requestMethod<T>("GET", path, token);
+  return cached(cacheKey(path, token), ttlFor(path), () =>
+    requestMethod<T>("GET", path, token),
+  );
 }
 
 /** Method+body variant (POST/DELETE) — same envelope/error handling as GET. */
@@ -242,7 +300,11 @@ async function requestMethod<T>(
     throw new Error("Authentication failed, please check if token is valid");
   }
   const data = (await response.json()) as BaseApiResponse & { data: T };
-  return unwrapEnvelope(data);
+  const unwrapped = unwrapEnvelope(data);
+  // A write invalidates every cached read, because a subscribe/unsubscribe
+  // changes both the subscription list and the course lists that mirror it.
+  if (method !== "GET") invalidate("GET ");
+  return unwrapped;
 }
 
 export async function verifyToken(token: string): Promise<TokenVerificationResult> {
@@ -311,6 +373,60 @@ export async function searchLiveList(
     `/v2/live/list?page=${page}&page_size=${pageSize}&keyword=${encodeURIComponent(keyword)}`,
     token,
   );
+}
+
+/**
+ * One live broadcast by its id.
+ *
+ * There is no by-id endpoint on the live *list*, so a cold deep link to
+ * /player/live/:id used to page the personal list and then the public list
+ * (up to 10 requests) hunting for a matching row. This is the official SPA's
+ * own call and answers in one.
+ *
+ * Both `with_*` flags are required — dropping either answers `61101114
+ * 系统繁忙`, not a partial payload. Anonymous-ok (the Worker strips the Bearer).
+ *
+ * Returns a payload shaped like a live-list row so `transformLiveStreamToCourse`
+ * consumes it unchanged. It is strictly richer than a list row except for
+ * `participant_count`, which this endpoint does not carry (it reports
+ * `looking_count`, a live viewer count — a different number, so it is
+ * deliberately not mapped onto it).
+ */
+export async function getLiveById(liveId: string, token: string): Promise<LiveStream> {
+  const id = String(liveId || "").trim();
+  return request<LiveStream>(
+    `/v1/live?id=${encodeURIComponent(id)}&with_session=true&with_course=true`,
+    token,
+  );
+}
+
+/**
+ * Course names only, from the single `/v1/course?id=` hop.
+ *
+ * Deliberately not {@link getCourseInfo}, which also pages the session list and
+ * **throws** when a course has none — the case for a course that has only ever
+ * been broadcast live. Live rows carry no `name_en`, so this is how a live
+ * player title becomes English. Anonymous-ok (the Worker strips the Bearer).
+ *
+ * Resolves null instead of throwing: a missing English title never justifies
+ * failing a render.
+ */
+export async function getCourseNames(
+  courseId: string,
+  token: string,
+): Promise<{ nameZh: string; nameEn?: string } | null> {
+  try {
+    const data = await request<{ name_zh?: string; name_en?: string }>(
+      `/v1/course?id=${encodeURIComponent(courseId)}`,
+      token,
+    );
+    const nameZh = data?.name_zh?.trim() ?? "";
+    const nameEn = data?.name_en?.trim() || undefined;
+    return nameZh || nameEn ? { nameZh, nameEn } : null;
+  } catch (error) {
+    console.warn("Failed to read course names:", error);
+    return null;
+  }
 }
 
 export async function getCourseList(

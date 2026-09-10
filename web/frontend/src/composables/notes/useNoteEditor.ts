@@ -161,6 +161,11 @@ export function useNoteEditor(
     if (prevId != null && prevId !== id) await flushSave(prevId);
     const detail = await cn.openNote(id);
     if (detail) {
+      // cn.openNote drops a stale detail rather than clobbering a newer
+      // selection, so a mismatch here means a faster open for another note
+      // already won. Mounting anyway would put A's content on screen while B
+      // is the selected row.
+      if (cn.selectedNoteId.value !== id) return;
       editableTitle.value = detail.title;
       // Wait for the canvas holder to mount when going empty → selected
       // (v-if on the editor pane). Switching between notes reuses the holder.

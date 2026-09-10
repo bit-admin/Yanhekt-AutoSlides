@@ -33,6 +33,10 @@ const isLoading = ref(false);
 const errorMessage = ref("");
 const hasSearched = ref(false);
 
+/** Settle time for semester checkbox runs — shorter than typing, still enough
+ *  to absorb a burst of clicks. */
+const SEMESTER_DEBOUNCE_MS = 250;
+
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 // Sequence number so stale responses (rapid keyword/mode/semester flips) are dropped.
 let requestSeq = 0;
@@ -201,10 +205,24 @@ const setMode = async (m: "live" | "recorded") => {
   await executeSearch();
 };
 
-const setSemesters = async (ids: number[]) => {
+/**
+ * Semester checkboxes emit one change per click, so firing a search per toggle
+ * put one `/v2/course/list` on the wire for every box the user touched — the
+ * `requestSeq` guard dropped the stale *results*, but the requests had already
+ * been sent. Debounce so picking four semesters costs one search.
+ *
+ * Reuses `debounceTimer` (and therefore `cancelPendingSearch`) rather than
+ * adding a second timer, so a keyword keystroke and a semester toggle cannot
+ * both be pending at once.
+ */
+const setSemesters = (ids: number[]) => {
   selectedSemesterIds.value = ids;
   semesterInitialized.value = true;
-  await executeSearch();
+  cancelPendingSearch();
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    void executeSearch();
+  }, SEMESTER_DEBOUNCE_MS);
 };
 
 // Focusing the sidebar search bar opens the Search page; the first visit runs
