@@ -12,7 +12,7 @@
     margin: 0; padding: 2.5rem 1rem; background: Canvas; color: CanvasText;
     display: flex; justify-content: center;
   }
-  main { width: 100%; max-width: 720px; }
+  main { width: 100%; max-width: 750px; }
   h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
   p.sub { margin: 0 0 1.75rem; opacity: .7; }
   label { display: block; font-weight: 600; margin: 1rem 0 .35rem; }
@@ -31,6 +31,21 @@
   }
   button.primary { background: #2563eb; color: #fff; }
   button:disabled { opacity: .5; cursor: default; }
+  .tabs {
+    display: flex; gap: 1.35rem;
+    border-bottom: 1px solid color-mix(in srgb, CanvasText 15%, transparent);
+    margin: 1.15rem 0 1.5rem;
+  }
+  .tab {
+    padding: .55rem 0 .7rem;
+    margin-bottom: -1px;
+    border: 0; border-bottom: 2.5px solid transparent; border-radius: 0;
+    background: transparent; color: CanvasText;
+    opacity: .6; font: inherit; font-weight: 650; cursor: pointer;
+  }
+  .tab:hover { opacity: 1; }
+  .tab[aria-selected="true"] { opacity: 1; border-bottom-color: #2563eb; }
+  .panel[hidden] { display: none !important; }
   .out { margin-top: 1.5rem; }
   #url {
     width: 100%; padding: .6rem .7rem; border-radius: 8px; font-family: ui-monospace, monospace;
@@ -42,8 +57,6 @@
   label.check { display: flex; align-items: center; gap: .45rem; font-weight: 400; }
   label.check code { font-size: 12.5px; opacity: .75; }
   .note { margin-top: 2rem; font-size: 12.5px; opacity: .65; border-top: 1px solid color-mix(in srgb, CanvasText 15%, transparent); padding-top: 1rem; }
-  .conn { margin-top: 2.5rem; border-top: 1px solid color-mix(in srgb, CanvasText 15%, transparent); padding-top: 1.5rem; }
-  .conn h2 { font-size: 1.1rem; margin: 0 0 .25rem; }
   .conn-lead { margin: .15rem 0 1rem; font-size: 1.02rem; }
   .conn-lead strong { font-weight: 650; }
   .kv { display: grid; grid-template-columns: 8.2rem 1fr; gap: .3rem .85rem; align-items: baseline; font-size: 13.5px; }
@@ -58,13 +71,27 @@
   .verdict--ok { background: color-mix(in srgb, #16a34a 14%, Canvas); }
   .verdict--warn { background: color-mix(in srgb, #d97706 16%, Canvas); }
   .verdict--muted { background: color-mix(in srgb, CanvasText 6%, Canvas); }
-  .allow { margin-top: 1.15rem; }
-  .allow h3 { font-size: .92rem; margin: 0 0 .4rem; }
+  .src { margin-top: 1.35rem; }
+  .conn-lead + .src { margin-top: 0; }
+  .src h3, .allow h3 { font-size: .92rem; margin: 0 0 .25rem; }
+  .src > .hint, .allow > .hint { margin: 0 0 .75rem; }
+  .allow { margin-top: 1.35rem; }
   .allow ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
-  .allow li { display: grid; grid-template-columns: auto 1fr; gap: .55rem; align-items: start; padding: .55rem .7rem; border-radius: 8px; border: 1px solid color-mix(in srgb, CanvasText 12%, transparent); background: color-mix(in srgb, CanvasText 3%, Canvas); font-size: 13px; }
+  .allow li { padding: .55rem .7rem; border-radius: 8px; border: 1px solid color-mix(in srgb, CanvasText 12%, transparent); background: color-mix(in srgb, CanvasText 3%, Canvas); font-size: 13px; }
   .allow li.match { border-color: color-mix(in srgb, #16a34a 45%, transparent); background: color-mix(in srgb, #16a34a 10%, Canvas); }
+  .allow .kv { grid-template-columns: 5.6rem 1fr; font-size: 13px; }
+  .allow .kv .v { font-size: 13px; }
   .allow .asn { font-family: ui-monospace, monospace; font-weight: 650; }
-  .allow .desc { opacity: .78; }
+  .src h4 { font-size: .8rem; font-weight: 650; margin: 1.1rem 0 .4rem; opacity: .72; }
+  .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+  .card {
+    padding: .55rem .7rem; border-radius: 8px;
+    border: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+    background: color-mix(in srgb, CanvasText 3%, Canvas);
+  }
+  .card .kv { grid-template-columns: 5.6rem 1fr; font-size: 13px; }
+  .card .kv .v { font-size: 13px; }
+  .conn a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
   .conn details { margin-top: 1rem; }
   .conn summary { cursor: pointer; font-size: 13px; opacity: .75; }
   .conn pre { margin: .5rem 0 0; padding: .7rem .8rem; border-radius: 8px; overflow: auto; font: 12px/1.45 ui-monospace, monospace; background: color-mix(in srgb, CanvasText 5%, Canvas); border: 1px solid color-mix(in srgb, CanvasText 12%, transparent); white-space: pre-wrap; word-break: break-all; }
@@ -76,71 +103,49 @@
 <body>
 <main>
   <h1>Yanhekt Proxy</h1>
-  <p class="sub">Generate a playable HLS URL for a Yanhekt recording.</p>
 
-  <label for="token">Login token (Yanhekt Bearer token)</label>
-  <input id="token" type="text" placeholder="Your Yanhekt login token" autocomplete="off" spellcheck="false" />
-
-  <label for="video">Recorded video URL (.m3u8)</label>
-  <textarea id="video" placeholder="https://cvideo.Yanhekt.cn/.../index.m3u8" spellcheck="false"></textarea>
-
-  <label class="check"><input id="nocache" type="checkbox" /> Bypass shared cache (<code>nocache=1</code>)</label>
-  <div class="hint">Forces every playlist/segment fetch to go to Yanhekt instead of the edge cache. Slower; only useful for debugging.</div>
-
-  <div class="row">
-    <button class="primary" id="gen">Generate URL</button>
-    <button id="copy" disabled>Copy</button>
-    <button id="open" disabled>Open</button>
-    <button id="play" disabled>Test play</button>
+  <div class="tabs" role="tablist" aria-label="Proxy views">
+    <button type="button" class="tab" role="tab" id="tab-btn-conn" aria-selected="true" aria-controls="tab-conn">Connection Details</button>
+    <button type="button" class="tab" role="tab" id="tab-btn-url" aria-selected="false" aria-controls="tab-url">URL Generation</button>
   </div>
 
-  <div class="out">
-    <input id="url" type="text" readonly placeholder="Generated playlist URL appears here" />
-    <div class="hint">Paste this into any HLS player (hls.js, Safari, VLC, ffmpeg).</div>
-  </div>
-
-  <video id="player" controls playsinline></video>
-
-  <section class="conn" id="conn">
-    <h2>Connection details</h2>
+  <section class="panel conn" id="tab-conn" role="tabpanel" aria-labelledby="tab-btn-conn">
     <p class="sub">Where you are, which Cloudflare city you reached, and whether that path looks fast.</p>
     <div id="conn-body"><p class="hint">Reading Cloudflare edge&hellip;</p></div>
-
-    <details class="mean">
-      <summary>What this means?</summary>
-      <div class="mean-body">
-        <p>
-          This relay runs on Cloudflare, and Cloudflare has no data centre in mainland China.
-          Traffic from campus therefore always leaves the country to reach the nearest Cloudflare city.
-        </p>
-        <p>
-          Hong Kong (<code>HKG</code>) is usually the shortest hop to the video origin in China.
-          Singapore (<code>SIN</code>), Tokyo, Osaka, Seoul, Taipei, and Macau are also nearby and typically play well.
-        </p>
-        <p>
-          On campus you will most often land in Hong Kong or Singapore.
-          Cloudflare can still send you farther &mdash; Los Angeles (<code>LAX</code>) and San Jose (<code>SJC</code>)
-          show up sometimes &mdash; and that longer path is slower.
-        </p>
-        <p>
-          This service allows campus networks on the list above.
-          Other networks may be challenged or blocked by Cloudflare.
-        </p>
-        <p>
-          Routing <code>ruc.edu.kg</code> through a Hong Kong proxy can shorten a detour,
-          but off-campus you still have to pass a Cloudflare challenge in the browser first.
-          Dedicated players (VLC, ffmpeg, and many HLS apps) cannot complete that challenge,
-          so they will fail even after this page loads.
-        </p>
-      </div>
-    </details>
   </section>
 
-  <p class="note">
-    The login token is embedded in the generated URL (so HLS players can fetch every
-    segment). Treat the URL as a secret &mdash; anyone with it can stream as you until the
-    token expires. Recorded videos only.
-  </p>
+  <section class="panel" id="tab-url" role="tabpanel" aria-labelledby="tab-btn-url" hidden>
+    <p class="sub">Generate a playable HLS URL for a Yanhekt recording.</p>
+
+    <label for="token">Login token (Yanhekt Bearer token)</label>
+    <input id="token" type="text" placeholder="Your Yanhekt login token" autocomplete="off" spellcheck="false" />
+
+    <label for="video">Recorded video URL (.m3u8)</label>
+    <textarea id="video" placeholder="https://cvideo.Yanhekt.cn/.../index.m3u8" spellcheck="false"></textarea>
+
+    <label class="check"><input id="nocache" type="checkbox" /> Bypass shared cache (<code>nocache=1</code>)</label>
+    <div class="hint">Forces every playlist/segment fetch to go to Yanhekt instead of the edge cache. Slower; only useful for debugging.</div>
+
+    <div class="row">
+      <button class="primary" id="gen">Generate URL</button>
+      <button id="copy" disabled>Copy</button>
+      <button id="open" disabled>Open</button>
+      <button id="play" disabled>Test play</button>
+    </div>
+
+    <div class="out">
+      <input id="url" type="text" readonly placeholder="Generated playlist URL appears here" />
+      <div class="hint">Paste this into any HLS player (hls.js, Safari, VLC, ffmpeg).</div>
+    </div>
+
+    <video id="player" controls playsinline></video>
+
+    <p class="note">
+      The login token is embedded in the generated URL (so HLS players can fetch every
+      segment). Treat the URL as a secret &mdash; anyone with it can stream as you until the
+      token expires. Recorded videos only.
+    </p>
+  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
@@ -148,6 +153,16 @@
   var $ = function (id) { return document.getElementById(id); };
   var urlEl = $('url'), copyBtn = $('copy'), openBtn = $('open'), playBtn = $('play'), video = $('player');
   var hls = null;
+
+  function selectTab(id) {
+    var conn = id === 'conn';
+    $('tab-btn-conn').setAttribute('aria-selected', conn ? 'true' : 'false');
+    $('tab-btn-url').setAttribute('aria-selected', conn ? 'false' : 'true');
+    $('tab-conn').hidden = !conn;
+    $('tab-url').hidden = conn;
+  }
+  $('tab-btn-conn').onclick = function () { selectTab('conn'); };
+  $('tab-btn-url').onclick = function () { selectTab('url'); };
 
   function build() {
     var token = $('token').value.trim();
@@ -191,37 +206,157 @@
   };
 
   var ALLOWLIST = [
-    { asn: 4847, name: 'China Networks Inter-Exchange (DSL, MOBILE, BIZNET, EYEBALL)' },
-    { asn: 23910, name: 'China Next Generation Internet CERNET2 (IPv6)' }
+    {
+      asn: 4847,
+      isp: 'China Networks Inter-Exchange',
+      network: 'China Networks Inter-Exchange (DSL, MOBILE, BIZNET, EYEBALL)'
+    },
+    {
+      asn: 23910,
+      isp: 'China Education and Research Network',
+      network: 'China Next Generation Internet CERNET2 (IPv6)'
+    }
   ];
+  // Colo names/countries from Netrvin/cloudflare-colo-list DC-Colos.json.
   var COLO = {
-    SIN: 'Singapore', HKG: 'Hong Kong', NRT: 'Tokyo', KIX: 'Osaka', ICN: 'Seoul',
-    TPE: 'Taipei', KHH: 'Kaohsiung', MFM: 'Macau', BKK: 'Bangkok', CNX: 'Chiang Mai',
-    SGN: 'Ho Chi Minh City', HAN: 'Hanoi', DAD: 'Da Nang', MNL: 'Manila', CEB: 'Cebu',
-    KUL: 'Kuala Lumpur', JHB: 'Johor Bahru', CGK: 'Jakarta', DPS: 'Denpasar',
-    FUK: 'Fukuoka', OKA: 'Naha', PNH: 'Phnom Penh', VTE: 'Vientiane', BWN: 'Bandar Seri Begawan',
-    LHR: 'London', AMS: 'Amsterdam', FRA: 'Frankfurt', CDG: 'Paris',
-    LAX: 'Los Angeles', SJC: 'San Jose', SFO: 'San Francisco', IAD: 'Ashburn',
-    EWR: 'Newark', ORD: 'Chicago', YYZ: 'Toronto', SYD: 'Sydney', DXB: 'Dubai', BOM: 'Mumbai'
+    AAE: 'Annaba', ABJ: 'Abidjan', ABQ: 'Albuquerque', ACC: 'Accra', ACX: 'Xingyi',
+    ADB: 'Izmir', ADD: 'Addis Ababa', ADL: 'Adelaide', AGR: 'Agra', AIP: 'Jalandhar',
+    AKL: 'Auckland', AKX: 'Aktyubinsk', ALA: 'Almaty', ALG: 'Algiers', AMD: 'Ahmedabad',
+    AMM: 'Amman', AMS: 'Amsterdam', ANC: 'Anchorage', ARI: 'Arica', ARN: 'Stockholm',
+    ARU: 'Aracatuba', ASK: 'Yamoussoukro', ASU: 'Asuncion', ATH: 'Athens',
+    ATL: 'Atlanta', AUS: 'Austin', AVA: 'Anshun', BAH: 'Manama', BAQ: 'Barranquilla',
+    BBI: 'Bhubaneswar', BCN: 'Barcelona', BDQ: 'Vadodara', BEG: 'Belgrade',
+    BEL: 'Belem', BEY: 'Beirut', BGI: 'Bridgetown', BGR: 'Bangor', BGW: 'Baghdad',
+    BKK: 'Bangkok', BLR: 'Bangalore', BNA: 'Nashville', BNE: 'Brisbane',
+    BOD: 'Bordeaux', BOG: 'Bogota', BOM: 'Mumbai', BOS: 'Boston', BRU: 'Brussels',
+    BSB: 'Brasilia', BSR: 'Basrah', BTS: 'Bratislava', BUD: 'Budapest', BUF: 'Buffalo',
+    BWN: 'Bandar Seri Begawan', CAI: 'Cairo', CAN: 'Guangzhou',
+    CAW: 'Campos Dos Goytacazes', CBR: 'Canberra', CCU: 'Kolkata', CDG: 'Paris',
+    CEB: 'Cebu', CFC: 'Caçador', CGB: 'Cuiaba', CGD: 'Changde', CGK: 'Jakarta',
+    CGO: 'Zhengzhou', CGP: 'Chittagong', CGY: 'Cagayan De Oro City',
+    CHC: 'Christchurch', CJB: 'Coimbatore', CKG: 'Chongqing', CLE: 'Cleveland',
+    CLO: 'Cali', CLT: 'Charlotte', CMB: 'Colombo', CMH: 'Columbus',
+    CNF: 'Belo Horizonte', CNN: 'Mattanur', CNX: 'Chiang Mai', COK: 'Cochin',
+    COR: 'Cordoba', CPH: 'Copenhagen', CPT: 'Cape Town', CRK: 'Mabalacat',
+    CSX: 'Changsha', CTU: 'Chengdu', CVG: 'Cincinnati', CWB: 'Curitiba',
+    CZL: 'Constantine', CZX: 'Changzhou', DAC: 'Dhaka', DAD: 'Da Nang',
+    DAR: 'Dar es Salaam', DEL: 'New Delhi', DEN: 'Denver', DFW: 'Dallas-Fort Worth',
+    DKR: 'Dakar', DLA: 'Douala', DLC: 'Dalian', DME: 'Moscow', DMM: 'Dammam',
+    DOH: 'Doha', DPS: 'Denpasar', DTW: 'Detroit', DUB: 'Dublin', DUR: 'Durban',
+    DUS: 'Dusseldorf', DXB: 'Dubai', DYU: 'Dushanbe', EBB: 'Kampala', EBL: 'Arbil',
+    EVN: 'Yerevan', EWR: 'Newark', EZE: 'Buenos Aires', FCO: 'Rome', FIH: 'Kinshasa',
+    FLN: 'Florianopolis', FOC: 'Fuzhou', FOR: 'Fortaleza', FRA: 'Frankfurt',
+    FRU: 'Bishkek', FSD: 'Sioux Falls', FUK: 'Fukuoka', FUO: 'Foshan', GBE: 'Gaborone',
+    GDL: 'Guadalajara', GEO: 'Georgetown', GIG: 'Rio de Janeiro',
+    GND: 'Saint George\'s', GOT: 'Gothenburg', GRU: 'Sao Paulo', GUA: 'Guatemala City',
+    GUM: 'Hagatna', GVA: 'Geneva', GYD: 'Baku', GYE: 'Guayaquil', GYN: 'Goiania',
+    HAK: 'Haikou', HAM: 'Hamburg', HAN: 'Hanoi', HBA: 'Hobart', HEL: 'Helsinki',
+    HFA: 'Haifa', HGH: 'Hangzhou', HKG: 'Hong Kong', HNL: 'Honolulu', HRE: 'Harare',
+    HYD: 'Hyderabad', HYN: 'Taizhou', IAD: 'Ashburn', IAH: 'Houston', ICN: 'Seoul',
+    IND: 'Indianapolis', ISB: 'Islamabad', IST: 'Istanbul', ISU: 'Sulaymaniyah',
+    IXC: 'Chandigarh', JAX: 'Jacksonville', JDO: 'Juazeiro Do Norte', JED: 'Jeddah',
+    JHB: 'Johor Bahru', JIB: 'Djibouti City', JNB: 'Johannesburg', JOG: 'Yogyakarta',
+    JOI: 'Joinville', JRG: 'Jharsuguda', JXG: 'Jiaxing', KBP: 'Kyiv', KCH: 'Kuching',
+    KEF: 'Reykjavik', KGL: 'Kigali', KHH: 'Kaohsiung', KHI: 'Karachi', KHN: 'Nanchang',
+    KIN: 'Kingston', KIV: 'Chisinau', KIX: 'Osaka', KJA: 'Krasnoyarsk', KMG: 'Kunming',
+    KNU: 'Kanpur', KTM: 'Kathmandu', KUL: 'Kuala Lumpur', KWE: 'Guiyang',
+    KWI: 'Kuwait City', LAD: 'Luanda', LAS: 'Las Vegas', LAX: 'Los Angeles',
+    LCA: 'Larnaca', LED: 'St. Petersburg', LHE: 'Lahore', LHR: 'London', LHW: 'Lanzhou',
+    LIM: 'Lima', LIS: 'Lisbon', LJU: 'Ljubljana', LLK: 'Lankaran', LLW: 'Lilongwe',
+    LOS: 'Lagos', LPB: 'La Paz / El Alto', LUH: 'Ludhiana', LUN: 'Lusaka',
+    LUX: 'Luxembourg', LYA: 'Luoyang', LYS: 'Lyon', MAA: 'Chennai', MAD: 'Madrid',
+    MAN: 'Manchester', MAO: 'Manaus', MBA: 'Mombasa', MCI: 'Kansas City', MCT: 'Muscat',
+    MDE: 'Medellin', MEL: 'Melbourne', MEM: 'Memphis', MEX: 'Mexico City', MFM: 'Macau',
+    MIA: 'Miami', MLA: 'Malta', MLE: 'Male', MLG: 'Malang', MNL: 'Manila',
+    MPM: 'Maputo', MRS: 'Marseille', MRU: 'Port Louis', MSP: 'Minneapolis',
+    MSQ: 'Minsk', MUC: 'Munich', MXP: 'Milan', NAG: 'Nagpur', NBO: 'Nairobi',
+    NJF: 'Najaf', NOU: 'Noumea', NQN: 'Neuquen', NQZ: 'Astana', NRT: 'Tokyo',
+    NVT: 'Navegantes', OKA: 'Naha', OKC: 'Oklahoma City', OMA: 'Omaha', ORD: 'Chicago',
+    ORF: 'Norfolk', ORN: 'Oran', OSL: 'Oslo', OTP: 'Bucharest', OUA: 'Ouagadougou',
+    PAT: 'Patna', PBH: 'Paro', PBM: 'Paramaribo', PDX: 'Portland', PER: 'Perth',
+    PHL: 'Philadelphia', PHX: 'Phoenix', PIT: 'Pittsburgh', PKX: 'Beijing',
+    PMO: 'Palermo', PMW: 'Palmas', PNH: 'Phnom Penh', PNQ: 'Pune', POA: 'Porto Alegre',
+    POS: 'Port of Spain', PPT: 'Papeete', PRG: 'Prague', PTY: 'Panama City',
+    QRO: 'Queretaro', QWJ: 'Americana', RAO: 'Ribeirao Preto', RDU: 'Raleigh/Durham',
+    REC: 'Recife', RIC: 'Richmond', RIX: 'Riga', RUH: 'Riyadh', RUN: 'Saint-Denis',
+    SAN: 'San Diego', SAP: 'San Pedro Sula', SAT: 'San Antonio', SCL: 'Santiago',
+    SDQ: 'Santo Domingo', SEA: 'Seattle', SFO: 'San Francisco', SGN: 'Ho Chi Minh City',
+    SHA: 'Shanghai', SIN: 'Singapore', SJC: 'San Jose', SJK: 'Sao Jose Dos Campos',
+    SJO: 'San Jose', SJP: 'Sao Jose Do Rio Preto', SJU: 'San Juan', SJW: 'Shijiazhuang',
+    SKG: 'Thessaloniki', SKP: 'Skopje', SLC: 'Salt Lake City', SMF: 'Sacramento',
+    SOD: 'Sorocaba', SOF: 'Sofia', SSA: 'Salvador', STI: 'Santiago', STL: 'St Louis',
+    STR: 'Stuttgart', SUV: 'Suva', SYD: 'Sydney', SZX: 'Shenzhen', TAO: 'Qingdao',
+    TBS: 'Tbilisi', TEN: 'Tongren', TGU: 'Tegucigalpa', TIA: 'Tirana',
+    TLH: 'Tallahassee', TLL: 'Tallinn', TLV: 'Tel Aviv', TNA: 'Jinan',
+    TNR: 'Antananarivo', TPA: 'Tampa', TPE: 'Taipei', TUN: 'Tunis', TXL: 'Berlin',
+    TYN: 'Taiyuan', UDI: 'Uberlandia', UDR: 'Udaipur', UIO: 'Quito', ULN: 'Ulan Bator',
+    URT: 'Surat Thani', VCP: 'Campinas', VIE: 'Vienna', VIX: 'Vitoria', VNO: 'Vilnius',
+    VTE: 'Vientiane', WAW: 'Warsaw', WDH: 'Windhoek', WLG: 'Wellington', WRO: 'Wroclaw',
+    XAP: 'Chapeco', XFN: 'Xiangyang', XIY: 'Xi\'an', XNH: 'Nasiriyah', YHZ: 'Halifax',
+    YUL: 'Montreal', YVR: 'Vancouver', YWG: 'Winnipeg', YXE: 'Saskatoon',
+    YYC: 'Calgary', YYZ: 'Toronto', ZAG: 'Zagreb', ZDM: 'Ramallah', ZRH: 'Zurich'
   };
-  // Cloudflare has no mainland-China colos. Nearby = East / Southeast Asia.
+  // Nearby = East / Southeast Asia (plus CN codes if a China-network colo appears).
   var NEAR_COLO = {
-    SIN: 1, HKG: 1, MFM: 1, TPE: 1, KHH: 1,
-    NRT: 1, KIX: 1, FUK: 1, OKA: 1, ICN: 1,
-    BKK: 1, CNX: 1, SGN: 1, HAN: 1, DAD: 1,
-    MNL: 1, CEB: 1, KUL: 1, JHB: 1, CGK: 1, DPS: 1,
-    PNH: 1, VTE: 1, BWN: 1
+    ACX: 1, AVA: 1, BKK: 1, BWN: 1, CAN: 1, CEB: 1, CGD: 1, CGK: 1, CGO: 1, CGY: 1,
+    CKG: 1, CNX: 1, CRK: 1, CSX: 1, CTU: 1, CZX: 1, DAD: 1, DLC: 1, DPS: 1, FOC: 1,
+    FUK: 1, FUO: 1, HAK: 1, HAN: 1, HGH: 1, HKG: 1, HYN: 1, ICN: 1, JHB: 1, JOG: 1,
+    JXG: 1, KCH: 1, KHH: 1, KHN: 1, KIX: 1, KMG: 1, KUL: 1, KWE: 1, LHW: 1, LYA: 1,
+    MFM: 1, MLG: 1, MNL: 1, NRT: 1, OKA: 1, PKX: 1, PNH: 1, SGN: 1, SHA: 1, SIN: 1,
+    SJW: 1, SZX: 1, TAO: 1, TEN: 1, TNA: 1, TPE: 1, TYN: 1, URT: 1, VTE: 1, XFN: 1,
+    XIY: 1
   };
-  var NEAR_LOC = { CN: 1, HK: 1, MO: 1, TW: 1, SG: 1, JP: 1, KR: 1 };
+  var NEAR_LOC = { BN: 1, CN: 1, HK: 1, ID: 1, JP: 1, KH: 1, KR: 1, LA: 1, MO: 1, MY: 1, PH: 1, SG: 1, TH: 1, TW: 1, VN: 1 };
   var COLO_CC = {
-    HKG: 'HK', SIN: 'SG', MFM: 'MO', TPE: 'TW', KHH: 'TW',
-    NRT: 'JP', KIX: 'JP', FUK: 'JP', OKA: 'JP', ICN: 'KR',
-    BKK: 'TH', CNX: 'TH', SGN: 'VN', HAN: 'VN', DAD: 'VN',
-    MNL: 'PH', CEB: 'PH', KUL: 'MY', JHB: 'MY', CGK: 'ID', DPS: 'ID',
-    PNH: 'KH', VTE: 'LA', BWN: 'BN',
-    LHR: 'GB', AMS: 'NL', FRA: 'DE', CDG: 'FR',
-    LAX: 'US', SJC: 'US', SFO: 'US', IAD: 'US', EWR: 'US', ORD: 'US',
-    YYZ: 'CA', SYD: 'AU', DXB: 'AE', BOM: 'IN'
+    AAE: 'DZ', ABJ: 'CI', ABQ: 'US', ACC: 'GH', ACX: 'CN', ADB: 'TR', ADD: 'ET',
+    ADL: 'AU', AGR: 'IN', AIP: 'IN', AKL: 'NZ', AKX: 'KZ', ALA: 'KZ', ALG: 'DZ',
+    AMD: 'IN', AMM: 'JO', AMS: 'NL', ANC: 'US', ARI: 'CL', ARN: 'SE', ARU: 'BR',
+    ASK: 'CI', ASU: 'PY', ATH: 'GR', ATL: 'US', AUS: 'US', AVA: 'CN', BAH: 'BH',
+    BAQ: 'CO', BBI: 'IN', BCN: 'ES', BDQ: 'IN', BEG: 'RS', BEL: 'BR', BEY: 'LB',
+    BGI: 'BB', BGR: 'US', BGW: 'IQ', BKK: 'TH', BLR: 'IN', BNA: 'US', BNE: 'AU',
+    BOD: 'FR', BOG: 'CO', BOM: 'IN', BOS: 'US', BRU: 'BE', BSB: 'BR', BSR: 'IQ',
+    BTS: 'SK', BUD: 'HU', BUF: 'US', BWN: 'BN', CAI: 'EG', CAN: 'CN', CAW: 'BR',
+    CBR: 'AU', CCU: 'IN', CDG: 'FR', CEB: 'PH', CFC: 'BR', CGB: 'BR', CGD: 'CN',
+    CGK: 'ID', CGO: 'CN', CGP: 'BD', CGY: 'PH', CHC: 'NZ', CJB: 'IN', CKG: 'CN',
+    CLE: 'US', CLO: 'CO', CLT: 'US', CMB: 'LK', CMH: 'US', CNF: 'BR', CNN: 'IN',
+    CNX: 'TH', COK: 'IN', COR: 'AR', CPH: 'DK', CPT: 'ZA', CRK: 'PH', CSX: 'CN',
+    CTU: 'CN', CVG: 'US', CWB: 'BR', CZL: 'DZ', CZX: 'CN', DAC: 'BD', DAD: 'VN',
+    DAR: 'TZ', DEL: 'IN', DEN: 'US', DFW: 'US', DKR: 'SN', DLA: 'CM', DLC: 'CN',
+    DME: 'RU', DMM: 'SA', DOH: 'QA', DPS: 'ID', DTW: 'US', DUB: 'IE', DUR: 'ZA',
+    DUS: 'DE', DXB: 'AE', DYU: 'TJ', EBB: 'UG', EBL: 'IQ', EVN: 'AM', EWR: 'US',
+    EZE: 'AR', FCO: 'IT', FIH: 'CD', FLN: 'BR', FOC: 'CN', FOR: 'BR', FRA: 'DE',
+    FRU: 'KG', FSD: 'US', FUK: 'JP', FUO: 'CN', GBE: 'BW', GDL: 'MX', GEO: 'GY',
+    GIG: 'BR', GND: 'GD', GOT: 'SE', GRU: 'BR', GUA: 'GT', GUM: 'GU', GVA: 'CH',
+    GYD: 'AZ', GYE: 'EC', GYN: 'BR', HAK: 'CN', HAM: 'DE', HAN: 'VN', HBA: 'AU',
+    HEL: 'FI', HFA: 'IL', HGH: 'CN', HKG: 'HK', HNL: 'US', HRE: 'ZW', HYD: 'IN',
+    HYN: 'CN', IAD: 'US', IAH: 'US', ICN: 'KR', IND: 'US', ISB: 'PK', IST: 'TR',
+    ISU: 'IQ', IXC: 'IN', JAX: 'US', JDO: 'BR', JED: 'SA', JHB: 'MY', JIB: 'DJ',
+    JNB: 'ZA', JOG: 'ID', JOI: 'BR', JRG: 'IN', JXG: 'CN', KBP: 'UA', KCH: 'MY',
+    KEF: 'IS', KGL: 'RW', KHH: 'TW', KHI: 'PK', KHN: 'CN', KIN: 'JM', KIV: 'MD',
+    KIX: 'JP', KJA: 'RU', KMG: 'CN', KNU: 'IN', KTM: 'NP', KUL: 'MY', KWE: 'CN',
+    KWI: 'KW', LAD: 'AO', LAS: 'US', LAX: 'US', LCA: 'CY', LED: 'RU', LHE: 'PK',
+    LHR: 'GB', LHW: 'CN', LIM: 'PE', LIS: 'PT', LJU: 'SI', LLK: 'AZ', LLW: 'MW',
+    LOS: 'NG', LPB: 'BO', LUH: 'IN', LUN: 'ZM', LUX: 'LU', LYA: 'CN', LYS: 'FR',
+    MAA: 'IN', MAD: 'ES', MAN: 'GB', MAO: 'BR', MBA: 'KE', MCI: 'US', MCT: 'OM',
+    MDE: 'CO', MEL: 'AU', MEM: 'US', MEX: 'MX', MFM: 'MO', MIA: 'US', MLA: 'MT',
+    MLE: 'MV', MLG: 'ID', MNL: 'PH', MPM: 'MZ', MRS: 'FR', MRU: 'MU', MSP: 'US',
+    MSQ: 'BY', MUC: 'DE', MXP: 'IT', NAG: 'IN', NBO: 'KE', NJF: 'IQ', NOU: 'NC',
+    NQN: 'AR', NQZ: 'KZ', NRT: 'JP', NVT: 'BR', OKA: 'JP', OKC: 'US', OMA: 'US',
+    ORD: 'US', ORF: 'US', ORN: 'DZ', OSL: 'NO', OTP: 'RO', OUA: 'BF', PAT: 'IN',
+    PBH: 'BT', PBM: 'SR', PDX: 'US', PER: 'AU', PHL: 'US', PHX: 'US', PIT: 'US',
+    PKX: 'CN', PMO: 'IT', PMW: 'BR', PNH: 'KH', PNQ: 'IN', POA: 'BR', POS: 'TT',
+    PPT: 'PF', PRG: 'CZ', PTY: 'PA', QRO: 'MX', QWJ: 'BR', RAO: 'BR', RDU: 'US',
+    REC: 'BR', RIC: 'US', RIX: 'LV', RUH: 'SA', RUN: 'RE', SAN: 'US', SAP: 'HN',
+    SAT: 'US', SCL: 'CL', SDQ: 'DO', SEA: 'US', SFO: 'US', SGN: 'VN', SHA: 'CN',
+    SIN: 'SG', SJC: 'US', SJK: 'BR', SJO: 'CR', SJP: 'BR', SJU: 'PR', SJW: 'CN',
+    SKG: 'GR', SKP: 'MK', SLC: 'US', SMF: 'US', SOD: 'BR', SOF: 'BG', SSA: 'BR',
+    STI: 'DO', STL: 'US', STR: 'DE', SUV: 'FJ', SYD: 'AU', SZX: 'CN', TAO: 'CN',
+    TBS: 'GE', TEN: 'CN', TGU: 'HN', TIA: 'AL', TLH: 'US', TLL: 'EE', TLV: 'IL',
+    TNA: 'CN', TNR: 'MG', TPA: 'US', TPE: 'TW', TUN: 'TN', TXL: 'DE', TYN: 'CN',
+    UDI: 'BR', UDR: 'IN', UIO: 'EC', ULN: 'MN', URT: 'TH', VCP: 'BR', VIE: 'AT',
+    VIX: 'BR', VNO: 'LT', VTE: 'LA', WAW: 'PL', WDH: 'NA', WLG: 'NZ', WRO: 'PL',
+    XAP: 'BR', XFN: 'CN', XIY: 'CN', XNH: 'IQ', YHZ: 'CA', YUL: 'CA', YVR: 'CA',
+    YWG: 'CA', YXE: 'CA', YYC: 'CA', YYZ: 'CA', ZAG: 'HR', ZDM: 'PS', ZRH: 'CH'
   };
 
   function parseTrace(text) {
@@ -273,6 +408,253 @@
     });
   }
 
+  function unique(arr) {
+    var seen = {};
+    return arr.filter(function (x) {
+      var k = String(x).toLowerCase();
+      if (seen[k]) return false;
+      seen[k] = 1;
+      return true;
+    });
+  }
+
+  function remarkLines(j, title) {
+    var out = [];
+    ((j && j.remarks) || []).forEach(function (r) {
+      if (title && r.title && r.title !== title) return;
+      if (!title && r.title === 'description') return;
+      (r.description || []).forEach(function (d) {
+        d = String(d || '').trim();
+        if (d) out.push(d);
+      });
+    });
+    return out;
+  }
+
+  function rdapCidrs(j) {
+    return ((j && j.cidr0_cidrs) || []).map(function (c) {
+      if (c.v4prefix) return c.v4prefix + '/' + c.length;
+      if (c.v6prefix) return c.v6prefix + '/' + c.length;
+      return '';
+    }).filter(Boolean);
+  }
+
+  function compactRange(s) {
+    return String(s || '').replace(/\s+/g, '').replace(/–/g, '-');
+  }
+
+  function rirLabel(j) {
+    var p = String((j && j.port43) || '').toLowerCase();
+    if (p.indexOf('apnic') >= 0) return 'APNIC';
+    if (p.indexOf('arin') >= 0) return 'ARIN';
+    if (p.indexOf('ripe') >= 0) return 'RIPE';
+    if (p.indexOf('lacnic') >= 0) return 'LACNIC';
+    if (p.indexOf('afrinic') >= 0) return 'AFRINIC';
+    var notices = (j && j.notices) || [];
+    for (var i = 0; i < notices.length; i++) {
+      if (String(notices[i].title || '').toLowerCase() !== 'source') continue;
+      var d = notices[i].description || [];
+      for (var k = 0; k < d.length; k++) {
+        var s = String(d[k] || '').trim().toUpperCase();
+        if (s === 'APNIC' || s === 'ARIN' || s === 'RIPE' || s === 'LACNIC' || s === 'AFRINIC') return s;
+      }
+    }
+    return 'APNIC';
+  }
+
+  function prettyAlloc(s) {
+    s = String(s || '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!s) return '';
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function prettyDate(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return String(iso).slice(0, 10);
+    try {
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (e) { return String(iso).slice(0, 10); }
+  }
+
+  function eventDate(j, action) {
+    var events = (j && j.events) || [];
+    for (var i = 0; i < events.length; i++) {
+      if (events[i].eventAction === action && events[i].eventDate) return events[i].eventDate;
+    }
+    return '';
+  }
+
+  function prettyRole(r) {
+    var map = {
+      abuse: 'Abuse', administrative: 'Administrative', technical: 'Technical',
+      registrant: 'Registrant', billing: 'Billing', noc: 'NOC'
+    };
+    var k = String(r || '').toLowerCase();
+    return map[k] || r;
+  }
+
+  function vcardItems(ent) {
+    var arr = ent && ent.vcardArray;
+    return (arr && arr[1]) || [];
+  }
+
+  function vcardText(ent, name) {
+    var out = [];
+    vcardItems(ent).forEach(function (item) {
+      if (!item || item[0] !== name) return;
+      var text = item[3];
+      if (Array.isArray(text)) text = text.filter(Boolean).join(', ');
+      text = String(text || '').trim();
+      if (text) out.push(text);
+    });
+    return unique(out);
+  }
+
+  function vcardAdr(ent) {
+    var out = [];
+    vcardItems(ent).forEach(function (item) {
+      if (!item || item[0] !== 'adr') return;
+      var params = item[1] || {};
+      if (params.label) { out.push(String(params.label).trim()); return; }
+      var text = item[3];
+      if (Array.isArray(text)) text = text.filter(Boolean).join(', ');
+      text = String(text || '').trim();
+      if (text) out.push(text);
+    });
+    return unique(out);
+  }
+
+  function telKind(params) {
+    var t = params && params.type;
+    if (Array.isArray(t)) t = t.join(' ');
+    t = String(t || '').toLowerCase();
+    if (t.indexOf('fax') >= 0) return 'Fax';
+    if (t.indexOf('cell') >= 0 || t.indexOf('mobile') >= 0) return 'Mobile';
+    return 'Phone';
+  }
+
+  function vcardTels(ent) {
+    var out = [];
+    vcardItems(ent).forEach(function (item) {
+      if (!item || item[0] !== 'tel') return;
+      var text = String(item[3] || '').trim();
+      if (!text) return;
+      out.push({ kind: telKind(item[1] || {}), text: text });
+    });
+    return out;
+  }
+
+  function roleRank(ent) {
+    var rank = { abuse: 0, administrative: 1, technical: 2 };
+    var best = 9;
+    (ent.roles || []).forEach(function (r) {
+      var n = rank[String(r).toLowerCase()];
+      if (n != null && n < best) best = n;
+    });
+    return best;
+  }
+
+  function mailto(email) {
+    return '<a href="mailto:' + escapeHtml(email) + '">' + escapeHtml(email) + '</a>';
+  }
+
+  function telLink(num) {
+    return '<a href="tel:' + escapeHtml(num.replace(/[^\d+]/g, '')) + '">' + escapeHtml(num) + '</a>';
+  }
+
+  function renderEntity(ent) {
+    var roles = (ent.roles || []).map(prettyRole);
+    var fn = vcardText(ent, 'fn')[0] || '';
+    var emails = vcardText(ent, 'email');
+    var adrs = vcardAdr(ent);
+    var tels = vcardTels(ent);
+    var handle = ent.handle || '';
+    var remarks = remarkLines(ent, null);
+    var rows = '';
+    if (roles.length) rows += row('Roles', escapeHtml(roles.join(' · ')), true);
+    if (fn) rows += row('Name', escapeHtml(fn), true);
+    if (handle) rows += row('Handle', escapeHtml(handle));
+    if (adrs.length) {
+      rows += row('Address', adrs.map(function (a) {
+        return escapeHtml(a).replace(/\n/g, '<br>');
+      }).join('<br>'), true);
+    }
+    tels.forEach(function (t) { rows += row(t.kind, telLink(t.text), true); });
+    if (emails.length) rows += row('Email', emails.map(mailto).join('<br>'), true);
+    if (remarks.length) rows += row('Remarks', remarks.map(escapeHtml).join('<br>'), true);
+    if (!rows) return '';
+    return '<li class="card"><div class="kv">' + rows + '</div></li>';
+  }
+
+  function fetchRdap(url) {
+    return fetch(url, {
+      cache: 'no-store',
+      headers: { Accept: 'application/rdap+json, application/json' }
+    }).then(function (r) {
+      if (!r.ok) return null;
+      return r.json().then(function (json) { return { json: json }; }, function () { return null; });
+    }, function () { return null; });
+  }
+
+  function loadRdap(ip) {
+    if (!ip) return Promise.resolve(null);
+    var path = '/ip/' + encodeURIComponent(ip);
+    return fetchRdap('https://rdap.apnic.net' + path).then(function (hit) {
+      return hit || fetchRdap('https://rdap.org' + path);
+    });
+  }
+
+  function renderRdap(hit) {
+    var el = document.getElementById('rdap-body');
+    var title = document.getElementById('rdap-title');
+    if (!el) return;
+    if (!hit || !hit.json) {
+      el.innerHTML = '<p class="hint">Could not read APNIC RDAP for this IP.</p>';
+      return;
+    }
+    var j = hit.json;
+    var rir = rirLabel(j);
+    if (title) title.textContent = rir;
+    var name = j.name || '';
+    var country = (j.country || '').toUpperCase();
+    var locName = country ? (countryName(country) || country) : '';
+    var desc = remarkLines(j, 'description');
+    var extra = remarkLines(j, null);
+    var prefix = rdapCidrs(j).join(', ');
+    var handle = j.handle || '';
+    var addr = (j.startAddress && j.endAddress) ? (j.startAddress + ' – ' + j.endAddress) : '';
+    var status = (j.status || []).map(prettyAlloc).filter(Boolean).join(', ');
+    var alloc = prettyAlloc(j.type);
+    var registered = prettyDate(eventDate(j, 'registration'));
+    var changed = prettyDate(eventDate(j, 'last changed'));
+    var rows = '';
+    if (name) rows += row('Name', escapeHtml(name));
+    if (desc.length) rows += row('Network', desc.map(escapeHtml).join('<br>'), true);
+    if (extra.length) rows += row('Remarks', extra.map(escapeHtml).join('<br>'), true);
+    if (country) rows += row('Country', escapeHtml(locName ? locName + ' (' + country + ')' : country), true);
+    if (prefix) rows += row('Range', escapeHtml(prefix));
+    if (addr && compactRange(addr) !== compactRange(prefix) && compactRange(addr) !== compactRange(handle)) {
+      rows += row('Addresses', escapeHtml(addr));
+    }
+    if (handle && compactRange(handle) !== compactRange(prefix) && compactRange(handle) !== compactRange(addr)) {
+      rows += row('Handle', escapeHtml(handle));
+    }
+    if (alloc) rows += row('Type', escapeHtml(alloc), true);
+    if (status) rows += row('Status', escapeHtml(status), true);
+    if (registered) rows += row('Registered', escapeHtml(registered), true);
+    if (changed) rows += row('Changed', escapeHtml(changed), true);
+
+    var ents = ((j.entities || []).slice()).sort(function (a, b) { return roleRank(a) - roleRank(b); });
+    var cards = ents.map(renderEntity).filter(Boolean).join('');
+
+    el.innerHTML =
+      (rows ? '<div class="kv">' + rows + '</div>' : '<p class="hint">No registry fields for this IP.</p>') +
+      (cards ? '<h4>Contacts</h4><ul class="cards">' + cards + '</ul>' : '') +
+      '<details><summary>Raw ' + escapeHtml(rir) + ' RDAP</summary><pre>' +
+      escapeHtml(JSON.stringify(j, null, 2)) + '</pre></details>';
+  }
+
   function coloCity(colo) {
     return COLO[colo] || colo || 'an unknown city';
   }
@@ -287,6 +669,13 @@
 
     if (!colo) {
       return { cls: 'verdict--muted', html: 'Could not tell which Cloudflare city you reached.' };
+    }
+    if (loc === 'CN' && COLO_CC[colo] === 'CN') {
+      return {
+        cls: 'verdict--ok',
+        html: 'This should not be possible. Cloudflare has no data centre in mainland China — ' +
+          'and this request still entered in ' + escapeHtml(city) + '. How did you do that?'
+      };
     }
     if (samePlace && nearColo) {
       return {
@@ -331,7 +720,7 @@
     var http = prettyHttp(t.http);
     var asn = asnInfo && asnInfo.asn;
     var listed = allowEntry(asn);
-    var org = listed ? listed.name : ((asnInfo && asnInfo.org) || '');
+    var org = listed ? listed.isp : ((asnInfo && asnInfo.org) || '');
     var asnText = asn == null ? 'unavailable' : ('AS' + asn + (org ? ' — ' + org : ''));
     var path = pathHint(loc, colo);
 
@@ -350,10 +739,10 @@
     var allowItems = ALLOWLIST.map(function (a) {
       var match = asn === a.asn;
       return '<li' + (match ? ' class="match"' : '') + '>' +
-        '<span class="asn">AS' + a.asn + '</span>' +
-        '<span><span class="desc">' + escapeHtml(a.name) + '</span>' +
-        (match ? ' <span class="pill pill--ok">you</span>' : '') +
-        '</span></li>';
+        '<div class="kv">' +
+        row('ISP', escapeHtml(a.isp) + (match ? ' <span class="pill pill--ok">you</span>' : ''), true) +
+        row('Network', '<span class="asn">AS' + a.asn + '</span> ' + escapeHtml(a.network), true) +
+        '</div></li>';
     }).join('');
 
     var waf;
@@ -367,12 +756,35 @@
 
     document.getElementById('conn-body').innerHTML =
       '<p class="conn-lead">' + lead + '</p>' +
-      '<div class="kv">' + rows + '</div>' +
-      '<div class="verdict ' + path.cls + '">' + path.html + '</div>' +
+      '<div class="src">' +
+        '<h3>Cloudflare</h3>' +
+        '<p class="hint">Edge trace and ASN for this request.</p>' +
+        '<div class="kv">' + rows + '</div>' +
+        '<div class="verdict ' + path.cls + '">' + path.html + '</div>' +
+        '<details><summary>Raw /cdn-cgi/trace</summary><pre>' + escapeHtml(raw.trim()) + '</pre></details>' +
+      '</div>' +
       '<div class="allow"><h3>WAF allowlist</h3>' +
       waf +
       '<ul>' + allowItems + '</ul></div>' +
-      '<details><summary>Raw /cdn-cgi/trace</summary><pre>' + escapeHtml(raw.trim()) + '</pre></details>';
+      '<details class="mean">' +
+        '<summary>What this means?</summary>' +
+        '<div class="mean-body">' +
+          '<p>This relay runs on Cloudflare, and Cloudflare has no data centre in mainland China. Traffic from campus therefore always leaves the country to reach the nearest Cloudflare city.</p>' +
+          '<p>Hong Kong (<code>HKG</code>) is usually the shortest hop to the video origin in China. Singapore (<code>SIN</code>), Tokyo, Osaka, Seoul, Taipei, and Macau are also nearby and typically play well.</p>' +
+          '<p>On campus you will most often land in Hong Kong or Singapore. Cloudflare can still send you farther &mdash; Los Angeles (<code>LAX</code>) and San Jose (<code>SJC</code>) show up sometimes &mdash; and that longer path is slower.</p>' +
+          '<p>This service allows campus networks on the list above. Other networks may be challenged or blocked by Cloudflare.</p>' +
+          '<p>Routing <code>ruc.edu.kg</code> through a Hong Kong proxy can shorten a detour, but off-campus you still have to pass a Cloudflare challenge in the browser first. Dedicated players (VLC, ffmpeg, and many HLS apps) cannot complete that challenge, so they will fail even after this page loads.</p>' +
+        '</div>' +
+      '</details>' +
+      '<div class="src" id="rdap">' +
+        '<h3 id="rdap-title">APNIC</h3>' +
+        '<p class="hint" id="rdap-hint">Registry record for this IP.' +
+          (t.ip
+            ? ' <a href="https://browserleaks.com/ip/' + escapeHtml(t.ip) + '" target="_blank" rel="noopener">View on BrowserLeaks</a>'
+            : '') +
+        '</p>' +
+        '<div id="rdap-body"><p class="hint">Looking up registry record&hellip;</p></div>' +
+      '</div>';
   }
 
   fetch('/cdn-cgi/trace', { cache: 'no-store' }).then(function (r) {
@@ -380,7 +792,10 @@
     return r.text();
   }).then(function (raw) {
     var t = parseTrace(raw);
-    return loadAsn().then(function (asnInfo) { renderConn(t, raw, asnInfo); });
+    return loadAsn().then(function (asnInfo) {
+      renderConn(t, raw, asnInfo);
+      return loadRdap(t.ip).then(renderRdap);
+    });
   }).catch(function () {
     document.getElementById('conn-body').innerHTML =
       '<p class="hint">Could not read Cloudflare trace for this connection.</p>';
