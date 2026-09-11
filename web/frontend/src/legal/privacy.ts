@@ -13,7 +13,8 @@ import type { LegalDoc } from "./types";
 //                                    lib/notes/notesClient.ts  (MinIO upload + note content)
 //   - AI filtering                -> lib/ai/aiFilteringClient.ts, lib/ai/llmClient.ts,
 //                                    lib/ai/copilotAuth.ts
-//                                    (/api/ai / copilot.ruc.edu.kg / custom)
+//                                    (/api/ai / /api/copilot / custom;
+//                                    src/routes/aiProxy.ts, copilotProxy.ts)
 //   - GitHub fetch on /apps       -> lib/github.ts
 // If any of those change, this document has to change with them.
 //
@@ -181,8 +182,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**內建 AI。** 請求經由本服務送往開發者的 AI 後端，並以閣下的平台權杖認證。圖像僅用於產生該次請求的分類回應，本服務不會將其作為幻燈片庫保留。",
         },
         {
-          en: "**5.4 GitHub Copilot.** After you connect Copilot (device-code flow through copilot.ruc.edu.kg), images and your Copilot access token are sent to that Copilot proxy for classification. Your Copilot token is stored only in this browser's local storage.",
-          zh: "**GitHub Copilot。** 閣下連接 Copilot 後（經 copilot.ruc.edu.kg 的裝置碼流程），圖像及閣下的 Copilot 存取權杖會送往該 Copilot 代理以作分類。閣下的 Copilot 權杖僅保存在此瀏覽器的本機儲存空間。",
+          en: "**5.4 GitHub Copilot.** After you connect Copilot (a device-code flow run through the Service), images and your Copilot access token are sent through the Service to the Developer's Copilot proxy for classification. Your Copilot token is stored only in this browser's local storage.",
+          zh: "**GitHub Copilot。** 閣下連接 Copilot 後（經由本服務進行的裝置碼流程），圖像及閣下的 Copilot 存取權杖會經由本服務送往開發者的 Copilot 代理以作分類。閣下的 Copilot 權杖僅保存在此瀏覽器的本機儲存空間。",
         },
         {
           en: "**5.5 Custom endpoint.** If you configure an OpenAI-compatible base URL, API key, and model, images and that key are sent from your browser directly to the endpoint you named. That provider's own policies then apply; the Service never sees the key or the image on a server of its own.",

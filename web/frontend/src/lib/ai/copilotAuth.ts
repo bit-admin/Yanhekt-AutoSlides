@@ -1,11 +1,12 @@
-// GitHub Copilot auth client, backed by the copilot-proxy Worker at
-// copilot.ruc.edu.kg. The proxy runs GitHub's device flow server-side and
-// exposes it as three CORS-enabled JSON endpoints; the resulting gho_/ghu_
+// GitHub Copilot auth client, backed by the copilot-proxy Worker. The browser
+// stays on this host: same-origin `/api/copilot/*` is forwarded over a service
+// binding (src/routes/copilotProxy.ts). The proxy runs GitHub's device flow
+// server-side and exposes it as three JSON endpoints; the resulting gho_/ghu_
 // user token is the long-lived credential the OpenAI-compatible endpoints
 // accept as the Bearer key (the proxy handles the internal Copilot token
 // exchange). Web analogue of autoslides/src/main/ai/copilotService.ts.
 
-export const COPILOT_PROXY_BASE_URL = 'https://copilot.ruc.edu.kg';
+export const COPILOT_PROXY_BASE_URL = '/api/copilot';
 
 export interface DeviceCodeResponse {
   device_code: string;
@@ -49,7 +50,7 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
 }
 
 export function requestDeviceCode(): Promise<DeviceCodeResponse> {
-  return postJson<DeviceCodeResponse>('/api/auth/device');
+  return postJson<DeviceCodeResponse>('/auth/device');
 }
 
 interface PollResponse {
@@ -75,7 +76,7 @@ export async function pollForAccessToken(
     await sleep(intervalMs, signal);
     if (Date.now() > deadline) throw new Error('expired_token');
 
-    const result = await postJson<PollResponse>('/api/auth/poll', {
+    const result = await postJson<PollResponse>('/auth/poll', {
       device_code: deviceCode.device_code,
     });
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
@@ -100,7 +101,7 @@ export async function pollForAccessToken(
 
 /** Validate a gho_/ghu_ token and fetch its GitHub identity. */
 export async function getUserInfo(token: string): Promise<CopilotUser> {
-  const response = await fetch(`${COPILOT_PROXY_BASE_URL}/api/auth/me`, {
+  const response = await fetch(`${COPILOT_PROXY_BASE_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);

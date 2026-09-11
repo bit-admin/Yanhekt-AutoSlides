@@ -16,6 +16,7 @@ import { relayProxyRouter } from "./routes/relayProxy";
 import { configRouter } from "./routes/config";
 import { shareProxyRouter } from "./routes/shareProxy";
 import { aiProxyRouter } from "./routes/aiProxy";
+import { copilotProxyRouter } from "./routes/copilotProxy";
 
 export function createApp<TEnv extends Env = Env>() {
   const app = new Hono<{ Bindings: TEnv }>();
@@ -28,6 +29,7 @@ export function createApp<TEnv extends Env = Env>() {
   app.route("/api/config", configRouter);
   app.route("/api/yanhekt", yanhektProxyRouter);
   app.route("/api/ai", aiProxyRouter);
+  app.route("/api/copilot", copilotProxyRouter);
   app.route("/api/share", shareProxyRouter);
   app.route("/api", loginRouter);
   // Root `/playlist` + `/segment` — must match the relay Worker's exact

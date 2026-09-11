@@ -17,6 +17,8 @@
  * - SHARE: optional service binding to the sibling share Worker.
  *   Unset → `/api/share/*` 503.
  * - AI_ORIGIN: origin this Worker fetches for `/api/ai/*`. Unset → 503.
+ * - COPILOT: optional service binding to the sibling copilot-proxy Worker.
+ *   Unset → `/api/copilot/*` 503.
  */
 export interface Env {
   ASSETS: Fetcher;
@@ -42,4 +44,6 @@ export interface Env {
   SHARE?: Fetcher;
   /** Builtin AI origin (`https://…`, no trailing path). Unset → `/api/ai/*` 503. */
   AI_ORIGIN?: string;
+  /** Sibling GitHub Copilot proxy Worker. Unset → `/api/copilot/*` 503. */
+  COPILOT?: Fetcher;
 }

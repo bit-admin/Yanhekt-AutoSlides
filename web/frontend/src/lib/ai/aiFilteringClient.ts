@@ -4,8 +4,9 @@
 //  - builtin: same-origin `/api/ai` (this host forwards to the AI origin),
 //    keyed by the user's own login token (same gate as desktop: configured
 //    iff signed in);
-//  - copilot: GitHub Copilot through the copilot-proxy Worker's /v1 endpoints,
-//    keyed by the gho_/ghu_ token from the device flow;
+//  - copilot: GitHub Copilot through same-origin `/api/copilot/v1` (this host
+//    forwards to the copilot-proxy Worker over a service binding), keyed by
+//    the gho_/ghu_ token from the device flow;
 //  - custom: any OpenAI-compatible endpoint (must allow browser CORS).
 
 import { configStore, type AIServiceType } from '../../stores/configStore';
