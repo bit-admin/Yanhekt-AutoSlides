@@ -140,16 +140,11 @@
                 </button>
               </div>
 
-              <div v-if="isMacOS" class="quarantine-notice">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="16" x2="12" y2="12"/>
-                  <line x1="12" y1="8" x2="12.01" y2="8"/>
-                </svg>
-                <div class="notice-text">
-                  <span>{{ $t('extractorInstall.macInstallNotice') }}</span>
-                </div>
-              </div>
+              <QuarantineNotice
+                v-if="isMacOS"
+                :message="$t('extractorInstall.macInstallNotice')"
+                :command="MAC_QUARANTINE_COMMAND"
+              />
             </div>
           </div>
         </template>
@@ -168,6 +163,7 @@ const log = createLogger('ExtractorInstallModal');
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { compareSemver } from '@common/semver'
 import '../../assets/github-markdown.css'
+import QuarantineNotice from '../shell/QuarantineNotice.vue'
 
 interface ReleaseAsset {
   name: string
@@ -207,6 +203,7 @@ const isUpToDate = computed(() => {
 
 const isLinux = navigator.userAgent.toLowerCase().includes('linux') && !navigator.userAgent.toLowerCase().includes('android')
 const isMacOS = navigator.userAgent.toLowerCase().includes('mac')
+const MAC_QUARANTINE_COMMAND = 'sudo xattr -dr com.apple.quarantine /Applications/AutoSlides\\ Extractor.app'
 
 const loading = ref(false)
 const loadError = ref<string | null>(null)

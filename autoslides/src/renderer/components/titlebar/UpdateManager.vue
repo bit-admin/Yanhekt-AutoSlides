@@ -105,28 +105,11 @@
             </div>
 
             <!-- macOS Quarantine Notice -->
-            <div v-if="isMacOS" class="quarantine-notice">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="16" x2="12" y2="12"/>
-                <line x1="12" y1="8" x2="12.01" y2="8"/>
-              </svg>
-              <div class="notice-text">
-                <span>{{ $t('titlebar.updateModal.macQuarantineNotice') }}</span>
-                <div class="code-with-copy">
-                  <code>sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app</code>
-                  <button class="copy-btn" @click="copyQuarantineCommand" :title="$t('titlebar.copy')">
-                    <svg v-if="!commandCopied" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
-                    <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
+            <QuarantineNotice
+              v-if="isMacOS"
+              :message="$t('titlebar.updateModal.macQuarantineNotice')"
+              :command="MAC_QUARANTINE_COMMAND"
+            />
           </div>
         </div>
       </div>
@@ -147,6 +130,7 @@ const log = createLogger('UpdateManager');
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../../assets/github-markdown.css'
+import QuarantineNotice from '../shell/QuarantineNotice.vue'
 
 interface ReleaseAsset {
   name: string
@@ -176,6 +160,7 @@ interface DownloadProgress {
 const { t: $t } = useI18n()
 
 const isMacOS = ref(false)
+const MAC_QUARANTINE_COMMAND = 'sudo xattr -dr com.apple.quarantine /Applications/AutoSlides.app'
 
 const showUpdateModal = ref(false)
 const releaseInfo = ref<ReleaseInfo | null>(null)
@@ -183,7 +168,6 @@ const isDownloading = ref(false)
 const downloadedFile = ref<string | null>(null)
 const downloadProgress = ref<DownloadProgress>({ downloaded: 0, total: 0, percent: 0 })
 const isAutoCheck = ref(false)
-const commandCopied = ref(false)
 
 let cleanupDownloadProgress: (() => void) | null = null
 let cleanupDownloadComplete: (() => void) | null = null
@@ -258,7 +242,6 @@ const openUpdateModal = (fromAutoCheck = false) => {
 const closeUpdateModal = () => {
   showUpdateModal.value = false
   isAutoCheck.value = false
-  commandCopied.value = false
   if (!isDownloading.value) {
     downloadedFile.value = null
     downloadProgress.value = { downloaded: 0, total: 0, percent: 0 }
@@ -282,14 +265,6 @@ const handleReleaseNotesClick = (event: MouseEvent) => {
       window.electronAPI.shell.openExternal(href)
     }
   }
-}
-
-const copyQuarantineCommand = () => {
-  navigator.clipboard.writeText('sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app')
-  commandCopied.value = true
-  setTimeout(() => {
-    commandCopied.value = false
-  }, 2000)
 }
 
 const startDownload = async (url: string, filename: string) => {
@@ -440,43 +415,5 @@ defineExpose({
 .current-version {
   font-size: 12px;
   color: var(--text-secondary);
-}
-
-.code-with-copy {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.notice-text code {
-  flex: 1;
-  padding: 6px 8px;
-  background: var(--bg-surface);
-  border-radius: 4px;
-  font-size: 10px;
-  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
-  color: var(--text-warning);
-  word-break: break-all;
-}
-
-.copy-btn {
-  flex-shrink: 0;
-  padding: 4px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  color: var(--text-warning);
-  transition: all 0.2s;
-}
-
-.copy-btn:hover {
-  background: var(--hover-tint);
-  color: var(--text-warning);
-}
-
-.copy-btn:active {
-  transform: scale(0.95);
 }
 </style>

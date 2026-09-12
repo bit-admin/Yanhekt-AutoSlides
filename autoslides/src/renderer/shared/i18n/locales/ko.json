@@ -644,7 +644,7 @@
     "noPlatformAsset": "이 플랫폼용 설치 파일이 없습니다.",
     "linuxBuildNotice": "AutoSlides Extractor의 공식 Linux 빌드가 없습니다. 소스에서 빌드하세요.",
     "openRepo": "저장소 열기",
-    "macInstallNotice": ".dmg 설치 후 앱을 /Applications로 드래그하세요. macOS가 격리하면 다음을 실행하세요: sudo xattr -dr com.apple.quarantine \"/Applications/AutoSlides Extractor.app\"",
+    "macInstallNotice": ".dmg 설치 후 앱을 /Applications로 드래그하세요. macOS가 격리하면 터미널에서 실행:",
     "close": "닫기",
     "titleInstall": "AutoSlides Extractor 설치",
     "titleUpdate": "AutoSlides Extractor 업데이트",

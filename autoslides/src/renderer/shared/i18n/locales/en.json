@@ -644,7 +644,7 @@
     "noPlatformAsset": "No installer is available for this platform.",
     "linuxBuildNotice": "There is no official Linux build for AutoSlides Extractor. Please build it from source.",
     "openRepo": "Open Repository",
-    "macInstallNotice": "After installing the .dmg, drag the app into /Applications. If macOS quarantines the app, run: sudo xattr -dr com.apple.quarantine \"/Applications/AutoSlides Extractor.app\"",
+    "macInstallNotice": "After installing the .dmg, drag the app into /Applications. If macOS quarantines the app, run this in Terminal:",
     "close": "Close",
     "titleInstall": "Install AutoSlides Extractor",
     "titleUpdate": "Update AutoSlides Extractor",

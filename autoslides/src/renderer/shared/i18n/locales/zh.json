@@ -644,7 +644,7 @@
     "noPlatformAsset": "当前平台没有可用的安装包。",
     "linuxBuildNotice": "AutoSlides Extractor 没有官方 Linux 版本，请从源代码编译。",
     "openRepo": "打开仓库",
-    "macInstallNotice": "安装 .dmg 后请将应用拖入 /Applications。如被 macOS 隔离，请运行：sudo xattr -dr com.apple.quarantine \"/Applications/AutoSlides Extractor.app\"",
+    "macInstallNotice": "安装 .dmg 后请将应用拖入 /Applications。如被 macOS 隔离，请在终端中运行：",
     "close": "关闭",
     "titleInstall": "安装 AutoSlides Extractor",
     "titleUpdate": "更新 AutoSlides Extractor",
