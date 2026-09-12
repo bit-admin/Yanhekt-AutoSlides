@@ -13,5 +13,12 @@ export function registerAppIpcHandlers(): void {
     }
   });
 
+  // Quit the whole app. window:close is not a quit on macOS — the app stays in
+  // the Dock after its last window closes. app.quit() still runs the busy-work
+  // close guard in main.ts (before-quit → window 'close').
+  ipcMain.handle('app:quit', () => {
+    app.quit();
+  });
+
   ipcMain.handle('app:getVersion', () => app.getVersion());
 }

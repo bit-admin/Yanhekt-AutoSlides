@@ -319,7 +319,9 @@ const promptQuitAndInstall = async () => {
   })
 
   if (response?.response === 0) {
-    await window.electronAPI.window.close()
+    // A real quit: closing the window leaves AutoSlides running in the Dock on
+    // macOS, so the installer would find the old app still open.
+    await window.electronAPI.app.quit()
   }
 }
 

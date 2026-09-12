@@ -738,6 +738,8 @@ export interface ElectronAPI {
 
   app: {
     restart: () => Promise<void>;
+    /** Quit the app on every platform (closing the window does not on macOS). */
+    quit: () => Promise<void>;
     getVersion: () => Promise<string>;
   };
 

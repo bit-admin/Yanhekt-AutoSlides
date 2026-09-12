@@ -219,6 +219,7 @@ export const cache: ElectronAPI['cache'] = {
 
 export const app: ElectronAPI['app'] = {
   restart: () => ipcRenderer.invoke('app:restart'),
+  quit: () => ipcRenderer.invoke('app:quit'),
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
 };
 
