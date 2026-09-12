@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AutoSlides">
+  <!--
+    The header mark (Header.vue) at its true 30x22 proportions, centred on a
+    blank field — the way YouTube pads its play mark rather than reshaping it.
+    The mark spans 82% of the canvas: enough white to still read as a framed
+    card, without the margin swallowing the mark at favicon sizes.
+
+    Corners are rounded and the area outside them is transparent, so flattening
+    this file onto white yields the square, opaque canvas iOS wants for
+    apple-touch-icon; every other size renders straight from it.
+  -->
+  <rect width="64" height="64" rx="14" fill="#FFFFFF"/>
+  <g transform="translate(5.76 12.76) scale(1.7493)">
+    <rect width="30" height="22" rx="5" fill="#FF0000"/>
+    <polygon points="12,6 20,11 12,16" fill="#FFFFFF"/>
+    <line x1="6" y1="18" x2="24" y2="18" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>
