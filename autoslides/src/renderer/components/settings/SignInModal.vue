@@ -107,9 +107,8 @@ import { useI18n } from 'vue-i18n'
 import { useAuth } from '@features/platform/useAuth'
 import SmsCodePanel from './SmsCodePanel.vue'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
-    onLoginSuccess?: () => void
     showClose?: boolean
     embedded?: boolean
   }>(),
@@ -134,7 +133,7 @@ const {
   isSubmittingSmsCode,
   submitSmsCode,
   cancelSmsChallenge,
-} = useAuth(props.onLoginSuccess)
+} = useAuth()
 
 const { t } = useI18n()
 

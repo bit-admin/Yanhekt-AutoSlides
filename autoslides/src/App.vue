@@ -105,10 +105,7 @@ const { t } = useI18n()
 // MainContent) and provided as one bundle, so both the user-bar gear button (in
 // LeftPanel) and the full-width Settings page (in MainContent) inject the same
 // state. See features/settings/settingsContext.ts for the contract.
-const auth = useAuth(() => {
-  // On login success, refresh the built-in model
-  aiSettings.refreshBuiltinModel()
-})
+const auth = useAuth()
 
 const settings = useSettings()
 
@@ -118,6 +115,16 @@ const pHashExclusion = usePHashExclusion()
 
 const aiSettings = useAISettings({
   tokenManager: auth.tokenManager
+})
+
+// Built-in model info is fetched with the login token, so refetch whenever the
+// active identity changes. Auth state is shared, but sign-in happens through
+// several useAuth() instances (left-panel and onboarding SignInModal, SMS code,
+// browser login, account switch, pasted token) — watching the shared refs
+// covers every path, where a per-instance success callback missed most of them.
+// Sign-out lands here too and flips the panel back to "log in to view".
+watch([auth.isLoggedIn, auth.userId], () => {
+  aiSettings.refreshBuiltinModel()
 })
 
 const advancedSettings = useAdvancedSettings(

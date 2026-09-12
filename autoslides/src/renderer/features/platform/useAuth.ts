@@ -117,7 +117,7 @@ export interface UseAuthReturn {
   tokenManager: TokenManager
 }
 
-export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
+export function useAuth(): UseAuthReturn {
   // Local state (per-instance)
   const username = ref('')
   const password = ref('')
@@ -135,7 +135,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     const verificationResult = await apiClient.verifyToken(token)
     if (verificationResult.valid && verificationResult.userData) {
       applyVerifiedUser(verificationResult.userData, token, username.value)
-      onLoginSuccess?.()
       return true
     }
     log.error('Token verification failed after login')
@@ -292,7 +291,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
       if (result.valid && result.userData) {
         applyVerifiedUser(result.userData, account.token)
         log.debug('Account switch successful')
-        onLoginSuccess?.()
       } else if (result.networkError) {
         // Keep the account and the previous active session on transient failure.
         void window.electronAPI.dialog?.showErrorBox?.('Switch Account', 'Network error while switching account. Please try again.')
@@ -440,7 +438,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
       if (result.valid && result.userData) {
         applyVerifiedUser(result.userData, token)
         log.debug('Browser login successful')
-        onLoginSuccess?.()
         // Close browser login view after successful login
         closeBrowserLogin()
       } else {

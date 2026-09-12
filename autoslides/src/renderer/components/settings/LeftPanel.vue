@@ -234,7 +234,6 @@
     <!-- SSO Sign-In Dialog: the same shared SignInModal used by onboarding. -->
     <SignInModal
       v-if="showSsoModal"
-      :on-login-success="() => aiSettings.refreshBuiltinModel()"
       @success="closeSsoModal"
       @browser-login="onModalBrowserLogin"
       @close="closeSsoModal"

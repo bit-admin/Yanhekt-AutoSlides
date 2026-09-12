@@ -1,5 +1,6 @@
 import { computed, reactive, ref, toRaw, toRef, watch } from 'vue'
 import type { TokenManager } from '@shared/services/authService'
+import { coalesce } from '@shared/services/requestCache'
 import { useCopilotOAuth, type CopilotOAuthStep } from './useCopilotOAuth'
 import { useMlClassifierSettings, type AIClassifierMode, type MlThresholdValues, type MlModelInfo } from './useMlClassifierSettings'
 import { useModelChain, type ModelPreset } from './useModelChain'
@@ -528,7 +529,11 @@ export function useAISettings(options: UseAISettingsOptions) {
     builtinModelError.value = ''
 
     try {
-      const info = await window.electronAPI.ai.getBuiltinModelInfo(token)
+      // Startup fires this twice (LeftPanel mount + App's identity watcher once
+      // the stored token verifies); join the in-flight request instead.
+      const info = await coalesce(`builtinModelInfo:${token}`, () =>
+        window.electronAPI.ai.getBuiltinModelInfo(token)
+      )
       log.debug('[AI] refreshBuiltinModel: API response:', info)
       builtinModelName.value = info.model
       setRemoteBuiltinModelInfo(info)
