@@ -101,19 +101,10 @@
         </div>
       </div>
 
-      <!-- Fixed at bottom of navigator area (above user bar); not indented nav items. -->
+      <!-- Fixed at bottom of navigator area (above user bar); not indented nav items.
+           Settings leads and takes the row; Tools is a secondary window, so it keeps
+           only its glyph at the far right and wears its label as a tooltip. -->
       <div class="panel-actions">
-        <button type="button" class="panel-action-button" @click="openToolsWindow()">
-          <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-          </svg>
-          <span>{{ $t('tools.openTools') }}</span>
-          <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M15 3h6v6"/>
-            <path d="M10 14L21 3"/>
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-          </svg>
-        </button>
         <button
           type="button"
           :class="['panel-action-button', { active: activeNav === 'settings' }]"
@@ -124,6 +115,17 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
           <span>{{ $t('settings.settings') }}</span>
+        </button>
+        <button
+          type="button"
+          class="panel-action-button panel-action-button--icon"
+          :title="$t('tools.openTools')"
+          :aria-label="$t('tools.openTools')"
+          @click="openToolsWindow()"
+        >
+          <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
         </button>
       </div>
     </div>
@@ -735,7 +737,7 @@ defineExpose({
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 16px 16px 8px;
+  padding: 16px 16px 2px;
   overflow: hidden;
 }
 
@@ -970,8 +972,9 @@ defineExpose({
   margin: 18px 0 4px;
 }
 
-/* Fixed footer of the navigator: Tools + Settings side by side, not indented
-   like .nav-item rows — flush with the group-label column, hairline above. */
+/* Fixed footer of the navigator: Settings takes the row, Tools rides at the far
+   right as an icon. Not indented like .nav-item rows — flush with the group-label
+   column, hairline above. */
 .panel-actions {
   flex-shrink: 0;
   display: flex;
@@ -979,19 +982,20 @@ defineExpose({
   align-items: stretch;
   gap: 4px;
   margin-top: 8px;
-  padding-top: 8px;
+  padding-top: 2px;
   border-top: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
 }
 
 .panel-action-button {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   flex: 1;
   min-width: 0;
-  /* No left indent — intentionally distinct from indented .nav-item rows. */
-  padding: 8px 6px;
+  /* No left indent past the group label — intentionally distinct from the
+     indented .nav-item rows; 8px matches .nav-group-title's own inset. */
+  padding: 8px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -1000,6 +1004,15 @@ defineExpose({
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
+}
+
+/* Icon-only secondary action: squares off against the row height Settings sets
+   (8px + 14px glyph + 8px). Must follow the base rule — same specificity. */
+.panel-action-button--icon {
+  flex: 0 0 auto;
+  width: 30px;
+  padding: 8px 0;
+  justify-content: center;
 }
 
 .panel-action-button:hover {
@@ -1032,11 +1045,6 @@ defineExpose({
 .panel-action-icon {
   flex-shrink: 0;
   opacity: 0.7;
-}
-
-.panel-action-external-icon {
-  flex-shrink: 0;
-  opacity: 0.45;
 }
 
 /* Dark mode support */
