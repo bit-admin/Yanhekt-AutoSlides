@@ -133,21 +133,18 @@
 
 ### 2. 安装 AutoSlides
    - **macOS**：打开 `.dmg` 安装包，将应用图标拖动到 `Applications` 文件夹。
-      - 双击安装包内的 `install.command` 文件运行安装脚本。若看到“Apple 无法验证安全性”的提示，先关闭该提示。
-      - 打开 `系统设置 > 隐私与安全性`，如图所示，点击 `仍要打开`。
-      - 在终端中输入你的 Mac 密码（注意密码输入时不会显示）。
-
-<p align="center">
-  <img src="docs/dmg.png" alt="AutoSlides DMG 安装包" width="90%">
-</p>
+      - 打开“终端”：按 `Command (⌘) + 空格` 打开聚焦搜索，输入“终端”（或 `Terminal`）后按回车；也可以在 `访达 > 应用程序 > 实用工具` 中找到“终端”。
+      - 将以下命令粘贴到终端中，按回车运行：
+        ```shell
+        sudo xattr -dr com.apple.quarantine /Applications/AutoSlides.app
+        ```
+      - 终端提示 `Password:` 时，输入你的 Mac 登录密码并按回车。**输入密码时屏幕上不会显示任何字符（也没有星号）**，这是正常现象，输完直接按回车即可。
+      - 命令执行完成后，即可在 `Applications` 或启动台中打开 AutoSlides。
+      - 不想使用终端？也可以先双击打开 AutoSlides，看到“Apple 无法验证…”的提示后点击 `完成`，再前往 `系统设置 > 隐私与安全性`，在“安全性”部分点击 `仍要打开`，按提示输入密码或使用触控 ID 确认即可。
 
 > [!IMPORTANT]
-> - macOS 将下载的应用程序标记为"隔离"以确保安全。
-> - AutoSlides 未使用 Apple 开发者证书签名。
-> - 除了双击 `install.command` ，你也可以手动在终端运行以下命令删除隔离属性允许应用程序正常运行：
->   ```shell
->   sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app
->   ```
+> - macOS 会将从网络下载的应用程序标记为“隔离”以确保安全。
+> - AutoSlides 未使用 Apple 开发者证书签名，因此需要运行上面的命令删除隔离属性，或在系统设置中点击 `仍要打开`，应用程序才能正常打开。
 
    - **Windows**：运行 `.exe` 安装程序，并按照安装向导操作。
 

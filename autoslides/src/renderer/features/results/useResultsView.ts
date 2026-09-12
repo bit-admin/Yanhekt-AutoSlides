@@ -72,6 +72,8 @@ export function useResultsView(options: UseResultsViewOptions = {}) {
   const thumbnails = ref<Record<string, string>>({})
   const thumbnailSize = ref(320)
   const isLoading = ref(false)
+  /** Last folder-list / folder-contents load failure (raw, for PageErrorNotice), or null. */
+  const loadError = ref<unknown>(null)
   const previewItem = ref<ResultsItem | null>(null)
   const baselineCrop = ref<BaselineCrop | null>(null)
 
@@ -370,8 +372,11 @@ export function useResultsView(options: UseResultsViewOptions = {}) {
         currentFolder.value = refreshedFolder
         await loadCurrentFolderItems(refreshedFolder)
       }
+      // Cleared only on success, so a retry keeps the banner (spinning) up.
+      loadError.value = null
     } catch (error) {
       log.error('Failed to refresh results view:', error)
+      loadError.value = error
     } finally {
       isLoading.value = false
     }
@@ -389,8 +394,10 @@ export function useResultsView(options: UseResultsViewOptions = {}) {
 
     try {
       await loadCurrentFolderItems(folder)
+      loadError.value = null
     } catch (error) {
       log.error('Failed to open results folder:', error)
+      loadError.value = error
     } finally {
       isLoading.value = false
     }
@@ -402,6 +409,7 @@ export function useResultsView(options: UseResultsViewOptions = {}) {
     currentView.value = 'folders'
     currentFolder.value = null
     folderItems.value = []
+    loadError.value = null
     selectedIds.value = []
     selectedReason.value = ''
     previewItem.value = null
@@ -893,6 +901,7 @@ export function useResultsView(options: UseResultsViewOptions = {}) {
     thumbnails,
     thumbnailSize,
     isLoading,
+    loadError,
     previewItem,
     baselineCrop,
     hasRemovedItems,

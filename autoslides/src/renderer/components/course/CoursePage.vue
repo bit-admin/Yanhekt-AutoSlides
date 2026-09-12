@@ -1,19 +1,11 @@
 <template>
   <div class="course-page">
+    <PageErrorNotice v-if="errorMessage && isLoggedIn" :error="errorMessage" />
     <div class="header">
       <h2 class="page-title">{{ mode === 'live' ? $t('courses.title.liveStreams') : $t('courses.title.recordings') }}</h2>
     </div>
 
     <div class="content">
-      <div v-if="errorMessage && isLoggedIn" class="error-message">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="15" y1="9" x2="9" y2="15"/>
-          <line x1="9" y1="9" x2="15" y2="15"/>
-        </svg>
-        {{ errorMessage }}
-      </div>
-
       <SignedOutPanel v-if="!isLoggedIn" :title="$t('courses.signInToLoad')" />
 
       <div v-else-if="isLoading" class="loading-state">
@@ -86,6 +78,7 @@ import { navigationStore } from '@features/course/navigationStore'
 import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@shared/i18n/displayNames'
 import { useAuth } from '@features/platform/useAuth'
 import EmptySetState from '../shell/EmptySetState.vue'
+import PageErrorNotice from '../shell/PageErrorNotice.vue'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
 const props = defineProps<{
@@ -182,20 +175,6 @@ watch([isLoggedIn, userId], ([loggedIn]) => {
   flex-direction: column;
   min-height: 0; /* Important for flex child to shrink */
   padding: 0 24px 16px;
-}
-
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  background-color: var(--danger-bg);
-  border: 1px solid var(--danger-border);
-  border-radius: 4px;
-  color: var(--danger);
-  font-size: 14px;
-  flex-shrink: 0;
 }
 
 .loading-state {

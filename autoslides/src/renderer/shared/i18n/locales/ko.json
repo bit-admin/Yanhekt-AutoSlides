@@ -847,7 +847,7 @@
     "toggleRightPanel": "작업 패널 표시/숨기기",
     "aboutTitle": "AutoSlides 정보",
     "aboutMessage": "AutoSlides",
-    "aboutDetail": "버전 5.0.0 (5.0.0)\n\n© 2025 bit-admin. All rights reserved.\n\n도움이 필요하신가요? GitHub에서 이슈를 등록하거나 info@ruc.edu.kg으로 메일을 보내 주세요.",
+    "aboutDetail": "버전 5.0.0 (5.0.0)\n\n© 2025 bit-admin. All rights reserved.\n\n도움이 필요하신가요? GitHub에서 이슈를 등록하거나 info{'@'}ruc.edu.kg으로 메일을 보내 주세요.",
     "ok": "확인",
     "checkForUpdates": "업데이트 확인…",
     "noUpdateAvailable": "업데이트 없음",
@@ -1511,6 +1511,28 @@
       "hashA": "해시 A",
       "hashB": "해시 B",
       "duration": "소요 시간"
+    }
+  },
+  "pageError": {
+    "retry": "다시 시도",
+    "outputDir": {
+      "denied": {
+        "message": "macOS가 AutoSlides의 출력 폴더 {dir} 읽기를 차단하고 있습니다.",
+        "messageGeneric": "AutoSlides에 출력 폴더 {dir}을(를) 읽을 권한이 없습니다.",
+        "fixHint": "{privacy}의 파일 및 폴더에서 AutoSlides의 접근을 허용하거나 {folder}하세요.",
+        "fixHintGeneric": "폴더 권한을 확인하거나 {folder}하세요."
+      },
+      "missing": {
+        "message": "출력 폴더 {dir}이(가) 존재하지 않습니다.",
+        "fixHint": "{recreate}하거나 {folder}하세요."
+      },
+      "unreachable": {
+        "message": "출력 폴더 {dir}을(를) 찾을 수 없습니다. 해당 드라이브가 연결되어 있지 않을 수 있습니다.",
+        "fixHint": "드라이브를 다시 연결하거나 {folder}하세요."
+      },
+      "privacyLink": "개인정보 보호 설정",
+      "recreateLink": "폴더를 다시 생성",
+      "folderLink": "다른 출력 폴더를 선택"
     }
   }
 }

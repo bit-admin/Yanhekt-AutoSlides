@@ -4,6 +4,8 @@ import path from 'node:path';
 import type { IpcServices } from './types';
 import type { AIServiceType } from '@main/platform/configService';
 import type { LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import { expandTilde } from '@main/infra/pathUtils';
+import { probeOutputDir, recreateOutputDir } from '@main/infra/outputDir';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('ConfigIpc');
 
@@ -39,6 +41,22 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     configService.setOutputDirectory(directory);
     broadcastConfig();
     return configService.getConfig();
+  });
+
+  ipcMain.handle('config:probeOutputDirectory', async () => {
+    return probeOutputDir(expandTilde(configService.getConfig().outputDirectory));
+  });
+
+  // "Create it again" from the page strip. Resolves with the marker-carrying
+  // error rather than rejecting, so the renderer can show the refined problem.
+  ipcMain.handle('config:recreateOutputDirectory', async (): Promise<{ ok: true } | { ok: false; error: string }> => {
+    try {
+      await recreateOutputDir(expandTilde(configService.getConfig().outputDirectory));
+      return { ok: true };
+    } catch (error) {
+      log.warn('Failed to recreate output directory:', error);
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
   });
 
   ipcMain.handle('config:selectOutputDirectory', async () => {

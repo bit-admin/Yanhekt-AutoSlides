@@ -350,6 +350,10 @@ export interface ElectronAPI {
     onUpdate: (callback: (cfg: AppConfig) => void) => () => void;
     setOutputDirectory: (directory: string) => Promise<AppConfig>;
     selectOutputDirectory: () => Promise<AppConfig | null>;
+    /** `error` carries the @common/outputDirAccess marker (denied / missing / unreachable). */
+    probeOutputDirectory: () => Promise<{ ok: true } | { ok: false; error: string }>;
+    /** Recreate a missing output folder; never creates one whose drive is gone. */
+    recreateOutputDirectory: () => Promise<{ ok: true } | { ok: false; error: string }>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<AppConfig>;
     setMaxConcurrentDownloads: (count: number) => Promise<AppConfig>;
     setDownloadMaxWorkers: (count: number) => Promise<AppConfig>;
@@ -700,6 +704,8 @@ export interface ElectronAPI {
   shell: {
     openExternal: (url: string) => Promise<void>;
     openPath: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+    /** macOS Files & Folders privacy pane; resolves unsuccessful elsewhere. */
+    openPrivacySettings: () => Promise<{ success: boolean; error?: string }>;
   };
 
   menu: {

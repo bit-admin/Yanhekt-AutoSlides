@@ -1393,7 +1393,7 @@ CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each 
 |---|---|---|
 | `.github/workflows/ci.yml` | push `main` + **all PRs** | `autoslides` (lint, tsc, vue-tsc, vitest, **drift**); `workers` matrix `web|share|relay` (typecheck, test, web also `typecheck:web`); `security` matrix all four (`npm audit --audit-level=moderate`); `package` Windows `npm run package` (retry loop for transient Electron downloads) |
 | `build.yml` | push `main` | Windows NSIS + Linux AppImage/deb artifacts (30-day) |
-| `release.yml` | tag `v*` | Draft GitHub release with those artifacts. **macOS is local** (`make:mac` + DropDMG + quarantine strip) |
+| `release.yml` | tag `v*` | Draft GitHub release with those artifacts. **macOS is local** (`make:mac`: forge package + ad-hoc re-sign hook + DropDMG `AutoSlides` profile; users strip quarantine themselves in Terminal per README) |
 
 Node 22 everywhere. Web CI generates types with `npx wrangler types -c wrangler.example.jsonc --strict-vars false` so `SSO_RESUME_KEY` stays `string`.
 

@@ -3,6 +3,14 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+
+// One sentence for every macOS privacy-protected location the output folder can
+// live in (the default is ~/Downloads/AutoSlides). Tahoe's TCC refuses access
+// without a prompt when the bundle cannot say why it wants the folder.
+const FOLDER_USAGE =
+  'AutoSlides saves and reads lecture videos and extracted slides in the output folder you choose.';
 
 // Check if we're running in development mode (npm start)
 const isDev = process.argv.some(arg => arg.includes('electron-forge-start'));
@@ -19,6 +27,13 @@ const config: ForgeConfig = {
     executableName: process.platform === 'linux' ? 'autoslides' : 'AutoSlides',
     appBundleId: 'com.bitadmin.autoslides',
     appCategoryType: 'public.app-category.education',
+    extendInfo: {
+      NSDownloadsFolderUsageDescription: FOLDER_USAGE,
+      NSDocumentsFolderUsageDescription: FOLDER_USAGE,
+      NSDesktopFolderUsageDescription: FOLDER_USAGE,
+      NSRemovableVolumesUsageDescription: FOLDER_USAGE,
+      NSNetworkVolumesUsageDescription: FOLDER_USAGE,
+    },
     icon: 'resources/img/icon', // Will use .icns on macOS, .ico on Windows
     // Include all necessary resources
     extraResource: [
@@ -43,6 +58,27 @@ const config: ForgeConfig = {
     ]
   },
   rebuildConfig: {},
+  hooks: {
+    // Packager rewrites Info.plist after Electron's own ad-hoc signature and the
+    // fuses plugin re-signs only the executable, which ships a bundle whose
+    // signature is invalid ("Info.plist=not bound", identifier
+    // com.github.Electron). macOS privacy protection then cannot attribute a
+    // Downloads prompt or grant to the app and denies with EPERM. Re-sign the
+    // whole bundle ad-hoc and refuse to ship one that fails strict verification.
+    //
+    // No hardened runtime: ad-hoc signing plus library validation would reject
+    // the unpacked native modules. An ad-hoc identity still changes every
+    // release, so macOS may ask for folder access again after an update — only
+    // a Developer ID certificate avoids that.
+    postPackage: async (_forgeConfig, { platform, outputPaths }) => {
+      if (platform !== 'darwin') return;
+      for (const outputPath of outputPaths) {
+        const appPath = path.join(outputPath, 'AutoSlides.app');
+        execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'inherit' });
+        execFileSync('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath], { stdio: 'inherit' });
+      }
+    },
+  },
   makers: [
     // macOS: Use `npm run package` then DropDMG manually
     // Windows: Use `npm run make:win` (electron-builder with NSIS, see electron-builder.yml)

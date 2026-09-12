@@ -1,33 +1,20 @@
 <template>
   <div class="home-page custom-scrollbar" :class="{ 'home-page--welcome': !isLoggedIn }">
-    <!-- Campus-network warning banner -->
-    <div v-if="campusCheckStatus === 'warning' || rechecking" class="home-banner">
-      <span class="home-banner-msg">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 3l9 16H3L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-          <path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-        <span>{{ $t('home.campusWarning.message') }}
-          <button type="button" class="home-banner-link" @click="switchToExternal">{{ $t('home.campusWarning.switchExternal') }}</button>
-          {{ $t('home.campusWarning.or') }}
-          <button type="button" class="home-banner-link" @click="openIntranetSettings">{{ $t('home.campusWarning.openSettings') }}</button>.
-        </span>
-      </span>
-      <span class="home-banner-actions">
-        <button
-          type="button"
-          class="home-banner-icon-btn"
-          :class="{ 'is-spinning': rechecking }"
-          :disabled="rechecking"
-          :title="$t('home.campusWarning.recheck')"
-          :aria-label="$t('home.campusWarning.recheck')"
-          @click="recheckCampusConnection"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-      </span>
+    <!-- Page-level warnings: campus network, unreadable output folder -->
+    <div v-if="campusCheckStatus === 'warning' || rechecking || outputDirProblemError" class="home-banners">
+      <PageBanner
+        v-if="campusCheckStatus === 'warning' || rechecking"
+        tone="warning"
+        :recheck-label="$t('home.campusWarning.recheck')"
+        :busy="rechecking"
+        @recheck="recheckCampusConnection"
+      >
+        {{ $t('home.campusWarning.message') }}
+        <button type="button" class="page-banner-link" @click="switchToExternal">{{ $t('home.campusWarning.switchExternal') }}</button>
+        {{ $t('home.campusWarning.or') }}
+        <button type="button" class="page-banner-link" @click="openIntranetSettings">{{ $t('home.campusWarning.openSettings') }}</button>.
+      </PageBanner>
+      <PageErrorNotice v-if="outputDirProblemError" :error="outputDirProblemError" :retry="runOutputDirCheck" />
     </div>
     <div v-if="!isLoggedIn" class="home-welcome">
       <HomeWelcomeDemo />
@@ -281,6 +268,9 @@ import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@sh
 import { mergedSavedSearches, addSavedSearch, removeSavedSearch, savedSearchesLive, savedSearchesRecorded } from '@features/course/savedSearches'
 import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
 import { useCampusNetworkCheck } from '@features/platform/useCampusNetworkCheck'
+import { useOutputDirAccessCheck } from '@features/platform/useOutputDirAccessCheck'
+import PageBanner from '../shell/PageBanner.vue'
+import PageErrorNotice from '../shell/PageErrorNotice.vue'
 import { settingsLauncher } from '@features/settings/settingsLauncher'
 import { configStore } from '@shared/services/configStore'
 import HomeWelcomeDemo from './HomeWelcomeDemo.vue'
@@ -314,6 +304,14 @@ const recheckCampusConnection = async () => {
   } finally {
     rechecking.value = false
   }
+}
+
+// Output-folder health (macOS privacy protection on ~/Downloads, a deleted
+// folder, a disconnected drive). Re-probed on window focus while there is a
+// problem, so granting access in System Settings clears it on return.
+const { outputDirProblemError, runOutputDirCheck } = useOutputDirAccessCheck()
+const recheckOutputDirOnFocus = () => {
+  if (outputDirProblemError.value) void runOutputDirCheck()
 }
 
 const switchToExternal = async () => {
@@ -480,6 +478,10 @@ watch(() => configStore.connectionMode, () => {
   runCampusCheck()
 })
 
+watch(() => configStore.outputDirectory, () => {
+  void runOutputDirCheck()
+})
+
 onMounted(() => {
   loadGreeting()
   if (isLoggedIn.value) {
@@ -487,6 +489,12 @@ onMounted(() => {
   }
   // Fire-and-forget; never blocks the page.
   runCampusCheck()
+  void runOutputDirCheck()
+  window.addEventListener('focus', recheckOutputDirOnFocus)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('focus', recheckOutputDirOnFocus)
 })
 </script>
 
@@ -573,81 +581,10 @@ onMounted(() => {
   opacity: 0.75;
 }
 
-.home-banner {
+.home-banners {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: nowrap;
+  flex-direction: column;
   margin: -24px -32px 20px;
-  padding: 7px 14px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--text-primary);
-  background-color: var(--warning-bg);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.home-banner-msg {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 8px;
-  min-width: 0;
-}
-
-.home-banner-msg svg {
-  color: var(--warning);
-  flex-shrink: 0;
-}
-
-.home-banner-link {
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  color: var(--link-color);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.home-banner-link:hover {
-  text-decoration: underline;
-}
-
-.home-banner-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.home-banner-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px;
-  border: none;
-  border-radius: 4px;
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  line-height: 0;
-}
-
-.home-banner-icon-btn:hover {
-  color: var(--text-primary);
-  background-color: var(--bg-hover);
-}
-
-.home-banner-icon-btn.is-spinning svg {
-  animation: home-banner-spin 0.8s linear infinite;
-}
-
-@keyframes home-banner-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 .home-section {

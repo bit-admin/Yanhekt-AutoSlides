@@ -847,7 +847,7 @@
     "toggleRightPanel": "タスクパネルの表示/非表示",
     "aboutTitle": "AutoSlidesについて",
     "aboutMessage": "AutoSlides",
-    "aboutDetail": "バージョン 5.0.0 (5.0.0)\n\n© 2025 bit-admin. All rights reserved.\n\nサポートが必要ですか？ GitHub で Issue を作成するか、info@ruc.edu.kg までメールしてください。",
+    "aboutDetail": "バージョン 5.0.0 (5.0.0)\n\n© 2025 bit-admin. All rights reserved.\n\nサポートが必要ですか？ GitHub で Issue を作成するか、info{'@'}ruc.edu.kg までメールしてください。",
     "ok": "OK",
     "checkForUpdates": "アップデートを確認…",
     "noUpdateAvailable": "アップデートはありません",
@@ -1511,6 +1511,28 @@
       "hashA": "ハッシュ A",
       "hashB": "ハッシュ B",
       "duration": "所要時間"
+    }
+  },
+  "pageError": {
+    "retry": "再試行",
+    "outputDir": {
+      "denied": {
+        "message": "macOS により、AutoSlides は出力フォルダ {dir} を読み取れません。",
+        "messageGeneric": "AutoSlides には出力フォルダ {dir} を読み取る権限がありません。",
+        "fixHint": "{privacy}の「ファイルとフォルダ」で AutoSlides へのアクセスを許可するか、{folder}してください。",
+        "fixHintGeneric": "フォルダの権限を確認するか、{folder}してください。"
+      },
+      "missing": {
+        "message": "出力フォルダ {dir} が存在しません。",
+        "fixHint": "{recreate}するか、{folder}してください。"
+      },
+      "unreachable": {
+        "message": "出力フォルダ {dir} が見つかりません。保存先のドライブが接続されていない可能性があります。",
+        "fixHint": "ドライブを再接続するか、{folder}してください。"
+      },
+      "privacyLink": "プライバシー設定",
+      "recreateLink": "フォルダを再作成",
+      "folderLink": "別の出力フォルダを選択"
     }
   }
 }

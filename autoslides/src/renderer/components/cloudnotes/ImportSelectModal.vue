@@ -6,10 +6,12 @@
     <div class="dialog-box cn-import-box">
       <h3 class="dialog-title">{{ $t('cloudNotes.importTitle') }}</h3>
 
+      <PageErrorNotice v-if="loadError" class="cn-import-banner" :error="loadError" :retry="loadImportFolders" />
+
       <!-- Pick local slide folders -->
       <div class="cn-import-list custom-scrollbar">
         <div v-if="loadingFolders" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
-        <div v-else-if="importFolders.length === 0 && watchFolders.length === 0" class="cn-empty">{{ $t('cloudNotes.importNoFolders') }}</div>
+        <div v-else-if="!loadError && importFolders.length === 0 && watchFolders.length === 0" class="cn-empty">{{ $t('cloudNotes.importNoFolders') }}</div>
         <button
           v-for="f in importFolders"
           :key="f.name"
@@ -56,6 +58,10 @@
 import { ref, watch } from 'vue'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { isWatchExtraction } from '@common/slideMetadataTypes'
+import { createLogger } from '@shared/utils/logger'
+import PageErrorNotice from '../shell/PageErrorNotice.vue'
+
+const log = createLogger('ImportSelectModal')
 
 interface ImportFolder { name: string; path: string; imageCount: number }
 
@@ -75,6 +81,7 @@ const importFolders = ref<ImportFolder[]>([])
 const watchFolders = ref<ImportFolder[]>([])
 const importSelected = ref<string[]>([])
 const loadingFolders = ref(false)
+const loadError = ref<unknown>(null)
 
 const fmtFolder = formatToolFolderName
 
@@ -91,6 +98,12 @@ async function loadImportFolders(): Promise<void> {
     importFolders.value = importable
     watchFolders.value = watched
     importSelected.value = []
+    loadError.value = null
+  } catch (error) {
+    log.error('Failed to list slide folders:', error)
+    importFolders.value = []
+    watchFolders.value = []
+    loadError.value = error
   } finally {
     loadingFolders.value = false
   }
@@ -119,6 +132,12 @@ function onStartImport(): void {
   width: 460px;
   max-width: 92vw;
   max-height: 80vh;
+}
+
+.cn-import-banner {
+  margin-bottom: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
 }
 
 .cn-import-list {

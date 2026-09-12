@@ -128,11 +128,13 @@ jobs:
 
     - name: Create draft release
       uses: softprops/action-gh-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
       with:
+        # Pass the PAT as the `token` input, not as env GITHUB_TOKEN: the input
+        # defaults to github.token and wins over the env, so an env-only PAT is
+        # ignored and the release is authored by github-actions[bot].
+        token: ${{ secrets.RELEASE_PAT }}
         draft: true
-        name: AutoSlides ${{ github.ref_name }}
+        name: ${{ github.ref_name }}
         tag_name: ${{ github.ref_name }}
         generate_release_notes: true
         fail_on_unmatched_files: true

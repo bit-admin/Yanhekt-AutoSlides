@@ -847,7 +847,7 @@
     "toggleRightPanel": "Hide/Show Task Panel",
     "aboutTitle": "About AutoSlides",
     "aboutMessage": "AutoSlides",
-    "aboutDetail": "Version 5.0.0 (5.0.0)\n\n© 2025 bit-admin. All rights reserved.\n\nNeed help? Open an issue on GitHub or send us an email at info@ruc.edu.kg.",
+    "aboutDetail": "Version 5.0.0 (5.0.0)\n\n© 2025 bit-admin. All rights reserved.\n\nNeed help? Open an issue on GitHub or send us an email at info{'@'}ruc.edu.kg.",
     "ok": "OK",
     "checkForUpdates": "Check for Updates…",
     "noUpdateAvailable": "No Update Available",
@@ -1511,6 +1511,28 @@
       "hashA": "Hash A",
       "hashB": "Hash B",
       "duration": "Duration"
+    }
+  },
+  "pageError": {
+    "retry": "Retry",
+    "outputDir": {
+      "denied": {
+        "message": "macOS is blocking AutoSlides from reading the output folder {dir}.",
+        "messageGeneric": "AutoSlides doesn't have permission to read the output folder {dir}.",
+        "fixHint": "Allow access in {privacy} under Files & Folders, or {folder}.",
+        "fixHintGeneric": "Check the folder's permissions, or {folder}."
+      },
+      "missing": {
+        "message": "The output folder {dir} doesn't exist.",
+        "fixHint": "{recreate} or {folder}."
+      },
+      "unreachable": {
+        "message": "The output folder {dir} can't be found. The drive it's on may be disconnected.",
+        "fixHint": "Reconnect the drive, or {folder}."
+      },
+      "privacyLink": "Privacy Settings",
+      "recreateLink": "Create it again",
+      "folderLink": "choose a different output folder"
     }
   }
 }

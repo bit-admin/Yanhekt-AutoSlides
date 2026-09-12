@@ -65,7 +65,8 @@ function courseLabelFromItem(item: LectureVideoItem): string {
 export function useLecturesPage() {
   const videos = ref<LectureVideoItem[]>([])
   const isLoading = ref(false)
-  const errorMessage = ref('')
+  /** Last listVideos failure (raw, for PageErrorNotice), or null. */
+  const loadError = ref<unknown>(null)
   const isSelectMode = ref(false)
   const selectedPaths = ref<string[]>([])
   const groupByCourse = ref(true)
@@ -74,7 +75,6 @@ export function useLecturesPage() {
 
   const loadVideos = async (): Promise<void> => {
     isLoading.value = true
-    errorMessage.value = ''
     try {
       const rows = await (overrides.lecturesProvider
         ? overrides.lecturesProvider.listVideos()
@@ -97,9 +97,11 @@ export function useLecturesPage() {
           hasEmbyTags: parsed.hasEmbyTags,
         }
       })
+      // Cleared only on success, so a retry keeps the banner (spinning) up.
+      loadError.value = null
     } catch (error) {
       log.error('Failed to list videos', error)
-      errorMessage.value = error instanceof Error ? error.message : String(error)
+      loadError.value = error
       videos.value = []
     } finally {
       isLoading.value = false
@@ -224,7 +226,7 @@ export function useLecturesPage() {
   return {
     videos,
     isLoading,
-    errorMessage,
+    loadError,
     isSelectMode,
     selectedPaths,
     groupByCourse,

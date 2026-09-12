@@ -1,5 +1,6 @@
 <template>
   <div class="search-page">
+    <PageErrorNotice v-if="errorMessage && isLoggedIn" :error="errorMessage" />
     <div class="search-header">
       <SemesterSelect
         v-if="mode === 'recorded'"
@@ -25,15 +26,6 @@
 
     <div class="content">
       <SignedOutPanel v-if="!isLoggedIn" :title="$t('searchPage.signInToSearch')" />
-
-      <div v-else-if="errorMessage" class="error-message">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="15" y1="9" x2="9" y2="15"/>
-          <line x1="9" y1="9" x2="15" y2="15"/>
-        </svg>
-        {{ errorMessage }}
-      </div>
 
       <div v-else-if="isLoading" class="loading-state">
         <div class="spinner"></div>
@@ -105,6 +97,7 @@ import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@sh
 import { useAuth } from '@features/platform/useAuth'
 import SemesterSelect from './SemesterSelect.vue'
 import EmptySetState from '../shell/EmptySetState.vue'
+import PageErrorNotice from '../shell/PageErrorNotice.vue'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
 const { t } = useI18n()
@@ -197,20 +190,6 @@ const {
   flex-direction: column;
   min-height: 0;
   padding: 0 24px 16px;
-}
-
-.error-message {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  background-color: var(--danger-bg);
-  border: 1px solid var(--danger-border);
-  border-radius: 4px;
-  color: var(--danger);
-  font-size: 14px;
-  flex-shrink: 0;
 }
 
 .loading-state {

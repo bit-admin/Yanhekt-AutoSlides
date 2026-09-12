@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow, dialog, app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { expandTilde, hasTraversalSegment } from '@main/infra/pathUtils';
+import { readOutputDir } from '@main/infra/outputDir';
 import type { PdfMakeOptions, FolderEntry, CoverPageInfo } from '@main/export/pdfService';
 import {
   extractCourseName,
@@ -113,7 +114,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
       const outputDir = configService.getConfig().outputDirectory;
       const expandedPath = expandTilde(outputDir);
 
-      const entries = await fs.promises.readdir(expandedPath, { withFileTypes: true });
+      const entries = await readOutputDir(expandedPath);
       const slideFolders = entries.filter(entry => entry.isDirectory() && entry.name.startsWith('slides_'));
 
       const folders = await Promise.all(

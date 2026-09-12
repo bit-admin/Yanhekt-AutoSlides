@@ -1,5 +1,6 @@
 <template>
   <div class="results-window">
+    <PageErrorNotice v-if="loadError" :error="loadError" :retry="refresh" />
     <div class="toolbar">
       <div class="toolbar-left">
         <button v-if="currentView === 'images'" class="btn back-btn" @click="goBack">
@@ -386,6 +387,7 @@ import ResultsImageGrid from './ResultsImageGrid.vue'
 import ResultsPreviewModal from './ResultsPreviewModal.vue'
 import FolderListView from './FolderListView.vue'
 import EmptySetState from '../shell/EmptySetState.vue'
+import PageErrorNotice from '../shell/PageErrorNotice.vue'
 import ImportProgressModal from '../cloudnotes/ImportProgressModal.vue'
 
 const { t } = useI18n()
@@ -413,6 +415,7 @@ const {
   thumbnails,
   thumbnailSize,
   isLoading,
+  loadError,
   previewItem,
   baselineCrop,
   hasRemovedItems,

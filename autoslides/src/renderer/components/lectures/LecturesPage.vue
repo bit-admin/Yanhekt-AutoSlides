@@ -11,6 +11,7 @@
     />
 
     <template v-else>
+      <PageErrorNotice v-if="loadError" :error="loadError" :retry="loadVideos" />
       <div class="toolbar">
         <div class="toolbar-left">
           <!-- Same macOS segmented control as Search Live|Recorded (Library first). -->
@@ -106,7 +107,6 @@
         class="content-area custom-scrollbar"
         :class="{ 'content-area--library': viewMode === 'library' }"
       >
-        <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
         <div v-if="showLibraryLoading" class="loading-state">
           <div class="spinner"></div>
           <p>{{ $t('lectures.loading') }}</p>
@@ -223,6 +223,7 @@ import LecturePlayerView from './LecturePlayerView.vue'
 import LectureCompressModal from './LectureCompressModal.vue'
 import LectureRenameModal from './LectureRenameModal.vue'
 import LectureCloneShareModal from './LectureCloneShareModal.vue'
+import PageErrorNotice from '../shell/PageErrorNotice.vue'
 
 export type LecturesViewMode = 'list' | 'library'
 
@@ -235,7 +236,7 @@ const showCloneModal = ref(false)
 const {
   videos,
   isLoading,
-  errorMessage,
+  loadError,
   isSelectMode,
   selectedPaths,
   groupByCourse,
@@ -559,15 +560,6 @@ onMounted(async () => {
   padding: 0;
   overflow: hidden;
   background: transparent;
-}
-
-.error-banner {
-  margin: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--danger) 12%, transparent);
-  color: var(--danger);
-  font-size: 12px;
 }
 
 .loading-state {

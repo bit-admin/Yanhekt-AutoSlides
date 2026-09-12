@@ -2,6 +2,7 @@ import { ipcMain, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { expandTilde, hasTraversalSegment, isPathInsideRoot } from '@main/infra/pathUtils';
+import { readOutputDir } from '@main/infra/outputDir';
 import { LECTURE_MEDIA_EXTENSIONS } from '@common/lectureVideoNaming';
 import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
@@ -31,7 +32,7 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
   ipcMain.handle('lectures:listVideos', async (): Promise<LectureVideoFileInfo[]> => {
     try {
       const outputDir = expandTilde(configService.getConfig().outputDirectory);
-      const entries = await fs.promises.readdir(outputDir, { withFileTypes: true });
+      const entries = await readOutputDir(outputDir);
       const videos: LectureVideoFileInfo[] = [];
 
       for (const entry of entries) {

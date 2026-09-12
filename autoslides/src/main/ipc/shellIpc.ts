@@ -8,6 +8,11 @@ const log = createLogger('ShellIpc');
 // bug or injected content must not be able to launch arbitrary handlers.
 const ALLOWED_EXTERNAL_SCHEMES = new Set(['https:', 'http:', 'mailto:']);
 
+// Fixed pane, opened through its own channel so the scheme allowlist above
+// never has to admit `x-apple.systempreferences:`.
+const MAC_FILES_AND_FOLDERS_PRIVACY_URL =
+  'x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders';
+
 // URL-like (scheme://…) but not a Windows drive path like C:\.
 function isUrlLike(value: string): boolean {
   return /^[a-z][a-z0-9+.-]*:/i.test(value) && !/^[a-zA-Z]:[\\/]/.test(value);
@@ -45,6 +50,18 @@ export function registerShellIpcHandlers(): void {
       return { success: true };
     } catch (error) {
       log.error('Failed to open path:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  // macOS: System Settings → Privacy & Security → Files & Folders. No-op elsewhere.
+  ipcMain.handle('shell:openPrivacySettings', async () => {
+    if (process.platform !== 'darwin') return { success: false, error: 'Unsupported platform' };
+    try {
+      await shell.openExternal(MAC_FILES_AND_FOLDERS_PRIVACY_URL);
+      return { success: true };
+    } catch (error) {
+      log.error('Failed to open privacy settings:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });

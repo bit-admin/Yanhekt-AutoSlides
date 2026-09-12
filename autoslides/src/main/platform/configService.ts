@@ -1,6 +1,5 @@
 import ElectronStore from 'electron-store';
 import { app, dialog } from 'electron';
-import * as fs from 'fs';
 import { ThemeService, ThemeMode } from './themeService';
 import {
   AUTO_CROP_YOLO_INPUT_SIZES,
@@ -34,6 +33,8 @@ import type {
   StoredAccount
 } from './config/types';
 import { createLogger } from '@main/infra/logger';
+import { ensureOutputDirSync } from '@main/infra/outputDir';
+import { expandTilde } from '@main/infra/pathUtils';
 const log = createLogger('Config');
 
 export type {
@@ -1099,15 +1100,13 @@ export class ConfigService {
     this.store.set(key, value);
   }
 
+  // Launch and folder-change creation. Skips a folder whose drive is gone
+  // (see ensureOutputDirSync); pages report that as "unreachable" instead.
   private ensureOutputDirectoryExists(): void {
-    const outputDir = this.store.get('outputDirectory');
-    try {
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-    } catch (error) {
-      log.error('Failed to create output directory:', error);
-    }
+    const outputDir = expandTilde(this.store.get('outputDirectory'));
+    const result = ensureOutputDirSync(outputDir);
+    if (result === 'unreachable') log.warn('Output directory unreachable (parent missing), not creating:', outputDir);
+    else if (result === 'failed') log.error('Failed to create output directory:', outputDir);
   }
 
   private initializeTheme(): void {

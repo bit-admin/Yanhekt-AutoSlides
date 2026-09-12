@@ -26,6 +26,8 @@ export const config: ElectronAPI['config'] = {
   },
   setOutputDirectory: (directory: string) => ipcRenderer.invoke('config:setOutputDirectory', directory),
   selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
+  probeOutputDirectory: () => ipcRenderer.invoke('config:probeOutputDirectory'),
+  recreateOutputDirectory: () => ipcRenderer.invoke('config:recreateOutputDirectory'),
   setConnectionMode: (mode: 'internal' | 'external') => ipcRenderer.invoke('config:setConnectionMode', mode),
   setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
   setDownloadMaxWorkers: (count: number) => ipcRenderer.invoke('config:setDownloadMaxWorkers', count),
@@ -182,6 +184,7 @@ export const windowNs: ElectronAPI['window'] = {
 export const shell: ElectronAPI['shell'] = {
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
+  openPrivacySettings: () => ipcRenderer.invoke('shell:openPrivacySettings'),
 };
 
 export const menu: ElectronAPI['menu'] = {

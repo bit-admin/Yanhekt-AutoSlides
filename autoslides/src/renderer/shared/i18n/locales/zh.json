@@ -847,7 +847,7 @@
     "toggleRightPanel": "隐藏/显示任务面板",
     "aboutTitle": "关于 AutoSlides",
     "aboutMessage": "AutoSlides",
-    "aboutDetail": "版本 5.0.0 (5.0.0)\n\n© 2025 bit-admin. 保留所有权利。\n\n需要帮助吗？请在 GitHub 上提交 issue 或发送电子邮件至 info@ruc.edu.kg。",
+    "aboutDetail": "版本 5.0.0 (5.0.0)\n\n© 2025 bit-admin. 保留所有权利。\n\n需要帮助吗？请在 GitHub 上提交 issue 或发送电子邮件至 info{'@'}ruc.edu.kg。",
     "ok": "确定",
     "checkForUpdates": "检查更新…",
     "noUpdateAvailable": "没有可用更新",
@@ -1511,6 +1511,28 @@
       "hashA": "哈希 A",
       "hashB": "哈希 B",
       "duration": "耗时"
+    }
+  },
+  "pageError": {
+    "retry": "重试",
+    "outputDir": {
+      "denied": {
+        "message": "macOS 阻止了 AutoSlides 读取输出文件夹 {dir}。",
+        "messageGeneric": "AutoSlides 没有读取输出文件夹 {dir} 的权限。",
+        "fixHint": "请在{privacy}的“文件与文件夹”中允许 AutoSlides 访问，或{folder}。",
+        "fixHintGeneric": "请检查文件夹权限，或{folder}。"
+      },
+      "missing": {
+        "message": "输出文件夹 {dir} 不存在。",
+        "fixHint": "可以{recreate}，或{folder}。"
+      },
+      "unreachable": {
+        "message": "找不到输出文件夹 {dir}，它所在的磁盘可能未连接。",
+        "fixHint": "请重新连接磁盘，或{folder}。"
+      },
+      "privacyLink": "隐私设置",
+      "recreateLink": "重新创建",
+      "folderLink": "选择其他输出文件夹"
     }
   }
 }
