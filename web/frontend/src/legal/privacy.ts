@@ -18,7 +18,7 @@ import type { LegalDoc } from "./types";
 //   - GitHub fetch on /apps       -> lib/github.ts
 // If any of those change, this document has to change with them.
 //
-// Cross-reads with terms.ts and disclosure.ts (Cloud Notes / public Platform
+// Cross-reads with terms.ts and disclosure.ts (Notes / public Platform
 // storage). Claims about no server-side user archive describe the Service's
 // design: credentials and extracted slides are not retained in a Developer
 // database after the request that needs them completes.
@@ -26,7 +26,7 @@ import type { LegalDoc } from "./types";
 export const privacyDoc: LegalDoc = {
   id: "privacy",
   title: { en: "Privacy Policy", zh: "私隱政策" },
-  updated: "2026-08-03",
+  updated: "2026-09-13",
   intro: [
     {
       en: 'This Privacy Policy ("Policy") explains how information is handled when you use the AutoSlides web service at learn.ruc.edu.kg (the "Service"), provided by the Developer of AutoSlides. It forms part of, and should be read together with, the Terms and Conditions, the Copyright & Intellectual Property Notice, and the Public Storage Disclosure.',
@@ -37,8 +37,8 @@ export const privacyDoc: LegalDoc = {
       zh: "在本政策中，「開發者」指本服務的創作者及營運者（聯絡：info@ruc.edu.kg）；「平台」指北京理工大學的延河課堂（Yanhekt）系統；「用戶」指閣下。本政策未定義的大寫用語，在適用情況下具有《條款及細則》所賦予的涵義。",
     },
     {
-      en: "**In short:** the Service has no user accounts of its own and no database of User profiles. Your sign-in token, your settings, and the slides you extract are stored in your own browser by default. AI filtering (changeable in Settings) and optional Cloud Notes sync can send slide images to the AI provider you choose or into your own notes on the Platform. The Service itself does not keep a server-side archive of your extracted slides or your school password after the login request that needs them completes.",
-      zh: "**簡而言之：** 本服務並無自設的用戶帳戶，亦無用戶檔案資料庫。閣下的登入權杖、設定，以及所提取的幻燈片，預設均儲存在閣下自己的瀏覽器內。AI 篩選（可在設定中更改）及可選的雲筆記同步，可把幻燈片圖像傳送至閣下所選的 AI 服務，或寫入閣下在平台上的筆記。本服務本身不會在伺服器端歸檔閣下提取的幻燈片，亦不會在完成所需的登入請求後保留閣下的學校密碼。",
+      en: "**In short:** the Service has no user accounts of its own and no database of User profiles. Your sign-in token, your settings, and the slides you extract are stored in your own browser by default. AI filtering (changeable in Settings) and optional Notes sync can send slide images to the AI provider you choose or into your own notes on the Platform. The Service itself does not keep a server-side archive of your extracted slides or your school password after the login request that needs them completes.",
+      zh: "**簡而言之：** 本服務並無自設的用戶帳戶，亦無用戶檔案資料庫。閣下的登入權杖、設定，以及所提取的幻燈片，預設均儲存在閣下自己的瀏覽器內。AI 篩選（可在設定中更改）及可選的筆記同步，可把幻燈片圖像傳送至閣下所選的 AI 服務，或寫入閣下在平台上的筆記。本服務本身不會在伺服器端歸檔閣下提取的幻燈片，亦不會在完成所需的登入請求後保留閣下的學校密碼。",
     },
   ],
   sections: [
@@ -85,8 +85,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**已記住的裝置。** 密碼或短訊登入成功後，本服務或會回傳一個經密封的裝置憑證，以便學校登入系統在同一瀏覽器上略過其後的短訊驗證。該密封資料僅保存在閣下裝置的本機儲存空間。除登入請求期間 Worker 所持有的密封金鑰外，本服務無法讀取其內容。登出時不會刪除該憑證（以便下次在此裝置以密碼登入時仍可略過短訊）；清除本網站資料即可將其移除。",
         },
         {
-          en: "**2.3 Settings.** Your preferences — theme, language, saved searches, subscribed courses, Cloud Notes sync, AI filtering choices, and any AI credentials you enter (for example a GitHub Copilot token or a custom API key) — are kept in local storage on your device only.",
-          zh: "**設定。** 閣下的偏好設定——主題、語言、已儲存的搜尋、已訂閱的課程、雲筆記同步、AI 篩選選項，以及閣下輸入的任何 AI 憑證（例如 GitHub Copilot 權杖或自訂 API 金鑰）——僅保存在閣下裝置的本機儲存空間內。",
+          en: "**2.3 Settings.** Your preferences — theme, language, saved searches, subscribed courses, Notes sync, AI filtering choices, and any AI credentials you enter (for example a GitHub Copilot token or a custom API key) — are kept in local storage on your device only.",
+          zh: "**設定。** 閣下的偏好設定——主題、語言、已儲存的搜尋、已訂閱的課程、筆記同步、AI 篩選選項，以及閣下輸入的任何 AI 憑證（例如 GitHub Copilot 權杖或自訂 API 金鑰）——僅保存在閣下裝置的本機儲存空間內。",
         },
         {
           en: "**2.4 Extracted slides.** Slides captured during playback are written to your browser's IndexedDB storage on your own device. Exporting to PDF or ZIP is performed locally in your browser. By default the slides are not uploaded anywhere; the optional cases in which a slide image leaves the browser are described in section 5.",
@@ -141,8 +141,8 @@ export const privacyDoc: LegalDoc = {
       },
       paragraphs: [
         {
-          en: "**4.1 Why a relay is needed.** A browser cannot call the Platform's API directly (cross-origin and signature requirements), so course listings, playback details, cloud notes, and image uploads you initiate are requested through the Service, which forwards them to the Platform (cbiz.yanhekt.cn) and returns the response to you. Your token travels with those requests because the Platform requires it to identify you.",
-          zh: "**為何需要轉送。** 瀏覽器無法直接呼叫平台的 API（跨來源及簽署要求），因此課程列表、播放資訊，以及閣下發起的雲筆記與圖像上傳，均經由本服務請求；本服務將其轉送至平台（cbiz.yanhekt.cn），再把回應傳回閣下。由於平台需要藉此識別閣下身分，閣下的權杖會隨該等請求一併傳送。",
+          en: "**4.1 Why a relay is needed.** A browser cannot call the Platform's API directly (cross-origin and signature requirements), so course listings, playback details, notes, and image uploads you initiate are requested through the Service, which forwards them to the Platform (cbiz.yanhekt.cn) and returns the response to you. Your token travels with those requests because the Platform requires it to identify you.",
+          zh: "**為何需要轉送。** 瀏覽器無法直接呼叫平台的 API（跨來源及簽署要求），因此課程列表、播放資訊，以及閣下發起的筆記與圖像上傳，均經由本服務請求；本服務將其轉送至平台（cbiz.yanhekt.cn），再把回應傳回閣下。由於平台需要藉此識別閣下身分，閣下的權杖會隨該等請求一併傳送。",
         },
         {
           en: "**4.2 Video.** Recorded lectures are streamed through the Service, which signs each Platform request. Depending on how the Service is configured, your browser may send those relay requests to the relay host directly rather than to this site; the relay is operated by the Developer either way, and access to it may be limited to certain networks. You may configure a different relay endpoint in Settings. Treat any generated stream URL as sensitive. Live streams are fetched by your browser directly from the Platform's content network where the Platform permits it.",
@@ -165,8 +165,8 @@ export const privacyDoc: LegalDoc = {
         zh: "幻燈片圖像何時離開閣下的瀏覽器",
       },
       summary: {
-        en: "Only when you use AI filtering or Cloud Notes features that send images outward.",
-        zh: "僅在閣下使用會向外傳送圖像的 AI 篩選或雲筆記功能時。",
+        en: "Only when you use AI filtering or Notes features that send images outward.",
+        zh: "僅在閣下使用會向外傳送圖像的 AI 篩選或筆記功能時。",
       },
       paragraphs: [
         {
@@ -190,8 +190,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**自訂端點。** 如閣下設定 OpenAI 相容的基底網址、API 金鑰及模型，圖像及該金鑰會由閣下的瀏覽器直接送往閣下指定的端點。其後適用該服務供應商自身的政策；本服務的伺服器不會看到該金鑰或圖像。",
         },
         {
-          en: '**5.6 Cloud Notes and watch-mode sync.** When Cloud Notes sync is enabled, slides that pass post-processing may be uploaded through the Service to the Platform\'s own storage (Yanhekt MinIO at coss.yanhekt.cn) and inserted into a note under your Platform account (managed groups such as "ASuser"). Images uploaded this way become part of your Platform notes; the Platform hosts them under its own policies. That storage has been observed to allow **anonymous listing and download** of note images — not merely access by persons who already have a direct link — so do not sync private or sensitive material. Manual image inserts in the Notes editor use the same Platform upload path. See the Public Storage Disclosure for the full statement.',
-          zh: "**雲筆記及觀看模式同步。** 啟用雲筆記同步後，通過後處理的幻燈片或會經由本服務上傳至平台自身的儲存（延河課堂位於 coss.yanhekt.cn 的 MinIO），並插入閣下平台帳戶下的筆記（例如受管理的「ASuser」群組）。如此上傳的圖像會成為閣下平台筆記的一部分，由平台按其自身政策託管。經觀察，該儲存允許對筆記圖像進行**匿名列出及下載**——而非僅限於已持有直接連結的人存取——因此請勿同步私人或敏感資料。在筆記編輯器中手動插入的圖像，亦使用同一平台上傳路徑。完整說明見《公共儲存空間披露》。",
+          en: '**5.6 Notes and watch-mode sync.** When Notes sync is enabled, slides that pass post-processing may be uploaded through the Service to the Platform\'s own storage (Yanhekt MinIO at coss.yanhekt.cn) and inserted into a note under your Platform account (managed groups such as "ASuser"). Images uploaded this way become part of your Platform notes; the Platform hosts them under its own policies. That storage has been observed to allow **anonymous listing and download** of note images — not merely access by persons who already have a direct link — so do not sync private or sensitive material. Manual image inserts in the Notes editor use the same Platform upload path. See the Public Storage Disclosure for the full statement.',
+          zh: "**筆記及觀看模式同步。** 啟用筆記同步後，通過後處理的幻燈片或會經由本服務上傳至平台自身的儲存（延河課堂位於 coss.yanhekt.cn 的 MinIO），並插入閣下平台帳戶下的筆記（例如受管理的「ASuser」群組）。如此上傳的圖像會成為閣下平台筆記的一部分，由平台按其自身政策託管。經觀察，該儲存允許對筆記圖像進行**匿名列出及下載**——而非僅限於已持有直接連結的人存取——因此請勿同步私人或敏感資料。在筆記編輯器中手動插入的圖像，亦使用同一平台上傳路徑。完整說明見《公共儲存空間披露》。",
         },
       ],
     },
@@ -204,8 +204,8 @@ export const privacyDoc: LegalDoc = {
       },
       paragraphs: [
         {
-          en: "**6.1 The Platform and the school.** Everything you do through the Service is, from the Platform's perspective, an ordinary use of your own account — including notes you create and images you upload when Cloud Notes is on. The Platform and the school's sign-in system receive and handle that activity under their own policies. The Developer has no control over, and no general visibility into, what they record on their systems.",
-          zh: "**平台及學校。** 從平台的角度而言，閣下透過本服務所作的一切，均屬對閣下自身帳戶的一般使用——包括啟用雲筆記時所建立的筆記及上傳的圖像。平台及學校的登入系統會依其自身政策接收及處理該等活動。開發者對其系統上所記錄的內容既無控制權，亦無一般可見性。",
+          en: "**6.1 The Platform and the school.** Everything you do through the Service is, from the Platform's perspective, an ordinary use of your own account — including notes you create and images you upload when Notes is on. The Platform and the school's sign-in system receive and handle that activity under their own policies. The Developer has no control over, and no general visibility into, what they record on their systems.",
+          zh: "**平台及學校。** 從平台的角度而言，閣下透過本服務所作的一切，均屬對閣下自身帳戶的一般使用——包括啟用筆記時所建立的筆記及上傳的圖像。平台及學校的登入系統會依其自身政策接收及處理該等活動。開發者對其系統上所記錄的內容既無控制權，亦無一般可見性。",
         },
         {
           en: "**6.2 AI providers.** When AI filtering is enabled, the provider you selected (built-in, Copilot, or custom) receives the slide images you submit for classification, as described in section 5. Their handling of those requests is governed by their own terms and policies.",
@@ -242,8 +242,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**無營銷剖析。** 本服務不會建立閣下的營銷或行為廣告剖析檔案。亦不會基於閣下提取的幻燈片，使用閣下的內容訓練開發者自身的基礎模型。",
         },
         {
-          en: "**7.3 Images leave only when a feature requires it.** Slide images leave your browser only when a feature you use requires it (section 5) — AI filtering you enable, or Cloud Notes / note image upload you use. Local watch, extract, review, and export do not upload slides to the Developer as a library.",
-          zh: "**圖像僅在功能需要時離開。** 幻燈片圖像僅在閣下所使用的功能有此需要時才會離開瀏覽器（見第 5 節）——即閣下啟用的 AI 篩選，或閣下使用的雲筆記／筆記圖像上傳。本機觀看、提取、審閱及匯出不會把幻燈片作為資料庫上傳至開發者。",
+          en: "**7.3 Images leave only when a feature requires it.** Slide images leave your browser only when a feature you use requires it (section 5) — AI filtering you enable, or Notes / note image upload you use. Local watch, extract, review, and export do not upload slides to the Developer as a library.",
+          zh: "**圖像僅在功能需要時離開。** 幻燈片圖像僅在閣下所使用的功能有此需要時才會離開瀏覽器（見第 5 節）——即閣下啟用的 AI 篩選，或閣下使用的筆記／筆記圖像上傳。本機觀看、提取、審閱及匯出不會把幻燈片作為資料庫上傳至開發者。",
         },
       ],
     },
@@ -278,8 +278,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**裝置上的資料。** 由於本服務對閣下權杖、設定及本機幻燈片的保存僅存在於閣下的瀏覽器內，閣下可自行將其移除：登出即可刪除權杖（並請求平台撤銷該權杖）；在瀏覽器設定中清除本網站的資料，即可抹除設定、已記住裝置憑證，以及 IndexedDB 中所有已儲存的幻燈片。本服務並無另存伺服器端歸檔可供開發者代閣下刪除。",
         },
         {
-          en: "**9.2 Data on the Platform.** Deleting local browser data does not remove notes, uploaded images, or other material that already sits in your Platform account (including anything created by Cloud Notes sync). Use the Platform's own note tools — or contact the Platform — to manage or delete that material. It also does not close or alter your school account.",
-          zh: "**平台上的資料。** 刪除本機瀏覽器資料，不會移除已存在於閣下平台帳戶中的筆記、已上傳圖像或其他資料（包括雲筆記同步所建立者）。請使用平台自身的筆記工具——或聯絡平台——以管理或刪除該等資料。此舉亦不會關閉或更改閣下的學校帳戶。",
+          en: "**9.2 Data on the Platform.** Deleting local browser data does not remove notes, uploaded images, or other material that already sits in your Platform account (including anything created by Notes sync). Use the Platform's own note tools — or contact the Platform — to manage or delete that material. It also does not close or alter your school account.",
+          zh: "**平台上的資料。** 刪除本機瀏覽器資料，不會移除已存在於閣下平台帳戶中的筆記、已上傳圖像或其他資料（包括筆記同步所建立者）。請使用平台自身的筆記工具——或聯絡平台——以管理或刪除該等資料。此舉亦不會關閉或更改閣下的學校帳戶。",
         },
         {
           en: "**9.3 Third-party providers.** Data you sent to an AI provider, GitHub, or a custom endpoint you configured must be managed under that provider's own tools and policies. The Developer cannot delete data from systems it does not control.",
@@ -304,8 +304,8 @@ export const privacyDoc: LegalDoc = {
           zh: "**預定對象。** 本服務供已合法存取平台的人士使用（例如按機構規則的學生或教職員）。本服務並非以欠缺同意本條款或使用平台之行為能力的兒童為對象。",
         },
         {
-          en: "**10.2 Institutional rules.** Where your institution imposes additional rules on access to course materials, recording, or cloud notes, those rules continue to apply. This Policy does not grant permission that the Platform or your institution has not granted.",
-          zh: "**機構規則。** 如閣下所屬機構就課程資料存取、錄製或雲筆記另有規定，該等規定仍然適用。本政策並不授予平台或閣下所屬機構未授予的權限。",
+          en: "**10.2 Institutional rules.** Where your institution imposes additional rules on access to course materials, recording, or notes, those rules continue to apply. This Policy does not grant permission that the Platform or your institution has not granted.",
+          zh: "**機構規則。** 如閣下所屬機構就課程資料存取、錄製或筆記另有規定，該等規定仍然適用。本政策並不授予平台或閣下所屬機構未授予的權限。",
         },
       ],
     },

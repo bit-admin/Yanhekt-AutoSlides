@@ -14,7 +14,7 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19 9H2V11H19V9ZM19 5H2V7H19V5ZM2 15H15V13H2V15ZM17 13V19L22 16L17 13Z"/>
               </svg>
-              <span>{{ sessions.length }} {{ $t('playback.duration') !== 'Duration' ? '节课' : 'sessions' }}</span>
+              <span>{{ $t('playback.sessionsCount', { count: sessions.length }) }}</span>
             </div>
           </div>
 

@@ -101,7 +101,7 @@
           v-if="slides.length > 0"
           class="collapse-btn"
           :class="{ collapsed }"
-          :title="$t('playback.slides')"
+          :title="$t('playback.slideChapters')"
           @click="collapsed = !collapsed"
         >
           <svg

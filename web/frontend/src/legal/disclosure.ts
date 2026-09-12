@@ -1,21 +1,21 @@
 import type { LegalDoc } from "./types";
 
 // End-user disclosure of Yanhekt Platform public object storage as it affects
-// Cloud Notes image uploads. Drawn from read-only research on coss.yanhekt.cn;
+// Notes image uploads. Drawn from read-only research on coss.yanhekt.cn;
 // not an exploit writeup. The interactive browser
 // for the same store is at https://coss.ruc.edu.kg.
 //
-// Aligns with privacy.ts Cloud Notes paragraph (Platform MinIO hosts note
+// Aligns with privacy.ts Notes paragraph (Platform MinIO hosts note
 // images). If that upload path changes, update both documents.
 
 export const disclosureDoc: LegalDoc = {
   id: "disclosure",
   title: { en: "Public Storage Disclosure", zh: "公共儲存空間披露" },
-  updated: "2026-08-03",
+  updated: "2026-09-13",
   intro: [
     {
-      en: 'This Public Storage Disclosure ("Disclosure") is published by the Developer of AutoSlides in connection with the AutoSlides software and web service (together, the "Software" or "Service"). It describes a material property of the object-storage configuration of the Yanhe Classroom platform of the Beijing Institute of Technology ("Platform" / "Yanhekt") that affects images and other media attached to notes on the Platform — including images uploaded or synced through AutoSlides Cloud Notes and watch-mode sync.',
-      zh: "本《公共儲存空間披露》（下稱「本披露」）由 AutoSlides 開發者就 AutoSlides 軟件及網頁服務（合稱「軟件」或「本服務」）刊出。本披露說明北京理工大學延河課堂平台（下稱「平台」／「延河課堂」）物件儲存配置的一項重要特性，該特性影響附加於平台筆記的圖像及其他媒體——包括經 AutoSlides 雲筆記及觀看模式同步所上傳或同步的圖像。",
+      en: 'This Public Storage Disclosure ("Disclosure") is published by the Developer of AutoSlides in connection with the AutoSlides software and web service (together, the "Software" or "Service"). It describes a material property of the object-storage configuration of the Yanhe Classroom platform of the Beijing Institute of Technology ("Platform" / "Yanhekt") that affects images and other media attached to notes on the Platform — including images uploaded or synced through AutoSlides Notes and watch-mode sync.',
+      zh: "本《公共儲存空間披露》（下稱「本披露」）由 AutoSlides 開發者就 AutoSlides 軟件及網頁服務（合稱「軟件」或「本服務」）刊出。本披露說明北京理工大學延河課堂平台（下稱「平台」／「延河課堂」）物件儲存配置的一項重要特性，該特性影響附加於平台筆記的圖像及其他媒體——包括經 AutoSlides 筆記及觀看模式同步所上傳或同步的圖像。",
     },
     {
       en: "This Disclosure is provided so that Users may make an informed decision about what material is appropriate to place in a Platform note. It forms part of, and should be read together with, the Terms and Conditions and the Privacy Policy. In the event of any conflict between this Disclosure and those documents on a matter of contract or privacy handling by the Service, the Terms and the Privacy Policy prevail as to the Service; this Disclosure is intended to describe observed Platform storage behaviour that the Developer does not control.",
@@ -65,7 +65,7 @@ export const disclosureDoc: LegalDoc = {
       paragraphs: [
         {
           en: '**2.1 Object store.** The Platform serves user-uploaded media from an S3-compatible object store at **coss.yanhekt.cn**. Among its buckets is **images**, which holds note-feature uploads — including files created when a User inserts a picture into a note on the Platform, and files created when AutoSlides appends a captured slide to a Cloud Note or watch-mode note.',
-          zh: "**物件儲存。** 平台透過 **coss.yanhekt.cn** 上的 S3 相容物件儲存提供用戶上傳的媒體。其中 **images** 儲存桶存放筆記功能相關上傳——包括用戶在平台筆記中插入圖片時所產生的檔案，以及 AutoSlides 將擷取的幻燈片追加至雲筆記或觀看模式筆記時所產生的檔案。",
+          zh: "**物件儲存。** 平台透過 **coss.yanhekt.cn** 上的 S3 相容物件儲存提供用戶上傳的媒體。其中 **images** 儲存桶存放筆記功能相關上傳——包括用戶在平台筆記中插入圖片時所產生的檔案，以及 AutoSlides 將擷取的幻燈片追加至筆記或觀看模式筆記時所產生的檔案。",
         },
         {
           en: "**2.2 Anonymous list and read.** That **images** bucket accepts anonymous list and read requests. Any person on the public internet may, without a Platform account, without the User's credentials, and without a signed or expiring URL: (a) enumerate object keys, sizes, and last-modified timestamps via standard S3 listing (`ListObjects` / `ListObjectsV2`); and (b) download the corresponding object bytes via ordinary HTTP `GET` / `HEAD` requests. The same class of anonymous access has been observed on several sibling media buckets on the same host (including, among others, stores used for videos, audio, lecture transcripts and OCR text, and AI-assistant uploads). The existence of those sibling buckets is noted only to show that the exposure is not confined to a single path; this Disclosure is addressed to Users primarily because of **images** note uploads.",
@@ -105,8 +105,8 @@ export const disclosureDoc: LegalDoc = {
           zh: "**對筆記圖像不應有合理的保密預期。** 由於平台的筆記圖像儲存可被匿名列出及讀取，用戶不應假定附加於平台筆記的圖像屬機密、僅限筆記對象可知，或僅能由已持有直接連結的人發現。發現可透過對公開儲存桶的批量列出而發生，而不僅限於 URL 分享。",
         },
         {
-          en: "**3.2 Applies regardless of how the image was added.** The same storage path is used whether the image is inserted manually in a notes editor on the Platform, uploaded through AutoSlides Cloud Notes, appended by watch-mode sync after post-processing, or imported by another AutoSlides feature that writes into a Platform note. The Software's feature name does not change the Platform's hosting of the resulting object.",
-          zh: "**不論圖像如何加入均適用。** 無論圖像是在平台筆記編輯器中手動插入、經 AutoSlides 雲筆記上傳、經觀看模式同步在後處理後追加，或由 AutoSlides 其他寫入平台筆記的功能匯入，均使用同一儲存路徑。軟件的功能名稱並不改變平台對所產生物件的託管方式。",
+          en: "**3.2 Applies regardless of how the image was added.** The same storage path is used whether the image is inserted manually in a notes editor on the Platform, uploaded through AutoSlides Notes, appended by watch-mode sync after post-processing, or imported by another AutoSlides feature that writes into a Platform note. The Software's feature name does not change the Platform's hosting of the resulting object.",
+          zh: "**不論圖像如何加入均適用。** 無論圖像是在平台筆記編輯器中手動插入、經 AutoSlides 筆記上傳、經觀看模式同步在後處理後追加，或由 AutoSlides 其他寫入平台筆記的功能匯入，均使用同一儲存路徑。軟件的功能名稱並不改變平台對所產生物件的託管方式。",
         },
         {
           en: "**3.3 Platform policies govern.** Once uploaded, the object lives under the Platform's object store and under the Platform's terms, policies, and technical configuration. The Developer cannot promise that the Platform will restrict listing, rotate keys, expire objects, or notify Users of further exposure.",
@@ -134,8 +134,8 @@ export const disclosureDoc: LegalDoc = {
           zh: "**AutoSlides 不託管筆記圖像位元組。** 本服務不會為開發者自身儲存而在伺服器端保留該等筆記圖像的副本，並不營運本披露所述的 MinIO 儲存桶，亦不提供任何可令平台託管的筆記圖像變為私密的設定。筆記圖像是否可被公開列出或下載，取決於平台的配置，而非 AutoSlides 內的偏好選項。",
         },
         {
-          en: "**4.3 Reasonable efforts to inform Users.** Because the Developer cannot alter the Platform's object-store policies, the Developer has taken, and continues to take, **reasonable efforts** to bring the public character of Platform note-image storage to the attention of Users before and while they use features that may upload images. Those efforts include, without limitation: (a) publishing this Disclosure as a standing legal document of the Service; (b) describing the same risk in the Privacy Policy in connection with Cloud Notes and watch-mode sync; (c) linking to this Disclosure from the Service's sign-in page, first-run notice, and navigation or footer legal links; (d) presenting a contextual in-product notice on the Notes / Cloud Notes surfaces that use Platform image upload, with a link to this Disclosure (which the User may dismiss for interface convenience, without withdrawing the permanent availability of this page); and (e) where the desktop application offers the same Cloud Notes features, providing a corresponding notice that links to this Disclosure. The form, placement, and wording of such notices may evolve; their purpose is to enable an informed choice, not to guarantee that every User has read every notice on every visit.",
-          zh: "**向用戶作出告知的合理努力。** 由於開發者無法更改平台的物件儲存政策，開發者已採取並持續採取**合理努力**，在用戶使用可能上傳圖像的功能之前及期間，提請用戶注意平台筆記圖像儲存的公開性質。該等努力包括但不限於：(a) 將本披露作為本服務的常設法律文件刊出；(b) 在《私隱政策》中就雲筆記及觀看模式同步描述同一風險；(c) 於本服務的登入頁、首次使用提示，以及導航或頁腳法律連結中連至本披露；(d) 在使用平台圖像上傳的筆記／雲筆記介面提供情境提示，並連至本披露（用戶可為介面便利而關閉該提示，惟不影響本頁的長期可供查閱）；以及 (e) 在桌面應用程式提供相同雲筆記功能時，提供相應提示並連至本披露。該等提示的形式、位置及措辭或會演變；其目的在於促成知情選擇，而非保證每位用戶在每次到訪時均已閱讀每一則提示。",
+          en: "**4.3 Reasonable efforts to inform Users.** Because the Developer cannot alter the Platform's object-store policies, the Developer has taken, and continues to take, **reasonable efforts** to bring the public character of Platform note-image storage to the attention of Users before and while they use features that may upload images. Those efforts include, without limitation: (a) publishing this Disclosure as a standing legal document of the Service; (b) describing the same risk in the Privacy Policy in connection with Notes and watch-mode sync; (c) linking to this Disclosure from the Service's sign-in page, first-run notice, and navigation or footer legal links; (d) presenting a contextual in-product notice on the Notes surfaces that use Platform image upload, with a link to this Disclosure (which the User may dismiss for interface convenience, without withdrawing the permanent availability of this page); and (e) where the desktop application offers the same Drive features, providing a corresponding notice that links to this Disclosure. The form, placement, and wording of such notices may evolve; their purpose is to enable an informed choice, not to guarantee that every User has read every notice on every visit.",
+          zh: "**向用戶作出告知的合理努力。** 由於開發者無法更改平台的物件儲存政策，開發者已採取並持續採取**合理努力**，在用戶使用可能上傳圖像的功能之前及期間，提請用戶注意平台筆記圖像儲存的公開性質。該等努力包括但不限於：(a) 將本披露作為本服務的常設法律文件刊出；(b) 在《私隱政策》中就筆記及觀看模式同步描述同一風險；(c) 於本服務的登入頁、首次使用提示，以及導航或頁腳法律連結中連至本披露；(d) 在使用平台圖像上傳的筆記介面提供情境提示，並連至本披露（用戶可為介面便利而關閉該提示，惟不影響本頁的長期可供查閱）；以及 (e) 在桌面應用程式提供相同 Drive 功能時，提供相應提示並連至本披露。該等提示的形式、位置及措辭或會演變；其目的在於促成知情選擇，而非保證每位用戶在每次到訪時均已閱讀每一則提示。",
         },
         {
           en: "**4.4 Effect of notices; User remains responsible.** The notices described in section 4.3 are provided in good faith as a transparency measure. They do not convert the Developer into the operator of the Platform's storage, do not create any duty to monitor what the User uploads, and do not restore confidentiality to objects once they reside in a publicly listable Platform bucket. A User who proceeds to attach, sync, or import images to a Platform note after those notices have been made available is deemed to do so with knowledge of the risk described in this Disclosure. Dismissing a banner, skipping a first-run screen, or failing to open this page does not shift responsibility for the contents of note images onto the Developer.",
@@ -215,8 +215,8 @@ export const disclosureDoc: LegalDoc = {
       },
       paragraphs: [
         {
-          en: "**7.1 Changes.** If this Disclosure is updated materially — including because the Platform's observed storage behaviour changes, or because the Software's note-upload path changes — the date shown at the top of this page will be revised. Continuing to use Cloud Notes, watch-mode sync, or other features that upload images to the Platform after such a revision indicates that the User has read the updated Disclosure.",
-          zh: "**變更。** 如本披露有重大更新——包括因平台經觀察的儲存行為變更，或因軟件的筆記上傳路徑變更——本頁頂部所示的日期將會修訂。在該等修訂後繼續使用雲筆記、觀看模式同步或其他會向平台上傳圖像的功能，即表示用戶已閱讀經更新的披露。",
+          en: "**7.1 Changes.** If this Disclosure is updated materially — including because the Platform's observed storage behaviour changes, or because the Software's note-upload path changes — the date shown at the top of this page will be revised. Continuing to use Notes, watch-mode sync, or other features that upload images to the Platform after such a revision indicates that the User has read the updated Disclosure.",
+          zh: "**變更。** 如本披露有重大更新——包括因平台經觀察的儲存行為變更，或因軟件的筆記上傳路徑變更——本頁頂部所示的日期將會修訂。在該等修訂後繼續使用筆記、觀看模式同步或其他會向平台上傳圖像的功能，即表示用戶已閱讀經更新的披露。",
         },
         {
           en: "**7.2 Language.** In the event of any discrepancy between the English and Chinese versions of this Disclosure, the English version shall prevail.",

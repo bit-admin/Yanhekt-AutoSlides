@@ -11,7 +11,7 @@ export const copyrightDoc: LegalDoc = {
     en: "Copyright & Intellectual Property Notice",
     zh: "版權及知識產權聲明",
   },
-  updated: "2026-08-03",
+  updated: "2026-09-13",
   intro: [
     {
       en: 'This Copyright & Intellectual Property Notice ("Notice") is published by the Developer of AutoSlides in connection with the AutoSlides software application and web service at learn.ruc.edu.kg (together, the "Software" or "Service"). It explains who owns what, what Users must and must not do with course materials, and how the Developer uses reasonable efforts to remind Users that exported or processed files may contain copyrighted material.',
@@ -188,8 +188,8 @@ export const copyrightDoc: LegalDoc = {
     {
       id: "cloud-notes",
       heading: {
-        en: "6. Cloud Notes, uploads, and public storage",
-        zh: "雲筆記、上傳及公開儲存",
+        en: "6. Notes, uploads, and public storage",
+        zh: "筆記、上傳及公開儲存",
       },
       summary: {
         en: "Uploading slides to Platform notes may publish them; see the Public Storage Disclosure.",
@@ -197,8 +197,8 @@ export const copyrightDoc: LegalDoc = {
       },
       paragraphs: [
         {
-          en: "**6.1 Platform-hosted objects.** When the User enables Cloud Notes, watch-mode sync, or manual image insert into notes, images may be uploaded to the Platform's object storage and become part of the User's Platform notes. Hosting and access control for those objects are determined by the Platform, not by AutoSlides.",
-          zh: "**平台託管的物件。** 當用戶啟用雲筆記、觀看模式同步，或於筆記中手動插入圖像時，圖像或會上傳至平台的物件儲存，並成為用戶平台筆記的一部分。該等物件的託管及存取控制由平台決定，而非由 AutoSlides 決定。",
+          en: "**6.1 Platform-hosted objects.** When the User enables Notes, watch-mode sync, or manual image insert into notes, images may be uploaded to the Platform's object storage and become part of the User's Platform notes. Hosting and access control for those objects are determined by the Platform, not by AutoSlides.",
+          zh: "**平台託管的物件。** 當用戶啟用筆記、觀看模式同步，或於筆記中手動插入圖像時，圖像或會上傳至平台的物件儲存，並成為用戶平台筆記的一部分。該等物件的託管及存取控制由平台決定，而非由 AutoSlides 決定。",
         },
         {
           en: "**6.2 Public listability.** As detailed in the Public Storage Disclosure, Platform note-image storage has been observed to allow anonymous listing and download. Uploading copyrighted teaching materials to that storage may increase the risk of unauthorised third-party access. The User must not use note upload to circumvent redistribution rules.",

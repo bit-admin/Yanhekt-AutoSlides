@@ -127,8 +127,8 @@
               <option value="system">{{ $t('settings.followSystem') }}</option>
               <option value="en">{{ $t('settings.english') }}</option>
               <option value="zh">{{ $t('settings.chinese') }}</option>
-              <option value="ja">日本語</option>
-              <option value="ko">한국어</option>
+              <option value="ja">{{ $t('settings.japanese') }}</option>
+              <option value="ko">{{ $t('settings.korean') }}</option>
             </select>
           </div>
         </div>

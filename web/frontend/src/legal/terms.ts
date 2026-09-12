@@ -3,13 +3,13 @@ import type { LegalDoc } from "./types";
 // Ported from docs/terms.md (desktop-oriented original). Substance retained and
 // expanded for the web service: acceptance, licence, credentials, third-party
 // relays/AI/Platform storage, termination, and changes. Cross-reads with
-// privacy.ts and disclosure.ts — if those documents change on Cloud Notes,
+// privacy.ts and disclosure.ts — if those documents change on Notes,
 // public storage, or AI paths, re-check the corresponding clauses here.
 
 export const termsDoc: LegalDoc = {
   id: "terms",
   title: { en: "Terms and Conditions", zh: "條款及細則" },
-  updated: "2026-08-03",
+  updated: "2026-09-13",
   intro: [
     {
       en: 'By accessing, downloading, installing, or using the AutoSlides software application or the AutoSlides web service at learn.ruc.edu.kg (together, the "Software" or "Service"), you ("User") signify your agreement to be legally bound by these Terms and Conditions ("Terms"). If you do not agree to these Terms, you are not permitted to access or use the Software.',
@@ -228,8 +228,8 @@ export const termsDoc: LegalDoc = {
           zh: "d. 使用本軟件侵犯任何第三方（包括 BIT、內容創作者或其他權利持有人）的知識產權、私隱權或其他合法權利；",
         },
         {
-          en: "e. Uploading to Platform notes, Cloud Notes, watch-mode sync, or any similar feature any private, sensitive, or confidential material that the User is not prepared to treat as public, including in light of the Public Storage Disclosure;",
-          zh: "e. 向平台筆記、雲筆記、觀看模式同步或任何類似功能上傳用戶不願視為公開的任何私人、敏感或機密資料，包括顧及《公共儲存空間披露》所述情況；",
+          en: "e. Uploading to Platform notes, Notes, watch-mode sync, or any similar feature any private, sensitive, or confidential material that the User is not prepared to treat as public, including in light of the Public Storage Disclosure;",
+          zh: "e. 向平台筆記、筆記、觀看模式同步或任何類似功能上傳用戶不願視為公開的任何私人、敏感或機密資料，包括顧及《公共儲存空間披露》所述情況；",
         },
         {
           en: "f. Abusing Developer-operated infrastructure (login proxy, API proxy, video relay, AI endpoints, or related services), including excessive automated requests, attempts to bypass rate limits or authentication, malware distribution, or interference with other users;",
@@ -269,8 +269,8 @@ export const termsDoc: LegalDoc = {
           zh: "**AI 篩選。** 當 AI 篩選已啟用時，幻燈片圖像或會傳送至用戶所選的 AI 服務（內建端點、經代理的 GitHub Copilot，或自訂 OpenAI 相容端點），僅供分類之用。開發者不保證任何分類的準確性。自訂端點及金鑰由用戶選擇及控制；開發者對該等服務供應商概不負責。",
         },
         {
-          en: "**8.4 Cloud Notes and public object storage.** When the User enables Cloud Notes, watch-mode sync, or manual image insert into notes, images may be uploaded to the Platform's own object storage. That storage has been observed to allow anonymous listing and download of note images. **The User must read the Public Storage Disclosure before using those features** and must not place private or sensitive material in note images. The Developer does not operate the Platform's buckets and cannot make Platform-hosted objects private.",
-          zh: "**雲筆記及公開物件儲存。** 當用戶啟用雲筆記、觀看模式同步，或於筆記中手動插入圖像時，圖像或會上傳至平台自身的物件儲存。經觀察，該儲存允許對筆記圖像進行匿名列出及下載。**用戶在使用該等功能前必須閱讀《公共儲存空間披露》**，且不得將私人或敏感資料放入筆記圖像。開發者並不營運平台的儲存桶，亦無法使平台託管的物件變為私密。",
+          en: "**8.4 Notes and public object storage.** When the User enables Notes, watch-mode sync, or manual image insert into notes, images may be uploaded to the Platform's own object storage. That storage has been observed to allow anonymous listing and download of note images. **The User must read the Public Storage Disclosure before using those features** and must not place private or sensitive material in note images. The Developer does not operate the Platform's buckets and cannot make Platform-hosted objects private.",
+          zh: "**筆記及公開物件儲存。** 當用戶啟用筆記、觀看模式同步，或於筆記中手動插入圖像時，圖像或會上傳至平台自身的物件儲存。經觀察，該儲存允許對筆記圖像進行匿名列出及下載。**用戶在使用該等功能前必須閱讀《公共儲存空間披露》**，且不得將私人或敏感資料放入筆記圖像。開發者並不營運平台的儲存桶，亦無法使平台託管的物件變為私密。",
         },
         {
           en: "**8.5 Third-party links and tools.** The Software may link to third-party sites or tools (for example release pages on GitHub, or the read-only public-storage browser published for transparency). Those resources are not part of the Software's core licence grant; their operators are solely responsible for them.",

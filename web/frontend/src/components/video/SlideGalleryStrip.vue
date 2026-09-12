@@ -42,8 +42,8 @@
         v-if="slides.length > 1"
         type="button"
         class="lightbox-nav lightbox-nav--prev"
-        :title="$t('trash.prevSlide')"
-        :aria-label="$t('trash.prevSlide')"
+        :title="$t('slides.prevSlide')"
+        :aria-label="$t('slides.prevSlide')"
         @click.stop="stepPreview(-1)"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
@@ -64,8 +64,8 @@
         v-if="slides.length > 1"
         type="button"
         class="lightbox-nav lightbox-nav--next"
-        :title="$t('trash.nextSlide')"
-        :aria-label="$t('trash.nextSlide')"
+        :title="$t('slides.nextSlide')"
+        :aria-label="$t('slides.nextSlide')"
         @click.stop="stepPreview(1)"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
