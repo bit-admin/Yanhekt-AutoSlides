@@ -9,3 +9,4 @@ export {
   type SlideReviewMeta,
   type SlideMetadata,
 } from './types';
+export { indexReviewFlags, type IndexReviewFlags } from './review';

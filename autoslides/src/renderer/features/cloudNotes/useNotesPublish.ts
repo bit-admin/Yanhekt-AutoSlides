@@ -1,7 +1,7 @@
 import { readNoteMetadata, upsertNoteMetadata, noteImageUrls } from '@common/notesContent'
 import { buildSharePayload, encodeSharePayload } from '@common/shareLink'
 import { shareTimelineDeltaFromNote } from '@common/shareTimeline'
-import type { SlideMetadataSource } from '@common/slideMetadataTypes'
+import { indexReviewFlags, type SlideMetadataSource } from '@common/slideMetadataTypes'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
 import type { useCloudNotes } from './useCloudNotes'
@@ -54,10 +54,7 @@ export function useNotesPublish(cn: CloudNotesApi) {
     // source/review came from JSON metadata, but de-proxy defensively so IPC
     // structured-clone never sees a Vue reactive Proxy ("could not be cloned").
     const plainSource: SlideMetadataSource = JSON.parse(JSON.stringify(source))
-    const rev = meta?.slides?.review
-    const edited = !!(rev?.edited || rev?.cropped)
-    // Editing implies reviewing.
-    const plainReview = { reviewed: !!rev?.reviewed || edited, edited }
+    const plainReview = indexReviewFlags(meta?.slides?.review)
 
     const notes = overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
     const r = await notes.publishToIndex(fragment, plainSource, plainReview)

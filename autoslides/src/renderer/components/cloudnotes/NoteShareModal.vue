@@ -89,7 +89,7 @@ import { shareTimelineDeltaFromNote } from '@common/shareTimeline'
 import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata } from '@common/notesContent'
 import { configStore } from '@shared/services/configStore'
 import { managedNoteIdentity } from '@common/notesTypes'
-import type { SlideMetadataSource } from '@common/slideMetadataTypes'
+import { indexReviewFlags, type SlideMetadataSource } from '@common/slideMetadataTypes'
 import type { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import type { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
@@ -154,10 +154,7 @@ async function open(): Promise<void> {
     const meta = metaForShare
     shareIndexUrl.value = meta?.note.indexUrl ?? null
     shareIndexSource.value = meta?.slides?.source ?? null
-    const rev = meta?.slides?.review
-    const edited = !!(rev?.edited || rev?.cropped)
-    // Editing implies reviewing.
-    shareReview.value = { reviewed: !!rev?.reviewed || edited, edited }
+    shareReview.value = indexReviewFlags(meta?.slides?.review)
     shareIndexError.value = ''
   } else {
     shareIndexUrl.value = null
