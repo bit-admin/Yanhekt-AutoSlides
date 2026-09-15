@@ -385,14 +385,14 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
       let result: PlaybackData;
 
-      // Recorded URLs depend on the deployment's relay policy; live doesn't.
-      if (mode === "recorded") {
-        await ensureRuntimeConfig();
-      }
-
       if (mode === "live" && course.value) {
         result = getLivePlaybackData(course.value);
       } else if (mode === "recorded" && session.value) {
+        // Recorded URLs depend on the deployment's relay policy; live doesn't,
+        // and neither does a custom Settings relay, which always wins. This is
+        // the app's only reason to fetch `/api/config`, so it is not fetched at
+        // startup — it runs here, in parallel with the other lookups.
+        const configPromise = configStore.relayEndpoint.trim() ? null : ensureRuntimeConfig();
         // The mic URL is not on the session — only GET /v1/video carries it.
         // Memoised, so re-opening the same lecture costs nothing. Live has no
         // mic track at all. A failed resolve must not fail video playback.
@@ -400,6 +400,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         // adds no serial latency to opening a lecture.
         const resumePromise = progressSync.resume();
         const resolvedMicUrl = await getMicAudioUrl(String(session.value.video_id), token);
+        await configPromise;
         // `sid` is what opts the relay into reporting: without it the segment
         // requests stay exactly what they were.
         result = getRecordedPlaybackData(

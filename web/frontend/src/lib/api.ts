@@ -460,15 +460,20 @@ export async function getPersonalCourseList(
 }
 
 /**
- * One page of the account's Yanhekt course subscriptions. Upstream defaults to
- * page_size=4 when omitted — always pass an explicit pageSize (100 is enough
- * for typical accounts; callers should paginate on last_page).
+ * Page size for every subscription-list read. Upstream defaults to 4 when
+ * omitted, and 100 covers typical accounts in one page. The launch sync and the
+ * Subscriptions grid both use it on purpose: equal URLs share one cache entry,
+ * so a cold load of /subscriptions makes one request instead of two.
  */
+export const SUBSCRIPTION_PAGE_SIZE = 100;
+
+/** One page of the account's Yanhekt course subscriptions; paginate on last_page. */
 export async function getSubscriptionList(
   token: string,
-  options: { page?: number; pageSize?: number } = {},
+  options: { page?: number } = {},
 ): Promise<SubscriptionListResponse> {
-  const { page = 1, pageSize = 100 } = options;
+  const { page = 1 } = options;
+  const pageSize = SUBSCRIPTION_PAGE_SIZE;
   const params = new URLSearchParams();
   params.append("page", page.toString());
   params.append("page_size", pageSize.toString());

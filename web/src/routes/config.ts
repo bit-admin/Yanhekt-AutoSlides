@@ -1,6 +1,6 @@
 /**
  * `GET /api/config` — the handful of deploy-time facts the SPA cannot know on
- * its own. Read once at startup and before recorded playback.
+ * its own. Read once per page load, on first recorded playback.
  *
  * `relay` says where recorded HLS comes from (see lib/relayPolicy.ts): this
  * origin, or the relay's public origin the browser must reach itself.

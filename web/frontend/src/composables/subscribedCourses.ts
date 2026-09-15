@@ -33,7 +33,6 @@ const inFlight = new Set<string>();
 // One sync at a time (login + hydrate can otherwise overlap).
 let syncInFlight: Promise<void> | null = null;
 
-const SUBSCRIPTION_PAGE_SIZE = 100;
 const MAX_SUBSCRIPTION_PAGES = 50;
 
 // Rebuild a plain, JSON-safe snapshot before persisting (drops reactive proxies
@@ -92,10 +91,7 @@ export function mapSubscriptionRowToSubscribedCourse(
 async function fetchAllSubscriptionRows(token: string): Promise<SubscriptionCourseRow[]> {
   const rows: SubscriptionCourseRow[] = [];
   for (let page = 1; page <= MAX_SUBSCRIPTION_PAGES; page++) {
-    const result = await getSubscriptionList(token, {
-      page,
-      pageSize: SUBSCRIPTION_PAGE_SIZE,
-    });
+    const result = await getSubscriptionList(token, { page });
     const pageRows = result?.data ?? [];
     rows.push(...pageRows);
     const lastPage = Number(result?.last_page) || 1;

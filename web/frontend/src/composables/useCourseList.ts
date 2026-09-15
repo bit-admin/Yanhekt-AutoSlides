@@ -252,10 +252,9 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
         currentPage.value = response.current_page;
       } else if (mode.value === "subscriptions") {
         // Same grid as Recordings; source is the Yanhekt subscription list.
-        const response = await getSubscriptionList(token, {
-          page: currentPage.value,
-          pageSize: coursesPerPage,
-        });
+        // Pages are SUBSCRIPTION_PAGE_SIZE, not coursesPerPage, so page 1 is
+        // the very request the launch sync makes and comes from the cache.
+        const response = await getSubscriptionList(token, { page: currentPage.value });
         const transformed = (response.data ?? []).map(transformSubscriptionRowToCourse);
         if (resetPage) {
           courses.value = transformed;

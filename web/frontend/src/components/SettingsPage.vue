@@ -388,7 +388,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   configStore,
@@ -521,11 +521,28 @@ function onDebugKeydown(e: KeyboardEvent): void {
 
 onMounted(() => {
   window.addEventListener('keydown', onDebugKeydown)
-  // Soft check if launch/auth hasn't produced a status yet (or TTL expired).
-  if (store.status.value === 'unknown' || store.status.value === 'error') {
-    void store.refresh()
-  }
 })
+
+// This page is the one reader that shows cloud-storage status unprompted, so it
+// owns the soft check (the store no longer checks on sign-in). Only while the
+// page is shown, and not while a stored session is still verifying: the badge
+// that verification sets resets the store, which would throw a check away.
+let settingsShown = false
+const checkStorageIfUnknown = () => {
+  if (!settingsShown || authStore.isVerifyingToken.value) return
+  if (store.status.value === 'unknown') void store.refresh()
+}
+onActivated(() => {
+  settingsShown = true
+  // An earlier failure gets one retry per visit, never a loop.
+  if (store.status.value === 'error' && !authStore.isVerifyingToken.value) void store.refresh()
+  else checkStorageIfUnknown()
+})
+onDeactivated(() => {
+  settingsShown = false
+})
+// Sign-in, sign-out or an account switch while the page is open.
+watch([store.status, authStore.isVerifyingToken], checkStorageIfUnknown)
 onUnmounted(() => {
   window.removeEventListener('keydown', onDebugKeydown)
   // Abort an in-flight Copilot device flow; the user can restart it later.

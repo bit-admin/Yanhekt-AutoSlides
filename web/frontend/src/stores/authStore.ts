@@ -122,12 +122,11 @@ function takePendingToken(): string | null {
 }
 
 /**
- * Startup: a ?token= query param (bookmarklet return) is stashed for the
- * login form to auto-fill — it is never adopted here. The URL is cleaned so
- * the token never sits in the address bar or history. A stored token is then
- * verified as usual so an existing session still hydrates.
+ * Startup, synchronous: a ?token= query param (bookmarklet return) is stashed
+ * for the login form to auto-fill — it is never adopted here. The URL is
+ * cleaned so the token never sits in the address bar or history.
  */
-async function initFromUrlOrStorage(): Promise<void> {
+function consumeUrlToken(): void {
   const url = new URL(window.location.href);
   const urlToken = url.searchParams.get("token");
 
@@ -136,7 +135,26 @@ async function initFromUrlOrStorage(): Promise<void> {
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
     pendingToken.value = urlToken;
   }
+}
 
+let storedSessionHydration: Promise<void> | null = null;
+
+/**
+ * Verify the stored token (`GET /v1/user`) so an existing session hydrates —
+ * at most once per page load, and only when something first needs to know who
+ * is signed in. main.ts calls this from a router guard for every route except
+ * the `meta.skipSession` ones, so a cold visit to /apps or a legal page costs
+ * no Worker request (and, through onIdentityReady, no subscription sync).
+ *
+ * `isVerifyingToken` flips synchronously, before the first await, so a view
+ * set up right after the guard already sees the verifying state.
+ */
+function ensureStoredSession(): Promise<void> {
+  if (!storedSessionHydration) storedSessionHydration = hydrateStoredSession();
+  return storedSessionHydration;
+}
+
+async function hydrateStoredSession(): Promise<void> {
   // A bookmarklet token waiting for review owns the login UI — skip hydrating
   // the stored session so we don't flash the verifying overlay over the form.
   // adoptToken (on Verify) or a later visit will hydrate as usual.
@@ -245,7 +263,8 @@ export const authStore = {
   smsChallenge,
   userNickname,
   userId,
-  initFromUrlOrStorage,
+  consumeUrlToken,
+  ensureStoredSession,
   takePendingToken,
   adoptToken,
   loginWithPassword,

@@ -49,6 +49,12 @@ declare module "vue-router" {
     titleKey?: string;
     /** Renders standalone in App.vue — no Header/LeftPanel/bottom nav. */
     fullPage?: boolean;
+    /**
+     * Shows nothing about the signed-in account, so a cold load here does not
+     * verify the stored token (`/v1/user`, plus the subscription sync it
+     * triggers). Navigating on to any other route verifies as usual.
+     */
+    skipSession?: boolean;
   }
 }
 
@@ -109,13 +115,13 @@ export const router = createRouter({
       name: "slides",
       path: "/slides",
       component: SlidesPage,
-      meta: { fullPage: true, keepAlive: true, titleKey: "navigation.slidesReview" },
+      meta: { fullPage: true, keepAlive: true, skipSession: true, titleKey: "navigation.slidesReview" },
     },
     {
       name: "slides-folder",
       path: "/slides/:folderName",
       component: SlidesPage,
-      meta: { fullPage: true, keepAlive: true, titleKey: "navigation.slidesReview" },
+      meta: { fullPage: true, keepAlive: true, skipSession: true, titleKey: "navigation.slidesReview" },
     },
     {
       // Standalone Notion-like workspace: fullPage drops the YouTube shell.
@@ -149,14 +155,14 @@ export const router = createRouter({
       name: "apps",
       path: "/apps",
       component: AppsPage,
-      meta: { fullPage: true, keepAlive: false, titleKey: "apps.pageTitle" },
+      meta: { fullPage: true, keepAlive: false, skipSession: true, titleKey: "apps.pageTitle" },
     },
     {
       // Lab tool: SSIM/pHash calibration (was root test-image-comparison.html).
       name: "image-comparison",
       path: "/test",
       component: ImageComparisonPage,
-      meta: { fullPage: true, keepAlive: false, titleKey: "lab.imageComparison" },
+      meta: { fullPage: true, keepAlive: false, skipSession: true, titleKey: "lab.imageComparison" },
     },
     {
       // Route names match LegalDocId — the legal sidebar links by name.
@@ -164,28 +170,28 @@ export const router = createRouter({
       path: "/terms",
       component: LegalPage,
       props: { docId: "terms" },
-      meta: { fullPage: true, keepAlive: false, titleKey: "legal.terms" },
+      meta: { fullPage: true, keepAlive: false, skipSession: true, titleKey: "legal.terms" },
     },
     {
       name: "privacy",
       path: "/privacy",
       component: LegalPage,
       props: { docId: "privacy" },
-      meta: { fullPage: true, keepAlive: false, titleKey: "legal.privacy" },
+      meta: { fullPage: true, keepAlive: false, skipSession: true, titleKey: "legal.privacy" },
     },
     {
       name: "disclosure",
       path: "/disclosure",
       component: LegalPage,
       props: { docId: "disclosure" },
-      meta: { fullPage: true, keepAlive: false, titleKey: "legal.disclosure" },
+      meta: { fullPage: true, keepAlive: false, skipSession: true, titleKey: "legal.disclosure" },
     },
     {
       name: "copyright",
       path: "/copyright",
       component: LegalPage,
       props: { docId: "copyright" },
-      meta: { fullPage: true, keepAlive: false, titleKey: "legal.copyright" },
+      meta: { fullPage: true, keepAlive: false, skipSession: true, titleKey: "legal.copyright" },
     },
     {
       name: "player-live",

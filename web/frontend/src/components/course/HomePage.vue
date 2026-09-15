@@ -239,6 +239,10 @@ import { useKeepScroll } from '../../composables/useKeepScroll'
 defineOptions({ name: 'HomePage' })
 
 const ROW_SIZE = 12
+// Rows are fetched at the Live/Recordings grids' page size and trimmed here, so
+// both surfaces share one request key: opening a grid right after Home is then
+// served from the request cache instead of a second, overlapping list call.
+const ROW_FETCH_SIZE = 16
 
 const pageEl = ref<HTMLElement | null>(null)
 useKeepScroll(pageEl)
@@ -371,9 +375,9 @@ const loadRows = async () => {
   isLoadingRecorded.value = true
   recordedError.value = ''
 
-  void getPersonalLiveList(token, 1, ROW_SIZE)
+  void getPersonalLiveList(token, 1, ROW_FETCH_SIZE)
     .then((response) => {
-      liveStreams.value = response.data.map(transformLiveStreamToCourse)
+      liveStreams.value = response.data.slice(0, ROW_SIZE).map(transformLiveStreamToCourse)
     })
     .catch((error: unknown) => {
       liveError.value = (error instanceof Error && error.message) || 'Failed to load live streams'
@@ -383,9 +387,9 @@ const loadRows = async () => {
       isLoadingLive.value = false
     })
 
-  void getPersonalCourseList(token, { page: 1, pageSize: ROW_SIZE })
+  void getPersonalCourseList(token, { page: 1, pageSize: ROW_FETCH_SIZE })
     .then((response) => {
-      recordings.value = response.data.map(transformCourseDataToCourse)
+      recordings.value = response.data.slice(0, ROW_SIZE).map(transformCourseDataToCourse)
     })
     .catch((error: unknown) => {
       recordedError.value = (error instanceof Error && error.message) || 'Failed to load recordings'

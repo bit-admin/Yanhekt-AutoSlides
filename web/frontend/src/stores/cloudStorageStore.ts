@@ -329,19 +329,19 @@ function adoptFromGroups(groups: NoteGroup[]): void {
   }
 }
 
-// Account switches / sign-out: rebind badge and soft-check once on login.
-// Soft refresh (not initialize) so we never auto-create for a never-inited account.
+// Account switches / sign-out: rebind the badge, nothing more. There is no
+// check on login: this module is first evaluated when a player, Settings or
+// Notes chunk loads, and an eager `/v1/note/group/list` there was paid on every
+// lecture open even with watch-sync off. Every reader asks for itself instead —
+// Settings refreshes while shown, watch-sync and the extraction prompt call
+// ensureReady(), and Notes adopts the group list it already loads.
 watch(
   () => authStore.userId.value,
   (badge) => {
     const next = badge || null;
     // Skip no-op rebinds that would thrash a fresh ready state (same badge).
-    if (next === userBadge) {
-      if (next && status.value === 'unknown') void refresh();
-      return;
-    }
+    if (next === userBadge) return;
     setUser(next);
-    if (next) void refresh();
   },
   { immediate: true },
 );
