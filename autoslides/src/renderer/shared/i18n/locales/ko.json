@@ -748,7 +748,11 @@
     "watching": "시청 중",
     "postProcessTip": "저장된 모든 슬라이드에 후처리 실행",
     "clearAllTip": "모든 슬라이드를 휴지통으로 이동",
-    "moveToTrashTip": "이 슬라이드를 휴지통으로 이동"
+    "moveToTrashTip": "이 슬라이드를 휴지통으로 이동",
+    "copySlide": "복사",
+    "slideCopied": "복사됨",
+    "copySlideFailed": "복사 실패",
+    "copySlideTip": "이 슬라이드를 클립보드에 복사"
   },
   "sessions": {
     "pin": "강의 고정",

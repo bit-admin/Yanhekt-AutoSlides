@@ -748,7 +748,11 @@
     "watching": "再生中",
     "postProcessTip": "保存済みのすべてのスライドに後処理を実行",
     "clearAllTip": "すべてのスライドをゴミ箱へ移動",
-    "moveToTrashTip": "このスライドをゴミ箱へ移動"
+    "moveToTrashTip": "このスライドをゴミ箱へ移動",
+    "copySlide": "コピー",
+    "slideCopied": "コピーしました",
+    "copySlideFailed": "コピーに失敗しました",
+    "copySlideTip": "このスライドをクリップボードにコピー"
   },
   "sessions": {
     "pin": "コースをピン留め",

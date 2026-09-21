@@ -1,9 +1,19 @@
 <template>
-  <div v-if="slide" class="slide-modal" @click="$emit('close')">
+  <div v-if="slide" ref="modalEl" class="slide-modal" @click="$emit('close')">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h3>{{ slide.title }}</h3>
         <div class="modal-actions">
+          <button @click="copySlide(slide)" class="modal-close-btn" :title="$t('playback.copySlideTip')">
+            <svg v-if="copyState === 'copied'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20,6 9,17 4,12"/>
+            </svg>
+            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            {{ copyLabel }}
+          </button>
           <button @click="$emit('delete', slide)" class="btn btn--danger modal-delete-btn" :title="$t('playback.moveToTrashTip')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3,6 5,6 21,6"/>
@@ -34,9 +44,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ExtractedSlide } from '@shared/processing'
+import { createLogger } from '@shared/utils/logger'
 
-defineProps<{
+const logger = createLogger('PreviewModal')
+
+const props = defineProps<{
   slide: ExtractedSlide | null
   formatSlideTime: (timestamp: string) => string
 }>()
@@ -45,6 +60,58 @@ defineEmits<{
   (e: 'close'): void
   (e: 'delete', slide: ExtractedSlide): void
 }>()
+
+const { t } = useI18n()
+
+// Copy the slide as a PNG image, so it pastes straight into Word, Keynote,
+// chat apps, etc. `dataUrl` is always a PNG (slideWriter's canvas.toDataURL).
+const modalEl = ref<HTMLElement | null>(null)
+const copyState = ref<'idle' | 'copied' | 'failed'>('idle')
+let copyResetTimer: ReturnType<typeof setTimeout> | null = null
+
+const copyLabel = computed(() => {
+  if (copyState.value === 'copied') return t('playback.slideCopied')
+  if (copyState.value === 'failed') return t('playback.copySlideFailed')
+  return t('playback.copySlide')
+})
+
+const setCopyState = (state: 'idle' | 'copied' | 'failed') => {
+  copyState.value = state
+  if (copyResetTimer) clearTimeout(copyResetTimer)
+  copyResetTimer = state === 'idle' ? null : setTimeout(() => { copyState.value = 'idle' }, 1500)
+}
+
+const copySlide = async (slide: ExtractedSlide) => {
+  try {
+    const blob = await (await fetch(slide.dataUrl)).blob()
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    setCopyState('copied')
+  } catch (error) {
+    logger.warn('Failed to copy slide image:', error)
+    setCopyState('failed')
+  }
+}
+
+// Cmd/Ctrl+C copies the previewed slide, unless the user has selected text
+// (e.g. the file name) or is typing in a field — then the native copy wins.
+// Every playback tab stays mounted, so a background tab can hold an open
+// preview too: only the one actually on screen (has layout boxes) answers.
+const onKeydown = (event: KeyboardEvent) => {
+  if (!props.slide || !modalEl.value?.getClientRects().length) return
+  if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'c') return
+  const target = event.target as HTMLElement | null
+  if (target?.closest('input, textarea, [contenteditable="true"]')) return
+  if (window.getSelection()?.toString()) return
+  event.preventDefault()
+  void copySlide(props.slide)
+}
+
+watch(() => props.slide, () => setCopyState('idle'))
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  if (copyResetTimer) clearTimeout(copyResetTimer)
+})
 </script>
 
 <style scoped>

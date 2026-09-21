@@ -748,7 +748,11 @@
     "watching": "正在观看",
     "postProcessTip": "对所有已保存的幻灯片运行后处理",
     "clearAllTip": "将所有幻灯片移至回收站",
-    "moveToTrashTip": "将此幻灯片移至回收站"
+    "moveToTrashTip": "将此幻灯片移至回收站",
+    "copySlide": "复制",
+    "slideCopied": "已复制",
+    "copySlideFailed": "复制失败",
+    "copySlideTip": "将此幻灯片复制到剪贴板"
   },
   "sessions": {
     "pin": "置顶课程",

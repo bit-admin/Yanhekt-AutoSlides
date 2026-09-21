@@ -748,7 +748,11 @@
     "watching": "Watching",
     "postProcessTip": "Run post-processing on all saved slides",
     "clearAllTip": "Move all slides to trash",
-    "moveToTrashTip": "Move this slide to trash"
+    "moveToTrashTip": "Move this slide to trash",
+    "copySlide": "Copy",
+    "slideCopied": "Copied",
+    "copySlideFailed": "Copy failed",
+    "copySlideTip": "Copy this slide to the clipboard"
   },
   "sessions": {
     "pin": "Pin course",
