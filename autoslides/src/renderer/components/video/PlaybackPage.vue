@@ -228,14 +228,6 @@
           >
             {{ $t('playback.browserNotSupported') }}
           </video>
-          <div v-if="shouldVideoMute" class="mute-indicator">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
-              <line x1="23" y1="9" x2="17" y2="15"/>
-              <line x1="17" y1="9" x2="23" y2="15"/>
-            </svg>
-            <span>{{ muteMode === 'mute_all' ? $t('playback.mutedByApp') : muteMode === 'mute_live' ? $t('playback.liveMuted') : $t('playback.recordedMuted') }}</span>
-          </div>
           <BufferingOverlay v-if="isBuffering" />
           <!-- Retry Indicator -->
           <div v-if="isRetrying" class="retry-indicator">
@@ -250,6 +242,7 @@
             :controls-visible="controlsVisible"
             :should-disable-controls="shouldDisableControls"
             :should-video-mute="shouldVideoMute"
+            :mute-label-key="globalMuteModeLabelKey"
             :current-time="singleCurrentTime"
             :duration="singleDuration"
             :can-seek="singleCanSeek"
@@ -331,15 +324,6 @@
               </div>
             </div>
 
-            <div v-if="shouldVideoMute" class="mute-indicator">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
-                <line x1="23" y1="9" x2="17" y2="15"/>
-                <line x1="17" y1="9" x2="23" y2="15"/>
-              </svg>
-              <span>{{ $t(globalMuteModeLabelKey) }}</span>
-            </div>
-
             <BufferingOverlay v-if="isBuffering" />
 
             <div v-if="isRetrying" class="retry-indicator">
@@ -375,7 +359,7 @@
               </div>
 
               <div class="dual-controls-right">
-                <div class="single-volume">
+                <div class="single-volume" :title="shouldVideoMute ? $t(globalMuteModeLabelKey) : undefined">
                   <button
                     class="dual-icon-button"
                     @click="toggleDualMute"
@@ -393,7 +377,9 @@
                       <line x1="17" y1="9" x2="23" y2="15"/>
                     </svg>
                   </button>
+                  <span v-if="shouldVideoMute" class="policy-mute-label">{{ $t(globalMuteModeLabelKey) }}</span>
                   <input
+                    v-else
                     class="dual-seek single-volume-slider"
                     type="range"
                     min="0"
@@ -2033,7 +2019,6 @@ onUnmounted(async () => {
   pointer-events: none;
 }
 
-.video-container.collapsed .mute-indicator,
 .video-container.collapsed .retry-indicator {
   display: none;
 }
@@ -2043,26 +2028,6 @@ onUnmounted(async () => {
   color: var(--text-secondary);
   font-size: 14px;
   font-style: italic;
-}
-
-.mute-indicator {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background-color: rgba(220, 53, 69, 0.9);
-  color: var(--text-on-fill);
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  z-index: var(--z-dropdown);
-}
-
-.mute-indicator svg {
-  flex-shrink: 0;
 }
 
 .retry-indicator {

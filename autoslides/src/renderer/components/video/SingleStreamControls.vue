@@ -30,7 +30,7 @@
       </div>
 
       <div class="dual-controls-right">
-        <div class="single-volume">
+        <div class="single-volume" :title="shouldVideoMute ? $t(muteLabelKey) : undefined">
           <button
             class="dual-icon-button"
             @click="emit('toggle-mute')"
@@ -48,7 +48,9 @@
               <line x1="17" y1="9" x2="23" y2="15"/>
             </svg>
           </button>
+          <span v-if="shouldVideoMute" class="policy-mute-label">{{ $t(muteLabelKey) }}</span>
           <input
+            v-else
             class="dual-seek single-volume-slider"
             type="range"
             min="0"
@@ -219,6 +221,8 @@ defineProps<{
   controlsVisible: boolean
   shouldDisableControls: boolean
   shouldVideoMute: boolean
+  /** i18n key naming which app mute policy is in force (shown in place of the slider). */
+  muteLabelKey: string
   currentTime: number
   duration: number
   canSeek: boolean
