@@ -146,6 +146,15 @@
       "addons": "Add-ons"
     },
     "addons": {
+      "watchNotesTitle": "Watch Notes",
+      "watchNotesDescription": "When you watch a live stream or a recorded session and start slide extraction, AutoSlides creates a note for that lecture and adds each captured slide to it.",
+      "watchNotesEnable": "Auto Create and Sync Watch Notes",
+      "providerLabel": "Notes Provider",
+      "providerDescription": "Choose where watch notes are saved.",
+      "providerYanhekt": "Yanhekt Notes",
+      "providerYanhektDetail": "Saved to the Watch Notes (ASuser) group of your Yanhekt cloud notes. Edit them live from the right-panel Notes tab.",
+      "yanhektNotReady": "Cloud storage isn't set up yet, so no watch notes will be created.",
+      "openCloudSettings": "Set Up in Cloud Settings",
       "toolsTitle": "Tools",
       "toolsDescription": "Extra tools open in their own window, from a button next to Settings at the bottom of the sidebar.",
       "showToolsButton": "Show Additional Tools",
@@ -182,9 +191,6 @@
       "resyncModeEdited": "Auto resync after edited",
       "autoRepublish": "Also republish to Public Index after auto resync",
       "autoRepublishDescription": "Applies to auto resync only, not to manual imports.",
-      "watchSyncTitle": "Watch notes",
-      "watchSyncDescription": "When you watch a live stream or a recorded session and start slide extraction, AutoSlides creates a personal note in Watch Notes (ASuser) and appends each captured slide. Edit it live from the right-panel Notes tab.",
-      "watchSyncEnable": "Auto create and sync watch notes",
       "shareTimelineTitle": "Share timeline",
       "shareTimelineDescription": "Include slide appearance times in share links so a player can sync the slide strip with the lecture video.",
       "shareTimelineEnable": "Embed slide timeline when sharing"

@@ -146,6 +146,15 @@
       "addons": "扩展"
     },
     "addons": {
+      "watchNotesTitle": "随堂笔记",
+      "watchNotesDescription": "当你观看直播或录播并开始提取幻灯片时，AutoSlides 会为这节课创建一条笔记，并将每张捕获的幻灯片追加进去。",
+      "watchNotesEnable": "自动创建并同步随堂笔记",
+      "providerLabel": "笔记服务",
+      "providerDescription": "选择随堂笔记的保存位置。",
+      "providerYanhekt": "延河课堂笔记",
+      "providerYanhektDetail": "保存到延河课堂云笔记的随堂笔记（ASuser）分组。可在右侧栏的“笔记”标签页中实时编辑。",
+      "yanhektNotReady": "尚未设置云存储，因此不会创建随堂笔记。",
+      "openCloudSettings": "前往云端设置",
       "toolsTitle": "工具",
       "toolsDescription": "额外工具在独立窗口中打开，入口是侧边栏底部“设置”旁的按钮。",
       "showToolsButton": "显示更多工具",
@@ -182,9 +191,6 @@
       "resyncModeEdited": "编辑后自动重新同步",
       "autoRepublish": "自动重新同步后同时重新发布到公共索引",
       "autoRepublishDescription": "仅适用于自动重新同步，不适用于手动导入。",
-      "watchSyncTitle": "随堂笔记",
-      "watchSyncDescription": "当你观看直播或录播并开始提取幻灯片时，AutoSlides 会在随堂笔记（ASuser）分组中创建一条个人笔记，并将每张捕获的幻灯片追加进去。可在右侧栏的“笔记”标签页中实时编辑。",
-      "watchSyncEnable": "自动创建并同步随堂笔记",
       "shareTimelineTitle": "分享时间轴",
       "shareTimelineDescription": "在分享链接中写入幻灯片出现时间，以便播放器将幻灯片条与课程视频同步。",
       "shareTimelineEnable": "分享时嵌入幻灯片时间轴"

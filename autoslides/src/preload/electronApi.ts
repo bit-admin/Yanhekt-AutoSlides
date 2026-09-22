@@ -24,6 +24,7 @@ import type {
   PinnedCourse,
   StoredAccount,
 } from '../shared/types';
+import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
 import type {
   SlideMetadata,
   SlideMetadataKind,
@@ -398,7 +399,7 @@ export interface ElectronAPI {
     setCloudAutoPublishAfterSync: (enabled: boolean) => Promise<AppConfig>;
     setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => Promise<AppConfig>;
     setCloudAutoRepublishAfterResync: (enabled: boolean) => Promise<AppConfig>;
-    setCloudWatchSyncEnabled: (enabled: boolean) => Promise<AppConfig>;
+    setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => Promise<AppConfig>;
     setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;

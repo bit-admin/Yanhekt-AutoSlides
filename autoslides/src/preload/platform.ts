@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
 import type { ElectronAPI, DialogOptions } from './electronApi';
 import type { AppConfig, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 
 export const auth: ElectronAPI['auth'] = {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
@@ -96,7 +97,7 @@ export const config: ElectronAPI['config'] = {
   setCloudAutoPublishAfterSync: (enabled: boolean) => ipcRenderer.invoke('config:setCloudAutoPublishAfterSync', enabled),
   setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => ipcRenderer.invoke('config:setCloudAutoResyncMode', mode),
   setCloudAutoRepublishAfterResync: (enabled: boolean) => ipcRenderer.invoke('config:setCloudAutoRepublishAfterResync', enabled),
-  setCloudWatchSyncEnabled: (enabled: boolean) => ipcRenderer.invoke('config:setCloudWatchSyncEnabled', enabled),
+  setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => ipcRenderer.invoke('config:setWatchNotes', patch),
   setCloudShareEmbedTimeline: (enabled: boolean) => ipcRenderer.invoke('config:setCloudShareEmbedTimeline', enabled),
   setShowToolsButton: (enabled: boolean) => ipcRenderer.invoke('config:setShowToolsButton', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => ipcRenderer.invoke('config:setPreferAnonymousApiRequests', enabled),

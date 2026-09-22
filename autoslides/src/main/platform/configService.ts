@@ -2,6 +2,11 @@ import ElectronStore from 'electron-store';
 import { app, dialog } from 'electron';
 import { ThemeService, ThemeMode } from './themeService';
 import {
+  migrateLegacyWatchSync,
+  normalizeWatchNotesProvider,
+  type WatchNotesProviderId,
+} from '@common/watchNotesProviders';
+import {
   AUTO_CROP_YOLO_INPUT_SIZES,
   DEFAULT_AUTO_CROP_CONFIG,
   DEFAULT_AUTO_CROP_YOLO_CONFIG,
@@ -94,6 +99,7 @@ export class ConfigService {
     this.initializeTheme();
     this.migrateOnboardingFlag();
     this.migrateAccounts();
+    this.migrateWatchNotes();
   }
 
   // One-time migration: existing installs (which have already shown a greeting)
@@ -104,6 +110,21 @@ export class ConfigService {
       const isExistingInstall = !!this.store.get('lastGreetingId');
       this.store.set('onboardingCompleted', isExistingInstall);
     }
+  }
+
+  // One-time migration to notes add-ons: the Yanhekt-only `cloudWatchSyncEnabled`
+  // becomes `watchNotesEnabled` + `watchNotesProvider: 'yanhekt'`. Keyed on the
+  // legacy key alone — electron-store has already written the new keys' defaults
+  // by now, so their presence says nothing. Deleting the legacy key makes it run once.
+  private migrateWatchNotes(): void {
+    const migrated = migrateLegacyWatchSync(
+      this.store.has('cloudWatchSyncEnabled'),
+      this.store.get('cloudWatchSyncEnabled')
+    );
+    if (!migrated) return;
+    this.store.set('watchNotesEnabled', migrated.watchNotesEnabled);
+    this.store.set('watchNotesProvider', migrated.watchNotesProvider);
+    this.store.delete('cloudWatchSyncEnabled');
   }
 
   // One-time migration: bring the legacy single-account state (the standalone
@@ -190,7 +211,8 @@ export class ConfigService {
       cloudAutoPublishAfterSync: this.store.get('cloudAutoPublishAfterSync') ?? false,
       cloudAutoResyncMode: this.store.get('cloudAutoResyncMode') ?? 'disabled',
       cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
-      cloudWatchSyncEnabled: this.store.get('cloudWatchSyncEnabled') ?? false,
+      watchNotesEnabled: this.store.get('watchNotesEnabled') ?? false,
+      watchNotesProvider: normalizeWatchNotesProvider(this.store.get('watchNotesProvider')),
       cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       showToolsButton: this.store.get('showToolsButton') ?? false,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
@@ -247,8 +269,13 @@ export class ConfigService {
     this.store.set('cloudAutoRepublishAfterResync', enabled);
   }
 
-  setCloudWatchSyncEnabled(enabled: boolean): void {
-    this.store.set('cloudWatchSyncEnabled', enabled);
+  setWatchNotes(patch: { enabled?: boolean; provider?: WatchNotesProviderId }): void {
+    if (typeof patch.enabled === 'boolean') {
+      this.store.set('watchNotesEnabled', patch.enabled);
+    }
+    if (patch.provider !== undefined) {
+      this.store.set('watchNotesProvider', normalizeWatchNotesProvider(patch.provider));
+    }
   }
 
   setCloudShareEmbedTimeline(enabled: boolean): void {

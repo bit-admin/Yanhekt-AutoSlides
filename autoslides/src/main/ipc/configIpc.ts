@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { IpcServices } from './types';
 import type { AIServiceType } from '@main/platform/configService';
 import type { LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 import { expandTilde } from '@main/infra/pathUtils';
 import { probeOutputDir, recreateOutputDir } from '@main/infra/outputDir';
 import { createLogger } from '@main/infra/logger';
@@ -355,8 +356,8 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
-  ipcMain.handle('config:setCloudWatchSyncEnabled', async (_, enabled: boolean) => {
-    configService.setCloudWatchSyncEnabled(enabled);
+  ipcMain.handle('config:setWatchNotes', async (_, patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => {
+    configService.setWatchNotes(patch ?? {});
     broadcastConfig();
     return configService.getConfig();
   });

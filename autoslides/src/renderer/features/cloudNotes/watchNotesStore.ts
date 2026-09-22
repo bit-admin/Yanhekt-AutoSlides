@@ -132,10 +132,15 @@ function deriveNoteNaming(tabId: string): { displayName: string; identity: Lectu
   }
 }
 
-/** Whether the watch-notes auto flow may run right now (gated by the Sync setting). */
+/**
+ * Whether the watch-notes auto flow may run right now: Settings → Add-ons →
+ * Watch Notes is on with the Yanhekt provider (the only one this store writes
+ * to), and the ASuser group is ready.
+ */
 export function watchSyncActive(): boolean {
   return (
-    !!configStore.cloudWatchSyncEnabled &&
+    !!configStore.watchNotesEnabled &&
+    configStore.watchNotesProvider === 'yanhekt' &&
     cloudStorageStore.canUse.value &&
     cloudStorageStore.userGroupId.value != null
   )

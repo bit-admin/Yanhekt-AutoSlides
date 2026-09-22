@@ -146,6 +146,15 @@
       "addons": "애드온"
     },
     "addons": {
+      "watchNotesTitle": "시청 노트",
+      "watchNotesDescription": "라이브 스트림이나 녹화 세션을 시청하며 슬라이드 추출을 시작하면 AutoSlides가 해당 강의의 노트를 만들고 캡처한 슬라이드를 추가합니다.",
+      "watchNotesEnable": "시청 노트를 자동으로 만들고 동기화",
+      "providerLabel": "노트 제공자",
+      "providerDescription": "시청 노트를 저장할 위치를 선택합니다.",
+      "providerYanhekt": "Yanhekt 노트",
+      "providerYanhektDetail": "Yanhekt 클라우드 노트의 시청 노트(ASuser) 그룹에 저장됩니다. 오른쪽 패널의 '노트' 탭에서 실시간으로 편집할 수 있습니다.",
+      "yanhektNotReady": "클라우드 저장소가 아직 설정되지 않아 시청 노트가 만들어지지 않습니다.",
+      "openCloudSettings": "클라우드 설정에서 설정",
       "toolsTitle": "도구",
       "toolsDescription": "추가 도구는 사이드바 하단의 설정 옆 버튼을 눌러 별도 창에서 엽니다.",
       "showToolsButton": "추가 도구 표시",
@@ -182,9 +191,6 @@
       "resyncModeEdited": "편집 후 자동 재동기화",
       "autoRepublish": "자동 재동기화 후 공개 인덱스에도 다시 게시",
       "autoRepublishDescription": "자동 재동기화에만 적용되며 수동 가져오기에는 적용되지 않습니다.",
-      "watchSyncTitle": "시청 노트",
-      "watchSyncDescription": "라이브 스트림이나 녹화 세션을 시청하며 슬라이드 추출을 시작하면 AutoSlides가 시청 노트(ASuser)에 개인 노트를 만들고 캡처한 슬라이드를 추가합니다. 오른쪽 패널의 '노트' 탭에서 실시간으로 편집할 수 있습니다.",
-      "watchSyncEnable": "시청 노트를 자동으로 만들고 동기화",
       "shareTimelineTitle": "타임라인 공유",
       "shareTimelineDescription": "공유 링크에 슬라이드 등장 시각을 넣어 플레이어가 슬라이드 바와 강의 영상을 동기화할 수 있게 합니다.",
       "shareTimelineEnable": "공유할 때 슬라이드 타임라인 포함"

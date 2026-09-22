@@ -20,8 +20,6 @@ export function useCloudSettings() {
   const tempCloudAutoResyncMode = ref<CloudAutoResyncMode>('disabled')
   const cloudAutoRepublishAfterResync = ref(false)
   const tempCloudAutoRepublishAfterResync = ref(false)
-  const cloudWatchSyncEnabled = ref(false)
-  const tempCloudWatchSyncEnabled = ref(false)
   const cloudShareEmbedTimeline = ref(true)
   const tempCloudShareEmbedTimeline = ref(true)
 
@@ -31,7 +29,6 @@ export function useCloudSettings() {
     cloudAutoPublishAfterSync.value = cfg.cloudAutoPublishAfterSync ?? false
     cloudAutoResyncMode.value = cfg.cloudAutoResyncMode ?? 'disabled'
     cloudAutoRepublishAfterResync.value = cfg.cloudAutoRepublishAfterResync ?? false
-    cloudWatchSyncEnabled.value = cfg.cloudWatchSyncEnabled ?? false
     cloudShareEmbedTimeline.value = cfg.cloudShareEmbedTimeline !== false
     resetTemp()
   }
@@ -41,7 +38,6 @@ export function useCloudSettings() {
     tempCloudAutoPublishAfterSync.value = cloudAutoPublishAfterSync.value
     tempCloudAutoResyncMode.value = cloudAutoResyncMode.value
     tempCloudAutoRepublishAfterResync.value = cloudAutoRepublishAfterResync.value
-    tempCloudWatchSyncEnabled.value = cloudWatchSyncEnabled.value
     tempCloudShareEmbedTimeline.value = cloudShareEmbedTimeline.value
   }
 
@@ -62,10 +58,6 @@ export function useCloudSettings() {
       await window.electronAPI.config.setCloudAutoRepublishAfterResync(tempCloudAutoRepublishAfterResync.value)
       cloudAutoRepublishAfterResync.value = tempCloudAutoRepublishAfterResync.value
     }
-    if (tempCloudWatchSyncEnabled.value !== cloudWatchSyncEnabled.value) {
-      await window.electronAPI.config.setCloudWatchSyncEnabled(tempCloudWatchSyncEnabled.value)
-      cloudWatchSyncEnabled.value = tempCloudWatchSyncEnabled.value
-    }
     if (tempCloudShareEmbedTimeline.value !== cloudShareEmbedTimeline.value) {
       await window.electronAPI.config.setCloudShareEmbedTimeline(tempCloudShareEmbedTimeline.value)
       cloudShareEmbedTimeline.value = tempCloudShareEmbedTimeline.value
@@ -77,7 +69,6 @@ export function useCloudSettings() {
     tempCloudAutoPublishAfterSync,
     tempCloudAutoResyncMode,
     tempCloudAutoRepublishAfterResync,
-    tempCloudWatchSyncEnabled,
     tempCloudShareEmbedTimeline,
     load,
     resetTemp,

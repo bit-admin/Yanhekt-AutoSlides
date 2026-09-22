@@ -2,6 +2,8 @@
 //  - AppConfig and its sub-types (consumed by main, renderer, preload)
 //  - Trash and Crop manifest entries (consumed by main, renderer)
 
+import type { WatchNotesProviderId } from './watchNotesProviders';
+
 // Result of probing the campus authentication portal's online-status endpoint.
 export interface CampusProbeResult {
   reachable: boolean;
@@ -253,11 +255,15 @@ export interface AppConfig {
   // When auto-resync replaces a note, also re-publish it to the Cloud Index
   // (remove-then-publish). Applies to auto-resync only. Default off.
   cloudAutoRepublishAfterResync: boolean;
-  // Watch-mode capture sync: when watching a live stream or a recorded session
-  // (manual playback) and slide extraction starts, auto-create a personal note
-  // in the ASuser group and append each captured slide to it. Gates the whole
-  // right-panel Notes flow. Default off; only meaningful once cloud storage is ready.
-  cloudWatchSyncEnabled: boolean;
+  // Notes add-ons (Settings → Add-ons → Watch Notes): when watching a live stream
+  // or a recorded session (manual playback) and slide extraction starts,
+  // auto-create a watch note with the chosen provider and append each captured
+  // slide to it. Gates the whole right-panel Notes flow. Default off. Replaces
+  // the Yanhekt-only `cloudWatchSyncEnabled` (migrated once in ConfigService).
+  watchNotesEnabled: boolean;
+  // Where watch notes go. 'yanhekt' = the ASuser group of Yanhekt cloud notes,
+  // only meaningful once cloud storage is ready.
+  watchNotesProvider: WatchNotesProviderId;
   // When true (default), share links / Index publishes embed a compact v3
   // slide timeline so players can sync. Off falls back to a v2 image-only link.
   cloudShareEmbedTimeline: boolean;

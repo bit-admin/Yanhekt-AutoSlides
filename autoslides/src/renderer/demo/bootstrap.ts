@@ -195,8 +195,9 @@ export function installDemo(): void {
   }
   overrides.suppressRealWork = true
 
-  configStore.cloudWatchSyncEnabled = true
-  void window.electronAPI.config.setCloudWatchSyncEnabled(true).catch(() => undefined)
+  configStore.watchNotesEnabled = true
+  configStore.watchNotesProvider = 'yanhekt'
+  void window.electronAPI.config.setWatchNotes({ enabled: true, provider: 'yanhekt' }).catch(() => undefined)
   // Onboarding's cloud step keys off this flag + the managed groups. Demo
   // groups already exist; stamp Kate as initialized so the step shows ready
   // + sync/watch toggles instead of an Init button.

@@ -190,7 +190,7 @@
               <label class="checkbox-label">
                 <input
                   type="checkbox"
-                  :checked="!!configStore.cloudWatchSyncEnabled"
+                  :checked="!!configStore.watchNotesEnabled && configStore.watchNotesProvider === 'yanhekt'"
                   @change="onWatchSyncChange"
                 />
                 {{ $t('onboarding.cloudWatchSync') }}
@@ -408,9 +408,11 @@ const onAutoSyncChange = (event: Event) => {
   void window.electronAPI.config.setCloudAutoSyncMode(value)
 }
 
+// This checkbox lives on the Yanhekt cloud step, so ticking it also selects the
+// Yanhekt watch-notes provider; unticking only turns watch notes off.
 const onWatchSyncChange = (event: Event) => {
   const checked = (event.target as HTMLInputElement).checked
-  void window.electronAPI.config.setCloudWatchSyncEnabled(checked)
+  void window.electronAPI.config.setWatchNotes(checked ? { enabled: true, provider: 'yanhekt' } : { enabled: false })
 }
 
 watch(currentId, (id) => {

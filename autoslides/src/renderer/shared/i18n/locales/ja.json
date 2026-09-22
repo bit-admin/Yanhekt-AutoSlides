@@ -146,6 +146,15 @@
       "addons": "アドオン"
     },
     "addons": {
+      "watchNotesTitle": "視聴ノート",
+      "watchNotesDescription": "ライブ配信や録画を視聴しながらスライド抽出を開始すると、AutoSlides がその授業のノートを作成し、取得した各スライドを追記します。",
+      "watchNotesEnable": "視聴ノートを自動作成して同期する",
+      "providerLabel": "ノートの保存先",
+      "providerDescription": "視聴ノートの保存先を選択します。",
+      "providerYanhekt": "延河課堂ノート",
+      "providerYanhektDetail": "延河課堂クラウドノートの視聴ノート（ASuser）グループに保存します。右パネルの「ノート」タブでリアルタイムに編集できます。",
+      "yanhektNotReady": "クラウドストレージが未設定のため、視聴ノートは作成されません。",
+      "openCloudSettings": "クラウド設定で設定する",
       "toolsTitle": "ツール",
       "toolsDescription": "追加ツールは、サイドバー下部の「設定」の横にあるボタンから専用ウィンドウで開きます。",
       "showToolsButton": "追加ツールを表示",
@@ -182,9 +191,6 @@
       "resyncModeEdited": "編集後に自動再同期",
       "autoRepublish": "自動再同期後に公開インデックスへ再公開する",
       "autoRepublishDescription": "自動再同期にのみ適用され、手動インポートには適用されません。",
-      "watchSyncTitle": "視聴ノート",
-      "watchSyncDescription": "ライブ配信や録画を視聴しながらスライド抽出を開始すると、AutoSlides が視聴ノート（ASuser）に個人用ノートを作成し、取得した各スライドを追記します。右パネルの「ノート」タブでリアルタイムに編集できます。",
-      "watchSyncEnable": "視聴ノートを自動作成して同期する",
       "shareTimelineTitle": "タイムラインを共有",
       "shareTimelineDescription": "共有リンクにスライドの出現時刻を含め、プレーヤーがスライドストリップを講義動画と同期できるようにします。",
       "shareTimelineEnable": "共有時にスライドタイムラインを埋め込む"

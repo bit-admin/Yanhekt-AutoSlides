@@ -107,19 +107,6 @@
       <div class="setting-description">{{ $t('advanced.cloudStorage.autoRepublishDescription') }}</div>
     </div>
 
-    <!-- Watch-mode capture sync: the personal ASuser notes flow (right-panel
-         Notes tab). Independent of the folder auto-sync above. -->
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.cloudStorage.watchSyncTitle') }}</label>
-      <div class="setting-description">{{ $t('advanced.cloudStorage.watchSyncDescription') }}</div>
-      <div class="auto-post-processing-control">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="tempCloudWatchSyncEnabled" />
-          {{ $t('advanced.cloudStorage.watchSyncEnable') }}
-        </label>
-      </div>
-    </div>
-
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.cloudStorage.shareTimelineTitle') }}</label>
       <div class="setting-description">{{ $t('advanced.cloudStorage.shareTimelineDescription') }}</div>
@@ -153,7 +140,6 @@ const {
   tempCloudAutoPublishAfterSync,
   tempCloudAutoResyncMode,
   tempCloudAutoRepublishAfterResync,
-  tempCloudWatchSyncEnabled,
   tempCloudShareEmbedTimeline,
 } = advanced.cloud
 
