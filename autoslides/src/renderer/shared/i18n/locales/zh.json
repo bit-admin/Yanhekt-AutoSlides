@@ -142,7 +142,16 @@
       "playback": "下载与播放",
       "network": "网络",
       "ai": "AI",
-      "cloud": "云端"
+      "cloud": "云端",
+      "addons": "扩展"
+    },
+    "addons": {
+      "toolsTitle": "工具",
+      "toolsDescription": "额外工具在独立窗口中打开，入口是侧边栏底部“设置”旁的按钮。",
+      "showToolsButton": "显示更多工具",
+      "includedTools": "包含的工具",
+      "webCaptureDescription": "在内置浏览器中打开任意网页，并从页面上播放的视频中提取幻灯片。",
+      "yuketangDescription": "将雨课堂课程的幻灯片导出为 PDF 或图片。"
     },
     "cloudStorage": {
       "title": "云存储",

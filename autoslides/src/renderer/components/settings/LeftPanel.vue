@@ -103,7 +103,8 @@
 
       <!-- Fixed at bottom of navigator area (above user bar); not indented nav items.
            Settings leads and takes the row; Tools is a secondary window, so it keeps
-           only its glyph at the far right and wears its label as a tooltip. -->
+           only its glyph at the far right and wears its label as a tooltip. Tools is
+           opt-in (Settings → Add-ons); without it Settings spans the whole row. -->
       <div class="panel-actions">
         <button
           type="button"
@@ -117,6 +118,7 @@
           <span>{{ $t('settings.settings') }}</span>
         </button>
         <button
+          v-if="configStore.showToolsButton"
           type="button"
           class="panel-action-button panel-action-button--icon"
           :title="$t('tools.openTools')"

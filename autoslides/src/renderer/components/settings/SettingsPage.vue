@@ -36,6 +36,9 @@
       <div v-show="advanced.activeAdvancedTab.value === 'cloud'" class="tab-content">
         <CloudSettingsTab />
       </div>
+      <div v-show="advanced.activeAdvancedTab.value === 'addons'" class="tab-content">
+        <AddonsSettingsTab />
+      </div>
     </div>
 
     <!-- Sticky footer actions -->
@@ -56,7 +59,7 @@
 
 <script setup lang="ts">
 // Settings as a full-width Workspace page (replaces the former AdvancedSettings
-// modal). The six settings composables are provided high (App.vue) so this page —
+// modal). The settings composables are provided high (App.vue) so this page —
 // a sibling of LeftPanel under the same root — can inject the same bundle the
 // gear button's state belongs to. Buffered edits commit on Save, discard on
 // Cancel, and discard when the user navigates away without choosing either.
@@ -69,6 +72,7 @@ import PlaybackSettingsTab from './tabs/PlaybackSettingsTab.vue'
 import NetworkSettingsTab from './tabs/NetworkSettingsTab.vue'
 import AISettingsTab from './tabs/AISettingsTab.vue'
 import CloudSettingsTab from './tabs/CloudSettingsTab.vue'
+import AddonsSettingsTab from './tabs/AddonsSettingsTab.vue'
 
 const { advanced } = useSettingsContext()
 

@@ -4,6 +4,7 @@ import { useImageProcessingSettings } from './useImageProcessingSettings'
 import { useNetworkSettings } from './useNetworkSettings'
 import { useExtractorSettings } from './useExtractorSettings'
 import { useCloudSettings } from './useCloudSettings'
+import { useAddonsSettings } from './useAddonsSettings'
 import type {
   AdvancedTabId,
   AutoCropDetectorMode,
@@ -62,6 +63,7 @@ export function useAdvancedSettings(
   const network = useNetworkSettings({ t })
   const extractor = useExtractorSettings()
   const cloud = useCloudSettings()
+  const addons = useAddonsSettings()
 
   // The Settings page renders these underline tabs. activeAdvancedTab is shared
   // state so settingsLauncher (and the page) can drive the active tab.
@@ -72,7 +74,8 @@ export function useAdvancedSettings(
     { id: 'playback' },
     { id: 'network' },
     { id: 'ai' },
-    { id: 'cloud' }
+    { id: 'cloud' },
+    { id: 'addons' }
   ]
 
   let advancedSettingsOpenRequestId = 0
@@ -88,6 +91,7 @@ export function useAdvancedSettings(
     network.resetTemp()
     extractor.resetTemp()
     cloud.resetTemp()
+    addons.resetTemp()
 
     await nextTick()
 
@@ -106,6 +110,7 @@ export function useAdvancedSettings(
         log.error('Failed to load extractor settings:', err)
       }),
       cloud.load(),
+      addons.load(),
       onOpenModal ? onOpenModal() : Promise.resolve()
     ])
   }
@@ -120,6 +125,7 @@ export function useAdvancedSettings(
     network.resetTemp()
     extractor.resetTemp()
     cloud.resetTemp()
+    addons.resetTemp()
     tempEnableAIFiltering.value = enableAIFiltering.value
   }
 
@@ -131,6 +137,7 @@ export function useAdvancedSettings(
       await network.save()
       await extractor.save()
       await cloud.save()
+      await addons.save()
 
       if (onSaveSettings) {
         await onSaveSettings()
@@ -158,6 +165,7 @@ export function useAdvancedSettings(
     network,
     extractor,
     cloud,
+    addons,
 
     // Settings-page lifecycle
     prepareSettings,

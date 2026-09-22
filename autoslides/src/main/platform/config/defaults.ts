@@ -206,6 +206,7 @@ export const defaultConfig: AppConfig = {
   cloudAutoRepublishAfterResync: false,
   cloudWatchSyncEnabled: false,
   cloudShareEmbedTimeline: true,
+  showToolsButton: false,
   preferAnonymousApiRequests: false,
   developerMode: false,
   localRelayEnabled: false,

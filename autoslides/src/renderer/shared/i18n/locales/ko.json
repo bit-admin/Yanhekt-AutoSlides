@@ -142,7 +142,16 @@
       "playback": "다운로드 및 재생",
       "network": "네트워크",
       "ai": "AI",
-      "cloud": "클라우드"
+      "cloud": "클라우드",
+      "addons": "애드온"
+    },
+    "addons": {
+      "toolsTitle": "도구",
+      "toolsDescription": "추가 도구는 사이드바 하단의 설정 옆 버튼을 눌러 별도 창에서 엽니다.",
+      "showToolsButton": "추가 도구 표시",
+      "includedTools": "포함된 도구",
+      "webCaptureDescription": "내장 브라우저에서 원하는 웹 페이지를 열고, 재생 중인 동영상에서 슬라이드를 추출합니다.",
+      "yuketangDescription": "Yuketang(雨课堂) 플랫폼 수업의 슬라이드를 PDF 또는 이미지로 내보냅니다."
     },
     "cloudStorage": {
       "title": "클라우드 저장소",

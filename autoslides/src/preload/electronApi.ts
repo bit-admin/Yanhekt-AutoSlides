@@ -400,6 +400,7 @@ export interface ElectronAPI {
     setCloudAutoRepublishAfterResync: (enabled: boolean) => Promise<AppConfig>;
     setCloudWatchSyncEnabled: (enabled: boolean) => Promise<AppConfig>;
     setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
+    setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
     setLocalRelayConfig: (patch: {
       enabled?: boolean;

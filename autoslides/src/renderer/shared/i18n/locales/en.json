@@ -142,7 +142,16 @@
       "playback": "Download & Playback",
       "network": "Network",
       "ai": "AI",
-      "cloud": "Cloud"
+      "cloud": "Cloud",
+      "addons": "Add-ons"
+    },
+    "addons": {
+      "toolsTitle": "Tools",
+      "toolsDescription": "Extra tools open in their own window, from a button next to Settings at the bottom of the sidebar.",
+      "showToolsButton": "Show Additional Tools",
+      "includedTools": "Included tools",
+      "webCaptureDescription": "Open any web page in a built-in browser and extract slides from the video playing on it.",
+      "yuketangDescription": "Export a lesson's slides from the Yuketang (雨课堂) platform as a PDF or images."
     },
     "cloudStorage": {
       "title": "Cloud Storage",

@@ -261,6 +261,9 @@ export interface AppConfig {
   // When true (default), share links / Index publishes embed a compact v3
   // slide timeline so players can sync. Off falls back to a v2 image-only link.
   cloudShareEmbedTimeline: boolean;
+  // Settings → Add-ons → Tools: show the Tools window icon button beside Settings
+  // at the foot of the navigator. Default off — Settings then takes the full row.
+  showToolsButton: boolean;
   // When true, omit Authorization on Yanhekt endpoints that work without a
   // login (public catalog, public live list, course detail, video token).
   // Session list, personal lists, notes, and account APIs still send the token.

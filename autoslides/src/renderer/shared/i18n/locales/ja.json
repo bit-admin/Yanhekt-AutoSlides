@@ -142,7 +142,16 @@
       "playback": "ダウンロードと再生",
       "network": "ネットワーク",
       "ai": "AI",
-      "cloud": "クラウド"
+      "cloud": "クラウド",
+      "addons": "アドオン"
+    },
+    "addons": {
+      "toolsTitle": "ツール",
+      "toolsDescription": "追加ツールは、サイドバー下部の「設定」の横にあるボタンから専用ウィンドウで開きます。",
+      "showToolsButton": "追加ツールを表示",
+      "includedTools": "含まれるツール",
+      "webCaptureDescription": "内蔵ブラウザで任意のウェブページを開き、再生中の動画からスライドを抽出します。",
+      "yuketangDescription": "雨課堂（Yuketang）の授業のスライドを PDF または画像として書き出します。"
     },
     "cloudStorage": {
       "title": "クラウドストレージ",

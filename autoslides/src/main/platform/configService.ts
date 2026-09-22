@@ -192,6 +192,7 @@ export class ConfigService {
       cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
       cloudWatchSyncEnabled: this.store.get('cloudWatchSyncEnabled') ?? false,
       cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
+      showToolsButton: this.store.get('showToolsButton') ?? false,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
       developerMode: this.store.get('developerMode') ?? false,
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
@@ -252,6 +253,10 @@ export class ConfigService {
 
   setCloudShareEmbedTimeline(enabled: boolean): void {
     this.store.set('cloudShareEmbedTimeline', enabled);
+  }
+
+  setShowToolsButton(enabled: boolean): void {
+    this.store.set('showToolsButton', enabled);
   }
 
   getPreferAnonymousApiRequests(): boolean {
