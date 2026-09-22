@@ -25,6 +25,7 @@ import type {
   StoredAccount,
 } from '../shared/types';
 import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
+import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../shared/obsidianNotesTypes';
 import type {
   SlideMetadata,
   SlideMetadataKind,
@@ -399,6 +400,7 @@ export interface ElectronAPI {
     setCloudAutoPublishAfterSync: (enabled: boolean) => Promise<AppConfig>;
     setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => Promise<AppConfig>;
     setCloudAutoRepublishAfterResync: (enabled: boolean) => Promise<AppConfig>;
+    setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => Promise<AppConfig>;
     setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => Promise<AppConfig>;
     setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
@@ -932,6 +934,19 @@ export interface ElectronAPI {
     getModelBuffer: () => Promise<ArrayBuffer>;
     selectAndImportModel: () => Promise<MlClassifierModelInfo | null>;
     deleteCustomModel: () => Promise<MlClassifierModelInfo>;
+  };
+
+  /** Obsidian watch-notes provider. Tab-keyed; main resolves every path. */
+  obsidianNotes: {
+    probeVault: (dir: string) => Promise<ObsidianVaultProbe>;
+    selectVault: () => Promise<{ path: string; isVault: boolean } | null>;
+    openAuto: (tabId: string, title: string, slidesFolderName: string) => Promise<ObsidianResult<ObsidianTargetInfo>>;
+    chooseNote: (tabId: string, slidesFolderName: string) => Promise<ObsidianResult<ObsidianTargetInfo | null>>;
+    append: (tabId: string, bytes: ArrayBuffer, filename: string) => Promise<ObsidianResult<void>>;
+    close: (tabId: string) => Promise<void>;
+    openInObsidian: (tabId: string) => Promise<ObsidianResult<void>>;
+    reveal: (tabId: string) => Promise<ObsidianResult<void>>;
+    useFoundVault: (tabId: string) => Promise<ObsidianResult<void>>;
   };
 
   cloudNotes: {

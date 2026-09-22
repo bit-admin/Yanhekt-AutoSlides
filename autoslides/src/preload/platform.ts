@@ -97,6 +97,7 @@ export const config: ElectronAPI['config'] = {
   setCloudAutoPublishAfterSync: (enabled: boolean) => ipcRenderer.invoke('config:setCloudAutoPublishAfterSync', enabled),
   setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => ipcRenderer.invoke('config:setCloudAutoResyncMode', mode),
   setCloudAutoRepublishAfterResync: (enabled: boolean) => ipcRenderer.invoke('config:setCloudAutoRepublishAfterResync', enabled),
+  setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => ipcRenderer.invoke('config:setObsidian', patch),
   setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => ipcRenderer.invoke('config:setWatchNotes', patch),
   setCloudShareEmbedTimeline: (enabled: boolean) => ipcRenderer.invoke('config:setCloudShareEmbedTimeline', enabled),
   setShowToolsButton: (enabled: boolean) => ipcRenderer.invoke('config:setShowToolsButton', enabled),

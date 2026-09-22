@@ -153,6 +153,17 @@
       "providerDescription": "选择随堂笔记的保存位置。",
       "providerYanhekt": "延河课堂笔记",
       "providerYanhektDetail": "保存到延河课堂云笔记的随堂笔记（ASuser）分组。可在右侧栏的“笔记”标签页中实时编辑。",
+      "providerObsidian": "Obsidian",
+      "providerObsidianDetail": "幻灯片图片会追加到 Obsidian 仓库中某条 Markdown 笔记的末尾，不会写入其他内容。图片位置遵循仓库的附件文件夹设置。",
+      "obsidianVault": "仓库",
+      "obsidianVaultDescription": "课程笔记会创建在此仓库中。在笔记面板中选择的笔记可以位于任意仓库。",
+      "obsidianVaultPlaceholder": "未选择仓库",
+      "obsidianNotAVault": "此文件夹不是 Obsidian 仓库（没有 .obsidian 文件夹）。请先用 Obsidian 打开一次，或选择其他文件夹。",
+      "obsidianFolder": "笔记文件夹",
+      "obsidianFolderDescription": "仓库中存放课程笔记的文件夹。留空则使用仓库根目录。",
+      "obsidianFolderPlaceholder": "仓库根目录",
+      "obsidianAutoCreate": "自动创建课程笔记",
+      "obsidianAutoCreateDescription": "开启后，开始提取幻灯片时会立即在仓库中创建这节课的笔记。关闭时，请在笔记面板中选择“创建课程笔记”或“选择笔记…”。",
       "yanhektNotReady": "尚未设置云存储，因此不会创建随堂笔记。",
       "openCloudSettings": "前往云端设置",
       "toolsTitle": "工具",
@@ -1126,7 +1137,29 @@
     "watchNotes": {
       "creating": "正在创建笔记…",
       "error": "无法创建笔记。请检查网络后重试。",
-      "hint": "观看时开始提取幻灯片即可在此创建笔记，捕获的幻灯片会自动追加。"
+      "hint": "观看时开始提取幻灯片即可在此创建笔记，捕获的幻灯片会自动追加。",
+      "external": {
+        "chooseLead": "请选择这节课幻灯片的保存位置。选择之前，保留的幻灯片会在此等待。",
+        "createNote": "创建课程笔记",
+        "chooseNote": "选择笔记…",
+        "noVaultHint": "要创建课程笔记，请先在“设置 → 扩展”中选择仓库。",
+        "waiting": "等待中的幻灯片：{n}",
+        "note": "笔记",
+        "inVault": "位于仓库“{name}”",
+        "noVault": "不在 Obsidian 仓库中，图片保存在笔记旁边。",
+        "added": "已添加的幻灯片：{n}",
+        "openInObsidian": "在 Obsidian 中打开",
+        "showInFinder": "在访达中显示",
+        "showInFolder": "在文件夹中显示",
+        "foundVault": "找到 Obsidian 仓库：{name}。要将其设为默认仓库吗？",
+        "useThisVault": "使用此仓库",
+        "errors": {
+          "noVault": "尚未设置仓库。请在“设置 → 扩展”中选择，或直接选择一条笔记。",
+          "notAVault": "设置中的仓库不是 Obsidian 仓库。请在“设置 → 扩展”中重新选择。",
+          "badSubfolder": "设置中的笔记文件夹指向了仓库之外。",
+          "write": "无法写入笔记。请确认文件和文件夹仍然存在。"
+        }
+      }
     },
     "confirmDeleteNote": "删除这条笔记？此操作无法撤销。",
     "confirmDeleteGroup": "删除分组“{name}”？组内笔记将移至未分组。",

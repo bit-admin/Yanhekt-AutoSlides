@@ -25,6 +25,7 @@ import { registerSlideMetadataIpcHandlers } from './slideMetadataIpc';
 import { registerSlideTimelineIpcHandlers } from './slideTimelineIpc';
 import { registerPdfMakerIpcHandlers } from './pdfMakerIpc';
 import { registerNoteExportIpcHandlers } from './noteExportIpc';
+import { registerObsidianNotesIpcHandlers } from './obsidianNotesIpc';
 import { registerUpdateIpcHandlers } from './updateIpc';
 import { registerQtExtractorIpcHandlers } from './qtExtractorIpc';
 import { registerExtractorInstallerIpcHandlers } from './extractorInstallerIpc';
@@ -60,6 +61,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerSlideTimelineIpcHandlers(services);
   registerPdfMakerIpcHandlers(services);
   registerNoteExportIpcHandlers(services);
+  registerObsidianNotesIpcHandlers(services);
   registerUpdateIpcHandlers(services);
   registerQtExtractorIpcHandlers(services);
   registerExtractorInstallerIpcHandlers(services);

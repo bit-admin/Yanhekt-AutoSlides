@@ -1,7 +1,8 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron';
+import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
+import { broadcastConfig as broadcastConfigSnapshot } from './broadcastConfig';
 import type { AIServiceType } from '@main/platform/configService';
 import type { LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
@@ -21,18 +22,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     localRelayService
   } = services;
 
-  // Push the current AppConfig snapshot to every live BrowserWindow. The
-  // renderer-side configStore listens for 'config:onUpdate' and merges the
-  // payload into its reactive state, so any consumer that reads configStore
-  // sees the new values within one event-loop tick of a setter completing.
-  const broadcastConfig = (): void => {
-    const cfg = configService.getConfig();
-    for (const w of BrowserWindow.getAllWindows()) {
-      if (!w.isDestroyed()) {
-        w.webContents.send('config:onUpdate', cfg);
-      }
-    }
-  };
+  const broadcastConfig = (): void => broadcastConfigSnapshot(configService);
 
   ipcMain.handle('config:get', async () => {
     return configService.getConfig();
@@ -352,6 +342,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setCloudAutoRepublishAfterResync', async (_, enabled: boolean) => {
     configService.setCloudAutoRepublishAfterResync(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setObsidian', async (_, patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => {
+    configService.setObsidian(patch ?? {});
     broadcastConfig();
     return configService.getConfig();
   });

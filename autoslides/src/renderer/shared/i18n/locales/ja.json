@@ -153,6 +153,17 @@
       "providerDescription": "視聴ノートの保存先を選択します。",
       "providerYanhekt": "延河課堂ノート",
       "providerYanhektDetail": "延河課堂クラウドノートの視聴ノート（ASuser）グループに保存します。右パネルの「ノート」タブでリアルタイムに編集できます。",
+      "providerObsidian": "Obsidian",
+      "providerObsidianDetail": "スライド画像を Obsidian 保管庫内の Markdown ノートの末尾に追加します。それ以外はノートに書き込みません。画像は保管庫の添付ファイル設定に従って保存されます。",
+      "obsidianVault": "保管庫",
+      "obsidianVaultDescription": "授業ノートはこの保管庫に作成されます。ノートパネルで選んだノートはどの保管庫にあってもかまいません。",
+      "obsidianVaultPlaceholder": "保管庫が選択されていません",
+      "obsidianNotAVault": "このフォルダーは Obsidian 保管庫ではありません（.obsidian フォルダーがありません）。一度 Obsidian で開くか、別のフォルダーを選んでください。",
+      "obsidianFolder": "ノートフォルダー",
+      "obsidianFolderDescription": "授業ノートを置く保管庫内のフォルダーです。空欄の場合は保管庫の最上位に作成します。",
+      "obsidianFolderPlaceholder": "保管庫の最上位",
+      "obsidianAutoCreate": "授業ノートを自動作成",
+      "obsidianAutoCreateDescription": "オンにすると、スライド抽出の開始と同時にその授業のノートを保管庫に作成します。オフの場合は、ノートパネルで「授業ノートを作成」または「ノートを選択…」を選びます。",
       "yanhektNotReady": "クラウドストレージが未設定のため、視聴ノートは作成されません。",
       "openCloudSettings": "クラウド設定で設定する",
       "toolsTitle": "ツール",
@@ -1126,7 +1137,29 @@
     "watchNotes": {
       "creating": "ノートを作成中…",
       "error": "ノートを作成できませんでした。接続を確認して再試行してください。",
-      "hint": "視聴中にスライド抽出を開始すると、ここにノートが作成されます。取得したスライドは自動で追記されます。"
+      "hint": "視聴中にスライド抽出を開始すると、ここにノートが作成されます。取得したスライドは自動で追記されます。",
+      "external": {
+        "chooseLead": "この授業のスライドの保存先を選んでください。選ぶまで、残したスライドはここで待機します。",
+        "createNote": "授業ノートを作成",
+        "chooseNote": "ノートを選択…",
+        "noVaultHint": "授業ノートを作成するには、「設定 → アドオン」で保管庫を選んでください。",
+        "waiting": "待機中のスライド：{n}",
+        "note": "ノート",
+        "inVault": "保管庫「{name}」内",
+        "noVault": "Obsidian 保管庫の外にあります。画像はノートの隣に保存されます。",
+        "added": "追加したスライド：{n}",
+        "openInObsidian": "Obsidian で開く",
+        "showInFinder": "Finder で表示",
+        "showInFolder": "フォルダーで表示",
+        "foundVault": "Obsidian 保管庫「{name}」が見つかりました。既定の保管庫にしますか？",
+        "useThisVault": "この保管庫を使用",
+        "errors": {
+          "noVault": "保管庫が設定されていません。「設定 → アドオン」で選ぶか、ノートを選んでください。",
+          "notAVault": "設定の保管庫は Obsidian 保管庫ではありません。「設定 → アドオン」で選び直してください。",
+          "badSubfolder": "設定のノートフォルダーが保管庫の外を指しています。",
+          "write": "ノートに書き込めませんでした。ファイルとフォルダーが存在するか確認してください。"
+        }
+      }
     },
     "confirmDeleteNote": "このノートを削除しますか？元に戻せません。",
     "confirmDeleteGroup": "グループ「{name}」を削除しますか？中のノートは未分類へ移動します。",

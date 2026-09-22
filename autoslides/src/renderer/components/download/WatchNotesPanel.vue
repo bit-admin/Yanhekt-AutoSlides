@@ -1,6 +1,9 @@
 <template>
   <div class="watch-notes-panel">
-    <template v-if="entry && entry.status === 'ready'">
+    <!-- File-based providers have no editor: a status view instead. -->
+    <ExternalNotePanel v-if="entry && entry.provider === 'obsidian'" :entry="entry" />
+
+    <template v-else-if="entry && entry.status === 'ready'">
       <div class="wn-header">
         <span class="wn-title" :title="entry.displayName">{{ entry.displayName }}</span>
         <span class="wn-status" :class="ed.saveStatus.value">{{ statusLabel }}</span>
@@ -29,13 +32,14 @@
 
 <script setup lang="ts">
 // Right-panel "Notes" view: the live editor for the active watch tab's ASuser
-// note. Follows tab switches (flush the leaving note, mount the arriving one) and
+// note (Yanhekt provider), or ExternalNotePanel for file-based providers. Follows tab switches (flush the leaving note, mount the arriving one) and
 // registers itself with watchNotesStore so captured slides insert into the live
 // editor rather than clobbering in-progress edits.
 import { computed, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { watchNotesStore, activeEntry } from '@features/cloudNotes/watchNotesStore'
 import { useWatchNoteEditor } from '@features/cloudNotes/useWatchNoteEditor'
+import ExternalNotePanel from './ExternalNotePanel.vue'
 
 const { t } = useI18n()
 const ed = useWatchNoteEditor(t)
@@ -54,7 +58,7 @@ const statusLabel = computed(() => {
 /** Key that changes whenever we need to (re)mount: tab identity or readiness. */
 const mountKey = computed(() => {
   const e = entry.value
-  return e && e.status === 'ready' && e.noteId != null ? e.tabId : null
+  return e && e.provider === 'yanhekt' && e.status === 'ready' && e.noteId != null ? e.tabId : null
 })
 
 async function syncEditor(nextTabId: string | null): Promise<void> {
@@ -68,7 +72,7 @@ async function syncEditor(nextTabId: string | null): Promise<void> {
   }
   if (!nextTabId) return
   const e = entry.value
-  if (!e || e.tabId !== nextTabId) return
+  if (!e || e.tabId !== nextTabId || e.provider !== 'yanhekt') return
   await ed.mountEditor(e.content, {
     onSave: (data) => watchNotesStore.commitEditorContent(nextTabId, data),
   })

@@ -213,6 +213,9 @@ export class ConfigService {
       cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
       watchNotesEnabled: this.store.get('watchNotesEnabled') ?? false,
       watchNotesProvider: normalizeWatchNotesProvider(this.store.get('watchNotesProvider')),
+      obsidianVaultPath: this.store.get('obsidianVaultPath') ?? '',
+      obsidianSubfolder: this.store.get('obsidianSubfolder') ?? 'AutoSlides',
+      obsidianAutoCreateNote: this.store.get('obsidianAutoCreateNote') ?? false,
       cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       showToolsButton: this.store.get('showToolsButton') ?? false,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
@@ -267,6 +270,12 @@ export class ConfigService {
 
   setCloudAutoRepublishAfterResync(enabled: boolean): void {
     this.store.set('cloudAutoRepublishAfterResync', enabled);
+  }
+
+  setObsidian(patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }): void {
+    if (typeof patch.vaultPath === 'string') this.store.set('obsidianVaultPath', patch.vaultPath);
+    if (typeof patch.subfolder === 'string') this.store.set('obsidianSubfolder', patch.subfolder);
+    if (typeof patch.autoCreateNote === 'boolean') this.store.set('obsidianAutoCreateNote', patch.autoCreateNote);
   }
 
   setWatchNotes(patch: { enabled?: boolean; provider?: WatchNotesProviderId }): void {

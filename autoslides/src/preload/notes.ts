@@ -83,3 +83,20 @@ export const cloudNotes: ElectronAPI['cloudNotes'] = {
   requestIndexRemoval: (courseId: string, sessionId: string): Promise<NotesResult<IndexRemovalResult>> =>
     ipcRenderer.invoke('cloudNotes:requestIndexRemoval', courseId, sessionId),
 };
+
+/**
+ * Obsidian watch-notes bridge. Tab id + plain values only; the main process
+ * resolves and remembers each tab's note and slides folder.
+ */
+export const obsidianNotes: ElectronAPI['obsidianNotes'] = {
+  probeVault: (dir) => ipcRenderer.invoke('obsidianNotes:probeVault', dir),
+  selectVault: () => ipcRenderer.invoke('obsidianNotes:selectVault'),
+  openAuto: (tabId, title, slidesFolderName) =>
+    ipcRenderer.invoke('obsidianNotes:openAuto', tabId, title, slidesFolderName),
+  chooseNote: (tabId, slidesFolderName) => ipcRenderer.invoke('obsidianNotes:chooseNote', tabId, slidesFolderName),
+  append: (tabId, bytes, filename) => ipcRenderer.invoke('obsidianNotes:append', tabId, bytes, filename),
+  close: (tabId) => ipcRenderer.invoke('obsidianNotes:close', tabId),
+  openInObsidian: (tabId) => ipcRenderer.invoke('obsidianNotes:openInObsidian', tabId),
+  reveal: (tabId) => ipcRenderer.invoke('obsidianNotes:reveal', tabId),
+  useFoundVault: (tabId) => ipcRenderer.invoke('obsidianNotes:useFoundVault', tabId),
+};

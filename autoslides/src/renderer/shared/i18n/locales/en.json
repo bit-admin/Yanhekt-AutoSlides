@@ -153,6 +153,17 @@
       "providerDescription": "Choose where watch notes are saved.",
       "providerYanhekt": "Yanhekt Notes",
       "providerYanhektDetail": "Saved to the Watch Notes (ASuser) group of your Yanhekt cloud notes. Edit them live from the right-panel Notes tab.",
+      "providerObsidian": "Obsidian",
+      "providerObsidianDetail": "Slide images are added to the end of a Markdown note in an Obsidian vault. Nothing else is written to the note, and images follow the vault's attachment folder setting.",
+      "obsidianVault": "Vault",
+      "obsidianVaultDescription": "Lecture notes are created in this vault. A note you choose in the Notes panel can be in any vault.",
+      "obsidianVaultPlaceholder": "No vault selected",
+      "obsidianNotAVault": "This folder isn't an Obsidian vault (it has no .obsidian folder). Open it in Obsidian once, or choose another folder.",
+      "obsidianFolder": "Notes Folder",
+      "obsidianFolderDescription": "Folder inside the vault for lecture notes. Leave empty to use the vault's top level.",
+      "obsidianFolderPlaceholder": "Vault top level",
+      "obsidianAutoCreate": "Auto Create Lecture Notes",
+      "obsidianAutoCreateDescription": "When on, each lecture's note is created in the vault as soon as slide extraction starts. When off, choose Create Lecture Note or Choose Note… in the Notes panel.",
       "yanhektNotReady": "Cloud storage isn't set up yet, so no watch notes will be created.",
       "openCloudSettings": "Set Up in Cloud Settings",
       "toolsTitle": "Tools",
@@ -1126,7 +1137,29 @@
     "watchNotes": {
       "creating": "Creating your note…",
       "error": "Couldn't create the note. Check your connection and try again.",
-      "hint": "Start slide extraction while watching to create a note here. Captured slides are appended automatically."
+      "hint": "Start slide extraction while watching to create a note here. Captured slides are appended automatically.",
+      "external": {
+        "chooseLead": "Choose where this lecture's slides go. Kept slides wait here until you do.",
+        "createNote": "Create Lecture Note",
+        "chooseNote": "Choose Note…",
+        "noVaultHint": "To create lecture notes, choose a vault in Settings → Add-ons.",
+        "waiting": "Slides waiting: {n}",
+        "note": "Note",
+        "inVault": "In vault “{name}”",
+        "noVault": "Not in an Obsidian vault — images are saved next to the note.",
+        "added": "Slides added: {n}",
+        "openInObsidian": "Open in Obsidian",
+        "showInFinder": "Show in Finder",
+        "showInFolder": "Show in Folder",
+        "foundVault": "Found an Obsidian vault: {name}. Use it as your default vault?",
+        "useThisVault": "Use This Vault",
+        "errors": {
+          "noVault": "No vault is set. Choose one in Settings → Add-ons, or choose a note.",
+          "notAVault": "The vault in Settings isn't an Obsidian vault. Choose another in Settings → Add-ons.",
+          "badSubfolder": "The notes folder in Settings points outside the vault.",
+          "write": "Couldn't write to the note. Check that the file and folder still exist."
+        }
+      }
     },
     "confirmDeleteNote": "Delete this note? This cannot be undone.",
     "confirmDeleteGroup": "Delete group \"{name}\"? Notes inside move to Ungrouped.",

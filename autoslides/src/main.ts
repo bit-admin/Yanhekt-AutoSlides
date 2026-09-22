@@ -4,6 +4,7 @@ import { MainAuthService } from '@main/platform/authService';
 import { MainApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { NotesService } from '@main/platform/notesService';
+import { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { VideoProxyService } from '@main/video/videoProxyService';
 import { LocalRelayService } from '@main/video/localRelayService';
@@ -180,6 +181,7 @@ const llmApiService = new LLMApiService(configService);
 const aiFilteringService = new AIFilteringService(configService, aiPromptsService, llmApiService);
 const qtExtractorService = new QtExtractorService(configService);
 const notesService = new NotesService(configService);
+const obsidianNotesService = new ObsidianNotesService(configService);
 
 const windowManager = new WindowManager();
 windowManager.setConfigService(configService);
@@ -242,5 +244,6 @@ registerAllIpcHandlers({
   slideMetadataService,
   slideTimelineService,
   cacheManagementService,
-  notesService
+  notesService,
+  obsidianNotesService
 });

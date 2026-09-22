@@ -19,7 +19,8 @@ describe('migrateLegacyWatchSync', () => {
 describe('normalizeWatchNotesProvider', () => {
   it('keeps a known id and falls back for unknown values', () => {
     expect(normalizeWatchNotesProvider('yanhekt')).toBe('yanhekt')
-    expect(normalizeWatchNotesProvider('obsidian')).toBe('yanhekt')
+    expect(normalizeWatchNotesProvider('obsidian')).toBe('obsidian')
+    expect(normalizeWatchNotesProvider('notion')).toBe('yanhekt')
     expect(normalizeWatchNotesProvider(undefined)).toBe('yanhekt')
   })
 })

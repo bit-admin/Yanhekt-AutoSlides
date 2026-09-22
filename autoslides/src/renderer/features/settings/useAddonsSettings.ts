@@ -8,7 +8,8 @@ import {
 /**
  * Buffered settings for the Add-ons tab:
  * - Watch Notes (notes add-ons): whether watch notes are auto-created and
- *   synced, and which provider they go to.
+ *   synced, which provider they go to, and the Obsidian provider's vault,
+ *   notes folder and auto-create switch.
  * - Tools: whether the Tools window icon button rides beside Settings at the
  *   foot of the navigator.
  * Self-contained like useCloudSettings — reads/writes config directly and joins
@@ -19,13 +20,46 @@ export function useAddonsSettings() {
   const tempWatchNotesEnabled = ref(false)
   const watchNotesProvider = ref<WatchNotesProviderId>(DEFAULT_WATCH_NOTES_PROVIDER)
   const tempWatchNotesProvider = ref<WatchNotesProviderId>(DEFAULT_WATCH_NOTES_PROVIDER)
+  const obsidianVaultPath = ref('')
+  const tempObsidianVaultPath = ref('')
+  const obsidianSubfolder = ref('AutoSlides')
+  const tempObsidianSubfolder = ref('AutoSlides')
+  const obsidianAutoCreateNote = ref(false)
+  const tempObsidianAutoCreateNote = ref(false)
+  /** Whether the buffered vault path holds `.obsidian/` (null = not checked / empty). */
+  const tempObsidianVaultIsVault = ref<boolean | null>(null)
   const showToolsButton = ref(false)
   const tempShowToolsButton = ref(false)
+
+  const probeTempVault = async () => {
+    const dir = tempObsidianVaultPath.value
+    if (!dir) {
+      tempObsidianVaultIsVault.value = null
+      return
+    }
+    try {
+      const probe = await window.electronAPI.obsidianNotes.probeVault(dir)
+      if (tempObsidianVaultPath.value === dir) tempObsidianVaultIsVault.value = probe.isVault
+    } catch {
+      tempObsidianVaultIsVault.value = null
+    }
+  }
+
+  /** Settings → Choose… for the vault (main-side folder dialog). */
+  const selectObsidianVault = async () => {
+    const picked = await window.electronAPI.obsidianNotes.selectVault()
+    if (!picked) return
+    tempObsidianVaultPath.value = picked.path
+    tempObsidianVaultIsVault.value = picked.isVault
+  }
 
   const load = async () => {
     const cfg = await window.electronAPI.config.get()
     watchNotesEnabled.value = cfg.watchNotesEnabled ?? false
     watchNotesProvider.value = normalizeWatchNotesProvider(cfg.watchNotesProvider)
+    obsidianVaultPath.value = cfg.obsidianVaultPath ?? ''
+    obsidianSubfolder.value = cfg.obsidianSubfolder ?? 'AutoSlides'
+    obsidianAutoCreateNote.value = cfg.obsidianAutoCreateNote ?? false
     showToolsButton.value = cfg.showToolsButton ?? false
     resetTemp()
   }
@@ -33,7 +67,11 @@ export function useAddonsSettings() {
   const resetTemp = () => {
     tempWatchNotesEnabled.value = watchNotesEnabled.value
     tempWatchNotesProvider.value = watchNotesProvider.value
+    tempObsidianVaultPath.value = obsidianVaultPath.value
+    tempObsidianSubfolder.value = obsidianSubfolder.value
+    tempObsidianAutoCreateNote.value = obsidianAutoCreateNote.value
     tempShowToolsButton.value = showToolsButton.value
+    void probeTempVault()
   }
 
   const save = async () => {
@@ -48,6 +86,22 @@ export function useAddonsSettings() {
       watchNotesEnabled.value = tempWatchNotesEnabled.value
       watchNotesProvider.value = tempWatchNotesProvider.value
     }
+    const subfolder = tempObsidianSubfolder.value.trim()
+    if (
+      tempObsidianVaultPath.value !== obsidianVaultPath.value ||
+      subfolder !== obsidianSubfolder.value ||
+      tempObsidianAutoCreateNote.value !== obsidianAutoCreateNote.value
+    ) {
+      await window.electronAPI.config.setObsidian({
+        vaultPath: tempObsidianVaultPath.value,
+        subfolder,
+        autoCreateNote: tempObsidianAutoCreateNote.value,
+      })
+      obsidianVaultPath.value = tempObsidianVaultPath.value
+      obsidianSubfolder.value = subfolder
+      tempObsidianSubfolder.value = subfolder
+      obsidianAutoCreateNote.value = tempObsidianAutoCreateNote.value
+    }
     if (tempShowToolsButton.value !== showToolsButton.value) {
       await window.electronAPI.config.setShowToolsButton(tempShowToolsButton.value)
       showToolsButton.value = tempShowToolsButton.value
@@ -57,6 +111,11 @@ export function useAddonsSettings() {
   return {
     tempWatchNotesEnabled,
     tempWatchNotesProvider,
+    tempObsidianVaultPath,
+    tempObsidianSubfolder,
+    tempObsidianAutoCreateNote,
+    tempObsidianVaultIsVault,
+    selectObsidianVault,
     tempShowToolsButton,
     load,
     resetTemp,

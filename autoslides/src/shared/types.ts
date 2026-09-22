@@ -264,6 +264,13 @@ export interface AppConfig {
   // Where watch notes go. 'yanhekt' = the ASuser group of Yanhekt cloud notes,
   // only meaningful once cloud storage is ready.
   watchNotesProvider: WatchNotesProviderId;
+  // Obsidian provider. Vault used for auto-created lecture notes (a folder that
+  // contains `.obsidian/`; '' = none). A note picked in the right panel may live
+  // in any vault. Subfolder is vault-relative. Auto-create off (default) means the
+  // student clicks Create Lecture Note / Choose Note… in the Notes tab.
+  obsidianVaultPath: string;
+  obsidianSubfolder: string;
+  obsidianAutoCreateNote: boolean;
   // When true (default), share links / Index publishes embed a compact v3
   // slide timeline so players can sync. Off falls back to a v2 image-only link.
   cloudShareEmbedTimeline: boolean;

@@ -1,12 +1,13 @@
 // Notes add-ons: where watch-mode notes are written. A watch note is the
 // per-lecture note AutoSlides creates when a manual playback tab starts slide
 // extraction, then appends each post-processing-kept slide to. Yanhekt Notes
-// (the ASuser group of the account's Yanhekt cloud notes) is the only provider
-// today; the list is here so config, migration and the Settings picker agree.
+// (the ASuser group of the account's Yanhekt cloud notes) keeps an editable note;
+// Obsidian (a local Markdown vault) only ever gets slide images appended. The list
+// is here so config, migration and the Settings picker agree.
 
-export type WatchNotesProviderId = 'yanhekt'
+export type WatchNotesProviderId = 'yanhekt' | 'obsidian'
 
-export const WATCH_NOTES_PROVIDERS: readonly WatchNotesProviderId[] = ['yanhekt']
+export const WATCH_NOTES_PROVIDERS: readonly WatchNotesProviderId[] = ['yanhekt', 'obsidian']
 
 export const DEFAULT_WATCH_NOTES_PROVIDER: WatchNotesProviderId = 'yanhekt'
 

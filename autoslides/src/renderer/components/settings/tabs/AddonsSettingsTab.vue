@@ -38,7 +38,54 @@
           </a>
         </div>
       </template>
+      <div v-else-if="tempWatchNotesProvider === 'obsidian'" class="setting-description addon-provider-detail">
+        {{ $t('advanced.addons.providerObsidianDetail') }}
+      </div>
     </div>
+
+    <!-- Obsidian provider settings. A note chosen in the Notes panel may live in
+         any vault; this vault is where lecture notes are created. -->
+    <template v-if="tempWatchNotesProvider === 'obsidian'">
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.addons.obsidianVault') }}</label>
+        <div class="setting-description">{{ $t('advanced.addons.obsidianVaultDescription') }}</div>
+        <div class="input-group">
+          <input
+            :value="tempObsidianVaultPath"
+            type="text"
+            readonly
+            class="text-input addon-path-input"
+            :placeholder="$t('advanced.addons.obsidianVaultPlaceholder')"
+            :title="tempObsidianVaultPath"
+          />
+          <button type="button" class="btn" @click="selectObsidianVault">{{ $t('settings.browse') }}</button>
+        </div>
+        <div v-if="tempObsidianVaultPath && tempObsidianVaultIsVault === false" class="addon-provider-warning" role="status">
+          {{ $t('advanced.addons.obsidianNotAVault') }}
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.addons.obsidianFolder') }}</label>
+        <div class="setting-description">{{ $t('advanced.addons.obsidianFolderDescription') }}</div>
+        <input
+          v-model="tempObsidianSubfolder"
+          type="text"
+          class="text-input addon-path-input"
+          :placeholder="$t('advanced.addons.obsidianFolderPlaceholder')"
+        />
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-description">{{ $t('advanced.addons.obsidianAutoCreateDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="tempObsidianAutoCreateNote" />
+            {{ $t('advanced.addons.obsidianAutoCreate') }}
+          </label>
+        </div>
+      </div>
+    </template>
   </div>
 
   <div class="advanced-setting-section">
@@ -87,10 +134,20 @@ import { useSettingsContext } from '@features/settings/settingsContext'
 // Typed by provider id, so adding a provider fails to compile until it has a label.
 const PROVIDER_LABEL_KEYS: Record<WatchNotesProviderId, string> = {
   yanhekt: 'advanced.addons.providerYanhekt',
+  obsidian: 'advanced.addons.providerObsidian',
 }
 
 const { advanced } = useSettingsContext()
-const { tempWatchNotesEnabled, tempWatchNotesProvider, tempShowToolsButton } = advanced.addons
+const {
+  tempWatchNotesEnabled,
+  tempWatchNotesProvider,
+  tempObsidianVaultPath,
+  tempObsidianSubfolder,
+  tempObsidianAutoCreateNote,
+  tempObsidianVaultIsVault,
+  selectObsidianVault,
+  tempShowToolsButton,
+} = advanced.addons
 </script>
 
 <style scoped>
@@ -102,6 +159,12 @@ const { tempWatchNotesEnabled, tempWatchNotesProvider, tempShowToolsButton } = a
 
 .addon-provider-detail {
   margin-top: 8px;
+}
+
+.addon-path-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
 }
 
 .addon-provider-warning {

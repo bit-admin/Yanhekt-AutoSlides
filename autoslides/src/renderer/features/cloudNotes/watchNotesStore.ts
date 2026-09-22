@@ -1,63 +1,53 @@
 import { reactive, computed, watch } from 'vue'
 import type { OutputData } from '@editorjs/editorjs'
-import { overrides } from '@shared/overrideRegistry'
-import type { CloudNotesProvider } from '@shared/overrideRegistry'
 import { configStore } from '@shared/services/configStore'
 import { layoutStore } from '@shared/services/layoutStore'
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore'
 import { createLogger } from '@shared/utils/logger'
-import { buildManagedNoteTitle, EDITORJS_DOC_VERSION } from '@common/notesTypes'
-import { NOTE_COPYRIGHT } from '@common/notesContent'
-import { buildSlideFolderName, type LectureIdentity } from '@common/lectureNaming'
+import { buildSlideFolderName, SLIDE_FOLDER_PREFIX, type LectureIdentity } from '@common/lectureNaming'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { tabStore } from '@features/course/tabStore'
 import { cloudStorageStore } from './cloudStorageStore'
-import { notesRefreshStore } from './noteOpenRequest'
+import {
+  yanhektWatchSink,
+  emptyDoc,
+  registerActiveEditor,
+  unregisterActiveEditor,
+  commitEditorContent as commitYanhektContent,
+} from './yanhektWatchSink'
+import { obsidianWatchSink, createLectureNote, chooseNote } from './obsidianWatchSink'
+import type {
+  ObsidianWatchNoteEntry,
+  WatchNoteEntry,
+  WatchNotesSink,
+  YanhektWatchNoteEntry,
+} from './watchNotesTypes'
+
+// Watch notes: the provider-neutral slide stream. A manual watch tab that starts
+// extraction gets an entry; captured slides wait here until post-processing
+// keeps them, then go to the entry's provider sink in capture order.
+//   Yanhekt  → yanhektWatchSink (ASuser note + live editor)
+//   Obsidian → obsidianWatchSink (images appended to a Markdown note)
 
 const log = createLogger('WatchNotes')
 
-/** Page size / cap mirroring cloudStorageStore's full-set paging. */
-const FETCH_PAGE_SIZE = 500
-const MAX_FETCH_PAGES = 20
-const SAVE_DEBOUNCE_MS = 1000
-
-type EntryStatus = 'creating' | 'ready' | 'error'
-
-interface WatchNoteEntry {
-  tabId: string
-  /** Extraction pipeline instance whose `slideExtracted` events feed this note. */
-  instanceId: string
-  noteId: number | null
-  displayName: string
-  status: EntryStatus
-  /** Working copy of the note's Editor.js document (source of truth for background tabs). */
-  content: OutputData
-}
-
-/**
- * Live editor bound to the *active* tab's note, registered by WatchNotesPanel.
- * When present, slide appends for the active tab go through it (so an in-progress
- * user edit isn't clobbered by an external content overwrite); background tabs
- * append via the API instead.
- */
-interface ActiveEditorBinding {
-  tabId: string
-  /** Insert an image block at the end of the live editor. */
-  insertImage: (url: string) => void
-}
-
 const state = reactive<{ entries: Record<string, WatchNoteEntry> }>({ entries: {} })
-let activeEditor: ActiveEditorBinding | null = null
-const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 // Slides captured while watch-mode auto post-processing is on are held here
 // (per tabId, `Slide_*.png` filename → dataUrl, insertion order = capture order)
 // until a completed pass reports them kept; trashed ones never reach the note.
 // Kept outside the reactive state on purpose — nothing renders from it.
 const pendingSlides = new Map<string, Map<string, string>>()
+// Kept slides for an Obsidian entry that has no target note yet, in order.
+// Flushed when the student creates or chooses a note; dropped on stop.
+const keptQueue = new Map<string, Array<{ pngFilename: string; dataUrl: string }>>()
 // Per-tab promise chain serializing note appends so overlapping pass events
 // can't interleave image blocks out of order.
 const flushChains = new Map<string, Promise<void>>()
+
+function sinkFor(entry: WatchNoteEntry): WatchNotesSink<WatchNoteEntry> {
+  return (entry.provider === 'obsidian' ? obsidianWatchSink : yanhektWatchSink) as WatchNotesSink<WatchNoteEntry>
+}
 
 function getPending(tabId: string): Map<string, string> {
   let pending = pendingSlides.get(tabId)
@@ -80,19 +70,44 @@ function findEntryByInstance(instanceId: string): WatchNoteEntry | undefined {
   return Object.values(state.entries).find((e) => e.instanceId === instanceId)
 }
 
-function api(): CloudNotesProvider {
-  return overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
+/** An Obsidian entry without a note yet: kept slides must wait. */
+function awaitingTarget(entry: WatchNoteEntry): entry is ObsidianWatchNoteEntry {
+  return entry.provider === 'obsidian' && entry.target == null
 }
 
-function emptyDoc(): OutputData {
-  return { time: Date.now(), blocks: [], version: EDITORJS_DOC_VERSION } as OutputData
-}
-
-function imageBlock(url: string) {
-  return {
-    type: 'image',
-    data: { file: { url }, caption: '', withBorder: false, stretched: false, withBackground: false },
+/** Send kept slides to the entry's sink, or queue them while it has no target. */
+function deliver(entry: WatchNoteEntry, items: Array<{ pngFilename: string; dataUrl: string }>): void {
+  if (items.length === 0) return
+  if (awaitingTarget(entry)) {
+    let queue = keptQueue.get(entry.tabId)
+    if (!queue) {
+      queue = []
+      keptQueue.set(entry.tabId, queue)
+    }
+    queue.push(...items)
+    entry.waiting = queue.length
+    return
   }
+  const sink = sinkFor(entry)
+  chainFlush(entry.tabId, async () => {
+    for (const item of items) {
+      await sink.append(entry, item.dataUrl, item.pngFilename)
+    }
+  })
+}
+
+/** Release the Obsidian waiting queue once a target exists. */
+function flushQueued(entry: ObsidianWatchNoteEntry): void {
+  const queue = keptQueue.get(entry.tabId)
+  keptQueue.delete(entry.tabId)
+  entry.waiting = 0
+  if (queue && queue.length > 0) deliver(entry, queue)
+}
+
+function dropQueued(tabId: string): void {
+  keptQueue.delete(tabId)
+  const entry = state.entries[tabId]
+  if (entry?.provider === 'obsidian') entry.waiting = 0
 }
 
 /**
@@ -107,9 +122,13 @@ function imageBlock(url: string) {
  * the folder builder gates it on live). Going through the shared builder keeps
  * note and folder in lockstep by construction.
  */
-function deriveNoteNaming(tabId: string): { displayName: string; identity: LectureIdentity } {
+function deriveNoteNaming(tabId: string): {
+  displayName: string
+  identity: LectureIdentity
+  slidesFolderName: string
+} {
   const tab = tabStore.state.tabs.find((t) => t.id === tabId)
-  if (!tab) return { displayName: 'AutoSlides', identity: {} }
+  if (!tab) return { displayName: 'AutoSlides', identity: {}, slidesFolderName: `${SLIDE_FOLDER_PREFIX}AutoSlides` }
   const session = tab.session as { title?: string; session_id?: string | number } | null
   // Live: `course.id` is a broadcast id and `course.courseId` the real course —
   // same split as useSlideExtraction, so the note title matches the folder.
@@ -129,108 +148,36 @@ function deriveNoteNaming(tabId: string): { displayName: string; identity: Lectu
   return {
     displayName: name && name !== 'slides' ? name : tab.title || 'AutoSlides',
     identity,
+    // A lecture with neither titles nor ids yields bare `slides`; file providers
+    // need a `slides_…` name.
+    slidesFolderName: folderName.startsWith(SLIDE_FOLDER_PREFIX) ? folderName : `${SLIDE_FOLDER_PREFIX}AutoSlides`,
   }
 }
 
 /**
  * Whether the watch-notes auto flow may run right now: Settings → Add-ons →
- * Watch Notes is on with the Yanhekt provider (the only one this store writes
- * to), and the ASuser group is ready.
+ * Watch Notes is on, and the chosen provider can take notes (Yanhekt needs the
+ * ASuser group; Obsidian always can, since a note may be chosen per lecture).
  */
 export function watchSyncActive(): boolean {
-  return (
-    !!configStore.watchNotesEnabled &&
-    configStore.watchNotesProvider === 'yanhekt' &&
-    cloudStorageStore.canUse.value &&
-    cloudStorageStore.userGroupId.value != null
-  )
+  if (!configStore.watchNotesEnabled) return false
+  if (configStore.watchNotesProvider === 'obsidian') return true
+  return cloudStorageStore.canUse.value && cloudStorageStore.userGroupId.value != null
 }
 
-/** Find an existing ASuser watch note by title, else create one. */
-async function findOrCreateNote(
-  displayName: string,
-  identity: LectureIdentity,
-): Promise<{ id: number; content: OutputData; created: boolean } | null> {
-  const groupId = cloudStorageStore.userGroupId.value
-  if (groupId == null) return null
-  // Carries the id block, so two same-titled courses get two watch notes.
-  const title = buildManagedNoteTitle(displayName, identity)
-
-  // Scan the full note list for an existing managed note with this title in ASuser.
-  let page = 1
-  let lastPage = 1
-  let existingId: number | null = null
-  do {
-    const res = await api().list({ page, pageSize: FETCH_PAGE_SIZE })
-    if (!res.ok) {
-      log.warn('note list failed while resolving watch note', res.error)
-      return null
-    }
-    const hit = res.data.data.find(
-      (n) => n.title === title && Number(n.note_group_id) === Number(groupId),
-    )
-    if (hit) {
-      existingId = hit.id
-      break
-    }
-    lastPage = Math.max(1, res.data.last_page)
-    page += 1
-  } while (page <= lastPage && page <= MAX_FETCH_PAGES)
-
-  if (existingId != null) {
-    const detail = await api().get(existingId)
-    if (!detail.ok) return null
-    let content = emptyDoc()
-    try {
-      const parsed = JSON.parse(detail.data.content)
-      if (parsed && Array.isArray(parsed.blocks)) content = parsed as OutputData
-    } catch {
-      /* malformed — start blank */
-    }
-    return { id: existingId, content, created: false }
+function newEntry(tabId: string, instanceId: string): WatchNoteEntry {
+  const { displayName, identity, slidesFolderName } = deriveNoteNaming(tabId)
+  const base = { tabId, instanceId, displayName, identity, slidesFolderName }
+  if (configStore.watchNotesProvider === 'obsidian') {
+    return { ...base, provider: 'obsidian', status: 'awaiting', target: null, appended: 0, waiting: 0, lastError: null }
   }
-
-  // Create a fresh note in the ASuser group, titled + seeded with a heading and notice.
-  const created = await api().create()
-  if (!created.ok) {
-    log.warn('failed to create watch note', created.error)
-    return null
-  }
-  const id = created.data
-  const titleRes = await api().updateTitle(id, title, groupId)
-  if (!titleRes.ok) log.warn('failed to title watch note', titleRes.error)
-  const content: OutputData = {
-    time: Date.now(),
-    blocks: [
-      { type: 'header', data: { text: displayName, level: 2 } },
-      { type: 'paragraph', data: { text: NOTE_COPYRIGHT } },
-    ],
-    version: EDITORJS_DOC_VERSION,
-  } as OutputData
-  await api().updateContent(id, JSON.stringify(content))
-  return { id, content, created: true }
-}
-
-/** Debounced persist of an entry's working content (background-tab path). */
-function scheduleSave(entry: WatchNoteEntry): void {
-  const existing = saveTimers.get(entry.tabId)
-  if (existing) clearTimeout(existing)
-  saveTimers.set(
-    entry.tabId,
-    setTimeout(() => {
-      saveTimers.delete(entry.tabId)
-      if (entry.noteId == null) return
-      void api()
-        .updateContent(entry.noteId, JSON.stringify(entry.content))
-        .catch((err) => log.warn('watch note save failed', err))
-    }, SAVE_DEBOUNCE_MS),
-  )
+  return { ...base, provider: 'yanhekt', status: 'creating', noteId: null, content: emptyDoc() }
 }
 
 /**
  * Called by PlaybackPage the moment slide extraction actually starts. Creates (or
- * reuses) this tab's ASuser note and switches the right panel to the Notes tab.
- * No-op unless the tab is a manual watch tab and watch-sync is enabled.
+ * reuses) this tab's watch note and switches the right panel to the Notes tab.
+ * No-op unless the tab is a manual watch tab and watch notes are enabled.
  */
 export async function onExtractionStarted(tabId: string, instanceId: string): Promise<void> {
   const tab = tabStore.state.tabs.find((t) => t.id === tabId)
@@ -246,63 +193,17 @@ export async function onExtractionStarted(tabId: string, instanceId: string): Pr
     return
   }
 
-  const { displayName, identity } = deriveNoteNaming(tabId)
-  const entry: WatchNoteEntry = {
-    tabId,
-    instanceId,
-    noteId: null,
-    displayName,
-    status: 'creating',
-    content: emptyDoc(),
-  }
-  state.entries[tabId] = entry
-  // Mutate through the reactive proxy, not the raw `entry` local — writes to the
-  // raw target bypass the proxy's set trap and the panel never sees 'ready'.
+  state.entries[tabId] = newEntry(tabId, instanceId)
+  // Mutate through the reactive proxy, not the raw object — writes to the raw
+  // target bypass the proxy's set trap and the panel never sees the status flip.
   const stored = state.entries[tabId]
 
-  // Reveal the Notes tab immediately; the note fills in when creation resolves.
+  // Reveal the Notes tab immediately; the note fills in when opening resolves.
   layoutStore.rightCollapsed = false
   setRightPanelTab('notes')
 
-  const result = await findOrCreateNote(displayName, identity)
-  if (!result) {
-    stored.status = 'error'
-    return
-  }
-  stored.noteId = result.id
-  stored.content = result.content
-  stored.status = 'ready'
-  // Surface the new note on the Drive page (which uses a separate useCloudNotes
-  // instance) on its next load — same signal the Slides-page import uses.
-  if (result.created) notesRefreshStore.requestNotesRefresh()
-}
-
-/** Upload a slide image and append it to the entry's note. `pngFilename` includes `.png`. */
-async function appendSlide(entry: WatchNoteEntry, dataUrl: string, pngFilename: string): Promise<void> {
-  if (entry.status === 'error') return
-
-  let url: string
-  try {
-    const bytes = await (await fetch(dataUrl)).arrayBuffer()
-    const up = await api().uploadImage(bytes, pngFilename, 'image/png')
-    if (!up.ok) {
-      log.warn('watch slide upload failed', up.error)
-      return
-    }
-    url = up.data.url
-  } catch (err) {
-    log.warn('watch slide upload threw', err)
-    return
-  }
-
-  // Active tab with a live editor: insert through it so user edits aren't lost.
-  if (activeEditor && activeEditor.tabId === entry.tabId && tabStore.state.activeTabId === entry.tabId) {
-    activeEditor.insertImage(url)
-    return
-  }
-  // Background tab: mutate the working copy + debounced API save.
-  entry.content.blocks.push(imageBlock(url))
-  if (entry.noteId != null) scheduleSave(entry)
+  await sinkFor(stored).open(stored)
+  if (stored.provider === 'obsidian' && stored.target) flushQueued(stored)
 }
 
 function onSlideExtracted(event: Event): void {
@@ -312,14 +213,14 @@ function onSlideExtracted(event: Event): void {
   const entry = findEntryByInstance(instanceId)
   if (!entry || entry.status === 'error') return
   const pngFilename = `${String(slide.title ?? `Slide_${Date.now()}`)}.png`
-  // With watch-mode auto post-processing on, hold the upload until a completed
-  // pass clears this slide (same `!== false` default-true predicate as the
-  // PlaybackPage trigger gate). Toggle off ⇒ immediate upload, as before.
+  // With watch-mode auto post-processing on, hold the slide until a completed
+  // pass clears it (same `!== false` default-true predicate as the PlaybackPage
+  // trigger gate). Toggle off ⇒ deliver immediately, as before.
   if (configStore.autoPostProcessingLive !== false) {
     getPending(entry.tabId).set(pngFilename, slide.dataUrl)
     return
   }
-  chainFlush(entry.tabId, () => appendSlide(entry, slide.dataUrl, pngFilename))
+  deliver(entry, [{ pngFilename, dataUrl: slide.dataUrl }])
 }
 
 /** Release buffered slides a completed post-processing pass kept; drop trashed ones. */
@@ -346,18 +247,13 @@ function onSlidesPostProcessed(event: Event): void {
       cleared.push({ pngFilename, dataUrl })
     }
   }
-  if (cleared.length === 0) return
-  chainFlush(entry.tabId, async () => {
-    for (const item of cleared) {
-      await appendSlide(entry, item.dataUrl, item.pngFilename)
-    }
-  })
+  deliver(entry, cleared)
 }
 
 /**
  * Replace a still-pending slide's dataUrl after post-processing auto-crop
- * succeeds, so note upload uses cropped pixels. Dispatched as
- * `slideAutoCropped` from usePostProcessing (avoids download→cloudNotes import).
+ * succeeds, so the note gets cropped pixels. Dispatched as `slideAutoCropped`
+ * from usePostProcessing (avoids download→cloudNotes import).
  */
 function onSlideAutoCropped(event: Event): void {
   if (!(event instanceof CustomEvent)) return
@@ -378,13 +274,16 @@ function onSlidesClearedEvent(event: Event): void {
   const { instanceId } = event.detail ?? {}
   if (typeof instanceId !== 'string') return
   const entry = findEntryByInstance(instanceId)
-  if (entry) pendingSlides.delete(entry.tabId)
+  if (!entry) return
+  pendingSlides.delete(entry.tabId)
+  dropQueued(entry.tabId)
 }
 
 /**
  * Called by PlaybackPage when extraction stops (after any in-flight pass has
  * finished flushing). Remaining buffered slides never got a completed pass —
- * drop them rather than upload unverified captures.
+ * drop them rather than send unverified captures. Kept slides still waiting for
+ * an Obsidian note are dropped too.
  */
 export function onExtractionStopped(tabId: string): void {
   const pending = pendingSlides.get(tabId)
@@ -392,6 +291,7 @@ export function onExtractionStopped(tabId: string): void {
     log.debug(`dropping ${pending.size} un-cleared slide(s) for stopped tab ${tabId}`)
   }
   pendingSlides.delete(tabId)
+  dropQueued(tabId)
 }
 
 // ── Panel-facing API ────────────────────────────────────────────────────────
@@ -402,46 +302,46 @@ export const activeEntry = computed<WatchNoteEntry | null>(() => {
   return id ? state.entries[id] ?? null : null
 })
 
-/** Whether the right panel should offer the Notes tab (watch-sync + a playback tab). */
+/** Whether the right panel should offer the Notes tab (watch notes on + a playback tab). */
 export const notesTabAvailable = computed<boolean>(
   () => watchSyncActive() && tabStore.state.activeTabId != null,
 )
 
-/** WatchNotesPanel registers its live editor for the active tab. */
-export function registerActiveEditor(binding: ActiveEditorBinding): void {
-  activeEditor = binding
-}
-
-export function unregisterActiveEditor(tabId: string): void {
-  if (activeEditor?.tabId === tabId) activeEditor = null
-}
-
-/** Sync an entry's working content back from the live editor (called on flush/leave). */
+/** Sync a Yanhekt entry's working content back from the live editor. */
 export function commitEditorContent(tabId: string, content: OutputData): void {
   const entry = state.entries[tabId]
-  if (!entry) return
-  entry.content = content
-  if (entry.noteId != null) {
-    const existing = saveTimers.get(tabId)
-    if (existing) clearTimeout(existing)
-    saveTimers.delete(tabId)
-    void api()
-      .updateContent(entry.noteId, JSON.stringify(content))
-      .catch((err) => log.warn('watch note flush failed', err))
-  }
+  if (entry?.provider === 'yanhekt') commitYanhektContent(entry, content)
 }
 
-// Prune entries whose tab was closed (leave the cloud note intact).
+function obsidianEntry(tabId: string): ObsidianWatchNoteEntry | null {
+  const entry = state.entries[tabId]
+  return entry?.provider === 'obsidian' ? entry : null
+}
+
+/** Notes tab → Create Lecture Note (configured vault). */
+export async function createObsidianNote(tabId: string): Promise<void> {
+  const entry = obsidianEntry(tabId)
+  if (!entry) return
+  if (await createLectureNote(entry)) flushQueued(entry)
+}
+
+/** Notes tab → Choose Note…: any `.md`, this lecture only. */
+export async function chooseObsidianNote(tabId: string): Promise<void> {
+  const entry = obsidianEntry(tabId)
+  if (!entry) return
+  if (await chooseNote(entry)) flushQueued(entry)
+}
+
+// Prune entries whose tab was closed (leave the note itself intact).
 watch(
   () => tabStore.state.tabs.map((t) => t.id).join(','),
   () => {
     const live = new Set(tabStore.state.tabs.map((t) => t.id))
-    for (const id of Object.keys(state.entries)) {
+    for (const [id, entry] of Object.entries(state.entries)) {
       if (!live.has(id)) {
-        const timer = saveTimers.get(id)
-        if (timer) clearTimeout(timer)
-        saveTimers.delete(id)
+        sinkFor(entry).dispose(id)
         pendingSlides.delete(id)
+        keptQueue.delete(id)
         flushChains.delete(id)
         delete state.entries[id]
       }
@@ -449,7 +349,7 @@ watch(
   },
 )
 
-// When watch-sync is turned off or storage becomes unusable, fall back off Notes.
+// When watch notes are turned off or the provider can't take notes, fall back off Notes.
 watch(
   () => notesTabAvailable.value,
   (available) => {
@@ -459,14 +359,14 @@ watch(
 
 // Module-level subscriptions: the pipeline's per-slide event, the playback
 // page's per-pass post-processing outcome, gallery clears, and auto-crop
-// success refreshes for still-pending note uploads.
+// success refreshes for still-pending slides.
 window.addEventListener('slideExtracted', onSlideExtracted)
 window.addEventListener('slidesPostProcessed', onSlidesPostProcessed)
 window.addEventListener('slidesCleared', onSlidesClearedEvent)
 window.addEventListener('slideAutoCropped', onSlideAutoCropped)
 
 /**
- * Inject a ready watch-note entry without going through extraction.
+ * Inject a ready Yanhekt watch-note entry without going through extraction.
  * Used by demo mode (and tests) so the Notes tab can render offline.
  */
 export function seedWatchNoteEntry(entry: {
@@ -476,14 +376,18 @@ export function seedWatchNoteEntry(entry: {
   displayName: string
   content: OutputData
 }): void {
-  state.entries[entry.tabId] = {
+  const seeded: YanhektWatchNoteEntry = {
     tabId: entry.tabId,
     instanceId: entry.instanceId ?? 'seeded',
+    provider: 'yanhekt',
     noteId: entry.noteId ?? null,
     displayName: entry.displayName,
+    identity: {},
+    slidesFolderName: `${SLIDE_FOLDER_PREFIX}AutoSlides`,
     status: 'ready',
     content: entry.content,
   }
+  state.entries[entry.tabId] = seeded
 }
 
 export const watchNotesStore = {
@@ -494,6 +398,8 @@ export const watchNotesStore = {
   registerActiveEditor,
   unregisterActiveEditor,
   commitEditorContent,
+  createObsidianNote,
+  chooseObsidianNote,
   watchSyncActive,
   seedWatchNoteEntry,
 }
