@@ -6,7 +6,7 @@ import { appUserAgent } from '@main/infra/appUserAgent';
 import type { ConfigService } from '@main/platform/configService';
 const log = createLogger('PlatformApiClient');
 
-import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
+import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
 
 export interface TagItem {
@@ -77,13 +77,40 @@ interface SessionListApiResponse extends BaseApiResponse {
 }
 
 // GET /v1/video?id= — the ONLY cbiz hop that returns the classroom SubAudio
-// sidecar. Deliberately narrow: `main`/`vga` duplicate what the session list
-// already gave us, and `audio_origin` has been identical to `audio` in every
-// sample, so only `audio` is modelled.
+// sidecar. `main`/`vga` duplicate what the session list gives a signed-in
+// course page, but are the only VOD source for download-by-session-id.
+// `audio_origin` has been identical to `audio` in every sample, so only
+// `audio` is modelled.
 interface VideoDetailApiResponse extends BaseApiResponse {
   data: {
     id: number | string;
+    main?: string;
+    vga?: string;
+    duration?: string | number;
     audio?: string;
+  };
+}
+
+// GET /v1/course/session?session_id=&with_video=true — session detail by id.
+// Only the fields download-by-session-id reads are modelled.
+interface SessionDetailApiResponse extends BaseApiResponse {
+  data: {
+    id: number | string;
+    course_id: number | string;
+    title: string;
+    week_number: number;
+    day: number | string;
+    started_at: string;
+    ended_at: string;
+    video_ids?: Array<number | string>;
+    course?: {
+      id: number | string;
+      name_zh?: string;
+      name_en?: string;
+      college_name?: string;
+      school_year?: string;
+      semester?: number | string;
+    };
   };
 }
 
@@ -625,6 +652,70 @@ export class ApiClient {
    */
   async getSessionById(sessionId: string, token: string): Promise<unknown> {
     return this.makeRequest('GET', this.sessionDetailUrl(sessionId), token, undefined, { allowAnonymous: true });
+  }
+
+  /**
+   * Resolve one recorded session for download from its id alone.
+   *
+   * Two hops, both anonymous-ok and both routed through `allowAnonymous` so
+   * Settings → Network "prefer anonymous requests" is honored exactly like the
+   * course pages: session detail by id (title, schedule, nested course,
+   * `video_ids`), then `GET /v1/video` for the first video's camera/screen/mic
+   * URLs. The session *list* is never touched, which is what makes a known
+   * session downloadable without a course page.
+   *
+   * Throws a user-readable message when the session does not exist or has no
+   * recording yet.
+   */
+  async getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo> {
+    const detail = await this.makeRequest('GET', this.sessionDetailUrl(sessionId), token, undefined, {
+      allowAnonymous: true,
+    }) as SessionDetailApiResponse;
+
+    if ((detail.code !== 0 && detail.code !== "0") || !detail.data || Array.isArray(detail.data) || !detail.data.id) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    const s = detail.data;
+    const videoId = s.video_ids && s.video_ids.length > 0 ? String(s.video_ids[0]) : '';
+    if (!videoId) {
+      throw new Error(`Session ${sessionId} has no recording yet`);
+    }
+
+    const video = await this.makeRequest('GET', `https://cbiz.yanhekt.cn/v1/video?id=${encodeURIComponent(videoId)}`, token, undefined, {
+      allowAnonymous: true,
+    }) as VideoDetailApiResponse;
+
+    if (video.code !== 0 && video.code !== "0") {
+      throw new Error(`Failed to get video for session ${sessionId}: ${video.message}`);
+    }
+
+    const v = video.data || { id: videoId };
+    const courseId = String(s.course?.id ?? s.course_id);
+    return {
+      session: {
+        id: videoId,
+        session_id: String(s.id),
+        video_id: videoId,
+        title: s.title,
+        duration: parseInt(String(v.duration ?? 0)) || 0,
+        week_number: s.week_number,
+        day: Number(s.day),
+        started_at: s.started_at,
+        ended_at: s.ended_at,
+        main_url: v.main?.trim() || '',
+        vga_url: v.vga?.trim() || '',
+      },
+      course: {
+        id: courseId,
+        title: s.course?.name_zh?.trim() || '',
+        titleEn: s.course?.name_en?.trim() || undefined,
+        college_name: s.course?.college_name,
+        school_year: s.course?.school_year,
+        semester: s.course?.semester,
+      },
+      audioUrl: v.audio?.trim() || undefined,
+    };
   }
 
   /**

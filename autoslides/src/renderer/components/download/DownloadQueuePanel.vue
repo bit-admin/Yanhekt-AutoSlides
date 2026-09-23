@@ -169,6 +169,40 @@
       </div>
       <p>{{ $t('downloads.noDownloads') }}</p>
     </div>
+
+    <form class="session-download" @submit.prevent="submitSessionDownload">
+      <div class="session-download-row">
+        <input
+          v-model="sessionInput"
+          class="text-input session-download-input"
+          type="text"
+          spellcheck="false"
+          :placeholder="$t('downloads.bySession.placeholder')"
+          :aria-label="$t('downloads.bySession.placeholder')"
+        />
+        <select
+          v-model="sessionVideoType"
+          class="select-field session-download-type"
+          :aria-label="$t('downloads.bySession.type')"
+        >
+          <option value="camera">{{ $t('downloads.bySession.camera') }}</option>
+          <option value="screen">{{ $t('downloads.bySession.screen') }}</option>
+          <option value="audio">{{ $t('downloads.bySession.audio') }}</option>
+        </select>
+        <button
+          type="submit"
+          class="btn btn--sm session-download-btn"
+          :disabled="sessionBusy || !sessionInput.trim()"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          {{ sessionBusy ? $t('downloads.bySession.resolving') : $t('downloads.bySession.download') }}
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 
@@ -179,6 +213,7 @@ import { ExtractionQueue } from '@shared/services/extractionQueueService'
 import { PostProcessingService, type PostProcessJob } from '@shared/services/postProcessingService'
 import { fromJobProgress } from '@shared/postProcessing/displayAdapter'
 import PostProcessingProgressBar from '@renderer/components/video/PostProcessingProgressBar.vue'
+import { useSessionIdDownload } from '@features/download/useSessionIdDownload'
 
 defineProps<{
   highlightedDownloadId: string | null
@@ -186,6 +221,13 @@ defineProps<{
 }>()
 
 const downloadItems = computed(() => DownloadService.downloadItems)
+
+const {
+  input: sessionInput,
+  videoType: sessionVideoType,
+  busy: sessionBusy,
+  submit: submitSessionDownload,
+} = useSessionIdDownload()
 
 // The extraction queue passes the download item's id as the post-processing
 // job's taskId, so a reverse lookup by taskId works.
@@ -220,8 +262,9 @@ const extractionBarWidth = (item: DownloadItem): number => {
 
 <style scoped>
 .download-content {
-  padding: 16px;
-  height: 100%;
+  padding: 16px 16px 0;
+  box-sizing: border-box;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -420,6 +463,50 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 /* .empty-queue / .empty-icon / .empty-queue p are shared (components.css). */
+
+/* Download by session id/URL. Sticky so it stays reachable under a long queue;
+   the panel grows with the list (min-height) so sticky has room to work. */
+.session-download {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-page-alt);
+}
+
+.session-download-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 24px;
+}
+
+/* Sized to the header's .btn--sm (Cancel All / Clear): 24px tall, 11px text.
+   The shared field classes default to the 30px --control-height. */
+.session-download-input,
+.session-download-type {
+  min-height: 0;
+  height: 100%;
+  font-size: 11px;
+}
+
+.session-download-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.session-download-type {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 0 4px;
+}
+
+.session-download-btn {
+  flex: 0 0 auto;
+}
+
 
 
 </style>

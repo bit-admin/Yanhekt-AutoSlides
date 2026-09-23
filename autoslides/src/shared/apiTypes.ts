@@ -125,6 +125,27 @@ export interface SessionData {
   vga_url?: string;
 }
 
+/**
+ * One recorded session resolved from its id alone — the "download by session
+ * id" path. Built from two anonymous-ok hops (`GET /v1/course/session` for the
+ * session + nested course, then `GET /v1/video` for the VOD/mic URLs), so it
+ * needs no course session list. The download itself still requires sign-in.
+ */
+export interface SessionDownloadInfo {
+  session: SessionData;
+  course: {
+    id: string;
+    /** Chinese course name — canonical, feeds filenames like every other download. */
+    title: string;
+    titleEn?: string;
+    college_name?: string;
+    school_year?: string;
+    semester?: number | string;
+  };
+  /** Classroom mic `.aac`, when the room recorded one. */
+  audioUrl?: string;
+}
+
 export interface CourseInfoResponse {
   course_id: string;
   /** Chinese course name (name_zh). The canonical title — filenames, note titles,

@@ -645,6 +645,20 @@
     "completed": "已完成",
     "error": "错误",
     "noDownloads": "下载队列为空",
+    "bySession": {
+      "placeholder": "课程节次 ID 或链接",
+      "type": "下载类型",
+      "camera": "摄像头",
+      "screen": "屏幕",
+      "audio": "麦克风",
+      "download": "下载",
+      "resolving": "加载中…",
+      "courseNotSession": "这是课程链接。请在延河课堂打开某一节课，粘贴该节课的链接（…/session/<id>）。",
+      "invalid": "请输入课程节次 ID 或延河课堂节次链接，例如 https://www.yanhekt.cn/session/901560。",
+      "noStream": "这节课没有该路录像。",
+      "failed": "无法加载节次 {id}。请检查 ID 和网络连接。",
+      "signInRequired": "请先登录再下载。"
+    },
     "extraction": {
       "waiting": "等待前一项提取完成…",
       "extracting": "提取幻灯片中",

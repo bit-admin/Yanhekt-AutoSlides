@@ -957,7 +957,7 @@ Probe: **29** sessions; first row is `751843`:
 
 #### `GET /v1/course/session?session_id=751843&with_video=true`
 
-Anonymous. Desktop `getSessionById` is **unused** (kept so the two session hops stay distinct). Share `fetchSession` / `fetchLectureMeta` use this. Nested `course` has **no professors** and empty `image_url`; overlay `/v1/course` for those. `with_video=true` still does **not** attach `videos[]` — only `video_ids`. Recover VOD via `/v1/video?id=` or the authenticated list.
+Anonymous. Desktop `getSessionById` is **unused**, but the same hop backs `getSessionDownloadInfo` (Download panel → download by session id/URL). Share `fetchSession` / `fetchLectureMeta` use this. Nested `course` has **no professors** and empty `image_url`; overlay `/v1/course` for those. `with_video=true` still does **not** attach `videos[]` — only `video_ids`. Recover VOD via `/v1/video?id=` or the authenticated list.
 
 ```json
 {
@@ -1116,7 +1116,7 @@ Anonymous. `id=0` is what we send (the official site sometimes sends a badge; `0
 
 #### `GET /v1/video?id=456913`
 
-Anonymous. Not on the web allowlist; desktop does not call it in production (session **list** already has `videos[]`). Documented because session-by-id only returns `video_ids`:
+Anonymous. Not on the web allowlist. Desktop calls it for the mic URL (`getVideoAssets`) and for download by session id (`getSessionDownloadInfo`, session-by-id → `video_ids[0]` → here), since session-by-id only returns `video_ids`:
 
 ```json
 {
@@ -1137,7 +1137,7 @@ Anonymous. Not on the web allowlist; desktop does not call it in production (ses
 }
 ```
 
-`main` = camera, `vga` = screen. Those two `.m3u8` URLs are **not** playable raw (CDN **403** until path-encrypt + query signature). AutoSlides never calls this endpoint in production — the authenticated session **list** already has `videos[].main` / `vga`.
+`main` = camera, `vga` = screen. Those two `.m3u8` URLs are **not** playable raw (CDN **403** until path-encrypt + query signature). Course pages take `main` / `vga` from the authenticated session **list** instead; only download-by-session-id reads them from here.
 
 **`audio` / `audio_origin` — classroom SubAudio sidecar.** Among the cbiz hops this repo uses, **only** `GET /v1/video` returns them. They are absent from:
 

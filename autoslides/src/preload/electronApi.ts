@@ -47,6 +47,7 @@ import type {
   CourseData,
   SubscriptionListResponse,
   CourseInfoResponse,
+  SessionDownloadInfo,
   SemesterOption,
 } from '../shared/apiTypes';
 
@@ -510,6 +511,8 @@ export interface ElectronAPI {
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
     /** Mic-audio URL for one video id (GET /v1/video). Absent when the room recorded no mic. */
     getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;
+    /** Download-by-session-id: session detail + VOD/mic URLs from two anonymous-ok hops. */
+    getSessionDownloadInfo: (sessionId: string, token: string) => Promise<SessionDownloadInfo>;
     /** Raw `user_progress` off GET /v1/course/session — `[]`, an object, or null. Parse with `@common/watchProgress`. */
     getSessionProgress: (sessionId: string, token: string) => Promise<unknown>;
     /** PUT the playhead for a recorded session (5-second grid, like the official player). */

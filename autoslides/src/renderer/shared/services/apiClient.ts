@@ -4,8 +4,8 @@ import { parseUserProgress, progressBucket, resumePositionFor, type SessionWatch
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesApiClient');
 
-import type { TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
-export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
+import type { TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
+export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
 export type { SessionWatchProgress };
 
 // The data source ApiClient delegates to. Default = the real preload bridge;
@@ -22,6 +22,7 @@ export interface ApiTransport {
   unsubscribeCourse(token: string, courseId: string): Promise<void>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
   getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }>;
+  getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo>;
   getSessionProgress(sessionId: string, token: string): Promise<unknown>;
   reportSessionProgress(sessionId: string, seconds: number, token: string): Promise<void>;
   getAvailableSemesters(): Promise<SemesterOption[]>;
@@ -39,6 +40,7 @@ const realApiTransport: ApiTransport = {
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
   getVideoAssets: (videoId, token) => window.electronAPI.api.getVideoAssets(videoId, token),
+  getSessionDownloadInfo: (sessionId, token) => window.electronAPI.api.getSessionDownloadInfo(sessionId, token),
   getSessionProgress: (sessionId, token) => window.electronAPI.api.getSessionProgress(sessionId, token),
   reportSessionProgress: (sessionId, seconds, token) =>
     window.electronAPI.api.reportSessionProgress(sessionId, seconds, token),
@@ -269,6 +271,21 @@ export class ApiClient {
       log.error('Failed to get mic audio URL:', error);
       return undefined;
     }
+  }
+
+  /**
+   * Resolve a recorded session for download from its id alone (no course page,
+   * no session list). Throws with a user-readable message when the session does
+   * not exist or has no recording.
+   *
+   * The same `/v1/video` hop already answered the mic question, so the answer
+   * is dropped into the mic memo — the download queue's own later lookup for an
+   * audio item then costs nothing.
+   */
+  async getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo> {
+    const info = await this.transport.getSessionDownloadInfo(sessionId, token);
+    if (info.session.video_id) audioUrlCache.set(info.session.video_id, info.audioUrl);
+    return info;
   }
 
   /**

@@ -645,6 +645,20 @@
     "completed": "完了",
     "error": "エラー",
     "noDownloads": "ダウンロードキューは空です",
+    "bySession": {
+      "placeholder": "セッション ID または URL",
+      "type": "ダウンロード種別",
+      "camera": "カメラ",
+      "screen": "画面",
+      "audio": "マイク",
+      "download": "ダウンロード",
+      "resolving": "読み込み中…",
+      "courseNotSession": "これはコースのリンクです。yanhekt.cn で講義を開き、そのセッションのリンク（…/session/<id>）を貼り付けてください。",
+      "invalid": "セッション ID または yanhekt.cn のセッションリンクを入力してください（例：https://www.yanhekt.cn/session/901560）。",
+      "noStream": "このセッションにはそのストリームの録画がありません。",
+      "failed": "セッション {id} を読み込めませんでした。ID と接続を確認してください。",
+      "signInRequired": "ダウンロードするにはサインインしてください。"
+    },
     "extraction": {
       "waiting": "前の抽出を待機中…",
       "extracting": "スライド抽出中",

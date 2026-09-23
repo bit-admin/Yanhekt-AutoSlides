@@ -33,10 +33,11 @@ export function registerDownloadIpcHandlers(services: IpcServices): void {
 
   /**
    * Mic-audio download. Separate from `download:start` because the `.aac` is
-   * unsigned — it needs no login token, and requiring one (as the m3u8 path
-   * does) would refuse a download that would otherwise succeed. It reports on
-   * the SAME three broadcast channels, so the renderer's listener wiring is
-   * shared with video downloads.
+   * unsigned — no video token, no path-encrypt. Downloading is still a
+   * signed-in feature like every other download, so the same login check as
+   * `download:start` gates it even though the CDN itself would not ask. It
+   * reports on the SAME three broadcast channels, so the renderer's listener
+   * wiring is shared with video downloads.
    */
   ipcMain.handle('download:startAudio', async (event, downloadId: string, audioUrl: string, outputName: string) => {
     const progressCallback = (progress: { current: number; total: number; phase: number }) => {
@@ -46,6 +47,10 @@ export function registerDownloadIpcHandlers(services: IpcServices): void {
     };
 
     try {
+      if (!configService.getAuthToken()) {
+        throw new Error('Authentication token not found. Please sign in again.');
+      }
+
       await audioDownloadService.startDownload(downloadId, audioUrl, outputName, progressCallback);
       if (!event.sender.isDestroyed()) {
         event.sender.send('download:completed', downloadId);

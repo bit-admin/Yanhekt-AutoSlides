@@ -68,6 +68,10 @@ const demoApiTransport: ApiTransport = {
   getCourseInfo: async (courseId: string) => demoCourseInfo(courseId),
   // Demo ships no media, so no lecture has a mic track.
   getVideoAssets: async () => ({}),
+  // Demo ships no media, so there is nothing to download by session id.
+  getSessionDownloadInfo: async (sessionId: string) => {
+    throw new Error(`Session ${sessionId} not found`)
+  },
   // Nothing was ever watched on a server the demo never talks to.
   getSessionProgress: async () => null,
   reportSessionProgress: async () => undefined,
