@@ -100,7 +100,17 @@
           </div>
 
           <div class="detail-info">
-            <h1 class="detail-title">{{ activeCourse.title }}</h1>
+            <div class="detail-title-row">
+              <h1 class="detail-title">{{ activeCourse.title }}</h1>
+              <a
+                v-if="yanhektCourseUrl"
+                class="about-link detail-title-link"
+                :href="yanhektCourseUrl"
+                @click.prevent="openYanhektCourse"
+              >
+                {{ $t('lectures.libraryYanhektCourse') }}
+              </a>
+            </div>
 
             <div class="detail-chips">
               <span v-if="activeCourse.schoolYear" class="chip">{{ activeCourse.schoolYear }}</span>
@@ -261,6 +271,20 @@
             </button>
           </div>
         </section>
+
+        <section v-if="about" class="about-section">
+          <h2 class="about-heading">{{ $t('lectures.libraryAbout') }}</h2>
+          <dl class="about-list">
+            <div v-if="storageLine" class="about-row">
+              <dt>{{ $t('lectures.libraryStorage') }}</dt>
+              <dd>{{ storageLine }}</dd>
+            </div>
+            <div class="about-row">
+              <dt>{{ $t('lectures.libraryContent') }}</dt>
+              <dd>{{ contentLine }}</dd>
+            </div>
+          </dl>
+        </section>
       </div>
     </template>
   </div>
@@ -268,11 +292,13 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   formatLibraryBytes,
   formatLibrarySemester,
   formatSessionDate,
   sessionTotalBytes,
+  summarizeLibraryCourse,
   type LibraryCourse,
   type LibrarySession,
 } from '@features/lectures/libraryModel'
@@ -293,6 +319,49 @@ const emit = defineEmits<{
   (e: 'play-session', courseId: string, session: LibrarySession): void
   (e: 'need-poster', path: string): void
 }>()
+
+const { t } = useI18n()
+
+const about = computed(() => (props.activeCourse ? summarizeLibraryCourse(props.activeCourse) : null))
+
+// Two lines, Emby-style: what the course costs on disk, and what it covers.
+const storageLine = computed(() => {
+  const a = about.value
+  if (!a) return ''
+  const parts: string[] = []
+  if (a.totalBytes > 0) parts.push(formatLibraryBytes(a.totalBytes))
+  if (a.fileCount > 0) parts.push(t('lectures.libraryFileCount', { count: a.fileCount }))
+  if (a.micCount > 0) parts.push(t('lectures.libraryMicCount', { count: a.micCount }))
+  return parts.join(' · ')
+})
+
+const contentLine = computed(() => {
+  const a = about.value
+  if (!a) return ''
+  const parts = [t('lectures.libraryEpisodeCount', { count: a.episodeCount })]
+  const range = a.weekRange
+  if (range) {
+    parts.push(
+      range.from === range.to
+        ? t('lectures.libraryWeekSingle', { week: range.from })
+        : t('lectures.libraryWeekRange', { from: range.from, to: range.to }),
+    )
+  }
+  if (a.slidesCount > 0) {
+    parts.push(t('lectures.librarySlidesCount', { count: a.slidesCount, total: a.episodeCount }))
+  }
+  return parts.join(' · ')
+})
+
+// Course ids are numeric on Yanhekt; a folder-derived id that isn't has no page.
+const yanhektCourseUrl = computed(() => {
+  const id = props.activeCourse?.courseId
+  return id && /^\d+$/.test(id) ? `https://www.yanhekt.cn/course/${id}` : ''
+})
+
+const openYanhektCourse = () => {
+  if (yanhektCourseUrl.value) void window.electronAPI.shell.openExternal(yanhektCourseUrl.value)
+}
 
 const firstPlayable = computed(() => props.activeCourse?.sessions[0] || null)
 
@@ -707,7 +776,21 @@ watch(
   padding-top: 4px;
 }
 
+.detail-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  min-width: 0;
+}
+
+.detail-title-link {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .detail-title {
+  min-width: 0;
   margin: 0;
   font-size: 28px;
   font-weight: 700;
@@ -808,6 +891,52 @@ watch(
 .btn-play:hover {
   opacity: 0.92;
   transform: translateY(-1px);
+}
+
+/* ── About ───────────────────────────────────────────────────────── */
+.about-section {
+  position: relative;
+  z-index: var(--z-base);
+  margin-top: 24px;
+}
+
+.about-heading {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.about-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.about-row dt {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.about-row dd {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.about-link {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 2px;
+}
+
+.about-link:hover {
+  color: var(--text-primary);
+  text-decoration-color: currentColor;
 }
 
 /* ── Episodes ────────────────────────────────────────────────────── */

@@ -13,6 +13,8 @@ import {
   sessionTotalBytes,
   sessionHasLocalVideo,
   slideSeedFromFolder,
+  summarizeLibraryCourse,
+  type LibraryCourse,
   type LibraryFileRef,
   type LibrarySession,
   type LibrarySlideSeed,
@@ -435,5 +437,44 @@ describe('mic audio (.aac)', () => {
     expect(courses[0].micCount).toBe(1)
     expect(courses[0].dualCount).toBe(0)
     expect(sessionTotalBytes(courses[0].sessions[0])).toBe(105)
+  })
+})
+
+describe('summarizeLibraryCourse', () => {
+  const file = (size: number): LibraryFileRef => ({
+    path: '/x',
+    name: 'x',
+    size,
+    mtimeMs: 1,
+    videoType: 'screen',
+    displayName: 'x',
+    hasEmbyTags: false,
+  })
+  const course = (sessions: LibrarySession[]): LibraryCourse => ({
+    courseId: '1',
+    title: 'c',
+    sessions,
+    episodeCount: sessions.length,
+    fileCount: 3,
+    dualCount: 1,
+    micCount: 1,
+  })
+
+  it('sums local bytes, spans weeks from titles or metadata, counts slides', () => {
+    const about = summarizeLibraryCourse(
+      course([
+        { sessionId: 'a', title: '第3周_星期二_第5大节', episode: 1, screen: file(10), camera: file(20) },
+        { sessionId: 'b', title: 'x', episode: 2, weekNumber: 11, audio: file(5), slideFolderPath: '/s' },
+        { sessionId: 'c', title: 'no week', episode: 3, slideFolderPath: '/t' },
+      ]),
+    )
+    expect(about.totalBytes).toBe(35)
+    expect(about.weekRange).toEqual({ from: 3, to: 11 })
+    expect(about.slidesCount).toBe(2)
+    expect(about.episodeCount).toBe(3)
+  })
+
+  it('has no week range when nothing names a week', () => {
+    expect(summarizeLibraryCourse(course([{ sessionId: 'a', title: 'x', episode: null }])).weekRange).toBeNull()
   })
 })

@@ -479,3 +479,39 @@ export function formatSessionDate(
 export function sessionTotalBytes(session: LibrarySession): number {
   return (session.screen?.size || 0) + (session.camera?.size || 0) + (session.audio?.size || 0)
 }
+
+/** Numbers behind the course page's About section — local files only, no API. */
+export interface LibraryCourseAbout {
+  totalBytes: number
+  fileCount: number
+  micCount: number
+  episodeCount: number
+  /** Lowest/highest teaching week, or null when no session names a week. */
+  weekRange: { from: number; to: number } | null
+  /** Sessions matched to a slides_* folder with a timeline. */
+  slidesCount: number
+}
+
+export function summarizeLibraryCourse(course: LibraryCourse): LibraryCourseAbout {
+  let totalBytes = 0
+  let from = Infinity
+  let to = -Infinity
+  let slidesCount = 0
+  for (const s of course.sessions) {
+    totalBytes += sessionTotalBytes(s)
+    const week = s.weekNumber ?? parseSessionTitle(s.title)?.weekNumber
+    if (week != null && week > 0) {
+      from = Math.min(from, week)
+      to = Math.max(to, week)
+    }
+    if (s.slideFolderPath) slidesCount += 1
+  }
+  return {
+    totalBytes,
+    fileCount: course.fileCount,
+    micCount: course.micCount,
+    episodeCount: course.episodeCount,
+    weekRange: Number.isFinite(from) ? { from, to } : null,
+    slidesCount,
+  }
+}
