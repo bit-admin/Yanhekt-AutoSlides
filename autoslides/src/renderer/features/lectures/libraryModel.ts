@@ -3,7 +3,7 @@
 // and a timeline.json. List view stays video-only; Library may show slides-only
 // sessions and play their streams online.
 
-import { formatLectureDisplayName, parseLectureIds } from '@common/lectureNaming'
+import { formatLectureDisplayName, parseLectureIds, parseSessionTitle } from '@common/lectureNaming'
 import {
   episodeIndexForSession,
   isLectureAudioExt,
@@ -335,22 +335,7 @@ export function buildLibraryCourses(
       sessions.push(session)
     }
 
-    // Sort by episode index when known, else by week/day/startedAt/title.
-    sessions.sort((a, b) => {
-      if (a.episode != null && b.episode != null && a.episode !== b.episode) {
-        return a.episode - b.episode
-      }
-      if (a.episode != null && b.episode == null) return -1
-      if (a.episode == null && b.episode != null) return 1
-      const w = (a.weekNumber ?? 0) - (b.weekNumber ?? 0)
-      if (w !== 0) return w
-      const d = (a.day ?? 0) - (b.day ?? 0)
-      if (d !== 0) return d
-      const sa = a.startedAt || ''
-      const sb = b.startedAt || ''
-      if (sa !== sb) return sa < sb ? -1 : 1
-      return a.title.localeCompare(b.title, 'zh')
-    })
+    sessions.sort(compareLibrarySessions)
 
     let fileCount = 0
     let dualCount = 0
@@ -403,6 +388,45 @@ export function findLibrarySession(
 /** Human semester label: "S01" / "1" → "S01". Empty when unknown. */
 export function formatLibrarySemester(semester?: string | number | null): string {
   return formatSemesterToken(semester)
+}
+
+/**
+ * Episode order within a course: episode index when course metadata was
+ * fetched, else week/day/section. Offline there is no metadata, so week/day
+ * come from the title itself (`第10周_星期二_第5大节`) — the same rule the
+ * Slides folder list uses — instead of a plain string compare that puts
+ * 第10周 before 第1周. Sessions whose order is unknown go last.
+ */
+export function compareLibrarySessions(a: LibrarySession, b: LibrarySession): number {
+  if (a.episode != null && b.episode != null && a.episode !== b.episode) {
+    return a.episode - b.episode
+  }
+  if (a.episode != null && b.episode == null) return -1
+  if (a.episode == null && b.episode != null) return 1
+
+  const ka = sessionOrderKey(a)
+  const kb = sessionOrderKey(b)
+  if (ka && !kb) return -1
+  if (!ka && kb) return 1
+  if (ka && kb) {
+    if (ka.week !== kb.week) return ka.week - kb.week
+    if (ka.day !== kb.day) return ka.day - kb.day
+    if (ka.section !== kb.section) return ka.section - kb.section
+  }
+
+  const sa = a.startedAt || ''
+  const sb = b.startedAt || ''
+  if (sa !== sb) return sa < sb ? -1 : 1
+  return a.title.localeCompare(b.title, 'zh', { numeric: true })
+}
+
+function sessionOrderKey(
+  session: LibrarySession,
+): { week: number; day: number; section: number } | null {
+  const parsed = parseSessionTitle(session.title)
+  const week = session.weekNumber ?? parsed?.weekNumber
+  if (week == null) return null
+  return { week, day: session.day ?? parsed?.day ?? 0, section: parsed?.section ?? 0 }
 }
 
 /** Compact file size for episode cards. */

@@ -212,6 +212,39 @@ describe('buildLibraryCourses', () => {
   })
 })
 
+describe('session order without course metadata', () => {
+  it('orders by the week/day/section in the title, not by string', () => {
+    const titles = ['第10周_星期二_第5大节', '第11周_星期二_第5大节', '第1周_星期二_第5大节', '第2周_星期二_第5大节', '第1周_星期一_第3大节']
+    const seeds: LibrarySlideSeed[] = titles.map((title, i) => ({
+      courseId: '9',
+      sessionId: String(100 + i),
+      folderPath: `/out/slides_Law_${title}__c9s${100 + i}`,
+      folderName: `slides_Law_${title}__c9s${100 + i}`,
+      fallbackTitle: `Law_${title}`,
+    }))
+    const sessions = buildLibraryCourses([], new Map(), seeds)[0].sessions
+    expect(sessions.map((s) => s.title)).toEqual([
+      '第1周_星期一_第3大节',
+      '第1周_星期二_第5大节',
+      '第2周_星期二_第5大节',
+      '第10周_星期二_第5大节',
+      '第11周_星期二_第5大节',
+    ])
+  })
+
+  it('puts sessions with no parseable order last, in natural order', () => {
+    const seeds: LibrarySlideSeed[] = ['Extra 10', 'Extra 2', '第3周_星期二_第5大节'].map((title, i) => ({
+      courseId: '9',
+      sessionId: String(200 + i),
+      folderPath: `/out/x${i}`,
+      folderName: `x${i}`,
+      fallbackTitle: `Law_${title}`,
+    }))
+    const sessions = buildLibraryCourses([], new Map(), seeds)[0].sessions
+    expect(sessions.map((s) => s.title)).toEqual(['第3周_星期二_第5大节', 'Extra 2', 'Extra 10'])
+  })
+})
+
 describe('slideSeedFromFolder', () => {
   it('requires both course and session ids', () => {
     expect(slideSeedFromFolder({
