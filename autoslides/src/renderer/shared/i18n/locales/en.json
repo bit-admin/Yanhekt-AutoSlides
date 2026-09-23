@@ -653,8 +653,8 @@
       "audio": "Mic",
       "download": "Download",
       "resolving": "Loading…",
-      "courseNotSession": "This is a course link. Open a lecture on yanhekt.cn and paste its session link (…/session/<id>) instead.",
-      "invalid": "Enter a session ID or a yanhekt.cn session link, such as https://www.yanhekt.cn/session/901560.",
+      "courseNotSession": "This is a course link. Open a session on Yanhekt and paste its link (…/session/<id>) instead.",
+      "invalid": "Enter a session ID or a Yanhekt session link, such as https://www.yanhekt.cn/session/901560.",
       "noStream": "This session has no recording for that stream.",
       "failed": "Could not load session {id}. Check the ID and your connection.",
       "signInRequired": "Sign in to download."

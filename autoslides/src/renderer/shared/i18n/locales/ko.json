@@ -653,8 +653,8 @@
       "audio": "마이크",
       "download": "다운로드",
       "resolving": "불러오는 중…",
-      "courseNotSession": "강의 과목 링크입니다. yanhekt.cn에서 강의 한 회차를 열고 해당 세션 링크(…/session/<id>)를 붙여 넣으세요.",
-      "invalid": "세션 ID 또는 yanhekt.cn 세션 링크를 입력하세요. 예: https://www.yanhekt.cn/session/901560",
+      "courseNotSession": "강의 링크입니다. 옌허커탕에서 세션을 열고 해당 세션 링크(…/session/<id>)를 붙여 넣으세요.",
+      "invalid": "세션 ID 또는 옌허커탕 세션 링크를 입력하세요. 예: https://www.yanhekt.cn/session/901560",
       "noStream": "이 세션에는 해당 스트림의 녹화가 없습니다.",
       "failed": "세션 {id}을(를) 불러올 수 없습니다. ID와 연결을 확인하세요.",
       "signInRequired": "다운로드하려면 로그인하세요."
