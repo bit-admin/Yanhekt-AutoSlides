@@ -1474,6 +1474,8 @@
     "revealInFolder": "폴더에서 보기",
     "libraryPlay": "재생",
     "libraryEpisodes": "회차",
+    "libraryEpisodesPrev": "왼쪽으로 스크롤",
+    "libraryEpisodesNext": "오른쪽으로 스크롤",
     "libraryEpisodeCount": "{count}개 회차",
     "libraryInstructor": "교수",
     "libraryClassrooms": "강의실",

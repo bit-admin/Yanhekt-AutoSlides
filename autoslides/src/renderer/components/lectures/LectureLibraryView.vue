@@ -160,13 +160,39 @@
           <h2 class="episodes-heading">
             {{ $t('lectures.libraryEpisodes') }}
             <span class="episodes-heading-count">{{ activeCourse.sessions.length }}</span>
+            <span v-if="railOverflows" class="episodes-nav">
+              <button
+                type="button"
+                class="episodes-nav-btn"
+                :disabled="!canScrollPrev"
+                :title="$t('lectures.libraryEpisodesPrev')"
+                :aria-label="$t('lectures.libraryEpisodesPrev')"
+                @click="scrollRail(-1)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="episodes-nav-btn"
+                :disabled="!canScrollNext"
+                :title="$t('lectures.libraryEpisodesNext')"
+                :aria-label="$t('lectures.libraryEpisodesNext')"
+                @click="scrollRail(1)"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            </span>
           </h2>
 
           <div v-if="activeCourse.sessions.length === 0" class="lib-empty lib-empty--inline">
             <p>{{ $t('lectures.libraryNoEpisodes') }}</p>
           </div>
 
-          <div v-else class="episodes-grid">
+          <div v-else ref="railEl" class="episodes-rail custom-scrollbar" @scroll="updateRailState">
             <button
               v-for="session in activeCourse.sessions"
               :key="session.sessionId"
@@ -241,7 +267,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import {
   formatLibraryBytes,
   formatLibrarySemester,
@@ -283,6 +309,50 @@ const sessionBytes = (session: LibrarySession): string => {
   const n = sessionTotalBytes(session)
   return n > 0 ? formatLibraryBytes(n) : ''
 }
+
+// Episode rail: one horizontal row (Emby-style) with prev/next arrows that
+// page by the visible width. Arrows only show when the row overflows.
+const railEl = ref<HTMLElement | null>(null)
+const railOverflows = ref(false)
+const canScrollPrev = ref(false)
+const canScrollNext = ref(false)
+
+const updateRailState = () => {
+  const el = railEl.value
+  if (!el) {
+    railOverflows.value = canScrollPrev.value = canScrollNext.value = false
+    return
+  }
+  const max = el.scrollWidth - el.clientWidth
+  railOverflows.value = max > 1
+  canScrollPrev.value = el.scrollLeft > 1
+  canScrollNext.value = el.scrollLeft < max - 1
+}
+
+const scrollRail = (direction: -1 | 1) => {
+  const el = railEl.value
+  if (!el) return
+  el.scrollBy({ left: direction * Math.max(el.clientWidth * 0.9, 200), behavior: 'smooth' })
+}
+
+const railObserver = new ResizeObserver(() => updateRailState())
+watch(railEl, (el, prev) => {
+  if (prev) railObserver.unobserve(prev)
+  if (el) railObserver.observe(el)
+  updateRailState()
+})
+
+// A different course starts at its first episode.
+watch(
+  () => props.activeCourse?.courseId,
+  async () => {
+    await nextTick()
+    if (railEl.value) railEl.value.scrollLeft = 0
+    updateRailState()
+  },
+)
+
+onBeforeUnmount(() => railObserver.disconnect())
 
 // Lazy-request posters for visible cards.
 watch(
@@ -765,12 +835,58 @@ watch(
   font-variant-numeric: tabular-nums;
 }
 
-.episodes-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+.episodes-nav {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+  align-self: center;
+}
+
+.episodes-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, opacity 0.15s;
+}
+
+.episodes-nav-btn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.episodes-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* One horizontal row. Vertical padding leaves room for the card hover lift +
+   shadow, which overflow-x: auto would otherwise clip; the negative margin
+   keeps the row's visual position where the grid used to sit. */
+.episodes-rail {
+  display: flex;
   gap: 14px;
   min-width: 0;
   max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 12px;
+  margin: -4px -2px 0;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 2px;
+}
+
+.episodes-rail > .episode-card {
+  flex: 0 0 260px;
+  width: 260px;
+  scroll-snap-align: start;
 }
 
 .episode-card {

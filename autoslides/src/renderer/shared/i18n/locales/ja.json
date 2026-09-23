@@ -1474,6 +1474,8 @@
     "revealInFolder": "フォルダで表示",
     "libraryPlay": "再生",
     "libraryEpisodes": "講義一覧",
+    "libraryEpisodesPrev": "左へスクロール",
+    "libraryEpisodesNext": "右へスクロール",
     "libraryEpisodeCount": "{count} 回",
     "libraryInstructor": "教員",
     "libraryClassrooms": "教室",

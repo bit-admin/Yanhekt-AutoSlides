@@ -1474,6 +1474,8 @@
     "revealInFolder": "在文件夹中显示",
     "libraryPlay": "播放",
     "libraryEpisodes": "课时",
+    "libraryEpisodesPrev": "向左滚动",
+    "libraryEpisodesNext": "向右滚动",
     "libraryEpisodeCount": "{count} 课时",
     "libraryInstructor": "教师",
     "libraryClassrooms": "教室",

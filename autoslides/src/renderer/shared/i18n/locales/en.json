@@ -1474,6 +1474,8 @@
     "revealInFolder": "Reveal in Folder",
     "libraryPlay": "Play",
     "libraryEpisodes": "Episodes",
+    "libraryEpisodesPrev": "Scroll Left",
+    "libraryEpisodesNext": "Scroll Right",
     "libraryEpisodeCount": "{count} episodes",
     "libraryInstructor": "Instructor",
     "libraryClassrooms": "Classroom",

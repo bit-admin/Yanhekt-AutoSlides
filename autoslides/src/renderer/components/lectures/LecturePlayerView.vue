@@ -372,44 +372,120 @@
                   <rect x="17" y="14" width="4" height="6" rx="1.5"/>
                 </svg>
               </button>
-              <div v-if="showAudioPanel" class="dual-popover dual-audio-popover">
+              <div v-if="showAudioPanel" class="dual-popover dual-speed-popover">
                 <!-- In single mode there is no screen/camera choice, so the
-                     video's own track is offered as one option. -->
+                     video's own track is offered as one option. Rows mirror
+                     the stream picker: icon, label, circle-i when online. -->
                 <template v-if="isDualMode">
                   <button
                     type="button"
-                    class="dual-popover-option"
+                    class="dual-popover-option stream-hybrid-option"
                     :class="{ active: dualAudioSource === 'screen' }"
                     @click="setAudio('screen')"
                   >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <rect x="2" y="4" width="20" height="13" rx="2"/>
+                      <path d="M8 21h8"/>
+                      <path d="M12 17v4"/>
+                    </svg>
                     <span>{{ $t('playback.dual.screenAudio') }}</span>
+                    <span
+                      v-if="screenIsOnline"
+                      class="stream-hybrid-info"
+                      :title="$t('lectures.streamOnlineHint')"
+                      :aria-label="$t('lectures.streamOnlineHint')"
+                      @click.stop
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                        <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                        <circle cx="8" cy="5.15" r="0.85" fill="currentColor"/>
+                        <path d="M8 7.25v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                      </svg>
+                    </span>
                   </button>
                   <button
                     type="button"
-                    class="dual-popover-option"
+                    class="dual-popover-option stream-hybrid-option"
                     :class="{ active: dualAudioSource === 'camera' }"
                     @click="setAudio('camera')"
                   >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                      <path d="M23 7l-7 5 7 5V7z"/>
+                      <rect x="1" y="5" width="15" height="14" rx="2"/>
+                    </svg>
                     <span>{{ $t('playback.dual.cameraAudio') }}</span>
+                    <span
+                      v-if="cameraIsOnline"
+                      class="stream-hybrid-info"
+                      :title="$t('lectures.streamOnlineHint')"
+                      :aria-label="$t('lectures.streamOnlineHint')"
+                      @click.stop
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                        <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                        <circle cx="8" cy="5.15" r="0.85" fill="currentColor"/>
+                        <path d="M8 7.25v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                      </svg>
+                    </span>
                   </button>
                 </template>
                 <button
                   v-else
                   type="button"
-                  class="dual-popover-option"
+                  class="dual-popover-option stream-hybrid-option"
                   :class="{ active: dualAudioSource !== 'mic' }"
                   @click="setAudio(streamMode === 'camera' ? 'camera' : 'screen')"
                 >
+                  <svg v-if="streamMode === 'camera'" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M23 7l-7 5 7 5V7z"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2"/>
+                  </svg>
+                  <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <rect x="2" y="4" width="20" height="13" rx="2"/>
+                    <path d="M8 21h8"/>
+                    <path d="M12 17v4"/>
+                  </svg>
                   <span>{{ $t('playback.dual.streamAudio') }}</span>
+                  <span
+                    v-if="streamMode === 'camera' ? cameraIsOnline : screenIsOnline"
+                    class="stream-hybrid-info"
+                    :title="$t('lectures.streamOnlineHint')"
+                    :aria-label="$t('lectures.streamOnlineHint')"
+                    @click.stop
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                      <circle cx="8" cy="5.15" r="0.85" fill="currentColor"/>
+                      <path d="M8 7.25v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                  </span>
                 </button>
                 <button
                   v-if="hasMicAudio"
                   type="button"
-                  class="dual-popover-option"
+                  class="dual-popover-option stream-hybrid-option"
                   :class="{ active: dualAudioSource === 'mic' }"
                   @click="setAudio('mic')"
                 >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <rect x="9" y="2" width="6" height="11" rx="3"/>
+                    <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                    <path d="M12 18v4"/>
+                  </svg>
                   <span>{{ $t('playback.dual.micAudio') }}</span>
+                  <span
+                    v-if="micIsOnline"
+                    class="stream-hybrid-info"
+                    :title="$t('lectures.streamOnlineHint')"
+                    :aria-label="$t('lectures.streamOnlineHint')"
+                    @click.stop
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                      <circle cx="8" cy="5.15" r="0.85" fill="currentColor"/>
+                      <path d="M8 7.25v4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
@@ -617,6 +693,8 @@ const hasStreamChoices = computed(() => canShowDual(props.session))
 const dualIsOnline = computed(() => isScreenOnline(props.session) || isCameraOnline(props.session))
 const screenIsOnline = computed(() => isScreenOnline(props.session))
 const cameraIsOnline = computed(() => isCameraOnline(props.session))
+// The mic track is online when no local `.aac` backs it (see `micSrc`).
+const micIsOnline = computed(() => hasMicAudio.value && !props.session?.audio)
 const cameraOrder = computed(() => (isOrderSwapped.value ? 2 : 1))
 const screenOrder = computed(() => (isOrderSwapped.value ? 1 : 2))
 
