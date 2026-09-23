@@ -784,6 +784,7 @@
       "moreOptions": "추가 옵션"
     },
     "slideChapters": "슬라이드",
+    "resizeSlideChapters": "드래그하여 슬라이드 크기 조절",
     "slideOrdinal": "슬라이드 {number}",
     "watching": "시청 중",
     "postProcessTip": "저장된 모든 슬라이드에 후처리 실행",

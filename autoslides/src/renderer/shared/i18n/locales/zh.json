@@ -784,6 +784,7 @@
       "moreOptions": "更多选项"
     },
     "slideChapters": "幻灯片",
+    "resizeSlideChapters": "拖动以调整幻灯片大小",
     "slideOrdinal": "第 {number} 张",
     "watching": "正在观看",
     "postProcessTip": "对所有已保存的幻灯片运行后处理",

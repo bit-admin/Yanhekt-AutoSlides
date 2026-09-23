@@ -784,6 +784,7 @@
       "moreOptions": "More Options"
     },
     "slideChapters": "Slides",
+    "resizeSlideChapters": "Drag to resize slides",
     "slideOrdinal": "Slide {number}",
     "watching": "Watching",
     "postProcessTip": "Run post-processing on all saved slides",

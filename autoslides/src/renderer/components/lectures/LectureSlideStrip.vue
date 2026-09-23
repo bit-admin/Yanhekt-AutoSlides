@@ -1,5 +1,29 @@
 <template>
-  <div class="lecture-slide-strip" role="region" :aria-label="$t('playback.slideChapters')">
+  <div
+    ref="rootEl"
+    class="lecture-slide-strip"
+    :class="{ 'is-resizing': resizing }"
+    role="region"
+    :aria-label="$t('playback.slideChapters')"
+    :style="{ '--slide-card-width': `${cardWidth}px` }"
+  >
+    <div
+      class="strip-resize-handle"
+      role="separator"
+      aria-orientation="horizontal"
+      :aria-label="$t('playback.resizeSlideChapters')"
+      :aria-valuemin="MIN_CARD_WIDTH"
+      :aria-valuemax="maxCardWidth()"
+      :aria-valuenow="cardWidth"
+      :title="$t('playback.resizeSlideChapters')"
+      tabindex="0"
+      @pointerdown="onResizeStart"
+      @dblclick="setCardWidth(MIN_CARD_WIDTH)"
+      @keydown.up.prevent="setCardWidth(cardWidth + KEY_STEP)"
+      @keydown.down.prevent="setCardWidth(cardWidth - KEY_STEP)"
+    >
+      <span class="strip-resize-line" aria-hidden="true" />
+    </div>
     <div ref="scrollEl" class="slide-cards-scroll custom-scrollbar">
       <button
         v-for="chapter in chapters"
@@ -57,6 +81,7 @@ const emit = defineEmits<{
   (e: 'load-thumbnail', imagePath: string): void
 }>()
 
+const rootEl = ref<HTMLElement | null>(null)
 const scrollEl = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
 
@@ -118,11 +143,83 @@ function scrollActiveIntoView(): void {
   el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
 }
 
+/**
+ * Card size is driven by width (thumbs are 16:9). The original fixed 240px is
+ * the floor; dragging the line above the strip grows the row upward. The
+ * ceiling keeps the thumb row under half the player's height.
+ */
+const MIN_CARD_WIDTH = 240
+const ABS_MAX_CARD_WIDTH = 640
+const KEY_STEP = 24
+const WIDTH_STORAGE_KEY = 'autoslides.lectureSlideStrip.cardWidth'
+
+function maxCardWidth(): number {
+  const playerHeight = rootEl.value?.closest<HTMLElement>('.lecture-player')?.clientHeight ?? 0
+  if (playerHeight <= 0) return ABS_MAX_CARD_WIDTH
+  const byHeight = Math.floor(((playerHeight * 0.5) * 16) / 9)
+  return Math.max(MIN_CARD_WIDTH, Math.min(ABS_MAX_CARD_WIDTH, byHeight))
+}
+
+function readStoredWidth(): number {
+  try {
+    const n = Number(localStorage.getItem(WIDTH_STORAGE_KEY))
+    return Number.isFinite(n) && n >= MIN_CARD_WIDTH ? n : MIN_CARD_WIDTH
+  } catch {
+    return MIN_CARD_WIDTH
+  }
+}
+
+const cardWidth = ref(readStoredWidth())
+const resizing = ref(false)
+
+function setCardWidth(width: number, persist = true): void {
+  cardWidth.value = Math.round(Math.max(MIN_CARD_WIDTH, Math.min(maxCardWidth(), width)))
+  if (!persist) return
+  try {
+    localStorage.setItem(WIDTH_STORAGE_KEY, String(cardWidth.value))
+  } catch {
+    /* per-viewer convenience only */
+  }
+}
+
+function onResizeStart(e: PointerEvent): void {
+  if (e.button !== 0) return
+  e.preventDefault()
+  const handle = e.currentTarget as HTMLElement
+  const startY = e.clientY
+  const startWidth = cardWidth.value
+  resizing.value = true
+  handle.setPointerCapture(e.pointerId)
+
+  // Dragging up grows the thumb height; width follows the 16:9 ratio.
+  const onMove = (ev: PointerEvent) => {
+    setCardWidth(startWidth + ((startY - ev.clientY) * 16) / 9, false)
+  }
+  const onEnd = (ev: PointerEvent) => {
+    handle.releasePointerCapture(ev.pointerId)
+    handle.removeEventListener('pointermove', onMove)
+    handle.removeEventListener('pointerup', onEnd)
+    handle.removeEventListener('pointercancel', onEnd)
+    resizing.value = false
+    setCardWidth(cardWidth.value)
+    void nextTick(() => scrollActiveIntoView())
+  }
+  handle.addEventListener('pointermove', onMove)
+  handle.addEventListener('pointerup', onEnd)
+  handle.addEventListener('pointercancel', onEnd)
+}
+
+// Re-clamp a stored width against the current player size.
+const onWindowResize = () => setCardWidth(cardWidth.value, false)
+
 onMounted(() => {
+  setCardWidth(cardWidth.value, false)
+  window.addEventListener('resize', onWindowResize)
   void nextTick(() => setupObserver())
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', onWindowResize)
   observer?.disconnect()
   observer = null
 })
@@ -150,6 +247,38 @@ watch(
   margin: 0 0 4px;
 }
 
+.strip-resize-handle {
+  display: flex;
+  align-items: center;
+  height: 10px;
+  margin: -4px 0 2px;
+  cursor: ns-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.strip-resize-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.14);
+  transition: background-color 0.15s ease, height 0.15s ease;
+}
+
+.strip-resize-handle:hover .strip-resize-line,
+.strip-resize-handle:focus-visible .strip-resize-line,
+.lecture-slide-strip.is-resizing .strip-resize-line {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.lecture-slide-strip.is-resizing {
+  user-select: none;
+}
+
+.lecture-slide-strip.is-resizing .slide-cards-scroll {
+  scroll-behavior: auto;
+}
+
 .slide-cards-scroll {
   display: flex;
   gap: 12px;
@@ -162,9 +291,9 @@ watch(
 }
 
 .slide-card {
-  /* ~2× prior width so slide content is readable in the strip */
-  flex: 0 0 240px;
-  width: 240px;
+  /* 240px floor; user-resizable via the line above the strip */
+  flex: 0 0 var(--slide-card-width, 240px);
+  width: var(--slide-card-width, 240px);
   display: flex;
   flex-direction: column;
   gap: 6px;

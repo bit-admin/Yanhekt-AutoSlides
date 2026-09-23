@@ -784,6 +784,7 @@
       "moreOptions": "その他のオプション"
     },
     "slideChapters": "スライド",
+    "resizeSlideChapters": "ドラッグしてスライドのサイズを変更",
     "slideOrdinal": "スライド {number}",
     "watching": "再生中",
     "postProcessTip": "保存済みのすべてのスライドに後処理を実行",
