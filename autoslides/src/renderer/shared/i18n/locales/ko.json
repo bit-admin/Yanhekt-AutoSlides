@@ -409,7 +409,7 @@
     "downloadMaxWorkersDescription": "다운로드당 비디오 세그먼트를 가져오는 동시 연결 수.",
     "downloadNumRetries": "다운로드 재시도 횟수",
     "cacheManagement": "캐시 관리",
-    "cacheManagementDescription": "Chromium HTTP/코드 캐시, 웹뷰 캐시, 미리보기 썸네일, 강의 포스터, 업데이트 다운로드를 관리합니다. 로그인과 설정은 영향을 받지 않습니다.",
+    "cacheManagementDescription": "Chromium HTTP/코드 캐시, 웹뷰 캐시, 미리보기 썸네일, 강의 포스터, 업데이트 다운로드, 로그 파일을 관리합니다. 로그인과 설정은 영향을 받지 않습니다.",
     "cacheSize": "캐시 크기",
     "totalFiles": "총 파일 수",
     "refresh": "새로고침",
@@ -589,7 +589,10 @@
     },
     "developerMode": "개발자 모드",
     "developerModeDescription": "자동 자르기 감지 등 앱 기능을 테스트하는 개발자 작업 공간 페이지를 표시합니다.",
-    "enableDeveloperMode": "개발자 모드 사용"
+    "enableDeveloperMode": "개발자 모드 사용",
+    "logFiles": "로그 파일",
+    "logFilesDescription": "오류는 항상 로그 파일에 저장됩니다. 개발자 모드를 켜면 자세한 로그도 저장됩니다. 문제를 신고할 때 이 파일을 첨부해 주세요.",
+    "openLogFolder": "로그 폴더 열기"
   },
   "courses": {
     "title": {

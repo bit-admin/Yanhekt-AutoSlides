@@ -409,7 +409,7 @@
     "downloadMaxWorkersDescription": "每个下载任务获取视频片段的并发连接数。",
     "downloadNumRetries": "下载重试次数",
     "cacheManagement": "缓存管理",
-    "cacheManagementDescription": "管理 Chromium HTTP/代码缓存、内嵌网页缓存、预览缩略图、课程封面和更新下载。登录状态和设置不受影响。",
+    "cacheManagementDescription": "管理 Chromium HTTP/代码缓存、内嵌网页缓存、预览缩略图、课程封面、更新下载和日志文件。登录状态和设置不受影响。",
     "cacheSize": "缓存大小",
     "totalFiles": "文件总数",
     "refresh": "刷新",
@@ -589,7 +589,10 @@
     },
     "developerMode": "开发者模式",
     "developerModeDescription": "在工作区显示开发者页面，用于测试自动裁剪检测等功能。",
-    "enableDeveloperMode": "启用开发者模式"
+    "enableDeveloperMode": "启用开发者模式",
+    "logFiles": "日志文件",
+    "logFilesDescription": "错误始终会保存到日志文件。开启开发者模式后，还会保存详细日志。反馈问题时请附上该文件。",
+    "openLogFolder": "打开日志文件夹"
   },
   "courses": {
     "title": {

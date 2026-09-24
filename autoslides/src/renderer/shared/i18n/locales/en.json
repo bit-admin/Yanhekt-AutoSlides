@@ -409,7 +409,7 @@
     "downloadMaxWorkersDescription": "Number of concurrent connections per download for fetching video segments.",
     "downloadNumRetries": "Download Retry Count",
     "cacheManagement": "Cache Management",
-    "cacheManagementDescription": "Manage Chromium HTTP/code caches, webview caches, preview thumbnails, lecture posters, and update downloads. Sign-in and settings are not affected.",
+    "cacheManagementDescription": "Manage Chromium HTTP/code caches, webview caches, preview thumbnails, lecture posters, update downloads, and log files. Sign-in and settings are not affected.",
     "cacheSize": "Cache Size",
     "totalFiles": "Total Files",
     "refresh": "Refresh",
@@ -589,7 +589,10 @@
     },
     "developerMode": "Developer Mode",
     "developerModeDescription": "Show a Developer workspace page for testing app features such as Auto Crop detection.",
-    "enableDeveloperMode": "Enable Developer Mode"
+    "enableDeveloperMode": "Enable Developer Mode",
+    "logFiles": "Log Files",
+    "logFilesDescription": "Errors are always saved to a log file. With Developer Mode on, detailed logs are saved too. Attach the file when reporting a problem.",
+    "openLogFolder": "Open Log Folder"
   },
   "courses": {
     "title": {

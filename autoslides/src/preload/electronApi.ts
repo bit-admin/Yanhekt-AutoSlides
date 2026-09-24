@@ -26,6 +26,7 @@ import type {
 } from '../shared/types';
 import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
 import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../shared/obsidianNotesTypes';
+import type { LogLevel, LogSource } from '../shared/logFormat';
 import type {
   SlideMetadata,
   SlideMetadataKind,
@@ -748,6 +749,14 @@ export interface ElectronAPI {
     /** Quit the app on every platform (closing the window does not on macOS). */
     quit: () => Promise<void>;
     getVersion: () => Promise<string>;
+    /** `<userData>/logs`, or null if the log folder could not be created. */
+    getLogDir: () => Promise<string | null>;
+    openLogFolder: () => Promise<{ success: boolean; error?: string }>;
+  };
+
+  /** Fire-and-forget line into the main-process log file. Strings only. */
+  log: {
+    write: (level: LogLevel, source: LogSource, namespace: string, message: string) => void;
   };
 
   ai: {

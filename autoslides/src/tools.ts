@@ -7,10 +7,12 @@ import './index.css';
 import { createApp } from 'vue';
 import ToolsApp from './renderer/components/tools/ToolsApp.vue';
 import { i18n } from './renderer/shared/i18n';
-import { loadConfig } from './renderer/shared/services/configStore';
+import { configStore, loadConfig } from './renderer/shared/services/configStore';
+import { installLogCapture } from './renderer/shared/utils/logCapture';
 import { tokenManager } from './renderer/shared/services/authService';
 
 const app = createApp(ToolsApp);
+installLogCapture(app, 'tools', () => configStore.developerMode);
 app.use(i18n);
 loadConfig().then(async () => {
   // Demo mode: install fake Results View / PDF Maker data before mount.

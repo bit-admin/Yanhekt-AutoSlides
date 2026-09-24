@@ -6,14 +6,16 @@
  *
  * Clear uses Electron session APIs for HTTP + V8/WASM caches (safe while the
  * app is running). GPU/Dawn/shader dirs and app folders (thumbnails,
- * lecture-posters, updates, temp) are removed as files. Cookies, Local
- * Storage, config, and models are left alone.
+ * lecture-posters, updates, temp) are removed as files, and the log files are
+ * cleared through `logFile` (their stream is open). Cookies, Local Storage,
+ * config, and models are left alone.
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 import { app, session } from 'electron';
 import { createLogger } from '@main/infra/logger';
+import { clearLogFiles, getLogDir } from '@main/infra/logFile';
 import {
   APP_CACHE_DIR_NAMES,
   collectCacheRoots,
@@ -45,6 +47,8 @@ export class CacheManagementService {
     try {
       const partitions = await this.listPartitionNames();
       const roots = collectCacheRoots(this.userDataPath, this.appTempPath, partitions);
+      const logDir = getLogDir();
+      if (logDir) roots.push(logDir);
 
       let totalSize = 0;
       let tempFiles = 0;
@@ -67,6 +71,7 @@ export class CacheManagementService {
       await this.clearSessionCaches();
       await this.removeAppCacheDirs();
       await this.removeFilesystemOnlyCaches();
+      await clearLogFiles();
 
       log.debug('Cache cleared via session APIs + app cache dirs');
       return { success: true };
@@ -93,6 +98,9 @@ export class CacheManagementService {
 
       const items = await fs.promises.readdir(this.userDataPath);
       for (const item of items) {
+        // The log file is held open for the whole session (Windows cannot
+        // delete an open file), and it is the record of what went wrong.
+        if (item === 'logs') continue;
         await this.removeTree(path.join(this.userDataPath, item));
       }
 

@@ -224,6 +224,12 @@ export const app: ElectronAPI['app'] = {
   restart: () => ipcRenderer.invoke('app:restart'),
   quit: () => ipcRenderer.invoke('app:quit'),
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
+  getLogDir: () => ipcRenderer.invoke('app:getLogDir'),
+  openLogFolder: () => ipcRenderer.invoke('app:openLogFolder'),
+};
+
+export const log: ElectronAPI['log'] = {
+  write: (level, source, namespace, message) => ipcRenderer.send('log:write', level, source, namespace, message),
 };
 
 export const dialog: ElectronAPI['dialog'] = {

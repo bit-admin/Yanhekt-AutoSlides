@@ -524,17 +524,22 @@ export function useAISettings(options: UseAISettingsOptions) {
       return
     }
 
-    log.debug('[AI] refreshBuiltinModel: Fetching model info...')
     isLoadingBuiltinModel.value = true
     builtinModelError.value = ''
 
     try {
       // Startup fires this twice (LeftPanel mount + App's identity watcher once
-      // the stored token verifies); join the in-flight request instead.
-      const info = await coalesce(`builtinModelInfo:${token}`, () =>
-        window.electronAPI.ai.getBuiltinModelInfo(token)
-      )
-      log.debug('[AI] refreshBuiltinModel: API response:', info)
+      // the stored token verifies); join the in-flight request instead. Log
+      // inside the fetcher so a joined call does not repeat the request's lines.
+      let joined = true
+      const info = await coalesce(`builtinModelInfo:${token}`, async () => {
+        joined = false
+        log.debug('[AI] refreshBuiltinModel: Fetching model info...')
+        const fetched = await window.electronAPI.ai.getBuiltinModelInfo(token)
+        log.debug('[AI] refreshBuiltinModel: API response:', fetched)
+        return fetched
+      })
+      if (joined) log.debug('[AI] refreshBuiltinModel: joined in-flight request')
       builtinModelName.value = info.model
       setRemoteBuiltinModelInfo(info)
       const lockedBody = resolveRendererAICompletionParams('builtin')

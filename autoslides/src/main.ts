@@ -36,6 +36,8 @@ import { slideTimelineService } from '@main/extraction/slideTimelineService';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
 import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
+import { initLogFile, setLogVerbose, flushLogFile } from '@main/infra/logFile';
+import { createLogger } from '@main/infra/logger';
 
 // Custom local media scheme for Lectures Library playback. Must register
 // privileges BEFORE app is ready (Electron requirement).
@@ -47,6 +49,34 @@ registerAsmediaScheme();
 applyDemoUserData(app);
 
 const configService = new ConfigService();
+
+// Persistent log file under <userData>/logs — after the demo swap so demo runs
+// log separately. warn/error always; debug/info while Developer mode is on.
+setLogVerbose(configService.getDeveloperMode());
+initLogFile(path.join(app.getPath('userData'), 'logs'), {
+  version: app.getVersion(),
+  electron: process.versions.electron,
+  chrome: process.versions.chrome,
+  os: `${process.platform}-${process.arch}`,
+  osRelease: process.getSystemVersion(),
+  packaged: app.isPackaged,
+  developerMode: configService.getDeveloperMode(),
+});
+
+const crashLog = createLogger('Crash');
+// Monitor, not a handler: logs without suppressing Electron's own error dialog.
+process.on('uncaughtExceptionMonitor', (error) => {
+  crashLog.error('Uncaught exception in main process:', error);
+});
+process.on('unhandledRejection', (reason) => {
+  crashLog.error('Unhandled promise rejection in main process:', reason);
+});
+app.on('render-process-gone', (_event, contents, details) => {
+  crashLog.error('Renderer process gone:', contents.getURL(), details);
+});
+app.on('child-process-gone', (_event, details) => {
+  crashLog.error('Child process gone:', details);
+});
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -213,6 +243,7 @@ app.on('before-quit', () => {
 app.on('will-quit', () => {
   powerManagementService.cleanup();
   void localRelayService.stop();
+  flushLogFile();
 });
 
 // Register all IPC handlers

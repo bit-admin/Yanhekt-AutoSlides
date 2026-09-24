@@ -12,16 +12,9 @@ import {
   type BuiltinModelInfo
 } from './llmApiService';
 import { appUserAgent } from '@main/infra/appUserAgent';
+import { createLogger } from '@main/infra/logger';
 
-const DEBUG = true;
-
-const debugLog = (...args: unknown[]) => {
-  if (DEBUG) console.log('[AI:DEBUG]', ...args);
-};
-
-const debugError = (...args: unknown[]) => {
-  if (DEBUG) console.error('[AI:DEBUG:ERROR]', ...args);
-};
+const log = createLogger('AIFiltering');
 
 export type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit';
 
@@ -202,7 +195,7 @@ export class AIFilteringService {
       this.builtinModelCache = { token, info };
       return info.model;
     } catch (error) {
-      debugError('resolveBuiltinModel: falling back to default model', error);
+      log.error('resolveBuiltinModel: falling back to default model', error);
       return BUILTIN_FALLBACK_MODEL;
     }
   }
@@ -219,7 +212,7 @@ export class AIFilteringService {
         }
       }
     } catch (error) {
-      console.error('Failed to parse classification result:', error);
+      log.error('Failed to parse classification result:', error);
     }
     return null;
   }
@@ -240,7 +233,7 @@ export class AIFilteringService {
         if (Object.keys(result).length > 0) return result;
       }
     } catch (error) {
-      console.error('Failed to parse batch classification result:', error);
+      log.error('Failed to parse batch classification result:', error);
     }
     return null;
   }
@@ -265,7 +258,7 @@ export class AIFilteringService {
     token?: string,
     modelOverride?: string
   ): Promise<AIFilteringResult> {
-    debugLog('classifySingleImage called', { hasToken: !!token, modelOverride });
+    log.debug('classifySingleImage called', { hasToken: !!token, modelOverride });
 
     try {
       const ctx = this.resolveRequestContext();
@@ -312,7 +305,7 @@ export class AIFilteringService {
       );
 
       if (!result.ok) {
-        debugError('classifySingleImage LLM error', result.error);
+        log.error('classifySingleImage LLM error', result.error);
         return this.toFailureResult(result.error);
       }
 
@@ -323,7 +316,7 @@ export class AIFilteringService {
         return { success: true, result: parsed, modelUsed: result.modelUsed };
       }
       if (!responseContent) {
-        debugError('classifySingleImage empty assistant content', {
+        log.error('classifySingleImage empty assistant content', {
           finishReason: firstChoice?.finish_reason,
           hasReasoningContent: !!(firstChoice?.message && 'reasoning_content' in firstChoice.message
             && (firstChoice.message as { reasoning_content?: unknown }).reasoning_content)
@@ -346,7 +339,7 @@ export class AIFilteringService {
     token?: string,
     modelOverride?: string
   ): Promise<AIFilteringResult> {
-    debugLog('classifyMultipleImages called', {
+    log.debug('classifyMultipleImages called', {
       imageCount: base64Images.length, hasToken: !!token, modelOverride
     });
 
@@ -384,7 +377,7 @@ export class AIFilteringService {
       );
 
       if (!result.ok) {
-        debugError('classifyMultipleImages LLM error', result.error);
+        log.error('classifyMultipleImages LLM error', result.error);
         return this.toFailureResult(result.error);
       }
 
@@ -395,7 +388,7 @@ export class AIFilteringService {
         return { success: true, result: parsed, modelUsed: result.modelUsed };
       }
       if (!responseContent) {
-        debugError('classifyMultipleImages empty assistant content', {
+        log.error('classifyMultipleImages empty assistant content', {
           finishReason: firstChoice?.finish_reason,
           hasReasoningContent: !!(firstChoice?.message && 'reasoning_content' in firstChoice.message
             && (firstChoice.message as { reasoning_content?: unknown }).reasoning_content)

@@ -9,6 +9,7 @@ import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 import { expandTilde } from '@main/infra/pathUtils';
 import { probeOutputDir, recreateOutputDir } from '@main/infra/outputDir';
 import { createLogger } from '@main/infra/logger';
+import { setLogVerbose } from '@main/infra/logFile';
 const log = createLogger('ConfigIpc');
 
 export function registerConfigIpcHandlers(services: IpcServices): void {
@@ -156,6 +157,8 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
     configService.setDeveloperMode(enabled);
+    // Developer mode also turns on debug/info in the log file, no restart.
+    setLogVerbose(enabled);
     // Local Relay is developer-only: turning Developer mode off persist-disables
     // the flag and tears down the LAN server so it cannot keep listening.
     if (!enabled) {

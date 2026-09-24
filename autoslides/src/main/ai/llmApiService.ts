@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import { ConfigService } from '@main/platform/configService';
 import { appUserAgent } from '@main/infra/appUserAgent';
+import { createLogger } from '@main/infra/logger';
 import {
   parseBuiltinModelResponse,
   resolveEffectiveAICompletionParams,
@@ -13,15 +14,7 @@ import {
   type BuiltinModelInfo
 } from '@common/aiRequestSettings';
 
-const DEBUG = true;
-
-const debugLog = (...args: unknown[]) => {
-  if (DEBUG) console.log('[LLM:DEBUG]', ...args);
-};
-
-const debugError = (...args: unknown[]) => {
-  if (DEBUG) console.error('[LLM:DEBUG:ERROR]', ...args);
-};
+const log = createLogger('LLM');
 
 // OpenAI-compatible message format
 export interface ContentPart {
@@ -247,7 +240,7 @@ export class LLMApiService {
     });
 
     limiter.on('depleted', () => {
-      console.log('[LLM] Rate limit reservoir depleted, waiting for refresh');
+      log.info('Rate limit reservoir depleted, waiting for refresh');
     });
 
     return limiter;
@@ -260,7 +253,7 @@ export class LLMApiService {
     // refresh timer is definitely installed; already-scheduled jobs continue on
     // the previous limiter instance.
     this.limiter = this.createLimiter(rateLimit, maxConcurrent, minTime);
-    debugLog('Rate limit config updated', {
+    log.debug('Rate limit config updated', {
       rateLimit,
       maxConcurrent,
       minTime,
@@ -331,7 +324,7 @@ export class LLMApiService {
       });
 
       if (this.isCloudflareBlocked(response.data)) {
-        console.error('[LLM] Received Cloudflare challenge page');
+        log.error('Received Cloudflare challenge page');
         throw new Error('cloudflareBlocked');
       }
 
@@ -362,7 +355,7 @@ export class LLMApiService {
           throw new Error('temporarilyUnavailable');
         }
       }
-      console.error('[LLM] Failed to fetch built-in model info:', error);
+      log.error('Failed to fetch built-in model info:', error);
       throw new Error('fetchFailed');
     }
   }
@@ -420,7 +413,7 @@ export class LLMApiService {
       requestBody.chat_template_kwargs = { [thinkingKey]: rb.enableThinking };
     }
 
-    debugLog('Chat completion request', {
+    log.debug('Chat completion request', {
       url: `${input.baseUrl}/chat/completions`,
       model,
       hasImages,
@@ -458,7 +451,7 @@ export class LLMApiService {
         (data as ChatCompletionResponse).choices.length === 0;
 
       if (embeddedError || choicesMissing) {
-        debugError('Chat completion returned malformed 2xx', {
+        log.error('Chat completion returned malformed 2xx', {
           duration: `${Date.now() - startTime}ms`,
           status: response.status,
           embeddedError,
@@ -482,7 +475,7 @@ export class LLMApiService {
       const firstMessage = data.choices[0]?.message;
       const content = firstMessage?.content;
       const contentEmpty = content == null || (typeof content === 'string' && content.length === 0);
-      debugLog('Chat completion response', {
+      log.debug('Chat completion response', {
         duration: `${Date.now() - startTime}ms`,
         status: response.status,
         finishReason: data.choices[0]?.finish_reason,
@@ -491,7 +484,7 @@ export class LLMApiService {
       });
       return { ok: true, value: data, modelUsed: model };
     } catch (error) {
-      debugError('Chat completion failed', { duration: `${Date.now() - startTime}ms`, error });
+      log.error('Chat completion failed', { duration: `${Date.now() - startTime}ms`, error });
       const result: LLMResult<ChatCompletionResponse> & { retryAfterMs?: number } = {
         ok: false,
         error: this.classifyError(error, model)
@@ -542,8 +535,8 @@ export class LLMApiService {
         const delay = isTransientRateLimit
           ? computeBackoffMs(attempt, result.retryAfterMs ?? null)
           : EMPTY_CHOICES_RETRY_DELAY_MS + Math.floor(Math.random() * RATE_LIMIT_RETRY_JITTER_MS);
-        console.log(
-          `[LLM] ${isRetryableEmptyChoices ? 'empty_choices' : kind} on ${model} — retry ${attempt}/${retryMax} in ${delay}ms` +
+        log.info(
+          `${isRetryableEmptyChoices ? 'empty_choices' : kind} on ${model} — retry ${attempt}/${retryMax} in ${delay}ms` +
             (result.retryAfterMs != null ? ` (Retry-After honored)` : '')
         );
         await sleep(delay);
@@ -675,18 +668,18 @@ export class LLMApiService {
       if (result.error.kind === 'quota_exceeded') {
         this.markExhausted(providerId, input.baseUrl, model);
         options?.onModelExhausted?.(model);
-        console.warn(
+        log.warn(
           nextModel
-            ? `[LLM] ${model} quota exceeded, advancing to next in chain: ${nextModel}`
-            : `[LLM] ${model} quota exceeded, chain exhausted`
+            ? `${model} quota exceeded, advancing to next in chain: ${nextModel}`
+            : `${model} quota exceeded, chain exhausted`
         );
         continue;
       }
       if (providerId === 'modelscope' && isEmptyChoicesError(result.error)) {
-        console.warn(
+        log.warn(
           nextModel
-            ? `[LLM] ${model} returned empty choices, advancing to next in chain: ${nextModel}`
-            : `[LLM] ${model} returned empty choices, chain exhausted`
+            ? `${model} returned empty choices, advancing to next in chain: ${nextModel}`
+            : `${model} returned empty choices, chain exhausted`
         );
         continue;
       }

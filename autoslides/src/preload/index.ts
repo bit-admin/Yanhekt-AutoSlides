@@ -1,6 +1,6 @@
 import { contextBridge } from 'electron';
 import type { ElectronAPI } from './electronApi';
-import { auth, config, windowNs, shell, menu, powerManagement, cache, app, dialog } from './platform';
+import { auth, config, windowNs, shell, menu, powerManagement, cache, app, log, dialog } from './platform';
 import { video, compressLecture, download } from './video';
 import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
@@ -34,6 +34,7 @@ const electronAPI: ElectronAPI = {
   powerManagement,
   cache,
   app,
+  log,
   ai,
   copilot,
   trash,

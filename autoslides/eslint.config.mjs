@@ -116,15 +116,11 @@ export default tseslint.config(
     },
   },
 
-  // Logging exemptions: the logger modules ARE the console boundary, and the AI
-  // services keep intentional always-on DEBUG wrappers (prod has no other AI
-  // diagnostics — see CLAUDE.md / memory project_debug_flags_intentional).
+  // Logging exemptions: the logger modules ARE the console boundary.
   {
     files: [
       'src/renderer/shared/utils/logger.ts',
       'src/main/infra/logger.ts',
-      'src/main/ai/llmApiService.ts',
-      'src/main/ai/aiFilteringService.ts',
       // Build/tooling scripts — console output is their intended UX.
       'scripts/**',
       'forge.config.ts',

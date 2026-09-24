@@ -30,10 +30,11 @@ import './index.css';
 import { createApp } from 'vue';
 import App from './App.vue';
 import { i18n } from './renderer/shared/i18n';
-import { loadConfig } from './renderer/shared/services/configStore';
+import { configStore, loadConfig } from './renderer/shared/services/configStore';
 import { isDemoMode, loadAppVersion } from './renderer/shared/services/runtimeEnv';
 import { tokenManager } from './renderer/shared/services/authService';
 import { createLogger } from './renderer/shared/utils/logger';
+import { installLogCapture } from './renderer/shared/utils/logCapture';
 import { PostProcessingService } from './renderer/shared/services/postProcessingService';
 
 const log = createLogger('Renderer');
@@ -51,6 +52,7 @@ if (navigator.userAgent.toLowerCase().includes('mac')) {
 }
 
 const app = createApp(App);
+installLogCapture(app, 'renderer', () => configStore.developerMode);
 app.use(i18n);
 Promise.all([loadConfig(), loadAppVersion()]).then(async () => {
   // Demo mode: install the override registry (fake account/courses/queues) before

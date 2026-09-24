@@ -409,7 +409,7 @@
     "downloadMaxWorkersDescription": "ダウンロードごとのビデオセグメント取得の同時接続数",
     "downloadNumRetries": "ダウンロードリトライ回数",
     "cacheManagement": "キャッシュ管理",
-    "cacheManagementDescription": "Chromium の HTTP/コードキャッシュ、WebView キャッシュ、プレビューサムネイル、講義ポスター、アップデートダウンロードを管理します。ログイン状態と設定は影響を受けません。",
+    "cacheManagementDescription": "Chromium の HTTP/コードキャッシュ、WebView キャッシュ、プレビューサムネイル、講義ポスター、アップデートダウンロード、ログファイルを管理します。ログイン状態と設定は影響を受けません。",
     "cacheSize": "キャッシュサイズ",
     "totalFiles": "総ファイル数",
     "refresh": "更新",
@@ -589,7 +589,10 @@
     },
     "developerMode": "開発者モード",
     "developerModeDescription": "自動トリミング検出などの機能をテストする開発者ワークスペースを表示します。",
-    "enableDeveloperMode": "開発者モードを有効にする"
+    "enableDeveloperMode": "開発者モードを有効にする",
+    "logFiles": "ログファイル",
+    "logFilesDescription": "エラーは常にログファイルに保存されます。開発者モードをオンにすると、詳細なログも保存されます。問題を報告する際はこのファイルを添付してください。",
+    "openLogFolder": "ログフォルダを開く"
   },
   "courses": {
     "title": {
