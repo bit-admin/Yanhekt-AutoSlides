@@ -15,9 +15,12 @@ import {
   unregisterActiveEditor,
   commitEditorContent as commitYanhektContent,
 } from './yanhektWatchSink'
-import { obsidianWatchSink, createLectureNote, chooseNote, setPaused } from './obsidianWatchSink'
+import { obsidianWatchSink, createLectureNote, chooseNote, setObsidianPaused } from './obsidianWatchSink'
+import { notionWatchSink, choosePage, setNotionPaused } from './notionWatchSink'
+import type { WatchNotesProviderId } from '@common/watchNotesProviders'
 import type {
   KeptSlide,
+  NotionWatchNoteEntry,
   ObsidianWatchNoteEntry,
   WatchNoteEntry,
   WatchNotesSink,
@@ -29,6 +32,7 @@ import type {
 // keeps them, then go to the entry's provider sink in capture order.
 //   Yanhekt  → yanhektWatchSink (ASuser note + live editor)
 //   Obsidian → obsidianWatchSink (visible queue → images appended to a Markdown note)
+//   Notion   → notionWatchSink (visible queue → image blocks on a picked page)
 
 const log = createLogger('WatchNotes')
 
@@ -40,8 +44,14 @@ const state = reactive<{ entries: Record<string, WatchNoteEntry> }>({ entries: {
 // Kept outside the reactive state on purpose — nothing renders from it.
 const pendingSlides = new Map<string, Map<string, string>>()
 
+const SINKS: Record<WatchNotesProviderId, WatchNotesSink<never>> = {
+  yanhekt: yanhektWatchSink,
+  obsidian: obsidianWatchSink,
+  notion: notionWatchSink,
+}
+
 function sinkFor(entry: WatchNoteEntry): WatchNotesSink<WatchNoteEntry> {
-  return (entry.provider === 'obsidian' ? obsidianWatchSink : yanhektWatchSink) as WatchNotesSink<WatchNoteEntry>
+  return SINKS[entry.provider] as WatchNotesSink<WatchNoteEntry>
 }
 
 function getPending(tabId: string): Map<string, string> {
@@ -109,20 +119,27 @@ function deriveNoteNaming(tabId: string): {
 /**
  * Whether the watch-notes auto flow may run right now: Settings → Add-ons →
  * Watch Notes is on, and the chosen provider can take notes (Yanhekt needs the
- * ASuser group; Obsidian always can, since a note may be chosen per lecture).
+ * ASuser group; Obsidian always can, since a note may be chosen per lecture;
+ * Notion needs a connected token).
  */
 export function watchSyncActive(): boolean {
   if (!configStore.watchNotesEnabled) return false
-  if (configStore.watchNotesProvider === 'obsidian') return true
-  return cloudStorageStore.canUse.value && cloudStorageStore.userGroupId.value != null
+  switch (configStore.watchNotesProvider) {
+    case 'obsidian':
+      return true
+    case 'notion':
+      return configStore.notionConnected
+    default:
+      return cloudStorageStore.canUse.value && cloudStorageStore.userGroupId.value != null
+  }
 }
 
 function newEntry(tabId: string, instanceId: string): WatchNoteEntry {
   const { displayName, identity, slidesFolderName } = deriveNoteNaming(tabId)
   const base = { tabId, instanceId, displayName, identity, slidesFolderName }
-  if (configStore.watchNotesProvider === 'obsidian') {
-    return { ...base, provider: 'obsidian', status: 'awaiting', target: null, items: [], paused: false, lastError: null }
-  }
+  const external = { status: 'awaiting' as const, target: null, items: [], paused: false, lastError: null }
+  if (configStore.watchNotesProvider === 'obsidian') return { ...base, ...external, provider: 'obsidian' }
+  if (configStore.watchNotesProvider === 'notion') return { ...base, ...external, provider: 'notion' }
   return { ...base, provider: 'yanhekt', status: 'creating', noteId: null, content: emptyDoc() }
 }
 
@@ -233,8 +250,8 @@ function onSlidesClearedEvent(event: Event): void {
 /**
  * Called by PlaybackPage when extraction stops (after any in-flight pass has
  * finished flushing). Remaining buffered slides never got a completed pass —
- * drop them rather than send unverified captures. Kept slides in an Obsidian
- * queue stay: they are verified, visible, and wait for a note or Resume.
+ * drop them rather than send unverified captures. Kept slides in an external
+ * provider's queue stay: they are verified, visible, and wait for a note or Resume.
  */
 export function onExtractionStopped(tabId: string): void {
   const pending = pendingSlides.get(tabId)
@@ -280,10 +297,22 @@ export async function chooseObsidianNote(tabId: string): Promise<void> {
   if (entry) await chooseNote(entry)
 }
 
-/** Notes tab footer → Pause / Resume appending. */
-export function setObsidianPaused(tabId: string, paused: boolean): void {
-  const entry = obsidianEntry(tabId)
-  if (entry) setPaused(entry, paused)
+function notionEntry(tabId: string): NotionWatchNoteEntry | null {
+  const entry = state.entries[tabId]
+  return entry?.provider === 'notion' ? entry : null
+}
+
+/** Notes tab → picked a Notion page for this lecture. */
+export async function chooseNotionPage(tabId: string, pageId: string): Promise<boolean> {
+  const entry = notionEntry(tabId)
+  return entry ? choosePage(entry, pageId) : false
+}
+
+/** Notes tab footer → Pause / Resume appending (external providers). */
+export function setExternalPaused(tabId: string, paused: boolean): void {
+  const entry = state.entries[tabId]
+  if (entry?.provider === 'obsidian') setObsidianPaused(entry, paused)
+  else if (entry?.provider === 'notion') setNotionPaused(entry, paused)
 }
 
 // Prune entries whose tab was closed (leave the note itself intact).
@@ -352,7 +381,8 @@ export const watchNotesStore = {
   commitEditorContent,
   createObsidianNote,
   chooseObsidianNote,
-  setObsidianPaused,
+  chooseNotionPage,
+  setExternalPaused,
   watchSyncActive,
   seedWatchNoteEntry,
 }

@@ -1,7 +1,7 @@
 <template>
   <div class="watch-notes-panel">
-    <!-- File-based providers have no editor: a status view instead. -->
-    <ExternalNotePanel v-if="entry && entry.provider === 'obsidian'" :entry="entry" />
+    <!-- Image-only providers (Obsidian, Notion) have no editor: a status view instead. -->
+    <ExternalNotePanel v-if="entry && entry.provider !== 'yanhekt'" :entry="entry" />
 
     <template v-else-if="entry && entry.status === 'ready'">
       <div class="wn-header">

@@ -26,6 +26,7 @@ import type {
 } from '../shared/types';
 import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
 import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../shared/obsidianNotesTypes';
+import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/notionNotesTypes';
 import type { LogLevel, LogSource } from '../shared/logFormat';
 import type {
   SlideMetadata,
@@ -959,6 +960,19 @@ export interface ElectronAPI {
     openInObsidian: (tabId: string) => Promise<ObsidianResult<void>>;
     reveal: (tabId: string) => Promise<ObsidianResult<void>>;
     useFoundVault: (tabId: string) => Promise<ObsidianResult<void>>;
+  };
+
+  /** Notion watch-notes provider. Tab-keyed; main owns the token and pages. */
+  notionNotes: {
+    connect: (token: string) => Promise<NotionResult<{ workspaceName: string }>>;
+    /** Stored token, for Settings' show/hide field; null when not connected. */
+    getToken: () => Promise<string | null>;
+    disconnect: () => Promise<void>;
+    searchPages: (query: string, cursor: string | null) => Promise<NotionResult<NotionPageList>>;
+    choosePage: (tabId: string, pageId: string) => Promise<NotionResult<NotionTargetInfo>>;
+    append: (tabId: string, bytes: ArrayBuffer, filename: string) => Promise<NotionResult<void>>;
+    close: (tabId: string) => Promise<void>;
+    openPage: (tabId: string) => Promise<NotionResult<void>>;
   };
 
   cloudNotes: {

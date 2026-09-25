@@ -1,4 +1,8 @@
 import { ref } from 'vue'
+import type { NotionErrorCode } from '@common/notionNotesTypes'
+import { createLogger } from '@shared/utils/logger'
+
+const log = createLogger('AddonsSettings')
 import {
   DEFAULT_WATCH_NOTES_PROVIDER,
   normalizeWatchNotesProvider,
@@ -8,8 +12,9 @@ import {
 /**
  * Buffered settings for the Add-ons tab:
  * - Watch Notes (notes add-ons): whether watch notes are auto-created and
- *   synced, which provider they go to, and the Obsidian provider's vault,
- *   notes folder and auto-create switch.
+ *   synced, which provider they go to, the Obsidian provider's vault, notes
+ *   folder and auto-create switch, and the Notion connection (applied at once,
+ *   not on commit).
  * - Tools: whether the Tools window icon button rides beside Settings at the
  *   foot of the navigator.
  * Self-contained like useCloudSettings — reads/writes config directly and joins
@@ -30,6 +35,57 @@ export function useAddonsSettings() {
   const tempObsidianVaultIsVault = ref<boolean | null>(null)
   const showToolsButton = ref(false)
   const tempShowToolsButton = ref(false)
+
+  // Notion connection. Not buffered like the rest: a token is verified against
+  // Notion and stored the moment Connect is clicked, and the connected state is
+  // read from configStore.notionConnected.
+  const notionTokenInput = ref('')
+  /** The stored token, shown (masked by default) while connected. */
+  const notionStoredToken = ref('')
+  const showNotionToken = ref(false)
+
+  const loadNotionToken = async () => {
+    try {
+      notionStoredToken.value = (await window.electronAPI.notionNotes.getToken()) ?? ''
+    } catch (err) {
+      log.warn('could not read the Notion token', err)
+      notionStoredToken.value = ''
+    }
+  }
+  const notionBusy = ref(false)
+  const notionError = ref<NotionErrorCode | null>(null)
+
+  const connectNotion = async () => {
+    const token = notionTokenInput.value.trim()
+    if (!token || notionBusy.value) return
+    notionBusy.value = true
+    notionError.value = null
+    try {
+      const res = await window.electronAPI.notionNotes.connect(token)
+      if (res.ok) {
+        notionStoredToken.value = token
+        notionTokenInput.value = ''
+      } else {
+        notionError.value = res.error
+      }
+    } catch {
+      notionError.value = 'network'
+    } finally {
+      notionBusy.value = false
+    }
+  }
+
+  const disconnectNotion = async () => {
+    if (notionBusy.value) return
+    notionBusy.value = true
+    notionError.value = null
+    try {
+      await window.electronAPI.notionNotes.disconnect()
+      notionStoredToken.value = ''
+    } finally {
+      notionBusy.value = false
+    }
+  }
 
   const probeTempVault = async () => {
     const dir = tempObsidianVaultPath.value
@@ -71,6 +127,10 @@ export function useAddonsSettings() {
     tempObsidianSubfolder.value = obsidianSubfolder.value
     tempObsidianAutoCreateNote.value = obsidianAutoCreateNote.value
     tempShowToolsButton.value = showToolsButton.value
+    notionTokenInput.value = ''
+    notionError.value = null
+    showNotionToken.value = false
+    void loadNotionToken()
     void probeTempVault()
   }
 
@@ -116,6 +176,13 @@ export function useAddonsSettings() {
     tempObsidianAutoCreateNote,
     tempObsidianVaultIsVault,
     selectObsidianVault,
+    notionTokenInput,
+    notionStoredToken,
+    showNotionToken,
+    notionBusy,
+    notionError,
+    connectNotion,
+    disconnectNotion,
     tempShowToolsButton,
     load,
     resetTemp,

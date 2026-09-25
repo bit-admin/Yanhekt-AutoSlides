@@ -25,6 +25,7 @@ import type { SlideTimelineService } from '@main/extraction/slideTimelineService
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
 import type { NotesService } from '@main/platform/notesService';
 import type { ObsidianNotesService } from '@main/export/obsidianNotesService';
+import type { NotionNotesService } from '@main/export/notionNotesService';
 import type { LocalRelayService } from '@main/video/localRelayService';
 import type { LocalLecturePosterService } from '@main/video/localLecturePosterService';
 
@@ -58,4 +59,5 @@ export interface IpcServices {
   cacheManagementService: CacheManagementService;
   notesService: NotesService;
   obsidianNotesService: ObsidianNotesService;
+  notionNotesService: NotionNotesService;
 }

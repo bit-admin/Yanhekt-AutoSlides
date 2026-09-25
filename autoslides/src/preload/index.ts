@@ -10,7 +10,7 @@ import { update, extractorInstaller } from './update';
 import { tools, webCapture } from './tools';
 import { intranet } from './intranet';
 import { localRelay } from './localRelay';
-import { cloudNotes, obsidianNotes } from './notes';
+import { cloudNotes, notionNotes, obsidianNotes } from './notes';
 import { lectures } from './lectures';
 
 const electronAPI: ElectronAPI = {
@@ -53,6 +53,7 @@ const electronAPI: ElectronAPI = {
   update,
   cloudNotes,
   obsidianNotes,
+  notionNotes,
   lectures,
 };
 

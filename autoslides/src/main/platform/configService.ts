@@ -216,6 +216,8 @@ export class ConfigService {
       obsidianVaultPath: this.store.get('obsidianVaultPath') ?? '',
       obsidianSubfolder: this.store.get('obsidianSubfolder') ?? 'AutoSlides',
       obsidianAutoCreateNote: this.store.get('obsidianAutoCreateNote') ?? false,
+      notionConnected: this.getNotionToken() !== null,
+      notionWorkspaceName: this.store.get('notionWorkspaceName') ?? '',
       cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       showToolsButton: this.store.get('showToolsButton') ?? false,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
@@ -585,6 +587,25 @@ export class ConfigService {
     } else {
       this.store.set('ssoDeviceCookies', cookies);
     }
+  }
+
+  // Notion connection token. Stored like `authToken` (plain, standalone key).
+  // Not part of AppConfig, so it is never broadcast; AppConfig only carries the
+  // derived `notionConnected` / `notionWorkspaceName`. Settings reads it via
+  // notionNotes:getToken to show it.
+  getNotionToken(): string | null {
+    const token = this.store.get('notionToken');
+    return typeof token === 'string' && token ? token : null;
+  }
+
+  setNotionToken(token: string, workspaceName: string): void {
+    this.store.set('notionToken', token);
+    this.store.set('notionWorkspaceName', workspaceName);
+  }
+
+  clearNotionToken(): void {
+    this.store.delete('notionToken');
+    this.store.delete('notionWorkspaceName');
   }
 
   setSkipUpdateCheckUntil(timestamp: number): void {

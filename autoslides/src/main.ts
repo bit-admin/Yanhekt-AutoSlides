@@ -5,6 +5,7 @@ import { MainApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { NotesService } from '@main/platform/notesService';
 import { ObsidianNotesService } from '@main/export/obsidianNotesService';
+import { NotionNotesService } from '@main/export/notionNotesService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { VideoProxyService } from '@main/video/videoProxyService';
 import { LocalRelayService } from '@main/video/localRelayService';
@@ -212,6 +213,7 @@ const aiFilteringService = new AIFilteringService(configService, aiPromptsServic
 const qtExtractorService = new QtExtractorService(configService);
 const notesService = new NotesService(configService);
 const obsidianNotesService = new ObsidianNotesService(configService);
+const notionNotesService = new NotionNotesService(configService);
 
 const windowManager = new WindowManager();
 windowManager.setConfigService(configService);
@@ -276,5 +278,6 @@ registerAllIpcHandlers({
   slideTimelineService,
   cacheManagementService,
   notesService,
-  obsidianNotesService
+  obsidianNotesService,
+  notionNotesService
 });

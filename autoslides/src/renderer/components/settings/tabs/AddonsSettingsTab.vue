@@ -41,7 +41,114 @@
       <div v-else-if="tempWatchNotesProvider === 'obsidian'" class="setting-description addon-provider-detail">
         {{ $t('advanced.addons.providerObsidianDetail') }}
       </div>
+      <template v-else-if="tempWatchNotesProvider === 'notion'">
+        <div class="setting-description addon-provider-detail">{{ $t('advanced.addons.providerNotionDetail') }}</div>
+        <div v-if="!configStore.notionConnected" class="addon-provider-warning" role="status">
+          {{ $t('advanced.addons.notionNotConnected') }}
+        </div>
+      </template>
     </div>
+
+    <!-- Notion provider: a personal internal connection. The token is checked
+         and stored as soon as Connect is clicked.
+         The page is chosen per lecture in the Notes tab. -->
+    <template v-if="tempWatchNotesProvider === 'notion'">
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.addons.notionSetupTitle') }}</label>
+        <!-- Same bordered block as the Tools list below: one row per step. -->
+        <ol class="addon-steps">
+          <li class="addon-step">
+            <span class="addon-step-number" aria-hidden="true">1</span>
+            <i18n-t keypath="advanced.addons.notionStep1" tag="span" class="addon-step-text">
+              <template #link>
+                <a href="#" class="external-link" @click.prevent="openNotionConnections">{{ $t('advanced.addons.notionConnectionsLink') }}</a>
+              </template>
+            </i18n-t>
+          </li>
+          <li v-for="n in [2, 3, 4]" :key="n" class="addon-step">
+            <span class="addon-step-number" aria-hidden="true">{{ n }}</span>
+            <span class="addon-step-text">{{ $t(`advanced.addons.notionStep${n}`) }}</span>
+          </li>
+        </ol>
+      </div>
+
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.addons.notionToken') }}</label>
+        <template v-if="configStore.notionConnected">
+          <div class="input-group addon-token-row">
+            <input
+              :value="notionStoredToken"
+              :type="showNotionToken ? 'text' : 'password'"
+              readonly
+              spellcheck="false"
+              class="text-input addon-path-input"
+            />
+            <button
+              type="button"
+              class="btn btn--adornment"
+              :title="showNotionToken ? $t('advanced.hideToken') : $t('advanced.showToken')"
+              @click="showNotionToken = !showNotionToken"
+            >
+              <svg v-if="showNotionToken" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <button type="button" class="btn btn--danger-outline" :disabled="notionBusy" @click="disconnectNotion">
+              {{ $t('advanced.addons.notionDisconnect') }}
+            </button>
+          </div>
+          <div class="addon-connected">
+            <span class="addon-connected-text">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {{ configStore.notionWorkspaceName
+                ? $t('advanced.addons.notionConnectedTo', { name: configStore.notionWorkspaceName })
+                : $t('advanced.addons.notionConnected') }}
+            </span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="setting-description">{{ $t('advanced.addons.notionTokenDescription') }}</div>
+          <form class="input-group" @submit.prevent="connectNotion">
+            <input
+              v-model="notionTokenInput"
+              :type="showNotionToken ? 'text' : 'password'"
+              autocomplete="off"
+              spellcheck="false"
+              class="text-input addon-path-input"
+              :placeholder="$t('advanced.addons.notionTokenPlaceholder')"
+            />
+            <button
+              type="button"
+              class="btn btn--adornment"
+              :title="showNotionToken ? $t('advanced.hideToken') : $t('advanced.showToken')"
+              @click="showNotionToken = !showNotionToken"
+            >
+              <svg v-if="showNotionToken" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <button type="submit" class="btn" :disabled="notionBusy || !notionTokenInput.trim()">
+              {{ notionBusy ? $t('advanced.addons.notionConnecting') : $t('advanced.addons.notionConnect') }}
+            </button>
+          </form>
+          <div v-if="notionErrorText" class="addon-provider-warning addon-provider-error" role="status">
+            {{ notionErrorText }}
+          </div>
+        </template>
+      </div>
+    </template>
 
     <!-- Obsidian provider settings. A note chosen in the Notes panel may live in
          any vault; this vault is where lecture notes are created. -->
@@ -127,7 +234,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { WATCH_NOTES_PROVIDERS, type WatchNotesProviderId } from '@common/watchNotesProviders'
+import { NOTION_CONNECTIONS_URL } from '@common/notionLinks'
+import { configStore } from '@shared/services/configStore'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { useSettingsContext } from '@features/settings/settingsContext'
 
@@ -135,8 +246,10 @@ import { useSettingsContext } from '@features/settings/settingsContext'
 const PROVIDER_LABEL_KEYS: Record<WatchNotesProviderId, string> = {
   yanhekt: 'advanced.addons.providerYanhekt',
   obsidian: 'advanced.addons.providerObsidian',
+  notion: 'advanced.addons.providerNotion',
 }
 
+const { t } = useI18n()
 const { advanced } = useSettingsContext()
 const {
   tempWatchNotesEnabled,
@@ -146,8 +259,28 @@ const {
   tempObsidianAutoCreateNote,
   tempObsidianVaultIsVault,
   selectObsidianVault,
+  notionTokenInput,
+  notionStoredToken,
+  showNotionToken,
+  notionBusy,
+  notionError,
+  connectNotion,
+  disconnectNotion,
   tempShowToolsButton,
 } = advanced.addons
+
+const notionErrorText = computed(() => {
+  switch (notionError.value) {
+    case null: return ''
+    case 'unauthorized': return t('advanced.addons.notionErrorUnauthorized')
+    case 'network': return t('advanced.addons.notionErrorNetwork')
+    default: return t('advanced.addons.notionErrorOther')
+  }
+})
+
+function openNotionConnections(): void {
+  void window.electronAPI.shell.openExternal(NOTION_CONNECTIONS_URL)
+}
 </script>
 
 <style scoped>
@@ -172,6 +305,73 @@ const {
   font-size: 12px;
   line-height: 1.45;
   color: var(--warning);
+}
+
+.addon-provider-error {
+  color: var(--danger);
+}
+
+.addon-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.addon-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.addon-step + .addon-step {
+  border-top: 1px solid var(--border-color);
+}
+
+.addon-step-number {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--bg-selected);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.addon-step-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.addon-token-row {
+  margin-top: 4px;
+}
+
+.addon-connected {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 4px;
+}
+
+.addon-connected-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.addon-connected-text svg {
+  color: var(--success);
 }
 
 .addon-tool-list {

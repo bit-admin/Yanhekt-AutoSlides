@@ -271,6 +271,11 @@ export interface AppConfig {
   obsidianVaultPath: string;
   obsidianSubfolder: string;
   obsidianAutoCreateNote: boolean;
+  // Notion provider. Derived by main, never stored as such: the connection token
+  // lives in its own store key (see ConfigService.getNotionToken) and is not
+  // broadcast. The page is picked per lecture in the Notes tab.
+  notionConnected: boolean;
+  notionWorkspaceName: string;
   // When true (default), share links / Index publishes embed a compact v3
   // slide timeline so players can sync. Off falls back to a v2 image-only link.
   cloudShareEmbedTimeline: boolean;

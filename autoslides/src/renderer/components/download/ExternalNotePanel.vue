@@ -2,16 +2,62 @@
   <div class="external-note-panel">
     <div class="en-header">
       <span class="en-title" :title="entry.displayName">{{ entry.displayName }}</span>
-      <span class="en-provider">{{ $t('advanced.addons.providerObsidian') }}</span>
+      <span class="en-provider">{{ providerLabel }}</span>
     </div>
 
-    <div class="en-top">
+    <!-- Notion: choosing a page takes over the middle of the panel. -->
+    <NotionPagePicker
+      v-if="picking && entry.provider === 'notion'"
+      class="en-picker"
+      @pick="pickNotionPage"
+      @cancel="picking = false"
+    />
+
+    <div v-if="!picking" class="en-top">
       <div v-if="entry.status === 'creating'" class="en-card en-muted">
         {{ $t('cloudNotes.watchNotes.creating') }}
       </div>
 
-      <!-- No note yet: the student decides where this lecture's slides go. -->
-      <div v-else-if="!entry.target" class="en-card">
+      <!-- Notion, no page yet: pick one for this lecture. -->
+      <div v-else-if="entry.provider === 'notion' && !entry.target" class="en-card">
+        <p class="en-lead">{{ $t('cloudNotes.watchNotes.external.notionChooseLead') }}</p>
+        <div class="en-actions">
+          <button type="button" class="btn btn--primary btn--sm" :disabled="busy" @click="picking = true">
+            {{ $t('cloudNotes.watchNotes.external.notionChoosePage') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Notion page chosen. -->
+      <div v-else-if="entry.provider === 'notion' && entry.target" class="en-card">
+        <div class="en-note">
+          <span v-if="entry.target.emoji" class="en-note-emoji" aria-hidden="true">{{ entry.target.emoji }}</span>
+          <svg v-else class="en-note-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          <div class="en-note-text">
+            <span class="en-note-name" :title="entry.target.title">{{ entry.target.title || $t('cloudNotes.watchNotes.external.notionUntitled') }}</span>
+            <span class="en-note-where">{{ $t('cloudNotes.watchNotes.external.notionInWorkspace', { name: configStore.notionWorkspaceName || 'Notion' }) }}</span>
+          </div>
+          <button
+            type="button"
+            class="btn btn--ghost btn--sm en-change"
+            :disabled="busy"
+            @click="picking = true"
+          >
+            {{ $t('cloudNotes.watchNotes.external.notionChangePage') }}
+          </button>
+        </div>
+        <div v-if="entry.target.url" class="en-actions en-actions--fill">
+          <button type="button" class="btn btn--primary btn--sm" @click="notion.openPage(entry.tabId)">
+            {{ $t('cloudNotes.watchNotes.external.openInNotion') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Obsidian, no note yet: the student decides where this lecture's slides go. -->
+      <div v-else-if="entry.provider === 'obsidian' && !entry.target" class="en-card">
         <p class="en-lead">{{ $t('cloudNotes.watchNotes.external.chooseLead') }}</p>
         <div class="en-actions">
           <button
@@ -29,8 +75,8 @@
         <p v-if="!hasVault" class="en-hint">{{ $t('cloudNotes.watchNotes.external.noVaultHint') }}</p>
       </div>
 
-      <!-- Has a note: which file, and ways to open it. -->
-      <div v-else class="en-card">
+      <!-- Obsidian note chosen: which file, and ways to open it. -->
+      <div v-else-if="entry.provider === 'obsidian' && entry.target" class="en-card">
         <div class="en-note">
           <svg class="en-note-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -54,11 +100,11 @@
             v-if="entry.target.vaultPath"
             type="button"
             class="btn btn--primary btn--sm"
-            @click="bridge.openInObsidian(entry.tabId)"
+            @click="obsidian.openInObsidian(entry.tabId)"
           >
             {{ $t('cloudNotes.watchNotes.external.openInObsidian') }}
           </button>
-          <button type="button" class="btn btn--sm" @click="bridge.reveal(entry.tabId)">
+          <button type="button" class="btn btn--sm" @click="obsidian.reveal(entry.tabId)">
             {{ isMac ? $t('cloudNotes.watchNotes.external.showInFinder') : $t('cloudNotes.watchNotes.external.showInFolder') }}
           </button>
         </div>
@@ -67,11 +113,11 @@
       <!-- A vault was found above the chosen note and none is configured yet. -->
       <div v-if="showVaultOffer" class="en-offer">
         <p class="en-offer-text">
-          <span class="en-offer-found">{{ $t('cloudNotes.watchNotes.external.foundVault', { name: entry.target?.vaultName }) }}</span>
+          <span class="en-offer-found">{{ $t('cloudNotes.watchNotes.external.foundVault', { name: obsidianTarget?.vaultName }) }}</span>
           <span>{{ $t('cloudNotes.watchNotes.external.foundVaultAsk') }}</span>
         </p>
         <div class="en-offer-actions">
-          <button type="button" class="btn btn--sm" @click="bridge.useFoundVault(entry.tabId)">
+          <button type="button" class="btn btn--sm" @click="obsidian.useFoundVault(entry.tabId)">
             {{ $t('cloudNotes.watchNotes.external.useThisVault') }}
           </button>
           <button type="button" class="btn btn--ghost btn--sm" @click="offerDismissed.add(entry.tabId)">
@@ -80,11 +126,11 @@
         </div>
       </div>
 
-      <p v-if="entry.lastError" class="en-error" role="status">{{ errorText }}</p>
+      <p v-if="errorText" class="en-error" role="status">{{ errorText }}</p>
     </div>
 
-    <div class="en-queue-head">{{ $t('cloudNotes.watchNotes.external.queueTitle') }}</div>
-    <div ref="queueEl" class="en-queue custom-scrollbar">
+    <div v-show="!picking" class="en-queue-head">{{ $t('cloudNotes.watchNotes.external.queueTitle') }}</div>
+    <div v-show="!picking" ref="queueEl" class="en-queue custom-scrollbar">
       <ul v-if="entry.items.length > 0" class="en-list">
         <li v-for="item in entry.items" :key="item.id" class="en-row" :class="`is-${item.status}`">
           <div class="en-thumb">
@@ -118,7 +164,7 @@
       <button
         type="button"
         class="btn btn--sm en-pause"
-        @click="watchNotesStore.setObsidianPaused(entry.tabId, !entry.paused)"
+        @click="watchNotesStore.setExternalPaused(entry.tabId, !entry.paused)"
       >
         <!-- Same icons and sizes as the Task tab's Start / Pause. -->
         <svg v-if="entry.paused" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -135,40 +181,52 @@
 </template>
 
 <script setup lang="ts">
-// Right-panel Notes view for file-based providers (Obsidian). There is no
-// editor: the note lives in the user's own app, so this shows where slides go,
-// the queue of kept slides (queued → appended), and a pause control. Kept at
-// the panel's normal width (App.vue widens only for the Yanhekt editor).
+// Right-panel Notes view for image-only providers (Obsidian, Notion). There is
+// no editor: the note lives in the user's own app, so this shows where slides
+// go, the queue of kept slides (queued → appended), and a pause control. Kept
+// at the panel's normal width (App.vue widens only for the Yanhekt editor).
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
 import { watchNotesStore } from '@features/cloudNotes/watchNotesStore'
-import type { ObsidianQueueStatus, ObsidianWatchNoteEntry } from '@features/cloudNotes/watchNotesTypes'
+import type { ExternalWatchNoteEntry, WatchQueueStatus } from '@features/cloudNotes/watchNotesTypes'
+import NotionPagePicker from './NotionPagePicker.vue'
 
-const props = defineProps<{ entry: ObsidianWatchNoteEntry }>()
+const props = defineProps<{ entry: ExternalWatchNoteEntry }>()
 
 const { t, locale } = useI18n()
-const bridge = window.electronAPI.obsidianNotes
+const obsidian = window.electronAPI.obsidianNotes
+const notion = window.electronAPI.notionNotes
 const isMac = navigator.userAgent.includes('Mac')
 const busy = ref(false)
 // Tabs whose "use this vault" offer was waved away (this session only).
 const offerDismissed = reactive(new Set<string>())
 
+// Notion: the page picker is open (replaces the card and the queue).
+const picking = ref(false)
+watch(() => props.entry.tabId, () => { picking.value = false })
+
+const providerLabel = computed(() =>
+  props.entry.provider === 'notion' ? t('advanced.addons.providerNotion') : t('advanced.addons.providerObsidian'),
+)
+
 const hasVault = computed(() => !!configStore.obsidianVaultPath)
 
+const obsidianTarget = computed(() => (props.entry.provider === 'obsidian' ? props.entry.target : null))
+
 const showVaultOffer = computed(
-  () => !!props.entry.target?.vaultPath && !hasVault.value && !offerDismissed.has(props.entry.tabId),
+  () => !!obsidianTarget.value?.vaultPath && !hasVault.value && !offerDismissed.has(props.entry.tabId),
 )
 
 /** "Test 1/Test 1 Course.md" → "Test 1 Course". */
 const noteName = computed(() => {
-  const path = props.entry.target?.displayPath ?? ''
+  const path = obsidianTarget.value?.displayPath ?? ''
   return path.split('/').pop()?.replace(/\.md$/i, '') || path
 })
 
 /** Folder inside the vault plus the vault, or "not in a vault". */
 const noteWhere = computed(() => {
-  const target = props.entry.target
+  const target = obsidianTarget.value
   if (!target) return ''
   const parts = target.displayPath.split('/')
   const folder = parts.slice(0, -1).join('/')
@@ -200,7 +258,7 @@ const footerState = computed(() => {
   return ''
 })
 
-function statusLabel(status: ObsidianQueueStatus): string {
+function statusLabel(status: WatchQueueStatus): string {
   switch (status) {
     case 'appended': return t('cloudNotes.watchNotes.external.statusAppended')
     case 'appending': return t('cloudNotes.watchNotes.external.statusAppending')
@@ -213,6 +271,20 @@ function timeOf(ms: number): string {
 }
 
 const errorText = computed(() => {
+  if (!props.entry.lastError) return ''
+  if (props.entry.provider === 'notion') {
+    switch (props.entry.lastError) {
+      // The page was forgotten; the card already asks for a new one.
+      case 'no_target': return ''
+      case 'no_token':
+      case 'unauthorized': return t('cloudNotes.watchNotes.external.notionErrors.unauthorized')
+      case 'not_shared': return t('cloudNotes.watchNotes.external.notionErrors.notShared')
+      case 'rate_limited': return t('cloudNotes.watchNotes.external.notionErrors.rateLimited')
+      case 'too_large': return t('cloudNotes.watchNotes.external.notionErrors.tooLarge')
+      case 'network': return t('cloudNotes.watchNotes.external.notionErrors.network')
+      default: return t('cloudNotes.watchNotes.external.notionErrors.write')
+    }
+  }
   switch (props.entry.lastError) {
     case 'no_vault': return t('cloudNotes.watchNotes.external.errors.noVault')
     case 'not_a_vault': return t('cloudNotes.watchNotes.external.errors.notAVault')
@@ -233,6 +305,13 @@ async function run(action: () => Promise<void>): Promise<void> {
 
 function chooseNote(): Promise<void> {
   return run(() => watchNotesStore.chooseObsidianNote(props.entry.tabId))
+}
+
+function pickNotionPage(pageId: string): Promise<void> {
+  picking.value = false
+  return run(async () => {
+    await watchNotesStore.chooseNotionPage(props.entry.tabId, pageId)
+  })
 }
 </script>
 
@@ -329,6 +408,19 @@ function chooseNote(): Promise<void> {
   flex-shrink: 0;
   margin-top: 1px;
   color: var(--text-secondary);
+}
+
+.en-note-emoji {
+  flex-shrink: 0;
+  width: 16px;
+  font-size: 15px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.en-picker {
+  flex: 1;
+  min-height: 0;
 }
 
 .en-note-text {

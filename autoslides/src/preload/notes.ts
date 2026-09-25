@@ -100,3 +100,18 @@ export const obsidianNotes: ElectronAPI['obsidianNotes'] = {
   reveal: (tabId) => ipcRenderer.invoke('obsidianNotes:reveal', tabId),
   useFoundVault: (tabId) => ipcRenderer.invoke('obsidianNotes:useFoundVault', tabId),
 };
+
+/**
+ * Notion watch-notes bridge. Tab id + plain values only; main keeps the token
+ * and each tab's page (Settings can read the token back to show it).
+ */
+export const notionNotes: ElectronAPI['notionNotes'] = {
+  connect: (token) => ipcRenderer.invoke('notionNotes:connect', token),
+  getToken: () => ipcRenderer.invoke('notionNotes:getToken'),
+  disconnect: () => ipcRenderer.invoke('notionNotes:disconnect'),
+  searchPages: (query, cursor) => ipcRenderer.invoke('notionNotes:searchPages', query, cursor),
+  choosePage: (tabId, pageId) => ipcRenderer.invoke('notionNotes:choosePage', tabId, pageId),
+  append: (tabId, bytes, filename) => ipcRenderer.invoke('notionNotes:append', tabId, bytes, filename),
+  close: (tabId) => ipcRenderer.invoke('notionNotes:close', tabId),
+  openPage: (tabId) => ipcRenderer.invoke('notionNotes:openPage', tabId),
+};

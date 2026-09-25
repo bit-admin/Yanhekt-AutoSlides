@@ -209,6 +209,8 @@ export const defaultConfig: AppConfig = {
   obsidianVaultPath: '',
   obsidianSubfolder: 'AutoSlides',
   obsidianAutoCreateNote: false,
+  notionConnected: false,
+  notionWorkspaceName: '',
   cloudShareEmbedTimeline: true,
   showToolsButton: false,
   preferAnonymousApiRequests: false,
