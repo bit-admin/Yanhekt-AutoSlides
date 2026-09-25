@@ -115,8 +115,10 @@ export function useAdvancedSettings(
     ])
   }
 
-  // Discard buffered edits (Cancel, or navigating away from the page). Bumps the
-  // request id so any in-flight prepare loads are ignored. Idempotent.
+  // Discard buffered edits when navigating away from the page. Only a partial
+  // reset (AI tab and auto-crop temps are re-seeded by the next prepare), so
+  // in-page Cancel calls prepareSettings instead. Bumps the request id so any
+  // in-flight prepare loads are ignored. Idempotent.
   const discardSettings = () => {
     advancedSettingsOpenRequestId++
 

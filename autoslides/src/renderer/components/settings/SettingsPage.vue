@@ -122,9 +122,12 @@ const onSave = async () => {
   }
 }
 
+// Cancel re-runs the page-entry load rather than discardSettings(): several
+// buffers (AI tab incl. model chain + prompts, auto-crop/YOLO params) have no
+// in-memory committed copy and are only re-seeded from config by the loads.
 const onCancel = () => {
   if (isSaving.value) return
-  advanced.discardSettings()
+  void advanced.prepareSettings()
   showFooterFeedback('discarded')
 }
 

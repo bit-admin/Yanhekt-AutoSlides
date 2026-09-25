@@ -27,7 +27,9 @@ export function useImageProcessingSettings() {
   // SSIM / pHash
   const ssimThreshold = ref(0.9987)
   const tempSsimThreshold = ref(0.9987)
+  // ssimPreset is the buffered (v-model) preset; savedSsimPreset is what config holds.
   const ssimPreset = ref<SsimPresetType>('adaptive')
+  const savedSsimPreset = ref<SsimPresetType>('adaptive')
   const pHashThreshold = ref(10)
   const tempPHashThreshold = ref(10)
 
@@ -175,6 +177,7 @@ export function useImageProcessingSettings() {
       isUpdatingProgrammatically = false
 
       const savedPresetMode = slideConfig.ssimPresetMode || 'adaptive'
+      savedSsimPreset.value = savedPresetMode
       ssimPreset.value = savedPresetMode
 
       pHashThreshold.value = slideConfig.pHashThreshold || 10
@@ -250,6 +253,7 @@ export function useImageProcessingSettings() {
       enablePngColorReduction: tempEnablePngColorReduction.value
     })
     ssimThreshold.value = imageProcessingResult.ssimThreshold
+    savedSsimPreset.value = ssimPreset.value
     pHashThreshold.value = imageProcessingResult.pHashThreshold || tempPHashThreshold.value
     enableDownsampling.value = tempEnableDownsampling.value
     downsampleWidth.value = tempDownsampleWidth.value
@@ -315,6 +319,7 @@ export function useImageProcessingSettings() {
   const resetTemp = () => {
     isUpdatingProgrammatically = true
     tempSsimThreshold.value = ssimThreshold.value
+    ssimPreset.value = savedSsimPreset.value
     tempPHashThreshold.value = pHashThreshold.value
     tempEnableDuplicateRemoval.value = enableDuplicateRemoval.value
     tempEnableExclusionList.value = enableExclusionList.value
@@ -380,19 +385,24 @@ export function useImageProcessingSettings() {
   const onAdaptiveThresholdChanged = async (event: CustomEvent) => {
     const { newThreshold, classrooms } = event.detail
 
-    if (ssimPreset.value === 'adaptive') {
+    // Keyed on the saved preset: an unsaved preset edit must not stop (or start)
+    // classroom-driven updates. The buffered field follows only while it is
+    // still showing adaptive too.
+    if (savedSsimPreset.value === 'adaptive') {
       log.debug('Adaptive SSIM threshold updated due to classroom rules:', {
         newThreshold,
         classrooms: classrooms?.map((c: { name: string }) => c.name).join(', ') || 'none'
       })
 
-      updateThresholdProgrammatically(newThreshold)
+      if (ssimPreset.value === 'adaptive') {
+        updateThresholdProgrammatically(newThreshold)
+      }
       ssimThreshold.value = newThreshold
 
       try {
         const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
           ssimThreshold: newThreshold,
-          ssimPresetMode: ssimPreset.value
+          ssimPresetMode: savedSsimPreset.value
         })
         log.debug('Classroom-based SSIM threshold saved to config:', imageProcessingResult.ssimThreshold)
       } catch (error) {
