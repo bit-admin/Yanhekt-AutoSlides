@@ -206,22 +206,32 @@
       </div>
     </Teleport>
 
-    <!-- Right-panel view switcher (Task / Download), hosted in the title bar
-         above the right panel. Hidden during full-screen browser login and on
-         full-width Workspace pages (no right panel to switch). -->
-    <div v-if="!isBrowserLoginActive && !isWorkspacePage" class="view-switcher">
+    <!-- Right-panel view switcher (Task / Download / Notes), hosted in the title
+         bar above the right panel. Hidden during full-screen browser login and on
+         full-width Workspace pages (no right panel to switch). When the labels
+         don't fit (narrow panel, or Win-Linux window controls eating the width)
+         tabs drop to icon-only — see switcherMode. -->
+    <div
+      v-if="!isBrowserLoginActive && !isWorkspacePage"
+      ref="switcherRef"
+      class="view-switcher"
+    >
       <button
-        :class="['view-tab', { active: rightPanelStore.currentTab === 'task' }]"
+        :class="['view-tab', { active: rightPanelStore.currentTab === 'task', 'icon-only': iconOnly('task') }]"
+        :title="iconOnly('task') ? $t('navigation.task') : undefined"
+        :aria-label="$t('navigation.task')"
         @click="setRightPanelTab('task')"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 11l3 3 8-8"/>
           <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
         </svg>
-        {{ $t('navigation.task') }}
+        <span v-if="!iconOnly('task')">{{ $t('navigation.task') }}</span>
       </button>
       <button
-        :class="['view-tab', { active: rightPanelStore.currentTab === 'download' }]"
+        :class="['view-tab', { active: rightPanelStore.currentTab === 'download', 'icon-only': iconOnly('download') }]"
+        :title="iconOnly('download') ? $t('navigation.download') : undefined"
+        :aria-label="$t('navigation.download')"
         @click="setRightPanelTab('download')"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -229,20 +239,39 @@
           <polyline points="7,10 12,15 17,10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        {{ $t('navigation.download') }}
+        <span v-if="!iconOnly('download')">{{ $t('navigation.download') }}</span>
       </button>
       <!-- Notes: only while watching a playback tab with watch-sync enabled. -->
       <button
         v-if="watchNotesStore.notesTabAvailable.value"
-        :class="['view-tab', { active: rightPanelStore.currentTab === 'notes' }]"
+        :class="['view-tab', { active: rightPanelStore.currentTab === 'notes', 'icon-only': iconOnly('notes') }]"
+        :title="iconOnly('notes') ? $t('navigation.notes') : undefined"
+        :aria-label="$t('navigation.notes')"
         @click="setRightPanelTab('notes')"
       >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 20h9"/>
           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/>
         </svg>
-        {{ $t('navigation.notes') }}
+        <span v-if="!iconOnly('notes')">{{ $t('navigation.notes') }}</span>
       </button>
+    </div>
+    <!-- Hidden labelled copy of the switcher tabs, measured by fitSwitcher. -->
+    <div
+      v-if="!isBrowserLoginActive && !isWorkspacePage"
+      ref="switcherGhostRef"
+      class="view-switcher-ghost"
+      aria-hidden="true"
+    >
+      <span
+        v-for="tab in (['task', 'download', 'notes'] as const)"
+        :key="tab"
+        class="view-tab active"
+        :data-tab="tab"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24"></svg>
+        {{ $t(`navigation.${tab}`) }}
+      </span>
     </div>
 
     <!-- Trailing cluster: right-panel collapse toggle + (non-macOS) window
@@ -306,7 +335,7 @@ import { useAuth } from '@features/platform/useAuth';
 import { tokenManager } from '@shared/services/authService';
 import { taskQueueState } from '@shared/services/taskQueueService';
 
-const { t: $t } = useI18n();
+const { t: $t, locale } = useI18n();
 
 // True when a full-width Workspace page (e.g. Slides Review) owns the content
 // area: the right-panel view switcher + collapse toggles are hidden.
@@ -351,6 +380,60 @@ const isTabClosable = (tab: PlaybackTab): boolean => {
 
 // Module-singleton ref: stays in sync with the App-level browser-login state.
 const { isBrowserLoginActive } = useAuth();
+
+// --- Right-panel view switcher fit -----------------------------------------
+// The switcher shares the right panel's width with the trailing cluster, which
+// on Win-Linux includes 138px of window controls — at the default 340px panel
+// "Task / Download / Notes" no longer fit and overflow:hidden silently clipped
+// Notes. Step down until the row fits: full labels → only the active tab keeps
+// its label → icons only. The fit is pure arithmetic over widths read from a
+// hidden copy of the labelled tabs (.view-switcher-ghost), so the visible row
+// only re-renders when the mode actually changes — no trial renders to flash.
+type SwitcherMode = 'full' | 'active' | 'icons';
+type SwitcherTab = 'task' | 'download' | 'notes';
+const SWITCHER_PADDING = 16; // .view-switcher padding 0 8px
+const SWITCHER_GAP = 2;      // .view-switcher gap
+const ICON_TAB_WIDTH = 29;   // .view-tab.icon-only: 15px icon + 2 × 7px
+const switcherRef = ref<HTMLElement | null>(null);
+const switcherGhostRef = ref<HTMLElement | null>(null);
+const switcherMode = ref<SwitcherMode>('full');
+let switcherObserver: ResizeObserver | null = null;
+
+const iconOnly = (tab: SwitcherTab) =>
+  switcherMode.value === 'icons' || (switcherMode.value === 'active' && rightPanelStore.currentTab !== tab);
+
+const fitSwitcher = () => {
+  const el = switcherRef.value;
+  const ghost = switcherGhostRef.value;
+  if (!el || !ghost) return;
+  const tabs: SwitcherTab[] = watchNotesStore.notesTabAvailable.value
+    ? ['task', 'download', 'notes']
+    : ['task', 'download'];
+  const labelled = (tab: SwitcherTab) =>
+    ghost.querySelector<HTMLElement>(`[data-tab="${tab}"]`)?.offsetWidth ?? 0;
+  const available = el.clientWidth - SWITCHER_PADDING - SWITCHER_GAP * (tabs.length - 1);
+  const full = tabs.reduce((sum, tab) => sum + labelled(tab), 0);
+  const active = tabs.reduce(
+    (sum, tab) => sum + (tab === rightPanelStore.currentTab ? labelled(tab) : ICON_TAB_WIDTH),
+    0,
+  );
+  switcherMode.value = full <= available ? 'full' : active <= available ? 'active' : 'icons';
+};
+
+watch(switcherRef, (el) => {
+  switcherObserver?.disconnect();
+  switcherObserver = null;
+  if (!el) return;
+  switcherObserver = new ResizeObserver(() => fitSwitcher());
+  switcherObserver.observe(el);
+});
+
+// Content changes don't resize the (absolutely positioned) switcher itself; wait
+// for the ghost to re-render (locale) before reading it.
+watch(
+  () => [rightPanelStore.currentTab, watchNotesStore.notesTabAvailable.value, locale.value],
+  () => nextTick(fitSwitcher),
+);
 
 // --- Tab overflow ("···" dropdown) ---------------------------------------
 // Rather than scrolling the strip horizontally, tabs that don't fit collapse
@@ -522,6 +605,8 @@ onUnmounted(() => {
   stripObserver = null;
   reserveObserver?.disconnect();
   reserveObserver = null;
+  switcherObserver?.disconnect();
+  switcherObserver = null;
 });
 
 // Close all menus when clicking outside
@@ -1250,7 +1335,8 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  /* Colors only: animating padding would visibly tween every fit step. */
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .view-tab:hover {
@@ -1267,6 +1353,23 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 
 .view-tab svg {
   flex-shrink: 0;
+}
+
+/* Measurement-only copy of the labelled tabs (bold, as if active — the widest
+   form). Off-screen, invisible, never interactive. */
+.view-switcher-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Label dropped to fit (see switcherMode): a square-ish icon button. */
+.view-tab.icon-only {
+  padding: 0 7px;
 }
 
 /* Window controls for non-macOS */
