@@ -10,7 +10,7 @@ import type { LectureIdentity } from '@common/lectureNaming'
 import { tabStore } from '@features/course/tabStore'
 import { cloudStorageStore } from './cloudStorageStore'
 import { notesRefreshStore } from './noteOpenRequest'
-import type { WatchNotesSink, YanhektWatchNoteEntry } from './watchNotesTypes'
+import type { KeptSlide, WatchNotesSink, YanhektWatchNoteEntry } from './watchNotesTypes'
 
 const log = createLogger('WatchNotes')
 
@@ -33,6 +33,9 @@ export interface ActiveEditorBinding {
 
 let activeEditor: ActiveEditorBinding | null = null
 const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
+// Per-tab promise chain serializing appends so overlapping pass events can't
+// interleave image blocks out of order.
+const appendChains = new Map<string, Promise<void>>()
 
 function api(): CloudNotesProvider {
   return overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
@@ -130,6 +133,34 @@ function scheduleSave(entry: YanhektWatchNoteEntry): void {
   )
 }
 
+/** Upload a slide image and append it to the entry's note. */
+async function appendSlide(entry: YanhektWatchNoteEntry, dataUrl: string, pngFilename: string): Promise<void> {
+  if (entry.status === 'error') return
+
+  let url: string
+  try {
+    const bytes = await (await fetch(dataUrl)).arrayBuffer()
+    const up = await api().uploadImage(bytes, pngFilename, 'image/png')
+    if (!up.ok) {
+      log.warn('watch slide upload failed', up.error)
+      return
+    }
+    url = up.data.url
+  } catch (err) {
+    log.warn('watch slide upload threw', err)
+    return
+  }
+
+  // Active tab with a live editor: insert through it so user edits aren't lost.
+  if (activeEditor && activeEditor.tabId === entry.tabId && tabStore.state.activeTabId === entry.tabId) {
+    activeEditor.insertImage(url)
+    return
+  }
+  // Background tab: mutate the working copy + debounced API save.
+  entry.content.blocks.push(imageBlock(url))
+  if (entry.noteId != null) scheduleSave(entry)
+}
+
 export const yanhektWatchSink: WatchNotesSink<YanhektWatchNoteEntry> = {
   async open(entry) {
     const result = await findOrCreateNote(entry.displayName, entry.identity)
@@ -145,38 +176,26 @@ export const yanhektWatchSink: WatchNotesSink<YanhektWatchNoteEntry> = {
     if (result.created) notesRefreshStore.requestNotesRefresh()
   },
 
-  /** Upload a slide image and append it to the entry's note. */
-  async append(entry, dataUrl, pngFilename) {
-    if (entry.status === 'error') return
-
-    let url: string
-    try {
-      const bytes = await (await fetch(dataUrl)).arrayBuffer()
-      const up = await api().uploadImage(bytes, pngFilename, 'image/png')
-      if (!up.ok) {
-        log.warn('watch slide upload failed', up.error)
-        return
-      }
-      url = up.data.url
-    } catch (err) {
-      log.warn('watch slide upload threw', err)
-      return
-    }
-
-    // Active tab with a live editor: insert through it so user edits aren't lost.
-    if (activeEditor && activeEditor.tabId === entry.tabId && tabStore.state.activeTabId === entry.tabId) {
-      activeEditor.insertImage(url)
-      return
-    }
-    // Background tab: mutate the working copy + debounced API save.
-    entry.content.blocks.push(imageBlock(url))
-    if (entry.noteId != null) scheduleSave(entry)
+  deliver(entry, slides: KeptSlide[]) {
+    const prev = appendChains.get(entry.tabId) ?? Promise.resolve()
+    appendChains.set(
+      entry.tabId,
+      prev
+        .then(async () => {
+          for (const slide of slides) await appendSlide(entry, slide.dataUrl, slide.pngFilename)
+        })
+        .catch((err) => log.warn('watch note flush failed', err)),
+    )
   },
+
+  // Nothing is held: slides go straight to the upload chain.
+  discardQueued() {},
 
   dispose(tabId) {
     const timer = saveTimers.get(tabId)
     if (timer) clearTimeout(timer)
     saveTimers.delete(tabId)
+    appendChains.delete(tabId)
   },
 }
 

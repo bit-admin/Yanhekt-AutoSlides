@@ -15,8 +15,9 @@ import {
   unregisterActiveEditor,
   commitEditorContent as commitYanhektContent,
 } from './yanhektWatchSink'
-import { obsidianWatchSink, createLectureNote, chooseNote } from './obsidianWatchSink'
+import { obsidianWatchSink, createLectureNote, chooseNote, setPaused } from './obsidianWatchSink'
 import type {
+  KeptSlide,
   ObsidianWatchNoteEntry,
   WatchNoteEntry,
   WatchNotesSink,
@@ -27,7 +28,7 @@ import type {
 // extraction gets an entry; captured slides wait here until post-processing
 // keeps them, then go to the entry's provider sink in capture order.
 //   Yanhekt  → yanhektWatchSink (ASuser note + live editor)
-//   Obsidian → obsidianWatchSink (images appended to a Markdown note)
+//   Obsidian → obsidianWatchSink (visible queue → images appended to a Markdown note)
 
 const log = createLogger('WatchNotes')
 
@@ -38,12 +39,6 @@ const state = reactive<{ entries: Record<string, WatchNoteEntry> }>({ entries: {
 // until a completed pass reports them kept; trashed ones never reach the note.
 // Kept outside the reactive state on purpose — nothing renders from it.
 const pendingSlides = new Map<string, Map<string, string>>()
-// Kept slides for an Obsidian entry that has no target note yet, in order.
-// Flushed when the student creates or chooses a note; dropped on stop.
-const keptQueue = new Map<string, Array<{ pngFilename: string; dataUrl: string }>>()
-// Per-tab promise chain serializing note appends so overlapping pass events
-// can't interleave image blocks out of order.
-const flushChains = new Map<string, Promise<void>>()
 
 function sinkFor(entry: WatchNoteEntry): WatchNotesSink<WatchNoteEntry> {
   return (entry.provider === 'obsidian' ? obsidianWatchSink : yanhektWatchSink) as WatchNotesSink<WatchNoteEntry>
@@ -58,56 +53,13 @@ function getPending(tabId: string): Map<string, string> {
   return pending
 }
 
-function chainFlush(tabId: string, task: () => Promise<void>): void {
-  const prev = flushChains.get(tabId) ?? Promise.resolve()
-  flushChains.set(
-    tabId,
-    prev.then(task).catch((err) => log.warn('watch note flush failed', err)),
-  )
-}
-
 function findEntryByInstance(instanceId: string): WatchNoteEntry | undefined {
   return Object.values(state.entries).find((e) => e.instanceId === instanceId)
 }
 
-/** An Obsidian entry without a note yet: kept slides must wait. */
-function awaitingTarget(entry: WatchNoteEntry): entry is ObsidianWatchNoteEntry {
-  return entry.provider === 'obsidian' && entry.target == null
-}
-
-/** Send kept slides to the entry's sink, or queue them while it has no target. */
-function deliver(entry: WatchNoteEntry, items: Array<{ pngFilename: string; dataUrl: string }>): void {
-  if (items.length === 0) return
-  if (awaitingTarget(entry)) {
-    let queue = keptQueue.get(entry.tabId)
-    if (!queue) {
-      queue = []
-      keptQueue.set(entry.tabId, queue)
-    }
-    queue.push(...items)
-    entry.waiting = queue.length
-    return
-  }
-  const sink = sinkFor(entry)
-  chainFlush(entry.tabId, async () => {
-    for (const item of items) {
-      await sink.append(entry, item.dataUrl, item.pngFilename)
-    }
-  })
-}
-
-/** Release the Obsidian waiting queue once a target exists. */
-function flushQueued(entry: ObsidianWatchNoteEntry): void {
-  const queue = keptQueue.get(entry.tabId)
-  keptQueue.delete(entry.tabId)
-  entry.waiting = 0
-  if (queue && queue.length > 0) deliver(entry, queue)
-}
-
-function dropQueued(tabId: string): void {
-  keptQueue.delete(tabId)
-  const entry = state.entries[tabId]
-  if (entry?.provider === 'obsidian') entry.waiting = 0
+/** Hand kept slides to the entry's sink, in capture order. */
+function deliver(entry: WatchNoteEntry, slides: KeptSlide[]): void {
+  if (slides.length > 0) sinkFor(entry).deliver(entry, slides)
 }
 
 /**
@@ -169,7 +121,7 @@ function newEntry(tabId: string, instanceId: string): WatchNoteEntry {
   const { displayName, identity, slidesFolderName } = deriveNoteNaming(tabId)
   const base = { tabId, instanceId, displayName, identity, slidesFolderName }
   if (configStore.watchNotesProvider === 'obsidian') {
-    return { ...base, provider: 'obsidian', status: 'awaiting', target: null, appended: 0, waiting: 0, lastError: null }
+    return { ...base, provider: 'obsidian', status: 'awaiting', target: null, items: [], paused: false, lastError: null }
   }
   return { ...base, provider: 'yanhekt', status: 'creating', noteId: null, content: emptyDoc() }
 }
@@ -203,7 +155,6 @@ export async function onExtractionStarted(tabId: string, instanceId: string): Pr
   setRightPanelTab('notes')
 
   await sinkFor(stored).open(stored)
-  if (stored.provider === 'obsidian' && stored.target) flushQueued(stored)
 }
 
 function onSlideExtracted(event: Event): void {
@@ -238,7 +189,7 @@ function onSlidesPostProcessed(event: Event): void {
   }
   if (!Array.isArray(kept)) return
   // `kept` arrives in extraction order; take only slides still awaiting clearance.
-  const cleared: Array<{ pngFilename: string; dataUrl: string }> = []
+  const cleared: KeptSlide[] = []
   for (const filename of kept) {
     const pngFilename = String(filename)
     const dataUrl = pending.get(pngFilename)
@@ -276,14 +227,14 @@ function onSlidesClearedEvent(event: Event): void {
   const entry = findEntryByInstance(instanceId)
   if (!entry) return
   pendingSlides.delete(entry.tabId)
-  dropQueued(entry.tabId)
+  sinkFor(entry).discardQueued(entry)
 }
 
 /**
  * Called by PlaybackPage when extraction stops (after any in-flight pass has
  * finished flushing). Remaining buffered slides never got a completed pass —
- * drop them rather than send unverified captures. Kept slides still waiting for
- * an Obsidian note are dropped too.
+ * drop them rather than send unverified captures. Kept slides in an Obsidian
+ * queue stay: they are verified, visible, and wait for a note or Resume.
  */
 export function onExtractionStopped(tabId: string): void {
   const pending = pendingSlides.get(tabId)
@@ -291,7 +242,6 @@ export function onExtractionStopped(tabId: string): void {
     log.debug(`dropping ${pending.size} un-cleared slide(s) for stopped tab ${tabId}`)
   }
   pendingSlides.delete(tabId)
-  dropQueued(tabId)
 }
 
 // ── Panel-facing API ────────────────────────────────────────────────────────
@@ -321,15 +271,19 @@ function obsidianEntry(tabId: string): ObsidianWatchNoteEntry | null {
 /** Notes tab → Create Lecture Note (configured vault). */
 export async function createObsidianNote(tabId: string): Promise<void> {
   const entry = obsidianEntry(tabId)
-  if (!entry) return
-  if (await createLectureNote(entry)) flushQueued(entry)
+  if (entry) await createLectureNote(entry)
 }
 
 /** Notes tab → Choose Note…: any `.md`, this lecture only. */
 export async function chooseObsidianNote(tabId: string): Promise<void> {
   const entry = obsidianEntry(tabId)
-  if (!entry) return
-  if (await chooseNote(entry)) flushQueued(entry)
+  if (entry) await chooseNote(entry)
+}
+
+/** Notes tab footer → Pause / Resume appending. */
+export function setObsidianPaused(tabId: string, paused: boolean): void {
+  const entry = obsidianEntry(tabId)
+  if (entry) setPaused(entry, paused)
 }
 
 // Prune entries whose tab was closed (leave the note itself intact).
@@ -341,8 +295,6 @@ watch(
       if (!live.has(id)) {
         sinkFor(entry).dispose(id)
         pendingSlides.delete(id)
-        keptQueue.delete(id)
-        flushChains.delete(id)
         delete state.entries[id]
       }
     }
@@ -400,6 +352,7 @@ export const watchNotesStore = {
   commitEditorContent,
   createObsidianNote,
   chooseObsidianNote,
+  setObsidianPaused,
   watchSyncActive,
   seedWatchNoteEntry,
 }
