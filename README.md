@@ -1,3 +1,8 @@
+> [!NOTE]
+> 我们注意到新版延河课堂 (https://aita.yanhekt.cn/course) 多了一批官方功能。例如回放页现已有幻灯片时间轴和识别字幕功能。我们计划对该新版本进行逆向研究。欢迎任何同学提供协助。
+>
+> 欢迎在 [Ideas](https://github.com/bit-admin/Yanhekt-AutoSlides/discussions/categories/ideas) 讨论区中新建主题进行讨论。
+
 <div align="center">
 
   <img src="docs/icon.png" width="120" />
@@ -30,13 +35,11 @@
 ---
 
 > [!CAUTION]
-> **Disclaimer**: This tool is intended strictly for personal study; users assume full legal responsibility for ensuring their usage complies with all applicable copyright laws and platform regulations. Terms and Conditions apply.
-> <br> **免责声明**：本工具严格仅供个人学习之用；用户须自行承担全部法律责任，确保其使用符合所有适用的版权法及平台规例。受条款及细则约束。
+> **免责声明**：本工具严格仅供个人学习之用；用户须自行承担全部法律责任，确保其使用符合所有适用的版权法及平台规例。受条款及细则约束。
 >
 > <p align="center"><a href="https://learn.ruc.edu.kg/terms">Read full Terms and Conditions / 按此查阅完整条款及细则</a></p>
 > 
-> This tool is NOT an official application of, and is NOT affiliated with, associated with, endorsed by, or in any way connected to Beijing Institute of Technology (BIT), or any of their subsidiaries or affiliates. All product and company names are trademarks™ or registered® trademarks of their respective holders.
-> <br> 本工具**并非**北京理工大学（BIT）的官方应用程式，亦与其或其任何附属机构或关联方无任何关联、联系、获其认可或以任何方式相关。所有产品及公司名称均为其各自持有人的商标™或注册®商标。
+> 本工具**并非**北京理工大学（BIT）的官方应用程式，亦与其或其任何附属机构或关联方无任何关联、联系、获其认可或以任何方式相关。所有产品及公司名称均为其各自持有人的商标™或注册®商标。
 
 ## ✨ 功能特性
 
