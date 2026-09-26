@@ -249,6 +249,21 @@ const handleSidebarEnter = () => {
   executeSearch();
 };
 
+// Header search submit: open the Search page *with* the keyword in the URL.
+// A bare push to /search would make SearchPage's syncFromRoute adopt the empty
+// query and wipe the keyword — resubmitting from a course page used to land on
+// an empty search. Claiming the key first turns the route-watcher sync into a
+// no-op, so this explicit run is the only one.
+const submitSearch = async () => {
+  cancelPendingSearch();
+  lastExecutedKey = searchKey(mode.value, keyword.value);
+  await router.push({ name: "search", query: buildQuery() });
+  if (mode.value === "recorded" && !semesterInitialized.value) {
+    await selectLatestSemester();
+  }
+  await executeSearch();
+};
+
 const selectResult = (course: Course) => {
   openCourse(mode.value, course);
 };
@@ -285,6 +300,7 @@ export function useSearchPage() {
     syncFromRoute,
     handleSidebarFocus,
     handleSidebarEnter,
+    submitSearch,
     selectResult,
     openSavedSearch,
   };

@@ -206,7 +206,7 @@ const { navigate, toggleSidebar } = navigationStore
 const onHamburger = () => {
   toggleSidebar()
 }
-const { keyword: searchKeyword, handleSidebarFocus, executeSearch } = useSearchPage()
+const { keyword: searchKeyword, handleSidebarFocus, executeSearch, submitSearch } = useSearchPage()
 const { isLoggedIn, userNickname, userId, isVerifyingToken, signOut } = authStore
 
 // User initials
@@ -272,8 +272,7 @@ const handleSignOut = () => {
 }
 
 const handleSearchSubmit = () => {
-  navigate('search')
-  executeSearch()
+  void submitSearch()
   showMobileSearch.value = false
 }
 
