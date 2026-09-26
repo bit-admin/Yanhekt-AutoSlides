@@ -13,15 +13,46 @@
           <line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
-      <!-- Welcome intro -->
-      <template v-if="isWelcome">
-        <div class="onboarding-hero">
-          <h2 class="hero-title">{{ $t(isWhatsNew ? 'onboarding.whatsNewTitle' : 'onboarding.welcomeTitle') }}</h2>
-          <p class="hero-subtitle">{{ $t(isWhatsNew ? 'onboarding.whatsNewSubtitle' : 'onboarding.welcomeSubtitle') }}</p>
-          <button class="btn btn--primary btn--lg hero-cta" @click="next">
-            {{ $t(isWhatsNew ? 'onboarding.whatsNewCta' : 'onboarding.getStarted') }}
-          </button>
-          <button class="skip-link" @click="finish">{{ $t('onboarding.skip') }}</button>
+      <!-- Legal notice: opens every first-run and What's New. One way forward
+           (agree); Skip only skips the setup steps after it. -->
+      <template v-if="isLegal">
+        <div class="legal-page">
+          <h2 class="hero-title legal-title">{{ $t('onboarding.welcomeTitle') }}</h2>
+          <p class="legal-lead">{{ $t(isWhatsNew ? 'onboarding.legal.whatsNewLead' : 'onboarding.legal.welcomeLead') }}</p>
+
+          <ul class="legal-list">
+            <li v-for="key in LEGAL_ITEMS" :key="key" class="legal-item">
+              <svg class="legal-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <template v-if="key === 'copyright'">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M14.83 14.83a4 4 0 1 1 0-5.66" />
+                </template>
+                <template v-else>
+                  <!-- affiliation -->
+                  <path d="M3 21h18" />
+                  <path d="M5 21V10l7-5 7 5v11" />
+                  <path d="M9 21v-6h6v6" />
+                </template>
+              </svg>
+              <span>{{ $t(`onboarding.legal.items.${key}`) }}</span>
+            </li>
+          </ul>
+
+          <p class="legal-agree">{{ $t('onboarding.legal.agree') }}</p>
+
+          <div class="legal-actions">
+            <button class="btn btn--primary btn--lg hero-cta" @click="next">
+              {{ $t('onboarding.legal.accept') }}
+            </button>
+          </div>
+        </div>
+
+        <div class="legal-footer">
+          <template v-for="(link, i) in LEGAL_LINKS" :key="link.key">
+            <span v-if="i > 0" class="legal-dot" aria-hidden="true">•</span>
+            <a class="legal-link" :href="link.url" @click.prevent="openLegal(link.url)">{{ $t(`onboarding.legal.${link.key}`) }}</a>
+          </template>
+          <button v-if="hasSetupSteps" class="skip-link legal-skip" @click="finish">{{ $t('onboarding.legal.skipSetup') }}</button>
         </div>
       </template>
 
@@ -32,7 +63,7 @@
             v-for="(s, i) in configSteps"
             :key="s.id"
             class="progress-dot"
-            :class="{ active: s.id === currentId, done: i < configIndex }"
+            :class="{ active: s.id === currentStepId, done: i < configIndex }"
           />
         </div>
 
@@ -153,49 +184,137 @@
             />
           </template>
 
-          <!-- Cloud storage -->
-          <template v-else-if="currentId === 'cloud'">
-            <h3 class="step-title">{{ $t('onboarding.cloudTitle') }}</h3>
-            <p class="step-description cloud-step-description">{{ $t('onboarding.cloudDescription') }}</p>
+          <!-- Notes add-ons: which provider watch notes go to -->
+          <template v-else-if="currentId === 'notesProvider'">
+            <h3 class="step-title">{{ $t('onboarding.notes.providerTitle') }}</h3>
+            <p class="step-description">{{ $t('onboarding.notes.providerDescription') }}</p>
+            <div class="mode-toggle">
+              <button
+                v-for="provider in WATCH_NOTES_PROVIDERS"
+                :key="provider"
+                type="button"
+                :class="['mode-btn', { active: notesProvider === provider }]"
+                :aria-pressed="notesProvider === provider"
+                @click="setNotesProvider(provider)"
+              >
+                {{ $t(PROVIDER_LABEL_KEYS[provider]) }}
+              </button>
+            </div>
 
-            <button
-              v-if="isLoggedIn && !cloudReady"
-              type="button"
-              class="btn btn--primary cloud-init-btn"
-              :disabled="cloudBusy"
-              @click="onInitCloud"
-            >
-              {{ cloudBusy ? $t('cloudNotes.initializing') : $t('cloudNotes.initStorage') }}
-            </button>
-            <p v-if="cloudStorageStore.status.value === 'error' && cloudStorageStore.lastError.value" class="cloud-storage-error">
-              {{ cloudStorageStore.lastError.value }}
+            <p v-if="notesProvider === 'yanhekt'" class="notes-provider-detail">
+              {{ $t('onboarding.notes.yanhektDetail') }}
             </p>
 
-            <div v-if="cloudReady" class="cloud-inited-row">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              {{ $t('advanced.cloudStorage.statusReady') }}
-            </div>
-            <div v-if="cloudReady" class="auto-post-processing-control">
-              <select
-                class="select-field sync-mode-select"
-                :value="configStore.cloudAutoSyncMode ?? 'disabled'"
-                @change="onAutoSyncChange"
-              >
-                <option value="disabled">{{ $t('onboarding.cloudSyncDisabled') }}</option>
-                <option value="edited">{{ $t('advanced.cloudStorage.syncModeEdited') }}</option>
-                <option value="reviewed">{{ $t('advanced.cloudStorage.syncModeReviewed') }}</option>
-              </select>
-              <label class="checkbox-label">
+            <div v-else-if="notesProvider === 'obsidian'" class="notes-provider-detail">
+              <label class="notes-field-label">{{ $t('advanced.addons.obsidianVault') }}</label>
+              <div class="input-group">
                 <input
-                  type="checkbox"
-                  :checked="!!configStore.watchNotesEnabled && configStore.watchNotesProvider === 'yanhekt'"
-                  @change="onWatchSyncChange"
+                  :value="configStore.obsidianVaultPath"
+                  type="text"
+                  readonly
+                  class="text-input directory-input"
+                  :placeholder="$t('advanced.addons.obsidianVaultPlaceholder')"
+                  :title="configStore.obsidianVaultPath"
                 />
-                {{ $t('onboarding.cloudWatchSync') }}
-              </label>
+                <button type="button" class="btn btn--primary" @click="selectObsidianVault">{{ $t('settings.browse') }}</button>
+              </div>
+              <p v-if="configStore.obsidianVaultPath && obsidianVaultIsVault === false" class="notes-warning" role="status">
+                {{ $t('advanced.addons.obsidianNotAVault') }}
+              </p>
             </div>
+
+            <div v-else class="notes-provider-detail">
+              <label class="notes-field-label">{{ $t('advanced.addons.notionSetupTitle') }}</label>
+              <NotionConnectSteps :with-pick-step="false" />
+            </div>
+          </template>
+
+          <!-- Notes add-ons: the chosen provider's own page -->
+          <template v-else-if="currentId === 'notes'">
+            <!-- Yanhekt Notes: cloud storage (the 5.0.0 cloud step) -->
+            <template v-if="notesProvider === 'yanhekt'">
+              <h3 class="step-title">{{ $t('onboarding.cloudTitle') }}</h3>
+              <p class="step-description cloud-step-description">{{ $t('onboarding.cloudDescription') }}</p>
+
+              <button
+                v-if="isLoggedIn && !cloudReady"
+                type="button"
+                class="btn btn--primary cloud-init-btn"
+                :disabled="cloudBusy"
+                @click="onInitCloud"
+              >
+                {{ cloudBusy ? $t('cloudNotes.initializing') : $t('cloudNotes.initStorage') }}
+              </button>
+              <p v-if="cloudStorageStore.status.value === 'error' && cloudStorageStore.lastError.value" class="cloud-storage-error">
+                {{ cloudStorageStore.lastError.value }}
+              </p>
+
+              <div v-if="cloudReady" class="cloud-inited-row">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {{ $t('advanced.cloudStorage.statusReady') }}
+              </div>
+              <div v-if="cloudReady" class="auto-post-processing-control">
+                <select
+                  class="select-field sync-mode-select"
+                  :value="configStore.cloudAutoSyncMode ?? 'disabled'"
+                  @change="onAutoSyncChange"
+                >
+                  <option value="disabled">{{ $t('onboarding.cloudSyncDisabled') }}</option>
+                  <option value="edited">{{ $t('advanced.cloudStorage.syncModeEdited') }}</option>
+                  <option value="reviewed">{{ $t('advanced.cloudStorage.syncModeReviewed') }}</option>
+                </select>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    :checked="isWatchNotesOn('yanhekt')"
+                    @change="onWatchSyncChange('yanhekt', $event)"
+                  />
+                  {{ $t('onboarding.cloudWatchSync') }}
+                </label>
+              </div>
+              <p v-if="!isLoggedIn" class="notes-provider-detail notes-muted">{{ $t('onboarding.notes.yanhektSignInFirst') }}</p>
+            </template>
+
+            <template v-else-if="notesProvider === 'obsidian'">
+              <h3 class="step-title">{{ $t('onboarding.notes.obsidianTitle') }}</h3>
+              <p class="step-description">{{ $t('onboarding.notes.obsidianDescription') }}</p>
+              <div class="auto-post-processing-control">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    :checked="isWatchNotesOn('obsidian')"
+                    @change="onWatchSyncChange('obsidian', $event)"
+                  />
+                  {{ $t('onboarding.cloudWatchSync') }}
+                </label>
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    :checked="!!configStore.obsidianAutoCreateNote"
+                    @change="onObsidianAutoCreateChange"
+                  />
+                  {{ $t('onboarding.notes.obsidianAutoCreate') }}
+                </label>
+              </div>
+            </template>
+
+            <template v-else>
+              <h3 class="step-title">{{ $t('onboarding.notes.notionTitle') }}</h3>
+              <p class="step-description">{{ $t('onboarding.notes.notionDescription') }}</p>
+              <NotionTokenField :connection="notion" :show-description="false" />
+              <div v-if="configStore.notionConnected" class="auto-post-processing-control notes-notion-sync">
+                <label class="checkbox-label">
+                  <input
+                    type="checkbox"
+                    :checked="isWatchNotesOn('notion')"
+                    @change="onWatchSyncChange('notion', $event)"
+                  />
+                  {{ $t('onboarding.cloudWatchSync') }}
+                </label>
+              </div>
+            </template>
           </template>
         </div>
 
@@ -237,10 +356,19 @@ import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { configStore } from '@shared/services/configStore'
 import {
   isConfigOnboardingStep,
+  onboardingStepOf,
   type OnboardingKind,
   type OnboardingStep,
 } from '@common/onboarding'
+import {
+  WATCH_NOTES_PROVIDERS,
+  normalizeWatchNotesProvider,
+  type WatchNotesProviderId,
+} from '@common/watchNotesProviders'
+import { useNotionConnection } from '@features/settings/useNotionConnection'
 import SignInModal from './SignInModal.vue'
+import NotionConnectSteps from './NotionConnectSteps.vue'
+import NotionTokenField from './NotionTokenField.vue'
 
 const props = defineProps<{
   kind: OnboardingKind
@@ -255,7 +383,7 @@ const index = ref(0)
 const currentId = computed(() => props.steps[index.value]?.id ?? '')
 const { t } = useI18n()
 const isWhatsNew = computed(() => props.kind === 'whats-new')
-const isWelcome = computed(() => currentId.value === 'welcome')
+const isLegal = computed(() => currentId.value === 'legal')
 const isSignIn = computed(() => currentId.value === 'signIn')
 const isDone = computed(() => currentId.value === 'done')
 const isConfig = computed(() => isConfigOnboardingStep(currentId.value))
@@ -263,8 +391,26 @@ const cloudReady = computed(() => cloudStorageStore.status.value === 'ready')
 const cloudBusy = computed(() =>
   cloudStorageStore.status.value === 'checking' || cloudStorageStore.status.value === 'repairing'
 )
-const configSteps = computed(() => props.steps.filter(s => isConfigOnboardingStep(s.id)))
-const configIndex = computed(() => configSteps.value.findIndex(s => s.id === currentId.value))
+// Numbered steps; a later page (notes after notesProvider) shares its step's
+// number and dot.
+const configSteps = computed(() =>
+  props.steps.filter(s => isConfigOnboardingStep(s.id) && onboardingStepOf(s.id) === s.id)
+)
+const currentStepId = computed(() => onboardingStepOf(currentId.value))
+const configIndex = computed(() => configSteps.value.findIndex(s => s.id === currentStepId.value))
+// A What's New that is only the legal notice has nothing to skip.
+const hasSetupSteps = computed(() => configSteps.value.length > 0)
+
+const LEGAL_ITEMS = ['copyright', 'affiliation'] as const
+// Canonical legal docs live on the web service (same as Help → Legal Notices).
+const LEGAL_LINKS = [
+  { key: 'terms', url: 'https://learn.ruc.edu.kg/terms' },
+  { key: 'copyright', url: 'https://learn.ruc.edu.kg/copyright' },
+  { key: 'disclosure', url: 'https://learn.ruc.edu.kg/disclosure' },
+] as const
+const openLegal = (url: string) => {
+  void window.electronAPI.shell.openExternal(url)
+}
 
 const settings = useSettings()
 const {
@@ -408,22 +554,70 @@ const onAutoSyncChange = (event: Event) => {
   void window.electronAPI.config.setCloudAutoSyncMode(value)
 }
 
-// This checkbox lives on the Yanhekt cloud step, so ticking it also selects the
-// Yanhekt watch-notes provider; unticking only turns watch notes off.
-const onWatchSyncChange = (event: Event) => {
+// ── Notes add-ons ──────────────────────────────────────
+// Same labels as Settings → Add-ons → Notes Provider.
+const PROVIDER_LABEL_KEYS: Record<WatchNotesProviderId, string> = {
+  yanhekt: 'advanced.addons.providerYanhekt',
+  obsidian: 'advanced.addons.providerObsidian',
+  notion: 'advanced.addons.providerNotion',
+}
+const notesProvider = computed(() => normalizeWatchNotesProvider(configStore.watchNotesProvider))
+// Onboarding writes at once, like the other steps (Settings buffers instead).
+const setNotesProvider = (provider: WatchNotesProviderId) => {
+  void window.electronAPI.config.setWatchNotes({ provider })
+}
+const isWatchNotesOn = (provider: WatchNotesProviderId) =>
+  !!configStore.watchNotesEnabled && notesProvider.value === provider
+
+// Each provider page's checkbox also selects that provider; unticking only
+// turns watch notes off.
+const onWatchSyncChange = (provider: WatchNotesProviderId, event: Event) => {
   const checked = (event.target as HTMLInputElement).checked
-  void window.electronAPI.config.setWatchNotes(checked ? { enabled: true, provider: 'yanhekt' } : { enabled: false })
+  void window.electronAPI.config.setWatchNotes(checked ? { enabled: true, provider } : { enabled: false })
 }
 
+/** Whether the configured vault holds `.obsidian/` (null = not checked / none). */
+const obsidianVaultIsVault = ref<boolean | null>(null)
+const probeObsidianVault = async () => {
+  const dir = configStore.obsidianVaultPath
+  if (!dir) {
+    obsidianVaultIsVault.value = null
+    return
+  }
+  try {
+    const probe = await window.electronAPI.obsidianNotes.probeVault(dir)
+    if (configStore.obsidianVaultPath === dir) obsidianVaultIsVault.value = probe.isVault
+  } catch {
+    obsidianVaultIsVault.value = null
+  }
+}
+const selectObsidianVault = async () => {
+  const picked = await window.electronAPI.obsidianNotes.selectVault()
+  if (!picked) return
+  obsidianVaultIsVault.value = picked.isVault
+  await window.electronAPI.config.setObsidian({ vaultPath: picked.path })
+}
+const onObsidianAutoCreateChange = (event: Event) => {
+  const checked = (event.target as HTMLInputElement).checked
+  void window.electronAPI.config.setObsidian({ autoCreateNote: checked })
+}
+
+const notion = useNotionConnection()
+
 watch(currentId, (id) => {
-  if (id === 'cloud' && !isLoggedIn.value) {
+  if (id === 'notesProvider' && notesProvider.value === 'obsidian') void probeObsidianVault()
+  if (id === 'notes' && notesProvider.value === 'notion') notion.reset()
+  if (id !== 'notes' || notesProvider.value !== 'yanhekt') return
+  if (!isLoggedIn.value) {
     const signInIdx = props.steps.findIndex(s => s.id === 'signIn')
     if (signInIdx >= 0) index.value = signInIdx
     return
   }
-  if (id !== 'cloud' || !isLoggedIn.value) return
   cloudStorageStore.setUser(userId.value)
   void cloudStorageStore.refresh()
+})
+watch(notesProvider, (provider) => {
+  if (provider === 'obsidian') void probeObsidianVault()
 })
 
 const onSignInBrowserLogin = () => {
@@ -478,7 +672,98 @@ const onSignInBrowserLogin = () => {
   background-color: var(--bg-hover);
 }
 
-/* ── Welcome hero ─────────────────────────────────────── */
+/* ── Legal notice (opening page) ──────────────────────── */
+.legal-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 4px 0;
+}
+
+.legal-title {
+  text-align: center;
+}
+
+.legal-lead {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.legal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.legal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.legal-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--text-secondary);
+}
+
+.legal-agree {
+  margin: 0 0 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.legal-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.legal-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+  font-size: 11px;
+}
+
+.legal-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.legal-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.legal-dot {
+  color: var(--text-muted);
+}
+
+/* Scoped under the footer so it beats the later .skip-link margin-top. */
+.legal-footer .legal-skip {
+  margin: 0 0 0 auto;
+  padding: 0;
+  font-size: 11px;
+  line-height: inherit;
+}
+
+/* ── Hero (all-set page) ──────────────────────────────── */
 .onboarding-hero {
   flex: 1;
   display: flex;
@@ -666,6 +951,38 @@ const onSignInBrowserLogin = () => {
 .mode-toggle {
   display: flex;
   gap: 8px;
+}
+
+/* ── Notes add-ons steps ──────────────────────────────── */
+.notes-provider-detail {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.notes-field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.notes-warning {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--warning);
+}
+
+.notes-muted {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.notes-notion-sync {
+  margin-top: 12px;
 }
 
 /* ── AI filtering step (matches Settings copilot UI) ──── */

@@ -177,7 +177,7 @@ Yanhekt managed groups (6-char server limit, lookup by reserved name):
 
 ### Commits and versions
 
-Commit subject: `<NN.NN> <area>: <description>` (e.g. `22.26 ci: …`). Increment the patch for routine work. Desktop `autoslides/package.json` version is independent of that sprint counter (currently `5.0.0`). GitHub release tags are `v*`.
+Commit subject: `<NN.NN> <area>: <description>` (e.g. `22.26 ci: …`). Increment the patch for routine work. Desktop `autoslides/package.json` version is independent of that sprint counter (currently `5.1.0`). GitHub release tags are `v*`.
 
 License: Apache-2.0 (`LICENSE`).
 
@@ -236,7 +236,7 @@ Workers have no Node/WebCrypto MD5. `relay/` ships a pure-JS MD5 (`relay/src/md5
 
 ## 5. `autoslides/` — Electron desktop
 
-**Identity.** `package.json` name `autoslides`, productName `AutoSlides`, version `5.0.0`, `main` `.vite/build/main.js`. Electron Forge + Vite; Windows/Linux installers go through `electron-builder.yml` on top of a Forge `--prepackaged` tree. macOS DMG is Forge + DropDMG (`make:mac`).
+**Identity.** `package.json` name `autoslides`, productName `AutoSlides`, version `5.1.0`, `main` `.vite/build/main.js`. Electron Forge + Vite; Windows/Linux installers go through `electron-builder.yml` on top of a Forge `--prepackaged` tree. macOS DMG is Forge + DropDMG (`make:mac`).
 
 ### Commands
 

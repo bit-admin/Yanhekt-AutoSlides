@@ -399,15 +399,18 @@ async function main() {
       captured.push(name)
       console.log(`  ✓ ${name}.png (onboarding, web)`)
     }
-    // Welcome hero, then all 6 config steps, then the All Set card.
+    // Opening legal notice (still saved as onboarding-welcome), then the 6
+    // config steps (step 6 has two pages: notes provider, then the demo
+    // default Yanhekt's cloud page), then the All Set card.
     await shotCard('onboarding-welcome')
-    await win.locator('.hero-cta').click() // Get Started → output
+    await win.locator('.hero-cta').click() // Agree and Continue → output
     const steps = [
       'onboarding-output',
       'onboarding-connection',
       'onboarding-audio',
       'onboarding-ai',
       'onboarding-signin',
+      'onboarding-notes-provider',
       'onboarding-cloud',
     ]
     for (const name of steps) {
@@ -444,7 +447,7 @@ async function main() {
     await win.evaluate(() => window.__demoSetOnboarding?.(false))
     await win.waitForSelector('.onboarding-card', { state: 'detached', timeout: 4000 }).catch(() => {})
 
-    // What's New is a distinct 5.0.0 hero (same catalog, different copy).
+    // What's New opens on the same legal notice; only the lead line differs.
     await win.evaluate(() => window.__demoSetOnboarding?.(true, 'whats-new'))
     await win.waitForSelector('.onboarding-card[data-onboarding-kind="whats-new"]', { timeout: 6000 })
     await clearBackdrop()
@@ -746,8 +749,8 @@ ${list}
 |---------|-----------------|----------------|
 | login.png | login.png | A. 登录（浏览器 SSO，实时加载真实登录页） |
 | home-signed-out.png | home-signed-out.png | A. 未登录 Home（产品演示 + 登录 CTA） |
-| onboarding-welcome/output/connection/audio/ai/signin/signin-sms/signin-ready/cloud/done.png | onboarding-*.png | 首次启动向导（欢迎 + 配置步骤；登录为未登录 / SMS / 已登录三张） |
-| onboarding-whats-new.png | onboarding-whats-new.png | 5.0.0 What's New 欢迎页 |
+| onboarding-welcome/output/connection/audio/ai/signin/signin-sms/signin-ready/notes-provider/cloud/done.png | onboarding-*.png | 首次启动向导（欢迎 + 法律声明 + 配置步骤；登录为未登录 / SMS / 已登录三张） |
+| onboarding-whats-new.png | onboarding-whats-new.png | What's New 首页（法律声明） |
 | user-menu.png | user-menu.png, user-menu-switcher.png | A. 登录 — 用户菜单 / 切换账号飞出层（后者由 process-docs 从窗口照裁出） |
 | home.png | home.png | D. 基础页面（Home / 课程收藏夹） |
 | live.png | live.png | D. 直播课程网格 |

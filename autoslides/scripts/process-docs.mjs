@@ -63,6 +63,7 @@ const COPY = {
   'onboarding-signin': 'onboarding-signin',
   'onboarding-signin-sms': 'onboarding-signin-sms',
   'onboarding-signin-ready': 'onboarding-signin-ready',
+  'onboarding-notes-provider': 'onboarding-notes-provider',
   'onboarding-cloud': 'onboarding-cloud',
   'onboarding-done': 'onboarding-done',
   'onboarding-whats-new': 'onboarding-whats-new',

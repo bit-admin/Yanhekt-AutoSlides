@@ -7,17 +7,21 @@
  *
  * Add new What's New rows with `since` set to the release that introduces them.
  * Do not bump `since` on existing rows — that would re-show them to everyone.
+ *
+ * `always` rows (the legal notice) lead every first-run and What's New run, but
+ * only trigger one on their own when their `since` is new to the user.
  */
 import { compareSemver } from './semver';
 
 export const ONBOARDING_STEP_IDS = [
-  'welcome',
+  'legal',
   'output',
   'connection',
   'audio',
   'ai',
   'signIn',
-  'cloud',
+  'notesProvider',
+  'notes',
   'done',
 ] as const;
 
@@ -28,16 +32,21 @@ export interface OnboardingStep {
   id: string;
   /** First app version that includes this step. */
   since: string;
+  /** Shown whenever onboarding shows at all, not only when new. */
+  always?: boolean;
 }
 
 export const ONBOARDING_CATALOG: readonly OnboardingStep[] = [
-  { id: 'welcome', since: '5.0.0' },
+  { id: 'legal', since: '5.1.0', always: true },
   { id: 'output', since: '5.0.0' },
   { id: 'connection', since: '5.0.0' },
   { id: 'audio', since: '5.0.0' },
   { id: 'ai', since: '5.0.0' },
   { id: 'signIn', since: '5.0.0' },
-  { id: 'cloud', since: '5.0.0' },
+  // Notes add-ons: pick Yanhekt / Obsidian / Notion, then that provider's page
+  // (Yanhekt's is the old 5.0.0 `cloud` step).
+  { id: 'notesProvider', since: '5.1.0' },
+  { id: 'notes', since: '5.1.0' },
   { id: 'done', since: '5.0.0' },
 ];
 
@@ -54,9 +63,22 @@ export interface ResolveOnboardingInput {
   appVersion: string;
 }
 
-/** Config-style steps (progress dots). Welcome and the all-set page are standalone. */
+/** Config-style steps (progress dots). The legal notice and the all-set page are standalone. */
 export function isConfigOnboardingStep(id: string): boolean {
-  return id !== 'welcome' && id !== 'done';
+  return id !== 'legal' && id !== 'done';
+}
+
+/**
+ * Catalog rows that are a later page of an earlier step rather than a step of
+ * their own: they share that step's number and progress dot.
+ */
+const STEP_PAGE_OF: Readonly<Record<string, string>> = {
+  notes: 'notesProvider',
+};
+
+/** The step a page belongs to (itself unless it is a later page). */
+export function onboardingStepOf(id: string): string {
+  return STEP_PAGE_OF[id] ?? id;
 }
 
 function availableSteps(
@@ -94,9 +116,9 @@ export function resolveOnboarding(
     return { kind: 'none', steps: [] };
   }
 
-  const news = available.filter(step => compareSemver(last, step.since) < 0);
-  if (news.length === 0) {
+  const isNew = (step: OnboardingStep) => compareSemver(last, step.since) < 0;
+  if (!available.some(isNew)) {
     return { kind: 'none', steps: [] };
   }
-  return { kind: 'whats-new', steps: news };
+  return { kind: 'whats-new', steps: available.filter(step => step.always || isNew(step)) };
 }

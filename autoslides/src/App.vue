@@ -187,7 +187,8 @@ const { isWorkspacePage } = navigationStore
 
 // Onboarding / What's New. configStore + app version are loaded before mount.
 // v4 upgrades have onboardingCompleted but no lastOnboardingVersion — the
-// resolver treats that as What's New covering every 5.0.0 baseline step.
+// resolver treats that as What's New covering every catalog step. Every run
+// (first-run or What's New) opens on the legal notice.
 // Demo mode (screenshots) always skips it unless the demo hook forces it.
 const resolveCurrentOnboarding = () =>
   resolveOnboarding({
