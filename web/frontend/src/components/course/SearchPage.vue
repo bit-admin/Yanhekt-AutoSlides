@@ -26,6 +26,15 @@
           </button>
         </div>
       </div>
+
+      <p v-if="servedFromCache" class="cache-banner" role="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span>Yanhekt responded with an error, so this result is from our cache and may not be up to date.</span>
+      </p>
     </div>
 
     <div class="content custom-scrollbar" @scroll="handleScroll">
@@ -135,6 +144,7 @@ const {
   isLoading,
   errorMessage,
   hasSearched,
+  servedFromCache,
   loadMore,
   setMode,
   setSemesters,
@@ -188,6 +198,26 @@ const getLiveBadgeClass = (status?: number) => {
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+}
+
+.cache-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.cache-banner svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--warning);
 }
 
 /* Mode Switch as YouTube Chips */

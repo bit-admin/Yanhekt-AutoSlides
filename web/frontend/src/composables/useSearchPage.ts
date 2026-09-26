@@ -32,6 +32,8 @@ const totalPages = ref(1);
 const isLoading = ref(false);
 const errorMessage = ref("");
 const hasSearched = ref(false);
+/** True when the latest recorded page carried `served_from_cache`. Search UI only. */
+const servedFromCache = ref(false);
 
 /** Settle time for semester checkbox runs — shorter than typing, still enough
  *  to absorb a burst of clicks. */
@@ -102,6 +104,7 @@ const executeSearch = async (resetPage = true) => {
 
   if (resetPage) {
     currentPage.value = 1;
+    servedFromCache.value = false;
   }
 
   lastExecutedKey = searchKey(mode.value, keyword.value);
@@ -124,6 +127,7 @@ const executeSearch = async (resetPage = true) => {
       }
       totalPages.value = response.last_page;
       currentPage.value = response.current_page;
+      servedFromCache.value = false;
     } else {
       const response = await getCourseList(token, {
         keyword: keyword.value.trim(),
@@ -140,6 +144,7 @@ const executeSearch = async (resetPage = true) => {
       }
       totalPages.value = response.last_page;
       currentPage.value = response.current_page;
+      servedFromCache.value = response.served_from_cache === true;
     }
   } catch (error: unknown) {
     if (seq !== requestSeq) return;
@@ -272,6 +277,7 @@ export function useSearchPage() {
     isLoading,
     errorMessage,
     hasSearched,
+    servedFromCache,
     executeSearch,
     loadMore,
     setMode,

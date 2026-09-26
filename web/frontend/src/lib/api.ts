@@ -87,6 +87,11 @@ export interface CourseListResponse {
   last_page: number;
   per_page: number;
   total: number;
+  /**
+   * Set when this page was answered from a stored snapshot instead of the origin
+   * catalog. Only the search page reads it; other callers ignore it.
+   */
+  served_from_cache?: boolean;
 }
 
 /** Raw row from GET /v1/course/subscription/list (professors may be objects). */
