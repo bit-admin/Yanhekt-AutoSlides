@@ -1,6 +1,6 @@
 import { ref, shallowRef, computed, type Ref, type ShallowRef, type ComputedRef } from "vue";
 import Hls, { Events, type FragmentLoaderConstructor } from "hls.js";
-import { attachNetworkErrorSniffer, setupDualHlsErrorHandler } from "./useVideoErrorRecovery";
+import { attachEmptyRecordingGuard, attachNetworkErrorSniffer, setupDualHlsErrorHandler } from "./useVideoErrorRecovery";
 import { createMediaSyncLoop, syncFollower } from "./mediaSync";
 import type { VideoStream, DualAudioSource } from "./useVideoPlayer";
 import { demoHooks } from "../../lib/demoRegistry";
@@ -40,6 +40,8 @@ export interface DualStreamPlayerDeps {
   onEnded: () => Promise<void>;
   /** Called on any network-type HLS error, so the host can diagnose the cause. */
   onNetworkError?: () => void;
+  /** A stream turned out to hold no video (see attachEmptyRecordingGuard). */
+  onEmptyStream: (type: VideoStream["type"]) => void;
   /**
    * hls.js fragment loader that turns segment fetches into watch-progress
    * heartbeats. Attached to the **master** instance only — both streams sit at
@@ -69,6 +71,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     cleanupSingleVideoSource,
     onEnded,
     onNetworkError,
+    onEmptyStream,
     getProgressFragmentLoader,
   } = deps;
 
@@ -340,6 +343,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     });
 
     if (onNetworkError) attachNetworkErrorSniffer(hlsInstance, onNetworkError);
+    attachEmptyRecordingGuard(hlsInstance, () => onEmptyStream(stream.type));
 
     setupDualHlsErrorHandler(hlsInstance, video, label, {
       mode,

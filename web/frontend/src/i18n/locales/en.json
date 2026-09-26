@@ -282,7 +282,8 @@
     "slideOrdinal": "Slide {number}",
     "watching": "Watching",
     "showMore": "Show More",
-    "showLess": "Show Less"
+    "showLess": "Show Less",
+    "emptyStream": "{stream} has no video on Yanhekt's server. Check whether it plays on the Yanhekt website."
   },
   "searchPage": {
     "academicYear": "{start}–{end} Academic Year",

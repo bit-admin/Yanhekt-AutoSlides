@@ -816,7 +816,8 @@
     "copySlide": "복사",
     "slideCopied": "복사됨",
     "copySlideFailed": "복사 실패",
-    "copySlideTip": "이 슬라이드를 클립보드에 복사"
+    "copySlideTip": "이 슬라이드를 클립보드에 복사",
+    "emptyStream": "{stream}은(는) 옌허커탕 서버에 영상이 없습니다. 옌허커탕 웹사이트에서 재생되는지 확인하세요."
   },
   "sessions": {
     "pin": "강의 고정",

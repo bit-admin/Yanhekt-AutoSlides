@@ -8,6 +8,7 @@ import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { ApiClient } from '@main/platform/apiClient';
 import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '@common/crypto';
+import { formatEmptyRecording, formatSegmentsMissing, isEmptyMediaPlaylist, parseRecordingProblem } from '@common/recordingProblems';
 import { createIntranetAxios, type IntranetAxiosBundle } from '@main/infra/intranetAxios';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('M3u8Download');
@@ -234,18 +235,25 @@ class M3u8Downloader {
       // Download all TS files
       await this.downloadAllTsFiles();
 
-      if (this.successSum === this.tsSum && !this.shouldStop) {
-        this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 1 });
-        await this.outputMp4();
-        await this.deleteFiles();
-        log.info(`Download successfully --> ${this.name}`);
-        this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 2 });
-      } else if (this.shouldStop) {
+      if (this.shouldStop) {
         log.debug(`Download cancelled --> ${this.name}`);
         throw new Error('Download cancelled by user');
       }
+
+      // Hand FFmpeg only a complete set, or its failure is all the user sees.
+      this.verifySegments();
+
+      this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 1 });
+      await this.outputMp4();
+      await this.deleteFiles();
+      log.info(`Download successfully --> ${this.name}`);
+      this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 2 });
     } catch (error) {
       log.error("Download failed:", error);
+      // Nothing worth resuming from a recording the server has no video for.
+      if (parseRecordingProblem(error)?.kind === 'empty') {
+        removeDownloadTempFiles(this.outputDir, this.name);
+      }
       throw error;
     } finally {
       this.cleanup();
@@ -422,6 +430,8 @@ class M3u8Downloader {
       }
     } catch (error) {
       log.error("Error getting M3U8 info:", error);
+      // Refetching returns the same empty playlist; fail now.
+      if (parseRecordingProblem(error)) throw error;
       if (numRetries > 0 && !this.shouldStop) {
         await this.getM3u8Info(m3u8Url, numRetries - 1);
       } else {
@@ -431,6 +441,11 @@ class M3u8Downloader {
   }
 
   private async getTsUrls(m3u8TextStr: string): Promise<void> {
+    if (isEmptyMediaPlaylist(m3u8TextStr)) {
+      log.warn(`Server returned an empty recording for ${this.name}:`, m3u8TextStr);
+      throw new Error(formatEmptyRecording());
+    }
+
     let newM3u8Str = "";
     let tsCount = 0;
 
@@ -585,6 +600,40 @@ class M3u8Downloader {
       } else {
         throw error;
       }
+    }
+  }
+
+  /**
+   * Throw unless every segment is on disk with data. A 0-byte segment counts as
+   * missing and is deleted so a retry fetches it again (the resume path skips
+   * any file that exists). All segments present but all empty is the server's
+   * empty-recording shape, reported as such.
+   */
+  private verifySegments(): void {
+    let missing = 0;
+    let bytes = 0;
+    let empty = 0;
+    for (let i = 0; i < this.tsSum; i++) {
+      const segmentPath = path.join(this.workDir, `${i}.ts`);
+      if (!fs.existsSync(segmentPath)) {
+        missing++;
+        continue;
+      }
+      const size = fs.statSync(segmentPath).size;
+      if (size === 0) {
+        empty++;
+        fs.unlinkSync(segmentPath);
+      }
+      bytes += size;
+    }
+
+    if (this.tsSum > 0 && missing === 0 && bytes === 0) {
+      log.warn(`All ${this.tsSum} segments of ${this.name} are empty`);
+      throw new Error(formatEmptyRecording());
+    }
+    if (missing + empty > 0) {
+      log.warn(`${missing} missing and ${empty} empty of ${this.tsSum} segments for ${this.name}`);
+      throw new Error(formatSegmentsMissing(missing + empty, this.tsSum));
     }
   }
 

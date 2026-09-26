@@ -1,6 +1,6 @@
 import { ref, shallowRef, computed, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import Hls, { Events } from 'hls.js'
-import { setupDualHlsErrorHandler } from './useVideoErrorRecovery'
+import { attachEmptyRecordingGuard, setupDualHlsErrorHandler } from './useVideoErrorRecovery'
 import { createMediaSyncLoop, syncFollower } from './mediaSync'
 import type { VideoStream, DualAudioSource } from './useVideoPlayer'
 import { overrides } from '@shared/overrideRegistry'
@@ -32,6 +32,8 @@ export interface DualStreamPlayerDeps {
   error: Ref<string | null>
   getHlsConfig: (mode: 'live' | 'recorded') => any
   handleTaskError: (message: string) => void
+  /** A stream turned out to hold no video (see attachEmptyRecordingGuard). */
+  onEmptyStream: (type: VideoStream['type']) => void
   /** Tear down any single-stream HLS instance before dual sources load. */
   cleanupSingleVideoSource: () => void
   /** Shared playback-ended handler (stops the signature loop). */
@@ -85,6 +87,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     error,
     getHlsConfig,
     handleTaskError,
+    onEmptyStream,
     cleanupSingleVideoSource,
     onEnded
   } = deps
@@ -304,6 +307,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     })
 
     setupDualHlsErrorHandling(hlsInstance, video, label)
+    attachEmptyRecordingGuard(hlsInstance, () => onEmptyStream(stream.type))
   }
 
   /**

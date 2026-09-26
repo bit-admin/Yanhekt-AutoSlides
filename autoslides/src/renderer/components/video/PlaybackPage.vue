@@ -135,13 +135,16 @@
       <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode" :data-extractor-instance="slideExtraction.extractorInstanceId.value">
 
         <!-- Combined Warning Messages -->
-        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning) || aiFilteringError.type !== 'none'" class="combined-warning">
+        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning) || aiFilteringError.type !== 'none' || emptyStreamNotice" class="combined-warning">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
             <path d="M12 9v4"/>
             <path d="m12 17 .01 0"/>
           </svg>
           <div class="warning-messages">
+            <div v-if="emptyStreamNotice" class="warning-message">
+              {{ emptyStreamNotice }}
+            </div>
             <div v-if="isTaskRunning" class="warning-message">
               {{ $t('playback.taskInProgress') }}
             </div>
@@ -892,6 +895,7 @@ const taskQueue = useTaskQueue({
   extractedSlides: slideExtraction.extractedSlides,
   isRetrying: videoPlayerComposable.isRetrying,
   retryMessage: videoPlayerComposable.retryMessage,
+  emptyStreamTypes: videoPlayerComposable.emptyStreamTypes,
   autoPostProcessing: postProcessing.autoPostProcessing,
   switchStream: videoPlayerComposable.switchStream,
   toggleSlideExtraction: slideExtraction.toggleSlideExtraction,
@@ -947,8 +951,18 @@ const {
   dualCurrentTime,
   dualDuration,
   dualCanSeek,
-  showSpeedWarning
+  showSpeedWarning,
+  visibleEmptyStreamTypes
 } = videoPlayerComposable
+
+// Yanhekt served a stream with no video. Nothing errors, so say so plainly
+// instead of leaving the player looking stuck.
+const emptyStreamNotice = computed(() => {
+  const types = visibleEmptyStreamTypes.value
+  if (types.length === 0) return ''
+  const names = types.map(type => t(type === 'screen' ? 'playback.streamScreen' : 'playback.streamCamera'))
+  return t('playback.emptyStream', { stream: names.join(', ') })
+})
 const { isSlideExtractionEnabled, extractedSlides } = slideExtraction
 const { isPostProcessing, postProcessStatus, aiFilteringError } = postProcessing
 const { isTaskRunning, shouldDisableControls } = taskQueue

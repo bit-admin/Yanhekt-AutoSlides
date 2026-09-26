@@ -6,7 +6,7 @@ import { createMediaSyncLoop, syncFollower } from './mediaSync'
 import { ApiClient } from '@shared/services/apiClient'
 import { createWatchProgressSync } from '@shared/services/watchProgressService'
 import type { SlideExtractionHandle } from '@shared/processing'
-import { createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './useVideoErrorRecovery'
+import { attachEmptyRecordingGuard, createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './useVideoErrorRecovery'
 import { useDualStreamPlayer } from './useDualStreamPlayer'
 import { applyPlaybackRate, applyMute } from './singleStreamPlayback'
 import { getHlsConfig } from './hlsConfig'
@@ -97,6 +97,10 @@ export interface UseVideoPlayerReturn {
   // Computed
   shouldVideoMute: ComputedRef<boolean>
   isScreenRecordingSelected: ComputedRef<boolean>
+  /** Streams of this lecture that turned out to hold no video (server-side). */
+  emptyStreamTypes: Ref<VideoStream['type'][]>
+  /** The empty streams among the ones on screen right now. */
+  visibleEmptyStreamTypes: ComputedRef<VideoStream['type'][]>
   isDualStreamSelected: ComputedRef<boolean>
   hasDualStreams: ComputedRef<boolean>
   currentStreamData: ComputedRef<VideoStream | null>
@@ -231,6 +235,20 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     if (!playbackData.value || !selectedStream.value) return null
     if (selectedStream.value === DUAL_STREAM_KEY) return null
     return playbackData.value.streams[selectedStream.value]
+  })
+
+  // A stream Yanhekt serves with HTTP 200 but no video (a failed transcode).
+  // Nothing errors, so this is the only signal the page and task queue get.
+  const emptyStreamTypes = ref<VideoStream['type'][]>([])
+  const markEmptyStream = (type: VideoStream['type'] | undefined) => {
+    if (type && !emptyStreamTypes.value.includes(type)) {
+      emptyStreamTypes.value = [...emptyStreamTypes.value, type]
+    }
+  }
+  const visibleEmptyStreamTypes = computed(() => {
+    if (isDualStreamSelected.value) return emptyStreamTypes.value
+    const type = currentStreamData.value?.type
+    return type && emptyStreamTypes.value.includes(type) ? [type] : []
   })
 
   const showSpeedWarning = computed(() => {
@@ -429,6 +447,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     error,
     getHlsConfig,
     handleTaskError,
+    onEmptyStream: markEmptyStream,
     cleanupSingleVideoSource,
     onEnded: () => onEnded()
   })
@@ -437,6 +456,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     try {
       loading.value = true
       error.value = null
+      emptyStreamTypes.value = []
 
       // Demo mode (override registered): fabricate a dual-stream playback
       // (camera + screen) with no real URLs. The <video> elements stay
@@ -567,6 +587,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.on(Events.MANIFEST_PARSED, () => {
           setTimeout(opts.onManifestParsed, 100)
         })
+
+        const streamType = currentStreamData.value.type
+        attachEmptyRecordingGuard(hls.value, () => markEmptyStream(streamType))
 
         if (singleAudioSource.value === 'mic') {
           attachSingleMicAudio(videoPlayer.value?.currentTime)
@@ -1023,6 +1046,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     micAudioUsable,
     shouldVideoMute,
     isScreenRecordingSelected,
+    emptyStreamTypes,
+    visibleEmptyStreamTypes,
     isDualStreamSelected,
     hasDualStreams,
     currentStreamData,

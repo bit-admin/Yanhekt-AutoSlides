@@ -816,7 +816,8 @@
     "copySlide": "Copy",
     "slideCopied": "Copied",
     "copySlideFailed": "Copy failed",
-    "copySlideTip": "Copy this slide to the clipboard"
+    "copySlideTip": "Copy this slide to the clipboard",
+    "emptyStream": "{stream} has no video on Yanhekt's server. Check whether it plays on the Yanhekt website."
   },
   "sessions": {
     "pin": "Pin course",

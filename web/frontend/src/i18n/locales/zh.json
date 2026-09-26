@@ -282,7 +282,8 @@
     "slideOrdinal": "第 {number} 张",
     "watching": "正在观看",
     "showMore": "展开",
-    "showLess": "收起"
+    "showLess": "收起",
+    "emptyStream": "{stream}在延河课堂服务器上没有视频内容，可前往延河课堂网页确认能否播放。"
   },
   "searchPage": {
     "academicYear": "{start}–{end} 学年",

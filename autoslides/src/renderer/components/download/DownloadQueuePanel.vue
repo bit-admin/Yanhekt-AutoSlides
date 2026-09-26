@@ -71,7 +71,7 @@
                 <span v-else-if="item.status === 'downloading'">{{ $t('downloads.downloading') }} {{ item.progress }}%</span>
                 <span v-else-if="item.status === 'processing'">{{ $t('downloads.processing') }} {{ item.progress }}%</span>
                 <span v-else-if="item.status === 'completed'">{{ $t('downloads.completed') }}</span>
-                <span v-else-if="item.status === 'error'">{{ item.error || $t('downloads.error') }}</span>
+                <span v-else-if="item.status === 'error'">{{ queueErrorText(item.error) || $t('downloads.error') }}</span>
               </div>
             </div>
           </div>
@@ -214,6 +214,7 @@ import { PostProcessingService, type PostProcessJob } from '@shared/services/pos
 import { fromJobProgress } from '@shared/postProcessing/displayAdapter'
 import PostProcessingProgressBar from '@renderer/components/video/PostProcessingProgressBar.vue'
 import { useSessionIdDownload } from '@features/download/useSessionIdDownload'
+import { queueErrorText } from '@common/recordingProblems'
 
 defineProps<{
   highlightedDownloadId: string | null

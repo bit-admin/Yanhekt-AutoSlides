@@ -55,6 +55,22 @@ function retryNetworkLoad(hlsInstance: Hls, data: ErrorData): void {
 }
 
 /**
+ * Call `onEmpty` once when a finished playlist adds up to no playable time — a
+ * failed transcode Yanhekt still serves with HTTP 200 (see
+ * `@common/recordingProblems`). hls.js raises no error for it, so without this
+ * the player just never becomes ready. Loading stops; the caller decides what
+ * to tell the user.
+ */
+export function attachEmptyRecordingGuard(hlsInstance: Hls, onEmpty: () => void): void {
+  hlsInstance.on(Events.LEVEL_LOADED, (_event, data) => {
+    if (data.details.live || data.details.totalduration > 0) return
+    log.warn('Stream has no playable duration:', hlsInstance.url)
+    hlsInstance.stopLoad()
+    onEmpty()
+  })
+}
+
+/**
  * Error recovery counters used across the three HLS / video-element error
  * handlers in useVideoPlayer. Each error handler instance gets its own counters
  * via this factory — counters must be per-stream-instance, not shared.

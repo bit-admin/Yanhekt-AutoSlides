@@ -73,7 +73,7 @@
                 <span v-if="item.status === 'queued'">{{ $t('tasks.queued') }}</span>
                 <span v-else-if="item.status === 'in_progress'">{{ $t('tasks.processing') }} {{ item.progress }}%</span>
                 <span v-else-if="item.status === 'completed'">{{ $t('tasks.completed') }}</span>
-                <span v-else-if="item.status === 'error'">{{ item.error || $t('tasks.error') }}</span>
+                <span v-else-if="item.status === 'error'">{{ queueErrorText(item.error) || $t('tasks.error') }}</span>
               </div>
             </div>
           </div>
@@ -129,6 +129,7 @@ import { TaskQueue, taskQueueState } from '@shared/services/taskQueueService'
 import { PostProcessingService, type PostProcessJob } from '@shared/services/postProcessingService'
 import { fromJobProgress } from '@shared/postProcessing/displayAdapter'
 import PostProcessingProgressBar from '@renderer/components/video/PostProcessingProgressBar.vue'
+import { queueErrorText } from '@common/recordingProblems'
 
 defineProps<{
   highlightedTaskId: string | null

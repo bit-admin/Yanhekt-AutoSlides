@@ -49,6 +49,7 @@
 
           <div v-else-if="playbackData" class="video-content">
             <div class="player-panel">
+              <p v-if="emptyStreamNotice" class="empty-stream-notice" role="status">{{ emptyStreamNotice }}</p>
               <!--
                 Classroom mic track. One element for BOTH modes, deliberately
                 outside the single/dual v-if so it survives a mode switch — a
@@ -925,7 +926,17 @@ const {
   dualCanSeek,
   hasMicAudio,
   singleAudioSource,
+  visibleEmptyStreamTypes,
 } = videoPlayerComposable
+
+// Yanhekt served a stream with no video. Nothing errors, so say so plainly
+// instead of leaving the player looking stuck.
+const emptyStreamNotice = computed(() => {
+  const types = visibleEmptyStreamTypes.value
+  if (types.length === 0) return ''
+  const names = types.map(type => t(type === 'screen' ? 'playback.streamScreen' : 'playback.streamCamera'))
+  return t('playback.emptyStream', { stream: names.join(', ') })
+})
 
 // Relay failure details, shown when the player classifies an error as the
 // public relay refusing this network (see useVideoPlayer's errorKind).
@@ -1844,6 +1855,17 @@ onUnmounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.empty-stream-notice {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: 0.8125rem;
+  line-height: 1.5;
 }
 
 .video-container {

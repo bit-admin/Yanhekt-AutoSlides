@@ -816,7 +816,8 @@
     "copySlide": "复制",
     "slideCopied": "已复制",
     "copySlideFailed": "复制失败",
-    "copySlideTip": "将此幻灯片复制到剪贴板"
+    "copySlideTip": "将此幻灯片复制到剪贴板",
+    "emptyStream": "{stream}在延河课堂服务器上没有视频内容，可前往延河课堂网页确认能否播放。"
   },
   "sessions": {
     "pin": "置顶课程",

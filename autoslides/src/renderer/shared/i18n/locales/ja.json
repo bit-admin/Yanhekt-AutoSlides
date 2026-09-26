@@ -816,7 +816,8 @@
     "copySlide": "コピー",
     "slideCopied": "コピーしました",
     "copySlideFailed": "コピーに失敗しました",
-    "copySlideTip": "このスライドをクリップボードにコピー"
+    "copySlideTip": "このスライドをクリップボードにコピー",
+    "emptyStream": "{stream}は延河課堂のサーバーに動画がありません。延河課堂のウェブサイトで再生できるか確認してください。"
   },
   "sessions": {
     "pin": "コースをピン留め",

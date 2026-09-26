@@ -5,6 +5,7 @@ import type { SlideExtractionHandle } from '@shared/processing'
 import type { PlaybackData } from '@features/video/useVideoPlayer'
 import type Hls from 'hls.js'
 import { configStore } from '@shared/services/configStore'
+import { formatEmptyRecording } from '@common/recordingProblems'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('DownloadTaskQueue');
 
@@ -24,6 +25,8 @@ export interface UseTaskQueueOptions {
   extractedSlides: Ref<any[]>
   isRetrying: Ref<boolean>
   retryMessage: Ref<string>
+  /** Streams the player found to hold no video; a task needs the screen one. */
+  emptyStreamTypes: Ref<string[]>
   autoPostProcessing: Ref<boolean>
   switchStream: () => Promise<void>
   toggleSlideExtraction: () => Promise<void>
@@ -74,6 +77,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     extractedSlides,
     isRetrying,
     retryMessage,
+    emptyStreamTypes,
     autoPostProcessing: _autoPostProcessing, // No longer used - config is checked directly
     switchStream,
     toggleSlideExtraction,
@@ -110,6 +114,12 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       const requiredConsecutiveChecks = 3
 
       const checkVideoReady = () => {
+        // Retrying cannot help: the server has no video for this recording.
+        if (emptyStreamTypes.value.includes('screen')) {
+          reject(new Error(formatEmptyRecording()))
+          return
+        }
+
         if (Date.now() - startTime > timeout) {
           reject(new Error('Video readiness timeout'))
           return
@@ -195,6 +205,11 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
         await new Promise(resolve => setTimeout(resolve, 1000))
       }
 
+      // Also covers a retry: never start extraction on a video that has not
+      // loaded (the pipeline then reports "video element not found", which
+      // hides the real cause).
+      await waitForVideoReady()
+
       // Set task speed for playback rate (only for recorded mode)
       if (videoPlayer.value && mode === 'recorded') {
         currentPlaybackRate.value = taskSpeed.value
@@ -240,7 +255,8 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       if (retryCount < maxRetries) {
         const errorMessage = initError instanceof Error ? initError.message : String(initError)
 
-        const isRecoverableError = errorMessage.includes('Failed to start slide extraction') ||
+        const isRecoverableError = errorMessage.includes('Video readiness timeout') ||
+                                  errorMessage.includes('Failed to start slide extraction') ||
                                   errorMessage.includes('Failed to start video playback') ||
                                   errorMessage.includes('No screen recording stream available')
 

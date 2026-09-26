@@ -1,6 +1,7 @@
 import { ref, shallowRef, computed, nextTick, watch, type Ref } from "vue";
 import Hls, { Events, ErrorDetails } from "hls.js";
 import {
+  attachEmptyRecordingGuard,
   attachNetworkErrorSniffer,
   createFatalErrorReporter,
   createSingleStreamHlsErrorHandler,
@@ -8,7 +9,7 @@ import {
 import { useDualStreamPlayer } from "./useDualStreamPlayer";
 import { createMediaSyncLoop, syncFollower } from "./mediaSync";
 import { authStore } from "../../stores/authStore";
-import { getRecordedPlaybackData, getLivePlaybackData, getRelayBase, type PlaybackData } from "../../lib/streamUrls";
+import { getRecordedPlaybackData, getLivePlaybackData, getRelayBase, type PlaybackData, type VideoStream } from "../../lib/streamUrls";
 import { ensureRuntimeConfig, runtimeConfigStore } from "../../stores/runtimeConfigStore";
 import { probeRelayReach } from "../../lib/relayDiagnostics";
 import { demoHooks } from "../../lib/demoRegistry";
@@ -115,6 +116,20 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     if (!playbackData.value || !selectedStream.value) return null;
     if (selectedStream.value === DUAL_STREAM_KEY) return null;
     return playbackData.value.streams[selectedStream.value];
+  });
+
+  // A stream Yanhekt serves with HTTP 200 but no video (a failed transcode).
+  // Nothing errors, so this is the only signal the page gets.
+  const emptyStreamTypes = ref<VideoStream["type"][]>([]);
+  const markEmptyStream = (type: VideoStream["type"] | undefined) => {
+    if (type && !emptyStreamTypes.value.includes(type)) {
+      emptyStreamTypes.value = [...emptyStreamTypes.value, type];
+    }
+  };
+  const visibleEmptyStreamTypes = computed(() => {
+    if (isDualStreamSelected.value) return emptyStreamTypes.value;
+    const type = currentStreamData.value?.type;
+    return type && emptyStreamTypes.value.includes(type) ? [type] : [];
   });
 
   const getCurrentPlaybackTime = () => {
@@ -370,6 +385,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     onEnded: () => onEnded(),
     // Lazy call: classifyRelayFailure is defined below this hook.
     onNetworkError: () => classifyRelayFailure(),
+    onEmptyStream: markEmptyStream,
     getProgressFragmentLoader: () => progressSync.fragmentLoader(),
   });
 
@@ -377,6 +393,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     try {
       loading.value = true;
       error.value = null;
+      emptyStreamTypes.value = [];
 
       const token = authStore.token.value;
       if (!token) {
@@ -557,6 +574,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         });
 
         attachNetworkErrorSniffer(hls.value, classifyRelayFailure);
+        const streamType = currentStreamData.value.type;
+        attachEmptyRecordingGuard(hls.value, () => markEmptyStream(streamType));
 
         const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError });
 
@@ -986,6 +1005,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     isRetrying,
     retryMessage,
     errorKind,
+    visibleEmptyStreamTypes,
     maxVideoErrorRetries,
     dualAudioSource: dual.dualAudioSource,
     dualVolume: dual.dualVolume,
