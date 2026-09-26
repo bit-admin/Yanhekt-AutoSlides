@@ -64,6 +64,8 @@ const COPY = {
   'onboarding-signin-sms': 'onboarding-signin-sms',
   'onboarding-signin-ready': 'onboarding-signin-ready',
   'onboarding-notes-provider': 'onboarding-notes-provider',
+  'onboarding-notes-obsidian': 'onboarding-notes-obsidian',
+  'onboarding-notes-notion': 'onboarding-notes-notion',
   'onboarding-cloud': 'onboarding-cloud',
   'onboarding-done': 'onboarding-done',
   'onboarding-whats-new': 'onboarding-whats-new',
@@ -95,23 +97,23 @@ const COPY = {
   'advanced-network': 'settings-network',
   'advanced-ai-ml': 'settings-ai-ml',
   'advanced-cloud': 'settings-cloud',
+  'advanced-addons-obsidian': 'settings-addons-obsidian',
+  'advanced-addons-notion': 'settings-addons-notion',
   'lectures-library': 'lectures-library',
   'lectures-list': 'lectures-list',
   'lectures-course': 'lectures-course',
   'lectures-player': 'lectures-player',
   'watch-notes': 'watch-notes',
-}
-
-// README still names the Tools captures addons-*. Copy the live files there too.
-const COPY_ALIASES = {
-  'tools-yuketang': ['addons-yuketang'],
-  'tools-webcapture': ['addons-webcapture'],
+  'watch-notes-obsidian': 'watch-notes-obsidian',
+  'watch-notes-notion': 'watch-notes-notion',
 }
 
 // Hide live login QR codes in docs outputs. Fractions of image width/height so
-// the cover survives DPR. Applied to the COPY dest and any aliases of `src`.
+// the cover survives DPR. Applied to the COPY dest of `src`.
 const COVER = {
-  'tools-yuketang': { x0: 0.396, y0: 0.373, x1: 0.602, y1: 0.647, rxFrac: 0.012 },
+  // Measured on the live Yuketang login page, 2026-09-26 (the page moves now and then;
+  // re-check docs/tools-yuketang.png after every recapture).
+  'tools-yuketang': { x0: 0.4116, y0: 0.4276, x1: 0.5884, y1: 0.6798, rxFrac: 0.012 },
 }
 
 // Long settings tabs split into bands at section-title boundaries. `at` lists
@@ -222,21 +224,6 @@ function main() {
     console.log(`  ✓ ${src}.png → docs/${dst}.png`)
     log.push(`- copy \`${src}.png\` → \`docs/${dst}.png\``)
     if (COVER[src]) coverFiles.push({ file: to, spec: COVER[src], src })
-  }
-
-  for (const [src, aliases] of Object.entries(COPY_ALIASES)) {
-    if (skipSrc(src)) continue
-    const from = path.join(srcDir, `${src}.png`)
-    if (!existsSync(from)) { warn(`missing capture: ${src}.png (alias skipped)`); continue }
-    for (const dst of aliases) {
-      const to = path.join(docsDir, `${dst}.png`)
-      copyFileSync(from, to)
-      outputs.push(to)
-      copied++
-      console.log(`  ✓ ${src}.png → docs/${dst}.png (alias)`)
-      log.push(`- copy \`${src}.png\` → \`docs/${dst}.png\` (alias)`)
-      if (COVER[src]) coverFiles.push({ file: to, spec: COVER[src], src })
-    }
   }
 
   // --- COVER (redact live QR codes) ----------------------------------------

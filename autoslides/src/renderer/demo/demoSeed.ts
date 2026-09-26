@@ -5,13 +5,17 @@
 // (./bootstrap.ts) when `isDemoMode()` is true, after config load and before mount.
 
 import { watch } from 'vue'
+import { configStore } from '@shared/services/configStore'
 import { TaskQueue, type TaskItem } from '@shared/services/taskQueueService'
 import { DownloadService, type DownloadItem } from '@shared/services/downloadService'
 import { PostProcessingService, type PostProcessJob } from '@shared/services/postProcessingService'
-import { tabStore } from '@features/course/tabStore'
+import { tabStore, type PlaybackTab } from '@features/course/tabStore'
 import { seedWatchNoteEntry } from '@features/cloudNotes/watchNotesStore'
-import { EDITORJS_DOC_VERSION } from '@common/notesTypes'
-import { demoResultImageDataUri, demoSessionId } from './demoData'
+import type { WatchNoteEntry, WatchQueueItem, WatchQueueStatus } from '@features/cloudNotes/watchNotesTypes'
+import { EDITORJS_DOC_VERSION, buildManagedNoteTitle } from '@common/notesTypes'
+import type { LectureIdentity } from '@common/lectureNaming'
+import type { WatchNotesProviderId } from '@common/watchNotesProviders'
+import { demoGallerySlides, demoResultImageDataUri, demoSessionId } from './demoData'
 
 let seeded = false
 let watchNotesSeeded = false
@@ -167,60 +171,142 @@ export function seedDemoQueues(): void {
   DownloadService.downloadItems.push(...downloads)
 }
 
+// Which watch-notes provider the demo Notes tab shows. Yanhekt by default (the
+// live editor); the screenshot script switches to Obsidian / Notion to capture
+// the append queue, then back.
+let demoWatchProvider: WatchNotesProviderId = 'yanhekt'
+
+// Renderer-only config for the external providers, never persisted: the Notes
+// panel reads these, and nothing is written through their bridges until a
+// button is clicked. A config broadcast would reset them, so callers switch
+// back to Yanhekt right after capturing.
+const DEMO_VAULT_PATH = '/Users/kate/Documents/Mathematics'
+const DEMO_NOTION_WORKSPACE = "Kate's Notion"
+
+/** Switch the demo Notes tab to another provider and reseed every open watch tab. */
+export function setDemoWatchNotesProvider(provider: WatchNotesProviderId): void {
+  demoWatchProvider = provider
+  configStore.watchNotesProvider = provider
+  configStore.obsidianVaultPath = provider === 'obsidian' ? DEMO_VAULT_PATH : ''
+  configStore.notionConnected = provider === 'notion'
+  configStore.notionWorkspaceName = provider === 'notion' ? DEMO_NOTION_WORKSPACE : ''
+  seedOpenTabs()
+}
+
 function seedWatchNotesForOpenTabs(): void {
   if (watchNotesSeeded) return
   watchNotesSeeded = true
-  watch(
-    () => tabStore.state.tabs.map((t) => t.id).join(','),
-    () => {
-      for (const tab of tabStore.state.tabs) {
-        if (tab.origin !== 'manual') continue
-        seedWatchNoteEntry({
-          tabId: tab.id,
-          instanceId: `demo-${tab.id}`,
-          noteId: 108,
-          displayName: tab.title || 'Functional Analysis · Lecture 9',
-          content: {
-            time: Date.now(),
-            version: EDITORJS_DOC_VERSION,
-            blocks: [
-              {
-                type: 'header',
-                data: { text: tab.title || 'Functional Analysis · Lecture 9', level: 2 },
-              },
-              {
-                type: 'paragraph',
-                data: { text: 'T is compact and self-adjoint, so it has an orthonormal eigenbasis. Eigenvalues can accumulate only at 0.' },
-              },
-              {
-                type: 'image',
-                data: {
-                  file: { url: demoResultImageDataUri({ name: 'Slide_001.png' }) },
-                  caption: 'Spectral theorem — compact self-adjoint',
-                  withBorder: false,
-                  stretched: false,
-                  withBackground: false,
-                },
-              },
-              {
-                type: 'paragraph',
-                data: { text: 'The operator norm equals the spectral radius: ‖T‖ = supₙ |λₙ|. Proof sketch: pick the eigenvector for the largest |λ|.' },
-              },
-              {
-                type: 'image',
-                data: {
-                  file: { url: demoResultImageDataUri({ name: 'Slide_002.png' }) },
-                  caption: 'Operator norm as max |λ|',
-                  withBorder: false,
-                  stretched: false,
-                  withBackground: false,
-                },
-              },
-            ],
+  watch(() => tabStore.state.tabs.map((t) => t.id).join(','), seedOpenTabs, { immediate: true })
+}
+
+function seedOpenTabs(): void {
+  for (const tab of tabStore.state.tabs) {
+    if (tab.origin !== 'manual') continue
+    seedWatchNoteEntry(demoWatchEntry(tab))
+  }
+}
+
+function demoWatchEntry(tab: PlaybackTab): WatchNoteEntry {
+  const displayName = tab.title || 'Functional Analysis · Lecture 9'
+  // Same ids watchNotesStore derives for a recorded tab.
+  const session = tab.session as { session_id?: string | number } | null
+  const identity: LectureIdentity = { courseId: tab.course?.id, sessionId: session?.session_id ?? tab.sessionId }
+  const base = {
+    tabId: tab.id,
+    instanceId: `demo-${tab.id}`,
+    displayName,
+    identity,
+    slidesFolderName: 'slides_AutoSlides',
+    status: 'ready' as const,
+  }
+  if (demoWatchProvider === 'obsidian') {
+    const noteFile = `${buildManagedNoteTitle(displayName, identity)}.md`
+    return {
+      ...base,
+      provider: 'obsidian',
+      target: {
+        notePath: `${DEMO_VAULT_PATH}/AutoSlides/${noteFile}`,
+        displayPath: `AutoSlides/${noteFile}`,
+        vaultPath: DEMO_VAULT_PATH,
+        vaultName: 'Mathematics',
+      },
+      // Four in the note, one being written, one waiting behind it.
+      items: demoQueueItems(['appended', 'appended', 'appended', 'appended', 'appending', 'queued']),
+      paused: false,
+      lastError: null,
+    }
+  }
+  if (demoWatchProvider === 'notion') {
+    return {
+      ...base,
+      provider: 'notion',
+      target: {
+        pageId: 'demo-notion-page',
+        title: 'Functional Analysis',
+        emoji: '📐',
+        url: 'https://www.notion.so/demo',
+      },
+      // Paused by the student: three written, three waiting for Resume.
+      items: demoQueueItems(['appended', 'appended', 'appended', 'queued', 'queued', 'queued']),
+      paused: true,
+      lastError: null,
+    }
+  }
+  return {
+    ...base,
+    provider: 'yanhekt',
+    noteId: 108,
+    content: {
+      time: Date.now(),
+      version: EDITORJS_DOC_VERSION,
+      blocks: [
+        {
+          type: 'header',
+          data: { text: displayName, level: 2 },
+        },
+        {
+          type: 'paragraph',
+          data: { text: 'T is compact and self-adjoint, so it has an orthonormal eigenbasis. Eigenvalues can accumulate only at 0.' },
+        },
+        {
+          type: 'image',
+          data: {
+            file: { url: demoResultImageDataUri({ name: 'Slide_001.png' }) },
+            caption: 'Spectral theorem — compact self-adjoint',
+            withBorder: false,
+            stretched: false,
+            withBackground: false,
           },
-        })
-      }
+        },
+        {
+          type: 'paragraph',
+          data: { text: 'The operator norm equals the spectral radius: ‖T‖ = supₙ |λₙ|. Proof sketch: pick the eigenvector for the largest |λ|.' },
+        },
+        {
+          type: 'image',
+          data: {
+            file: { url: demoResultImageDataUri({ name: 'Slide_002.png' }) },
+            caption: 'Operator norm as max |λ|',
+            withBorder: false,
+            stretched: false,
+            withBackground: false,
+          },
+        },
+      ],
     },
-    { immediate: true },
-  )
+  }
+}
+
+// Queue rows over the gallery's slides, in capture order, a few minutes apart.
+function demoQueueItems(statuses: WatchQueueStatus[]): WatchQueueItem[] {
+  const slides = demoGallerySlides()
+  const start = Date.now() - statuses.length * 4 * MIN
+  return statuses.map((status, i) => ({
+    id: 9000 + i,
+    index: i + 1,
+    pngFilename: `Slide_${String(i + 1).padStart(3, '0')}.png`,
+    status,
+    thumb: slides[i % slides.length].dataUrl,
+    queuedAt: start + i * 4 * MIN,
+  }))
 }

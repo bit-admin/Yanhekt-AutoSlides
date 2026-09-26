@@ -117,7 +117,7 @@ Electron can also expose a **LAN relay** (`localRelayService`) with Worker-compa
 | Pixels | `slides_*` folders on disk (PNG) | IndexedDB `ArrayBuffer` (field still named `blob`) |
 | Provenance | colocated `metadata.json` | same schema, stored on the folder record |
 | Timeline | colocated `timeline.json` | reconstructed for share; in-memory during watch |
-| Export | PDF (PDFKit) / PPTX / Drive import | PDF (`pdf-lib`) / ZIP (`fflate`) / Notes sync |
+| Export | PDF (PDFKit) / PPTX / Drive import. Watch notes append kept slides to Yanhekt, Obsidian, or Notion | PDF (`pdf-lib`) / ZIP (`fflate`) / Notes sync (Yanhekt only) |
 
 ### Identity
 
@@ -166,7 +166,7 @@ Retired user-visible names: “Results View”, “Cloud Notes”, “Cloud Inde
 Yanhekt managed groups (6-char server limit, lookup by reserved name):
 
 - `ASnote` — **AutoSlides Database** / AutoSlides 数据库 (slide import/export target)
-- `ASuser` — **Watch Notes** / 随堂笔记 (watch-mode)
+- `ASuser` — **Watch Notes** / 随堂笔记, and only when the desktop watch-notes provider is Yanhekt. Obsidian and Notion never touch this group. Web watch notes are still Yanhekt-only
 
 ### UI copy
 
@@ -220,7 +220,10 @@ A group is “in sync” when **no** member changed or **every** member changed.
 | `phase2Exclusion` | pHash exclusion list |
 | `phase3AI` | LLM/ML classification + thresholds |
 | `postCropDedup` | phase 3b after in-place auto-crop |
-| `videoErrorRecovery` | HLS fatal/backoff skeleton, including manifest `loadSource` retry |
+| `watchProgress` | `autoslides/src/shared/watchProgress.ts` ↔ `web/frontend/src/lib/watchProgress.ts` |
+| `displayNames` | `autoslides/src/renderer/shared/i18n/displayNames.ts` ↔ `web/frontend/src/i18n/displayNames.ts` |
+| `requestCache` | `autoslides/src/renderer/shared/services/requestCache.ts` ↔ `web/frontend/src/lib/requestCache.ts` |
+| `videoErrorRecovery` | HLS fatal/backoff skeleton, including manifest `loadSource` retry and the empty-recording guard |
 | `yanhektCrypto` | **all four packages**: `autoslides/src/shared/crypto.ts`, `web/src/lib/yanhekt.ts`, `relay/src/yanhekt.ts`, `share/src/lib/yanhekt.ts` |
 
 Golden MD5 vectors (asserted in `crypto.test.ts` / `yanhekt.test.ts`):
@@ -284,10 +287,10 @@ renderer.ts → App.vue
 ```
 
 - **Main** (`src/main.ts`): lifecycle, `BrowserWindow`, one `IpcServices` bag, one `registerAllIpcHandlers(services)` call. Privileged `asmedia://` scheme is registered **before** `app.ready`.
-- **Preload** (`src/preload/`): nine domain modules spread in `index.ts`. The contract is `src/preload/electronApi.ts` (`ElectronAPI`). Each exported namespace is typed `ElectronAPI['<ns>']`, so a method added on only one side fails `tsc` in preload. `src/vite-env.d.ts` only maps it onto `Window`.
+- **Preload** (`src/preload/`): twelve domain modules spread in `index.ts` (`platform`, `video`, `extraction`, `ai`, `export`, `course`, `update`, `tools`, `intranet`, `localRelay`, `notes`, `lectures`). The contract is `src/preload/electronApi.ts` (`ElectronAPI`). Each exported namespace is typed `ElectronAPI['<ns>']`, so a method added on only one side fails `tsc` in preload. `src/vite-env.d.ts` only maps it onto `Window`.
 - **Renderer** (`src/renderer.ts`): load `configStore` then mount. No Pinia — module-level `reactive`/`ref` singletons.
 - **Tools window**: Web Capture + Yuketang only. Compress lives in Lectures. Guest `<webview>` gets `src/webviewCapturePreload.ts`.
-- **Demo**: `src/renderer/demo/` + `src/main/demo/`. Production never imports it. Inversion of control through `@shared/overrideRegistry` (empty `overrides` object; demo bootstrap is the only writer). Deleting both `demo/` trees plus the documented guarded hooks leaves a working real app. ESLint forbids production imports of `@renderer/demo`.
+- **Demo**: `src/renderer/demo/` + `src/main/demo/`. Production never imports it. Inversion of control through `@shared/overrideRegistry` (empty `overrides` object; demo bootstrap is the only writer). Deleting both `demo/` trees plus the documented guarded hooks leaves a working real app. ESLint forbids production imports of `@renderer/demo`. Screenshot-only: `window.__demoSetWatchNotesProvider` reseeds the open watch tab as Obsidian or Notion (`seedWatchNoteEntry` takes any provider's entry). No override slot — the panel does not call those bridges until a button is clicked.
 
 Forge unpacks native bits from asar (`*.node`, `sharp`, `@img`, `ort-wasm`) so Node can load binaries and ONNX Runtime Web can `file://`-import its WASM. Extra resources: `resources/models`, `ffmpeg-static`, `@ffprobe-installer`. Packaged builds flip Electron fuses (`RunAsNode: false`, `OnlyLoadAppFromAsar: true`, …).
 
@@ -296,16 +299,16 @@ Forge unpacks native bits from asar (`*.node`, `sharp`, `@img`, `ort-wasm`) so N
 | Domain | Directory | Owns |
 |---|---|---|
 | platform | `platform/` | `configService`, `authService` + `campusSso/`, `apiClient`, `notesService`, `intranetMappingService`, `windowManager`, `themeService`, `powerManagementService`, `cacheManagementService` |
-| infra | `infra/` | `ffmpegService`, `sharpService`, `onnxModelService`, `fileDownloadService`, `logger` |
+| infra | `infra/` | `ffmpegService`, `sharpService`, `onnxModelService`, `fileDownloadService`, `logger`, `logFile` |
 | video | `video/` | `videoProxyService`, `localRelayService`, `m3u8DownloadService`, `compressLectureService`, `asmediaProtocol`, posters/thumbnails |
 | extraction | `extraction/` | `slideExtractionService`, `slideMetadataService`, `slideTimelineService`, `qtExtractorService` |
 | ai | `ai/` | `llmApiService`, `aiFilteringService`, `aiPromptsService`, `copilotService`, auto-crop + ML model services |
-| export | `export/` | `pdfService`, `coverFontService`, `yuketangService`, `noteExportService` |
+| export | `export/` | `pdfService`, `coverFontService`, `yuketangService`, `noteExportService`, `obsidianNotesService` + `obsidianPaths`, `notionNotesService` + `notionApi` |
 | download | `download/` | `updateDownloadService`, `extractorInstallerService` |
 
-IPC lives in `src/main/ipc/`. `registerAllIpcHandlers` fans out to 31 registrars (`authIpc`, `configIpc`, `videoIpc`, `notesIpc`, `slideMetadataIpc`, `slideTimelineIpc`, …). Services are injected; IPC modules do not import singletons.
+IPC lives in `src/main/ipc/`. `registerAllIpcHandlers` fans out to 33 registrars (`authIpc`, `configIpc`, `videoIpc`, `notesIpc`, `obsidianNotesIpc`, `notionNotesIpc`, `slideMetadataIpc`, `slideTimelineIpc`, …). Services are injected; IPC modules do not import singletons.
 
-`configIpc` broadcasts the full `AppConfig` after every mutating handler via `config:onUpdate`. `authToken` and `ssoDeviceCookies` are **standalone store keys**, not part of `AppConfig` — never broadcast. `ssoDeviceCookies` has no IPC channel (main-only; lets a trusted device skip SMS).
+`configIpc` broadcasts the full `AppConfig` after every mutating handler via `config:onUpdate`. `authToken`, `ssoDeviceCookies`, and `notionToken` are **standalone store keys**, not part of `AppConfig` — never broadcast. `ssoDeviceCookies` has no IPC channel (main-only; lets a trusted device skip SMS). `notionToken` is returned only by `notionNotes:getToken`, for the Settings show/hide field; `AppConfig` carries the derived `notionConnected` / `notionWorkspaceName`.
 
 ### Renderer (`src/renderer/`)
 
@@ -330,15 +333,15 @@ renderer/
 - `configStore` — reactive `AppConfig`, seeded by `loadConfig()`, kept in sync by `config:onUpdate`. Non-settings code reads it synchronously. Settings composables write through `electronAPI.config`.
 - `tabStore` — playback tabs. `activeTabId === null` ⇒ the persistent **Info tab**. Manual tabs cap at `maxManualTabs`; task tabs cap at `parallelTasks`. Inactive playback tabs are **CSS-hidden, never unmounted**.
 - `navigationStore` — Info-tab target (`home` / `live` / `recorded` / `search` / workspace / `settings`).
-- `rightPanelStore` — `task` | `download` | `notes`. Auto-hidden on workspace pages without touching the user's collapse preference.
+- `rightPanelStore` — `task` | `download` | `notes`. Auto-hidden on workspace pages without touching the user's collapse preference. The Notes view is the Yanhekt editor, or `ExternalNotePanel` (append queue: `queued` / `appending` / `appended`, pause/resume) when the provider is Obsidian or Notion. The panel widens only for the Yanhekt editor.
 
 **Layout.** Three columns on browsing + playback; two columns on workspace pages (right panel collapsed). Workspace targets: `slides-review` (Slides), `cloud-notes` (Drive), `lectures`, `developer` (Settings → General → Developer mode). Settings is **not** a workspace page — it keeps the three-column chrome.
 
-`courseSelection` is the single entry point for opening a course/stream from anywhere.
+`courseSelection` is the single entry point for opening a course/stream from anywhere. Settings tabs: General, Image Processing, Download & Playback, Network, AI, Cloud, Add-ons. `showToolsButton` (default false) hides the sidebar Tools button until Add-ons opts in; the Tools window itself is unchanged.
 
 ### Preload namespaces (`window.electronAPI`)
 
-`auth`, `config`, `api`, `intranet`, `localRelay`, `video`, `compressLecture`, `lectures`, `download`, `qtExtractor`, `update`, `extractorInstaller`, `slideExtraction`, `dialog`, `powerManagement`, `window`, `shell`, `menu`, `cache`, `app`, `ai`, `copilot`, `trash`, `crop`, `slideMetadata`, `slideTimeline`, `pdfmaker`, `noteExport`, `tools`, `webCapture`, `yuketang`, `autoCrop`, `mlClassifier`, `cloudNotes`.
+`auth`, `config`, `api`, `intranet`, `localRelay`, `video`, `compressLecture`, `lectures`, `download`, `qtExtractor`, `update`, `extractorInstaller`, `slideExtraction`, `dialog`, `powerManagement`, `window`, `shell`, `menu`, `cache`, `app`, `log`, `ai`, `copilot`, `trash`, `crop`, `slideMetadata`, `slideTimeline`, `pdfmaker`, `noteExport`, `tools`, `webCapture`, `yuketang`, `autoCrop`, `mlClassifier`, `cloudNotes`, `obsidianNotes`, `notionNotes`.
 
 Object-valued IPC **must** be JSON-cloned first. See [Gotcha: Vue proxies](#vue-proxies-cannot-cross-structured-clone).
 
@@ -353,6 +356,8 @@ Pure TS, no Node/Electron IO:
 - `sidecars/metadata/` + `sidecars/timeline/` — `metadata.json` / `timeline.json` types and pure reducers (`deriveCues`, relink, gaps). Main services own disk.
 - `shareLink.ts` / `shareTimeline.ts` — fragment codec. Canonical; `share/` imports this file.
 - `notesContent.ts` / `notesTypes.ts` — Editor.js document + trailing `code` block namespaced `autoslides`.
+- `onboarding.ts` — versioned wizard catalog (`resolveOnboarding`). `watchNotesProviders.ts` — `yanhekt` | `obsidian` | `notion` and the one-time migration off `cloudWatchSyncEnabled`.
+- `recordingProblems.ts` — empty Yanhekt playlist (HTTP 200, no video). `sessionInput.ts` — session id or `…/session/<id>` URL for the Download panel.
 
 ### Desktop features a newcomer actually trips on
 
@@ -362,12 +367,12 @@ Pure TS, no Node/Electron IO:
 - **Campus SSO SMS.** `main/platform/campusSso/`. Three outcomes from `loginAndGetToken`: token, failure (`reason`), or `smsChallenge`. Live CAS jar parked in `pendingVerifications.ts` (300s). Captcha is detected, never solved. Browser login is the escape hatch.
 - **Multi-account.** Active account = `StoredAccount` whose token matches the standalone `authToken` key. Switching changes `userId` but **not** `isLoggedIn` — surfaces that only watch `isLoggedIn` show stale data. In-flight downloads captured their token at start.
 - **Drive.** Yanhekt `/v1/note*` + MinIO. `cloudStorageStore` serializes provisioning of `ASnote` + `ASuser`. Server `/v1/note/list` **ignores** `groupId` — load the full catalog (`pageSize=500`) and filter client-side. Keyword search is **server-side** (`keyword=`). Ungroup = recreate the note. Batch import/export is ASnote-gated. Index mode is a toggle inside Drive, not a separate nav target.
-- **Watch-mode notes.** Keyed by playback tab. Find-or-create an ASuser note when a manual tab starts extraction with `cloudWatchSyncEnabled`. Slides buffer in a non-reactive `pendingSlides` map and upload only after post-processing reports them kept; pending is **dropped** on stop/clear/tab close. Mutate through the reactive proxy (`state.entries[tabId]`), never a raw local ref.
-- **Lectures.** List view = local `.mp4`/`.mkv` only. Library also seeds sessions from `slides_*` folders that parse to courseId+sessionId **and** have `timeline.json`. Player uses `asmedia://` (HTTP 206 Range). Slides strip: `deriveCues` → seek. Compress queue shares FFmpeg with Tools-era compress.
+- **Watch-mode notes.** Settings → Add-ons: `watchNotesEnabled` + `watchNotesProvider` (`yanhekt` | `obsidian` | `notion`). `migrateWatchNotes` copies a present `cloudWatchSyncEnabled` into those keys (provider `yanhekt`) and deletes the legacy key. Keyed by playback tab. `watchNotesStore` is the provider-neutral stream: kept slides wait in a non-reactive `pendingSlides` map until post-processing reports them kept; pending is **dropped** on stop/clear/tab close. Yanhekt find-or-creates an ASuser note. Obsidian and Notion only append images, through `externalQueueSink` (one write at a time; a failure re-queues and pauses). Notion is pick-mode only — every lecture starts without a page. Mutate through the reactive proxy (`state.entries[tabId]`), never a raw local ref.
+- **Lectures.** List view = local `.mp4`/`.mkv` only. Library also seeds sessions from `slides_*` folders that parse to courseId+sessionId **and** have `timeline.json`. Offline episode order parses week/day/section out of the title (`parseSessionTitle`), not a string compare. Course page: horizontal episode rail, an About block, and a browser link to the Yanhekt course. Player uses `asmedia://` (HTTP 206 Range). Slides strip: `deriveCues` → seek; the strip's height is a drag handle. Compress queue shares FFmpeg with Tools-era compress.
 - **Qt extractor.** Optional C++ CLI. Requires `qtExtractor.autoRunAfterDownload` **and** a verified binary. SSIM threshold is frozen on the `DownloadItem` at queue time. Flags: `--json --compatible [--write-timeline if ≥ 2.0.0] --video --output --ssim-threshold --enable-downsampling … --chunk-size 100`. Never `--phash-*` / `--ml-classify` / `--jpeg-quality` (post-processing is ours). `--compatible` emits `Slide_*.png`. Host stamps `kind: "recorded"` after success.
-- **Queues are reload-volatile.** `DownloadService.items` / `PostProcessingService.jobs` die on renderer reload **by design**. Do not add persistence without an explicit request.
-- **Cache management.** Settings → General is **manual only**. `session.clearCache()` + `clearCodeCaches({})`; do not raw-unlink `Cache/` while Chromium is running. Never delete `userData/models` or `config.json` from the ordinary clear path.
-- **Onboarding.** `resolveOnboarding` in `@common/onboarding`. Completing/skipping stamps `lastOnboardingVersion` to `app.getVersion()`. Do not backfill that key in `migrateOnboardingFlag()`.
+- **Queues are reload-volatile.** `DownloadService.items` / `PostProcessingService.jobs` die on renderer reload **by design**. Do not add persistence without an explicit request. The Download panel can also enqueue from a session id or a Yanhekt session URL (`useSessionIdDownload` → `getSessionDownloadInfo`: session detail by id, then `/v1/video`). It does not walk the session list.
+- **Cache management.** Settings → General is **manual only**. `session.clearCache()` + `clearCodeCaches({})`; do not raw-unlink `Cache/` while Chromium is running. Clear Cache also calls `clearLogFiles()` (the stream is open). Factory reset skips `<userData>/logs` for the same reason. Never delete `userData/models` or `config.json` from the ordinary clear path.
+- **Onboarding.** `resolveOnboarding` in `@common/onboarding`. Catalog: `legal` (`since: 5.1.0`, `always: true` — leads every run, and only triggers What's New by itself when its `since` is new), then `output` / `connection` / `audio` / `ai` / `signIn` (`5.0.0`), then `notesProvider` + `notes` (`5.1.0`, one numbered step — `onboardingStepOf` maps `notes` → `notesProvider`), then `done`. A 5.0.0 user who already finished therefore sees legal + the two notes pages, not the older steps. Completing or skipping stamps `lastOnboardingVersion` to `app.getVersion()`. Do not backfill that key in `migrateOnboardingFlag()`.
 
 ### 5.1 Dependency rules
 
@@ -416,7 +421,7 @@ src/
 
 Theme is **ink on paper** (`renderer/shared/styles/theme.css`). Chrome is warm paper + near-black ink; `--accent` **is** the ink. Hue is allowed in three roles only: `--control-accent` (checkbox/progress/links — never a button fill), status (`--danger` / `--success` / `--warning`), and `--illustration-accent` on the Home drawing. **No accent bars** (thick colored `border-left`). No per-component dark-mode media queries — `theme.css` swaps via `prefers-color-scheme`. JS that must re-read a token uses `onColorSchemeChange()` from `@shared/utils/prefersDark`.
 
-Logging: `createLogger(namespace)` (`@main/infra/logger` / `@shared/utils/logger`). `debug`/`info` are dev-only (main also gates on `!app.isPackaged`); `warn`/`error` always emit. `no-console` is ESLint-enforced.
+Logging: `createLogger(namespace)` (`@main/infra/logger` / `@shared/utils/logger`). Console: `debug`/`info` are dev-only (main also gates on `!app.isPackaged`); `warn`/`error` always emit. `no-console` is ESLint-enforced. Disk: `<userData>/logs/autoslides.log` (`logFile.ts`), 5 MB × 3. `warn`/`error` always, `debug`/`info` only while Developer mode is on. Renderer lines go through `log:write` as a string (`@common/logFormat` redacts 32-hex tokens, Bearer/cookie/password). Settings → General → Developer Mode shows the path; `app:openLogFolder` opens it. Do not `rm` the directory while the stream is open.
 
 ---
 
@@ -523,7 +528,7 @@ Slide extraction is the same SSIM pipeline in Web Workers; pixels live in Indexe
 
 Post-processing on web: same phases; auto-crop + 3b are **hardcoded on** when AI filtering is enabled (no web toggles). Phase-3 builtin AI is same-origin `POST /api/ai/chat/completions`. Copilot/custom still call those hosts from the browser (CORS-open).
 
-Notes page + watch-mode ASuser sync mirror desktop conceptually, with the product-name split above. `notesContent` must preserve `timeline` on save so a desktop-imported note is not stripped.
+Notes page + watch-mode ASuser sync mirror the desktop **Yanhekt** provider, with the product-name split above. Web has no Obsidian or Notion provider. `notesContent` must preserve `timeline` on save so a desktop-imported note is not stripped.
 
 PDF bookmarks use UTF-16 hex outlines so CJK folder names need no embedded font; body CJK still needs standalone TTF (not `.ttc` / CFF). See `frontend/public/fonts/README.md`.
 
@@ -537,7 +542,7 @@ Worker tests (`npm test`): `resumeSeal` round-trip/expiry/tamper; Yanhekt golden
 
 ### Differences vs desktop (the ones that cause bugs)
 
-1. No right panel, no task/download queues, no local filesystem, no Qt extractor, no Lectures compress, no Yuketang Tools window, no local ONNX ML (LLM only).
+1. No right panel, no task/download queues, no download-by-session-id row, no local filesystem, no Qt extractor, no Lectures compress, no Yuketang Tools window, no Obsidian/Notion watch notes, no persistent log file, no local ONNX ML (LLM only).
 2. Native HLS on Safari/iOS.
 3. `String()` at every Yanhekt id boundary.
 4. Drive vs Notes, Pinned vs Subscribed (intentional).
@@ -835,7 +840,7 @@ Four id namespaces. Do not mix them.
 | **live / broadcast** | One live capture of a session (`/v2/live/list` row `id`; nested `live.id`) | `652885` |
 | **video** | One recorded asset (`videos[].id` / `video_ids[]` / `/v1/video?id=`) | `456913` |
 
-**`session_id` is globally unique** and enough to recover `course_id`. `GET /v1/course/session?session_id=751843` (anonymous) returns `course_id: 62313` plus a nested `course` (names, college, term). Share already fans this out; desktop course pages still enumerate via the **list** hop, which needs `course_id` **and** a login token.
+**`session_id` is globally unique** and enough to recover `course_id`. `GET /v1/course/session?session_id=751843` (anonymous) returns `course_id: 62313` plus a nested `course` (names, college, term). Share already fans this out. Desktop course pages still enumerate via the **list** hop, which needs `course_id` **and** a login token. The Download panel's session-id row uses this detail hop (`getSessionDownloadInfo`) and then `/v1/video` — not the list.
 
 Live identity is a separate namespace. A finished session’s nested `live.id` is the broadcast id (`l` in share payloads). Live-list rows carry the real course id on `session.course_id` (present on sampled rows); nested `course.id` is often missing. **A broadcast id is resolvable on its own**: `GET /v1/live?id=<live id>&with_session=true&with_course=true` (anonymous) returns the broadcast plus its session and full course — including `course.id` and `classrooms[]`, neither of which a list row has. Never page the live list to find a row by id.
 
@@ -1151,12 +1156,16 @@ Unlike the playlists, the AAC is **unsigned and world-readable**: a bare `GET` w
 
 **It is zero-aligned with the video, despite the filename.** `ffprobe` over HTTP reports `aac, 32000 Hz, stereo, duration 5934.74 s` against the API's video `duration: 5936` — so the `09_53_19` is a recorder-clock *label*, not a lead-in, and no offset correction is needed. Do not re-derive this from the filename arithmetic; it looks like a ~100 s lead and is not one.
 
-**What AutoSlides does with it.** Yanhekt's own UI warns 音源为蓝牙话筒，若老师未使用蓝牙话筒，则该路音频没有声音 — the track exists per-room and is silent when the teacher did not wear the mic, which is why nothing about it is assumed to be present.
+**What AutoSlides does with the mic track.** Yanhekt's own UI warns 音源为蓝牙话筒，若老师未使用蓝牙话筒，则该路音频没有声音 — the track exists per-room and is silent when the teacher did not wear the mic, which is why nothing about it is assumed to be present.
 
 - **Resolution is lazy and memoised.** Because only `/v1/video` carries the URL, knowing whether a lecture has a mic track costs one request per video id. The session page therefore always shows its mic button and resolves on click; `ApiClient.getMicAudioUrl` caches the answer, including the negative one.
 - **Download** is `main/video/audioDownloadService.ts`, not the m3u8 downloader (no signing, no playlist, no ffmpeg). It writes `<outputDir>/audio_…__c<course>s<session>.aac` via a `.part` temp, and shares the intranet-aware axios factory (`main/infra/intranetAxios.ts`) with the m3u8 path so the campus host rewrite applies. `DownloadItem.videoType` gained `'audio'`; `download:cancel` routes by which service owns the id.
 - **Playback** proxies it at `GET /audio?originalUrl=` on the local video proxy — unsigned, but proxied so intranet mode can rewrite the host. Range is forwarded and 206 passed through. The proxied URL is exposed as a sibling `audioUrl` on `VideoPlaybackUrls`, never as a `streams` entry (`streams` is the *video* stream list, enumerated by the stream picker and by the task queue).
 - **On disk** it is a first-class Lectures asset: `[vtype=audio]`, counted in FILES, never in "Dual", and never a poster source or a `<video>` source.
+
+#### Empty playlists
+
+A failed Yanhekt transcode is still HTTP 200: `#EXT-X-TARGETDURATION:0` and one zero-length segment. hls.js raises no error, so the player used to spin and the downloader used to hand an empty file to FFmpeg. `@common/recordingProblems` (`detectEmptyPlaylist`) is what the desktop task queue and m3u8 downloader check. The player guard (`attachEmptyRecordingGuard`) lives in the `videoErrorRecovery` drift pair, so the web player stops the same way. Say so and stop; do not retry.
 
 #### Path encrypt + query signature
 
@@ -1237,7 +1246,7 @@ Desktop parks the live CAS cookie jar in memory for 300s (dies on renderer reloa
 |---|---|---|---|---|---|
 | Course list / detail / tags | `ApiClient` | `/api/yanhekt/…` | proxy; Bearer stripped | anonymous `fetchCourse*` / `fetchSemesters` | — |
 | Session list | `getCourseInfo` (auth) | same | proxy; Bearer kept | — | — |
-| Session by id | unused `getSessionById`; `getSessionProgress` (auth) reads `user_progress` | `getResumePosition` reads `user_progress` | allowlisted; **Bearer kept** (it carries `user_progress`) | `fetchSession` | — |
+| Session by id | `getSessionDownloadInfo` (download-by-id; anonymous-ok) + `getSessionProgress` (auth, `user_progress`). `getSessionById` itself is unused | `getResumePosition` reads `user_progress` | allowlisted; **Bearer kept** (it carries `user_progress`) | `fetchSession` | — |
 | Watch progress PUT | `reportSessionProgress` (watch + Lectures, opt-in) | tail + native-HLS only; the rest rides `/segment` | exact-match `PUT` allowlist | — | piggybacked on `/segment?…&sid=&p=` |
 | Public live / search | anonymous-ok | proxy; stripped | stripped | — | — |
 | Personal live / private courses / subscribe | auth | proxy; kept | kept | — | — |
@@ -1272,7 +1281,7 @@ Canonical: `autoslides/src/shared/shareLink.ts`.
 
 ### 10.3 Slide sidecars (desktop disk; web mirrors the schema)
 
-**`metadata.json`** (`SLIDE_METADATA_VERSION = 1`): `kind` (`recorded`/`live`) + `trigger` (`auto`/`watch`) drive `isWatchExtraction()`. `edited` is latched only by **human** crop/trash/delete, never by automated post-processing. `reviewed` sets on a ~2s dwell in Slides. All updaters no-op when the file is absent (no backfill). Single writer: `slideMetadataService`; renderer goes through `slideMetadataClient` (JSON-clone first).
+**`metadata.json`** (`SLIDE_METADATA_VERSION = 1`): `kind` (`recorded`/`live`) + `trigger` (`auto`/`watch`) drive `isWatchExtraction()`. `edited` is latched only by **human** crop/trash/delete, never by automated post-processing. `reviewed` sets on a ~2s dwell in Slides. Index publish must use `indexReviewFlags` (`@common/sidecars/metadata/review`): `cropped` from an automated crop is **not** `edited`. All updaters no-op when the file is absent (no backfill). Single writer: `slideMetadataService`; renderer goes through `slideMetadataClient` (JSON-clone first).
 
 **`timeline.json`** (`SLIDE_TIMELINE_VERSION = 1`): append-mostly `events` + `resolutions` map. Builtin recorded uses `video.currentTime`; Qt uses media PTS (`extractor: "qt"`), host stamps `kind: "recorded"` after extract. Live / web-capture / offline leave the file absent. Gaps are first-class (`unstable`, `ai_filtered`, `exclusion`, `manual_trash`). Phase-1/3b duplicates pass `TrashMetadata.duplicateOf` and **relink** the later event to the first-kept file. Missing file = no timeline (no backfill from filenames).
 
@@ -1280,7 +1289,7 @@ Consumers: Lectures slides strip (`deriveCues`); Slides preview Metadata (`appea
 
 ### 10.4 Managed note content
 
-Every AutoSlides-imported Editor.js note ends with a `code` block under sentinel `autoslides`, carrying `slides` (folder `metadata.json` or null), `timeline` (full `timeline.json` or null), and `note` (displayName / imageCount / importedAt / shareUrl). `noteImageUrls` ignores the block. Watch-mode titles look like `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节` (live uses `l`). Disk `slides_*` folder names are unchanged.
+Every AutoSlides-imported **Yanhekt** Editor.js note ends with a `code` block under sentinel `autoslides`, carrying `slides` (folder `metadata.json` or null), `timeline` (full `timeline.json` or null), and `note` (displayName / imageCount / importedAt / shareUrl). `noteImageUrls` ignores the block. Watch-mode titles look like `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节` (live uses `l`). Disk `slides_*` folder names are unchanged. Obsidian watch notes are not this document: main appends `![](<vault-relative path>)` only, images under the vault's attachment folder. Notion watch notes are image blocks on a page the student picked; the token never leaves main.
 
 ---
 
@@ -1288,7 +1297,7 @@ Every AutoSlides-imported Editor.js note ends with a `code` block under sentinel
 
 Maths: [technical report](image-analysis-technical-report.pdf). Engineering:
 
-**Stage 1 — SSIM extraction** (`processing/`). One shared pipeline; `useSlideExtraction` / `useTaskQueue` / `useWebCapture` are thin adapters around `slideExtractionManager.run`. Downsampled frames (default 480×270), SSIM in a Worker, double verification before commit. pHash was tried for *core comparison* and removed — do not reintroduce it there. Timeline logs `changeAt` / `confirmedAt`.
+**Stage 1 — SSIM extraction** (`processing/`). One shared pipeline; `useSlideExtraction` / `useTaskQueue` / `useWebCapture` are thin adapters around `slideExtractionManager.run`. Downsampled frames (default 480×270), SSIM in a Worker, double verification before commit. pHash was tried for *core comparison* and removed — do not reintroduce it there. Timeline logs `changeAt` / `confirmedAt`. An empty Yanhekt playlist ([§9.6](#empty-playlists)) fails the task before this pipeline starts.
 
 **Stage 2 — post-processing** (`postProcessing/`), four phases:
 
@@ -1301,7 +1310,7 @@ Desktop toggles: `enableAIFiltering`, `distinguishMaybeSlide`, `enableAutoCropAI
 
 Automated crops call `crop:apply(..., autoCropped=true, isAutomated=true)` → `setCropped` only, never the human `edited` latch.
 
-AI dispatch in watch mode is **arity-based**: 1 image → single-image endpoint + `'live'`-keyed prompt; >1 → batch + `'recorded'`-keyed prompt. Storage keys stay `live`/`recorded`.
+AI dispatch in watch mode is **arity-based**: 1 image → single-image endpoint + `'live'`-keyed prompt; >1 → batch + `'recorded'`-keyed prompt. Storage keys stay `live`/`recorded`. Kept frames then go to the active watch-notes sink (Yanhekt editor, or the Obsidian/Notion queue).
 
 **Stage 3 — auto-crop detector** (`autoCrop/`). Modes: `canny_then_yolo` (default), `canny_only`, `yolo_only`. YOLO is `onnxruntime-web` single-threaded (no SharedArrayBuffer). Built-in model in `resources/models/`; custom copies to `<userData>/models/` and self-heals to built-in if missing. Developer workspace lab draws a red box in memory — no disk writes.
 
@@ -1353,7 +1362,7 @@ Index search/lecture pages will show empty names if Yanhekt is unreachable, not 
 
 ### Anonymous vs authenticated Yanhekt
 
-The matrix is [§9.3](#93-auth-vs-anonymous). Two unauth failure modes: `code: 61101113` (`用户未登录`) on strict endpoints (`/v1/user`, notes, subscription list), versus `code: 0` + `data: []` on session **list** / personal live / private course list. Marking a personal endpoint `allowAnonymous` (desktop) or stripping Bearer (web) yields empty data or `61101113`, not HTTP 401. Session **detail by id** is anonymous-ok (desktop unused; Index uses it). Copy the allowlists; don't guess.
+The matrix is [§9.3](#93-auth-vs-anonymous). Two unauth failure modes: `code: 61101113` (`用户未登录`) on strict endpoints (`/v1/user`, notes, subscription list), versus `code: 0` + `data: []` on session **list** / personal live / private course list. Marking a personal endpoint `allowAnonymous` (desktop) or stripping Bearer (web) yields empty data or `61101113`, not HTTP 401. Session **detail by id** is anonymous-ok. Index uses it. Desktop course pages do not; `getSessionDownloadInfo` does. `getSessionById` itself stays unused. `getSessionProgress` is the same URL and must stay authenticated. Copy the allowlists; don't guess.
 
 ### Multi-account stale UI
 
@@ -1361,7 +1370,11 @@ Watch `[isLoggedIn, userId]`, not `isLoggedIn` alone.
 
 ### Watch extraction vs Watch Notes
 
-`trigger: 'watch'` folders are incomplete by nature (`isWatchExtraction`) and must not be auto-imported as official ASnote lecture notes. Watch **Notes** (ASuser, right-panel / web Notes sync) are a separate path, p-p-gated.
+`trigger: 'watch'` folders are incomplete by nature (`isWatchExtraction`) and must not be auto-imported as official ASnote lecture notes. Watch **Notes** are a separate path, p-p-gated, and on desktop they follow `watchNotesProvider`: Yanhekt (ASuser), Obsidian, or Notion. Web is Yanhekt only. Do not read `cloudWatchSyncEnabled` — that key is migrated once and deleted.
+
+### macOS "Quit and Install"
+
+Closing the window leaves the process in the Dock, so the installer finds the old app still running. The button calls `app:quit` (`app.quit()`), not `window.close()`.
 
 ### SMS state dies on reload
 
@@ -1437,4 +1450,8 @@ Leaving `SSO_RESUME_KEY` unset is valid. Leaving `AI_ORIGIN` unset 503s `/api/ai
 | Share codec (canonical) | [`autoslides/src/shared/shareLink.ts`](../autoslides/src/shared/shareLink.ts) |
 | Web route table | [`web/src/app.ts`](../web/src/app.ts) |
 | Relay entry | [`relay/src/index.ts`](../relay/src/index.ts) |
+| Watch notes providers | [`autoslides/src/shared/watchNotesProviders.ts`](../autoslides/src/shared/watchNotesProviders.ts), [`watchNotesStore.ts`](../autoslides/src/renderer/features/cloudNotes/watchNotesStore.ts) |
+| Onboarding catalog | [`autoslides/src/shared/onboarding.ts`](../autoslides/src/shared/onboarding.ts) |
+| Desktop log file | [`autoslides/src/main/infra/logFile.ts`](../autoslides/src/main/infra/logFile.ts) |
+| Empty Yanhekt playlist | [`autoslides/src/shared/recordingProblems.ts`](../autoslides/src/shared/recordingProblems.ts) |
 | Index publish | [`share/src/v2.ts`](../share/src/v2.ts) |

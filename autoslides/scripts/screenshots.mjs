@@ -248,6 +248,28 @@ async function main() {
     await win.locator('.view-switcher .view-tab').nth(0).click() // back to Task
   })
 
+  // Obsidian / Notion watch notes: no editor, the append queue instead (kept
+  // slides with thumbnails, appended / appending / queued, Pause / Resume).
+  // The demo hook reseeds the open watch tab for that provider; nothing is
+  // written anywhere. Always switched back to Yanhekt, even on failure.
+  const shotExternalNotes = async (provider, name) => {
+    try {
+      await win.evaluate((p) => window.__demoSetWatchNotesProvider?.(p), provider)
+      const notesTab = win.locator('.view-switcher .view-tab', { hasText: /notes/i })
+      await notesTab.waitFor({ state: 'visible', timeout: 8000 })
+      await notesTab.click()
+      await win.waitForSelector('.external-note-panel .en-row .en-thumb img', { timeout: 8000 })
+      await win.waitForTimeout(800) // right panel narrows from the editor width
+      await shot(name)
+    } finally {
+      await win.evaluate(() => window.__demoSetWatchNotesProvider?.('yanhekt')).catch(() => {})
+      await win.locator('.view-switcher .view-tab').nth(0).click().catch(() => {}) // back to Task
+    }
+  }
+
+  await step('watch-notes-obsidian', () => shotExternalNotes('obsidian', 'watch-notes-obsidian'))
+  await step('watch-notes-notion', () => shotExternalNotes('notion', 'watch-notes-notion'))
+
   await step('search', async () => {
     const input = win.locator('.nav-search-input')
     await input.click()
@@ -369,6 +391,25 @@ async function main() {
       console.warn(`  ⚠ skipped advanced-ai-ml: ${e.message}`)
     }
 
+    // Add-ons tab, once per external notes provider (each shows its own setup
+    // plus the Tools section). Picking a provider only edits the unsaved
+    // buffer; leaving Settings below discards it.
+    for (const [name, providerIdx] of [['advanced-addons-obsidian', 1], ['advanced-addons-notion', 2]]) {
+      try {
+        await resetSettings()
+        await win.locator('.settings-segment-btn').nth(6).click() // Add-ons
+        await win.waitForTimeout(300)
+        await win.locator('.addon-provider-selector .mode-btn').nth(providerIdx).click()
+        await win.waitForTimeout(400)
+        await expandSettings()
+        await win.waitForTimeout(350)
+        await shotSettings(name)
+      } catch (e) {
+        skipped.push(`${name} — ${e.message}`)
+        console.warn(`  ⚠ skipped ${name}: ${e.message}`)
+      }
+    }
+
     // Restore the page's normal layout (drop the fixed capture styles) before
     // navigating away, else the full-window card blocks the sidebar nav.
     await resetSettings()
@@ -394,6 +435,9 @@ async function main() {
     })
     await clearBackdrop()
     const shotCard = async (name) => {
+      // The pointer stays where the last Next click landed; move it off the
+      // card so that button is not captured in its hover shade.
+      await win.mouse.move(1, 1)
       await win.waitForTimeout(300)
       await win.locator('.onboarding-card').screenshot({ path: path.join(outDir, `${name}.png`), omitBackground: true })
       captured.push(name)
@@ -437,6 +481,20 @@ async function main() {
         })
         await win.waitForSelector('.cloud-inited-row', { timeout: 4000 })
         await shotCard('onboarding-signin-ready')
+      } else if (name === 'onboarding-notes-provider') {
+        // Step 6 page 1 for each provider (Yanhekt / Obsidian / Notion). Picking
+        // one writes it to the demo profile, so end on Yanhekt again: the next
+        // page captured is Yanhekt's cloud storage page.
+        const providerBtn = (i) => win.locator('.onboarding-body .mode-toggle .mode-btn').nth(i)
+        await shotCard('onboarding-notes-provider')
+        await providerBtn(1).click()
+        await win.waitForSelector('.onboarding-body .notes-provider-detail .input-group', { timeout: 4000 })
+        await shotCard('onboarding-notes-obsidian')
+        await providerBtn(2).click()
+        await win.waitForSelector('.onboarding-body .notion-steps', { timeout: 4000 })
+        await shotCard('onboarding-notes-notion')
+        await providerBtn(0).click()
+        await win.waitForTimeout(300)
       } else {
         await shotCard(name)
       }
@@ -749,7 +807,7 @@ ${list}
 |---------|-----------------|----------------|
 | login.png | login.png | A. 登录（浏览器 SSO，实时加载真实登录页） |
 | home-signed-out.png | home-signed-out.png | A. 未登录 Home（产品演示 + 登录 CTA） |
-| onboarding-welcome/output/connection/audio/ai/signin/signin-sms/signin-ready/notes-provider/cloud/done.png | onboarding-*.png | 首次启动向导（欢迎 + 法律声明 + 配置步骤；登录为未登录 / SMS / 已登录三张） |
+| onboarding-welcome/output/connection/audio/ai/signin/signin-sms/signin-ready/notes-provider/notes-obsidian/notes-notion/cloud/done.png | onboarding-*.png | 首次启动向导（法律声明 + 配置步骤；登录为未登录 / SMS / 已登录三张；第 6 步第 1 页按三种笔记服务各一张） |
 | onboarding-whats-new.png | onboarding-whats-new.png | What's New 首页（法律声明） |
 | user-menu.png | user-menu.png, user-menu-switcher.png | A. 登录 — 用户菜单 / 切换账号飞出层（后者由 process-docs 从窗口照裁出） |
 | home.png | home.png | D. 基础页面（Home / 课程收藏夹） |
@@ -775,6 +833,7 @@ ${list}
 | lectures-course.png | lectures-course.png | 讲座库 — 课程详情 / 分集 |
 | lectures-player.png | lectures-player.png | 讲座库 — 本地双流播放 + 幻灯片章节条 |
 | watch-notes.png | watch-notes.png | 观看模式笔记（右侧 Notes 面板） |
+| watch-notes-obsidian.png, watch-notes-notion.png | 同名 | 随堂笔记：Obsidian / Notion 追加队列（由 __demoSetWatchNotesProvider 换种子） |
 | advanced-general.png | settings-general.png | B & I. 一般设置 |
 | advanced-image.png | settings-image-output.png + settings-postprocess.png + settings-autocrop.png | I. 图像处理（**拆分为 3 张**） |
 | advanced-playback.png | settings-playback.png | I. 下载与播放 |
@@ -782,6 +841,7 @@ ${list}
 | advanced-ai.png | settings-ai-service.png + settings-ai-behaviour.png | C & I. AI（**拆分为 2 张**） |
 | advanced-ai-ml.png | settings-ai-ml.png | I. AI（ML 模式 / 严格度滑块） |
 | advanced-cloud.png | settings-cloud.png | I. 云存储 |
+| advanced-addons-obsidian.png, advanced-addons-notion.png | settings-addons-obsidian.png, settings-addons-notion.png | 设置 > 扩展（Obsidian / Notion 两种服务） |
 | tools-webcapture.png | tools-webcapture.png | K. 网页捕获 |
 | tools-yuketang.png | tools-yuketang.png | K. 雨课堂 |
 

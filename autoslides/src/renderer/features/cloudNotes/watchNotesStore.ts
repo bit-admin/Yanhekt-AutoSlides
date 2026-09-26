@@ -24,7 +24,6 @@ import type {
   ObsidianWatchNoteEntry,
   WatchNoteEntry,
   WatchNotesSink,
-  YanhektWatchNoteEntry,
 } from './watchNotesTypes'
 
 // Watch notes: the provider-neutral slide stream. A manual watch tab that starts
@@ -347,28 +346,12 @@ window.addEventListener('slidesCleared', onSlidesClearedEvent)
 window.addEventListener('slideAutoCropped', onSlideAutoCropped)
 
 /**
- * Inject a ready Yanhekt watch-note entry without going through extraction.
- * Used by demo mode (and tests) so the Notes tab can render offline.
+ * Inject a watch-note entry (any provider) without going through extraction.
+ * Used by demo mode so the Notes tab can render offline. Nothing reaches a
+ * provider until the panel's buttons are clicked.
  */
-export function seedWatchNoteEntry(entry: {
-  tabId: string
-  instanceId?: string
-  noteId?: number | null
-  displayName: string
-  content: OutputData
-}): void {
-  const seeded: YanhektWatchNoteEntry = {
-    tabId: entry.tabId,
-    instanceId: entry.instanceId ?? 'seeded',
-    provider: 'yanhekt',
-    noteId: entry.noteId ?? null,
-    displayName: entry.displayName,
-    identity: {},
-    slidesFolderName: `${SLIDE_FOLDER_PREFIX}AutoSlides`,
-    status: 'ready',
-    content: entry.content,
-  }
-  state.entries[entry.tabId] = seeded
+export function seedWatchNoteEntry(entry: WatchNoteEntry): void {
+  state.entries[entry.tabId] = entry
 }
 
 export const watchNotesStore = {

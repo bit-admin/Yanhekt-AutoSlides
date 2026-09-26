@@ -46,7 +46,8 @@ import {
   demoTimeline,
   demoStoredAccounts,
 } from './demoData'
-import { seedDemoQueues } from './demoSeed'
+import { seedDemoQueues, setDemoWatchNotesProvider } from './demoSeed'
+import type { WatchNotesProviderId } from '@common/watchNotesProviders'
 
 const demoApiTransport: ApiTransport = {
   verifyToken: async () => ({ valid: true, userData: demoUser() }),
@@ -234,4 +235,10 @@ export function installDemo(): void {
   // Fill the task/download right panel with finished fake items (no-op in the
   // tools/add-ons windows, which don't show those queues).
   seedDemoQueues()
+
+  // Screenshot hook: show the Notes tab for another provider (Obsidian / Notion
+  // append queue), then 'yanhekt' to switch back.
+  ;(window as unknown as {
+    __demoSetWatchNotesProvider?: (provider: WatchNotesProviderId) => void
+  }).__demoSetWatchNotesProvider = setDemoWatchNotesProvider
 }
