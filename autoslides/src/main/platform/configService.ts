@@ -574,16 +574,33 @@ export class ConfigService {
   // there is no IPC channel and they are not part of AppConfig, so they never
   // reach a renderer or a config:onUpdate broadcast. Only cookies CAS gave an
   // explicit lifetime are ever written here (see casTransport), which is the
-  // mechanism that lets a trusted device skip the SMS second factor. Wiped
-  // wholesale rather than pruned — a stale entry only costs one extra SMS.
+  // mechanism that lets a trusted device skip the SMS second factor. Every
+  // successful sign-in replaces the whole bag.
+  //
+  // Malformed and expired entries are filtered on read. Which *hosts* may be
+  // kept is the auth flow's rule, not this layer's: MainAuthService prunes the
+  // stored bag through casTransport's filter at launch.
   getSsoDeviceCookies(): StoredSsoCookie[] {
     const stored = this.store.get('ssoDeviceCookies') as StoredSsoCookie[] | undefined;
-    return Array.isArray(stored) ? stored : [];
+    if (!Array.isArray(stored)) return [];
+    const now = Date.now();
+    return stored.filter(
+      (cookie) =>
+        !!cookie &&
+        typeof cookie.name === 'string' &&
+        cookie.name.length > 0 &&
+        typeof cookie.host === 'string' &&
+        cookie.host.length > 0 &&
+        typeof cookie.expiresAt === 'number' &&
+        cookie.expiresAt > now,
+    );
   }
 
   setSsoDeviceCookies(cookies: StoredSsoCookie[]): void {
     if (cookies.length === 0) {
-      this.store.delete('ssoDeviceCookies');
+      // Checked first so the launch-time prune costs no disk write when there
+      // is nothing stored.
+      if (this.store.has('ssoDeviceCookies')) this.store.delete('ssoDeviceCookies');
     } else {
       this.store.set('ssoDeviceCookies', cookies);
     }

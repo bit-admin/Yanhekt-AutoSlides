@@ -52,6 +52,51 @@ const CLIENT_HEADERS: Record<string, string> = {
   'sec-ch-ua-platform': '"macOS"',
 };
 
+/**
+ * The only hosts whose long-lived cookies are worth keeping between sign-ins.
+ *
+ * This is a security boundary, not a tidiness one: `exportDurableCookies` is
+ * handed straight to `ssoDeviceCookies`, and that bag is later seeded into a
+ * fresh transport — i.e. replayed on the next login. Everything in the jar
+ * besides the campus SSO session is a *downstream* service's cookie: today the
+ * yanhekt callback, tomorrow whatever else a hop passes through. Persisting
+ * those would mean replaying a bearer token we never asked to keep.
+ *
+ * Matching follows `hostMatches`: the host itself or any subdomain of it, so
+ * `bit.edu.cn` covers `sso.bit.edu.cn` and a `Domain=.bit.edu.cn` cookie, but
+ * not `evilbit.edu.cn`. That is only a boundary because `parseSetCookie`
+ * refuses a `Domain` the responding host does not belong to — otherwise the
+ * yanhekt callback could simply claim `Domain=bit.edu.cn`.
+ */
+const DURABLE_COOKIE_HOSTS = ['bit.edu.cn'] as const;
+
+function isDurableHost(host: string): boolean {
+  const normalized = host.replace(/^\./, '').toLowerCase();
+  return DURABLE_COOKIE_HOSTS.some((allowed) => hostMatches(normalized, allowed));
+}
+
+/**
+ * The subset of persisted rows that may be replayed: well-formed, unexpired,
+ * and on a campus SSO host. Rows come off disk and may predate the host filter
+ * (older builds persisted the yanhekt callback's cookies too), so every read
+ * path goes through this — and `MainAuthService` writes the result back so the
+ * rejected rows do not linger on disk either.
+ */
+export function keepableDurableCookies(
+  cookies: readonly DurableCookie[],
+  now = Date.now(),
+): DurableCookie[] {
+  return cookies.filter(
+    (cookie) =>
+      !!cookie?.name &&
+      !!cookie.host &&
+      // Reject NaN explicitly; `NaN <= now` is false and would keep the row.
+      Number.isFinite(cookie.expiresAt) &&
+      cookie.expiresAt > now &&
+      isDurableHost(cookie.host),
+  );
+}
+
 export interface CasRequestOptions {
   method?: 'GET' | 'POST';
   /** Form-encoded body. Mutually exclusive with `json` and `raw`. */
@@ -177,14 +222,17 @@ export class CasTransport {
 
   /**
    * Cookies worth keeping for the next login attempt: those CAS gave an
-   * explicit future lifetime. Session cookies belong to this flow only and are
-   * never persisted.
+   * explicit future lifetime *and* that belong to the campus SSO hosts. Session
+   * cookies belong to this flow only and are never persisted, and a durable
+   * cookie on any other host (the yanhekt callback, an embedded third party) is
+   * deliberately left behind — see `DURABLE_COOKIE_HOSTS`.
    */
   exportDurableCookies(): DurableCookie[] {
     const now = Date.now();
     const out: DurableCookie[] = [];
     for (const entry of this.jar.values()) {
       if (entry.expiresAt === null || entry.expiresAt <= now) continue;
+      if (!isDurableHost(entry.host)) continue;
       out.push({
         name: entry.name,
         value: entry.value,
@@ -196,11 +244,9 @@ export class CasTransport {
     return out;
   }
 
-  /** Pre-load previously persisted durable cookies, skipping expired ones. */
+  /** Pre-load previously persisted durable cookies; see `keepableDurableCookies`. */
   seedDurableCookies(cookies: readonly DurableCookie[]): void {
-    const now = Date.now();
-    for (const cookie of cookies) {
-      if (!cookie?.name || !cookie.host || cookie.expiresAt <= now) continue;
+    for (const cookie of keepableDurableCookies(cookies)) {
       this.jar.set(`${cookie.host}|${cookie.name}`, {
         name: cookie.name,
         value: cookie.value,
@@ -259,7 +305,12 @@ function parseSetCookie(line: string, requestHost: string): ParsedCookie | null 
     const attributeValue = separator === -1 ? '' : attribute.slice(separator + 1).trim();
 
     if (key === 'domain' && attributeValue) {
-      host = attributeValue.replace(/^\./, '').toLowerCase();
+      const domain = attributeValue.replace(/^\./, '').toLowerCase();
+      // RFC 6265 §5.3 step 6: a host may only scope a cookie to itself or a
+      // parent domain. Anything else is ignored by browsers, and must be here
+      // too — `DURABLE_COOKIE_HOSTS` trusts this field.
+      if (!hostMatches(requestHost.toLowerCase(), domain)) return null;
+      host = domain;
     } else if (key === 'path' && attributeValue) {
       path = attributeValue;
     } else if (key === 'expires' && attributeValue) {

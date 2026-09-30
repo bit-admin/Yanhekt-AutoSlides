@@ -14,6 +14,7 @@ import {
   parkChallenge,
 } from './campusSso/pendingVerifications';
 import { describeErrorSafely, type SignInReason } from './campusSso/casDiagnostics';
+import { keepableDurableCookies } from './campusSso/casTransport';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('PlatformAuth');
@@ -40,7 +41,9 @@ export interface LoginResult {
 }
 
 export class MainAuthService {
-  constructor(private readonly configService?: ConfigService) {}
+  constructor(private readonly configService?: ConfigService) {
+    this.pruneStoredDeviceCookies();
+  }
 
   /**
    * Password sign-in. Resolves with a token, a failure, or an SMS challenge to
@@ -94,17 +97,37 @@ export class MainAuthService {
   }
 
   /**
-   * Persist the cookies CAS marked long-lived. Absent a `trustDevice` cookie
-   * this is a no-op write of an empty list, so behaviour is unchanged from
-   * before this existed.
+   * Replace the remembered-device cookies with what this sign-in produced.
+   * Always a replace, even with an empty list: a successful sign-in is the
+   * authoritative answer to "what should be replayed next time", and skipping
+   * the empty write would leave whatever an older build persisted in place.
    */
   private rememberDevice(cookies: readonly StoredSsoCookie[]): void {
-    if (!this.configService || cookies.length === 0) return;
+    if (!this.configService) return;
     try {
       this.configService.setSsoDeviceCookies([...cookies]);
     } catch (error) {
       // Never let a persistence hiccup fail an otherwise-successful sign-in.
       log.warn('Could not persist trusted-device state:', describeErrorSafely(error));
+    }
+  }
+
+  /**
+   * Older builds persisted every long-lived cookie the flow collected,
+   * including the yanhekt callback's bearer token. Rewrite the stored bag
+   * through the same filter the transport applies on seed, so those rows are
+   * deleted at launch instead of waiting for a sign-in that may never come.
+   */
+  private pruneStoredDeviceCookies(): void {
+    if (!this.configService) return;
+    try {
+      const stored = this.configService.getSsoDeviceCookies();
+      // Written back unconditionally: `getSsoDeviceCookies` already drops
+      // expired and malformed rows, so an unchanged count says nothing about
+      // what is on disk. With nothing stored the setter skips the write.
+      this.configService.setSsoDeviceCookies(keepableDurableCookies(stored));
+    } catch (error) {
+      log.warn('Could not prune trusted-device state:', describeErrorSafely(error));
     }
   }
 
