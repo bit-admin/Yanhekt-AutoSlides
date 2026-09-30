@@ -308,6 +308,11 @@ export interface AppConfig {
   // The active account is the one whose `token` equals the standalone `authToken`
   // electron-store key. Migrated from the legacy single-account fields.
   accounts: StoredAccount[];
+  // When true (default), a successful SSO sign-in stores that account's username
+  // and an OS-encrypted password, and the sign-in form offers them back. The
+  // secrets themselves are not on AppConfig — ConfigService keeps them on a
+  // standalone store key so they are never broadcast.
+  rememberPassword: boolean;
 }
 
 /** Compress options persisted for the Lectures batch modal (no paths). */

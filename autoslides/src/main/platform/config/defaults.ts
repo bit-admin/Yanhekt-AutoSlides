@@ -221,4 +221,5 @@ export const defaultConfig: AppConfig = {
   localRelayIncludeCurrentToken: true,
   localRelayTokenWhitelist: [],
   accounts: [],
+  rememberPassword: true,
 };

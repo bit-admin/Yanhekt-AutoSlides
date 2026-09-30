@@ -103,6 +103,17 @@ export interface UseAuthReturn {
   verifyManualToken: () => Promise<void>
   loadManualToken: () => void
 
+  // Password remembered for the signed-in account (Settings → Authentication).
+  accountPassword: Ref<string>
+  showAccountPassword: Ref<boolean>
+  isSavingAccountPassword: Ref<boolean>
+  hadSavedPassword: Ref<boolean>
+  accountPasswordUsername: Ref<string>
+  accountPasswordStatus: Ref<{ type: 'success' | 'error'; message: string } | null>
+  loadAccountPassword: () => Promise<void>
+  saveAccountPassword: () => Promise<void>
+  forgetAccountPassword: () => Promise<void>
+
   // Browser login methods
   openBrowserLogin: () => void
   closeBrowserLogin: () => void
@@ -128,6 +139,16 @@ export function useAuth(): UseAuthReturn {
   const showToken = ref(false)
   const isVerifyingManualToken = ref(false)
   const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  // The signed-in account's remembered password, edited from Settings. Kept on
+  // this instance (the one App.vue provides to the settings page), not shared:
+  // the sign-in modal has its own username/password refs.
+  const accountPassword = ref('')
+  const showAccountPassword = ref(false)
+  const isSavingAccountPassword = ref(false)
+  const hadSavedPassword = ref(false)
+  const accountPasswordUsername = ref('')
+  const accountPasswordStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
   // Verify a freshly-issued token and adopt the session. Shared by password
   // login and by the SMS second factor, which both end with a bare token.
@@ -166,7 +187,10 @@ export function useAuth(): UseAuthReturn {
       }
 
       if (result.success && result.token) {
-        if (await adoptIssuedToken(result.token)) log.debug('Login successful')
+        if (await adoptIssuedToken(result.token)) {
+          await rememberSsoPassword()
+          log.debug('Login successful')
+        }
       } else {
         log.error('Login failed:', result.error)
         void window.electronAPI.dialog?.showErrorBox?.('Login Failed', `${result.error}`)
@@ -211,7 +235,10 @@ export function useAuth(): UseAuthReturn {
         // hosting modal watches to close itself.
         smsChallenge.value = null
         smsCode.value = ''
-        if (await adoptIssuedToken(result.token)) log.debug('SMS second factor successful')
+        if (await adoptIssuedToken(result.token)) {
+          await rememberSsoPassword()
+          log.debug('SMS second factor successful')
+        }
         return
       }
 
@@ -410,6 +437,92 @@ export function useAuth(): UseAuthReturn {
     }
   }
 
+  // Store the password just used on the SSO form against the account we just
+  // verified. Skipped when Remember Password is off. A failure here must not
+  // fail the sign-in — the session is already adopted.
+  const rememberSsoPassword = async () => {
+    if (configStore.rememberPassword === false) return
+    const badge = userId.value
+    const user = username.value.trim()
+    const secret = password.value
+    if (!badge || badge === 'user123' || badge === 'unknown' || !user || !secret) return
+    try {
+      const result = await window.electronAPI.auth.saveSavedLogin(badge, user, secret)
+      if (!result.ok) log.warn('Could not remember SSO password:', result.error)
+    } catch (error) {
+      log.warn('Could not remember SSO password:', error)
+    }
+  }
+
+  const loadAccountPassword = async () => {
+    showAccountPassword.value = false
+    accountPasswordStatus.value = null
+    accountPassword.value = ''
+    accountPasswordUsername.value = ''
+    hadSavedPassword.value = false
+    if (!isLoggedIn.value) return
+    const badge = userId.value
+    if (!badge || badge === 'user123' || badge === 'unknown') return
+    try {
+      const saved = await window.electronAPI.auth.getSavedLogin(badge)
+      if (!saved) return
+      accountPassword.value = saved.password
+      accountPasswordUsername.value = saved.username
+      hadSavedPassword.value = true
+    } catch (error) {
+      log.warn('Could not load the remembered password:', error)
+    }
+  }
+
+  const saveAccountPassword = async () => {
+    const badge = userId.value
+    if (!isLoggedIn.value || !badge || badge === 'user123' || badge === 'unknown') return
+    if (isSavingAccountPassword.value) return
+    const secret = accountPassword.value
+    if (!secret) return
+
+    isSavingAccountPassword.value = true
+    accountPasswordStatus.value = null
+    try {
+      // Keep the campus username captured at SSO sign-in. A token-only session
+      // has none, so the badge (the student id) is the usual SSO username.
+      const user = accountPasswordUsername.value.trim() || badge
+      const result = await window.electronAPI.auth.saveSavedLogin(badge, user, secret)
+      if (!result.ok) {
+        accountPasswordStatus.value = { type: 'error', message: 'advanced.passwordSaveFailed' }
+        return
+      }
+      accountPasswordUsername.value = user
+      hadSavedPassword.value = true
+      accountPasswordStatus.value = { type: 'success', message: 'advanced.passwordSaved' }
+    } catch (error) {
+      log.error('Failed to save the remembered password:', error)
+      accountPasswordStatus.value = { type: 'error', message: 'advanced.passwordSaveFailed' }
+    } finally {
+      isSavingAccountPassword.value = false
+    }
+  }
+
+  const forgetAccountPassword = async () => {
+    const badge = userId.value
+    if (!isLoggedIn.value || !badge || badge === 'user123' || badge === 'unknown') return
+    if (isSavingAccountPassword.value || !hadSavedPassword.value) return
+    isSavingAccountPassword.value = true
+    accountPasswordStatus.value = null
+    try {
+      await window.electronAPI.auth.forgetSavedLogin(badge)
+      accountPassword.value = ''
+      accountPasswordUsername.value = ''
+      hadSavedPassword.value = false
+      accountPasswordStatus.value = { type: 'success', message: 'advanced.passwordCleared' }
+    } catch (error) {
+      log.error('Failed to forget the remembered password:', error)
+      accountPasswordStatus.value = { type: 'error', message: 'advanced.passwordSaveFailed' }
+    } finally {
+      isSavingAccountPassword.value = false
+    }
+  }
+
   // Browser login methods
   const openSsoModal = () => {
     showSsoModal.value = true
@@ -492,6 +605,16 @@ export function useAuth(): UseAuthReturn {
     onTokenInput,
     verifyManualToken,
     loadManualToken,
+
+    accountPassword,
+    showAccountPassword,
+    isSavingAccountPassword,
+    hadSavedPassword,
+    accountPasswordUsername,
+    accountPasswordStatus,
+    loadAccountPassword,
+    saveAccountPassword,
+    forgetAccountPassword,
 
     // Browser login methods
     openBrowserLogin,

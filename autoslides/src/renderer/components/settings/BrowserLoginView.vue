@@ -41,16 +41,34 @@
     </div>
 
     <!-- Webview Container -->
-    <div class="webview-container">
+    <div ref="containerRef" class="webview-container">
+      <!-- Mounted once the guest preload path is known: a webview reads its
+           preload attribute only when it first loads. -->
       <webview
+        v-if="guestPreload !== null"
         ref="webviewRef"
         :src="loginUrl"
+        :preload="guestPreload || undefined"
         partition="persist:browserlogin"
         class="login-webview"
         @did-navigate="onNavigate"
         @did-navigate-in-page="onNavigateInPage"
+        @did-start-loading="menu.close()"
         @dom-ready="onDomReady"
+        @ipc-message="onGuestMessage"
       ></webview>
+
+      <!-- Saved-logins menu over the CAS form, placed under the field the
+           guest preload reported. -->
+      <SavedLoginMenu
+        v-if="menu.visible.value && menuStyle"
+        class="autofill-flyout"
+        :style="menuStyle"
+        :rows="menu.matches.value"
+        :highlight="menu.highlight.value"
+        @hover="menu.highlight.value = $event"
+        @pick="pick"
+      />
     </div>
 
     <!-- Status Bar -->
@@ -71,7 +89,9 @@
 <script setup lang="ts">
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('BrowserLoginView');
-import { ref, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useSavedLoginMenu, type SavedLoginRow } from '@features/platform/useSavedLoginMenu';
+import SavedLoginMenu from './SavedLoginMenu.vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -82,6 +102,9 @@ const loginUrl = 'https://sso.bit.edu.cn/cas/login?service=https:%2F%2Fcbiz.yanh
 const targetUrl = 'https://www.yanhekt.cn/';
 
 const webviewRef = ref<Electron.WebviewTag | null>(null);
+const containerRef = ref<HTMLElement | null>(null);
+// null = still resolving; '' = unavailable (the webview then loads without it).
+const guestPreload = ref<string | null>(null);
 const currentUrl = ref(loginUrl);
 const statusMessage = ref('');
 const statusType = ref<'info' | 'success' | 'error'>('info');
@@ -208,6 +231,111 @@ const stopAutoTokenCheck = () => {
   }
 };
 
+// ---- Saved-logins menu ------------------------------------------------------
+// The guest preload (src/webviewSsoPreload.ts) reports the CAS fields; the
+// menu itself is host UI drawn over the webview. A password is decrypted and
+// sent to the guest only when the user picks a row, and only while the
+// webview is still on the SSO origin.
+
+const SSO_ORIGIN = 'https://sso.bit.edu.cn';
+const MENU_MIN_WIDTH = 240;
+
+interface GuestRect {
+  left: number;
+  top: number;
+  bottom: number;
+  width: number;
+}
+
+const autofillQuery = ref('');
+const autofillRect = ref<GuestRect | null>(null);
+const menu = useSavedLoginMenu(autofillQuery);
+
+const menuStyle = computed(() => {
+  const rect = autofillRect.value;
+  if (!rect) return null;
+  const containerWidth = containerRef.value?.clientWidth ?? 0;
+  const width = Math.max(rect.width, MENU_MIN_WIDTH);
+  const maxLeft = Math.max(8, containerWidth - width - 8);
+  return {
+    left: `${Math.min(Math.max(rect.left, 8), maxLeft)}px`,
+    top: `${rect.bottom + 4}px`,
+    width: `${width}px`,
+  };
+});
+
+const parseRect = (value: unknown): GuestRect | null => {
+  if (!value || typeof value !== 'object') return null;
+  const { left, top, bottom, width } = value as Record<string, unknown>;
+  if (![left, top, bottom, width].every((n) => typeof n === 'number' && Number.isFinite(n))) return null;
+  return { left, top, bottom, width } as GuestRect;
+};
+
+const sendToGuest = (channel: string, payload: unknown) => {
+  try {
+    webviewRef.value?.send(channel, payload);
+  } catch {
+    // The guest is between pages; the next focus report resyncs it.
+  }
+};
+
+const isOnSsoPage = () => {
+  try {
+    return new URL(webviewRef.value?.getURL() ?? '').origin === SSO_ORIGIN;
+  } catch {
+    return false;
+  }
+};
+
+// The guest intercepts arrows / Escape / Enter only while it knows the menu is
+// open, and Enter only once a row is highlighted — otherwise Enter submits.
+watch([menu.visible, menu.highlight], ([visible, highlight]) => {
+  sendToGuest('autofill:state', { open: visible, highlighted: visible && highlight >= 0 });
+});
+
+const pick = async (row: SavedLoginRow) => {
+  menu.close();
+  if (!isOnSsoPage()) return;
+  const saved = await menu.reveal(row);
+  if (!saved || !isOnSsoPage()) return;
+  webviewRef.value?.focus();
+  sendToGuest('autofill:fill', { username: saved.username, password: saved.password });
+};
+
+const onGuestMessage = (event: Electron.IpcMessageEvent) => {
+  const payload = (event.args?.[0] ?? {}) as Record<string, unknown>;
+  switch (event.channel) {
+    case 'autofill:focus': {
+      const rect = parseRect(payload.rect);
+      if (!rect) return;
+      autofillRect.value = rect;
+      autofillQuery.value = typeof payload.username === 'string' ? payload.username : '';
+      void menu.show();
+      break;
+    }
+    case 'autofill:rect': {
+      const rect = parseRect(payload.rect);
+      if (rect) autofillRect.value = rect;
+      break;
+    }
+    case 'autofill:input':
+      autofillQuery.value = typeof payload.username === 'string' ? payload.username : '';
+      // Typing a password means the user is not picking a saved one.
+      if (payload.field === 'password') menu.close();
+      break;
+    case 'autofill:blur':
+    case 'autofill:filled':
+      menu.close();
+      break;
+    case 'autofill:key':
+      if (payload.key === 'ArrowDown') menu.move(1);
+      else if (payload.key === 'ArrowUp') menu.move(-1);
+      else if (payload.key === 'Escape') menu.close();
+      else if (payload.key === 'Enter' && menu.current.value) void pick(menu.current.value);
+      break;
+  }
+};
+
 const onNavigate = (event: Electron.DidNavigateEvent) => {
   currentUrl.value = event.url;
 
@@ -233,6 +361,15 @@ const onDomReady = () => {
     startAutoTokenCheck();
   }
 };
+
+onMounted(async () => {
+  try {
+    guestPreload.value = await window.electronAPI.auth.getBrowserLoginPreloadPath();
+  } catch (error) {
+    log.warn('Browser sign-in preload unavailable; saved logins will not be offered:', error);
+    guestPreload.value = '';
+  }
+});
 
 onUnmounted(() => {
   stopAutoTokenCheck();
@@ -282,6 +419,11 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+.autofill-flyout {
+  position: absolute;
+  z-index: var(--z-dropdown);
 }
 
 .status-bar {

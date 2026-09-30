@@ -149,6 +149,7 @@ const advancedSettings = useAdvancedSettings(
     resumeFromServerProgress: settings.resumeFromServerProgress,
     resumeFromServerProgressLectures: settings.resumeFromServerProgressLectures,
     developerMode: settings.developerMode,
+    rememberPassword: settings.rememberPassword,
     enableAIFiltering: settings.enableAIFiltering,
     tempEnableAIFiltering: settings.tempEnableAIFiltering
   },
@@ -157,6 +158,7 @@ const advancedSettings = useAdvancedSettings(
     auth.loadManualToken()
     auth.tokenVerificationStatus.value = null
     auth.showToken.value = false
+    void auth.loadAccountPassword()
     cacheManagement.refreshCacheStats()
     cacheManagement.resetOperationStatus()
     await pHashExclusion.loadPHashExclusionList()

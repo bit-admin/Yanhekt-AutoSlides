@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 
-// Guest preload bundle injected into the <webview> in the Web Capture add-on.
+// Guest preload bundles for <webview>s: the Web Capture add-on
+// (webviewCapturePreload) and the browser sign-in view (webviewSsoPreload).
 // Mirrors vite.preload.config.ts but is built separately so main can resolve
 // its on-disk path and pass it via the `preload` webview attribute.
 export default defineConfig(({ mode }) => ({

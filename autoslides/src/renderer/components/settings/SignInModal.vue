@@ -12,22 +12,11 @@
       @cancel="cancelSmsChallenge"
     />
     <div v-else class="sso-form">
-      <div class="field-group">
-        <input
-          v-model="username"
-          type="text"
-          :placeholder="$t('auth.username')"
-          class="input-field"
-          @keyup.enter="login"
-        />
-        <input
-          v-model="password"
-          type="password"
-          :placeholder="$t('auth.password')"
-          class="input-field"
-          @keyup.enter="login"
-        />
-      </div>
+      <SsoCredentialFields
+        v-model:username="username"
+        v-model:password="password"
+        @submit="login"
+      />
       <button @click="login" :disabled="isLoading" class="btn btn--primary signin-submit">
         {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
       </button>
@@ -73,22 +62,11 @@
         />
 
         <div v-else class="sso-form">
-          <div class="field-group">
-            <input
-              v-model="username"
-              type="text"
-              :placeholder="$t('auth.username')"
-              class="input-field"
-              @keyup.enter="login"
-            />
-            <input
-              v-model="password"
-              type="password"
-              :placeholder="$t('auth.password')"
-              class="input-field"
-              @keyup.enter="login"
-            />
-          </div>
+          <SsoCredentialFields
+            v-model:username="username"
+            v-model:password="password"
+            @submit="login"
+          />
           <button @click="login" :disabled="isLoading" class="btn btn--primary signin-submit">
             {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
           </button>
@@ -106,6 +84,7 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@features/platform/useAuth'
 import SmsCodePanel from './SmsCodePanel.vue'
+import SsoCredentialFields from './SsoCredentialFields.vue'
 
 withDefaults(
   defineProps<{
@@ -246,32 +225,6 @@ watch(isLoggedIn, (loggedIn) => {
   flex-direction: column;
   width: 100%;
   max-width: 300px;
-}
-
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.input-field {
-  padding: 8px 12px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 14px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.input-field::placeholder {
-  color: var(--text-muted);
-}
-
-.input-field:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .signin-submit {

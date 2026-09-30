@@ -19,6 +19,10 @@ import {
   defaultSlideExtractionConfig,
   detectCustomProviderFromUrl
 } from './config/defaults';
+import {
+  sanitizeSavedLogins,
+  type SavedLoginRecord,
+} from './savedLogins';
 import type {
   AIClassifierMode,
   AIFilteringConfig,
@@ -228,6 +232,7 @@ export class ConfigService {
       localRelayIncludeCurrentToken: this.store.get('localRelayIncludeCurrentToken') ?? true,
       localRelayTokenWhitelist: this.store.get('localRelayTokenWhitelist') ?? [],
       accounts: this.store.get('accounts') ?? [],
+      rememberPassword: this.store.get('rememberPassword') ?? true,
     };
   }
 
@@ -502,6 +507,14 @@ export class ConfigService {
     this.store.set('developerMode', enabled);
   }
 
+  getRememberPassword(): boolean {
+    return this.store.get('rememberPassword') ?? true;
+  }
+
+  setRememberPassword(enabled: boolean): void {
+    this.store.set('rememberPassword', enabled);
+  }
+
   setAutoPostProcessing(enabled: boolean): void {
     this.store.set('autoPostProcessing', enabled);
   }
@@ -623,6 +636,22 @@ export class ConfigService {
   clearNotionToken(): void {
     this.store.delete('notionToken');
     this.store.delete('notionWorkspaceName');
+  }
+
+  // Remembered SSO logins. Same isolation as `ssoDeviceCookies`: a standalone
+  // key, not a field of AppConfig, so the ciphertext is never part of
+  // config:onUpdate. Passwords are already encrypted by the caller. Logout does
+  // not clear these — the sign-in flyout is what they exist for.
+  getSavedLogins(): SavedLoginRecord[] {
+    return sanitizeSavedLogins(this.store.get('savedLogins'));
+  }
+
+  setSavedLogins(rows: SavedLoginRecord[]): void {
+    if (rows.length === 0) {
+      if (this.store.has('savedLogins')) this.store.delete('savedLogins');
+    } else {
+      this.store.set('savedLogins', rows);
+    }
   }
 
   setSkipUpdateCheckUntil(timestamp: number): void {

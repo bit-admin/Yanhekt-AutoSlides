@@ -25,6 +25,7 @@ export interface UseGeneralSettingsOptions {
   resumeFromServerProgressLectures: Ref<boolean>
   preventSystemSleep: Ref<boolean>
   developerMode: Ref<boolean>
+  rememberPassword: Ref<boolean>
 }
 
 export function useGeneralSettings(options: UseGeneralSettingsOptions) {
@@ -48,7 +49,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     resumeFromServerProgress,
     resumeFromServerProgressLectures,
     preventSystemSleep,
-    developerMode
+    developerMode,
+    rememberPassword
   } = options
 
   const tempMaxConcurrentDownloads = ref(5)
@@ -71,6 +73,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempResumeFromServerProgressLectures = ref(true)
   const tempPreventSystemSleep = ref(true)
   const tempDeveloperMode = ref(false)
+  const tempRememberPassword = ref(true)
 
   const resetTemp = () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
@@ -93,6 +96,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempResumeFromServerProgressLectures.value = resumeFromServerProgressLectures.value
     tempPreventSystemSleep.value = preventSystemSleep.value
     tempDeveloperMode.value = developerMode.value
+    tempRememberPassword.value = rememberPassword.value
   }
 
   const save = async () => {
@@ -185,6 +189,11 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       const developerResult = await window.electronAPI.config.setDeveloperMode(tempDeveloperMode.value)
       developerMode.value = developerResult.developerMode ?? false
     }
+
+    if (tempRememberPassword.value !== rememberPassword.value) {
+      const rememberResult = await window.electronAPI.config.setRememberPassword(tempRememberPassword.value)
+      rememberPassword.value = rememberResult.rememberPassword ?? true
+    }
   }
 
   // Placeholders — actual save happens in save()
@@ -214,6 +223,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempResumeFromServerProgressLectures,
     tempPreventSystemSleep,
     tempDeveloperMode,
+    tempRememberPassword,
 
     resetTemp,
     save,

@@ -46,6 +46,7 @@ export interface UseAdvancedSettingsOptions {
   resumeFromServerProgress: Ref<boolean>
   resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>
+  rememberPassword: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
 }

@@ -155,6 +155,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setRememberPassword', async (_event, enabled: boolean) => {
+    configService.setRememberPassword(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
     configService.setDeveloperMode(enabled);
     // Developer mode also turns on debug/info in the log file, no restart.

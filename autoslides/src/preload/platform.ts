@@ -12,6 +12,12 @@ export const auth: ElectronAPI['auth'] = {
   verifyToken: (token: string) => ipcRenderer.invoke('auth:verifyToken', token),
   revokeToken: (token: string) => ipcRenderer.invoke('auth:revokeToken', token),
   clearBrowserData: () => ipcRenderer.invoke('auth:clearBrowserData'),
+  listSavedLogins: () => ipcRenderer.invoke('auth:listSavedLogins'),
+  getSavedLogin: (badge: string) => ipcRenderer.invoke('auth:getSavedLogin', badge),
+  saveSavedLogin: (badge: string, username: string, password: string) =>
+    ipcRenderer.invoke('auth:saveSavedLogin', badge, username, password),
+  forgetSavedLogin: (badge: string) => ipcRenderer.invoke('auth:forgetSavedLogin', badge),
+  getBrowserLoginPreloadPath: () => ipcRenderer.invoke('auth:getBrowserLoginPreloadPath'),
 };
 
 export const config: ElectronAPI['config'] = {
@@ -102,6 +108,7 @@ export const config: ElectronAPI['config'] = {
   setCloudShareEmbedTimeline: (enabled: boolean) => ipcRenderer.invoke('config:setCloudShareEmbedTimeline', enabled),
   setShowToolsButton: (enabled: boolean) => ipcRenderer.invoke('config:setShowToolsButton', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => ipcRenderer.invoke('config:setPreferAnonymousApiRequests', enabled),
+  setRememberPassword: (enabled: boolean) => ipcRenderer.invoke('config:setRememberPassword', enabled),
   setLocalRelayConfig: (patch: {
     enabled?: boolean;
     port?: number;

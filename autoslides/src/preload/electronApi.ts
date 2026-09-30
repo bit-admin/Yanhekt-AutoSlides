@@ -335,6 +335,16 @@ export interface SlideOperationResponse {
   success: boolean;
 }
 
+/** A remembered SSO login, without the password. The secret is a separate call. */
+export interface SavedLoginSummary {
+  badge: string;
+  username: string;
+}
+
+export type SaveSavedLoginResult =
+  | { ok: true }
+  | { ok: false; error: 'invalid' | 'encryption_unavailable' };
+
 // ============================================================================
 // Electron API Interface
 // ============================================================================
@@ -348,6 +358,14 @@ export interface ElectronAPI {
     verifyToken: (token: string) => Promise<TokenVerificationResult>;
     revokeToken: (token: string) => Promise<void>;
     clearBrowserData: () => Promise<{ success: boolean; error?: string }>;
+    /** Usernames only, newest first. Empty when nothing has been remembered. */
+    listSavedLogins: () => Promise<SavedLoginSummary[]>;
+    /** Decrypt one account's password. Null when none is stored or it cannot be decrypted. */
+    getSavedLogin: (badge: string) => Promise<{ username: string; password: string } | null>;
+    saveSavedLogin: (badge: string, username: string, password: string) => Promise<SaveSavedLoginResult>;
+    forgetSavedLogin: (badge: string) => Promise<void>;
+    /** file:// URL of the guest preload for the browser sign-in <webview>. */
+    getBrowserLoginPreloadPath: () => Promise<string>;
   };
 
   config: {
@@ -408,6 +426,7 @@ export interface ElectronAPI {
     setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
+    setRememberPassword: (enabled: boolean) => Promise<AppConfig>;
     setLocalRelayConfig: (patch: {
       enabled?: boolean;
       port?: number;

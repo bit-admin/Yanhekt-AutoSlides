@@ -104,6 +104,11 @@ const config: ForgeConfig = {
           config: 'vite.webviewPreload.config.ts',
           target: 'preload',
         },
+        {
+          entry: 'src/webviewSsoPreload.ts',
+          config: 'vite.webviewPreload.config.ts',
+          target: 'preload',
+        },
       ],
       renderer: [
         {

@@ -76,6 +76,68 @@
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.authentication') }}</h4>
     <div class="setting-item">
+      <div class="setting-description">{{ $t('advanced.rememberPasswordDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempRememberPassword" />
+          {{ $t('advanced.rememberPassword') }}
+        </label>
+      </div>
+    </div>
+    <div v-if="isLoggedIn" class="setting-item">
+      <label class="setting-label">{{ $t('advanced.password') }}</label>
+      <div class="setting-description">
+        {{ accountPasswordUsername
+          ? $t('advanced.passwordDescriptionFor', { username: accountPasswordUsername })
+          : $t('advanced.passwordDescription') }}
+      </div>
+      <div class="input-group">
+        <input
+          v-model="accountPassword"
+          :type="showAccountPassword ? 'text' : 'password'"
+          autocomplete="off"
+          :placeholder="$t('advanced.passwordPlaceholder')"
+          class="text-input password-input"
+          @input="accountPasswordStatus = null"
+        />
+        <button
+          type="button"
+          class="btn btn--adornment"
+          :title="showAccountPassword ? $t('advanced.hidePassword') : $t('advanced.showPassword')"
+          @click="showAccountPassword = !showAccountPassword"
+        >
+          <svg v-if="showAccountPassword" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :disabled="isSavingAccountPassword || !accountPassword"
+          @click="saveAccountPassword"
+        >
+          {{ $t('advanced.savePassword') }}
+        </button>
+        <button
+          v-if="hadSavedPassword"
+          type="button"
+          class="btn"
+          :disabled="isSavingAccountPassword"
+          @click="forgetAccountPassword"
+        >
+          {{ $t('advanced.clearPassword') }}
+        </button>
+      </div>
+      <div v-if="accountPasswordStatus" :class="['token-status', accountPasswordStatus.type]">
+        {{ $t(accountPasswordStatus.message) }}
+      </div>
+    </div>
+    <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.token') }}</label>
       <div class="setting-description">{{ $t('advanced.tokenDescription') }}</div>
       <div class="input-group">
@@ -221,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
 
 const { auth, settings, advanced, cache } = useSettingsContext()
@@ -232,6 +294,8 @@ const {
 } = settings
 
 const {
+  isLoggedIn,
+  userId,
   manualToken,
   showToken,
   isVerifyingManualToken,
@@ -239,6 +303,15 @@ const {
   toggleTokenVisibility,
   onTokenInput,
   verifyManualToken,
+  accountPassword,
+  showAccountPassword,
+  isSavingAccountPassword,
+  hadSavedPassword,
+  accountPasswordUsername,
+  accountPasswordStatus,
+  loadAccountPassword,
+  saveAccountPassword,
+  forgetAccountPassword,
 } = auth
 
 const {
@@ -250,7 +323,14 @@ const {
   tempParallelTasks,
   tempMaxManualTabs,
   tempDeveloperMode,
+  tempRememberPassword,
 } = advanced.general
+
+// A sign-in or account switch while Settings is already open should fill the
+// field for that account. Entering the page loads it from App.vue.
+watch([isLoggedIn, userId], () => {
+  void loadAccountPassword()
+})
 
 const {
   cacheStats,
@@ -341,6 +421,10 @@ function openLogFolder(): void {
 .token-input {
   flex: 1;
   font-family: ui-monospace, Menlo, monospace;
+}
+
+.password-input {
+  flex: 1;
 }
 
 .token-status {
