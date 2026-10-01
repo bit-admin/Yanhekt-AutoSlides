@@ -84,7 +84,16 @@
         </label>
       </div>
     </div>
-    <div v-if="isLoggedIn" class="setting-item">
+    <div class="setting-item">
+      <div class="setting-description">{{ $t('advanced.autoSignInDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempAutoSignIn" :disabled="!tempRememberPassword" />
+          {{ $t('advanced.autoSignIn') }}
+        </label>
+      </div>
+    </div>
+    <div v-if="isLoggedIn && rememberPassword" class="setting-item">
       <label class="setting-label">{{ $t('advanced.password') }}</label>
       <div class="setting-description">
         {{ accountPasswordUsername
@@ -291,6 +300,7 @@ const { auth, settings, advanced, cache } = useSettingsContext()
 const {
   outputDirectory,
   selectOutputDirectory,
+  rememberPassword,
 } = settings
 
 const {
@@ -324,11 +334,13 @@ const {
   tempMaxManualTabs,
   tempDeveloperMode,
   tempRememberPassword,
+  tempAutoSignIn,
 } = advanced.general
 
 // A sign-in or account switch while Settings is already open should fill the
-// field for that account. Entering the page loads it from App.vue.
-watch([isLoggedIn, userId], () => {
+// field for that account. Entering the page loads it from App.vue. Turning
+// Remember Password off deletes the saved passwords, so reload after that too.
+watch([isLoggedIn, userId, rememberPassword], () => {
   void loadAccountPassword()
 })
 

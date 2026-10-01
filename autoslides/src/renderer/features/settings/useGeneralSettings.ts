@@ -26,6 +26,7 @@ export interface UseGeneralSettingsOptions {
   preventSystemSleep: Ref<boolean>
   developerMode: Ref<boolean>
   rememberPassword: Ref<boolean>
+  autoSignIn: Ref<boolean>
 }
 
 export function useGeneralSettings(options: UseGeneralSettingsOptions) {
@@ -50,7 +51,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     resumeFromServerProgressLectures,
     preventSystemSleep,
     developerMode,
-    rememberPassword
+    rememberPassword,
+    autoSignIn
   } = options
 
   const tempMaxConcurrentDownloads = ref(5)
@@ -74,6 +76,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempPreventSystemSleep = ref(true)
   const tempDeveloperMode = ref(false)
   const tempRememberPassword = ref(true)
+  const tempAutoSignIn = ref(true)
 
   const resetTemp = () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
@@ -97,6 +100,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempPreventSystemSleep.value = preventSystemSleep.value
     tempDeveloperMode.value = developerMode.value
     tempRememberPassword.value = rememberPassword.value
+    tempAutoSignIn.value = autoSignIn.value
   }
 
   const save = async () => {
@@ -194,6 +198,11 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       const rememberResult = await window.electronAPI.config.setRememberPassword(tempRememberPassword.value)
       rememberPassword.value = rememberResult.rememberPassword ?? true
     }
+
+    if (tempAutoSignIn.value !== autoSignIn.value) {
+      const autoSignInResult = await window.electronAPI.config.setAutoSignIn(tempAutoSignIn.value)
+      autoSignIn.value = autoSignInResult.autoSignIn ?? true
+    }
   }
 
   // Placeholders — actual save happens in save()
@@ -224,6 +233,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempPreventSystemSleep,
     tempDeveloperMode,
     tempRememberPassword,
+    tempAutoSignIn,
 
     resetTemp,
     save,

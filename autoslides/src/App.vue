@@ -150,6 +150,7 @@ const advancedSettings = useAdvancedSettings(
     resumeFromServerProgressLectures: settings.resumeFromServerProgressLectures,
     developerMode: settings.developerMode,
     rememberPassword: settings.rememberPassword,
+    autoSignIn: settings.autoSignIn,
     enableAIFiltering: settings.enableAIFiltering,
     tempEnableAIFiltering: settings.tempEnableAIFiltering
   },

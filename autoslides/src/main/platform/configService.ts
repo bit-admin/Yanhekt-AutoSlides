@@ -233,6 +233,7 @@ export class ConfigService {
       localRelayTokenWhitelist: this.store.get('localRelayTokenWhitelist') ?? [],
       accounts: this.store.get('accounts') ?? [],
       rememberPassword: this.store.get('rememberPassword') ?? true,
+      autoSignIn: this.store.get('autoSignIn') ?? true,
     };
   }
 
@@ -513,6 +514,14 @@ export class ConfigService {
 
   setRememberPassword(enabled: boolean): void {
     this.store.set('rememberPassword', enabled);
+  }
+
+  getAutoSignIn(): boolean {
+    return this.store.get('autoSignIn') ?? true;
+  }
+
+  setAutoSignIn(enabled: boolean): void {
+    this.store.set('autoSignIn', enabled);
   }
 
   setAutoPostProcessing(enabled: boolean): void {

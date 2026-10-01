@@ -222,4 +222,5 @@ export const defaultConfig: AppConfig = {
   localRelayTokenWhitelist: [],
   accounts: [],
   rememberPassword: true,
+  autoSignIn: true,
 };

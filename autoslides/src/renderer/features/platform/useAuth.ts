@@ -3,6 +3,7 @@ import { AuthService, TokenManager, tokenManager } from '@shared/services/authSe
 import { ApiClient, type UserData } from '@shared/services/apiClient'
 import { toDisplayName } from './usePinyinName'
 import { configStore } from '@shared/services/configStore'
+import { autoSignInBadge, autoSignInCredentials } from './autoSignIn'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PlatformAuth');
 
@@ -14,6 +15,10 @@ const isLoggedIn = ref(false)
 const userNickname = ref('User')
 const userId = ref('user123')
 const isVerifyingToken = ref(false)
+// True only while a launch-time auto sign-in is calling campus SSO. The left
+// panel keeps showing the verifying spinner (isVerifyingToken) but swaps its
+// copy so the wait does not still read as a token check.
+const isAutoSigningIn = ref(false)
 // An in-flight SMS second factor. Shared like isBrowserLoginActive so whichever
 // surface hosts SignInModal (left panel or onboarding) shows the same prompt.
 const smsChallenge = ref<SmsChallengeState | null>(null)
@@ -70,6 +75,7 @@ export interface UseAuthReturn {
   userId: Ref<string>
   isLoading: Ref<boolean>
   isVerifyingToken: Ref<boolean>
+  isAutoSigningIn: Ref<boolean>
 
   // Manual token auth state
   manualToken: Ref<string>
@@ -334,6 +340,49 @@ export function useAuth(): UseAuthReturn {
     }
   }
 
+  // Recover a dead stored session with the saved campus password. Returns true
+  // when the attempt ran (success, SMS, or a failed login that already signed
+  // out) so the caller does not log out again and undo a session we just
+  // adopted. The sign-in window stays closed unless CAS asks for a texted code.
+  const tryAutoSignIn = async (expiredToken: string): Promise<boolean> => {
+    const badge = autoSignInBadge({
+      enabled: configStore.autoSignIn !== false,
+      rememberPassword: configStore.rememberPassword !== false,
+      demoMode: window.electronAPI.isDemoMode,
+      accounts: configStore.accounts ?? [],
+      expiredToken,
+    })
+    if (!badge) return false
+
+    let saved: { username: string; password: string } | null = null
+    try {
+      saved = await window.electronAPI.auth.getSavedLogin(badge)
+    } catch (error) {
+      log.warn('Could not load the saved password for auto sign-in:', error)
+      return false
+    }
+    const creds = autoSignInCredentials(saved)
+    if (!creds) return false
+
+    // Drop the dead session first. userId is still the launch placeholder, so
+    // this revokes the token without removing the saved account.
+    isAutoSigningIn.value = true
+    logout()
+    username.value = creds.username
+    password.value = creds.password
+    log.debug('Saved session expired; signing in with the saved password')
+    try {
+      await login()
+      if (smsChallenge.value) showSsoModal.value = true
+    } finally {
+      // The sign-in modal has its own fields. Don't keep the secret on this
+      // instance (the left panel) for the rest of the session.
+      username.value = ''
+      password.value = ''
+    }
+    return true
+  }
+
   const verifyExistingToken = async () => {
     const token = tokenManager.getToken()
     if (!token) return
@@ -354,21 +403,23 @@ export function useAuth(): UseAuthReturn {
       if (result.valid && result.userData) {
         applyVerifiedUser(result.userData, token)
         log.debug('Existing token verified successfully')
-      } else {
-        if (!result.networkError) {
-          // Token revoked/invalid: fully reset auth state (token + UI) so the
-          // user menu doesn't keep showing the logged-in banner.
+      } else if (!result.networkError) {
+        // Token revoked/invalid. Try the saved campus password before dropping
+        // the session; a network failure above keeps the token instead.
+        const resumed = await tryAutoSignIn(token)
+        if (!resumed) {
           logout()
           log.debug('Existing token is invalid, signed out')
-        } else {
-          log.debug('Network error during token verification, keeping token')
         }
+      } else {
+        log.debug('Network error during token verification, keeping token')
       }
     } catch (error) {
       log.error('Token verification error:', error)
       logout()
     } finally {
       isVerifyingToken.value = false
+      isAutoSigningIn.value = false
     }
   }
 
@@ -571,6 +622,7 @@ export function useAuth(): UseAuthReturn {
     userNickname,
     userId,
     isVerifyingToken,
+    isAutoSigningIn,
     isBrowserLoginActive,
     showSsoModal,
     smsChallenge,

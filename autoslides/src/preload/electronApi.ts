@@ -343,7 +343,7 @@ export interface SavedLoginSummary {
 
 export type SaveSavedLoginResult =
   | { ok: true }
-  | { ok: false; error: 'invalid' | 'encryption_unavailable' };
+  | { ok: false; error: 'invalid' | 'disabled' | 'encryption_unavailable' };
 
 // ============================================================================
 // Electron API Interface
@@ -427,6 +427,7 @@ export interface ElectronAPI {
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
     setRememberPassword: (enabled: boolean) => Promise<AppConfig>;
+    setAutoSignIn: (enabled: boolean) => Promise<AppConfig>;
     setLocalRelayConfig: (patch: {
       enabled?: boolean;
       port?: number;

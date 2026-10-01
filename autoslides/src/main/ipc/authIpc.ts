@@ -69,6 +69,7 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
     ) {
       return { ok: false as const, error: 'invalid' as const };
     }
+    if (!configService.getRememberPassword()) return { ok: false as const, error: 'disabled' as const };
     const encrypted = encryptPassword(secret);
     if (!encrypted.ok) return { ok: false as const, error: encrypted.error };
     configService.setSavedLogins(upsertSavedLogin(configService.getSavedLogins(), {

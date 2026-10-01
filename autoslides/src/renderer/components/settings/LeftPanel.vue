@@ -134,8 +134,8 @@
 
     <div class="login-section">
       <div v-if="isVerifyingToken" class="verifying-state">
-        <h3>{{ $t('auth.verifying') }}</h3>
-        <p>{{ $t('auth.verifyingMessage') }}</p>
+        <h3>{{ isAutoSigningIn ? $t('auth.autoSigningIn') : $t('auth.verifying') }}</h3>
+        <p>{{ isAutoSigningIn ? $t('auth.autoSigningInMessage') : $t('auth.verifyingMessage') }}</p>
         <div class="loading-spinner"></div>
       </div>
       <div v-else class="login-row">
@@ -321,6 +321,7 @@ const {
   userNickname,
   userId,
   isVerifyingToken,
+  isAutoSigningIn,
   logout,
   openBrowserLogin,
   showSsoModal,

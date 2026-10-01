@@ -313,6 +313,10 @@ export interface AppConfig {
   // secrets themselves are not on AppConfig — ConfigService keeps them on a
   // standalone store key so they are never broadcast.
   rememberPassword: boolean;
+  // When true (default), a stored token that fails the launch check is replaced
+  // by a campus SSO sign-in using that account's saved password. No sign-in
+  // window unless CAS asks for an SMS code. No effect without a saved password.
+  autoSignIn: boolean;
 }
 
 /** Compress options persisted for the Lectures batch modal (no paths). */

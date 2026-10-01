@@ -157,6 +157,14 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setRememberPassword', async (_event, enabled: boolean) => {
     configService.setRememberPassword(enabled);
+    // Turning it off forgets every saved SSO password, not just future ones.
+    if (!enabled) configService.setSavedLogins([]);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setAutoSignIn', async (_event, enabled: boolean) => {
+    configService.setAutoSignIn(enabled);
     broadcastConfig();
     return configService.getConfig();
   });

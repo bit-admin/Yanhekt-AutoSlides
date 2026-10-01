@@ -109,6 +109,7 @@ export const config: ElectronAPI['config'] = {
   setShowToolsButton: (enabled: boolean) => ipcRenderer.invoke('config:setShowToolsButton', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => ipcRenderer.invoke('config:setPreferAnonymousApiRequests', enabled),
   setRememberPassword: (enabled: boolean) => ipcRenderer.invoke('config:setRememberPassword', enabled),
+  setAutoSignIn: (enabled: boolean) => ipcRenderer.invoke('config:setAutoSignIn', enabled),
   setLocalRelayConfig: (patch: {
     enabled?: boolean;
     port?: number;

@@ -21,6 +21,7 @@ export interface UseSettingsReturn {
   resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>
   rememberPassword: Ref<boolean>
+  autoSignIn: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
 
@@ -71,6 +72,7 @@ export function useSettings(): UseSettingsReturn {
   const resumeFromServerProgressLectures = ref(true)
   const developerMode = ref(false)
   const rememberPassword = ref(true)
+  const autoSignIn = ref(true)
   const enableAIFiltering = ref(true)
   const tempEnableAIFiltering = ref(true)
 
@@ -112,6 +114,7 @@ export function useSettings(): UseSettingsReturn {
       resumeFromServerProgressLectures.value = config.resumeFromServerProgressLectures ?? true
       developerMode.value = config.developerMode ?? false
       rememberPassword.value = config.rememberPassword ?? true
+      autoSignIn.value = config.autoSignIn ?? true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
       tempEnableAIFiltering.value = enableAIFiltering.value
 
@@ -209,6 +212,7 @@ export function useSettings(): UseSettingsReturn {
     resumeFromServerProgressLectures,
     developerMode,
     rememberPassword,
+    autoSignIn,
     enableAIFiltering,
     tempEnableAIFiltering,
 
