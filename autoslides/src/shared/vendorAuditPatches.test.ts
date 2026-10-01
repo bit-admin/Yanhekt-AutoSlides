@@ -11,11 +11,12 @@ const extractZip = require('../../vendor/extract-zip') as (
   zipPath: string,
   opts: { dir: string },
 ) => Promise<void>
-const imageSize = require('../../vendor/image-size') as ((
+// pptxgenjs asks for image-size ^1.2.1, which is still inside the GHSA
+// range. The override installs 2.0.4, where a zero-length ICNS entry throws
+// instead of looping.
+const imageSize = require('image-size').imageSize as (
   input: Uint8Array | string,
-) => { width: number; height: number; type?: string }) & {
-  types: string[]
-}
+) => { width: number; height: number; type?: string }
 
 function u16 (n: number): Buffer {
   const b = Buffer.alloc(2)
@@ -177,7 +178,7 @@ describe('vendor extract-zip (GHSA-jmr9-qjv8-65gv)', () => {
   })
 })
 
-describe('vendor image-size (GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq)', () => {
+describe('image-size 2.0.4 (GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq)', () => {
   const PNG_1X1 = Buffer.from(
     '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c63000100000500010d0a2db40000000049454e44ae426082',
     'hex',
@@ -194,16 +195,12 @@ describe('vendor image-size (GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq)', () => 
     icns.writeUInt32BE(16, 4)
     icns.write('ICON', 8)
     icns.writeUInt32BE(0, 12)
-    expect(() => imageSize(new Uint8Array(icns))).toThrow(/unsupported file type/)
+    expect(() => imageSize(new Uint8Array(icns))).toThrow(/Invalid ICNS/)
   })
 
   it('does not hang on a JXL container with a zero-size jxlp box', () => {
     const jxl = Buffer.alloc(32)
     jxl.write('JXL ', 4)
-    expect(() => imageSize(new Uint8Array(jxl))).toThrow(/unsupported file type/)
-  })
-
-  it('does not list the unpatched parsers', () => {
-    expect(imageSize.types).toEqual(['png', 'jpg', 'gif', 'webp', 'bmp'])
+    expect(() => imageSize(new Uint8Array(jxl))).toThrow()
   })
 })

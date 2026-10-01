@@ -1394,7 +1394,7 @@ History-mode `/demo/live` would render the real app via SPA fallback. Demo is ha
 
 ### Audit overrides
 
-CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each package's `package.json` `overrides` (and two `autoslides/vendor/` shims for unpatched `extract-zip` / `image-size`). Do not `npm audit fix --force`. Drop a pin only after a temporary removal + reinstall proves the in-range latest is patched.
+CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each package's `package.json` `overrides` (and `autoslides/vendor/extract-zip`, the one remaining shim). `image-size` is an override to `^2.0.4`, not a vendor: pptxgenjs still asks for `^1.2.1`. Do not `npm audit fix --force`. Drop a pin only after a temporary removal + reinstall proves the in-range latest is patched.
 
 ---
 

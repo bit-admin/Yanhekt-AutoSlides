@@ -57,7 +57,7 @@
     "tmp": "^0.2.4",
     "js-yaml": "^4.3.2",
     "extract-zip": "$extract-zip",
-    "image-size": "$image-size"
+    "image-size": "^2.0.4"
   },
   "dependencies": {
     "@editorjs/code": "^2.8.0",
@@ -71,14 +71,13 @@
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "@techstark/opencv-js": "^4.12.0-release.1",
     "@types/pdfkit": "^0.17.4",
-    "axios": "^1.19.0",
+    "axios": "^1.20.0",
     "bottleneck": "^2.19.5",
     "crypto-js": "^4.2.0",
     "docx": "^9.7.1",
     "electron-store": "^11.0.2",
     "ffmpeg-static": "^5.3.0",
     "hls.js": "^1.7.1",
-    "image-size": "file:vendor/image-size",
     "jszip": "^3.10.1",
     "onnxruntime-web": "^1.27.0",
     "pdfkit": "^0.18.0",
