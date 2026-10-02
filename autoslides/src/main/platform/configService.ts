@@ -88,6 +88,44 @@ export interface StoredSsoCookie {
   expiresAt: number;
 }
 
+/**
+ * One account's Yanhe 2.0 (aita) session. Main-process only — the JWT carries
+ * the student's real name and a password hash. Keyed by student id (the JWT's
+ * `account`) in the standalone `yanhe2Sessions` store key.
+ *
+ * An expired or rejected session is kept with `jwt: ''` and `expiresAt: 0`:
+ * that marker is what lets Auto Sign In renew it, and signing out deletes it.
+ */
+export interface StoredYanhe2Session {
+  jwt: string;
+  /** Epoch ms (JWT `exp` × 1000), or 0 once expired or rejected. */
+  expiresAt: number;
+  /** infosimple `id`. */
+  userId: number;
+  tenantId: number;
+  /** infosimple `phone`: the `/play/` URL-signing secret, not necessarily the student's number. Never log. */
+  playSigningPhone: string;
+}
+
+function sanitizeYanhe2Sessions(stored: unknown): Record<string, StoredYanhe2Session> {
+  const out: Record<string, StoredYanhe2Session> = {};
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return out;
+  for (const [account, value] of Object.entries(stored as Record<string, unknown>)) {
+    if (!account || !value || typeof value !== 'object') continue;
+    const row = value as Record<string, unknown>;
+    const expiresAt = typeof row.expiresAt === 'number' && Number.isFinite(row.expiresAt) ? row.expiresAt : 0;
+    const live = typeof row.jwt === 'string' && row.jwt.length > 0 && expiresAt > Date.now();
+    out[account] = {
+      jwt: live ? (row.jwt as string) : '',
+      expiresAt: live ? expiresAt : 0,
+      userId: typeof row.userId === 'number' ? row.userId : 0,
+      tenantId: typeof row.tenantId === 'number' ? row.tenantId : 0,
+      playSigningPhone: typeof row.playSigningPhone === 'string' ? row.playSigningPhone : '',
+    };
+  }
+  return out;
+}
+
 export class ConfigService {
   private store: any; // Using any to bypass incorrect type definitions in electron-store v10+
   private themeService: ThemeService;
@@ -165,6 +203,9 @@ export class ConfigService {
   removeAccount(badge: string): void {
     const accounts = (this.store.get('accounts') ?? []) as StoredAccount[];
     this.store.set('accounts', accounts.filter((a) => a.badge !== badge));
+    // The Yanhe 2.0 session belongs to the account; forgetting one forgets both.
+    // There is nothing to revoke server-side (aita logout does not invalidate the JWT).
+    this.clearYanhe2Session(badge);
   }
 
   getConfig(): AppConfig {
@@ -234,6 +275,8 @@ export class ConfigService {
       accounts: this.store.get('accounts') ?? [],
       rememberPassword: this.store.get('rememberPassword') ?? true,
       autoSignIn: this.store.get('autoSignIn') ?? true,
+      yanhe2SignInWithMain: this.store.get('yanhe2SignInWithMain') ?? true,
+      yanhe2SessionExpiry: this.getYanhe2SessionExpiry(),
     };
   }
 
@@ -524,6 +567,14 @@ export class ConfigService {
     this.store.set('autoSignIn', enabled);
   }
 
+  getYanhe2SignInWithMain(): boolean {
+    return this.store.get('yanhe2SignInWithMain') ?? true;
+  }
+
+  setYanhe2SignInWithMain(enabled: boolean): void {
+    this.store.set('yanhe2SignInWithMain', enabled);
+  }
+
   setAutoPostProcessing(enabled: boolean): void {
     this.store.set('autoPostProcessing', enabled);
   }
@@ -645,6 +696,42 @@ export class ConfigService {
   clearNotionToken(): void {
     this.store.delete('notionToken');
     this.store.delete('notionWorkspaceName');
+  }
+
+  // Yanhe 2.0 sessions. Standalone key like `authToken`, but unlike the cbiz
+  // token the JWT never reaches a renderer: AppConfig carries only
+  // `yanhe2SessionExpiry` (account → expiresAt).
+  getYanhe2Session(account: string): StoredYanhe2Session | null {
+    return sanitizeYanhe2Sessions(this.store.get('yanhe2Sessions'))[account] ?? null;
+  }
+
+  setYanhe2Session(account: string, session: StoredYanhe2Session): void {
+    const all = sanitizeYanhe2Sessions(this.store.get('yanhe2Sessions'));
+    all[account] = session;
+    this.store.set('yanhe2Sessions', all);
+  }
+
+  /** Keep the row as an expired marker (see StoredYanhe2Session) but drop the token. */
+  expireYanhe2Session(account: string): void {
+    const current = this.getYanhe2Session(account);
+    if (!current) return;
+    this.setYanhe2Session(account, { ...current, jwt: '', expiresAt: 0 });
+  }
+
+  clearYanhe2Session(account: string): void {
+    const all = sanitizeYanhe2Sessions(this.store.get('yanhe2Sessions'));
+    if (!(account in all)) return;
+    delete all[account];
+    if (Object.keys(all).length === 0) this.store.delete('yanhe2Sessions');
+    else this.store.set('yanhe2Sessions', all);
+  }
+
+  private getYanhe2SessionExpiry(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const [account, session] of Object.entries(sanitizeYanhe2Sessions(this.store.get('yanhe2Sessions')))) {
+      out[account] = session.expiresAt;
+    }
+    return out;
   }
 
   // Remembered SSO logins. Same isolation as `ssoDeviceCookies`: a standalone

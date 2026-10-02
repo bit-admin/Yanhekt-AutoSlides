@@ -91,15 +91,35 @@ import { createLogger } from '@shared/utils/logger';
 const log = createLogger('BrowserLoginView');
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useSavedLoginMenu, type SavedLoginRow } from '@features/platform/useSavedLoginMenu';
+import { useAuth, type BrowserLoginTarget } from '@features/platform/useAuth';
+import { describeYanhe2Failure } from '@features/platform/yanhe2AccountUi';
+import { YANHE2_CASAPI_CAS_URL, YANHE2_CASAPI_ENTRY_URL, YANHE2_ORIGIN } from '@common/yanhe2';
 import SavedLoginMenu from './SavedLoginMenu.vue';
+
+const props = withDefaults(defineProps<{ target?: BrowserLoginTarget }>(), { target: 'yanhekt' });
 
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'token-received', token: string): void;
+  /** Yanhe 2.0 target: main has verified and stored the session. */
+  (e: 'yanhe2-signed-in'): void;
 }>();
 
-const loginUrl = 'https://sso.bit.edu.cn/cas/login?service=https:%2F%2Fcbiz.yanhekt.cn%2Fv1%2Fcas%2Fcallback';
-const targetUrl = 'https://www.yanhekt.cn/';
+const isYanhe2 = props.target === 'yanhe2';
+const { userId } = useAuth();
+
+// Yanhe 2.0 starts at casapi hop 1 (seats PHPSESSID). That lands on yjlogin's
+// "choose your school" page, which onNavigate skips by opening hop 2 — the
+// same URL yjlogin opens once BIT is picked — so the user goes straight to CAS.
+const loginUrl = isYanhe2
+  ? YANHE2_CASAPI_ENTRY_URL
+  : 'https://sso.bit.edu.cn/cas/login?service=https:%2F%2Fcbiz.yanhekt.cn%2Fv1%2Fcas%2Fcallback';
+const targetUrl = isYanhe2 ? `${YANHE2_ORIGIN}/` : 'https://www.yanhekt.cn/';
+
+// Back on the site after CAS. For Yanhe 2.0 the casapi/yjlogin hops are on the
+// same origin but come *before* sign-in, so they do not count.
+const reachedTarget = (url: string): boolean =>
+  url.startsWith(targetUrl) && !(isYanhe2 && /\/(casapi|yjlogin)\//.test(url));
 
 const webviewRef = ref<Electron.WebviewTag | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
@@ -141,6 +161,36 @@ const refresh = () => {
   }
 };
 
+// Yanhe 2.0: the token is the `_token` cookie, which main reads straight from
+// the partition and verifies itself, so the renderer never holds it. Returns
+// true once the session is stored; reports a definite failure on the bar.
+let adopting = false;
+const adoptYanhe2Session = async (manual: boolean): Promise<boolean> => {
+  if (adopting) return false;
+  adopting = true;
+  try {
+    const result = await window.electronAPI.yanhe2.adoptBrowserSession(userId.value);
+    if (result.success) {
+      showStatus('Signed in to Yanhe 2.0.', 'success');
+      stopAutoTokenCheck();
+      emit('yanhe2-signed-in');
+      return true;
+    }
+    if (result.reason !== 'pending') {
+      stopAutoTokenCheck();
+      showStatus(describeYanhe2Failure(result), 'error', 0);
+    } else if (manual) {
+      showStatus('No token found. Please complete login first.', 'error', 5000);
+    }
+    return false;
+  } catch (error) {
+    log.error('Failed to read the Yanhe 2.0 session:', error);
+    return false;
+  } finally {
+    adopting = false;
+  }
+};
+
 const extractToken = async (): Promise<string | null> => {
   if (!webviewRef.value) return null;
 
@@ -168,6 +218,10 @@ const extractToken = async (): Promise<string | null> => {
 
 const getTokenManually = async () => {
   showStatus('Extracting token...', 'info');
+  if (isYanhe2) {
+    await adoptYanhe2Session(true);
+    return;
+  }
   const token = await extractToken();
 
   if (token) {
@@ -215,6 +269,10 @@ const clearBrowserData = async () => {
 const startAutoTokenCheck = () => {
   stopAutoTokenCheck();
   autoTokenCheckInterval = setInterval(async () => {
+    if (isYanhe2) {
+      await adoptYanhe2Session(false);
+      return;
+    }
     const token = await extractToken();
     if (token) {
       showStatus('Token detected automatically!', 'success');
@@ -339,8 +397,13 @@ const onGuestMessage = (event: Electron.IpcMessageEvent) => {
 const onNavigate = (event: Electron.DidNavigateEvent) => {
   currentUrl.value = event.url;
 
+  if (isYanhe2 && event.url.startsWith(`${YANHE2_ORIGIN}/yjlogin/`)) {
+    webviewRef.value?.loadURL(YANHE2_CASAPI_CAS_URL);
+    return;
+  }
+
   // Check if we've reached the target URL
-  if (event.url.startsWith(targetUrl)) {
+  if (reachedTarget(event.url)) {
     showStatus('Login successful! Checking for token...', 'info', 0);
     startAutoTokenCheck();
   }
@@ -349,7 +412,7 @@ const onNavigate = (event: Electron.DidNavigateEvent) => {
 const onNavigateInPage = (event: Electron.DidNavigateInPageEvent) => {
   currentUrl.value = event.url;
 
-  if (event.url.startsWith(targetUrl)) {
+  if (reachedTarget(event.url)) {
     showStatus('Login successful! Checking for token...', 'info', 0);
     startAutoTokenCheck();
   }
@@ -357,12 +420,20 @@ const onNavigateInPage = (event: Electron.DidNavigateInPageEvent) => {
 
 const onDomReady = () => {
   // Check if we're already on the target page (e.g., if user was already logged in)
-  if (currentUrl.value.startsWith(targetUrl)) {
+  if (reachedTarget(currentUrl.value)) {
     startAutoTokenCheck();
   }
 };
 
 onMounted(async () => {
+  if (isYanhe2) {
+    // Drop a leftover `_token` first, so the one we pick up is this sign-in's.
+    try {
+      await window.electronAPI.yanhe2.prepareBrowserSignIn();
+    } catch (error) {
+      log.warn('Could not clear the previous Yanhe 2.0 browser session:', error);
+    }
+  }
   try {
     guestPreload.value = await window.electronAPI.auth.getBrowserLoginPreloadPath();
   } catch (error) {

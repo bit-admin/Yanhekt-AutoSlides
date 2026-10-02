@@ -19,6 +19,7 @@ vi.mock('./campusSso/casFlow', async (importOriginal) => ({
 
 import { MainAuthService } from './authService';
 import type { ConfigService, StoredSsoCookie } from './configService';
+import type { Yanhe2Service } from './yanhe2/yanhe2Service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -67,8 +68,8 @@ describe('MainAuthService remembered-device cookies', () => {
     const service = new MainAuthService(configService());
     stored = [cookie('SOURCEID_TGC', 'bit.edu.cn')];
     casFlowMock.startPasswordSignIn.mockResolvedValue({
-      kind: 'token',
-      token: 'a'.repeat(32),
+      kind: 'signed_in',
+      tokens: { yanhekt: 'a'.repeat(32) },
       durableCookies: [],
     });
 
@@ -77,5 +78,90 @@ describe('MainAuthService remembered-device cookies', () => {
     expect(result.success).toBe(true);
     expect(stored).toBeUndefined();
     expect(writes).toBeGreaterThan(0);
+  });
+});
+
+describe('MainAuthService Yanhe 2.0', () => {
+  const adopt = vi.fn();
+  const yanhe2 = { adopt } as unknown as Yanhe2Service;
+  let withMain = true;
+
+  function config(): ConfigService {
+    return {
+      ...configService(),
+      getYanhe2SignInWithMain: () => withMain,
+      getAutoSignIn: () => true,
+      getRememberPassword: () => true,
+      getSavedLogins: () => [],
+    } as unknown as ConfigService;
+  }
+
+  beforeEach(() => {
+    withMain = true;
+    adopt.mockReset();
+  });
+
+  it('asks the main sign-in for a Yanhe 2.0 token too, and stores it unbound to a badge', async () => {
+    casFlowMock.startPasswordSignIn.mockResolvedValue({
+      kind: 'signed_in',
+      tokens: { yanhekt: 'a'.repeat(32), yanhe2: 'jwt' },
+      durableCookies: [],
+    });
+    adopt.mockResolvedValue({ success: true, account: '1120230001', expiresAt: 1 });
+
+    const result = await new MainAuthService(config(), yanhe2).loginAndGetToken('user', 'pass');
+
+    expect(casFlowMock.startPasswordSignIn.mock.calls[0][3]).toEqual({ target: 'yanhekt', alsoYanhe2: true });
+    expect(adopt).toHaveBeenCalledWith('jwt', null);
+    expect(result).toEqual({ success: true, token: 'a'.repeat(32) });
+  });
+
+  it('does not ask when the setting is off', async () => {
+    withMain = false;
+    casFlowMock.startPasswordSignIn.mockResolvedValue({
+      kind: 'signed_in',
+      tokens: { yanhekt: 'a'.repeat(32) },
+      durableCookies: [],
+    });
+
+    await new MainAuthService(config(), yanhe2).loginAndGetToken('user', 'pass');
+
+    expect(casFlowMock.startPasswordSignIn.mock.calls[0][3]).toEqual({ target: 'yanhekt', alsoYanhe2: false });
+    expect(adopt).not.toHaveBeenCalled();
+  });
+
+  it('keeps the main sign-in when storing Yanhe 2.0 fails', async () => {
+    casFlowMock.startPasswordSignIn.mockResolvedValue({
+      kind: 'signed_in',
+      tokens: { yanhekt: 'a'.repeat(32), yanhe2: 'jwt' },
+      durableCookies: [],
+    });
+    adopt.mockRejectedValue(new Error('offline'));
+
+    const result = await new MainAuthService(config(), yanhe2).loginAndGetToken('user', 'pass');
+
+    expect(result.success).toBe(true);
+  });
+
+  it('binds a Yanhe 2.0-only sign-in to the expected account', async () => {
+    casFlowMock.startPasswordSignIn.mockResolvedValue({
+      kind: 'signed_in',
+      tokens: { yanhe2: 'jwt' },
+      durableCookies: [],
+    });
+    adopt.mockResolvedValue({ success: false, reason: 'account_mismatch' });
+
+    const result = await new MainAuthService(config(), yanhe2).yanhe2Login('1120230001', 'other', 'pass');
+
+    expect(casFlowMock.startPasswordSignIn.mock.calls[0][3]).toEqual({ target: 'yanhe2' });
+    expect(adopt).toHaveBeenCalledWith('jwt', '1120230001');
+    expect(result.reason).toBe('account_mismatch');
+  });
+
+  it('skips auto sign-in without a saved password', async () => {
+    const result = await new MainAuthService(config(), yanhe2).yanhe2AutoSignIn('1120230001');
+
+    expect(result).toEqual({ success: false, reason: 'auto_sign_in_unavailable' });
+    expect(casFlowMock.startPasswordSignIn).not.toHaveBeenCalled();
   });
 });

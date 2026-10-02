@@ -45,6 +45,13 @@ describe('redactLogText', () => {
     expect(redactLogText('{"password":"hunter2"}')).toBe('{"password":"****"}');
   });
 
+  it('masks bare JWTs and mobile numbers', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJhY2NvdW50IjoiMTEyMCJ9.c2lnbmF0dXJlX3ZhbHVl';
+    expect(redactLogText(`url?token=${jwt}&x=1`)).toBe('url?token=****bHVl&x=1');
+    expect(redactLogText('{"phone":"13800138000"}')).toBe('{"phone":"****8000"}');
+    expect(redactLogText('ts 1790663933123 id 1120231903')).toBe('ts 1790663933123 id 1120231903');
+  });
+
   it('leaves ordinary text alone', () => {
     expect(redactLogText('Slide_0012.png kept, ssim=0.93')).toBe('Slide_0012.png kept, ssim=0.93');
   });

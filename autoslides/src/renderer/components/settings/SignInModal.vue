@@ -45,10 +45,10 @@
 
       <div class="signin-body">
         <h2 class="signin-title">
-          {{ smsChallenge ? $t('auth.smsTitle') : $t('onboarding.signInTitle') }}
+          {{ smsChallenge ? $t('auth.smsTitle') : $t(copy.title) }}
         </h2>
         <p class="signin-description">
-          {{ smsChallenge ? smsPrompt : $t('onboarding.signInDescription') }}
+          {{ smsChallenge ? smsPrompt : $t(copy.description) }}
         </p>
 
         <SmsCodePanel
@@ -70,6 +70,7 @@
           <button @click="login" :disabled="isLoading" class="btn btn--primary signin-submit">
             {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
           </button>
+          <p v-if="formError" class="signin-error">{{ formError }}</p>
           <button type="button" class="browser-alt-link" @click="$emit('browser-login')">
             {{ $t('auth.signInWithBrowser') }}
           </button>
@@ -80,18 +81,37 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@features/platform/useAuth'
+import {
+  cancelYanhe2SmsChallenge,
+  submitYanhe2SignIn,
+  submitYanhe2SmsCode,
+  yanhe2Error,
+  yanhe2Loading,
+  yanhe2Password,
+  yanhe2SignedIn,
+  yanhe2SmsChallenge,
+  yanhe2SmsCode,
+  yanhe2SmsError,
+  yanhe2SubmittingSms,
+  yanhe2Username,
+} from '@features/platform/yanhe2AccountUi'
 import SmsCodePanel from './SmsCodePanel.vue'
 import SsoCredentialFields from './SsoCredentialFields.vue'
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     showClose?: boolean
     embedded?: boolean
+    /**
+     * `main` signs in the AutoSlides (Yanhekt) account. `yanhe2` signs the
+     * already signed-in account in to Yanhe 2.0; same card, same SMS step.
+     */
+    variant?: 'main' | 'yanhe2'
   }>(),
-  { showClose: true, embedded: false }
+  { showClose: true, embedded: false, variant: 'main' }
 )
 
 const emit = defineEmits<{
@@ -100,11 +120,48 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
+// The variant is fixed for an instance's lifetime, so picking the bindings
+// once at setup is enough.
+const mainFlow = () => {
+  const auth = useAuth()
+  return {
+    username: auth.username,
+    password: auth.password,
+    isLoading: auth.isLoading,
+    login: auth.login,
+    smsChallenge: auth.smsChallenge,
+    smsCode: auth.smsCode,
+    smsError: auth.smsError,
+    isSubmittingSmsCode: auth.isSubmittingSmsCode,
+    submitSmsCode: auth.submitSmsCode,
+    cancelSmsChallenge: auth.cancelSmsChallenge,
+    // The main flow reports failures in a dialog, not inline.
+    formError: ref(''),
+    succeeded: auth.isLoggedIn,
+    copy: { title: 'onboarding.signInTitle', description: 'onboarding.signInDescription' },
+  }
+}
+
+const yanhe2Flow = () => ({
+  username: yanhe2Username,
+  password: yanhe2Password,
+  isLoading: yanhe2Loading,
+  login: submitYanhe2SignIn,
+  smsChallenge: yanhe2SmsChallenge,
+  smsCode: yanhe2SmsCode,
+  smsError: yanhe2SmsError,
+  isSubmittingSmsCode: yanhe2SubmittingSms,
+  submitSmsCode: submitYanhe2SmsCode,
+  cancelSmsChallenge: cancelYanhe2SmsChallenge,
+  formError: yanhe2Error,
+  succeeded: yanhe2SignedIn,
+  copy: { title: 'auth.yanhe2SignInTitle', description: 'auth.yanhe2SignInDescription' },
+})
+
 const {
   username,
   password,
   isLoading,
-  isLoggedIn,
   login,
   smsChallenge,
   smsCode,
@@ -112,7 +169,10 @@ const {
   isSubmittingSmsCode,
   submitSmsCode,
   cancelSmsChallenge,
-} = useAuth()
+  formError,
+  succeeded,
+  copy,
+} = props.variant === 'yanhe2' ? yanhe2Flow() : mainFlow()
 
 const { t } = useI18n()
 
@@ -135,10 +195,11 @@ const onOverlayClick = () => {
   if (!smsChallenge.value) requestClose()
 }
 
-// isLoggedIn is a module-level singleton; it flips to true on a successful login
-// from any source. Forward that so the parent can close.
-watch(isLoggedIn, (loggedIn) => {
-  if (loggedIn) emit('success')
+// isLoggedIn (or, for Yanhe 2.0, the active account's session) is a
+// module-level singleton; it flips to true on a successful sign-in from any
+// source. Forward that so the parent can close.
+watch(succeeded, (done) => {
+  if (done) emit('success')
 })
 </script>
 
@@ -229,6 +290,13 @@ watch(isLoggedIn, (loggedIn) => {
 
 .signin-submit {
   width: 100%;
+}
+
+.signin-error {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--danger);
 }
 
 .browser-alt-link {

@@ -27,6 +27,7 @@ export interface UseGeneralSettingsOptions {
   developerMode: Ref<boolean>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
+  yanhe2SignInWithMain: Ref<boolean>
 }
 
 export function useGeneralSettings(options: UseGeneralSettingsOptions) {
@@ -52,7 +53,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     preventSystemSleep,
     developerMode,
     rememberPassword,
-    autoSignIn
+    autoSignIn,
+    yanhe2SignInWithMain
   } = options
 
   const tempMaxConcurrentDownloads = ref(5)
@@ -77,6 +79,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempDeveloperMode = ref(false)
   const tempRememberPassword = ref(true)
   const tempAutoSignIn = ref(true)
+  const tempYanhe2SignInWithMain = ref(true)
 
   const resetTemp = () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
@@ -101,6 +104,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempDeveloperMode.value = developerMode.value
     tempRememberPassword.value = rememberPassword.value
     tempAutoSignIn.value = autoSignIn.value
+    tempYanhe2SignInWithMain.value = yanhe2SignInWithMain.value
   }
 
   const save = async () => {
@@ -203,6 +207,11 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       const autoSignInResult = await window.electronAPI.config.setAutoSignIn(tempAutoSignIn.value)
       autoSignIn.value = autoSignInResult.autoSignIn ?? true
     }
+
+    if (tempYanhe2SignInWithMain.value !== yanhe2SignInWithMain.value) {
+      const yanhe2Result = await window.electronAPI.config.setYanhe2SignInWithMain(tempYanhe2SignInWithMain.value)
+      yanhe2SignInWithMain.value = yanhe2Result.yanhe2SignInWithMain ?? true
+    }
   }
 
   // Placeholders — actual save happens in save()
@@ -234,6 +243,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempDeveloperMode,
     tempRememberPassword,
     tempAutoSignIn,
+    tempYanhe2SignInWithMain,
 
     resetTemp,
     save,

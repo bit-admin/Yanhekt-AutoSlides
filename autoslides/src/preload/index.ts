@@ -1,6 +1,6 @@
 import { contextBridge } from 'electron';
 import type { ElectronAPI } from './electronApi';
-import { auth, config, windowNs, shell, menu, powerManagement, cache, app, log, dialog } from './platform';
+import { auth, yanhe2, config, windowNs, shell, menu, powerManagement, cache, app, log, dialog } from './platform';
 import { video, compressLecture, download } from './video';
 import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
@@ -19,6 +19,7 @@ const electronAPI: ElectronAPI = {
   // the Vite-built preload), and we read it here synchronously before mount.
   isDemoMode: process.argv.includes('--demo-mode'),
   auth,
+  yanhe2,
   config,
   api,
   intranet,

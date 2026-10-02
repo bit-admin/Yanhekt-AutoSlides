@@ -93,6 +93,15 @@
         </label>
       </div>
     </div>
+    <div class="setting-item">
+      <div class="setting-description">{{ $t('advanced.yanhe2SignInWithMainDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempYanhe2SignInWithMain" />
+          {{ $t('advanced.yanhe2SignInWithMain') }}
+        </label>
+      </div>
+    </div>
     <div v-if="isLoggedIn && rememberPassword" class="setting-item">
       <label class="setting-label">{{ $t('advanced.password') }}</label>
       <div class="setting-description">
@@ -173,6 +182,48 @@
       </div>
       <div v-if="tokenVerificationStatus" :class="['token-status', tokenVerificationStatus.type]">
         {{ tokenVerificationStatus.message }}
+      </div>
+    </div>
+    <!-- The pasted session is attached to the signed-in account, so it needs one. -->
+    <div v-if="isLoggedIn" class="setting-item">
+      <label class="setting-label">{{ $t('advanced.yanhe2Cookies') }}</label>
+      <div class="setting-description">{{ $t('advanced.yanhe2CookiesDescription') }}</div>
+      <div class="input-group">
+        <input
+          v-model="yanhe2Cookies"
+          :type="yanhe2CookiesVisible ? 'text' : 'password'"
+          autocomplete="off"
+          spellcheck="false"
+          :placeholder="$t('advanced.yanhe2CookiesPlaceholder')"
+          class="text-input yanhe2-cookies-input"
+          @input="onYanhe2CookiesInput"
+        />
+        <button
+          type="button"
+          class="btn btn--adornment"
+          :title="yanhe2CookiesVisible ? $t('advanced.hideYanhe2Cookies') : $t('advanced.showYanhe2Cookies')"
+          @click="yanhe2CookiesVisible = !yanhe2CookiesVisible"
+        >
+          <svg v-if="yanhe2CookiesVisible" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :disabled="!yanhe2Cookies.trim() || yanhe2Verifying"
+          @click="verifyYanhe2Cookies"
+        >
+          {{ yanhe2Verifying ? $t('advanced.verifying') : $t('advanced.verify') }}
+        </button>
+      </div>
+      <div v-if="yanhe2VerifyStatus" :class="['token-status', yanhe2VerifyStatus.type]">
+        {{ yanhe2VerifyStatus.message }}
       </div>
     </div>
   </div>
@@ -294,6 +345,14 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
+import {
+  onYanhe2CookiesInput,
+  verifyYanhe2Cookies,
+  yanhe2Cookies,
+  yanhe2CookiesVisible,
+  yanhe2Verifying,
+  yanhe2VerifyStatus,
+} from '@features/platform/yanhe2AccountUi'
 
 const { auth, settings, advanced, cache } = useSettingsContext()
 
@@ -335,6 +394,7 @@ const {
   tempDeveloperMode,
   tempRememberPassword,
   tempAutoSignIn,
+  tempYanhe2SignInWithMain,
 } = advanced.general
 
 // A sign-in or account switch while Settings is already open should fill the
@@ -430,7 +490,8 @@ function openLogFolder(): void {
   width: 100%;
 }
 
-.token-input {
+.token-input,
+.yanhe2-cookies-input {
   flex: 1;
   font-family: ui-monospace, Menlo, monospace;
 }

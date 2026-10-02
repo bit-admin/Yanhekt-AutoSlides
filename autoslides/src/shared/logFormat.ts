@@ -68,6 +68,11 @@ const HEX32 = /\b[0-9a-f]{32}\b/gi;
 const HEADER_SECRET = /\b(authorization|xvideo[_-]token|cookie|set-cookie)(["']?\s*[:=]\s*["']?)(?!Bearer\s)([^"',;\s}]+)/gi;
 const BEARER = /\b(Bearer\s+)([^\s"',;}]+)/gi;
 const PASSWORD = /\b(password|passwd|pwd)(["']?\s*[:=]\s*["']?)([^"'&,;\s}]+)/gi;
+// Yanhe 2.0 (aita) session JWTs carry a real name and a password hash, and are
+// long enough to slip past every rule above when they sit in a URL or a dump.
+const JWT = /\beyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]{8,}/g;
+// Mainland mobile numbers: aita's `phone` doubles as its media-signing secret.
+const MOBILE = /(?<!\d)1[3-9]\d{9}(?!\d)/g;
 
 function mask(secret: string): string {
   return secret.length > 4 ? `****${secret.slice(-4)}` : '****';
@@ -76,8 +81,10 @@ function mask(secret: string): string {
 /** Mask credentials before a line reaches disk (logs get pasted into issues). */
 export function redactLogText(text: string): string {
   return text
+    .replace(JWT, (m) => mask(m))
     .replace(BEARER, (_m, pre: string, secret: string) => `${pre}${mask(secret)}`)
     .replace(HEADER_SECRET, (_m, name: string, sep: string, secret: string) => `${name}${sep}${mask(secret)}`)
     .replace(PASSWORD, (_m, name: string, sep: string) => `${name}${sep}****`)
-    .replace(HEX32, (m) => mask(m));
+    .replace(HEX32, (m) => mask(m))
+    .replace(MOBILE, (m) => mask(m));
 }

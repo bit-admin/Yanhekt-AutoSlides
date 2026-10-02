@@ -226,6 +226,7 @@
         <div v-if="showUserMenu" class="user-menu user-menu-expanded">
           <UserMenuLinks />
           <AccountSwitcher mode="signed-in" @close="closeUserMenu" />
+          <Yanhe2AccountMenu @close="closeUserMenu" />
           <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
         </div>
       </div>
@@ -239,6 +240,15 @@
       @success="closeSsoModal"
       @browser-login="onModalBrowserLogin"
       @close="closeSsoModal"
+    />
+
+    <!-- Yanhe 2.0 sign-in for the signed-in account: same card, its own flow. -->
+    <SignInModal
+      v-if="showYanhe2SsoModal && isLoggedIn"
+      variant="yanhe2"
+      @success="closeYanhe2SsoModal"
+      @browser-login="requestYanhe2BrowserSignIn"
+      @close="closeYanhe2SsoModal"
     />
 
     <!-- Custom Name Input Dialog -->
@@ -295,8 +305,19 @@ import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
 import AccountSwitcher from './AccountSwitcher.vue'
+import Yanhe2AccountMenu from './Yanhe2AccountMenu.vue'
 import SignInModal from './SignInModal.vue'
 import { configStore } from '@shared/services/configStore'
+import {
+  closeYanhe2SsoModal,
+  installYanhe2Session,
+  requestYanhe2BrowserSignIn,
+  showYanhe2SsoModal,
+} from '@features/platform/yanhe2AccountUi'
+
+// Yanhe 2.0 session check on launch / sign-in / account switch, and renewal
+// at expiry. Installed once; LeftPanel lives for the whole window.
+installYanhe2Session()
 
 // Navigator (Home / Live / Recorded + search bar)
 const { activeNav, activePinnedId, navigate } = navigationStore

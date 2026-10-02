@@ -20,6 +20,11 @@
  * and `finishSecondFactor`: the first returns a live `SecondFactorHandle` that
  * the caller parks (see pendingVerifications.ts) until the user types the code.
  *
+ * The same flow can sign in to Yanhe 2.0 (aita.yanhekt.cn) instead: the
+ * service URL comes from aita's casapi and the ticket tail is the casapi
+ * hops in yanhe2Leg.ts. A cbiz sign-in can also mint the Yanhe 2.0 session
+ * on its way out (`alsoYanhe2`), reusing the CAS session it just created.
+ *
  * Nothing here logs codes, passwords, phone values, or cookies.
  */
 import { CasTransport, type DurableCookie } from './casTransport';
@@ -41,6 +46,13 @@ import {
   readApiMessage,
   type SignInReason,
 } from './casDiagnostics';
+import {
+  Yanhe2LegError,
+  casLoginUrlFor,
+  discoverYanhe2Service,
+  followYanhe2Ticket,
+  mintYanhe2WithSession,
+} from './yanhe2Leg';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('CampusSso');
@@ -81,9 +93,31 @@ export class CasSignInError extends Error {
   }
 }
 
+/** Which site the CAS ticket is for. */
+export type SignInTarget = 'yanhekt' | 'yanhe2';
+
+export interface SignInOptions {
+  /** Default `yanhekt` (cbiz, the main account). */
+  target?: SignInTarget;
+  /**
+   * `yanhekt` target only: after the cbiz ticket, reuse the CAS session to mint
+   * a Yanhe 2.0 token too. A failure there never fails the cbiz sign-in.
+   */
+  alsoYanhe2?: boolean;
+}
+
+/** What a finished sign-in produced. A field is absent when it was not asked for or failed. */
+export interface SignInTokens {
+  /** cbiz bearer token (32 hex). */
+  yanhekt?: string;
+  /** Yanhe 2.0 JWT. Main process only. */
+  yanhe2?: string;
+}
+
 /** A second factor in progress: everything needed to finish it later. */
 export interface SecondFactorHandle {
   transport: CasTransport;
+  options: Required<SignInOptions>;
   page: SecondFactorPage;
   username: string;
   /** CAS's opaque phone handle. Not a phone number; never shown or logged. */
@@ -93,7 +127,7 @@ export interface SecondFactorHandle {
 }
 
 export type PasswordSignInOutcome =
-  | { kind: 'token'; token: string; durableCookies: DurableCookie[] }
+  | { kind: 'signed_in'; tokens: SignInTokens; durableCookies: DurableCookie[] }
   | { kind: 'second_factor'; handle: SecondFactorHandle };
 
 /**
@@ -104,13 +138,28 @@ export async function startPasswordSignIn(
   username: string,
   password: string,
   seedCookies: readonly DurableCookie[] = [],
+  options: SignInOptions = {},
 ): Promise<PasswordSignInOutcome> {
+  const opts: Required<SignInOptions> = {
+    target: options.target ?? 'yanhekt',
+    alsoYanhe2: options.target === 'yanhe2' ? false : options.alsoYanhe2 ?? false,
+  };
   const transport = new CasTransport(`${CAS_ORIGIN}/`);
   // Any remembered-device cookies go in before the first hop, so CAS can
   // recognise the device while it is still deciding whether to demand SMS.
   transport.seedDurableCookies(seedCookies);
 
-  const { url: pageUrl, html: pageHtml } = await loadCredentialPage(transport);
+  const loginUrl = opts.target === 'yanhe2'
+    ? casLoginUrlFor(await withYanhe2Errors(() => discoverYanhe2Service(transport)))
+    : `${CAS_LOGIN_URL}?service=${encodeURIComponent(SERVICE_URL)}`;
+
+  const loaded = await loadCredentialPage(transport, loginUrl);
+  if (loaded.kind === 'ticket') {
+    // CAS already knew this client; no password needed.
+    const tokens = await completeSignIn(transport, loaded.url, opts);
+    return { kind: 'signed_in', tokens, durableCookies: transport.exportDurableCookies() };
+  }
+  const { url: pageUrl, html: pageHtml } = loaded;
 
   const page = parseCredentialPage(pageHtml, pageUrl);
   if (!page) {
@@ -143,8 +192,8 @@ export async function startPasswordSignIn(
   }
 
   if (loginResponse.status === 302) {
-    const token = await exchangeTicketForToken(transport, loginResponse.headers['location']);
-    return { kind: 'token', token, durableCookies: transport.exportDurableCookies() };
+    const tokens = await completeSignIn(transport, loginResponse.headers['location'], opts);
+    return { kind: 'signed_in', tokens, durableCookies: transport.exportDurableCookies() };
   }
 
   const html = asText(loginResponse.data);
@@ -152,7 +201,7 @@ export async function startPasswordSignIn(
 
   if (secondFactor) {
     log.debug('Password accepted; CAS requires an SMS second factor');
-    const handle = await beginSecondFactor(transport, username, secondFactor);
+    const handle = await beginSecondFactor(transport, username, secondFactor, opts);
     return { kind: 'second_factor', handle };
   }
 
@@ -180,8 +229,8 @@ export async function startPasswordSignIn(
 export async function finishSecondFactor(
   handle: SecondFactorHandle,
   code: string,
-): Promise<{ token: string; durableCookies: DurableCookie[] }> {
-  const { transport, page, username, phoneHandle } = handle;
+): Promise<{ tokens: SignInTokens; durableCookies: DurableCookie[] }> {
+  const { transport, page, username, phoneHandle, options } = handle;
 
   const check = await postJson(transport, CHECK_CODE_URL, {
     phone: phoneHandle,
@@ -223,8 +272,49 @@ export async function finishSecondFactor(
     throw new CasSignInError(failure.message, failure.reason);
   }
 
-  const token = await exchangeTicketForToken(transport, response.headers['location']);
-  return { token, durableCookies: transport.exportDurableCookies() };
+  const tokens = await completeSignIn(transport, response.headers['location'], options);
+  return { tokens, durableCookies: transport.exportDurableCookies() };
+}
+
+/**
+ * The ticket tail for whichever site the flow targets. For cbiz with
+ * `alsoYanhe2`, the Yanhe 2.0 leg runs afterwards on the same transport, and
+ * any failure there is logged and dropped.
+ */
+async function completeSignIn(
+  transport: CasTransport,
+  ticketLocation: unknown,
+  options: Required<SignInOptions>,
+): Promise<SignInTokens> {
+  if (options.target === 'yanhe2') {
+    if (typeof ticketLocation !== 'string' || !ticketLocation) {
+      throw new CasSignInError(
+        'Sign-in succeeded but the redirect was missing. Please sign in with browser.',
+        'unknown',
+      );
+    }
+    const ticketUrl = new URL(ticketLocation, CAS_LOGIN_URL).toString();
+    return { yanhe2: await withYanhe2Errors(() => followYanhe2Ticket(transport, ticketUrl)) };
+  }
+
+  const yanhekt = await exchangeTicketForToken(transport, ticketLocation);
+  if (!options.alsoYanhe2) return { yanhekt };
+  try {
+    return { yanhekt, yanhe2: await mintYanhe2WithSession(transport) };
+  } catch (error) {
+    log.warn('Signed in, but the Yanhe 2.0 session could not be minted:', describeErrorSafely(error));
+    return { yanhekt };
+  }
+}
+
+/** Report a Yanhe 2.0 leg failure the way the rest of the flow reports failures. */
+async function withYanhe2Errors<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (error instanceof Yanhe2LegError) throw new CasSignInError(error.message, 'unknown');
+    throw error;
+  }
 }
 
 /**
@@ -235,19 +325,25 @@ export async function finishSecondFactor(
  */
 async function loadCredentialPage(
   transport: CasTransport,
-): Promise<{ url: string; html: string }> {
-  let url = `${CAS_LOGIN_URL}?service=${encodeURIComponent(SERVICE_URL)}`;
+  loginUrl: string,
+): Promise<{ kind: 'page'; url: string; html: string } | { kind: 'ticket'; url: string }> {
+  let url = loginUrl;
 
   for (let hop = 0; hop <= MAX_PAGE_REDIRECTS; hop++) {
     const response = await transport.request(url);
     if (response.status < 300 || response.status >= 400) {
-      return { url, html: asText(response.data) };
+      return { kind: 'page', url, html: asText(response.data) };
     }
     const location = response.headers['location'];
     if (typeof location !== 'string' || !location) {
-      return { url, html: asText(response.data) };
+      return { kind: 'page', url, html: asText(response.data) };
     }
-    url = new URL(location, url).toString();
+    const next = new URL(location, url).toString();
+    // Leaving CAS with a ticket means it signed us in on a remembered session.
+    if (!next.startsWith(CAS_ORIGIN) && /[?&]ticket=/.test(next)) {
+      return { kind: 'ticket', url: next };
+    }
+    url = next;
   }
 
   throw new CasSignInError(
@@ -261,6 +357,7 @@ async function beginSecondFactor(
   transport: CasTransport,
   username: string,
   page: SecondFactorPage,
+  options: Required<SignInOptions>,
 ): Promise<SecondFactorHandle> {
   // The protected SMS APIs are called from the CAS app root, not from the form
   // URL — CAS cross-checks the referer, so match what the page itself sends.
@@ -290,7 +387,7 @@ async function beginSecondFactor(
     );
   }
 
-  return { transport, page, username, phoneHandle, phoneHint: phone.masked };
+  return { transport, options, page, username, phoneHandle, phoneHint: phone.masked };
 }
 
 /**

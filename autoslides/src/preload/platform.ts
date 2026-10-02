@@ -20,6 +20,20 @@ export const auth: ElectronAPI['auth'] = {
   getBrowserLoginPreloadPath: () => ipcRenderer.invoke('auth:getBrowserLoginPreloadPath'),
 };
 
+export const yanhe2: ElectronAPI['yanhe2'] = {
+  login: (account: string, username: string, password: string) =>
+    ipcRenderer.invoke('yanhe2:login', account, username, password),
+  submitSmsCode: (account: string, challengeId: string, code: string) =>
+    ipcRenderer.invoke('yanhe2:submitSmsCode', account, challengeId, code),
+  cancelSmsChallenge: (challengeId: string) => ipcRenderer.invoke('yanhe2:cancelSmsChallenge', challengeId),
+  autoSignIn: (account: string) => ipcRenderer.invoke('yanhe2:autoSignIn', account),
+  check: (account: string) => ipcRenderer.invoke('yanhe2:check', account),
+  signOut: (account: string) => ipcRenderer.invoke('yanhe2:signOut', account),
+  adoptCookies: (account: string, text: string) => ipcRenderer.invoke('yanhe2:adoptCookies', account, text),
+  prepareBrowserSignIn: () => ipcRenderer.invoke('yanhe2:prepareBrowserSignIn'),
+  adoptBrowserSession: (account: string) => ipcRenderer.invoke('yanhe2:adoptBrowserSession', account),
+};
+
 export const config: ElectronAPI['config'] = {
   get: () => ipcRenderer.invoke('config:get'),
   // Subscribe to push updates from the main process. Fires after every setter
@@ -110,6 +124,7 @@ export const config: ElectronAPI['config'] = {
   setPreferAnonymousApiRequests: (enabled: boolean) => ipcRenderer.invoke('config:setPreferAnonymousApiRequests', enabled),
   setRememberPassword: (enabled: boolean) => ipcRenderer.invoke('config:setRememberPassword', enabled),
   setAutoSignIn: (enabled: boolean) => ipcRenderer.invoke('config:setAutoSignIn', enabled),
+  setYanhe2SignInWithMain: (enabled: boolean) => ipcRenderer.invoke('config:setYanhe2SignInWithMain', enabled),
   setLocalRelayConfig: (patch: {
     enabled?: boolean;
     port?: number;

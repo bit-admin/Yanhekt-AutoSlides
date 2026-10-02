@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu } from 'electron';
 import path from 'node:path';
 import { MainAuthService } from '@main/platform/authService';
+import { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
 import { MainApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { NotesService } from '@main/platform/notesService';
@@ -193,7 +194,8 @@ app.on('activate', () => {
 });
 
 // Initialize services
-const authService = new MainAuthService(configService);
+const yanhe2Service = new Yanhe2Service(configService);
+const authService = new MainAuthService(configService, yanhe2Service);
 const apiClient = new MainApiClient(configService);
 const autoCropModelService = new AutoCropModelService(configService);
 const mlClassifierModelService = new MlClassifierModelService(configService);
@@ -251,6 +253,7 @@ app.on('will-quit', () => {
 // Register all IPC handlers
 registerAllIpcHandlers({
   authService,
+  yanhe2Service,
   apiClient,
   configService,
   intranetMappingService,

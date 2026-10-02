@@ -9,6 +9,10 @@ const log = createLogger('PlatformAuth');
 
 // Shared state (singleton pattern for cross-component access)
 const isBrowserLoginActive = ref(false)
+// Which site the browser sign-in is for: the main Yanhekt account, or the
+// signed-in account's Yanhe 2.0 session.
+export type BrowserLoginTarget = 'yanhekt' | 'yanhe2'
+const browserLoginTarget = ref<BrowserLoginTarget>('yanhekt')
 // Shared so SignedOutPanel / Home welcome can open the same SSO dialog LeftPanel hosts.
 const showSsoModal = ref(false)
 const isLoggedIn = ref(false)
@@ -85,6 +89,7 @@ export interface UseAuthReturn {
 
   // Browser login state (shared across all instances)
   isBrowserLoginActive: Ref<boolean>
+  browserLoginTarget: Ref<BrowserLoginTarget>
 
   // SMS second-factor state (shared so onboarding footer and SignInModal agree)
   smsChallenge: Ref<SmsChallengeState | null>
@@ -121,7 +126,7 @@ export interface UseAuthReturn {
   forgetAccountPassword: () => Promise<void>
 
   // Browser login methods
-  openBrowserLogin: () => void
+  openBrowserLogin: (target?: BrowserLoginTarget) => void
   closeBrowserLogin: () => void
   handleBrowserToken: (token: string) => Promise<void>
 
@@ -583,8 +588,9 @@ export function useAuth(): UseAuthReturn {
     showSsoModal.value = false
   }
 
-  const openBrowserLogin = () => {
+  const openBrowserLogin = (target: BrowserLoginTarget = 'yanhekt') => {
     showSsoModal.value = false
+    browserLoginTarget.value = target
     isBrowserLoginActive.value = true
   }
 
@@ -624,6 +630,7 @@ export function useAuth(): UseAuthReturn {
     isVerifyingToken,
     isAutoSigningIn,
     isBrowserLoginActive,
+    browserLoginTarget,
     showSsoModal,
     smsChallenge,
 

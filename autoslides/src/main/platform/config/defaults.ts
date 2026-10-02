@@ -223,4 +223,6 @@ export const defaultConfig: AppConfig = {
   accounts: [],
   rememberPassword: true,
   autoSignIn: true,
+  yanhe2SignInWithMain: true,
+  yanhe2SessionExpiry: {},
 };

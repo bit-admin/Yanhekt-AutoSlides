@@ -48,6 +48,7 @@ export interface UseAdvancedSettingsOptions {
   developerMode: Ref<boolean>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
+  yanhe2SignInWithMain: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
 }

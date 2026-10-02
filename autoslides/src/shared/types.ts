@@ -317,6 +317,14 @@ export interface AppConfig {
   // by a campus SSO sign-in using that account's saved password. No sign-in
   // window unless CAS asks for an SMS code. No effect without a saved password.
   autoSignIn: boolean;
+  // When true (default), a campus SSO sign-in of the main account also signs in
+  // to Yanhe 2.0 (aita.yanhekt.cn) on the same CAS session — no second password
+  // or SMS code. A Yanhe 2.0 failure never fails the main sign-in.
+  yanhe2SignInWithMain: boolean;
+  // Derived, read-only: student id → Yanhe 2.0 session expiry (epoch ms), 0 when
+  // the session expired or was rejected (kept so Auto Sign In can renew it). The
+  // JWT itself is main-process only; see ConfigService.getYanhe2Session.
+  yanhe2SessionExpiry: Record<string, number>;
 }
 
 /** Compress options persisted for the Lectures batch modal (no paths). */

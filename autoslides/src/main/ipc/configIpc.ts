@@ -169,6 +169,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setYanhe2SignInWithMain', async (_event, enabled: boolean) => {
+    configService.setYanhe2SignInWithMain(enabled === true);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
     configService.setDeveloperMode(enabled);
     // Developer mode also turns on debug/info in the log file, no restart.

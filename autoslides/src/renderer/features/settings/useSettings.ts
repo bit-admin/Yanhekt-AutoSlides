@@ -22,6 +22,7 @@ export interface UseSettingsReturn {
   developerMode: Ref<boolean>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
+  yanhe2SignInWithMain: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
 
@@ -73,6 +74,7 @@ export function useSettings(): UseSettingsReturn {
   const developerMode = ref(false)
   const rememberPassword = ref(true)
   const autoSignIn = ref(true)
+  const yanhe2SignInWithMain = ref(true)
   const enableAIFiltering = ref(true)
   const tempEnableAIFiltering = ref(true)
 
@@ -115,6 +117,7 @@ export function useSettings(): UseSettingsReturn {
       developerMode.value = config.developerMode ?? false
       rememberPassword.value = config.rememberPassword ?? true
       autoSignIn.value = config.autoSignIn ?? true
+      yanhe2SignInWithMain.value = config.yanhe2SignInWithMain ?? true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
       tempEnableAIFiltering.value = enableAIFiltering.value
 
@@ -213,6 +216,7 @@ export function useSettings(): UseSettingsReturn {
     developerMode,
     rememberPassword,
     autoSignIn,
+    yanhe2SignInWithMain,
     enableAIFiltering,
     tempEnableAIFiltering,
 

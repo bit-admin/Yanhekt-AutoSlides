@@ -1,6 +1,7 @@
 import { ipcMain, session } from 'electron';
 import path from 'node:path';
 import type { IpcServices } from './types';
+import { broadcastConfig } from './broadcastConfig';
 import { createLogger } from '@main/infra/logger';
 import { decryptPassword, encryptPassword } from '@main/platform/passwordCipher';
 import {
@@ -16,12 +17,18 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
   // May resolve with a token, a failure, or an `smsChallenge` the renderer has
   // to answer via auth:submitSmsCode. The CAS flow behind the challenge stays
   // parked in the main process; only its opaque id crosses the bridge.
+  // A successful sign-in may also have stored a Yanhe 2.0 session, so push the
+  // new `yanhe2SessionExpiry` before the renderer acts on the result.
   ipcMain.handle('auth:login', async (_event, username: string, password: string) => {
-    return await authService.loginAndGetToken(username, password);
+    const result = await authService.loginAndGetToken(username, password);
+    if (result.success) broadcastConfig(configService);
+    return result;
   });
 
   ipcMain.handle('auth:submitSmsCode', async (_event, challengeId: string, code: string) => {
-    return await authService.submitSmsCode(challengeId, code);
+    const result = await authService.submitSmsCode(challengeId, code);
+    if (result.success) broadcastConfig(configService);
+    return result;
   });
 
   ipcMain.handle('auth:cancelSmsChallenge', async (_event, challengeId: string) => {

@@ -1,4 +1,5 @@
 import { registerAuthIpcHandlers } from './authIpc';
+import { registerYanhe2IpcHandlers } from './yanhe2Ipc';
 import { registerConfigIpcHandlers } from './configIpc';
 import { registerModelIpcHandlers } from './modelIpc';
 import { registerAiIpcHandlers } from './aiIpc';
@@ -35,6 +36,7 @@ import type { IpcServices } from './types';
 
 export function registerAllIpcHandlers(services: IpcServices): void {
   registerAuthIpcHandlers(services);
+  registerYanhe2IpcHandlers(services);
   registerConfigIpcHandlers(services);
   registerModelIpcHandlers(services);
   registerAiIpcHandlers(services);

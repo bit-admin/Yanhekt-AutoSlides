@@ -22,8 +22,11 @@
       <!-- Browser Login View (replaces MainContent and RightPanel) -->
       <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (renderedMain + renderedRight) + 'px' }">
         <BrowserLoginView
+          :key="browserLoginTarget"
+          :target="browserLoginTarget"
           @close="onBrowserLoginClose"
           @token-received="handleBrowserToken"
+          @yanhe2-signed-in="closeBrowserLogin"
         />
       </div>
 
@@ -151,6 +154,7 @@ const advancedSettings = useAdvancedSettings(
     developerMode: settings.developerMode,
     rememberPassword: settings.rememberPassword,
     autoSignIn: settings.autoSignIn,
+    yanhe2SignInWithMain: settings.yanhe2SignInWithMain,
     enableAIFiltering: settings.enableAIFiltering,
     tempEnableAIFiltering: settings.tempEnableAIFiltering
   },
@@ -185,7 +189,7 @@ provide(settingsContextKey, {
   phash: pHashExclusion,
 })
 
-const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken, isLoggedIn, smsChallenge } = auth
+const { isBrowserLoginActive, browserLoginTarget, closeBrowserLogin, handleBrowserToken, isLoggedIn, smsChallenge } = auth
 const { isWorkspacePage } = navigationStore
 
 // Onboarding / What's New. configStore + app version are loaded before mount.
