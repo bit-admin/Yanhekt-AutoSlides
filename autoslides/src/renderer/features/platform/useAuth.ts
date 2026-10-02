@@ -431,10 +431,6 @@ export function useAuth(): UseAuthReturn {
   // Manual token functions
   const toggleTokenVisibility = () => {
     showToken.value = !showToken.value
-    const tokenInput = document.querySelector('.token-input') as HTMLInputElement
-    if (tokenInput) {
-      tokenInput.type = showToken.value ? 'text' : 'password'
-    }
   }
 
   const onTokenInput = () => {
@@ -486,11 +482,10 @@ export function useAuth(): UseAuthReturn {
     }
   }
 
+  // Settings entry: show the stored token, or nothing. Never keep text left over
+  // from an earlier visit (an account signed out since then, say).
   const loadManualToken = () => {
-    const existingToken = tokenManager.getToken()
-    if (existingToken) {
-      manualToken.value = existingToken
-    }
+    manualToken.value = tokenManager.getToken() ?? ''
   }
 
   // Store the password just used on the SSO form against the account we just

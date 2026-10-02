@@ -698,9 +698,9 @@ export class ConfigService {
     this.store.delete('notionWorkspaceName');
   }
 
-  // Yanhe 2.0 sessions. Standalone key like `authToken`, but unlike the cbiz
-  // token the JWT never reaches a renderer: AppConfig carries only
-  // `yanhe2SessionExpiry` (account → expiresAt).
+  // Yanhe 2.0 sessions. Standalone key like `authToken`. AppConfig carries only
+  // `yanhe2SessionExpiry` (account → expiresAt); the JWT itself is read back
+  // through `yanhe2:getJwt` for the Settings field, not broadcast.
   getYanhe2Session(account: string): StoredYanhe2Session | null {
     return sanitizeYanhe2Sessions(this.store.get('yanhe2Sessions'))[account] ?? null;
   }

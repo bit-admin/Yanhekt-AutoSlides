@@ -66,6 +66,7 @@ import { useAuth, type SmsChallengeState } from '@features/platform/useAuth'
 import { useSettings } from '@features/settings/useSettings'
 import { useAdvancedSettings } from '@features/settings/useAdvancedSettings'
 import { useCacheManagement } from '@features/platform/useCacheManagement'
+import { reloadYanhe2JwtField } from '@features/platform/yanhe2AccountUi'
 import { useAISettings } from '@features/ai/useAISettings'
 import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import { settingsContextKey } from '@features/settings/settingsContext'
@@ -164,6 +165,7 @@ const advancedSettings = useAdvancedSettings(
     auth.tokenVerificationStatus.value = null
     auth.showToken.value = false
     void auth.loadAccountPassword()
+    reloadYanhe2JwtField()
     cacheManagement.refreshCacheStats()
     cacheManagement.resetOperationStatus()
     await pHashExclusion.loadPHashExclusionList()

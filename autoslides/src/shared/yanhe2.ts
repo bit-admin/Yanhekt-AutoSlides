@@ -3,9 +3,9 @@
  *
  * "Yanhe 2.0" is the UI name; the host is aita.yanhekt.cn. Its session is a
  * 24-hour HS256 JWT that carries the student's real name and a password hash,
- * so the token itself never leaves the main process. The renderer sees only
- * which accounts are signed in and until when (`AppConfig.yanhe2SessionExpiry`),
- * plus the results below.
+ * so it is not part of `AppConfig`. The renderer sees which accounts are signed
+ * in and until when (`yanhe2SessionExpiry`), the results below, and — only when
+ * Settings asks — the JWT itself via `yanhe2:getJwt`.
  */
 
 export const YANHE2_ORIGIN = 'https://aita.yanhekt.cn';
@@ -54,6 +54,14 @@ export interface Yanhe2SignInResult {
   /** English fallback; the renderer localizes by `reason` where it can. */
   error?: string;
   smsChallenge?: { challengeId: string; phoneHint: string; expiresInSeconds: number };
+}
+
+/** The two `infosimple` fields the signed-in menu shows. Not the JWT. */
+export interface Yanhe2ProfileSummary {
+  /** infosimple `id`. */
+  userId: number;
+  /** infosimple `phone`: the `/play/` signing secret, not necessarily the student's number. */
+  playSigningPhone: string;
 }
 
 /** Result of re-checking a stored session against `infosimple`. */

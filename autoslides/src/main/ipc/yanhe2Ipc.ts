@@ -3,10 +3,10 @@ import type { IpcServices } from './types';
 import { broadcastConfig } from './broadcastConfig';
 
 // Yanhe 2.0 (aita.yanhekt.cn) account. Every handler takes the signed-in
-// account's badge (student id) and plain strings; the JWT never crosses the
-// bridge in either direction except as user-pasted text going *in*. Handlers
-// that may change a stored session broadcast config so the renderer's
-// `yanhe2SessionExpiry` follows.
+// account's badge (student id) and plain strings. The JWT crosses the bridge
+// only as pasted text coming in, or as `yanhe2:getJwt` going out to the
+// Settings field — never inside the broadcast config. Handlers that may change
+// a stored session broadcast config so `yanhe2SessionExpiry` follows.
 export function registerYanhe2IpcHandlers(services: IpcServices): void {
   const { authService, yanhe2Service, configService } = services;
 
@@ -45,6 +45,11 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     yanhe2Service.signOut(str(account));
     broadcast();
   });
+
+  // Settings' JWT field, and the menu's id/phone line. Not broadcast: the caller asks for one account.
+  ipcMain.handle('yanhe2:getJwt', (_event, account: string) => yanhe2Service.getJwt(str(account)));
+
+  ipcMain.handle('yanhe2:getProfile', (_event, account: string) => yanhe2Service.getProfile(str(account)));
 
   ipcMain.handle('yanhe2:adoptCookies', async (_event, account: string, text: string) => {
     const result = await yanhe2Service.adoptPasted(typeof text === 'string' ? text : '', str(account));

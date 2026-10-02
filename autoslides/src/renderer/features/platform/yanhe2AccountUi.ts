@@ -3,16 +3,15 @@
  *
  * The user menu, the Yanhe 2.0 sign-in dialog, the browser sign-in and
  * Settings → General → Authentication all read this module. The session itself
- * (a JWT with the student's real name in it) lives only in main; here there is
- * just `AppConfig.yanhe2SessionExpiry` (student id → expiry) and the results of
- * the `yanhe2` IPC calls.
+ * lives in main. `AppConfig` carries only `yanhe2SessionExpiry`; the Settings
+ * field reads the JWT itself through `yanhe2:getJwt`.
  *
  * A Yanhe 2.0 session always belongs to the AutoSlides account of the same
  * student id (the badge). Main refuses to attach any other.
  */
 
 import { computed, ref, watch } from 'vue'
-import type { Yanhe2SignInResult } from '@common/yanhe2'
+import type { Yanhe2ProfileSummary, Yanhe2SignInResult } from '@common/yanhe2'
 import { configStore } from '@shared/services/configStore'
 import { isDemoMode } from '@shared/services/runtimeEnv'
 import { i18n } from '@shared/i18n'
@@ -42,20 +41,57 @@ const activeExpiry = computed(() => {
 /** True when the signed-in account has a live Yanhe 2.0 session. Independent of the main token. */
 export const yanhe2SignedIn = computed(() => activeExpiry.value > now.value)
 
-// ---- Settings: paste a cookie / token ------------------------------------
+/** `userId/playSigningPhone` for the signed-in flyout. Empty until loaded, or when signed out. */
+export const yanhe2ProfileLine = ref('')
 
-/** Cookies field in Settings. Sent to main once on Verify; never saved here. */
+/**
+ * What the user-menu status is doing right now, for the active account only.
+ * Idle falls back to Signed in / Signed out. The other two cover the short
+ * launch check and the renewal that follows an expired JWT.
+ */
+export const yanhe2MenuPhase = ref<'idle' | 'verifying' | 'signing'>('idle')
+
+// ---- Settings: the stored JWT, or a paste waiting on Verify ----------------
+
+/**
+ * JWT field in Settings. Shows the stored JWT once this account is signed in
+ * to Yanhe 2.0, the same way the Token field shows the main token. A paste
+ * replaces it only after Verify.
+ */
 export const yanhe2Cookies = ref('')
+
+/** Drops a JWT read that lost the race with a newer account, sign-out, or edit. */
+let jwtLoad = 0
 
 export const yanhe2CookiesVisible = ref(false)
 
 export const yanhe2Verifying = ref(false)
 
-/** Status line under the cookies field; `message` is finished display text. */
+/** Status line under the JWT field; `message` is finished display text. */
 export const yanhe2VerifyStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
 export function onYanhe2CookiesInput(): void {
   yanhe2VerifyStatus.value = null
+  // A keystroke wins over an in-flight read, so the stored JWT cannot land on top of a paste.
+  jwtLoad++
+}
+
+/**
+ * Settings entry, beside the Token and Password fields: drop a paste that was
+ * never verified, hide the value, and show the stored JWT again. Left alone
+ * while a Verify is still running; its result fills the field.
+ */
+export function reloadYanhe2JwtField(): void {
+  if (yanhe2Verifying.value) return
+  yanhe2VerifyStatus.value = null
+  yanhe2CookiesVisible.value = false
+  const badge = activeBadge.value
+  if (badge && yanhe2SignedIn.value) {
+    void showStoredJwt(badge)
+    return
+  }
+  jwtLoad++
+  yanhe2Cookies.value = ''
 }
 
 // ---- Sign-in dialog state (shared by LeftPanel's host and the dialog) -----
@@ -225,13 +261,18 @@ export async function verifyYanhe2Cookies(): Promise<void> {
   if (!badge || !text || yanhe2Verifying.value) return
   yanhe2Verifying.value = true
   yanhe2VerifyStatus.value = null
+  // Signing in from signed out flips `yanhe2SignedIn`, and its watcher fills the
+  // field and the menu line. Replacing a live session flips nothing, so read here.
+  const wasSignedIn = yanhe2SignedIn.value
   try {
     const result = await window.electronAPI.yanhe2.adoptCookies(badge, text)
     if (result.success) {
       now.value = Date.now()
-      // Main has it now; don't leave a live token sitting in the field.
-      yanhe2Cookies.value = ''
       yanhe2CookiesVisible.value = false
+      if (wasSignedIn) {
+        await showStoredJwt(badge)
+        void showStoredProfile(badge)
+      }
       yanhe2VerifyStatus.value = {
         type: 'success',
         message: t('advanced.yanhe2CookiesVerified', { account: result.account ?? badge }),
@@ -250,6 +291,12 @@ export async function verifyYanhe2Cookies(): Promise<void> {
 // ---- Launch check + Auto Sign In -----------------------------------------
 
 let refreshing: string | null = null
+/** So a finished check cannot clear a newer account's status. */
+let phaseTicket = 0
+
+function hasStoredYanhe2Session(badge: string): boolean {
+  return Object.prototype.hasOwnProperty.call(configStore.yanhe2SessionExpiry ?? {}, badge)
+}
 
 /**
  * Re-check the account's stored session with Yanhe 2.0 and, when it has
@@ -260,12 +307,20 @@ let refreshing: string | null = null
 async function refreshYanhe2Session(badge: string): Promise<void> {
   if (!badge || refreshing === badge || isDemoMode()) return
   refreshing = badge
+  const ticket = ++phaseTicket
+  // No stored row means there is nothing to check. Skip the word, or a launch
+  // would flash "Verifying" at every account that never signed in.
+  if (activeBadge.value === badge) {
+    yanhe2MenuPhase.value = hasStoredYanhe2Session(badge) ? 'verifying' : 'idle'
+  }
   try {
     const state = await window.electronAPI.yanhe2.check(badge)
     now.value = Date.now()
+    if (state === 'signed_in') void showStoredProfile(badge)
     if (state !== 'expired') return
     // The main sign-in dialog is mid-SMS; don't stack a second prompt on it.
     if (auth.smsChallenge.value || showYanhe2SsoModal.value) return
+    if (ticket === phaseTicket && activeBadge.value === badge) yanhe2MenuPhase.value = 'signing'
     const result = await window.electronAPI.yanhe2.autoSignIn(badge)
     now.value = Date.now()
     if (result.smsChallenge && activeBadge.value === badge) {
@@ -278,12 +333,47 @@ async function refreshYanhe2Session(badge: string): Promise<void> {
   } catch (error) {
     log.warn('Yanhe 2.0 session check failed:', error)
   } finally {
-    refreshing = null
+    if (ticket === phaseTicket) yanhe2MenuPhase.value = 'idle'
+    if (refreshing === badge) refreshing = null
   }
 }
 
 let installed = false
 let expiryTimer: ReturnType<typeof setTimeout> | null = null
+
+async function showStoredJwt(badge: string): Promise<void> {
+  const ticket = ++jwtLoad
+  let jwt: unknown = ''
+  try {
+    jwt = await window.electronAPI.yanhe2.getJwt(badge)
+  } catch (error) {
+    // Show an empty field rather than leave stale text in it.
+    log.warn('Could not read the stored Yanhe 2.0 JWT:', error)
+  }
+  if (ticket !== jwtLoad || activeBadge.value !== badge) return
+  yanhe2Cookies.value = typeof jwt === 'string' ? jwt : ''
+}
+
+let profileLoad = 0
+
+/** The flyout line. A missing phone is just the id, not a trailing slash. */
+async function showStoredProfile(badge: string): Promise<void> {
+  const ticket = ++profileLoad
+  let profile: Yanhe2ProfileSummary | null
+  try {
+    profile = await window.electronAPI.yanhe2.getProfile(badge)
+  } catch (error) {
+    log.warn('Could not read the Yanhe 2.0 profile:', error)
+    return
+  }
+  if (ticket !== profileLoad || activeBadge.value !== badge || !yanhe2SignedIn.value) return
+  if (!profile?.userId) {
+    yanhe2ProfileLine.value = ''
+    return
+  }
+  const phone = profile.playSigningPhone.trim()
+  yanhe2ProfileLine.value = phone ? `${profile.userId}/${phone}` : String(profile.userId)
+}
 
 /** Called once by the host (LeftPanel). */
 export function installYanhe2Session(): void {
@@ -293,7 +383,29 @@ export function installYanhe2Session(): void {
   // Launch, sign-in and account switch all land here.
   watch(activeBadge, (badge, previous) => {
     if (badge !== previous) closeYanhe2SsoModal()
-    if (badge) void refreshYanhe2Session(badge)
+    if (badge) {
+      void refreshYanhe2Session(badge)
+      return
+    }
+    phaseTicket++
+    yanhe2MenuPhase.value = 'idle'
+  }, { immediate: true })
+
+  // Fill the Settings field when this account has a session; clear it on sign-out
+  // or account switch. Edits are left alone — this only runs when those change.
+  watch([activeBadge, yanhe2SignedIn], ([badge, signedIn], prev) => {
+    if (prev && prev[0] !== badge) yanhe2CookiesVisible.value = false
+    if (!badge || !signedIn) {
+      jwtLoad++
+      profileLoad++
+      yanhe2Cookies.value = ''
+      yanhe2ProfileLine.value = ''
+      return
+    }
+    if (!prev || prev[0] !== badge || !prev[1]) {
+      void showStoredJwt(badge)
+      void showStoredProfile(badge)
+    }
   }, { immediate: true })
 
   watch([activeBadge, activeExpiry], ([badge, expiresAt]) => {

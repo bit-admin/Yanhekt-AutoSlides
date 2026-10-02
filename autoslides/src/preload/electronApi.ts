@@ -28,7 +28,7 @@ import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
 import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../shared/obsidianNotesTypes';
 import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/notionNotesTypes';
 import type { LogLevel, LogSource } from '../shared/logFormat';
-import type { Yanhe2SessionState, Yanhe2SignInResult } from '../shared/yanhe2';
+import type { Yanhe2ProfileSummary, Yanhe2SessionState, Yanhe2SignInResult } from '../shared/yanhe2';
 import type {
   SlideMetadata,
   SlideMetadataKind,
@@ -371,7 +371,8 @@ export interface ElectronAPI {
 
   /**
    * Yanhe 2.0 (aita.yanhekt.cn) session for a signed-in account, keyed by its
-   * badge (student id). The token stays in main; results carry no secrets.
+   * badge (student id). `getJwt` is the one read of the stored token, for the
+   * Settings field. `getProfile` is the id and play-signing phone for the menu.
    */
   yanhe2: {
     login: (account: string, username: string, password: string) => Promise<Yanhe2SignInResult>;
@@ -382,6 +383,10 @@ export interface ElectronAPI {
     /** Re-check the stored session with Yanhe 2.0 (`infosimple`). */
     check: (account: string) => Promise<Yanhe2SessionState>;
     signOut: (account: string) => Promise<void>;
+    /** Stored JWT for the Settings field. Empty when this account has no session. */
+    getJwt: (account: string) => Promise<string>;
+    /** Id and play-signing phone. Null when this account has no live session. */
+    getProfile: (account: string) => Promise<Yanhe2ProfileSummary | null>;
     /** A pasted token, `_token` cookie, or Cookie header. */
     adoptCookies: (account: string, text: string) => Promise<Yanhe2SignInResult>;
     prepareBrowserSignIn: () => Promise<void>;

@@ -161,7 +161,8 @@
       <div class="input-group">
         <input
           v-model="manualToken"
-          type="password"
+          :type="showToken ? 'text' : 'password'"
+          autocomplete="off"
           :placeholder="$t('advanced.tokenPlaceholder')"
           class="text-input token-input"
           @input="onTokenInput"

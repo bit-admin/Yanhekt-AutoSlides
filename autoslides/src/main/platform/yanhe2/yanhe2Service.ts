@@ -6,9 +6,10 @@
  * ends in `adopt`, which checks the token against `infosimple` and stores it
  * with the three profile fields media signing will need.
  *
- * The JWT never leaves this process (it carries the real name and a password
+ * The JWT is not part of `AppConfig` (it carries the real name and a password
  * hash). The renderer learns the outcome from the returned result and from
- * `AppConfig.yanhe2SessionExpiry`; callers broadcast config after a change.
+ * `yanhe2SessionExpiry`, and reads the JWT back only for the Settings field
+ * (`getJwt`). Callers broadcast config after a change.
  */
 import { session } from 'electron';
 import type { Yanhe2SessionState, Yanhe2SignInResult } from '@common/yanhe2';
@@ -95,6 +96,22 @@ export class Yanhe2Service {
   /** Local only: aita has no revocation, and its logout would also end the browser's CAS session. */
   signOut(account: string): void {
     this.configService.clearYanhe2Session(account);
+  }
+
+  /**
+   * The stored JWT, for the Settings field only. Empty when this account has no
+   * session. Not part of AppConfig: a broadcast would hand the real name and
+   * password hash to every window on every settings change.
+   */
+  getJwt(account: string): string {
+    return this.configService.getYanhe2Session(account)?.jwt ?? '';
+  }
+
+  /** `userId` and the play-signing phone, for the signed-in menu. Null without a live session. */
+  getProfile(account: string): { userId: number; playSigningPhone: string } | null {
+    const stored = this.configService.getYanhe2Session(account);
+    if (!stored?.jwt || !stored.userId) return null;
+    return { userId: stored.userId, playSigningPhone: stored.playSigningPhone };
   }
 
   /** Settings' paste field: a bare JWT, the `_token` cookie, or a whole Cookie header. */
