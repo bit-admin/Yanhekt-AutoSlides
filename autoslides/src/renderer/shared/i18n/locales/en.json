@@ -648,11 +648,9 @@
       "modelChainEmpty": "No models in chain. Add one below to enable AI classification.",
       "modelTemporarilyUnavailable": "Service temporarily unavailable"
     },
-    "developerMode": "Developer Mode",
-    "developerModeDescription": "Show a Developer workspace page for testing app features such as Auto Crop detection.",
+    "developerMode": "Developer and Logging",
+    "developerModeDescription": "Enable Developer Mode for verbose logging.",
     "enableDeveloperMode": "Enable Developer Mode",
-    "logFiles": "Log Files",
-    "logFilesDescription": "Errors are always saved to a log file. With Developer Mode on, detailed logs are saved too. Attach the file when reporting a problem.",
     "openLogFolder": "Open Log Folder"
   },
   "courses": {

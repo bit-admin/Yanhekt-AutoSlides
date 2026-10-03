@@ -648,11 +648,9 @@
       "modelChainEmpty": "链中暂无模型。请在下方添加以启用 AI 分类。",
       "modelTemporarilyUnavailable": "服务暂不可用"
     },
-    "developerMode": "开发者模式",
-    "developerModeDescription": "在工作区显示开发者页面，用于测试自动裁剪检测等功能。",
+    "developerMode": "开发者与日志",
+    "developerModeDescription": "启用开发者模式以记录详细日志。",
     "enableDeveloperMode": "启用开发者模式",
-    "logFiles": "日志文件",
-    "logFilesDescription": "错误始终会保存到日志文件。开启开发者模式后，还会保存详细日志。反馈问题时请附上该文件。",
     "openLogFolder": "打开日志文件夹"
   },
   "courses": {

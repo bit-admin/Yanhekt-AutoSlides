@@ -648,11 +648,9 @@
       "modelChainEmpty": "체인에 모델이 없습니다. AI 분류를 사용하려면 아래에서 추가하세요.",
       "modelTemporarilyUnavailable": "서비스를 일시적으로 사용할 수 없습니다"
     },
-    "developerMode": "개발자 모드",
-    "developerModeDescription": "자동 자르기 감지 등 앱 기능을 테스트하는 개발자 작업 공간 페이지를 표시합니다.",
+    "developerMode": "개발자 및 로그",
+    "developerModeDescription": "개발자 모드를 사용하면 자세한 로그가 기록됩니다.",
     "enableDeveloperMode": "개발자 모드 사용",
-    "logFiles": "로그 파일",
-    "logFilesDescription": "오류는 항상 로그 파일에 저장됩니다. 개발자 모드를 켜면 자세한 로그도 저장됩니다. 문제를 신고할 때 이 파일을 첨부해 주세요.",
     "openLogFolder": "로그 폴더 열기"
   },
   "courses": {

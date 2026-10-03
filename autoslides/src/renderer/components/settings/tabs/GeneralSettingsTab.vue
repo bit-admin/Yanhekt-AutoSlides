@@ -322,21 +322,21 @@
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.developerMode') }}</h4>
     <div class="setting-item">
-      <div class="setting-description">{{ $t('advanced.developerModeDescription') }}</div>
       <div class="prevent-sleep-control">
         <label class="checkbox-label">
           <input type="checkbox" v-model="tempDeveloperMode" />
           {{ $t('advanced.enableDeveloperMode') }}
         </label>
       </div>
-    </div>
-    <div class="setting-item">
-      <div class="setting-label">{{ $t('advanced.logFiles') }}</div>
-      <div class="setting-description">{{ $t('advanced.logFilesDescription') }}</div>
-      <div v-if="logDir" class="log-dir-row">
-        <span class="log-dir-label">{{ $t('advanced.openLogFolder') }}:</span>
-        <button type="button" class="log-dir-link" :title="logDir" @click="openLogFolder">
-          {{ logDir }}
+      <div class="developer-note">
+        <div class="setting-description">{{ $t('advanced.developerModeDescription') }}</div>
+        <button
+          v-if="logDir"
+          type="button"
+          class="external-link log-link"
+          @click="openLogFolder"
+        >
+          {{ $t('advanced.openLogFolder') }}
         </button>
       </div>
     </div>
@@ -433,34 +433,25 @@ function openLogFolder(): void {
 </script>
 
 <style scoped>
-.log-dir-row {
+.developer-note {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  font-size: 12px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
 }
 
-.log-dir-label {
+.developer-note .setting-description {
+  margin: 0;
+}
+
+.log-link {
   flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.log-dir-link {
-  min-width: 0;
   padding: 0;
   border: none;
   background: none;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 11px;
-  color: var(--link-color);
-  cursor: pointer;
-}
-
-.log-dir-link:hover {
-  text-decoration: underline;
+  font: inherit;
+  font-size: 12px;
 }
 
 .directory-input {
