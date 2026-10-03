@@ -16,11 +16,10 @@
     "enabled": false
   },
 
-  // Placement Hints: probe the upstream Yanhekt video host (HTTP/layer 7) and
-  // run this Worker in the data center with lowest latency to it, since every
-  // request proxies through to cvideo.yanhekt.cn anyway.
+  // Region placement (dashboard: Region → AWS → ap-east-1): the isolate runs
+  // in the Cloudflare data center closest to AWS Hong Kong.
   "placement": {
-    "hostname": "cvideo.yanhekt.cn"
+    "region": "aws:ap-east-1"
   },
 
   // Custom domain — Cloudflare creates/manages the DNS record and attaches this

@@ -30,6 +30,12 @@
   // Cron: recompute the v2 homepage aggregates into KV (one KV write/run).
   "triggers": { "crons": ["0 * * * *"] },
 
+  // Region placement (dashboard: Region → AWS → ap-east-1): the isolate runs
+  // in the Cloudflare data center closest to AWS Hong Kong.
+  "placement": {
+    "region": "aws:ap-east-1"
+  },
+
   // Custom domain — Cloudflare creates/manages the DNS record and attaches this
   // Worker to the whole hostname. Adjust to your own zone.
   "routes": [
