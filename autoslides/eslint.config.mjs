@@ -17,7 +17,7 @@ const DEMO_IMPORT_BAN = {
 // than `self` and explicitly-allowed cross-domain edges (plus the demo ban).
 // Must match the directories under src/renderer/features/ exactly — a domain
 // missing here is silently unlinted.
-const FEATURE_DOMAINS = ['ai', 'cloudNotes', 'course', 'developer', 'download', 'export', 'lectures', 'platform', 'results', 'settings', 'video', 'webCapture'];
+const FEATURE_DOMAINS = ['ai', 'cloudNotes', 'course', 'developer', 'download', 'export', 'lectures', 'platform', 'results', 'settings', 'video', 'webCapture', 'yanhe2'];
 function featureBoundaryRule(self, allowed = []) {
   const allow = new Set([self, ...allowed]);
   const forbidden = FEATURE_DOMAINS.filter(d => !allow.has(d));
@@ -155,6 +155,7 @@ export default tseslint.config(
   { files: ['src/renderer/features/settings/**/*.{ts,vue}'],  rules: featureBoundaryRule('settings',  ['platform', 'ai']) },
   { files: ['src/renderer/features/platform/**/*.{ts,vue}'],  rules: featureBoundaryRule('platform') },
   { files: ['src/renderer/features/webCapture/**/*.{ts,vue}'],rules: featureBoundaryRule('webCapture') },
+  { files: ['src/renderer/features/yanhe2/**/*.{ts,vue}'],    rules: featureBoundaryRule('yanhe2') },
   { files: ['src/renderer/features/cloudNotes/**/*.{ts,vue}'],rules: featureBoundaryRule('cloudNotes', ['course']) },
   { files: ['src/renderer/features/lectures/**/*.{ts,vue}'],  rules: featureBoundaryRule('lectures',  ['course', 'video']) },
 

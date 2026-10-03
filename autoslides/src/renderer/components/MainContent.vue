@@ -23,6 +23,15 @@
           <SearchPage />
         </div>
 
+        <!-- Yanhe 2.0 → Calendar (browsing page, three-panel like Live/Recorded).
+             Lazily mounted; it reads aita only while it is the active page. -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'yanhe2-calendar' }]"
+          data-mode="yanhe2-calendar"
+        >
+          <Yanhe2CalendarPage v-if="yanhe2CalendarMounted" />
+        </div>
+
         <!-- Slides (Workspace page — full-width, right panel hidden).
              Merged review + PDF/PPTX export: the folder Select mode doubles
              as the export selection. -->
@@ -135,6 +144,7 @@ import CoursePage from '@renderer/components/course/CoursePage.vue'
 import SessionPage from '@renderer/components/course/SessionPage.vue'
 import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
 import HomePage from '@renderer/components/course/HomePage.vue'
+import Yanhe2CalendarPage from '@renderer/components/yanhe2/Yanhe2CalendarPage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
@@ -177,6 +187,15 @@ watch(
   activeNav,
   (nav) => {
     if (nav === 'lectures') lecturesMounted.value = true
+  },
+  { immediate: true }
+)
+
+const yanhe2CalendarMounted = ref(false)
+watch(
+  activeNav,
+  (nav) => {
+    if (nav === 'yanhe2-calendar') yanhe2CalendarMounted.value = true
   },
   { immediate: true }
 )

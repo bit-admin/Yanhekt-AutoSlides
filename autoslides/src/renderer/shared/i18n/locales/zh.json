@@ -13,7 +13,9 @@
     "slidesReview": "课程幻灯片",
     "cloudNotes": "云存储",
     "lectures": "课程视频",
-    "developer": "开发者"
+    "developer": "开发者",
+    "yanhe2": "延河 2.0",
+    "yanhe2Calendar": "日历"
   },
   "cloudIndex": {
     "loading": "正在加载幻灯片…",
@@ -1538,7 +1540,8 @@
     "limitTitle": "已达标签页上限",
     "limitMessage": "已达到可同时打开的播放标签页上限。请关闭一个标签页，或在“设置 > 通用”中提高上限。",
     "lectures": "课程视频",
-    "developer": "开发者"
+    "developer": "开发者",
+    "yanhe2Calendar": "日历"
   },
   "lectures": {
     "refresh": "刷新",
@@ -1728,5 +1731,45 @@
       "recreateLink": "重新创建",
       "folderLink": "选择其他输出文件夹"
     }
+  },
+  "yanhe2Calendar": {
+    "allCourses": "全校课程",
+    "myCourses": "我的课程",
+    "today": "今天",
+    "thisWeek": "本周",
+    "previousDay": "前一天",
+    "nextDay": "后一天",
+    "previousWeek": "上一周",
+    "nextWeek": "下一周",
+    "filterPlaceholder": "按课程名称筛选…",
+    "loading": "正在加载日历…",
+    "noClasses": "没有找到课程",
+    "noClassesHint": "延河 2.0 上这一天没有排课。",
+    "noMatchesHint": "这一天没有与“{keyword}”匹配的课程。",
+    "periodEmpty": "这个时段没有课程",
+    "sessionCount": "{n} 节课",
+    "signInMain": "登录后加载日历",
+    "connectTitle": "登录延河 2.0 后加载日历",
+    "connectHint": "日历来自延河 2.0，它有自己的 24 小时会话，使用与 AutoSlides 相同的校园账号。",
+    "connectButton": "登录延河 2.0",
+    "connecting": "正在登录延河 2.0…",
+    "errorNetwork": "无法连接延河 2.0。请检查网络后重试。",
+    "errorFailed": "延河 2.0 没有返回日历。请稍后重试。",
+    "retry": "重试",
+    "status": {
+      "upcoming": "未开始",
+      "live": "直播中",
+      "processing": "处理中",
+      "playable": "可回放",
+      "ended": "已结束"
+    },
+    "period": "第 {n} 节",
+    "lesson": "第 {n} 节",
+    "lessons": "第 {from}–{to} 节",
+    "pickDate": "选择日期",
+    "previousMonth": "上个月",
+    "nextMonth": "下个月",
+    "otherPeriod": "其他时段",
+    "timetable": "周课表"
   }
 }

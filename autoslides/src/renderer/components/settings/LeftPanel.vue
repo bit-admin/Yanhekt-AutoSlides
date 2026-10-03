@@ -43,6 +43,19 @@
           </nav>
         </div>
 
+        <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.yanhe2') }}</div>
+        <nav class="nav-items">
+          <button :class="['nav-item', { active: activeNav === 'yanhe2-calendar' }]" @click="navigate('yanhe2-calendar')">
+            <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span>{{ $t('navigation.yanhe2Calendar') }}</span>
+          </button>
+        </nav>
+
         <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.workspace') }}</div>
         <nav class="nav-items">
           <button :class="['nav-item', { active: activeNav === 'slides-review' }]" @click="navigate('slides-review')">

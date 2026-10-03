@@ -30,6 +30,13 @@ import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/n
 import type { LogLevel, LogSource } from '../shared/logFormat';
 import type { Yanhe2ProfileSummary, Yanhe2SessionState, Yanhe2SignInResult } from '../shared/yanhe2';
 import type {
+  Yanhe2CalendarDay,
+  Yanhe2DayQuery,
+  Yanhe2ReadResult,
+  Yanhe2ScheduleDay,
+  Yanhe2WeekQuery,
+} from '../shared/yanhe2Calendar';
+import type {
   SlideMetadata,
   SlideMetadataKind,
   SlideMetadataSource,
@@ -391,6 +398,10 @@ export interface ElectronAPI {
     getProfile: (account: string) => Promise<Yanhe2ProfileSummary | null>;
     /** A pasted token, `_token` cookie, or Cookie header. */
     adoptCookies: (account: string, text: string) => Promise<Yanhe2SignInResult>;
+    /** Calendar → All Courses: one school day, grouped by period. */
+    calendarDay: (account: string, query: Yanhe2DayQuery) => Promise<Yanhe2ReadResult<Yanhe2CalendarDay>>;
+    /** Calendar → My Courses: the account's own sessions for a date range. */
+    calendarWeek: (account: string, query: Yanhe2WeekQuery) => Promise<Yanhe2ReadResult<Yanhe2ScheduleDay[]>>;
     prepareBrowserSignIn: () => Promise<void>;
     /** `reason: 'pending'` until the browser sign-in webview holds a token. */
     adoptBrowserSession: (account: string) => Promise<Yanhe2SignInResult>;

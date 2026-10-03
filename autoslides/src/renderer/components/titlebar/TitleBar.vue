@@ -355,6 +355,8 @@ const infoTabLabel = computed(() => {
       return navigationStore.recordedOnSessions.value
         ? $t('tabs.sessions')
         : $t('tabs.recorded');
+    case 'yanhe2-calendar':
+      return $t('tabs.yanhe2Calendar');
     case 'slides-review':
       return $t('tabs.slidesReview');
     case 'cloud-notes':

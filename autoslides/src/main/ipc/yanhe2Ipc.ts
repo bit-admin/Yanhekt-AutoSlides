@@ -51,6 +51,19 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('yanhe2:getProfile', (_event, account: string) => yanhe2Service.getProfile(str(account)));
 
+  // Calendar reads. A refused token expires the stored session, so the menu follows.
+  ipcMain.handle('yanhe2:calendarDay', async (_event, account: string, query: unknown) => {
+    const result = await yanhe2Service.getCalendarDay(str(account), query);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
+  ipcMain.handle('yanhe2:calendarWeek', async (_event, account: string, query: unknown) => {
+    const result = await yanhe2Service.getWeekSchedule(str(account), query);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
   ipcMain.handle('yanhe2:adoptCookies', async (_event, account: string, text: string) => {
     const result = await yanhe2Service.adoptPasted(typeof text === 'string' ? text : '', str(account));
     if (result.success) broadcast();

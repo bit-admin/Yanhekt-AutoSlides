@@ -13,7 +13,9 @@
     "slidesReview": "Slides",
     "cloudNotes": "Drive",
     "lectures": "Lectures",
-    "developer": "Developer"
+    "developer": "Developer",
+    "yanhe2": "Yanhe 2.0",
+    "yanhe2Calendar": "Calendar"
   },
   "cloudIndex": {
     "loading": "Loading slides…",
@@ -1538,7 +1540,8 @@
     "limitTitle": "Tab limit reached",
     "limitMessage": "You have reached the maximum number of open playback tabs. Close a tab or raise the limit in Settings > General.",
     "lectures": "Lectures",
-    "developer": "Developer"
+    "developer": "Developer",
+    "yanhe2Calendar": "Calendar"
   },
   "lectures": {
     "refresh": "Refresh",
@@ -1728,5 +1731,45 @@
       "recreateLink": "Create it again",
       "folderLink": "choose a different output folder"
     }
+  },
+  "yanhe2Calendar": {
+    "allCourses": "All Courses",
+    "myCourses": "My Courses",
+    "today": "Today",
+    "thisWeek": "This Week",
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "filterPlaceholder": "Filter by course name…",
+    "loading": "Loading calendar…",
+    "noClasses": "No Classes Found",
+    "noClassesHint": "No lectures are scheduled on Yanhe 2.0 for this day.",
+    "noMatchesHint": "No lectures on this day match “{keyword}”.",
+    "periodEmpty": "No classes in this period",
+    "sessionCount": "{n} classes",
+    "signInMain": "Sign In to Load the Calendar",
+    "connectTitle": "Sign in to Yanhe 2.0 to load the calendar",
+    "connectHint": "The calendar comes from Yanhe 2.0, which keeps its own 24-hour session. It uses the same campus account as AutoSlides.",
+    "connectButton": "Sign In to Yanhe 2.0",
+    "connecting": "Signing in to Yanhe 2.0…",
+    "errorNetwork": "Could not reach Yanhe 2.0. Check your connection and try again.",
+    "errorFailed": "Yanhe 2.0 did not return the calendar. Try again later.",
+    "retry": "Try again",
+    "status": {
+      "upcoming": "Upcoming",
+      "live": "Live",
+      "processing": "Processing",
+      "playable": "Recorded",
+      "ended": "Ended"
+    },
+    "period": "Period {n}",
+    "lesson": "Lesson {n}",
+    "lessons": "Lessons {from}–{to}",
+    "pickDate": "Choose date",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "otherPeriod": "Other Times",
+    "timetable": "Week timetable"
   }
 }

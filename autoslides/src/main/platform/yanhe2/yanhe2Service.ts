@@ -13,8 +13,16 @@
  */
 import { session } from 'electron';
 import type { Yanhe2SessionState, Yanhe2SignInResult } from '@common/yanhe2';
+import {
+  isCalendarDate,
+  shiftDate,
+  type Yanhe2CalendarDay,
+  type Yanhe2ReadResult,
+  type Yanhe2ScheduleDay,
+} from '@common/yanhe2Calendar';
 import type { ConfigService } from '../configService';
 import { fetchYanhe2Profile } from './yanhe2Api';
+import { fetchYanhe2Day, fetchYanhe2Week, type Yanhe2Fetched } from './yanhe2Calendar';
 import { decodeYanhe2Claims, extractYanhe2Jwt } from './yanhe2Token';
 import { createLogger } from '@main/infra/logger';
 
@@ -112,6 +120,51 @@ export class Yanhe2Service {
     const stored = this.configService.getYanhe2Session(account);
     if (!stored?.jwt || !stored.userId) return null;
     return { userId: stored.userId, playSigningPhone: stored.playSigningPhone };
+  }
+
+  /**
+   * Calendar → All Courses: the school day, grouped by period. `query` comes
+   * from the renderer, so it is checked here rather than trusted.
+   */
+  async getCalendarDay(account: string, query: unknown): Promise<Yanhe2ReadResult<Yanhe2CalendarDay>> {
+    const { date, keyword, periodId } = (query && typeof query === 'object' ? query : {}) as Record<string, unknown>;
+    if (!isCalendarDate(date)) return { kind: 'failed' };
+    if (periodId !== undefined && !Number.isInteger(periodId)) return { kind: 'failed' };
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2Day(stored.jwt, {
+      date,
+      keyword: typeof keyword === 'string' ? keyword.trim().slice(0, 64) : '',
+      periodId: periodId as number | undefined,
+    }));
+  }
+
+  /** Calendar → My Courses: this account's own sessions, one entry per day in the range. */
+  async getWeekSchedule(account: string, query: unknown): Promise<Yanhe2ReadResult<Yanhe2ScheduleDay[]>> {
+    const { startDate, endDate } = (query && typeof query === 'object' ? query : {}) as Record<string, unknown>;
+    if (!isCalendarDate(startDate) || !isCalendarDate(endDate) || endDate < startDate) return { kind: 'failed' };
+    // The page asks for one week; nothing needs more than a month.
+    if (endDate > shiftDate(startDate, 31)) return { kind: 'failed' };
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2Week(stored.jwt, {
+      userId: stored.userId,
+      tenantId: stored.tenantId,
+      startDate,
+      endDate,
+    }));
+  }
+
+  private liveSession(account: string) {
+    const stored = this.configService.getYanhe2Session(account);
+    return stored?.jwt && stored.userId && stored.expiresAt > Date.now() ? stored : null;
+  }
+
+  /** A refused token becomes the expired marker, same as `check`. */
+  private settle<T>(account: string, fetched: Yanhe2Fetched<T>): Yanhe2ReadResult<T> {
+    if (fetched.kind !== 'rejected') return fetched;
+    this.configService.expireYanhe2Session(account);
+    return { kind: 'signed_out' };
   }
 
   /** Settings' paste field: a bare JWT, the `_token` cookie, or a whole Cookie header. */

@@ -29,6 +29,9 @@ const activeBadge = computed(() => {
   return isLoggedIn.value && badge && badge !== 'user123' && badge !== 'unknown' ? badge : ''
 })
 
+/** Same badge, for pages that read Yanhe 2.0 on the account's behalf (Calendar). */
+export const yanhe2ActiveBadge = activeBadge
+
 // Re-read on a timer at the active session's expiry, so the menu flips to
 // Signed out (and Auto Sign In runs) without waiting for some other change.
 const now = ref(Date.now())

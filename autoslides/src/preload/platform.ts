@@ -32,6 +32,8 @@ export const yanhe2: ElectronAPI['yanhe2'] = {
   getJwt: (account: string) => ipcRenderer.invoke('yanhe2:getJwt', account),
   getProfile: (account: string) => ipcRenderer.invoke('yanhe2:getProfile', account),
   adoptCookies: (account: string, text: string) => ipcRenderer.invoke('yanhe2:adoptCookies', account, text),
+  calendarDay: (account, query) => ipcRenderer.invoke('yanhe2:calendarDay', account, query),
+  calendarWeek: (account, query) => ipcRenderer.invoke('yanhe2:calendarWeek', account, query),
   prepareBrowserSignIn: () => ipcRenderer.invoke('yanhe2:prepareBrowserSignIn'),
   adoptBrowserSession: (account: string) => ipcRenderer.invoke('yanhe2:adoptBrowserSession', account),
 };

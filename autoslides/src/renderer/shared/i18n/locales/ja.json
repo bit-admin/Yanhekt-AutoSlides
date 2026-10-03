@@ -13,7 +13,9 @@
     "slidesReview": "スライド",
     "cloudNotes": "ドライブ",
     "lectures": "講義",
-    "developer": "開発者"
+    "developer": "開発者",
+    "yanhe2": "延河 2.0",
+    "yanhe2Calendar": "カレンダー"
   },
   "cloudIndex": {
     "loading": "スライドを読み込み中…",
@@ -1538,7 +1540,8 @@
     "limitTitle": "タブの上限に達しました",
     "limitMessage": "開ける再生タブの上限に達しました。タブを閉じるか、「設定 > 一般」で上限を増やしてください。",
     "lectures": "講義",
-    "developer": "開発者"
+    "developer": "開発者",
+    "yanhe2Calendar": "カレンダー"
   },
   "lectures": {
     "refresh": "更新",
@@ -1728,5 +1731,45 @@
       "recreateLink": "フォルダを再作成",
       "folderLink": "別の出力フォルダを選択"
     }
+  },
+  "yanhe2Calendar": {
+    "allCourses": "全学の授業",
+    "myCourses": "自分の授業",
+    "today": "今日",
+    "thisWeek": "今週",
+    "previousDay": "前の日",
+    "nextDay": "次の日",
+    "previousWeek": "前の週",
+    "nextWeek": "次の週",
+    "filterPlaceholder": "授業名で絞り込む…",
+    "loading": "カレンダーを読み込み中…",
+    "noClasses": "授業が見つかりません",
+    "noClassesHint": "この日、延河 2.0 に授業の予定はありません。",
+    "noMatchesHint": "この日に「{keyword}」に一致する授業はありません。",
+    "periodEmpty": "この時限に授業はありません",
+    "sessionCount": "{n} 件",
+    "signInMain": "サインインしてカレンダーを読み込む",
+    "connectTitle": "延河 2.0 にサインインしてカレンダーを読み込む",
+    "connectHint": "カレンダーは延河 2.0 から取得します。延河 2.0 は独自の 24 時間セッションを持ち、AutoSlides と同じ学内アカウントを使います。",
+    "connectButton": "延河 2.0 にサインイン",
+    "connecting": "延河 2.0 にサインイン中…",
+    "errorNetwork": "延河 2.0 に接続できません。接続を確認してもう一度お試しください。",
+    "errorFailed": "延河 2.0 からカレンダーを取得できませんでした。しばらくしてからお試しください。",
+    "retry": "再試行",
+    "status": {
+      "upcoming": "開始前",
+      "live": "ライブ",
+      "processing": "処理中",
+      "playable": "録画あり",
+      "ended": "終了"
+    },
+    "period": "{n}限",
+    "lesson": "第{n}節",
+    "lessons": "第{from}–{to}節",
+    "pickDate": "日付を選択",
+    "previousMonth": "前の月",
+    "nextMonth": "次の月",
+    "otherPeriod": "その他の時間帯",
+    "timetable": "週間時間割"
   }
 }
