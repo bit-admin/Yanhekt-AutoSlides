@@ -33,7 +33,8 @@ export const openCourse = (mode: 'live' | 'recorded', course: Course) => {
       participant_count: course.participant_count,
       session: course.session,
       target: course.target,
-      target_vga: course.target_vga
+      target_vga: course.target_vga,
+      target_room: course.target_room,
     }
     DataStore.setStreamData(course.id, streamData)
 

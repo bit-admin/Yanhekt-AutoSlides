@@ -29,7 +29,7 @@ export type DualAudioSource = 'screen' | 'camera' | 'mic'
 
 // Types for video player
 export interface VideoStream {
-  type: 'camera' | 'screen'
+  type: 'camera' | 'screen' | 'room'
   name: string
   url: string
   original_url: string
@@ -513,9 +513,15 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       playbackData.value = result
 
       const streamKeys = Object.keys(result.streams)
-      if (streamKeys.length > 0) {
-        const screenStream = streamKeys.find(key => result.streams[key].type === 'screen')
-        selectedStream.value = screenStream || streamKeys[0]
+      // Room (classroom camera) is a developer-mode option. Don't land on it,
+      // and don't treat "only a room URL" as a playable lecture, unless that
+      // mode is on — the selector hides the option in the same case.
+      const selectableKeys = streamKeys.filter(key =>
+        configStore.developerMode || result.streams[key].type !== 'room'
+      )
+      if (selectableKeys.length > 0) {
+        const screenStream = selectableKeys.find(key => result.streams[key].type === 'screen')
+        selectedStream.value = screenStream || selectableKeys[0]
 
         // Apply the user's default once per tab open, and only when this
         // lecture actually has a mic track. Read straight off configStore —

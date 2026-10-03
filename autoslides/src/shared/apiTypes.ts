@@ -48,8 +48,14 @@ export interface LiveStream {
     };
     section_group_title?: string;
   };
-  target?: string; // Camera stream URL
-  target_vga?: string; // Screen stream URL
+  target?: string; // Camera stream URL (Video1)
+  target_vga?: string; // Screen stream URL (VGA)
+  /**
+   * Student-facing classroom camera (Video2 / VideoRoom). Unsigned live CDN
+   * URL, same shape as `target`. The live stream selector shows it only while
+   * developer mode is on.
+   */
+  target_room?: string;
 }
 
 export interface LiveListResponse {

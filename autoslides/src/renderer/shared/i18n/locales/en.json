@@ -777,6 +777,7 @@
     "currentStream": "Current Stream",
     "streamCamera": "Camera View",
     "streamScreen": "Screen Recording",
+    "streamRoom": "Room Camera",
     "bothStreams": "Both Streams",
     "loadingVideoStreams": "Loading video streams…",
     "lastPlayedPosition": "Last played position:",

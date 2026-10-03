@@ -777,6 +777,7 @@
     "currentStream": "현재 스트림",
     "streamCamera": "카메라 뷰",
     "streamScreen": "화면 녹화",
+    "streamRoom": "강의실 카메라",
     "bothStreams": "두 스트림 모두",
     "loadingVideoStreams": "비디오 스트림 불러오는 중…",
     "lastPlayedPosition": "마지막 재생 위치:",

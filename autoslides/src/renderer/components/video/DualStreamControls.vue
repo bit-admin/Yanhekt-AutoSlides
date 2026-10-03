@@ -11,7 +11,7 @@
           {{ $t('playback.bothStreams') }}
         </option>
         <option v-for="(stream, key) in streams" :key="key" :value="key">
-          {{ stream.type === 'camera' ? $t('playback.streamCamera') : stream.type === 'screen' ? $t('playback.streamScreen') : stream.name }}
+          {{ streamLabel(stream) }}
         </option>
       </select>
     </div>
@@ -61,7 +61,17 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { VideoStream } from '@features/video/useVideoPlayer'
+
+const { t } = useI18n()
+
+function streamLabel(stream: VideoStream): string {
+  if (stream.type === 'camera') return t('playback.streamCamera')
+  if (stream.type === 'screen') return t('playback.streamScreen')
+  if (stream.type === 'room') return t('playback.streamRoom')
+  return stream.name
+}
 
 const props = defineProps<{
   streams: { [key: string]: VideoStream }

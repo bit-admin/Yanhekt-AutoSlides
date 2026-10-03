@@ -98,7 +98,7 @@
           <span class="detail-label">{{ $t('playback.currentStream') }}</span>
           <span v-if="isDualStreamSelected" class="detail-value">{{ $t('playback.bothStreams') }}</span>
           <span v-else-if="currentStreamData" class="detail-value">
-            {{ currentStreamData.type === 'camera' ? $t('playback.streamCamera') : currentStreamData.type === 'screen' ? $t('playback.streamScreen') : currentStreamData.name }}
+            {{ streamTypeLabel(currentStreamData.type) }}
           </span>
         </div>
       </div>
@@ -178,7 +178,7 @@
         <DualStreamControls
           v-model:selected-stream="selectedStream"
           v-model:current-playback-rate="currentPlaybackRate"
-          :streams="playbackData.streams"
+          :streams="selectorStreams"
           :playback-rate-options="playbackRateOptions"
           :mode="props.mode"
           :is-dual-stream-selected="isDualStreamSelected"
@@ -955,12 +955,29 @@ const {
   visibleEmptyStreamTypes
 } = videoPlayerComposable
 
+// The classroom camera (Video2) is a developer-mode option. Both Streams stays
+// camera + screen; this only adds or removes the single-stream choice.
+const selectorStreams = computed(() => {
+  const streams = playbackData.value?.streams
+  if (!streams) return {}
+  if (props.mode !== 'live' || configStore.developerMode) return streams
+  return Object.fromEntries(
+    Object.entries(streams).filter(([, stream]) => stream.type !== 'room')
+  )
+})
+
+const streamTypeLabel = (type: string) => {
+  if (type === 'screen') return t('playback.streamScreen')
+  if (type === 'room') return t('playback.streamRoom')
+  return t('playback.streamCamera')
+}
+
 // Yanhekt served a stream with no video. Nothing errors, so say so plainly
 // instead of leaving the player looking stuck.
 const emptyStreamNotice = computed(() => {
   const types = visibleEmptyStreamTypes.value
   if (types.length === 0) return ''
-  const names = types.map(type => t(type === 'screen' ? 'playback.streamScreen' : 'playback.streamCamera'))
+  const names = types.map(streamTypeLabel)
   return t('playback.emptyStream', { stream: names.join(', ') })
 })
 const { isSlideExtractionEnabled, extractedSlides } = slideExtraction
@@ -1076,6 +1093,24 @@ const {
   onDualEnded,
   preventDualUnmute
 } = videoPlayerComposable
+
+// Turning developer mode off must not leave the classroom camera playing
+// with the option gone from the selector.
+watch(
+  () => configStore.developerMode,
+  (enabled) => {
+    if (enabled || props.mode !== 'live') return
+    if (currentStreamData.value?.type !== 'room') return
+    const streams = playbackData.value?.streams
+    if (!streams) return
+    const fallback = Object.keys(streams).find(key => streams[key].type === 'screen')
+      ?? Object.keys(streams).find(key => streams[key].type === 'camera')
+    if (!fallback) return
+    selectedStream.value = fallback
+    void switchStream()
+  },
+)
+
 const { toggleSlideExtraction } = slideExtraction
 const { executePostProcessing, dismissAIError } = postProcessing
 const { openSlideModal, closeSlideModal, deleteSlide, clearAllSlides, formatSlideTime } = slideGallery

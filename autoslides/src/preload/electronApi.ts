@@ -142,6 +142,8 @@ export interface LiveStreamInput {
   title: string;
   target?: string;
   target_vga?: string;
+  /** Classroom camera (Video2). Same unsigned live CDN URL as `target`. */
+  target_room?: string;
 }
 
 export interface RecordedSessionInput {
@@ -197,7 +199,7 @@ export interface PaginatedResponse<T> {
 }
 
 export interface StreamInfo {
-  type: 'camera' | 'screen';
+  type: 'camera' | 'screen' | 'room';
   name: string;
   url: string;
   original_url: string;

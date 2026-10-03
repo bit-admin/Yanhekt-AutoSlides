@@ -27,7 +27,7 @@ function asHttpError(error: unknown): { message: string; code?: string; response
 }
 
 export interface VideoStream {
-  type: 'camera' | 'screen';
+  type: 'camera' | 'screen' | 'room';
   name: string;
   url: string;
   original_url: string;
@@ -66,6 +66,8 @@ export interface LiveStreamInput {
   title: string;
   target?: string;
   target_vga?: string;
+  /** Classroom camera (Video2). Same unsigned live CDN URL as `target`. */
+  target_room?: string;
 }
 
 export interface RecordedSessionInput {
@@ -351,6 +353,20 @@ export class VideoProxyService {
             original_url: fixedTargetVga
           };
         }
+
+        // Classroom camera (target_room / Video2). Same unsigned CDN URL as the
+        // other live streams. The selector hides this unless developer mode is on.
+        if (stream.target_room) {
+          const fixedTargetRoom = this.fixUrlEscaping(stream.target_room);
+          const proxyUrl = `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(fixedTargetRoom)}&loginToken=${encodeURIComponent(token)}`;
+
+          result.streams.room = {
+            type: "room",
+            name: "教室摄像头",
+            url: proxyUrl,
+            original_url: fixedTargetRoom
+          };
+        }
       } else {
         // External mode: direct HLS playback
 
@@ -375,6 +391,17 @@ export class VideoProxyService {
             name: "屏幕录制",
             url: fixedTargetVga,
             original_url: fixedTargetVga
+          };
+        }
+
+        if (stream.target_room) {
+          const fixedTargetRoom = this.fixUrlEscaping(stream.target_room);
+
+          result.streams.room = {
+            type: "room",
+            name: "教室摄像头",
+            url: fixedTargetRoom,
+            original_url: fixedTargetRoom
           };
         }
       }

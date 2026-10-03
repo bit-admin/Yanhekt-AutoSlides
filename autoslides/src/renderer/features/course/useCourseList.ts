@@ -47,6 +47,8 @@ export interface Course {
   }
   target?: string
   target_vga?: string
+  /** Classroom camera (Video2). Playback shows it only in developer mode. */
+  target_room?: string
   professors?: string[]
   classrooms?: { name: string }[]
   school_year?: string
@@ -89,6 +91,7 @@ export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
     session: stream.session,
     target: stream.target,
     target_vga: stream.target_vga,
+    target_room: stream.target_room,
     imageUrl: trimImageUrl(stream.img || stream.course?.image_url)
   }
 }

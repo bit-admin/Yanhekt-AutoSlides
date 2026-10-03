@@ -777,6 +777,7 @@
     "currentStream": "当前流",
     "streamCamera": "摄像头视角",
     "streamScreen": "屏幕录制",
+    "streamRoom": "教室摄像头",
     "bothStreams": "同时观看",
     "loadingVideoStreams": "加载视频流中…",
     "lastPlayedPosition": "上次播放位置：",

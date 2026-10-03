@@ -777,6 +777,7 @@
     "currentStream": "現在のストリーム",
     "streamCamera": "カメラビュー",
     "streamScreen": "画面録画",
+    "streamRoom": "教室カメラ",
     "bothStreams": "両方のストリーム",
     "loadingVideoStreams": "ビデオストリームを読み込み中…",
     "lastPlayedPosition": "最後の再生位置：",
