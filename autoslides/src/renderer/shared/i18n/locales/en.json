@@ -15,7 +15,8 @@
     "lectures": "Lectures",
     "developer": "Developer",
     "yanhe2": "Yanhe 2.0",
-    "yanhe2Calendar": "Calendar"
+    "yanhe2Calendar": "Calendar",
+    "yanhe2Curriculum": "Curriculum"
   },
   "cloudIndex": {
     "loading": "Loading slides…",
@@ -1541,7 +1542,8 @@
     "limitMessage": "You have reached the maximum number of open playback tabs. Close a tab or raise the limit in Settings > General.",
     "lectures": "Lectures",
     "developer": "Developer",
-    "yanhe2Calendar": "Calendar"
+    "yanhe2Calendar": "Calendar",
+    "yanhe2Curriculum": "Curriculum"
   },
   "lectures": {
     "refresh": "Refresh",
@@ -1771,6 +1773,20 @@
     "nextMonth": "Next month",
     "otherPeriod": "Other Times",
     "timetable": "Week timetable"
+  },
+  "yanhe2Curriculum": {
+    "title": "My Courses",
+    "loading": "Loading courses…",
+    "noCourses": "No Courses Found",
+    "noCoursesHint": "Yanhe 2.0 lists no enrolled courses for this account.",
+    "signInMain": "Sign In to Load Your Courses",
+    "connectTitle": "Sign in to Yanhe 2.0 to load your courses",
+    "connectHint": "Your courses come from Yanhe 2.0, which keeps its own 24-hour session. It uses the same campus account as AutoSlides.",
+    "errorFailed": "Yanhe 2.0 did not return your courses. Try again later.",
+    "errorDetailFailed": "Yanhe 2.0 did not return this course. Try again later.",
+    "loadingSessions": "Loading sessions…",
+    "noSessions": "No Sessions Found",
+    "noSessionsHint": "Yanhe 2.0 has no sessions attached to this course yet."
   },
   "yanhe2Playback": {
     "errorSignedOut": "Your Yanhe 2.0 session has ended. Sign in to Yanhe 2.0 again from the account menu, then retry.",

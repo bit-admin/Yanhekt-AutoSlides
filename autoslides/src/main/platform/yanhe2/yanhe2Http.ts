@@ -15,6 +15,11 @@ export const YANHE2_READ_PATHS = {
   dayList: '/courseapi/v3/course-live-role/search-role-course-list',
   weekSchedule: '/courseapi/v2/schedule/get-week-schedules',
   subInfo: '/courseapi/v3/portal-home-setting/get-sub-info',
+  // The site calls this under `/personal/courseapi/`, which is the SPA's proxy
+  // path: it answers 404 unless the request looks like the page's own XHR
+  // (Referer + x-requested-with). The back end itself is reachable here.
+  myCourses: '/vlabpassportapi/v1/account-profile/course',
+  courseDetail: '/courseapi/v3/multi-search/get-course-detail',
 } as const;
 
 export type Yanhe2ReadPath = (typeof YANHE2_READ_PATHS)[keyof typeof YANHE2_READ_PATHS];
@@ -26,7 +31,8 @@ export type Yanhe2Fetched<T> =
   /** 401/403: the token is not accepted. */
   | { kind: 'rejected' }
   | { kind: 'network' }
-  | { kind: 'failed' };
+  /** `detail` says why, for the log: a path and a status, never a body. This module stays free of the logger so its parsers can be unit-tested. */
+  | { kind: 'failed'; detail?: string };
 
 export async function readYanhe2(
   jwt: string,
@@ -51,10 +57,11 @@ export async function readYanhe2(
   }
   // A bad or expired token is a bare 403 with an empty body.
   if (response.status === 401 || response.status === 403) return { kind: 'rejected' };
-  if (!response.ok) return { kind: 'failed' };
+  // Status only: a body can carry names and badges.
+  if (!response.ok) return { kind: 'failed', detail: `${path} answered HTTP ${response.status}` };
   try {
     return { kind: 'ok', data: await response.json() };
   } catch {
-    return { kind: 'failed' };
+    return { kind: 'failed', detail: `${path} answered without JSON` };
   }
 }

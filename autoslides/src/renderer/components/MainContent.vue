@@ -32,6 +32,15 @@
           <Yanhe2CalendarPage v-if="yanhe2CalendarMounted" />
         </div>
 
+        <!-- Yanhe 2.0 → Curriculum (enrolled courses → one course's sessions).
+             Same shape as the Calendar: lazily mounted, reads only while active. -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'yanhe2-curriculum' }]"
+          data-mode="yanhe2-curriculum"
+        >
+          <Yanhe2CurriculumPage v-if="yanhe2CurriculumMounted" />
+        </div>
+
         <!-- Slides (Workspace page — full-width, right panel hidden).
              Merged review + PDF/PPTX export: the folder Select mode doubles
              as the export selection. -->
@@ -114,7 +123,7 @@
 
       <!-- Playback tabs — one PlaybackPage per open tab, kept mounted so
            background playback + slide extraction continue when not focused.
-           A tab opened from the Yanhe 2.0 Calendar gets the playback-only page. -->
+           A tab opened from a Yanhe 2.0 page gets the playback-only page. -->
       <div
         v-for="tab in tabStore.state.tabs"
         :key="tab.id"
@@ -154,6 +163,7 @@ import SessionPage from '@renderer/components/course/SessionPage.vue'
 import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
 import HomePage from '@renderer/components/course/HomePage.vue'
 import Yanhe2CalendarPage from '@renderer/components/yanhe2/Yanhe2CalendarPage.vue'
+import Yanhe2CurriculumPage from '@renderer/components/yanhe2/Yanhe2CurriculumPage.vue'
 import Yanhe2PlaybackPage from '@renderer/components/yanhe2/Yanhe2PlaybackPage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
@@ -206,6 +216,15 @@ watch(
   activeNav,
   (nav) => {
     if (nav === 'yanhe2-calendar') yanhe2CalendarMounted.value = true
+  },
+  { immediate: true }
+)
+
+const yanhe2CurriculumMounted = ref(false)
+watch(
+  activeNav,
+  (nav) => {
+    if (nav === 'yanhe2-curriculum') yanhe2CurriculumMounted.value = true
   },
   { immediate: true }
 )

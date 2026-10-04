@@ -54,6 +54,13 @@
             </svg>
             <span>{{ $t('navigation.yanhe2Calendar') }}</span>
           </button>
+          <button :class="['nav-item', { active: activeNav === 'yanhe2-curriculum' }]" @click="navigate('yanhe2-curriculum')">
+            <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            <span>{{ $t('navigation.yanhe2Curriculum') }}</span>
+          </button>
         </nav>
 
         <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.workspace') }}</div>

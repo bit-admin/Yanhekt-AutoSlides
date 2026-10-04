@@ -4,7 +4,7 @@ import type { Course } from './useCourseList'
 
 // Yanhekt and Yanhe 2.0 browsing pages keep the three-panel layout; Workspace pages (the
 // migrated Tools tabs) take the whole window beside the left panel.
-export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'yanhe2-calendar' | 'slides-review' | 'cloud-notes' | 'lectures' | 'developer' | 'settings'
+export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'yanhe2-calendar' | 'yanhe2-curriculum' | 'slides-review' | 'cloud-notes' | 'lectures' | 'developer' | 'settings'
 
 // Nav targets that render as full-width Workspace pages (right panel hidden).
 // NOTE: 'settings' is deliberately NOT here — like the "AutoSlides" section pages

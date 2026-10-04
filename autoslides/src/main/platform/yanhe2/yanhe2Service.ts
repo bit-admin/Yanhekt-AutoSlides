@@ -20,10 +20,12 @@ import {
   type Yanhe2ReadResult,
   type Yanhe2ScheduleDay,
 } from '@common/yanhe2Calendar';
+import type { Yanhe2Course, Yanhe2CourseDetail } from '@common/yanhe2Curriculum';
 import type { Yanhe2PlaybackQuery } from '@common/yanhe2Playback';
 import type { ConfigService } from '../configService';
 import { fetchYanhe2Profile } from './yanhe2Api';
 import { fetchYanhe2Day, fetchYanhe2Week, type Yanhe2Fetched } from './yanhe2Calendar';
+import { fetchYanhe2CourseDetail, fetchYanhe2Courses } from './yanhe2Curriculum';
 import { fetchYanhe2SubInfo, type Yanhe2PlayIdentity, type Yanhe2SubInfo } from './yanhe2Playback';
 import { decodeYanhe2Claims, extractYanhe2Jwt } from './yanhe2Token';
 import { createLogger } from '@main/infra/logger';
@@ -157,6 +159,22 @@ export class Yanhe2Service {
     }));
   }
 
+  /** Curriculum: every course this account is enrolled in, past terms included. */
+  async getMyCourses(account: string): Promise<Yanhe2ReadResult<Yanhe2Course[]>> {
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2Courses(stored.jwt));
+  }
+
+  /** Curriculum: one course and its sessions. */
+  async getCourseDetail(account: string, query: unknown): Promise<Yanhe2ReadResult<Yanhe2CourseDetail>> {
+    const { courseId } = (query && typeof query === 'object' ? query : {}) as Record<string, unknown>;
+    if (typeof courseId !== 'string' || !/^\d{1,12}$/.test(courseId)) return { kind: 'failed' };
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2CourseDetail(stored.jwt, courseId));
+  }
+
   /**
    * What one session has to play. The sources still carry upstream URLs, so
    * this is for main only: the IPC layer swaps recorded ones for local proxy
@@ -188,6 +206,11 @@ export class Yanhe2Service {
 
   /** A refused token becomes the expired marker, same as `check`. */
   private settle<T>(account: string, fetched: Yanhe2Fetched<T>): Yanhe2ReadResult<T> {
+    if (fetched.kind === 'failed') {
+      // Otherwise the page's "did not return" banner is all anyone sees.
+      log.warn('Yanhe 2.0 read failed:', fetched.detail ?? 'unexpected answer');
+      return { kind: 'failed' };
+    }
     if (fetched.kind !== 'rejected') return fetched;
     this.configService.expireYanhe2Session(account);
     return { kind: 'signed_out' };

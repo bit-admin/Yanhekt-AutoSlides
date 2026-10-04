@@ -15,7 +15,8 @@
     "lectures": "講義",
     "developer": "開発者",
     "yanhe2": "延河 2.0",
-    "yanhe2Calendar": "カレンダー"
+    "yanhe2Calendar": "カレンダー",
+    "yanhe2Curriculum": "カリキュラム"
   },
   "cloudIndex": {
     "loading": "スライドを読み込み中…",
@@ -1541,7 +1542,8 @@
     "limitMessage": "開ける再生タブの上限に達しました。タブを閉じるか、「設定 > 一般」で上限を増やしてください。",
     "lectures": "講義",
     "developer": "開発者",
-    "yanhe2Calendar": "カレンダー"
+    "yanhe2Calendar": "カレンダー",
+    "yanhe2Curriculum": "カリキュラム"
   },
   "lectures": {
     "refresh": "更新",
@@ -1771,6 +1773,20 @@
     "nextMonth": "次の月",
     "otherPeriod": "その他の時間帯",
     "timetable": "週間時間割"
+  },
+  "yanhe2Curriculum": {
+    "title": "自分のコース",
+    "loading": "コースを読み込み中…",
+    "noCourses": "コースが見つかりません",
+    "noCoursesHint": "延河 2.0 には、このアカウントの履修コースがありません。",
+    "signInMain": "サインインしてコースを読み込む",
+    "connectTitle": "延河 2.0 にサインインしてコースを読み込む",
+    "connectHint": "コースは延河 2.0 から取得します。延河 2.0 は独自の 24 時間セッションを持ち、AutoSlides と同じ学内アカウントを使います。",
+    "errorFailed": "延河 2.0 からコースを取得できませんでした。しばらくしてからお試しください。",
+    "errorDetailFailed": "延河 2.0 からこのコースを取得できませんでした。しばらくしてからお試しください。",
+    "loadingSessions": "セッションを読み込み中…",
+    "noSessions": "セッションが見つかりません",
+    "noSessionsHint": "延河 2.0 には、このコースのセッションがまだありません。"
   },
   "yanhe2Playback": {
     "errorSignedOut": "延河 2.0 のセッションが終了しました。アカウントメニューから延河 2.0 に再度サインインして、もう一度お試しください。",

@@ -36,6 +36,7 @@ import type {
   Yanhe2ScheduleDay,
   Yanhe2WeekQuery,
 } from '../shared/yanhe2Calendar';
+import type { Yanhe2Course, Yanhe2CourseDetail, Yanhe2CourseDetailQuery } from '../shared/yanhe2Curriculum';
 import type { Yanhe2PlaybackQuery, Yanhe2PlaybackResult } from '../shared/yanhe2Playback';
 import type {
   SlideMetadata,
@@ -403,6 +404,10 @@ export interface ElectronAPI {
     calendarDay: (account: string, query: Yanhe2DayQuery) => Promise<Yanhe2ReadResult<Yanhe2CalendarDay>>;
     /** Calendar → My Courses: the account's own sessions for a date range. */
     calendarWeek: (account: string, query: Yanhe2WeekQuery) => Promise<Yanhe2ReadResult<Yanhe2ScheduleDay[]>>;
+    /** Curriculum: the account's enrolled courses. */
+    myCourses: (account: string) => Promise<Yanhe2ReadResult<Yanhe2Course[]>>;
+    /** Curriculum: one course and its sessions. */
+    courseDetail: (account: string, query: Yanhe2CourseDetailQuery) => Promise<Yanhe2ReadResult<Yanhe2CourseDetail>>;
     /** One session's streams. Recorded ones come back as local proxy URLs. */
     playback: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2PlaybackResult>;
     prepareBrowserSignIn: () => Promise<void>;

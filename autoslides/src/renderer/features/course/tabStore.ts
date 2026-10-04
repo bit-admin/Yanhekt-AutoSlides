@@ -19,7 +19,7 @@ import type { Course } from './useCourseList'
 export type TabOrigin = 'manual' | 'task'
 
 /**
- * Set on a tab opened from the Yanhe 2.0 Calendar. Such a tab renders the
+ * Set on a tab opened from a Yanhe 2.0 page (Calendar, Curriculum). Such a tab renders the
  * playback-only Yanhe 2.0 page instead of PlaybackPage, and its ids live in
  * aita's id space (kept apart from Yanhekt's by `yanhe2TabKey`).
  */

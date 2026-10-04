@@ -26,9 +26,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, lessonRange, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import { isYanhe2Playable } from '@common/yanhe2Playback'
-import { notifyManualTabLimit } from '@features/course/courseSelection'
-import { openPlaybackTab, yanhe2TabKey } from '@features/course/tabStore'
-import { yanhe2ActiveBadge } from '@features/platform/yanhe2AccountUi'
+import { openYanhe2Session } from './openYanhe2Session'
 
 const props = defineProps<{ session: Yanhe2CalendarSession }>()
 
@@ -36,23 +34,7 @@ const { t } = useI18n()
 
 const playable = computed(() => isYanhe2Playable(props.session.status))
 
-const open = () => {
-  const account = yanhe2ActiveBadge.value
-  if (!playable.value || !account) return
-  // A plain copy: the row is reactive, and the tab outlives the calendar's next refresh.
-  const session: Yanhe2CalendarSession = { ...props.session }
-  const key = yanhe2TabKey(session.subId)
-  const result = openPlaybackTab({
-    mode: session.status === 'live' ? 'live' : 'recorded',
-    course: { id: key, title: session.title, instructor: session.teacher, time: '' },
-    streamId: key,
-    sessionId: key,
-    title: session.title,
-    origin: 'manual',
-    yanhe2: { account, session },
-  })
-  if (!result.ok) notifyManualTabLimit()
-}
+const open = () => openYanhe2Session(props.session)
 
 // `2026-09-28第1-2节` → "Lessons 1–2": the page already says which day it is.
 const lessons = computed(() => {
