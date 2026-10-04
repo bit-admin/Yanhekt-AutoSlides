@@ -12,6 +12,7 @@ import { ref, watch, type Ref } from 'vue'
 import type { Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Yanhe2Course } from '@common/yanhe2Curriculum'
 import { createLogger } from '@shared/utils/logger'
+import { yanhe2Reads } from './yanhe2Reads'
 
 const log = createLogger('Yanhe2Curriculum')
 
@@ -61,7 +62,7 @@ export function useYanhe2Curriculum(options: {
     coursesLoading.value = true
     coursesProblem.value = null
     try {
-      const result = await window.electronAPI.yanhe2.myCourses(account)
+      const result = await yanhe2Reads.myCourses(account)
       if (ticket !== coursesTicket) return
       if (result.kind === 'ok') {
         courses.value = result.data
@@ -91,7 +92,7 @@ export function useYanhe2Curriculum(options: {
     sessionsLoading.value = true
     sessionsProblem.value = null
     try {
-      const result = await window.electronAPI.yanhe2.courseDetail(account, { courseId: course.courseId })
+      const result = await yanhe2Reads.courseDetail(account, course.courseId)
       if (ticket !== sessionsTicket) return
       if (result.kind === 'ok') {
         sessions.value = result.data.sessions

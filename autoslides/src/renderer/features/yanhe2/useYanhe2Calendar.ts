@@ -19,6 +19,7 @@ import {
   type Yanhe2ScheduleDay,
 } from '@common/yanhe2Calendar'
 import { createLogger } from '@shared/utils/logger'
+import { yanhe2Reads } from './yanhe2Reads'
 
 const log = createLogger('Yanhe2Calendar')
 
@@ -95,7 +96,7 @@ export function useYanhe2Calendar(options: {
     dayLoading.value = true
     dayProblem.value = null
     try {
-      const result = await window.electronAPI.yanhe2.calendarDay(account, { date: date.value, keyword: term })
+      const result = await yanhe2Reads.calendarDay(account, { date: date.value, keyword: term })
       if (ticket !== dayTicket) return
       if (result.kind === 'ok') {
         periods.value = result.data.periods
@@ -123,7 +124,7 @@ export function useYanhe2Calendar(options: {
     const ticket = dayTicket
     loadingPeriods.value = new Set(loadingPeriods.value).add(periodId)
     try {
-      const result = await window.electronAPI.yanhe2.calendarDay(account, {
+      const result = await yanhe2Reads.calendarDay(account, {
         date: date.value,
         keyword: appliedKeyword.value,
         periodId,
@@ -166,7 +167,7 @@ export function useYanhe2Calendar(options: {
     weekLoading.value = true
     weekProblem.value = null
     try {
-      const result = await window.electronAPI.yanhe2.calendarWeek(account, {
+      const result = await yanhe2Reads.calendarWeek(account, {
         startDate: weekStart.value,
         endDate: weekEnd.value,
       })
