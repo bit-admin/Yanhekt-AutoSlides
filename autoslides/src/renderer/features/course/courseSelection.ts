@@ -6,7 +6,7 @@ import { openPlaybackTab } from './tabStore'
 import type { Course } from './useCourseList'
 
 // Surface a native dialog when the manual playback-tab limit is reached.
-const notifyManualTabLimit = (): void => {
+export const notifyManualTabLimit = (): void => {
   const t = i18n.global.t
   void window.electronAPI?.dialog?.showMessageBox?.({
     type: 'info',

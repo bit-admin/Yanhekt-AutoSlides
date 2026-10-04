@@ -200,7 +200,12 @@ const apiClient = new MainApiClient(configService);
 const autoCropModelService = new AutoCropModelService(configService);
 const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
-const videoProxyService = new VideoProxyService(apiClient, intranetMappingService, configService);
+const videoProxyService = new VideoProxyService(
+  apiClient,
+  intranetMappingService,
+  configService,
+  (account) => yanhe2Service.getPlayIdentity(account),
+);
 const localRelayService = new LocalRelayService(apiClient, intranetMappingService, configService);
 const ffmpegService = new FFmpegService();
 const thumbnailService = new ThumbnailService(videoProxyService, ffmpegService);

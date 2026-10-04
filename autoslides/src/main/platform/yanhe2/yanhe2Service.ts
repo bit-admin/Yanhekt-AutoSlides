@@ -20,9 +20,11 @@ import {
   type Yanhe2ReadResult,
   type Yanhe2ScheduleDay,
 } from '@common/yanhe2Calendar';
+import type { Yanhe2PlaybackQuery } from '@common/yanhe2Playback';
 import type { ConfigService } from '../configService';
 import { fetchYanhe2Profile } from './yanhe2Api';
 import { fetchYanhe2Day, fetchYanhe2Week, type Yanhe2Fetched } from './yanhe2Calendar';
+import { fetchYanhe2SubInfo, type Yanhe2PlayIdentity, type Yanhe2SubInfo } from './yanhe2Playback';
 import { decodeYanhe2Claims, extractYanhe2Jwt } from './yanhe2Token';
 import { createLogger } from '@main/infra/logger';
 
@@ -153,6 +155,30 @@ export class Yanhe2Service {
       startDate,
       endDate,
     }));
+  }
+
+  /**
+   * What one session has to play. The sources still carry upstream URLs, so
+   * this is for main only: the IPC layer swaps recorded ones for local proxy
+   * URLs before anything reaches the renderer.
+   */
+  async getSubInfo(account: string, query: unknown): Promise<Yanhe2ReadResult<Yanhe2SubInfo>> {
+    const { courseId, subId } = (query && typeof query === 'object' ? query : {}) as Partial<Yanhe2PlaybackQuery>;
+    if (typeof courseId !== 'string' || typeof subId !== 'string') return { kind: 'failed' };
+    if (!/^\d{1,12}$/.test(courseId) || !/^\d{1,12}$/.test(subId)) return { kind: 'failed' };
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2SubInfo(stored.jwt, { courseId, subId }));
+  }
+
+  /**
+   * The three values a `/play/` signature is made from, for the local proxy.
+   * Null without a live session, or when the profile has no phone to sign with.
+   */
+  getPlayIdentity(account: string): Yanhe2PlayIdentity | null {
+    const stored = this.liveSession(account);
+    if (!stored?.playSigningPhone) return null;
+    return { userId: stored.userId, tenantId: stored.tenantId, playSigningPhone: stored.playSigningPhone };
   }
 
   private liveSession(account: string) {

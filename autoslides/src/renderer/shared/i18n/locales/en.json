@@ -1771,5 +1771,13 @@
     "nextMonth": "Next month",
     "otherPeriod": "Other Times",
     "timetable": "Week timetable"
+  },
+  "yanhe2Playback": {
+    "errorSignedOut": "Your Yanhe 2.0 session has ended. Sign in to Yanhe 2.0 again from the account menu, then retry.",
+    "errorFailed": "Yanhe 2.0 did not return this lecture. Try again later.",
+    "errorPlayer": "This stream stopped playing. Check your connection and try again.",
+    "notStarted": "This lecture has not started yet.",
+    "processing": "This lecture has ended and its recording is still being processed.",
+    "noRecording": "This lecture has no recording to play."
   }
 }

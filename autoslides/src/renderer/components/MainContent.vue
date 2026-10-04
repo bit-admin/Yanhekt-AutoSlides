@@ -113,14 +113,23 @@
       </div>
 
       <!-- Playback tabs — one PlaybackPage per open tab, kept mounted so
-           background playback + slide extraction continue when not focused. -->
+           background playback + slide extraction continue when not focused.
+           A tab opened from the Yanhe 2.0 Calendar gets the playback-only page. -->
       <div
         v-for="tab in tabStore.state.tabs"
         :key="tab.id"
         :class="['mode-container', { 'mode-hidden': tabStore.state.activeTabId !== tab.id }]"
         data-tab="playback"
       >
+        <Yanhe2PlaybackPage
+          v-if="tab.yanhe2"
+          :session="tab.yanhe2.session"
+          :account="tab.yanhe2.account"
+          :isVisible="tabStore.state.activeTabId === tab.id"
+          @back="handleTabBack(tab.id)"
+        />
         <PlaybackPage
+          v-else
           :course="(tab.course as Course)"
           :session="(tab.session as Session | null)"
           :mode="tab.mode"
@@ -145,6 +154,7 @@ import SessionPage from '@renderer/components/course/SessionPage.vue'
 import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
 import HomePage from '@renderer/components/course/HomePage.vue'
 import Yanhe2CalendarPage from '@renderer/components/yanhe2/Yanhe2CalendarPage.vue'
+import Yanhe2PlaybackPage from '@renderer/components/yanhe2/Yanhe2PlaybackPage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'

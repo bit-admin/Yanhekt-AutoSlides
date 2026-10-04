@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { configStore } from '@shared/services/configStore'
+import type { Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Course } from './useCourseList'
 
 // Module-singleton tab state (same pattern as navigationStore / rightPanelStore).
@@ -17,6 +18,20 @@ import type { Course } from './useCourseList'
 
 export type TabOrigin = 'manual' | 'task'
 
+/**
+ * Set on a tab opened from the Yanhe 2.0 Calendar. Such a tab renders the
+ * playback-only Yanhe 2.0 page instead of PlaybackPage, and its ids live in
+ * aita's id space (kept apart from Yanhekt's by `yanhe2TabKey`).
+ */
+export interface Yanhe2TabTarget {
+  /** The AutoSlides account (badge) whose Yanhe 2.0 session opened it. */
+  account: string
+  session: Yanhe2CalendarSession
+}
+
+/** Tab identity for a Yanhe 2.0 session: never equal to a Yanhekt session or stream id. */
+export const yanhe2TabKey = (subId: string): string => `yanhe2:${subId}`
+
 export interface PlaybackTab {
   id: string
   mode: 'live' | 'recorded'
@@ -27,6 +42,7 @@ export interface PlaybackTab {
   title: string
   origin: TabOrigin
   taskId?: string
+  yanhe2?: Yanhe2TabTarget
 }
 
 export interface OpenTabParams {
@@ -38,6 +54,7 @@ export interface OpenTabParams {
   title: string
   origin?: TabOrigin
   taskId?: string
+  yanhe2?: Yanhe2TabTarget
 }
 
 interface TabState {
@@ -117,6 +134,7 @@ export function openPlaybackTab(
     title: params.title,
     origin,
     taskId: params.taskId,
+    yanhe2: params.yanhe2,
   }
   state.tabs.push(tab)
   if (activate) state.activeTabId = tab.id

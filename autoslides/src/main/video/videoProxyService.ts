@@ -15,6 +15,9 @@ import {
 import { ProxyAuth } from './videoProxy/proxyAuth';
 import { buildAxiosConfig, fetchRecordedWithResign } from './videoProxy/proxyRequest';
 import { applyNoStoreHeaders, shouldForwardUpstreamHeader } from './videoProxy/httpHeaders';
+import { handleYanhe2PlayRequest } from './videoProxy/yanhe2Play';
+import { YANHE2_PLAY_ROUTE, yanhe2PlayProxyUrl } from './videoProxy/yanhe2PlayUrls';
+import type { Yanhe2PlayIdentity } from '@main/platform/yanhe2/yanhe2Playback';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('VideoProxy');
 
@@ -117,10 +120,20 @@ export class VideoProxyService {
   // ProxyAuth caused cross-account 403s). Cleared only when the proxy goes idle.
   private authByToken = new Map<string, ProxyAuth>();
 
-  constructor(apiClient: ApiClient, intranetMapping: IntranetMappingService, configService: ConfigService) {
+  // Yanhe 2.0 recordings are signed per request from the account's stored
+  // session; this looks it up by badge. See videoProxy/yanhe2Play.
+  private yanhe2IdentityFor: (account: string) => Yanhe2PlayIdentity | null;
+
+  constructor(
+    apiClient: ApiClient,
+    intranetMapping: IntranetMappingService,
+    configService: ConfigService,
+    yanhe2IdentityFor: (account: string) => Yanhe2PlayIdentity | null = () => null,
+  ) {
     this.intranetMapping = intranetMapping;
     this.apiClient = apiClient;
     this.configService = configService;
+    this.yanhe2IdentityFor = yanhe2IdentityFor;
 
     // Proactively invalidate bound agents when the user changes the selected
     // intranet interface IP in Advanced Settings.
@@ -241,6 +254,14 @@ export class VideoProxyService {
         this.forceStopVideoProxy();
       }
     }
+  }
+
+  /**
+   * A local URL for one Yanhe 2.0 recording stream. The caller holds a
+   * registered client for as long as it plays, like any other proxied stream.
+   */
+  async getYanhe2PlayUrl(account: string, upstreamUrl: string): Promise<string> {
+    return yanhe2PlayProxyUrl(await this.startVideoProxy(), account, upstreamUrl);
   }
 
   /**
@@ -454,6 +475,12 @@ export class VideoProxyService {
           } else if (pathname === '/live') {
             // Live stream m3u8 request
             await this.handleLiveM3u8Request(req, res, parsedUrl);
+          } else if (pathname === YANHE2_PLAY_ROUTE) {
+            // Yanhe 2.0 recording: playlist, segment or MP4, signed per request.
+            await handleYanhe2PlayRequest(req, res, parsedUrl.query, {
+              port: this.proxyPort,
+              identityFor: this.yanhe2IdentityFor,
+            });
           } else if (pathname === '/audio' && parsedUrl.query.originalUrl) {
             // Classroom mic sidecar. Guarded on originalUrl so a bare /audio
             // still falls through to the TS handler, whose fallback branch

@@ -1,5 +1,10 @@
 <template>
-  <div class="course-card">
+  <component
+    :is="playable ? 'button' : 'div'"
+    :type="playable ? 'button' : undefined"
+    :class="['course-card', { playable }]"
+    @click="open"
+  >
     <div v-if="session.status !== 'unknown'" :class="['course-status', `status-${session.status}`]">
       {{ $t(`yanhe2Calendar.status.${session.status}`) }}
     </div>
@@ -10,20 +15,44 @@
       <p class="course-time">{{ timeLine }}</p>
       <p v-if="session.college" class="course-section">{{ session.college }}</p>
     </div>
-  </div>
+  </component>
 </template>
 
 <script setup lang="ts">
 // One session on the Yanhe 2.0 Calendar, drawn like a Live / Recorded course
-// card. Not clickable yet: the row keeps `courseId` / `subId` / `courseCode`
-// for when a session can be opened.
+// card. A live or recorded session opens a playback tab; an upcoming,
+// processing or ended one has nothing to play and stays a plain card.
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, lessonRange, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
+import { isYanhe2Playable } from '@common/yanhe2Playback'
+import { notifyManualTabLimit } from '@features/course/courseSelection'
+import { openPlaybackTab, yanhe2TabKey } from '@features/course/tabStore'
+import { yanhe2ActiveBadge } from '@features/platform/yanhe2AccountUi'
 
 const props = defineProps<{ session: Yanhe2CalendarSession }>()
 
 const { t } = useI18n()
+
+const playable = computed(() => isYanhe2Playable(props.session.status))
+
+const open = () => {
+  const account = yanhe2ActiveBadge.value
+  if (!playable.value || !account) return
+  // A plain copy: the row is reactive, and the tab outlives the calendar's next refresh.
+  const session: Yanhe2CalendarSession = { ...props.session }
+  const key = yanhe2TabKey(session.subId)
+  const result = openPlaybackTab({
+    mode: session.status === 'live' ? 'live' : 'recorded',
+    course: { id: key, title: session.title, instructor: session.teacher, time: '' },
+    streamId: key,
+    sessionId: key,
+    title: session.title,
+    origin: 'manual',
+    yanhe2: { account, session },
+  })
+  if (!result.ok) notifyManualTabLimit()
+}
 
 // `2026-09-28第1-2节` → "Lessons 1–2": the page already says which day it is.
 const lessons = computed(() => {
@@ -43,7 +72,7 @@ const timeLine = computed(() => {
 </script>
 
 <style scoped>
-/* Same card as CoursePage / SearchPage, minus the pointer and hover: nothing opens yet. */
+/* Same card as CoursePage / SearchPage. Only a session with something to play gets the pointer and hover. */
 .course-card {
   position: relative;
   display: flex;
@@ -53,6 +82,26 @@ const timeLine = computed(() => {
   border-radius: 8px;
   background-color: var(--bg-card);
   overflow: hidden;
+  /* A playable card is a <button>: take the page's type and width, not the control's. */
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.course-card.playable {
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.course-card.playable:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 1px 3px var(--shadow-sm);
+}
+
+.course-card.playable:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .course-status {

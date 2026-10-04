@@ -2,14 +2,10 @@
  * Yanhe 2.0 Calendar reads: the school day (`search-role-course-list`) and the
  * account's own week (`get-week-schedules`).
  *
- * On aita a GET is not always a read (`course-collect/down` adds a favorite),
- * so nothing here builds a URL from a caller's path: `READ_PATHS` is the whole
- * list of what this module may request.
- *
  * Response bodies carry teacher badges and more than the page needs. Only the
  * parsed rows leave this module, and bodies are never logged.
  */
-import { YANHE2_ORIGIN, YANHE2_TENANT_ID } from '@common/yanhe2';
+import { YANHE2_TENANT_ID } from '@common/yanhe2';
 import {
   shiftDate,
   toSearchTime,
@@ -19,20 +15,9 @@ import {
   type Yanhe2ScheduleDay,
   type Yanhe2SessionStatus,
 } from '@common/yanhe2Calendar';
+import { YANHE2_READ_PATHS, readYanhe2, type Yanhe2Fetched } from './yanhe2Http';
 
-const READ_PATHS = {
-  dayList: '/courseapi/v3/course-live-role/search-role-course-list',
-  weekSchedule: '/courseapi/v2/schedule/get-week-schedules',
-} as const;
-
-const TIMEOUT_MS = 20_000;
-
-export type Yanhe2Fetched<T> =
-  | { kind: 'ok'; data: T }
-  /** 401/403: the token is not accepted. */
-  | { kind: 'rejected' }
-  | { kind: 'network' }
-  | { kind: 'failed' };
+export type { Yanhe2Fetched };
 
 type Row = Record<string, unknown>;
 
@@ -164,37 +149,6 @@ export function fillScheduleDays(days: Yanhe2ScheduleDay[], startDate: string, e
   return out;
 }
 
-async function read(
-  jwt: string,
-  path: (typeof READ_PATHS)[keyof typeof READ_PATHS],
-  params: Record<string, string>,
-): Promise<Yanhe2Fetched<unknown>> {
-  const url = new URL(path, YANHE2_ORIGIN);
-  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-  let response: Response;
-  try {
-    response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        Accept: 'application/json',
-        'tenant-id': String(YANHE2_TENANT_ID),
-      },
-      redirect: 'manual',
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-  } catch {
-    return { kind: 'network' };
-  }
-  // A bad or expired token is a bare 403 with an empty body.
-  if (response.status === 401 || response.status === 403) return { kind: 'rejected' };
-  if (!response.ok) return { kind: 'failed' };
-  try {
-    return { kind: 'ok', data: await response.json() };
-  } catch {
-    return { kind: 'failed' };
-  }
-}
-
 export async function fetchYanhe2Day(
   jwt: string,
   query: { date: string; keyword: string; periodId?: number },
@@ -214,7 +168,7 @@ export async function fetchYanhe2Day(
   if (query.keyword) params.like_title = query.keyword;
   if (query.periodId !== undefined) params.quantum_id = String(query.periodId);
 
-  const fetched = await read(jwt, READ_PATHS.dayList, params);
+  const fetched = await readYanhe2(jwt, YANHE2_READ_PATHS.dayList, params);
   if (fetched.kind !== 'ok') return fetched;
   const data = parseDayList(fetched.data, query.periodId);
   return data ? { kind: 'ok', data } : { kind: 'failed' };
@@ -226,7 +180,7 @@ export async function fetchYanhe2Week(
 ): Promise<Yanhe2Fetched<Yanhe2ScheduleDay[]>> {
   // The site also puts the JWT in `?token=`. The bearer is enough, and a query
   // string ends up in logs and proxies.
-  const fetched = await read(jwt, READ_PATHS.weekSchedule, {
+  const fetched = await readYanhe2(jwt, YANHE2_READ_PATHS.weekSchedule, {
     user_id: String(query.userId),
     tenant_id: String(query.tenantId),
     start_at: query.startDate,

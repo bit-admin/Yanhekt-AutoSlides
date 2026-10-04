@@ -1771,5 +1771,13 @@
     "nextMonth": "下个月",
     "otherPeriod": "其他时段",
     "timetable": "周课表"
+  },
+  "yanhe2Playback": {
+    "errorSignedOut": "延河 2.0 会话已结束。请在账号菜单中重新登录延河 2.0，然后重试。",
+    "errorFailed": "延河 2.0 没有返回这节课。请稍后重试。",
+    "errorPlayer": "视频流已停止播放。请检查网络连接后重试。",
+    "notStarted": "这节课尚未开始。",
+    "processing": "这节课已结束，录像仍在处理中。",
+    "noRecording": "这节课没有可播放的录像。"
   }
 }

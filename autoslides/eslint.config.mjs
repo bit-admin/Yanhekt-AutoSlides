@@ -144,6 +144,8 @@ export default tseslint.config(
   //   lectures → course   (lectureCourseMetaCache uses lookupCourseById)
   //   lectures → video    (useLocalLecturePlayer reuses hlsConfig +
   //                        useVideoErrorRecovery for the local dual player)
+  //   yanhe2 → video      (useYanhe2Player reuses the same two for the
+  //                        playback-only Yanhe 2.0 page)
   // ----------------------------------------------------------------------
   { files: ['src/renderer/features/video/**/*.{ts,vue}'],     rules: featureBoundaryRule('video',     ['course']) },
   { files: ['src/renderer/features/results/**/*.{ts,vue}'],   rules: featureBoundaryRule('results') },
@@ -155,7 +157,7 @@ export default tseslint.config(
   { files: ['src/renderer/features/settings/**/*.{ts,vue}'],  rules: featureBoundaryRule('settings',  ['platform', 'ai']) },
   { files: ['src/renderer/features/platform/**/*.{ts,vue}'],  rules: featureBoundaryRule('platform') },
   { files: ['src/renderer/features/webCapture/**/*.{ts,vue}'],rules: featureBoundaryRule('webCapture') },
-  { files: ['src/renderer/features/yanhe2/**/*.{ts,vue}'],    rules: featureBoundaryRule('yanhe2') },
+  { files: ['src/renderer/features/yanhe2/**/*.{ts,vue}'],    rules: featureBoundaryRule('yanhe2',    ['video']) },
   { files: ['src/renderer/features/cloudNotes/**/*.{ts,vue}'],rules: featureBoundaryRule('cloudNotes', ['course']) },
   { files: ['src/renderer/features/lectures/**/*.{ts,vue}'],  rules: featureBoundaryRule('lectures',  ['course', 'video']) },
 

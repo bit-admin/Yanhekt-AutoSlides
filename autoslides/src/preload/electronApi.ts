@@ -36,6 +36,7 @@ import type {
   Yanhe2ScheduleDay,
   Yanhe2WeekQuery,
 } from '../shared/yanhe2Calendar';
+import type { Yanhe2PlaybackQuery, Yanhe2PlaybackResult } from '../shared/yanhe2Playback';
 import type {
   SlideMetadata,
   SlideMetadataKind,
@@ -402,6 +403,8 @@ export interface ElectronAPI {
     calendarDay: (account: string, query: Yanhe2DayQuery) => Promise<Yanhe2ReadResult<Yanhe2CalendarDay>>;
     /** Calendar → My Courses: the account's own sessions for a date range. */
     calendarWeek: (account: string, query: Yanhe2WeekQuery) => Promise<Yanhe2ReadResult<Yanhe2ScheduleDay[]>>;
+    /** One session's streams. Recorded ones come back as local proxy URLs. */
+    playback: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2PlaybackResult>;
     prepareBrowserSignIn: () => Promise<void>;
     /** `reason: 'pending'` until the browser sign-in webview holds a token. */
     adoptBrowserSession: (account: string) => Promise<Yanhe2SignInResult>;
