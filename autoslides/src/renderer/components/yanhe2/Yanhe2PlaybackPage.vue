@@ -57,6 +57,10 @@
           <span class="detail-label">{{ $t('playback.currentStream') }}</span>
           <span class="detail-value">{{ streamLabel(currentStream.type) }}</span>
         </div>
+        <div class="course-detail-item" v-else-if="isDualSelected">
+          <span class="detail-label">{{ $t('playback.currentStream') }}</span>
+          <span class="detail-value">{{ $t('playback.bothStreams') }}</span>
+        </div>
       </div>
     </div>
 
@@ -81,18 +85,18 @@
       <div v-else-if="playback" class="video-content" :data-playback-mode="mode">
         <div class="player-panel">
           <DualStreamControls
-            :selected-stream="selectedType"
+            :selected-stream="selected"
             :current-playback-rate="playbackRate"
             :streams="selectorStreams"
             :playback-rate-options="playbackRateOptions"
             :mode="mode"
-            :is-dual-stream-selected="false"
+            :is-dual-stream-selected="isDualSelected"
             :is-picture-in-picture="isPictureInPicture"
             :is-cinema-mode="isCinemaMode"
             :should-disable-controls="false"
             :video-player-ready="!!videoPlayer"
-            :has-dual-streams="false"
-            dual-stream-key=""
+            :has-dual-streams="hasDualStreams"
+            :dual-stream-key="YANHE2_BOTH_STREAMS"
             @update:selectedStream="onSelectStream"
             @update:currentPlaybackRate="setPlaybackRate"
             @toggle-picture-in-picture="togglePictureInPicture"
@@ -100,6 +104,7 @@
           />
 
           <div
+            v-if="!isDualSelected"
             ref="videoContainer"
             class="video-container"
             :class="{ 'collapsed': isPictureInPicture, 'is-fullscreen': isFullscreen, 'controls-hidden': !controlsVisible }"
@@ -147,7 +152,7 @@
               :video-player-ready="!!videoPlayer"
               :format-time="formatPlaybackTime"
               @toggle-playback="togglePlayback"
-              @seek-input="seekTo"
+              @seek-input="onSeekInput"
               @volume-input="applyVolume"
               @toggle-mute="toggleMute"
               @toggle-speed-panel="toggleSpeedPanel"
@@ -156,6 +161,79 @@
               @toggle-more-panel="toggleMorePanel"
               @toggle-cinema="toggleCinemaFromMenu"
               @toggle-pip="togglePipFromMenu"
+              @pointer-over-controls="pointerOverControls = $event"
+            />
+          </div>
+
+          <!-- Both Streams: camera + screen side by side, the screen leading. -->
+          <div
+            v-else
+            ref="dualContainer"
+            class="dual-playback-shell"
+            :class="{ 'is-fullscreen': isFullscreen, 'controls-hidden': !controlsVisible }"
+            @mousemove="showControls"
+            @mouseleave="onPlayerPointerLeave"
+          >
+            <div class="video-container dual-video-container">
+              <div class="dual-video-grid">
+                <div class="dual-video-panel" :style="{ order: isOrderSwapped ? 2 : 1 }">
+                  <div class="dual-video-label">{{ $t('playback.streamCamera') }}</div>
+                  <video ref="cameraVideoPlayer" class="dual-video-player" preload="metadata" playsinline @error="onVideoError">
+                    {{ $t('playback.browserNotSupported') }}
+                  </video>
+                </div>
+                <div class="dual-video-panel" :style="{ order: isOrderSwapped ? 1 : 2 }">
+                  <div class="dual-video-label">{{ $t('playback.streamScreen') }}</div>
+                  <video ref="screenVideoPlayer" class="dual-video-player" preload="metadata" playsinline @error="onVideoError">
+                    {{ $t('playback.browserNotSupported') }}
+                  </video>
+                </div>
+              </div>
+              <BufferingOverlay v-if="isBuffering" />
+            </div>
+
+            <SingleStreamControls
+              :mode="mode"
+              :is-playing="isPlaying"
+              :controls-visible="controlsVisible"
+              :should-disable-controls="false"
+              :should-video-mute="false"
+              mute-label-key="playback.mutedByApp"
+              :current-time="currentTime"
+              :duration="duration"
+              :can-seek="canSeek"
+              :seek-progress="seekProgress"
+              :effective-volume="volume"
+              :volume-progress="volumeProgress"
+              :is-muted="volume <= 0"
+              :current-playback-rate="playbackRate"
+              :playback-rate-options="playbackRateOptions"
+              :show-speed-panel="showSpeedPanel"
+              :show-more-panel="showMorePanel"
+              :has-mic-audio="false"
+              :show-audio-panel="showAudioPanel"
+              audio-source="video"
+              :audio-sources="dualAudioSources"
+              :picked-audio="dualAudioSource"
+              can-swap-order
+              :pip-available="false"
+              :is-fullscreen="isFullscreen"
+              :is-cinema-mode="isCinemaMode"
+              :is-picture-in-picture="false"
+              :video-player-ready="true"
+              :format-time="formatPlaybackTime"
+              @toggle-playback="togglePlayback"
+              @seek-input="onSeekInput"
+              @volume-input="applyVolume"
+              @toggle-mute="toggleMute"
+              @toggle-speed-panel="toggleSpeedPanel"
+              @toggle-audio-panel="toggleAudioPanel"
+              @pick-audio="pickDualAudio"
+              @set-playback-rate="setRateFromPanel"
+              @toggle-fullscreen="toggleFullscreen"
+              @toggle-more-panel="toggleMorePanel"
+              @toggle-cinema="toggleCinemaFromMenu"
+              @swap-order="swapOrder"
               @pointer-over-controls="pointerOverControls = $event"
             />
           </div>
@@ -168,13 +246,13 @@
 <script setup lang="ts">
 // A Yanhe 2.0 session opened from the Calendar. Looks like PlaybackPage and
 // shares its player chrome, but only plays: no slide extraction, no notes, no
-// task queue, no watch-position report. One stream at a time (see
-// useYanhe2Player for why there is no Both Streams here).
+// task queue, no watch-position report. One stream, or camera + screen side by
+// side (Both Streams), driven by the same control bar.
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Yanhe2StreamType } from '@common/yanhe2Playback'
-import { useYanhe2Player } from '@features/yanhe2/useYanhe2Player'
+import { useYanhe2Player, YANHE2_BOTH_STREAMS, type Yanhe2StreamChoice } from '@features/yanhe2/useYanhe2Player'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
@@ -201,7 +279,10 @@ const emit = defineEmits<{ back: [] }>()
 const { t } = useI18n()
 
 const videoPlayer = ref<HTMLVideoElement | null>(null)
+const cameraVideoPlayer = ref<HTMLVideoElement | null>(null)
+const screenVideoPlayer = ref<HTMLVideoElement | null>(null)
 const videoContainer = ref<HTMLElement | null>(null)
+const dualContainer = ref<HTMLElement | null>(null)
 
 const {
   loading,
@@ -210,22 +291,29 @@ const {
   playback,
   mode,
   streams,
-  selectedType,
+  selected,
   currentStream,
+  hasDualStreams,
+  isDualSelected,
+  masterVideo,
   playbackRate,
   load,
   selectStream,
   setPlaybackRate,
+  togglePlayback,
+  seekTo,
   onVideoError,
 } = useYanhe2Player({
   account: props.account,
   courseId: props.session.courseId,
   subId: props.session.subId,
   videoPlayer,
+  cameraVideoPlayer,
+  screenVideoPlayer,
   developerMode: toRef(configStore, 'developerMode'),
 })
 
-const { isBuffering } = useBufferingIndicator([videoPlayer])
+const { isBuffering } = useBufferingIndicator([videoPlayer, cameraVideoPlayer, screenVideoPlayer])
 
 // Header. The calendar row is on hand before the session loads; the session's
 // own answer replaces it where the two overlap.
@@ -256,7 +344,7 @@ const selectorStreams = computed(() => {
   }
   return out
 })
-const onSelectStream = (key: string) => selectStream(key as Yanhe2StreamType)
+const onSelectStream = (key: string) => selectStream(key as Yanhe2StreamChoice)
 
 const problemMessage = computed(() => {
   switch (problem.value) {
@@ -290,7 +378,8 @@ const stepPlaybackRate = (dir: 1 | -1) => {
   if (next !== idx) setPlaybackRate(options[next])
 }
 
-// Control-bar state, mirrored off the element.
+// Control-bar state, mirrored off the element that owns the clock (the screen
+// in Both Streams).
 const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
@@ -304,7 +393,7 @@ const seekProgress = computed(() => {
 const volumeProgress = computed(() => `${Math.min(100, Math.max(0, volume.value * 100))}%`)
 
 let detachVideoListeners: (() => void) | null = null
-watch(videoPlayer, (video) => {
+watch(masterVideo, (video) => {
   detachVideoListeners?.()
   detachVideoListeners = null
   isPlaying.value = false
@@ -312,7 +401,6 @@ watch(videoPlayer, (video) => {
   duration.value = 0
   if (!video) return
 
-  video.volume = volume.value
   const onPlayState = () => { isPlaying.value = !video.paused && !video.ended }
   const onTime = () => { currentTime.value = video.currentTime }
   const onDuration = () => {
@@ -332,40 +420,55 @@ watch(videoPlayer, (video) => {
   detachVideoListeners = () => listeners.forEach(([name, handler]) => video.removeEventListener(name, handler))
 })
 
-const togglePlayback = () => {
-  const video = videoPlayer.value
-  if (!video) return
-  if (video.paused) video.play().catch(() => { /* Ignore play rejection (autoplay/buffer) */ })
-  else video.pause()
+const onSeekInput = (time: number) => {
+  currentTime.value = time
+  seekTo(time)
 }
 
-const seekTo = (time: number) => {
-  const video = videoPlayer.value
-  if (!video || !Number.isFinite(video.duration)) return
-  const bounded = Math.min(Math.max(time, 0), video.duration)
-  currentTime.value = bounded
-  video.currentTime = bounded
+// Audio. One element is audible at a time: the single stream, or in Both
+// Streams whichever of the pair is picked (the other plays at volume 0).
+const dualAudioSource = ref<'screen' | 'camera'>('screen')
+const dualAudioSources = computed(() => [
+  { value: 'screen', label: t('playback.dual.screenAudio') },
+  { value: 'camera', label: t('playback.dual.cameraAudio') },
+])
+const applyAudio = () => {
+  if (videoPlayer.value) videoPlayer.value.volume = volume.value
+  if (screenVideoPlayer.value) screenVideoPlayer.value.volume = dualAudioSource.value === 'screen' ? volume.value : 0
+  if (cameraVideoPlayer.value) cameraVideoPlayer.value.volume = dualAudioSource.value === 'camera' ? volume.value : 0
 }
+watch([videoPlayer, cameraVideoPlayer, screenVideoPlayer, dualAudioSource], applyAudio)
 
 const applyVolume = (value: number) => {
   const clamped = Math.min(1, Math.max(0, value))
   volume.value = clamped
   if (clamped > 0) lastNonZeroVolume.value = clamped
-  if (videoPlayer.value) videoPlayer.value.volume = clamped
+  applyAudio()
 }
 
 const toggleMute = () => applyVolume(volume.value > 0 ? 0 : lastNonZeroVolume.value || 1)
 
-// Popovers: one open at a time, and either keeps the bar pinned.
+// Popovers: one open at a time, and any of them keeps the bar pinned.
 const showSpeedPanel = ref(false)
 const showMorePanel = ref(false)
-const toggleSpeedPanel = () => {
-  showSpeedPanel.value = !showSpeedPanel.value
-  if (showSpeedPanel.value) showMorePanel.value = false
+const showAudioPanel = ref(false)
+const openOnly = (panel: typeof showSpeedPanel) => {
+  const next = !panel.value
+  showSpeedPanel.value = showMorePanel.value = showAudioPanel.value = false
+  panel.value = next
 }
-const toggleMorePanel = () => {
-  showMorePanel.value = !showMorePanel.value
-  if (showMorePanel.value) showSpeedPanel.value = false
+const toggleSpeedPanel = () => openOnly(showSpeedPanel)
+const toggleMorePanel = () => openOnly(showMorePanel)
+const toggleAudioPanel = () => openOnly(showAudioPanel)
+const pickDualAudio = (value: string) => {
+  dualAudioSource.value = value === 'camera' ? 'camera' : 'screen'
+  showAudioPanel.value = false
+}
+
+const isOrderSwapped = ref(false)
+const swapOrder = () => {
+  isOrderSwapped.value = !isOrderSwapped.value
+  showMorePanel.value = false
 }
 const setRateFromPanel = (rate: number) => {
   setPlaybackRate(rate)
@@ -374,13 +477,14 @@ const setRateFromPanel = (rate: number) => {
 
 const { controlsVisible, pointerOverControls, showControls, onPlayerPointerLeave } = useControlsVisibility({
   isPlaying,
-  persistSources: [showSpeedPanel, showMorePanel],
+  persistSources: [showSpeedPanel, showMorePanel, showAudioPanel],
 })
 
-// Fullscreen
+// Fullscreen: whichever frame is on screen, the single one or the pair.
 const isFullscreen = ref(false)
+const playerContainer = () => (isDualSelected.value ? dualContainer.value : videoContainer.value)
 const toggleFullscreen = async () => {
-  const container = videoContainer.value
+  const container = playerContainer()
   if (!container) return
   try {
     if (document.fullscreenElement === container) await document.exitFullscreen()
@@ -390,7 +494,8 @@ const toggleFullscreen = async () => {
   }
 }
 const onFullscreenChange = () => {
-  isFullscreen.value = !!videoContainer.value && document.fullscreenElement === videoContainer.value
+  const container = playerContainer()
+  isFullscreen.value = !!container && document.fullscreenElement === container
 }
 
 // Picture in Picture. The API is document-global, so compare against this
@@ -452,7 +557,7 @@ const videoKeyboard = useVideoKeyboard({
   seekSeconds: 5,
   volumeStep: 0.05,
   isModalOpen: () => false,
-  isDisabled: () => !props.isVisible || !videoPlayer.value,
+  isDisabled: () => !props.isVisible || !masterVideo.value,
   isAnyFullscreen: () => isFullscreen.value,
   seekBy: (delta) => seekTo(currentTime.value + delta),
   togglePlayback,

@@ -69,7 +69,7 @@
           audio and the classroom mic — so it only appears when a mic track
           exists. Mirrors the dual bar's popover.
         -->
-        <div v-if="hasMicAudio" class="dual-popover-anchor">
+        <div v-if="hasMicAudio || audioSources" class="dual-popover-anchor">
           <button
             class="dual-icon-button"
             @click="emit('toggle-audio-panel')"
@@ -82,7 +82,22 @@
               <rect x="17" y="14" width="4" height="6" rx="1.5"/>
             </svg>
           </button>
-          <div v-if="showAudioPanel" class="dual-popover dual-audio-popover">
+          <!-- A host with its own audio choices (a camera + screen pair) lists them here. -->
+          <div v-if="showAudioPanel && audioSources" class="dual-popover dual-audio-popover">
+            <button
+              v-for="source in audioSources"
+              :key="source.value"
+              class="dual-popover-option"
+              :class="{ active: pickedAudio === source.value }"
+              @click="emit('pick-audio', source.value)"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polyline v-if="pickedAudio === source.value" points="20,6 9,17 4,12"/>
+              </svg>
+              <span>{{ source.label }}</span>
+            </button>
+          </div>
+          <div v-else-if="showAudioPanel" class="dual-popover dual-audio-popover">
             <button
               class="dual-popover-option"
               :class="{ active: audioSource === 'video' }"
@@ -171,6 +186,13 @@
             </svg>
           </button>
           <div v-if="showMorePanel" class="dual-popover dual-more-popover">
+            <button v-if="canSwapOrder" class="dual-popover-option" @click="emit('swap-order')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M7 7h11l-4-4"/>
+                <path d="M17 17H6l4 4"/>
+              </svg>
+              <span>{{ $t('playback.dual.swapOrder') }}</span>
+            </button>
             <button
               class="dual-popover-option"
               :class="{ active: isCinemaMode }"
@@ -184,6 +206,7 @@
               <span>{{ isCinemaMode ? $t('playback.exitCinemaMode') : $t('playback.cinemaMode') }}</span>
             </button>
             <button
+              v-if="pipAvailable"
               class="dual-popover-option"
               :class="{ active: isPictureInPicture }"
               :disabled="!videoPlayerReady"
@@ -215,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+withDefaults(defineProps<{
   mode: 'live' | 'recorded'
   isPlaying: boolean
   controlsVisible: boolean
@@ -238,12 +261,27 @@ defineProps<{
   hasMicAudio: boolean
   showAudioPanel: boolean
   audioSource: 'video' | 'mic'
+  /**
+   * Replaces the stream/mic pair with the host's own audio choices; the pick
+   * comes back as `pick-audio`. Used when this bar drives a camera + screen pair.
+   */
+  audioSources?: { value: string; label: string }[]
+  pickedAudio?: string
+  /** Adds Swap Order to the More menu (two panes side by side). */
+  canSwapOrder?: boolean
+  /** False hides Picture in Picture: two videos cannot share one PiP window. */
+  pipAvailable?: boolean
   isFullscreen: boolean
   isCinemaMode: boolean
   isPictureInPicture: boolean
   videoPlayerReady: boolean
   formatTime: (duration: string | number) => string
-}>()
+}>(), {
+  audioSources: undefined,
+  pickedAudio: undefined,
+  canSwapOrder: false,
+  pipAvailable: true,
+})
 
 const emit = defineEmits<{
   (e: 'toggle-playback'): void
@@ -253,6 +291,8 @@ const emit = defineEmits<{
   (e: 'toggle-speed-panel'): void
   (e: 'toggle-audio-panel'): void
   (e: 'set-audio-source', source: 'video' | 'mic'): void
+  (e: 'pick-audio', value: string): void
+  (e: 'swap-order'): void
   (e: 'set-playback-rate', rate: number): void
   (e: 'toggle-fullscreen'): void
   (e: 'toggle-more-panel'): void
