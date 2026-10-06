@@ -4,8 +4,8 @@
   "private": true,
   "description": "Cloudflare Worker that proxies yanhekt recorded videos through their anti-hotlink signing scheme.",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "dev": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/stamp-placement.mjs && wrangler dev",
+    "deploy": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/stamp-placement.mjs && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

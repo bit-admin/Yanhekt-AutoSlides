@@ -9,6 +9,7 @@ dist/
 !.env.example
 
 wrangler.jsonc
+public/placement.json
 
 .DS_Store
 .idea/

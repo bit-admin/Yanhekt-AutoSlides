@@ -116,7 +116,7 @@
   </div>
 
   <section class="panel conn" id="tab-conn" role="tabpanel" aria-labelledby="tab-btn-conn">
-    <p class="sub">Where you are, which Cloudflare city you reached, and whether that path looks fast.</p>
+    <p class="sub">The recording goes from Beijing to the Worker, then to the Cloudflare city you reached, then to you.</p>
     <div id="conn-body"><p class="hint">Reading Cloudflare edge&hellip;</p></div>
   </section>
 
@@ -130,7 +130,7 @@
     <textarea id="video" placeholder="https://cvideo.Yanhekt.cn/.../index.m3u8" spellcheck="false"></textarea>
 
     <label class="check"><input id="nocache" type="checkbox" /> Bypass shared cache (<code>nocache=1</code>)</label>
-    <div class="hint">Forces every playlist/segment fetch to go to Yanhekt instead of the edge cache. Slower; only useful for debugging.</div>
+    <div class="hint">Forces every playlist and segment fetch to go to Yanhekt instead of the shared cache. Slower; only useful for debugging.</div>
 
     <div class="row">
       <button class="primary" id="gen">Generate URL</button>
@@ -312,7 +312,6 @@
     SJW: 1, SZX: 1, TAO: 1, TEN: 1, TNA: 1, TPE: 1, TYN: 1, URT: 1, VTE: 1, XFN: 1,
     XIY: 1
   };
-  var NEAR_LOC = { BN: 1, CN: 1, HK: 1, ID: 1, JP: 1, KH: 1, KR: 1, LA: 1, MO: 1, MY: 1, PH: 1, SG: 1, TH: 1, TW: 1, VN: 1 };
   var COLO_CC = {
     AAE: 'DZ', ABJ: 'CI', ABQ: 'US', ACC: 'GH', ACX: 'CN', ADB: 'TR', ADD: 'ET',
     ADL: 'AU', AGR: 'IN', AIP: 'IN', AKL: 'NZ', AKX: 'KZ', ALA: 'KZ', ALG: 'DZ',
@@ -665,15 +664,85 @@
     return COLO[colo] || colo || 'an unknown city';
   }
 
-  function pathHint(loc, colo) {
+  function normalizePlacement(j) {
+    if (!j || !j.origin || typeof j.origin.host !== 'string' || !j.closest || typeof j.closest.colo !== 'string') return null;
+    var pinned = j.pinned !== false && typeof j.region === 'string' && !!j.region;
+    return {
+      pinned: pinned,
+      region: pinned ? j.region : '',
+      colo: pinned && typeof j.colo === 'string' ? j.colo.toUpperCase() : '',
+      city: pinned && typeof j.city === 'string' ? j.city : '',
+      closestToOrigin: pinned && !!j.closestToOrigin,
+      closest: {
+        region: j.closest.region || '',
+        colo: String(j.closest.colo).toUpperCase(),
+        city: j.closest.city || ''
+      },
+      origin: {
+        host: j.origin.host,
+        address: j.origin.address || '',
+        where: j.origin.where || ''
+      }
+    };
+  }
+
+  function placeCityOf(place) {
+    if (!place || !place.colo) return '';
+    return place.city || coloCity(place.colo);
+  }
+
+  function originPhrase(place) {
+    var o = place.origin;
+    return 'The recording origin is <code>' + escapeHtml(o.host) + '</code> (<code>' +
+      escapeHtml(o.address) + '</code>) in ' + escapeHtml(o.where) + '.';
+  }
+
+  function closestCityOf(place) {
+    if (!place || !place.closest) return 'Hong Kong';
+    return place.closest.city || coloCity(place.closest.colo);
+  }
+
+  function pinReason(place) {
+    if (!place) return 'Could not tell where this Worker runs.';
+    var origin = originPhrase(place);
+    var closest = escapeHtml(closestCityOf(place));
+    if (!place.pinned) {
+      return origin + ' This relay is not pinned, so the Worker runs in the Cloudflare city you reached. The recording goes from Beijing to that city, then to you.';
+    }
+    if (!place.colo) {
+      return origin + ' This relay runs in <code>' + escapeHtml(place.region) +
+        '</code>. This page cannot name that city. ' + closest + ' is the closest Cloudflare region to Beijing.';
+    }
+    var here = escapeHtml(placeCityOf(place));
+    var route = origin + ' It goes from Beijing to ' + here + ', where this relay runs, then to the Cloudflare city you reached, then to you.';
+    if (place.closestToOrigin) return route + ' ' + here + ' is the closest Cloudflare region to Beijing.';
+    return route;
+  }
+
+  function pathHint(loc, colo, place) {
     var locName = loc ? (countryName(loc) || loc) : 'an unknown country';
     var city = coloCity(colo);
-    var samePlace = !!(loc && COLO_CC[colo] && COLO_CC[colo] === loc);
     var nearColo = !!NEAR_COLO[colo];
-    var nearLoc = !!NEAR_LOC[loc];
-    var proxy = ' Consider adding <code>ruc.edu.kg</code> to your proxy group so this site exits closer to East Asia.';
+    var pinCity = place && place.pinned ? placeCityOf(place) : '';
+    var closest = place ? closestCityOf(place) : 'Hong Kong';
+    var proxyTo = function (name) {
+      return ' Consider adding <code>ruc.edu.kg</code> to your proxy group so you enter closer to ' + escapeHtml(name) + '.';
+    };
 
     if (!colo) {
+      if (place && place.pinned && pinCity) {
+        return {
+          cls: 'verdict--muted',
+          html: 'Could not tell which Cloudflare city you reached. The recording still goes from Beijing to ' +
+            escapeHtml(pinCity) + ', then to that city, then to you.'
+        };
+      }
+      if (place && !place.pinned) {
+        return {
+          cls: 'verdict--muted',
+          html: 'Could not tell which Cloudflare city you reached. This relay is not pinned, so the Worker runs in that city.'
+        };
+      }
       return { cls: 'verdict--muted', html: 'Could not tell which Cloudflare city you reached.' };
     }
     if (loc === 'CN' && COLO_CC[colo] === 'CN') {
@@ -683,42 +752,76 @@
           'and this request still entered in ' + escapeHtml(city) + '. How did you do that?'
       };
     }
-    if (samePlace && nearColo) {
+    if (!place || (place.pinned && !place.colo)) {
       return {
-        cls: 'verdict--ok',
-        html: 'You are in ' + escapeHtml(locName) + ' and connected to Cloudflare ' +
-          escapeHtml(city) + '. This path should be smooth — the video origin is in China.'
+        cls: 'verdict--muted',
+        html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
+          '. Could not tell where this Worker runs, so this path cannot be compared.'
       };
     }
-    if (nearColo && nearLoc) {
+    if (!place.pinned) {
+      if (place.closest && colo === place.closest.colo) {
+        return {
+          cls: 'verdict--ok',
+          html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
+            '. This relay is not pinned, so the Worker runs here. The recording goes from Beijing to ' +
+            escapeHtml(city) + ', then to you. That is the short path.'
+        };
+      }
+      if (nearColo) {
+        return {
+          cls: 'verdict--ok',
+          html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
+            '. This relay is not pinned, so the Worker runs here. The recording goes from Beijing to ' +
+            escapeHtml(city) + ', then to you. ' + escapeHtml(closest) + ' would be closer to Beijing, but this is still a short hop.'
+        };
+      }
+      return {
+        cls: 'verdict--warn',
+        html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
+          '. This relay is not pinned, so the Worker runs here. The recording has to come from Beijing all the way to ' +
+          escapeHtml(city) + '.' + proxyTo(closest)
+      };
+    }
+    if (colo === place.colo) {
+      var tail = place.closestToOrigin ? ' That is the short path.' : '';
       return {
         cls: 'verdict--ok',
-        html: 'You are in ' + escapeHtml(locName) + ' and connected via ' + escapeHtml(city) +
-          '. That is a short hop toward the video origin in China, so playback should be reasonably fast.'
+        html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
+          ', where this Worker runs. The recording goes from Beijing to ' + escapeHtml(city) + ', then to you.' + tail
       };
     }
     if (nearColo) {
       return {
         cls: 'verdict--ok',
-        html: 'You are in ' + escapeHtml(locName) + ', and this request entered Cloudflare in ' +
-          escapeHtml(city) + ', which is close to the video origin in China. Origin fetch should be fine.'
-      };
-    }
-    if (nearLoc) {
-      return {
-        cls: 'verdict--warn',
-        html: 'You are in ' + escapeHtml(locName) + ' but connected via ' + escapeHtml(city) +
-          '. That is a long detour from the video origin in China, so speed may be limited.' + proxy
+        html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
+          '. The recording goes from Beijing to ' + escapeHtml(pinCity) + ', then to ' +
+          escapeHtml(city) + ', then to you. That is a short hop.'
       };
     }
     return {
       cls: 'verdict--warn',
-      html: 'You are in ' + escapeHtml(locName) + ' and connected via ' + escapeHtml(city) +
-        '. The video origin is in China, so this path may be slow.' + proxy
+      html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
+        '. The recording goes from Beijing to ' + escapeHtml(pinCity) + ', then across to ' +
+        escapeHtml(city) + ', then to you. That is a long way back.' + proxyTo(pinCity)
     };
   }
 
-  function renderConn(t, raw, asnInfo) {
+  function workerRow(place, colo) {
+    if (!place) return 'unavailable';
+    if (!place.pinned) {
+      if (!colo) return 'same as Edge';
+      return escapeHtml(coloCity(colo) + ' (' + colo + ')') + ' <span class="pill pill--muted">not pinned</span>';
+    }
+    if (!place.colo) {
+      return '<code>' + escapeHtml(place.region) + '</code> <span class="pill pill--muted">configured</span>';
+    }
+    return escapeHtml(placeCityOf(place) + ' (' + place.colo + ')') +
+      ' <code>' + escapeHtml(place.region) + '</code>' +
+      ' <span class="pill pill--muted">configured</span>';
+  }
+
+  function renderConn(t, raw, asnInfo, place) {
     var colo = (t.colo || '').toUpperCase();
     var loc = (t.loc || '').toUpperCase();
     var locName = loc ? (countryName(loc) || loc) : 'an unknown country';
@@ -728,14 +831,25 @@
     var listed = allowEntry(asn);
     var org = listed ? listed.isp : ((asnInfo && asnInfo.org) || '');
     var asnText = asn == null ? 'unavailable' : ('AS' + asn + (org ? ' — ' + org : ''));
-    var path = pathHint(loc, colo);
+    var path = pathHint(loc, colo, place);
+    var pinCity = place && place.pinned ? placeCityOf(place) : '';
 
-    var lead = 'You are in <strong>' + escapeHtml(locName) + '</strong>, connected to Cloudflare <strong>' +
+    var lead = 'You are in <strong>' + escapeHtml(locName) + '</strong>, and you reached Cloudflare in <strong>' +
       escapeHtml(city) + '</strong>' + (colo ? ' (' + escapeHtml(colo) + ')' : '') + '.';
+    if (pinCity) {
+      lead += ' The Worker runs in <strong>' + escapeHtml(pinCity) + '</strong> (' + escapeHtml(place.colo) + ').';
+    } else if (place && !place.pinned) {
+      lead += colo
+        ? ' The Worker runs in that same city.'
+        : ' This relay is not pinned, so the Worker runs in the city you reached.';
+    } else {
+      lead += ' Could not tell where this Worker runs.';
+    }
 
     var rows =
       row('You', escapeHtml(loc ? locName + ' (' + loc + ')' : 'unknown'), true) +
-      row('Cloudflare', escapeHtml(city + (colo ? ' (' + colo + ')' : '')), true) +
+      row('Edge', escapeHtml(city + (colo ? ' (' + colo + ')' : '')), true) +
+      row('Worker', workerRow(place, colo), true) +
       row('IP', escapeHtml(t.ip || '—')) +
       row('Network', escapeHtml(asnText) + (listed
         ? ' <span class="pill pill--ok">allowlisted</span>'
@@ -764,8 +878,9 @@
       '<p class="conn-lead">' + lead + '</p>' +
       '<div class="src">' +
         '<h3>Cloudflare</h3>' +
-        '<p class="hint">Edge trace and ASN for this request.</p>' +
+        '<p class="hint">Beijing, then the Worker, then this Edge city, then you. With no pin, the Worker is the Edge city.</p>' +
         '<div class="kv">' + rows + '</div>' +
+        '<p class="hint">' + pinReason(place) + '</p>' +
         '<div class="verdict ' + path.cls + '">' + path.html + '</div>' +
         '<details><summary>Raw /cdn-cgi/trace</summary><pre>' + escapeHtml(raw.trim()) + '</pre></details>' +
       '</div>' +
@@ -775,11 +890,12 @@
       '<details class="mean">' +
         '<summary>What this means?</summary>' +
         '<div class="mean-body">' +
-          '<p>This relay runs on Cloudflare, and Cloudflare has no data centre in mainland China. Traffic from campus therefore always leaves the country to reach the nearest Cloudflare city.</p>' +
-          '<p>Hong Kong (<code>HKG</code>) is usually the shortest hop to the video origin in China. Singapore (<code>SIN</code>), Tokyo, Osaka, Seoul, Taipei, and Macau are also nearby and typically play well.</p>' +
-          '<p>On campus you will most often land in Hong Kong or Singapore. Cloudflare can still send you farther &mdash; Los Angeles (<code>LAX</code>) and San Jose (<code>SJC</code>) show up sometimes &mdash; and that longer path is slower.</p>' +
+          '<p>This relay runs on Cloudflare, and Cloudflare has no data centre in mainland China. Campus traffic always leaves the country to reach the nearest Cloudflare city. That city is the Edge row above.</p>' +
+          '<p>Hong Kong is the closest Cloudflare city to the recording in Beijing. When the relay is pinned there, a far Edge such as Los Angeles (<code>LAX</code>) or San Jose (<code>SJC</code>) only lengthens the last hop. When it is not pinned, the Worker runs in the Edge city, so a far Edge fetches Beijing from there. Campus traffic usually reaches Hong Kong or Singapore. Tokyo, Osaka, Seoul, Taipei, and Macau are still nearby.</p>' +
           '<p>This service allows campus networks on the list above. Other networks may be challenged or blocked by Cloudflare.</p>' +
-          '<p>Routing <code>ruc.edu.kg</code> through a Hong Kong proxy can shorten a detour, but off-campus you still have to pass a Cloudflare challenge in the browser first. Dedicated players (VLC, ffmpeg, and many HLS apps) cannot complete that challenge, so they will fail even after this page loads.</p>' +
+          '<p>Routing <code>ruc.edu.kg</code> through a proxy that exits near ' +
+            escapeHtml(pinCity || (place ? closestCityOf(place) : 'Hong Kong')) +
+            ' puts the Edge on the short path. Off-campus you still have to pass a Cloudflare challenge in the browser first. Dedicated players (VLC, ffmpeg, and many HLS apps) cannot complete that challenge, so they will fail even after this page loads.</p>' +
         '</div>' +
       '</details>' +
       '<div class="src" id="rdap">' +
@@ -793,13 +909,20 @@
       '</div>';
   }
 
+  function loadPlacement() {
+    return fetch('/placement.json', { cache: 'no-store' }).then(function (r) {
+      if (!r.ok) return null;
+      return r.json();
+    }).then(normalizePlacement).catch(function () { return null; });
+  }
+
   fetch('/cdn-cgi/trace', { cache: 'no-store' }).then(function (r) {
     if (!r.ok) throw new Error('trace ' + r.status);
     return r.text();
   }).then(function (raw) {
     var t = parseTrace(raw);
-    return loadAsn().then(function (asnInfo) {
-      renderConn(t, raw, asnInfo);
+    return Promise.all([loadAsn(), loadPlacement()]).then(function (pair) {
+      renderConn(t, raw, pair[0], pair[1]);
       return loadRdap(t.ip).then(renderRdap);
     });
   }).catch(function () {

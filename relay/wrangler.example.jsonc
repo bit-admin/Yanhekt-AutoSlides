@@ -16,8 +16,13 @@
     "enabled": false
   },
 
-  // Region placement (dashboard: Region → AWS → ap-east-1): the isolate runs
-  // in the Cloudflare data center closest to AWS Hong Kong.
+  // Region placement. Change `region`, or delete this block to run the Worker
+  // in the edge city the viewer reached. Then `npm run dev` or `npm run deploy`.
+  // The recording origin is cvideo.yanhekt.cn (183.243.192.45) in Beijing, so
+  // the closest pin is aws:ap-east-1 (Hong Kong). Asia tests:
+  // aws:ap-northeast-2 (Seoul), aws:ap-northeast-1 (Tokyo),
+  // aws:ap-northeast-3 (Osaka), aws:ap-southeast-1 (Singapore).
+  // See src/placementRegions.ts.
   "placement": {
     "region": "aws:ap-east-1"
   },

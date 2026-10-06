@@ -52,7 +52,7 @@ bindings: Cache API only.
 
 | Route | Purpose |
 |-------|---------|
-| `GET /` | Static page: paste a token + `.m3u8`, generate a playable URL, test with hls.js. Connection details come from `/cdn-cgi/trace` (Cloudflare edge, not this Worker) and the optional `x-client-asn` header on `/cf.txt`. |
+| `GET /` | Static page: paste a token + `.m3u8`, generate a playable URL, test with hls.js. The edge colo comes from `/cdn-cgi/trace` (the city that served this page, not where the Worker runs) and ASN from the optional `x-client-asn` header on `/cf.txt`. The Worker city comes from `/placement.json`, stamped at `npm run dev` / `npm run deploy` from `placement.region`. |
 | `GET /cf.txt` | Static `ok` — ASN header beacon and cross-origin reachability probe. |
 | `GET /playlist?u=<m3u8>&t=<token>` | Fetch + sign the playlist, rewrite child lines back through the proxy. |
 | `GET /segment?u=<url>&t=<token>` | Fetch + sign a segment and stream it (`Range` supported). |
@@ -146,8 +146,11 @@ npm run deploy           # wrangler login first
 
 The example config also sets:
 
-- **Smart Placement** on `cvideo.yanhekt.cn` — run the isolate close to the
-  video origin, since every cache miss proxies there.
+- **Region placement** `aws:ap-east-1` — the recording goes Beijing → the
+  pin city → the edge city you reached → you. Hong Kong is the closest pin
+  to `cvideo.yanhekt.cn` (`183.243.192.45`). To try Seoul, Tokyo, Osaka, or
+  Singapore, change `placement.region`. Delete the `placement` block to run
+  the Worker in the edge city instead. Then `npm run dev` or `npm run deploy`.
 - **`observability.enabled: false`** — query strings carry `t=`. Leave it off
   or scrub logs if that matters.
 
