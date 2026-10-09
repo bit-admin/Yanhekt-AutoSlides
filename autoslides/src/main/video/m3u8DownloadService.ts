@@ -9,7 +9,7 @@ import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { ApiClient } from '@main/platform/apiClient';
 import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '@common/crypto';
 import { formatEmptyRecording, formatSegmentsMissing, isEmptyMediaPlaylist, parseRecordingProblem } from '@common/recordingProblems';
-import { createIntranetAxios, type IntranetAxiosBundle } from '@main/infra/intranetAxios';
+import { createIntranetAxios, type IntranetAxiosBundle } from '@main/infra/intranetTransport';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('M3u8Download');
 
@@ -413,8 +413,14 @@ class M3u8Downloader {
         throw new Error(`Failed to get m3u8 info: ${response.status}`);
       }
 
-      this.frontUrl = response.request.res?.responseUrl?.split(response.request.path)[0] ||
-                     m3u8Url.substring(0, m3u8Url.lastIndexOf('/'));
+      // In intranet mode the response URL carries the mapped IP, and a segment
+      // URL built on a bare IP would get neither the rewrite nor its Host
+      // header. Keep the playlist's own origin so root-absolute lines stay on
+      // the hostname.
+      this.frontUrl = this.isIntranetMode
+        ? new URL(m3u8Url).origin
+        : response.request.res?.responseUrl?.split(response.request.path)[0] ||
+          m3u8Url.substring(0, m3u8Url.lastIndexOf('/'));
 
       const responseText = response.data;
 

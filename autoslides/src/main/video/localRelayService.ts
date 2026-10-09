@@ -1,5 +1,4 @@
 import * as http from 'http';
-import * as https from 'https';
 import * as os from 'os';
 import * as url from 'url';
 import type { AxiosResponse } from 'axios';
@@ -7,8 +6,9 @@ import { ApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { ProxyAuth } from './videoProxy/proxyAuth';
-import { fetchRecordedWithResign, type ProxyAgents } from './videoProxy/proxyRequest';
+import { fetchRecordedWithResign } from './videoProxy/proxyRequest';
 import { createLogger } from '@main/infra/logger';
+import { IntranetAgentPool } from '@main/infra/intranetTransport';
 
 const log = createLogger('LocalRelay');
 
@@ -106,13 +106,7 @@ export class LocalRelayService {
   private lastError: string | null = null;
   private startPromise: Promise<void> | null = null;
 
-  private httpAgent: http.Agent = new http.Agent({ keepAlive: true });
-  private httpsAgent: https.Agent = new https.Agent({ keepAlive: true });
-  private httpsAgentNoVerify: https.Agent = new https.Agent({
-    keepAlive: true,
-    rejectUnauthorized: false
-  });
-  private boundInterfaceIp = '';
+  private agentPool: IntranetAgentPool;
 
   /** Per-login-token video-token cache (same isolation model as VideoProxyService). */
   private authByToken = new Map<string, ProxyAuth>();
@@ -122,8 +116,9 @@ export class LocalRelayService {
     private intranetMapping: IntranetMappingService,
     private configService: ConfigService
   ) {
+    this.agentPool = new IntranetAgentPool(intranetMapping);
     this.intranetMapping.on('interfaceIpChanged', () => {
-      this.rebuildAgents('');
+      this.agentPool.reset();
     });
   }
 
@@ -420,7 +415,7 @@ export class LocalRelayService {
   ): Promise<AxiosResponse> {
     return fetchRecordedWithResign(auth, rawUrl, {
       intranetMapping: this.intranetMapping,
-      agents: () => this.resolveAgents(),
+      agents: () => this.agentPool.resolve(),
       baseHeaders: MEDIA_HEADERS,
       extraHeaders: opts.range ? { Range: opts.range } : undefined,
       timeout: opts.timeout,
@@ -467,59 +462,6 @@ export class LocalRelayService {
       this.authByToken.delete(oldest);
     }
     return auth;
-  }
-
-  // ---- Agents / intranet bind ----------------------------------------------
-
-  private resolveAgents(): ProxyAgents {
-    let desiredIp = '';
-    if (this.intranetMapping.isEnabled()) {
-      const selected = this.intranetMapping.getInterfaceIp();
-      if (selected && this.isInterfaceIpAvailable(selected)) {
-        desiredIp = selected;
-      }
-    }
-    if (desiredIp !== this.boundInterfaceIp) {
-      this.rebuildAgents(desiredIp);
-    }
-    return {
-      httpAgent: this.httpAgent,
-      httpsAgent: this.httpsAgent,
-      httpsAgentNoVerify: this.httpsAgentNoVerify
-    };
-  }
-
-  private rebuildAgents(localAddress: string): void {
-    try {
-      this.httpAgent.destroy();
-      this.httpsAgent.destroy();
-      this.httpsAgentNoVerify.destroy();
-    } catch {
-      // ignore
-    }
-    const baseHttp: http.AgentOptions = { keepAlive: true };
-    const baseHttps: https.AgentOptions = { keepAlive: true };
-    const baseHttpsNoVerify: https.AgentOptions = { keepAlive: true, rejectUnauthorized: false };
-    if (localAddress) {
-      baseHttp.localAddress = localAddress;
-      baseHttps.localAddress = localAddress;
-      baseHttpsNoVerify.localAddress = localAddress;
-    }
-    this.httpAgent = new http.Agent(baseHttp);
-    this.httpsAgent = new https.Agent(baseHttps);
-    this.httpsAgentNoVerify = new https.Agent(baseHttpsNoVerify);
-    this.boundInterfaceIp = localAddress;
-  }
-
-  private isInterfaceIpAvailable(ip: string): boolean {
-    const ifaces = os.networkInterfaces();
-    for (const addrs of Object.values(ifaces)) {
-      if (!addrs) continue;
-      for (const addr of addrs) {
-        if (!addr.internal && addr.address === ip) return true;
-      }
-    }
-    return false;
   }
 
   private listBindAddresses(): string[] {

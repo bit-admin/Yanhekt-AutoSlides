@@ -1,6 +1,5 @@
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
-import type * as http from 'http';
-import type * as https from 'https';
+import { intranetTarget, type IntranetAgents } from '@main/infra/intranetTransport';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { ProxyAuth } from './proxyAuth';
 
@@ -12,11 +11,7 @@ import type { ProxyAuth } from './proxyAuth';
  * request-preparation bodies live here.
  */
 
-export interface ProxyAgents {
-  httpAgent: http.Agent;
-  httpsAgent: https.Agent;
-  httpsAgentNoVerify: https.Agent;
-}
+export type ProxyAgents = IntranetAgents;
 
 export interface SignedRequest {
   requestUrl: string;
@@ -52,12 +47,12 @@ export async function signRecordedUrl(
   const headers: Record<string, string> = { ...baseHeaders, Host: RECORDED_HOST };
 
   // Rewrite URL for intranet mode if needed; update Host header to match.
-  const requestUrl = intranetMapping.rewriteUrl(signedUrl);
-  if (requestUrl !== signedUrl) {
-    headers['Host'] = new URL(signedUrl).hostname;
+  const target = intranetTarget(signedUrl, (u) => intranetMapping.rewriteUrl(u));
+  if (target.host) {
+    headers['Host'] = target.host;
   }
 
-  return { requestUrl, headers };
+  return { requestUrl: target.url, headers };
 }
 
 /**

@@ -17,7 +17,7 @@ import { pipeline } from 'node:stream/promises';
 import type { Readable } from 'node:stream';
 import axios from 'axios';
 import { expandTilde } from '@main/infra/pathUtils';
-import { createIntranetAxios } from '@main/infra/intranetAxios';
+import { createIntranetAxios } from '@main/infra/intranetTransport';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { createLogger } from '@main/infra/logger';

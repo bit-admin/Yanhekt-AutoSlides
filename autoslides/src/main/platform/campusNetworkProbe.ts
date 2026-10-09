@@ -73,7 +73,7 @@ export function probeCampusConnection(opts: CampusProbeOptions): Promise<CampusP
       method: 'GET',
       timeout: timeoutMs,
       // Bind to the configured intranet interface when one is selected, mirroring
-      // how the video proxy pins its agents (videoProxyService.rebuildAgents).
+      // how the video requests pin theirs (infra/intranetTransport).
       localAddress: interfaceIp ?? undefined,
     };
 

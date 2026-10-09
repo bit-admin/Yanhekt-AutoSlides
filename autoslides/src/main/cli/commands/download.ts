@@ -75,7 +75,6 @@ export async function runDownload(args: readonly string[], ctx: CliContext): Pro
   // the app's own connection mode is deliberately ignored (owner ruling), so a
   // command behaves the same whatever the app happens to be set to.
   const isIntranetMode = options.intranet;
-  if (isIntranetMode) ctx.intranetMappingService.enableForThisProcess();
 
   let lecture;
   try {

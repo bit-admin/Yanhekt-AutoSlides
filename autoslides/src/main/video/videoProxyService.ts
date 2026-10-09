@@ -1,8 +1,6 @@
 import * as http from 'http';
 import * as url from 'url';
 import axios, { AxiosResponse } from 'axios';
-import * as https from 'https';
-import * as os from 'os';
 import { ApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
@@ -19,6 +17,7 @@ import { handleYanhe2PlayRequest } from './videoProxy/yanhe2Play';
 import { YANHE2_PLAY_ROUTE, yanhe2PlayProxyUrl } from './videoProxy/yanhe2PlayUrls';
 import type { Yanhe2PlayIdentity } from '@main/platform/yanhe2/yanhe2Playback';
 import { createLogger } from '@main/infra/logger';
+import { IntranetAgentPool, intranetTarget } from '@main/infra/intranetTransport';
 const log = createLogger('VideoProxy');
 
 /** Narrow an unknown catch value to the axios-ish fields this proxy logs. */
@@ -98,11 +97,8 @@ export class VideoProxyService {
   // (making proxyServer truthy) while listen() resolves the port asynchronously,
   // so a second caller arriving in that window would otherwise read proxyPort=0.
   private proxyStartPromise: Promise<number> | null = null;
-  private httpAgent: http.Agent = new http.Agent({ keepAlive: true });
-  private httpsAgent: https.Agent = new https.Agent({ keepAlive: true });
-  private httpsAgentNoVerify: https.Agent = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
-  // Track the local IP the agents are currently bound to ('' means unbound / system default).
-  private boundInterfaceIp = '';
+  // Keep-alive agents, bound to the selected interface while intranet mode is on.
+  private agentPool: IntranetAgentPool;
 
   // Reference counting for independent mode support
   private activeClients: Set<string> = new Set();
@@ -137,8 +133,9 @@ export class VideoProxyService {
 
     // Proactively invalidate bound agents when the user changes the selected
     // intranet interface IP in Advanced Settings.
+    this.agentPool = new IntranetAgentPool(intranetMapping);
     this.intranetMapping.on('interfaceIpChanged', () => {
-      this.rebuildAgents('');
+      this.agentPool.reset();
     });
   }
 
@@ -163,71 +160,6 @@ export class VideoProxyService {
     for (const auth of this.authByToken.values()) {
       auth.stopUpdateSignatureLoop();
     }
-  }
-
-  /**
-   * Return HTTP(S) agents to use for the current request. When intranet mode is
-   * enabled and a bind IP has been selected, the agents bind outbound sockets to
-   * that local address via Node's `localAddress`. When the IP is no longer
-   * present on any interface (NIC unplugged, VPN disconnected), fall back to
-   * unbound agents to avoid EADDRNOTAVAIL.
-   */
-  private resolveAgents(): { httpAgent: http.Agent; httpsAgent: https.Agent; httpsAgentNoVerify: https.Agent } {
-    let desiredIp = '';
-    if (this.intranetMapping.isEnabled()) {
-      const selected = this.intranetMapping.getInterfaceIp();
-      if (selected && this.isInterfaceIpAvailable(selected)) {
-        desiredIp = selected;
-      } else if (selected) {
-        log.warn(`[videoProxy] Selected intranet interface IP ${selected} is not currently available; falling back to system default.`);
-      }
-    }
-
-    if (desiredIp !== this.boundInterfaceIp) {
-      this.rebuildAgents(desiredIp);
-    }
-
-    return {
-      httpAgent: this.httpAgent,
-      httpsAgent: this.httpsAgent,
-      httpsAgentNoVerify: this.httpsAgentNoVerify
-    };
-  }
-
-  private rebuildAgents(localAddress: string): void {
-    try {
-      this.httpAgent.destroy();
-      this.httpsAgent.destroy();
-      this.httpsAgentNoVerify.destroy();
-    } catch {
-      // Ignore destroy errors on stale agents.
-    }
-
-    const baseHttp: http.AgentOptions = { keepAlive: true };
-    const baseHttps: https.AgentOptions = { keepAlive: true };
-    const baseHttpsNoVerify: https.AgentOptions = { keepAlive: true, rejectUnauthorized: false };
-
-    if (localAddress) {
-      baseHttp.localAddress = localAddress;
-      baseHttps.localAddress = localAddress;
-      baseHttpsNoVerify.localAddress = localAddress;
-    }
-
-    this.httpAgent = new http.Agent(baseHttp);
-    this.httpsAgent = new https.Agent(baseHttps);
-    this.httpsAgentNoVerify = new https.Agent(baseHttpsNoVerify);
-    this.boundInterfaceIp = localAddress;
-  }
-
-  private isInterfaceIpAvailable(ip: string): boolean {
-    const ifaces = os.networkInterfaces();
-    for (const addrs of Object.values(ifaces)) {
-      if (!addrs) continue;
-      for (const addr of addrs) {
-        if (!addr.internal && addr.address === ip) return true;
-      }
-    }
-    return false;
   }
 
   /**
@@ -575,7 +507,7 @@ export class VideoProxyService {
   ): Promise<AxiosResponse> {
     return fetchRecordedWithResign(auth, rawUrl, {
       intranetMapping: this.intranetMapping,
-      agents: () => this.resolveAgents(),
+      agents: () => this.agentPool.resolve(),
       baseHeaders: this.BASE_HEADERS,
       timeout: opts.timeout,
       responseType: opts.responseType,
@@ -602,7 +534,7 @@ export class VideoProxyService {
 
     while (true) {
       const requestUrl = this.intranetMapping.rewriteUrl(rawUrl);
-      const agents = this.resolveAgents();
+      const agents = this.agentPool.resolve();
       const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, headers, opts);
 
       try {
@@ -673,14 +605,14 @@ export class VideoProxyService {
 
     // Same shape as every other proxied request: rewrite for intranet, then
     // re-attach the real hostname so the upstream vhost still matches.
-    const requestUrl = this.intranetMapping.rewriteUrl(audioUrl);
-    if (requestUrl !== audioUrl) {
-      headers['Host'] = new URL(audioUrl).hostname;
+    const target = intranetTarget(audioUrl, (u) => this.intranetMapping.rewriteUrl(u));
+    if (target.host) {
+      headers['Host'] = target.host;
     }
 
     const response = await axios.get(
-      requestUrl,
-      buildAxiosConfig(this.intranetMapping, this.resolveAgents(), headers, {
+      target.url,
+      buildAxiosConfig(this.intranetMapping, this.agentPool.resolve(), headers, {
         timeout: 30000,
         responseType: 'stream',
       }),
@@ -992,9 +924,7 @@ export class VideoProxyService {
     }
 
     // Destroy keep-alive agents to close idle sockets
-    this.httpAgent.destroy();
-    this.httpsAgent.destroy();
-    this.httpsAgentNoVerify.destroy();
+    this.agentPool.reset();
 
     // Clear all active clients
     this.activeClients.clear();

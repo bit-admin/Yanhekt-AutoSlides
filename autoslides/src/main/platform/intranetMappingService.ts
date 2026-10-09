@@ -128,15 +128,6 @@ export class IntranetMappingService extends EventEmitter {
   }
 
   /**
-   * Turn host rewriting on for this process only, without saving it. Used by
-   * the command line downloader's `--intranet`, which must not change the
-   * app's own setting.
-   */
-  enableForThisProcess(): void {
-    this.enabled = true;
-  }
-
-  /**
    * Check if intranet mode is enabled
    */
   isEnabled(): boolean {
@@ -230,10 +221,15 @@ export class IntranetMappingService extends EventEmitter {
    * Rewrite URL for intranet mode if enabled
    */
   rewriteUrl(url: string): string {
-    if (!this.enabled) {
-      return url;
-    }
+    return this.enabled ? this.mapUrl(url) : url;
+  }
 
+  /**
+   * Swap a mapped hostname for its intranet IP, whatever the current setting.
+   * For callers that fixed their mode up front (one download, the command
+   * line's `--intranet`); everything else follows the setting via `rewriteUrl`.
+   */
+  mapUrl(url: string): string {
     try {
       const urlObj = new URL(url);
       const mappedIP = this.getMapping(urlObj.hostname);

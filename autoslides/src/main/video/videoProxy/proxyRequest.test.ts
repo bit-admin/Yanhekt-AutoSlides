@@ -3,6 +3,10 @@ import type { AxiosResponse } from 'axios';
 
 const axiosGet = vi.hoisted(() => vi.fn());
 vi.mock('axios', () => ({ default: { get: axiosGet } }));
+// proxyRequest reaches the logger (and so Electron's `app`) through the intranet transport.
+vi.mock('@main/infra/logger', () => ({
+  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })
+}));
 
 import { fetchRecordedWithResign, type ResignFetchOptions } from './proxyRequest';
 import type { ProxyAuth } from './proxyAuth';
