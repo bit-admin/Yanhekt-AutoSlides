@@ -24,9 +24,9 @@
 </template>
 
 <script setup lang="ts">
-// macOS "remove quarantine" hint shared by the installer-style dialogs
-// (app updater, AutoSlides Extractor installer). The outer notice chrome comes
-// from installerModal.css; the command block and copy button live here.
+// A notice that ends in a command to copy: the macOS "remove quarantine" hint
+// in the installer-style dialogs (app updater, AutoSlides Extractor installer)
+// and the PATH hint in Settings → Add-ons → Command Line.
 import { onUnmounted, ref } from 'vue'
 import { createLogger } from '@shared/utils/logger'
 
@@ -60,6 +60,30 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.quarantine-notice {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 6px;
+  margin-top: 12px;
+}
+
+.quarantine-notice > svg {
+  color: var(--warning);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.notice-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-warning);
+  line-height: 1.4;
+}
+
 .code-with-copy {
   display: flex;
   align-items: center;

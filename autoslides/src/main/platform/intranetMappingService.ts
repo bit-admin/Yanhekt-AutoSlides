@@ -128,6 +128,15 @@ export class IntranetMappingService extends EventEmitter {
   }
 
   /**
+   * Turn host rewriting on for this process only, without saving it. Used by
+   * the command line downloader's `--intranet`, which must not change the
+   * app's own setting.
+   */
+  enableForThisProcess(): void {
+    this.enabled = true;
+  }
+
+  /**
    * Check if intranet mode is enabled
    */
   isEnabled(): boolean {

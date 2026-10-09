@@ -51,6 +51,16 @@ function removeDownloadTempFiles(outputDir: string, name: string): void {
   }
 }
 
+/**
+ * Per-download overrides of what is otherwise read from the app's settings.
+ * The command line downloader uses them for `--output` / `--intranet`, which
+ * apply to one run and are never written back to the config.
+ */
+export interface DownloadOverrides {
+  outputDir?: string;
+  isIntranetMode?: boolean;
+}
+
 export class M3u8DownloadService {
   private ffmpegService: FFmpegService;
   private configService: ConfigService;
@@ -70,14 +80,15 @@ export class M3u8DownloadService {
     m3u8Url: string,
     outputName: string,
     progressCallback: (progress: DownloadProgress) => void,
-    loginToken: string
+    loginToken: string,
+    overrides: DownloadOverrides = {}
   ): Promise<void> {
     if (this.activeDownloads.has(downloadId)) {
       throw new Error('Download already in progress');
     }
 
-    const outputDir = this.configService.getConfig().outputDirectory;
-    const isIntranetMode = this.configService.getConfig().connectionMode === 'internal';
+    const outputDir = overrides.outputDir ?? this.configService.getConfig().outputDirectory;
+    const isIntranetMode = overrides.isIntranetMode ?? this.configService.getConfig().connectionMode === 'internal';
 
     const downloader = new M3u8Downloader(
       m3u8Url,
@@ -298,7 +309,9 @@ class M3u8Downloader {
     if (!this.token) {
       try {
         this.token = await this.apiClient.getVideoToken(this.loginToken);
-        if (this.configService.getPreferAnonymousApiRequests()) {
+        // No login token (the command line downloader) is anonymous too: an
+        // empty `Bearer ` header is not the same as no header.
+        if (!this.loginToken || this.configService.getPreferAnonymousApiRequests()) {
           delete this.headers["Authorization"];
         } else {
           this.headers["Authorization"] = "Bearer " + this.loginToken;

@@ -28,6 +28,7 @@ import type { NotesService } from '@main/platform/notesService';
 import type { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import type { NotionNotesService } from '@main/export/notionNotesService';
 import type { LocalRelayService } from '@main/video/localRelayService';
+import type { CliInstallService } from '@main/platform/cliInstall/cliInstallService';
 import type { LocalLecturePosterService } from '@main/video/localLecturePosterService';
 
 export interface IpcServices {
@@ -62,4 +63,5 @@ export interface IpcServices {
   notesService: NotesService;
   obsidianNotesService: ObsidianNotesService;
   notionNotesService: NotionNotesService;
+  cliInstallService: CliInstallService;
 }

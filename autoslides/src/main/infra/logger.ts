@@ -28,12 +28,30 @@ export interface Logger {
 }
 
 const DEV = !app.isPackaged;
-const noop: LogFn = () => {};
+
+// A command line run owns the terminal: its own progress and messages are the
+// output, so service logs stay off the console unless `--verbose` asks for them.
+let consoleMode: 'default' | 'silent' | 'all' = 'default';
+export function setLoggerConsoleMode(mode: 'default' | 'silent' | 'all'): void {
+  consoleMode = mode;
+}
 
 export function createLogger(namespace: string): Logger {
   const tag = `[${namespace}]`;
-  const debugConsole = DEV ? (...args: unknown[]) => c.debug(tag, ...args) : noop;
-  const infoConsole = DEV ? (...args: unknown[]) => c.log(tag, ...args) : noop;
+  // Everything goes to stderr in a command line run, so stdout stays parseable.
+  const toStderr = (...args: unknown[]) => c.error(tag, ...args);
+  const routine = (print: LogFn): LogFn => (...args) => {
+    if (consoleMode === 'all') toStderr(...args);
+    else if (consoleMode === 'default' && DEV) print(...args);
+  };
+  const always = (print: LogFn): LogFn => (...args) => {
+    if (consoleMode === 'all') toStderr(...args);
+    else if (consoleMode === 'default') print(...args);
+  };
+  const debugConsole = routine((...args) => c.debug(tag, ...args));
+  const infoConsole = routine((...args) => c.log(tag, ...args));
+  const warnConsole = always((...args) => c.warn(tag, ...args));
+  const errorConsole = always((...args) => c.error(tag, ...args));
   return {
     debug: (...args) => {
       debugConsole(...args);
@@ -44,11 +62,11 @@ export function createLogger(namespace: string): Logger {
       writeLogArgs('info', 'main', namespace, args);
     },
     warn: (...args) => {
-      c.warn(tag, ...args);
+      warnConsole(...args);
       writeLogArgs('warn', 'main', namespace, args);
     },
     error: (...args) => {
-      c.error(tag, ...args);
+      errorConsole(...args);
       writeLogArgs('error', 'main', namespace, args);
     },
   };

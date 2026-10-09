@@ -1,4 +1,8 @@
+// Must stay first: see the file.
+import '@main/cli/earlyDockHide';
 import { app, BrowserWindow, Menu } from 'electron';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { MainAuthService } from '@main/platform/authService';
 import { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
@@ -39,7 +43,40 @@ import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
 import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
 import { initLogFile, setLogVerbose, flushLogFile } from '@main/infra/logFile';
-import { createLogger } from '@main/infra/logger';
+import { createLogger, setLoggerConsoleMode } from '@main/infra/logger';
+import { CliInstallService } from '@main/platform/cliInstall/cliInstallService';
+import { CLI_EXIT, createCliInterrupts, parseCliInvocation, runCli } from '@main/cli';
+
+// Command line run (`yhdl …`, `autoslides download …`): a wrapper on PATH
+// started this binary with `--cli`. The same services are built below, but no
+// window, menu or IPC — the command runs once the app is ready and the process
+// exits with its code. Everything GUI-only in this file is behind `!cliRun`.
+const cliRun = parseCliInvocation(process.argv);
+// Chromium's own session data (caches, GPU state) goes to a throwaway folder,
+// so a command can run while the app itself is open on the real one.
+let cliSessionDir: string | null = null;
+const cliInterrupts = createCliInterrupts();
+const exitCli = (code: number): void => {
+  if (cliSessionDir) fs.rmSync(cliSessionDir, { recursive: true, force: true });
+  app.exit(code);
+};
+if (cliRun) {
+  cliSessionDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autoslides-cli-'));
+  app.setPath('sessionData', cliSessionDir);
+  app.disableHardwareAcceleration();
+
+  // Ctrl-C: Electron turns the signal into an app quit. Hand it to the running
+  // command instead (see cli/interrupts.ts); with nothing to stop, just exit.
+  const interrupt = (): void => {
+    if (!cliInterrupts.fire()) exitCli(CLI_EXIT.interrupted);
+  };
+  app.on('before-quit', (event) => {
+    event.preventDefault();
+    interrupt();
+  });
+  process.on('SIGINT', interrupt);
+  process.on('SIGTERM', interrupt);
+}
 
 // Custom local media scheme for Lectures Library playback. Must register
 // privileges BEFORE app is ready (Electron requirement).
@@ -54,16 +91,20 @@ const configService = new ConfigService();
 
 // Persistent log file under <userData>/logs — after the demo swap so demo runs
 // log separately. warn/error always; debug/info while Developer mode is on.
-setLogVerbose(configService.getDeveloperMode());
-initLogFile(path.join(app.getPath('userData'), 'logs'), {
-  version: app.getVersion(),
-  electron: process.versions.electron,
-  chrome: process.versions.chrome,
-  os: `${process.platform}-${process.arch}`,
-  osRelease: process.getSystemVersion(),
-  packaged: app.isPackaged,
-  developerMode: configService.getDeveloperMode(),
-});
+// A command line run does not open it: the app may be running and the file has
+// one writer.
+if (!cliRun) {
+  setLogVerbose(configService.getDeveloperMode());
+  initLogFile(path.join(app.getPath('userData'), 'logs'), {
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+    os: `${process.platform}-${process.arch}`,
+    osRelease: process.getSystemVersion(),
+    packaged: app.isPackaged,
+    developerMode: configService.getDeveloperMode(),
+  });
+}
 
 const crashLog = createLogger('Crash');
 // Monitor, not a handler: logs without suppressing Electron's own error dialog.
@@ -170,6 +211,7 @@ const createWindow = () => {
 };
 
 app.on('ready', () => {
+  if (cliRun) return;
   // Local progressive media for Lectures Library (Range seeks under outputDir).
   // Install before any window loads so asmedia:// is ready immediately.
   installAsmediaProtocol(configService);
@@ -188,6 +230,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
+  if (cliRun) return;
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
@@ -221,6 +264,7 @@ const qtExtractorService = new QtExtractorService(configService);
 const notesService = new NotesService(configService);
 const obsidianNotesService = new ObsidianNotesService(configService);
 const notionNotesService = new NotionNotesService(configService);
+const cliInstallService = new CliInstallService();
 
 const windowManager = new WindowManager();
 windowManager.setConfigService(configService);
@@ -236,6 +280,18 @@ const initializePowerManagement = async () => {
 };
 
 app.whenReady().then(() => {
+  if (cliRun) {
+    void runCli(cliRun, {
+      version: app.getVersion(),
+      configService,
+      apiClient,
+      intranetMappingService,
+      m3u8DownloadService,
+      setVerbose: () => setLoggerConsoleMode('all'),
+      onInterrupt: cliInterrupts.onInterrupt,
+    }).then(exitCli);
+    return;
+  }
   initializePowerManagement();
   windowManager.setupYuketangClassCapture();
   // Start LAN relay if Developer mode is on and the user left it enabled.
@@ -256,7 +312,7 @@ app.on('will-quit', () => {
 });
 
 // Register all IPC handlers
-registerAllIpcHandlers({
+if (!cliRun) registerAllIpcHandlers({
   authService,
   yanhe2Service,
   apiClient,
@@ -287,5 +343,6 @@ registerAllIpcHandlers({
   cacheManagementService,
   notesService,
   obsidianNotesService,
-  notionNotesService
+  notionNotesService,
+  cliInstallService
 });

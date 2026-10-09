@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { sanitizeFileName } from './sanitizeFileName';
-import { sanitizeDownloadName } from '../renderer/shared/services/downloadNaming';
-import { buildDownloadFileName } from '../renderer/shared/services/downloadNaming';
+import { sanitizeDownloadName } from './downloadNaming';
+import { buildDownloadFileName } from './downloadNaming';
 import {
   buildLectureIdSuffix,
   buildLectureStem,

@@ -28,6 +28,7 @@ import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
 import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../shared/obsidianNotesTypes';
 import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/notionNotesTypes';
 import type { LogLevel, LogSource } from '../shared/logFormat';
+import type { CliInstallResult, CliInstallStatus } from '../shared/cliCommands';
 import type { Yanhe2ProfileSummary, Yanhe2SessionState, Yanhe2SignInResult } from '../shared/yanhe2';
 import type {
   Yanhe2CalendarDay,
@@ -601,6 +602,13 @@ export interface ElectronAPI {
 
   localRelay: {
     getStatus: () => Promise<LocalRelayStatus>;
+  };
+
+  /** Command line wrappers on PATH (Settings → Add-ons → Command Line). */
+  cli: {
+    getStatus: () => Promise<CliInstallStatus>;
+    install: () => Promise<CliInstallResult>;
+    uninstall: () => Promise<CliInstallResult>;
   };
 
   video: {

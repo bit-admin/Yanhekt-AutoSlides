@@ -145,6 +145,8 @@
       </div>
     </div>
   </div>
+
+  <CliCommandsSection />
 </template>
 
 <script setup lang="ts">
@@ -154,6 +156,7 @@ import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import NotionConnectSteps from '../NotionConnectSteps.vue'
 import NotionTokenField from '../NotionTokenField.vue'
+import CliCommandsSection from '../CliCommandsSection.vue'
 
 // Typed by provider id, so adding a provider fails to compile until it has a label.
 const PROVIDER_LABEL_KEYS: Record<WatchNotesProviderId, string> = {
