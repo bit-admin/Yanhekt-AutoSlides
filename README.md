@@ -1,6 +1,8 @@
 > [!NOTE]
 > 我们已经注意到新版延河课堂 (https://aita.yanhekt.cn/course) 。我们计划对该新版本进行逆向研究。欢迎任何同学提供协助。欢迎在 [Ideas](https://github.com/bit-admin/Yanhekt-AutoSlides/discussions/categories/ideas) 讨论区中新建主题进行讨论。
 
+新版接口、播放签名、官方幻灯片与识别字幕的研究记录见 [新版延河课堂研究](docs/yanhe2-research.md)。
+
 <div align="center">
 
   <img src="docs/icon.png" width="120" />
