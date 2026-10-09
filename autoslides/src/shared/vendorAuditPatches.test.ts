@@ -11,6 +11,10 @@ const extractZip = require('../../vendor/extract-zip') as (
   zipPath: string,
   opts: { dir: string },
 ) => Promise<void>
+const braces = require('../../vendor/braces') as {
+  (pattern: string, opts?: { expand?: boolean }): string[]
+  expand: (pattern: string) => string[]
+}
 // pptxgenjs asks for image-size ^1.2.1, which is still inside the GHSA
 // range. The override installs 2.0.4, where a zero-length ICNS entry throws
 // instead of looping.
@@ -202,5 +206,31 @@ describe('image-size 2.0.4 (GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq)', () => {
     const jxl = Buffer.alloc(32)
     jxl.write('JXL ', 4)
     expect(() => imageSize(new Uint8Array(jxl))).toThrow()
+  })
+})
+
+describe('vendor braces (GHSA-vfj7-8cjw-p6xm)', () => {
+  it('still expands and compiles ordinary patterns', () => {
+    expect(braces.expand('a/{b,c}/{1..3}')).toEqual([
+      'a/b/1', 'a/b/2', 'a/b/3', 'a/c/1', 'a/c/2', 'a/c/3',
+    ])
+    expect(braces('src/**/*.{ts,vue}')).toEqual(['src/**/*.(ts|vue)'])
+    expect(braces.expand('{a,{b,{c,d}}}')).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('rejects deep nesting instead of overflowing the stack', () => {
+    const depth = 4000
+    const nestedBraces = '{'.repeat(depth) + 'a,b' + '}'.repeat(depth)
+    const nestedParens = '('.repeat(depth) + 'a' + ')'.repeat(depth)
+    expect(() => braces(nestedBraces)).toThrow(SyntaxError)
+    expect(() => braces.expand(nestedBraces)).toThrow(/max depth/)
+    expect(() => braces(nestedParens)).toThrow(/max depth/)
+  })
+
+  it('accepts nesting at the limit', () => {
+    const depth = 250
+    const pattern = '{'.repeat(depth) + 'a,b' + '}'.repeat(depth)
+    expect(() => braces(pattern)).not.toThrow()
+    expect(() => braces.expand(pattern)).not.toThrow()
   })
 })

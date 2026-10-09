@@ -10,12 +10,9 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261001.1",
+    "@cloudflare/workers-types": "^5.20261006.1",
     "typescript": "^5.5.0",
     "vitest": "^4.1.11",
-    "wrangler": "^4.145.0"
-  },
-  "overrides": {
-    "sharp": "^0.35.3"
+    "wrangler": "^4.149.0"
   }
 }

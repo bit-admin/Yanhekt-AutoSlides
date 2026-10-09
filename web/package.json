@@ -38,7 +38,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261001.1",
+    "@cloudflare/workers-types": "^5.20261006.1",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^22.20.1",
     "@vitejs/plugin-vue": "^6.0.2",
@@ -47,9 +47,6 @@
     "vite": "^7.2.6",
     "vitest": "^4.1.11",
     "vue-tsc": "^3.2.6",
-    "wrangler": "^4.145.0"
-  },
-  "overrides": {
-    "sharp": "^0.35.3"
+    "wrangler": "^4.149.0"
   }
 }
