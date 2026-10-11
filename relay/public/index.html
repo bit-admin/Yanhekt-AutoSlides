@@ -81,6 +81,7 @@
   .conn-lead + .src { margin-top: 0; }
   .src h3, .allow h3 { font-size: .92rem; margin: 0 0 .25rem; }
   .src > .hint, .allow > .hint { margin: 0 0 .75rem; }
+  .src > .kv + .hint { margin: .85rem 0 0; }
   .allow { margin-top: 1.35rem; }
   .allow ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
   .allow li { padding: .55rem .7rem; border-radius: 8px; border: 1px solid color-mix(in srgb, CanvasText 12%, transparent); background: color-mix(in srgb, CanvasText 3%, Canvas); font-size: 13px; }
@@ -116,40 +117,40 @@
   </div>
 
   <section class="panel conn" id="tab-conn" role="tabpanel" aria-labelledby="tab-btn-conn">
-    <p class="sub">The recording goes from Beijing to the Worker, then to the Cloudflare city you reached, then to you.</p>
-    <div id="conn-body"><p class="hint">Reading Cloudflare edge&hellip;</p></div>
+    <p class="sub">How this connection reaches the relay, and the path a recording takes back to you.</p>
+    <div id="conn-body"><p class="hint">Checking your connection&hellip;</p></div>
   </section>
 
   <section class="panel" id="tab-url" role="tabpanel" aria-labelledby="tab-btn-url" hidden>
     <p class="sub">Generate a playable HLS URL for a Yanhekt recording.</p>
 
-    <label for="token">Login token (Yanhekt Bearer token)</label>
-    <input id="token" type="text" placeholder="Your Yanhekt login token" autocomplete="off" spellcheck="false" />
+    <label for="token">Login Token</label>
+    <input id="token" type="text" placeholder="Your Yanhekt Bearer token, 32 hex characters" autocomplete="off" spellcheck="false" />
 
-    <label for="video">Recorded video URL (.m3u8)</label>
-    <textarea id="video" placeholder="https://cvideo.Yanhekt.cn/.../index.m3u8" spellcheck="false"></textarea>
+    <label for="video">Recording URL (.m3u8)</label>
+    <textarea id="video" placeholder="https://cvideo.yanhekt.cn/…/index.m3u8" spellcheck="false"></textarea>
 
-    <label class="check"><input id="nocache" type="checkbox" /> Bypass shared cache (<code>nocache=1</code>)</label>
-    <div class="hint">Forces every playlist and segment fetch to go to Yanhekt instead of the shared cache. Slower; only useful for debugging.</div>
+    <label class="check"><input id="nocache" type="checkbox" /> Bypass the shared cache (<code>nocache=1</code>)</label>
+    <div class="hint">Fetches every playlist and segment from Yanhekt instead of the shared cache. Slower, and only useful for debugging.</div>
 
     <div class="row">
       <button class="primary" id="gen">Generate URL</button>
       <button id="copy" disabled>Copy</button>
       <button id="open" disabled>Open</button>
-      <button id="play" disabled>Test play</button>
+      <button id="play" disabled>Test Play</button>
     </div>
 
     <div class="out">
-      <input id="url" type="text" readonly placeholder="Generated playlist URL appears here" />
-      <div class="hint">Paste this into any HLS player (hls.js, Safari, VLC, ffmpeg).</div>
+      <input id="url" type="text" readonly placeholder="The generated playlist URL appears here" />
+      <div class="hint">Paste it into any HLS player, such as hls.js, Safari, VLC or ffmpeg.</div>
     </div>
 
     <video id="player" controls playsinline></video>
 
     <p class="note">
-      The login token is embedded in the generated URL (so HLS players can fetch every
-      segment). Treat the URL as a secret &mdash; anyone with it can stream as you until the
-      token expires. Recorded videos only.
+      The generated URL carries your login token, so that an HLS player can fetch every
+      segment. Treat it as a secret: anyone who has it can stream as you until the token
+      expires. Recordings only, not live streams.
     </p>
   </section>
 </main>
@@ -173,7 +174,7 @@
   function build() {
     var token = $('token').value.trim();
     var video = $('video').value.trim();
-    if (!token || !video) { alert('Please provide both a login token and a video URL.'); return null; }
+    if (!token || !video) { alert('Enter both a login token and a recording URL.'); return null; }
     var url = location.origin + '/playlist?u=' + encodeURIComponent(video) + '&t=' + encodeURIComponent(token);
     if ($('nocache').checked) url += '&nocache=1';
     return url;
@@ -189,7 +190,7 @@
   copyBtn.onclick = function () {
     if (!urlEl.value) return;
     navigator.clipboard.writeText(urlEl.value).then(function () {
-      copyBtn.textContent = 'Copied!';
+      copyBtn.textContent = 'Copied';
       setTimeout(function () { copyBtn.textContent = 'Copy'; }, 1200);
     });
   };
@@ -212,6 +213,11 @@
   };
 
   var ALLOWLIST = [
+    {
+      asn: 4134,
+      isp: 'CHINANET',
+      network: 'Chinanet (CDN, VPSH, DSL, MOBILE, BIZNET, CARRIER)'
+    },
     {
       asn: 4847,
       isp: 'China Networks Inter-Exchange',
@@ -615,7 +621,7 @@
     var title = document.getElementById('rdap-title');
     if (!el) return;
     if (!hit || !hit.json) {
-      el.innerHTML = '<p class="hint">Could not read APNIC RDAP for this IP.</p>';
+      el.innerHTML = '<p class="hint">Could not load the registry record for this IP.</p>';
       return;
     }
     var j = hit.json;
@@ -654,7 +660,7 @@
     var cards = ents.map(renderEntity).filter(Boolean).join('');
 
     el.innerHTML =
-      (rows ? '<div class="kv">' + rows + '</div>' : '<p class="hint">No registry fields for this IP.</p>') +
+      (rows ? '<div class="kv">' + rows + '</div>' : '<p class="hint">The registry record for this IP is empty.</p>') +
       (cards ? '<h4>Contacts</h4><ul class="cards">' + cards + '</ul>' : '') +
       '<details><summary>Raw ' + escapeHtml(rir) + ' RDAP</summary><pre>' +
       escapeHtml(JSON.stringify(j, null, 2)) + '</pre></details>';
@@ -693,8 +699,9 @@
 
   function originPhrase(place) {
     var o = place.origin;
-    return 'The recording origin is <code>' + escapeHtml(o.host) + '</code> (<code>' +
-      escapeHtml(o.address) + '</code>) in ' + escapeHtml(o.where) + '.';
+    return 'Recordings are served from <code>' + escapeHtml(o.host) + '</code>' +
+      (o.address ? ' (<code>' + escapeHtml(o.address) + '</code>)' : '') +
+      (o.where ? ' in ' + escapeHtml(o.where) : '') + '.';
   }
 
   function closestCityOf(place) {
@@ -703,44 +710,46 @@
   }
 
   function pinReason(place) {
-    if (!place) return 'Could not tell where this Worker runs.';
+    if (!place) return 'Could not tell where the relay runs.';
     var origin = originPhrase(place);
     var closest = escapeHtml(closestCityOf(place));
     if (!place.pinned) {
-      return origin + ' This relay is not pinned, so the Worker runs in the Cloudflare city you reached. The recording goes from Beijing to that city, then to you.';
+      return origin + ' The relay is not pinned to a region, so it runs in whichever Cloudflare city you reach and fetches from Beijing there.';
     }
     if (!place.colo) {
-      return origin + ' This relay runs in <code>' + escapeHtml(place.region) +
-        '</code>. This page cannot name that city. ' + closest + ' is the closest Cloudflare region to Beijing.';
+      return origin + ' The relay is pinned to <code>' + escapeHtml(place.region) +
+        '</code>, a region this page cannot name. ' + closest + ' is the Cloudflare region closest to Beijing.';
     }
     var here = escapeHtml(placeCityOf(place));
-    var route = origin + ' It goes from Beijing to ' + here + ', where this relay runs, then to the Cloudflare city you reached, then to you.';
-    if (place.closestToOrigin) return route + ' ' + here + ' is the closest Cloudflare region to Beijing.';
-    return route;
+    if (place.closestToOrigin) {
+      return origin + ' The relay is pinned to ' + here + ', the Cloudflare region closest to Beijing, so that leg stays short wherever you enter.';
+    }
+    return origin + ' The relay is pinned to ' + here + '. ' + closest + ' would be closer to Beijing.';
   }
 
-  function pathHint(loc, colo, place) {
+  function pathHint(loc, colo, place, listed) {
     var locName = loc ? (countryName(loc) || loc) : 'an unknown country';
     var city = coloCity(colo);
     var nearColo = !!NEAR_COLO[colo];
     var pinCity = place && place.pinned ? placeCityOf(place) : '';
     var closest = place ? closestCityOf(place) : 'Hong Kong';
+    var youAre = 'You are in ' + escapeHtml(locName) + ' and reached Cloudflare in ' + escapeHtml(city);
     var proxyTo = function (name) {
-      return ' Consider adding <code>ruc.edu.kg</code> to your proxy group so you enter closer to ' + escapeHtml(name) + '.';
+      return ' A proxy rule for <code>ruc.edu.kg</code> that exits near ' + escapeHtml(name) + ' would shorten it.';
     };
 
     if (!colo) {
       if (place && place.pinned && pinCity) {
         return {
           cls: 'verdict--muted',
-          html: 'Could not tell which Cloudflare city you reached. The recording still goes from Beijing to ' +
-            escapeHtml(pinCity) + ', then to that city, then to you.'
+          html: 'Could not tell which Cloudflare city you reached. A recording still goes from Beijing to ' +
+            escapeHtml(pinCity) + ', on to that city, then to you.'
         };
       }
       if (place && !place.pinned) {
         return {
           cls: 'verdict--muted',
-          html: 'Could not tell which Cloudflare city you reached. This relay is not pinned, so the Worker runs in that city.'
+          html: 'Could not tell which Cloudflare city you reached. The relay is not pinned, so it runs in that city too.'
         };
       }
       return { cls: 'verdict--muted', html: 'Could not tell which Cloudflare city you reached.' };
@@ -748,62 +757,57 @@
     if (loc === 'CN' && COLO_CC[colo] === 'CN') {
       return {
         cls: 'verdict--ok',
-        html: 'This should not be possible. Cloudflare has no data centre in mainland China — ' +
-          'and this request still entered in ' + escapeHtml(city) + '. How did you do that?'
+        html: 'This should not be possible. Cloudflare has no data centre of its own in mainland China, ' +
+          'yet this request entered in ' + escapeHtml(city) + '. How did you do that?'
       };
     }
     if (!place || (place.pinned && !place.colo)) {
       return {
         cls: 'verdict--muted',
-        html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
-          '. Could not tell where this Worker runs, so this path cannot be compared.'
+        html: youAre + '. Could not tell where the relay runs, so this path cannot be judged.'
       };
     }
     if (!place.pinned) {
+      var unpinned = youAre + '. The relay is not pinned, so it runs there too. A recording goes from Beijing to ' +
+        escapeHtml(city) + ', then to you.';
       if (place.closest && colo === place.closest.colo) {
-        return {
-          cls: 'verdict--ok',
-          html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
-            '. This relay is not pinned, so the Worker runs here. The recording goes from Beijing to ' +
-            escapeHtml(city) + ', then to you. That is the short path.'
-        };
+        return { cls: 'verdict--ok', html: unpinned + ' That is the shortest path.' };
       }
       if (nearColo) {
         return {
           cls: 'verdict--ok',
-          html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
-            '. This relay is not pinned, so the Worker runs here. The recording goes from Beijing to ' +
-            escapeHtml(city) + ', then to you. ' + escapeHtml(closest) + ' would be closer to Beijing, but this is still a short hop.'
+          html: unpinned + ' ' + escapeHtml(closest) + ' would be closer to Beijing, but this is still a short path.'
         };
       }
       return {
         cls: 'verdict--warn',
-        html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
-          '. This relay is not pinned, so the Worker runs here. The recording has to come from Beijing all the way to ' +
-          escapeHtml(city) + '.' + proxyTo(closest)
+        html: unpinned + ' That is a long fetch from Beijing.' + (listed ? '' : proxyTo(closest))
       };
     }
     if (colo === place.colo) {
-      var tail = place.closestToOrigin ? ' That is the short path.' : '';
       return {
         cls: 'verdict--ok',
-        html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
-          ', where this Worker runs. The recording goes from Beijing to ' + escapeHtml(city) + ', then to you.' + tail
+        html: youAre + ', where the relay runs. A recording goes from Beijing to ' + escapeHtml(city) +
+          ', then to you.' + (place.closestToOrigin ? ' That is the shortest path.' : '')
       };
     }
+    var pinned = youAre + '. A recording goes from Beijing to ' + escapeHtml(pinCity) + ', on to ' +
+      escapeHtml(city) + ', then to you.';
     if (nearColo) {
+      return { cls: 'verdict--ok', html: pinned + ' That is a short detour.' };
+    }
+    if (listed) {
+      // Allowlisted networks land far out as a matter of course, and a proxy
+      // would take them off the allowlist, so this is not a warning.
       return {
-        cls: 'verdict--ok',
-        html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
-          '. The recording goes from Beijing to ' + escapeHtml(pinCity) + ', then to ' +
-          escapeHtml(city) + ', then to you. That is a short hop.'
+        cls: 'verdict--muted',
+        html: pinned + ' That is a long way round, and normal on this network: its carrier picks the Cloudflare city. ' +
+          'Playback works; only the last leg is longer.'
       };
     }
     return {
       cls: 'verdict--warn',
-      html: 'You are in ' + escapeHtml(locName) + ' and reached ' + escapeHtml(city) +
-        '. The recording goes from Beijing to ' + escapeHtml(pinCity) + ', then across to ' +
-        escapeHtml(city) + ', then to you. That is a long way back.' + proxyTo(pinCity)
+      html: pinned + ' That is a long way round.' + proxyTo(pinCity)
     };
   }
 
@@ -814,11 +818,11 @@
       return escapeHtml(coloCity(colo) + ' (' + colo + ')') + ' <span class="pill pill--muted">not pinned</span>';
     }
     if (!place.colo) {
-      return '<code>' + escapeHtml(place.region) + '</code> <span class="pill pill--muted">configured</span>';
+      return '<code>' + escapeHtml(place.region) + '</code> <span class="pill pill--muted">pinned</span>';
     }
     return escapeHtml(placeCityOf(place) + ' (' + place.colo + ')') +
       ' <code>' + escapeHtml(place.region) + '</code>' +
-      ' <span class="pill pill--muted">configured</span>';
+      ' <span class="pill pill--muted">pinned</span>';
   }
 
   function renderConn(t, raw, asnInfo, place) {
@@ -831,19 +835,17 @@
     var listed = allowEntry(asn);
     var org = listed ? listed.isp : ((asnInfo && asnInfo.org) || '');
     var asnText = asn == null ? 'unavailable' : ('AS' + asn + (org ? ' — ' + org : ''));
-    var path = pathHint(loc, colo, place);
+    var path = pathHint(loc, colo, place, !!listed);
     var pinCity = place && place.pinned ? placeCityOf(place) : '';
 
-    var lead = 'You are in <strong>' + escapeHtml(locName) + '</strong>, and you reached Cloudflare in <strong>' +
+    var lead = 'You are in <strong>' + escapeHtml(locName) + '</strong> and reached Cloudflare in <strong>' +
       escapeHtml(city) + '</strong>' + (colo ? ' (' + escapeHtml(colo) + ')' : '') + '.';
     if (pinCity) {
-      lead += ' The Worker runs in <strong>' + escapeHtml(pinCity) + '</strong> (' + escapeHtml(place.colo) + ').';
+      lead += ' The relay runs in <strong>' + escapeHtml(pinCity) + '</strong> (' + escapeHtml(place.colo) + ').';
     } else if (place && !place.pinned) {
-      lead += colo
-        ? ' The Worker runs in that same city.'
-        : ' This relay is not pinned, so the Worker runs in the city you reached.';
+      lead += ' The relay is not pinned, so it runs in that city too.';
     } else {
-      lead += ' Could not tell where this Worker runs.';
+      lead += ' Could not tell where the relay runs.';
     }
 
     var rows =
@@ -852,7 +854,7 @@
       row('Worker', workerRow(place, colo), true) +
       row('IP', escapeHtml(t.ip || '—')) +
       row('Network', escapeHtml(asnText) + (listed
-        ? ' <span class="pill pill--ok">allowlisted</span>'
+        ? ' <span class="pill pill--ok">on allowlist</span>'
         : (asn == null ? '' : ' <span class="pill pill--warn">not on allowlist</span>'))) +
       (http || t.tls ? row('Protocol', escapeHtml((http || '') + (t.tls ? (http ? ' · ' : '') + t.tls : '')), true) : '');
 
@@ -867,45 +869,47 @@
 
     var waf;
     if (asn == null) {
-      waf = '<p class="hint">Could not read ASN, so allowlist status is unknown.</p>';
+      waf = '<p class="hint">Could not read your network, so this page cannot tell whether it is on the allowlist.</p>';
     } else if (listed) {
-      waf = '<p class="hint">Your network is on the allowlist, so Cloudflare WAF should allow this connection.</p>';
+      waf = '<p class="hint">Your network is on the allowlist. Cloudflare lets this connection through without a challenge.</p>';
     } else {
-      waf = '<p class="hint">Your network is not on the allowlist. Cloudflare WAF may challenge or block this connection.</p>';
+      waf = '<p class="hint">Your network is not on the allowlist. Cloudflare may challenge or block this connection.</p>';
     }
 
     document.getElementById('conn-body').innerHTML =
       '<p class="conn-lead">' + lead + '</p>' +
       '<div class="src">' +
         '<h3>Cloudflare</h3>' +
-        '<p class="hint">Beijing, then the Worker, then this Edge city, then you. With no pin, the Worker is the Edge city.</p>' +
+        '<p class="hint">Edge is the Cloudflare city you entered through. Worker is where the relay runs and fetches from Yanhekt.</p>' +
         '<div class="kv">' + rows + '</div>' +
         '<p class="hint">' + pinReason(place) + '</p>' +
         '<div class="verdict ' + path.cls + '">' + path.html + '</div>' +
         '<details><summary>Raw /cdn-cgi/trace</summary><pre>' + escapeHtml(raw.trim()) + '</pre></details>' +
       '</div>' +
-      '<div class="allow"><h3>WAF allowlist</h3>' +
+      '<div class="allow"><h3>WAF Allowlist</h3>' +
       waf +
       '<ul>' + allowItems + '</ul></div>' +
       '<details class="mean">' +
-        '<summary>What this means?</summary>' +
+        '<summary>What does this mean?</summary>' +
         '<div class="mean-body">' +
-          '<p>This relay runs on Cloudflare, and Cloudflare has no data centre in mainland China. Campus traffic always leaves the country to reach the nearest Cloudflare city. That city is the Edge row above.</p>' +
-          '<p>Hong Kong is the closest Cloudflare city to the recording in Beijing. When the relay is pinned there, a far Edge such as Los Angeles (<code>LAX</code>) or San Jose (<code>SJC</code>) only lengthens the last hop. When it is not pinned, the Worker runs in the Edge city, so a far Edge fetches Beijing from there. Campus traffic usually reaches Hong Kong or Singapore. Tokyo, Osaka, Seoul, Taipei, and Macau are still nearby.</p>' +
-          '<p>This service allows campus networks on the list above. Other networks may be challenged or blocked by Cloudflare.</p>' +
-          '<p>Routing <code>ruc.edu.kg</code> through a proxy that exits near ' +
+          '<p>The relay runs on Cloudflare, which has no data centre of its own in mainland China. Every connection from campus leaves the country and enters Cloudflare in some other city. That city is the Edge row above.</p>' +
+          '<p>The carrier chooses that city, and it does not choose by distance. From campus networks the Edge is most often Amsterdam (<code>AMS</code>) or Singapore (<code>SIN</code>), and now and then San Jose (<code>SJC</code>).</p>' +
+          '<p>Recordings are stored in Beijing, and ' + escapeHtml(place ? closestCityOf(place) : 'Hong Kong') +
+            ' is the Cloudflare region closest to them. A relay pinned there always fetches over that short link, so a far Edge only lengthens the last leg back to you. A relay that is not pinned runs at the Edge, so a far Edge has to fetch from Beijing itself.</p>' +
+          '<p>The allowlist above names the networks that campus traffic leaves through. Cloudflare lets those through, and may challenge or block any other network.</p>' +
+          '<p>A proxy rule for <code>ruc.edu.kg</code> that exits near ' +
             escapeHtml(pinCity || (place ? closestCityOf(place) : 'Hong Kong')) +
-            ' puts the Edge on the short path. Off-campus you still have to pass a Cloudflare challenge in the browser first. Dedicated players (VLC, ffmpeg, and many HLS apps) cannot complete that challenge, so they will fail even after this page loads.</p>' +
+            ' moves the Edge onto the short path. From a network that is not on the allowlist, the browser has to pass a Cloudflare challenge first. Dedicated players such as VLC, ffmpeg and most HLS apps cannot pass it, so they fail even when this page loads.</p>' +
         '</div>' +
       '</details>' +
       '<div class="src" id="rdap">' +
         '<h3 id="rdap-title">APNIC</h3>' +
-        '<p class="hint" id="rdap-hint">Registry record for this IP.' +
+        '<p class="hint" id="rdap-hint">The registry record for your IP address.' +
           (t.ip
             ? ' <a href="https://browserleaks.com/ip/' + escapeHtml(t.ip) + '" target="_blank" rel="noopener">View on BrowserLeaks</a>'
             : '') +
         '</p>' +
-        '<div id="rdap-body"><p class="hint">Looking up registry record&hellip;</p></div>' +
+        '<div id="rdap-body"><p class="hint">Looking up the registry record&hellip;</p></div>' +
       '</div>';
   }
 
@@ -927,7 +931,7 @@
     });
   }).catch(function () {
     document.getElementById('conn-body').innerHTML =
-      '<p class="hint">Could not read Cloudflare trace for this connection.</p>';
+      '<p class="hint">Could not read the Cloudflare trace for this connection.</p>';
   });
 </script>
 </body>

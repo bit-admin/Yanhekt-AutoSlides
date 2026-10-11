@@ -98,8 +98,8 @@ well-formed but expired, revoked, or invented token still gets cache hits until
 the entry expires or is evicted — cache hits never revalidate upstream. The
 regex only stops malformed junk.
 
-**This deployment's real gate is the zone WAF** (campus ASNs, currently AS4847
-and AS23910 / CERNET2). That list lives in Cloudflare, not in `src/`. A clone
+**This deployment's real gate is the zone WAF** (campus ASNs, currently AS4134 /
+Chinanet, AS4847 and AS23910 / CERNET2). That list lives in Cloudflare, not in `src/`. A clone
 with no edge rule is an open Yanhekt-VOD proxy for anyone who can supply 32 hex
 chars.
 

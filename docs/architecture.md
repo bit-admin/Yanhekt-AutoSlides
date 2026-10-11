@@ -507,7 +507,7 @@ Worker-to-Worker hops never meet the relay's campus-ASN edge — that is why `di
 
 On any network-type HLS error in `direct` mode the SPA probes `relay`'s `/cf.txt` (credential-less). A definite block sets `errorKind: 'relay_offcampus'` and **stops the retry ladder**. A challenged relay fails hls.js's manifest XHR opaquely (no status — challenge pages lack CORS), and `hls.startLoad()` cannot retry a manifest that never loaded: `retryNetworkLoad` in `useVideoErrorRecovery.ts` re-issues `loadSource(hls.url)` for manifest failures. That fix is a drift group with desktop.
 
-`CAMPUS_ASNS` in `relayPolicy.ts` (`4847`, `23910`) is informational for the config payload, not the actual WAF.
+`CAMPUS_ASNS` in `relayPolicy.ts` (`4134`, `4847`, `23910`) is informational for the config payload, not the actual WAF.
 
 ### SSO resume seal
 

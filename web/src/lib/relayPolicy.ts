@@ -29,6 +29,7 @@ export type RelayPolicy = { mode: "binding" } | { mode: "direct"; origin: string
 
 /** Networks the relay's edge protection is expected to admit (informational). */
 export const CAMPUS_ASNS: readonly number[] = [
+  4134, // Chinanet (CDN, VPSH, DSL, MOBILE, BIZNET, CARRIER); campus IPv6 egress
   4847, // China Networks Inter-Exchange (DSL, MOBILE, BIZNET, EYEBALL)
   23910, // China Next Generation Internet CERNET2 (IPv6)
 ];
