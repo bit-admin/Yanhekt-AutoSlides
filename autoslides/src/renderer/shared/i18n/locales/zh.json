@@ -1833,6 +1833,12 @@
     "errorPlayer": "视频流已停止播放。请检查网络连接后重试。",
     "notStarted": "这节课尚未开始。",
     "processing": "这节课已结束，录像仍在处理中。",
-    "noRecording": "这节课没有可播放的录像。"
+    "noRecording": "这节课没有可播放的录像。",
+    "serverSlides": "服务端幻灯片",
+    "slideTitle": "幻灯片 {n}",
+    "slideShownAt": "出现时间：",
+    "slidesLoading": "正在加载幻灯片…",
+    "slidesFailed": "延河 2.0 没有返回这节课的幻灯片。",
+    "slidesEmpty": "延河 2.0 没有这节课的幻灯片。"
   }
 }

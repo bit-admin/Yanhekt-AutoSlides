@@ -6,13 +6,15 @@
       class="slide-thumbnail"
       @click="$emit('preview', slide)"
     >
-      <img :src="slide.dataUrl" :alt="slide.title" />
+      <img v-if="slide.dataUrl" :src="slide.dataUrl" :alt="slide.title" />
+      <div v-else class="thumbnail-pending"></div>
       <div class="thumbnail-overlay">
         <div class="slide-info">
           <span class="slide-title">{{ slide.title }}</span>
           <span class="slide-time">{{ formatSlideTime(slide.timestamp) }}</span>
         </div>
         <button
+          v-if="deletable"
           @click.stop="$emit('delete', slide)"
           class="delete-btn"
           :title="`Move ${slide.title} to trash`"
@@ -29,17 +31,19 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import type { ExtractedSlide } from '@shared/processing'
+<script setup lang="ts" generic="T extends GallerySlide">
+import type { GallerySlide } from '@features/video/gallerySlide'
 
-defineProps<{
-  slides: ExtractedSlide[]
+withDefaults(defineProps<{
+  slides: T[]
   formatSlideTime: (timestamp: string) => string
-}>()
+  /** Off for slides the app does not own (Yanhe 2.0 server slides). */
+  deletable?: boolean
+}>(), { deletable: true })
 
 defineEmits<{
-  (e: 'preview', slide: ExtractedSlide): void
-  (e: 'delete', slide: ExtractedSlide): void
+  (e: 'preview', slide: T): void
+  (e: 'delete', slide: T): void
 }>()
 </script>
 
@@ -66,11 +70,17 @@ defineEmits<{
   box-shadow: 0 4px 12px var(--shadow-md);
 }
 
-.slide-thumbnail img {
+.slide-thumbnail img,
+.thumbnail-pending {
   width: 100%;
   height: 120px;
   object-fit: cover;
   display: block;
+}
+
+/* An image that is still on its way (Yanhe 2.0 server slides). */
+.thumbnail-pending {
+  background-color: var(--bg-subtle);
 }
 
 .thumbnail-overlay {
@@ -129,7 +139,8 @@ defineEmits<{
     gap: 12px;
   }
 
-  .slide-thumbnail img {
+  .slide-thumbnail img,
+  .thumbnail-pending {
     height: 100px;
   }
 }

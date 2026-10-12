@@ -237,9 +237,46 @@
               @pointer-over-controls="pointerOverControls = $event"
             />
           </div>
+
+          <!-- Server slides: what Yanhe 2.0 detected on the screen recording. Display only. -->
+          <div v-if="slidesState !== 'idle'" class="slide-gallery">
+            <div class="gallery-header server-slides-header">
+              <div class="server-slides-main">
+                <span class="server-slides-title">{{ $t('yanhe2Playback.serverSlides') }}</span>
+                <div v-if="slidesState === 'ready'" class="slide-counter">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                  <span class="counter-text">{{ serverSlides.length }} {{ $t('playback.slides') }}</span>
+                </div>
+                <span v-if="slidesNote" class="server-slides-note">{{ slidesNote }}</span>
+              </div>
+              <button v-if="slidesState === 'failed'" @click="loadSlides" class="btn">
+                {{ $t('playback.retry') }}
+              </button>
+            </div>
+            <SlideGallery
+              v-if="gallerySlides.length > 0"
+              :slides="gallerySlides"
+              :format-slide-time="formatPlaybackTime"
+              :deletable="false"
+              @preview="openSlidePreview"
+            />
+          </div>
         </div>
       </div>
     </div>
+
+    <PreviewModal
+      :slide="previewedSlide"
+      :format-slide-time="formatPlaybackTime"
+      :deletable="false"
+      :show-file-name="false"
+      :time-label="$t('yanhe2Playback.slideShownAt')"
+      @close="previewedId = null"
+    />
   </div>
 </template>
 
@@ -247,12 +284,15 @@
 // A Yanhe 2.0 session opened from the Calendar. Looks like PlaybackPage and
 // shares its player chrome, but only plays: no slide extraction, no notes, no
 // task queue, no watch-position report. One stream, or camera + screen side by
-// side (Both Streams), driven by the same control bar.
+// side (Both Streams), driven by the same control bar. Under a recording it
+// lists the slides Yanhe 2.0 detected itself, to look at and copy.
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Yanhe2StreamType } from '@common/yanhe2Playback'
 import { useYanhe2Player, YANHE2_BOTH_STREAMS, type Yanhe2StreamChoice } from '@features/yanhe2/useYanhe2Player'
+import { useYanhe2Slides } from '@features/yanhe2/useYanhe2Slides'
+import type { GallerySlide } from '@features/video/gallerySlide'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
@@ -262,6 +302,8 @@ import { layoutStore } from '@shared/services/layoutStore'
 import { createLogger } from '@shared/utils/logger'
 import BufferingOverlay from '../video/BufferingOverlay.vue'
 import DualStreamControls from '../video/DualStreamControls.vue'
+import PreviewModal from '../video/PreviewModal.vue'
+import SlideGallery from '../video/SlideGallery.vue'
 import SingleStreamControls from '../video/SingleStreamControls.vue'
 
 const log = createLogger('Yanhe2PlaybackPage')
@@ -357,6 +399,35 @@ const problemMessage = computed(() => {
       return t('yanhe2Playback.noRecording')
     default: return t('yanhe2Playback.errorFailed')
   }
+})
+
+// Server slides. Shown as they come: Yanhe 2.0 neither filters nor
+// deduplicates them, and their times are on the screen recording's clock.
+const { slides: serverSlides, state: slidesState, load: loadSlides } = useYanhe2Slides({
+  account: props.account,
+  courseId: props.session.courseId,
+  subId: props.session.subId,
+  playback,
+})
+const gallerySlides = computed<GallerySlide[]>(() =>
+  serverSlides.value.map((slide, index) => ({
+    id: String(index),
+    title: t('yanhe2Playback.slideTitle', { n: index + 1 }),
+    timestamp: String(slide.seconds),
+    dataUrl: slide.src,
+  })),
+)
+// By id, not by object: the list is rebuilt as each image arrives, and an open
+// preview must survive that. A reload empties the list, which closes it.
+const previewedId = ref<string | null>(null)
+const previewedSlide = computed(() => gallerySlides.value.find((slide) => slide.id === previewedId.value) ?? null)
+const openSlidePreview = (slide: GallerySlide) => {
+  if (slide.dataUrl) previewedId.value = slide.id
+}
+const slidesNote = computed(() => {
+  if (slidesState.value === 'loading') return t('yanhe2Playback.slidesLoading')
+  if (slidesState.value === 'failed') return t('yanhe2Playback.slidesFailed')
+  return serverSlides.value.length > 0 ? '' : t('yanhe2Playback.slidesEmpty')
 })
 
 // Playback speed (recorded only; the bars hide it for live).
@@ -556,7 +627,7 @@ const videoKeyboard = useVideoKeyboard({
   mode: props.session.status === 'live' ? 'live' : 'recorded',
   seekSeconds: 5,
   volumeStep: 0.05,
-  isModalOpen: () => false,
+  isModalOpen: () => !!previewedSlide.value,
   isDisabled: () => !props.isVisible || !masterVideo.value,
   isAnyFullscreen: () => isFullscreen.value,
   seekBy: (delta) => seekTo(currentTime.value + delta),
@@ -582,3 +653,39 @@ onUnmounted(() => {
 </script>
 
 <style scoped src="../video/playbackPageChrome.css"></style>
+
+<style scoped>
+/* Same band as the Yanhekt player's Slide Extraction row. */
+.server-slides-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.slide-gallery:has(.gallery-grid) .server-slides-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.server-slides-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+.server-slides-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.server-slides-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-width: 0;
+}
+</style>

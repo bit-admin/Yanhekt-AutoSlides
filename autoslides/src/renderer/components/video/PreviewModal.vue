@@ -14,7 +14,7 @@
             </svg>
             {{ copyLabel }}
           </button>
-          <button @click="$emit('delete', slide)" class="btn btn--danger modal-delete-btn" :title="$t('playback.moveToTrashTip')">
+          <button v-if="deletable" @click="$emit('delete', slide)" class="btn btn--danger modal-delete-btn" :title="$t('playback.moveToTrashTip')">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3,6 5,6 21,6"/>
               <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
@@ -35,36 +35,45 @@
       <div class="modal-body">
         <img :src="slide.dataUrl" :alt="slide.title" class="modal-image" />
         <div class="slide-metadata">
-          <p><strong>{{ $t('playback.extractedAt') }}</strong> {{ formatSlideTime(slide.timestamp) }}</p>
-          <p><strong>{{ $t('playback.fileName') }}</strong> {{ slide.title }}.png</p>
+          <p><strong>{{ timeLabel ?? $t('playback.extractedAt') }}</strong> {{ formatSlideTime(slide.timestamp) }}</p>
+          <p v-if="showFileName"><strong>{{ $t('playback.fileName') }}</strong> {{ slide.title }}.png</p>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends GallerySlide">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ExtractedSlide } from '@shared/processing'
+import type { GallerySlide } from '@features/video/gallerySlide'
 import { createLogger } from '@shared/utils/logger'
 
 const logger = createLogger('PreviewModal')
 
-const props = defineProps<{
-  slide: ExtractedSlide | null
+// The last three are for slides the app did not extract (Yanhe 2.0 server
+// slides): nothing to delete, no file on disk, and a time that means
+// something else.
+const props = withDefaults(defineProps<{
+  slide: T | null
   formatSlideTime: (timestamp: string) => string
-}>()
+  deletable?: boolean
+  showFileName?: boolean
+  /** Replaces "Extracted At:". */
+  timeLabel?: string
+}>(), { deletable: true, showFileName: true })
 
 defineEmits<{
   (e: 'close'): void
-  (e: 'delete', slide: ExtractedSlide): void
+  (e: 'delete', slide: T): void
 }>()
 
 const { t } = useI18n()
 
 // Copy the slide as a PNG image, so it pastes straight into Word, Keynote,
-// chat apps, etc. `dataUrl` is always a PNG (slideWriter's canvas.toDataURL).
+// chat apps, etc. An extracted slide's `dataUrl` is already a PNG
+// (slideWriter's canvas.toDataURL); a server slide is a JPEG, and the
+// clipboard only takes PNG, so that one is redrawn first.
 const modalEl = ref<HTMLElement | null>(null)
 const copyState = ref<'idle' | 'copied' | 'failed'>('idle')
 let copyResetTimer: ReturnType<typeof setTimeout> | null = null
@@ -81,9 +90,23 @@ const setCopyState = (state: 'idle' | 'copied' | 'failed') => {
   copyResetTimer = state === 'idle' ? null : setTimeout(() => { copyState.value = 'idle' }, 1500)
 }
 
-const copySlide = async (slide: ExtractedSlide) => {
+const toPng = async (blob: Blob): Promise<Blob> => {
+  if (blob.type === 'image/png') return blob
+  const bitmap = await createImageBitmap(blob)
   try {
-    const blob = await (await fetch(slide.dataUrl)).blob()
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+    canvas.getContext('2d')?.drawImage(bitmap, 0, 0)
+    return await canvas.convertToBlob({ type: 'image/png' })
+  } finally {
+    bitmap.close()
+  }
+}
+
+const copySlide = async (slide: GallerySlide) => {
+  try {
+    const response = await fetch(slide.dataUrl)
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const blob = await toPng(await response.blob())
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
     setCopyState('copied')
   } catch (error) {

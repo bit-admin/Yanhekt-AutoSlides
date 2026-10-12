@@ -1833,6 +1833,12 @@
     "errorPlayer": "스트림 재생이 중단되었습니다. 연결을 확인한 후 다시 시도하세요.",
     "notStarted": "이 강의는 아직 시작되지 않았습니다.",
     "processing": "이 강의는 종료되었으며 녹화본을 아직 처리 중입니다.",
-    "noRecording": "이 강의에는 재생할 녹화본이 없습니다."
+    "noRecording": "이 강의에는 재생할 녹화본이 없습니다.",
+    "serverSlides": "서버 슬라이드",
+    "slideTitle": "슬라이드 {n}",
+    "slideShownAt": "표시 시각:",
+    "slidesLoading": "슬라이드를 불러오는 중…",
+    "slidesFailed": "연하 2.0에서 이 강의의 슬라이드를 가져오지 못했습니다.",
+    "slidesEmpty": "연하 2.0에 이 강의의 슬라이드가 없습니다."
   }
 }

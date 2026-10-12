@@ -1833,6 +1833,12 @@
     "errorPlayer": "This stream stopped playing. Check your connection and try again.",
     "notStarted": "This lecture has not started yet.",
     "processing": "This lecture has ended and its recording is still being processed.",
-    "noRecording": "This lecture has no recording to play."
+    "noRecording": "This lecture has no recording to play.",
+    "serverSlides": "Server Slides",
+    "slideTitle": "Slide {n}",
+    "slideShownAt": "Shown At:",
+    "slidesLoading": "Loading slides…",
+    "slidesFailed": "Yanhe 2.0 did not return the slides for this lecture.",
+    "slidesEmpty": "Yanhe 2.0 has no slides for this lecture."
   }
 }

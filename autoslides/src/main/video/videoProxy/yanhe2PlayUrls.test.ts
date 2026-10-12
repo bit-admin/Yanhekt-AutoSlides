@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rewriteYanhe2Playlist, yanhe2PlayProxyUrl } from './yanhe2PlayUrls';
+import { rewriteYanhe2Playlist, yanhe2PlayProxyUrl, yanhe2SlideProxyUrl } from './yanhe2PlayUrls';
 
 const PLAYLIST = 'https://aita.yanhekt.cn/play/2/vod3/2026/09/21/67003639/1/Video1/Video1.m3u8';
 const DIR = 'https://aita.yanhekt.cn/play/2/vod3/2026/09/21/67003639/1/Video1/';
@@ -29,5 +29,15 @@ describe('rewriteYanhe2Playlist', () => {
   it('rewrites a URI attribute', () => {
     const out = rewriteYanhe2Playlist('#EXT-X-MAP:URI="init.mp4"', PLAYLIST, 4321, 'b');
     expect(out).toBe(`#EXT-X-MAP:URI="${yanhe2PlayProxyUrl(4321, 'b', `${DIR}init.mp4`)}"`);
+  });
+});
+
+describe('yanhe2SlideProxyUrl', () => {
+  it('carries the upstream image URL whole', () => {
+    const upstream = 'https://aita.yanhekt.cn/ai-nginx/ai3/ppt/20260921/a9b5/680900.jpg';
+    const local = new URL(yanhe2SlideProxyUrl(4321, upstream));
+    expect(local.origin).toBe('http://localhost:4321');
+    expect(local.pathname).toBe('/yanhe2-slide');
+    expect(local.searchParams.get('u')).toBe(upstream);
   });
 });

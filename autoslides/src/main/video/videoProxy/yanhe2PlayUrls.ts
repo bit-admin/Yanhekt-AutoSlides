@@ -1,11 +1,18 @@
 /**
- * URL shapes for the `/yanhe2` proxy route (see `yanhe2Play.ts`): the local URL
- * the renderer is given, and the playlist rewrite that keeps every segment
- * coming back through it.
+ * URL shapes for the Yanhe 2.0 proxy routes. `/yanhe2` (see `yanhe2Play.ts`):
+ * the local URL the renderer is given, and the playlist rewrite that keeps
+ * every segment coming back through it. `/yanhe2-slide`: one slide image.
  */
 import { isYanhe2PlayUrl } from '@main/platform/yanhe2/yanhe2Playback';
 
 export const YANHE2_PLAY_ROUTE = '/yanhe2';
+
+/** Server-slide images (see `yanhe2SlideImage.ts`). */
+export const YANHE2_SLIDE_ROUTE = '/yanhe2-slide';
+
+export function yanhe2SlideProxyUrl(port: number, upstreamUrl: string): string {
+  return `http://localhost:${port}${YANHE2_SLIDE_ROUTE}?u=${encodeURIComponent(upstreamUrl)}`;
+}
 
 export function yanhe2PlayProxyUrl(port: number, account: string, upstreamUrl: string): string {
   return `http://localhost:${port}${YANHE2_PLAY_ROUTE}?account=${encodeURIComponent(account)}&u=${encodeURIComponent(upstreamUrl)}`;

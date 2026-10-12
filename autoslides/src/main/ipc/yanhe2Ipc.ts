@@ -1,7 +1,9 @@
 import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
 import { broadcastConfig } from './broadcastConfig';
+import type { Yanhe2ReadResult } from '@common/yanhe2Calendar';
 import type { Yanhe2Playback, Yanhe2PlaybackResult, Yanhe2PlaybackStream } from '@common/yanhe2Playback';
+import type { Yanhe2Slide } from '@common/yanhe2Slides';
 
 // Yanhe 2.0 (aita.yanhekt.cn) account. Every handler takes the signed-in
 // account's badge (student id) and plain strings. The JWT crosses the bridge
@@ -108,6 +110,16 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     }
     const data: Yanhe2Playback = { mode: recorded ? 'recorded' : 'live', ...details, streams };
     return { kind: 'ok', data };
+  });
+
+  // One session's server slides. The images are public, but they are handed
+  // out as local proxy URLs so they take the intranet route too.
+  ipcMain.handle('yanhe2:slides', async (_event, account: string, query: unknown): Promise<Yanhe2ReadResult<Yanhe2Slide[]>> => {
+    const result = await yanhe2Service.getSlides(str(account), query);
+    if (result.kind === 'signed_out') broadcast();
+    if (result.kind !== 'ok' || result.data.length === 0) return result;
+    const urls = await videoProxyService.getYanhe2SlideUrls(result.data.map((slide) => slide.url));
+    return { kind: 'ok', data: result.data.map((slide, index) => ({ seconds: slide.seconds, url: urls[index] })) };
   });
 
   ipcMain.handle('yanhe2:adoptCookies', async (_event, account: string, text: string) => {

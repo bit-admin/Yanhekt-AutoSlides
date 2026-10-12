@@ -14,7 +14,8 @@ import { ProxyAuth } from './videoProxy/proxyAuth';
 import { buildAxiosConfig, fetchRecordedWithResign, getAlongRoute } from './videoProxy/proxyRequest';
 import { applyNoStoreHeaders, shouldForwardUpstreamHeader } from './videoProxy/httpHeaders';
 import { handleYanhe2PlayRequest } from './videoProxy/yanhe2Play';
-import { YANHE2_PLAY_ROUTE, yanhe2PlayProxyUrl } from './videoProxy/yanhe2PlayUrls';
+import { handleYanhe2SlideImageRequest } from './videoProxy/yanhe2SlideImage';
+import { YANHE2_PLAY_ROUTE, YANHE2_SLIDE_ROUTE, yanhe2PlayProxyUrl, yanhe2SlideProxyUrl } from './videoProxy/yanhe2PlayUrls';
 import type { Yanhe2PlayIdentity } from '@main/platform/yanhe2/yanhe2Playback';
 import { createLogger } from '@main/infra/logger';
 import { IntranetAgentPool, intranetTarget, isConnectionFailure } from '@main/infra/intranetTransport';
@@ -195,6 +196,17 @@ export class VideoProxyService {
   async getYanhe2PlayUrl(account: string, upstreamUrl: string): Promise<string> {
     await this.intranetMapping.ensureFresh();
     return yanhe2PlayProxyUrl(await this.startVideoProxy(), account, upstreamUrl);
+  }
+
+  /**
+   * Local URLs for Yanhe 2.0 server-slide images, in the order given. They
+   * are served while the proxy is up, so the page showing them holds a
+   * registered client, as it does for the recording.
+   */
+  async getYanhe2SlideUrls(upstreamUrls: string[]): Promise<string[]> {
+    await this.intranetMapping.ensureFresh();
+    const port = await this.startVideoProxy();
+    return upstreamUrls.map((url) => yanhe2SlideProxyUrl(port, url));
   }
 
   /**
@@ -429,6 +441,12 @@ export class VideoProxyService {
             await handleYanhe2PlayRequest(req, res, parsedUrl.query, {
               port: this.proxyPort,
               identityFor: this.yanhe2IdentityFor,
+              intranetMapping: this.intranetMapping,
+              agents: this.agentPool.resolve(),
+            });
+          } else if (pathname === YANHE2_SLIDE_ROUTE) {
+            // Yanhe 2.0 server-slide image: public, fetched along the route.
+            await handleYanhe2SlideImageRequest(res, parsedUrl.query, {
               intranetMapping: this.intranetMapping,
               agents: this.agentPool.resolve(),
             });

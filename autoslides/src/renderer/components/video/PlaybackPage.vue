@@ -1948,51 +1948,6 @@ onUnmounted(async () => {
   user-select: none;
 }
 
-/* Slide counter */
-.slide-counter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background-color: var(--badge-active-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--accent);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.slide-counter svg {
-  flex-shrink: 0;
-  color: var(--accent);
-}
-
-.counter-text {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.counter-status {
-  color: var(--badge-active-text);
-  font-weight: 400;
-  opacity: 0.8;
-}
-
-/* Slide Gallery — bottom section of the seamless player panel */
-.slide-gallery {
-  background-color: var(--bg-elevated);
-}
-
-.gallery-header {
-  margin-bottom: 0;
-}
-
-/* Thumbnail grid (child SlideGallery component) inset from the panel edges */
-.slide-gallery :deep(.gallery-grid) {
-  padding: 16px;
-}
-
 /* Post-processing status bar: flush panel section, not a nested box */
 .post-process-status-bar {
   background-color: var(--bg-elevated);

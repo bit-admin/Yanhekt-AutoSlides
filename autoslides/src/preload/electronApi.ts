@@ -40,6 +40,7 @@ import type {
 } from '../shared/yanhe2Calendar';
 import type { Yanhe2Course, Yanhe2CourseDetail, Yanhe2CourseDetailQuery } from '../shared/yanhe2Curriculum';
 import type { Yanhe2PlaybackQuery, Yanhe2PlaybackResult } from '../shared/yanhe2Playback';
+import type { Yanhe2Slide } from '../shared/yanhe2Slides';
 import type {
   SlideMetadata,
   SlideMetadataKind,
@@ -420,6 +421,8 @@ export interface ElectronAPI {
     courseDetail: (account: string, query: Yanhe2CourseDetailQuery) => Promise<Yanhe2ReadResult<Yanhe2CourseDetail>>;
     /** One session's streams. Recorded ones come back as local proxy URLs. */
     playback: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2PlaybackResult>;
+    /** One session's server slides, as local proxy image URLs. Empty when it has none. */
+    slides: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2ReadResult<Yanhe2Slide[]>>;
     prepareBrowserSignIn: () => Promise<void>;
     /** `reason: 'pending'` until the browser sign-in webview holds a token. */
     adoptBrowserSession: (account: string) => Promise<Yanhe2SignInResult>;

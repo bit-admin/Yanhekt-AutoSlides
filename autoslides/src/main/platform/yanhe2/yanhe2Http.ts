@@ -21,6 +21,7 @@ export const YANHE2_READ_PATHS = {
   // (Referer + x-requested-with). The back end itself is reachable here.
   myCourses: '/vlabpassportapi/v1/account-profile/course',
   courseDetail: '/courseapi/v3/multi-search/get-course-detail',
+  slides: '/pptnote/v1/schedule/search-ppt',
 } as const;
 
 export type Yanhe2ReadPath = (typeof YANHE2_READ_PATHS)[keyof typeof YANHE2_READ_PATHS];

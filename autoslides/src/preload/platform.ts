@@ -37,6 +37,7 @@ export const yanhe2: ElectronAPI['yanhe2'] = {
   myCourses: (account) => ipcRenderer.invoke('yanhe2:myCourses', account),
   courseDetail: (account, query) => ipcRenderer.invoke('yanhe2:courseDetail', account, query),
   playback: (account, query) => ipcRenderer.invoke('yanhe2:playback', account, query),
+  slides: (account, query) => ipcRenderer.invoke('yanhe2:slides', account, query),
   prepareBrowserSignIn: () => ipcRenderer.invoke('yanhe2:prepareBrowserSignIn'),
   adoptBrowserSession: (account: string) => ipcRenderer.invoke('yanhe2:adoptBrowserSession', account),
 };
