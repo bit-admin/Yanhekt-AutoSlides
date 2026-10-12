@@ -117,7 +117,14 @@ describe('addresses', () => {
 
   it('leaves hosts it does not know alone', () => {
     const { svc } = service('internal', { alive: [] });
-    expect(svc.mapUrl('https://aita.yanhekt.cn/play/x.m3u8')).toBe('https://aita.yanhekt.cn/play/x.m3u8');
+    expect(svc.mapUrl('https://sso.bit.edu.cn/cas/login')).toBe('https://sso.bit.edu.cn/cas/login');
+  });
+
+  it('maps the Yanhe 2.0 host, whose one address serves API, media and slide images', () => {
+    const { svc } = service('internal', { alive: [] });
+    expect(svc.mapUrl('https://aita.yanhekt.cn/play/2/x/Video1.m3u8?t=1')).toBe('https://10.0.11.240/play/2/x/Video1.m3u8?t=1');
+    expect(svc.mapUrl('https://aita.yanhekt.cn/userapi/v1/infosimple')).toBe('https://10.0.11.240/userapi/v1/infosimple');
+    expect(svc.getMappings()['aita.yanhekt.cn']).toEqual({ type: 'single', ip: '10.0.11.240' });
   });
 
   it('only accepts private addresses from the resolver', () => {

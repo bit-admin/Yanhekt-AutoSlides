@@ -3,7 +3,7 @@ import { app } from 'electron';
 import { getClientSignature } from '@common/crypto';
 import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
-import { CbizTransport } from '@main/platform/cbizTransport';
+import { IntranetApiTransport } from '@main/platform/intranetApiTransport';
 import type { ConfigService } from '@main/platform/configService';
 const log = createLogger('PlatformApiClient');
 
@@ -131,13 +131,13 @@ export class ApiClient {
     "Xclient-Version": "v1"
   };
 
-  private cbiz: CbizTransport;
+  private cbiz: IntranetApiTransport;
 
-  constructor(private configService?: ConfigService, cbiz: CbizTransport = new CbizTransport()) {
+  constructor(private configService?: ConfigService, cbiz: IntranetApiTransport = new IntranetApiTransport()) {
     this.cbiz = cbiz;
   }
 
-  /** Send one cbiz request along the current route (see CbizTransport). */
+  /** Send one cbiz request along the current route (see IntranetApiTransport). */
   private send(config: AxiosRequestConfig & { url: string }): Promise<AxiosResponse> {
     return this.cbiz.send(config);
   }

@@ -6,7 +6,7 @@ vi.mock('@main/infra/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { CbizTransport } from './cbizTransport';
+import { IntranetApiTransport } from './intranetApiTransport';
 import type { IntranetMappingService } from './intranetMappingService';
 
 interface Seen { method: string; url: string; contentType: string; body: Buffer }
@@ -67,10 +67,10 @@ afterEach(async () => {
   })));
 });
 
-describe('CbizTransport without a mapping', () => {
+describe('IntranetApiTransport without a mapping', () => {
   it('sends a JSON body, including on DELETE', async () => {
     const api = await serve();
-    const transport = new CbizTransport();
+    const transport = new IntranetApiTransport();
     const res = await transport.send<{ code: number }>({
       method: 'DELETE',
       url: `${api.origin}/v1/note`,
@@ -89,7 +89,7 @@ describe('CbizTransport without a mapping', () => {
     form.append('file', new Blob([bytes], { type: 'image/png' }), 'Slide_001.png');
     form.append('bucket', 'notes');
 
-    await new CbizTransport().send({ method: 'POST', url: `${api.origin}/v1/minio/upload`, data: form });
+    await new IntranetApiTransport().send({ method: 'POST', url: `${api.origin}/v1/minio/upload`, data: form });
 
     const { contentType, body } = api.seen[0];
     expect(contentType).toMatch(/^multipart\/form-data; boundary=/);
@@ -101,11 +101,11 @@ describe('CbizTransport without a mapping', () => {
   });
 });
 
-describe('CbizTransport on the intranet route', () => {
+describe('IntranetApiTransport on the intranet route', () => {
   it('uses the intranet address while it answers', async () => {
     const pub = await serve();
     const intranet = await serve();
-    const transport = new CbizTransport(mappingTo(pub.port, intranet.port));
+    const transport = new IntranetApiTransport(mappingTo(pub.port, intranet.port));
     await transport.send({ method: 'GET', url: `${pub.origin}/v1/note/list` });
     expect(intranet.seen).toHaveLength(1);
     expect(pub.seen).toHaveLength(0);
@@ -114,7 +114,7 @@ describe('CbizTransport on the intranet route', () => {
   it('retries a refused connection on the public host, for reads and writes alike', async () => {
     const pub = await serve();
     const mapping = mappingTo(pub.port, await closedPort());
-    const transport = new CbizTransport(mapping);
+    const transport = new IntranetApiTransport(mapping);
 
     await transport.send({ method: 'GET', url: `${pub.origin}/v1/note?id=1` });
     await transport.send({ method: 'POST', url: `${pub.origin}/v1/note`, data: { title: 'a' } });
@@ -126,7 +126,7 @@ describe('CbizTransport on the intranet route', () => {
   it('retries a read that timed out, but never a write that may have arrived', async () => {
     const pub = await serve();
     const stalled = await serve(true);
-    const transport = new CbizTransport(mappingTo(pub.port, stalled.port));
+    const transport = new IntranetApiTransport(mappingTo(pub.port, stalled.port));
 
     const read = await transport.send({ method: 'GET', url: `${pub.origin}/v1/note?id=1`, timeout: 150 });
     expect(read.status).toBe(200);
@@ -150,7 +150,7 @@ describe('CbizTransport on the intranet route', () => {
       fresh = true;
     });
     const freshWhenSent: boolean[] = [];
-    const transport = new CbizTransport(mapping);
+    const transport = new IntranetApiTransport(mapping);
     // isApiViaIntranet is read right after the wait (or without one).
     (mapping as { isApiViaIntranet: () => boolean }).isApiViaIntranet = () => { freshWhenSent.push(fresh); return true; };
 

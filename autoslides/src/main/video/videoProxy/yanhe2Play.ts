@@ -7,13 +7,17 @@
  * `http://localhost:<port>/yanhe2?account=<badge>&u=<upstream url>` and this
  * handler signs that one path at the moment it is asked for.
  *
- * Not the Yanhekt recorded route: no URL encryption, no video token, no
- * intranet rewriting, and a 403 is not retried (it means a wrong clock or a
- * wrong phone, neither of which a second try fixes).
+ * Not the Yanhekt recorded route: no URL encryption, no video token, and a 403
+ * is not retried (it means a wrong clock or a wrong phone, neither of which a
+ * second try fixes). It does share the route: the request goes out through the
+ * intranet transport, so on campus the media comes from aita's intranet
+ * address, with the public host as fallback in Auto mode.
  */
 import type * as http from 'http';
-import { Readable } from 'stream';
-import type { ReadableStream as NodeReadableStream } from 'stream/web';
+import type { Readable } from 'stream';
+import axios, { type AxiosResponse } from 'axios';
+import type { IntranetAgents } from '@main/infra/intranetTransport';
+import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { YANHE2_ORIGIN } from '@common/yanhe2';
 import {
   isYanhe2PlayUrl,
@@ -21,6 +25,7 @@ import {
   type Yanhe2PlayIdentity,
 } from '@main/platform/yanhe2/yanhe2Playback';
 import { rewriteYanhe2Playlist } from './yanhe2PlayUrls';
+import { getAlongRoute } from './proxyRequest';
 import { applyNoStoreHeaders, shouldForwardUpstreamHeader } from './httpHeaders';
 import { createLogger } from '@main/infra/logger';
 
@@ -46,6 +51,9 @@ export interface Yanhe2PlayDeps {
   port: number;
   /** The signing values for that badge, or null when it has no live Yanhe 2.0 session. */
   identityFor: (account: string) => Yanhe2PlayIdentity | null;
+  intranetMapping: IntranetMappingService;
+  /** The proxy's keep-alive agents for the current route. */
+  agents: IntranetAgents;
 }
 
 export async function handleYanhe2PlayRequest(
@@ -74,40 +82,44 @@ export async function handleYanhe2PlayRequest(
   // A closed tab or a seek drops the request; stop pulling the file then.
   const abort = new AbortController();
   res.on('close', () => abort.abort());
-  const signal = isPlaylist
-    ? AbortSignal.any([abort.signal, AbortSignal.timeout(PLAYLIST_TIMEOUT_MS)])
-    : abort.signal;
 
-  let response: Response;
+  let response: AxiosResponse;
   try {
     // The signed URL carries the account's signature and is never logged.
-    response = await fetch(signYanhe2PlayUrl(upstream, identity, Date.now()), {
-      headers,
-      redirect: 'manual',
-      signal,
-    });
+    response = await getAlongRoute(
+      signYanhe2PlayUrl(upstream, identity, Date.now()),
+      deps.intranetMapping,
+      deps.agents,
+      {
+        headers,
+        // The signature must not follow a redirect to another host.
+        maxRedirects: 0,
+        signal: abort.signal,
+        // A playlist is small and must not hang. A media file has no limit:
+        // a paused <video> stops reading, and an idle timeout would cut it off.
+        timeout: isPlaylist ? PLAYLIST_TIMEOUT_MS : 0,
+        responseType: isPlaylist ? 'text' : 'stream',
+        validateStatus: () => true,
+      },
+    );
   } catch (error) {
     if (abort.signal.aborted) return;
-    log.warn('Yanhe 2.0 media request failed:', error instanceof Error ? error.message : String(error));
+    // The message only: an axios error carries the signed URL in its config.
+    const reason = axios.isAxiosError(error) ? (error.code ?? 'no answer') : 'request error';
+    log.warn(`Yanhe 2.0 media request failed: ${reason}`);
     fail(res, 502, 'Yanhe 2.0 media request failed');
     return;
   }
 
   if (response.status !== 200 && response.status !== 206) {
-    void response.body?.cancel().catch(() => undefined);
+    if (!isPlaylist) (response.data as Readable).destroy();
     log.warn(`Yanhe 2.0 media answered ${response.status}`);
     fail(res, response.status >= 400 ? response.status : 502, `Yanhe 2.0 media answered ${response.status}`);
     return;
   }
 
   if (isPlaylist) {
-    let content: string;
-    try {
-      content = await response.text();
-    } catch {
-      fail(res, 502, 'Yanhe 2.0 playlist could not be read');
-      return;
-    }
+    const content = typeof response.data === 'string' ? response.data : '';
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     applyNoStoreHeaders(res);
     res.writeHead(200);
@@ -115,20 +127,16 @@ export async function handleYanhe2PlayRequest(
     return;
   }
 
-  response.headers.forEach((value, name) => {
-    // `fetch` already decoded the body, so its encoding header no longer applies.
-    if (name === 'content-encoding') return;
-    if (shouldForwardUpstreamHeader(name)) res.setHeader(name, value);
-  });
+  for (const [name, value] of Object.entries(response.headers)) {
+    // axios already decoded the body, so its encoding header no longer applies.
+    if (name === 'content-encoding' || value == null) continue;
+    if (shouldForwardUpstreamHeader(name)) res.setHeader(name, value as string | string[]);
+  }
   // Same reason as the Yanhekt routes: Chromium would otherwise write every
   // segment, or a 700 MB screen recording, into userData/Cache.
   applyNoStoreHeaders(res);
   res.writeHead(response.status);
-  if (!response.body) {
-    res.end();
-    return;
-  }
-  const body = Readable.fromWeb(response.body as unknown as NodeReadableStream<Uint8Array>);
+  const body = response.data as Readable;
   body.on('error', () => res.destroy());
   body.pipe(res);
 }

@@ -1,9 +1,12 @@
-// How the main process reaches the Yanhekt API host (cbiz.yanhekt.cn): through
-// the campus intranet when it is reachable, with the public host as fallback
-// in every connection mode. Nothing in the app works without the API, so it
-// never depends on the intranet being up.
+// How the main process reaches the Yanhekt API hosts (cbiz.yanhekt.cn, and
+// aita.yanhekt.cn for Yanhe 2.0): through the campus intranet when it is
+// reachable, with the public host as fallback in every connection mode.
+// Nothing in the app works without the API, so it never depends on the
+// intranet being up.
 //
-// Shared by ApiClient and NotesService so the two cannot route differently.
+// Shared by ApiClient, NotesService and the Yanhe 2.0 reads so none of them
+// can route differently. It is host-agnostic: a URL goes to the intranet when
+// its host is in the mapping table, and nowhere special otherwise.
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { IntranetAgentPool, intranetRequest, isConnectionFailure, isUnsentFailure } from '@main/infra/intranetTransport';
 import type { IntranetMappingService } from './intranetMappingService';
@@ -11,7 +14,7 @@ import type { IntranetMappingService } from './intranetMappingService';
 /** How long a read may wait on the intranet address before the public host is tried. */
 const INTRANET_READ_TIMEOUT_MS = 4000;
 
-export class CbizTransport {
+export class IntranetApiTransport {
   private agentPool: IntranetAgentPool | null = null;
 
   /** Without a mapping (tests, tools that never route) every request goes to the public host. */

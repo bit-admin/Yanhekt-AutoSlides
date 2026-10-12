@@ -72,6 +72,9 @@ const BUILT_IN_ADDRESSES: Record<string, string[]> = {
   'clive15.yanhekt.cn': ['10.0.34.208'],
   // Recorded video server
   'cvideo.yanhekt.cn': ['10.0.34.24'],
+  // Yanhe 2.0: one host for its API, recorded media (/play/) and slide images.
+  // Its live streams are on the clive hosts above.
+  'aita.yanhekt.cn': ['10.0.11.240'],
 };
 
 function interfaceSignature(): string {

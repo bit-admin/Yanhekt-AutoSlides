@@ -15,7 +15,7 @@ import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
 import { buildSlideFolderName, type LectureIdentity } from '@common/lectureNaming';
 import type { ConfigService } from './configService';
-import { CbizTransport } from './cbizTransport';
+import { IntranetApiTransport } from './intranetApiTransport';
 import { sharpService } from '@main/infra/sharpService';
 import type {
   NoteSummary,
@@ -66,7 +66,7 @@ interface ApiEnvelope<T> {
 export class NotesService {
   constructor(
     private readonly configService: ConfigService,
-    private readonly cbiz: CbizTransport = new CbizTransport(),
+    private readonly cbiz: IntranetApiTransport = new IntranetApiTransport(),
   ) {}
 
   /** Verified minimal header set. `Xdomain-Client: web_user` is the critical gate. */
@@ -101,7 +101,7 @@ export class NotesService {
     path: string,
     body?: Record<string, unknown>,
   ): Promise<T> {
-    // Through CbizTransport so notes take the same route as the rest of the API.
+    // Through IntranetApiTransport so notes take the same route as the rest of the API.
     const res = await this.cbiz.send<ApiEnvelope<T>>({
       method,
       url: `${BASE}${path}`,

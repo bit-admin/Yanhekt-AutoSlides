@@ -12,7 +12,8 @@ import { NotesService } from '@main/platform/notesService';
 import { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import { NotionNotesService } from '@main/export/notionNotesService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
-import { CbizTransport } from '@main/platform/cbizTransport';
+import { IntranetApiTransport } from '@main/platform/intranetApiTransport';
+import { routeYanhe2Through } from '@main/platform/yanhe2/yanhe2Http';
 import { VideoProxyService } from '@main/video/videoProxyService';
 import { LocalRelayService } from '@main/video/localRelayService';
 import { ThumbnailService } from '@main/video/thumbnailService';
@@ -243,8 +244,10 @@ const authService = new MainAuthService(configService, yanhe2Service);
 const autoCropModelService = new AutoCropModelService(configService);
 const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
-const cbizTransport = new CbizTransport(intranetMappingService);
-const apiClient = new MainApiClient(configService, cbizTransport);
+const apiTransport = new IntranetApiTransport(intranetMappingService);
+const apiClient = new MainApiClient(configService, apiTransport);
+// Yanhe 2.0 JSON takes the same route as the rest of the API.
+routeYanhe2Through((config) => apiTransport.send(config));
 const videoProxyService = new VideoProxyService(
   apiClient,
   intranetMappingService,
@@ -263,7 +266,7 @@ const aiPromptsService = new AIPromptsService();
 const llmApiService = new LLMApiService(configService);
 const aiFilteringService = new AIFilteringService(configService, aiPromptsService, llmApiService);
 const qtExtractorService = new QtExtractorService(configService);
-const notesService = new NotesService(configService, cbizTransport);
+const notesService = new NotesService(configService, apiTransport);
 const obsidianNotesService = new ObsidianNotesService(configService);
 const notionNotesService = new NotionNotesService(configService);
 const cliInstallService = new CliInstallService();

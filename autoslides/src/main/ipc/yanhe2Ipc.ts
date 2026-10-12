@@ -79,8 +79,9 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
   });
 
   // One session's streams. Recorded media is signed per request with a secret
-  // that stays in main, so those URLs are swapped for local proxy ones here;
-  // live streams are the unsigned live CDN playlists and go out as they are.
+  // that stays in main, so those URLs are swapped for local proxy ones here.
+  // Live streams are the unsigned live CDN playlists: they go out as they are
+  // on the public route and through the local proxy on the intranet one.
   ipcMain.handle('yanhe2:playback', async (_event, account: string, query: unknown): Promise<Yanhe2PlaybackResult> => {
     const badge = str(account);
     const result = await yanhe2Service.getSubInfo(badge, query);
@@ -100,7 +101,9 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
       streams.push({
         type: source.type,
         format: source.format,
-        url: recorded ? await videoProxyService.getYanhe2PlayUrl(badge, source.url) : source.url,
+        url: recorded
+          ? await videoProxyService.getYanhe2PlayUrl(badge, source.url)
+          : await videoProxyService.getYanhe2LiveUrl(badge, source.url),
       });
     }
     const data: Yanhe2Playback = { mode: recorded ? 'recorded' : 'live', ...details, streams };
