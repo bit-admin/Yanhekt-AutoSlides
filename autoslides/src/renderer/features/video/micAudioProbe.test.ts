@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { findAdtsFrame, hasSpeechLikeSound, levelRange } from './micAudioProbe'
+import { findAdtsFrame, hasSpeechLikeSound, laterSliceOffsets, levelRange, totalFromContentRange } from './micAudioProbe'
 
 /** One ADTS frame of `length` bytes (header included), payload filled with `fill`. */
 function frame(length: number, fill = 0x11): number[] {
@@ -63,5 +63,36 @@ describe('levelRange', () => {
 
   it('will not judge a fragment', () => {
     expect(levelRange(new Float32Array(RATE / 2), RATE)).toBeNull()
+  })
+})
+
+describe('totalFromContentRange', () => {
+  it('reads the size off a ranged answer and off a 416', () => {
+    expect(totalFromContentRange('bytes 10000000-10499999/23456789')).toBe(23456789)
+    expect(totalFromContentRange('bytes */8000000')).toBe(8000000)
+  })
+
+  it('gives null when the size is not there', () => {
+    expect(totalFromContentRange(null)).toBeNull()
+    expect(totalFromContentRange('bytes 0-9/*')).toBeNull()
+  })
+})
+
+describe('laterSliceOffsets', () => {
+  it('keeps the later slices inside a file of known size', () => {
+    expect(laterSliceOffsets(24_000_000, true)).toEqual([12_000_000, 19_200_000])
+  })
+
+  it('cuts all three inside a file that ends before the first offset', () => {
+    expect(laterSliceOffsets(8_000_000, false)).toEqual([1_600_000, 4_000_000, 6_400_000])
+  })
+
+  it('takes a tiny file whole', () => {
+    expect(laterSliceOffsets(300_000, false)).toEqual([0])
+  })
+
+  it('falls back to fixed offsets when the size is unknown', () => {
+    expect(laterSliceOffsets(null, true)).toEqual([30_000_000, 50_000_000])
+    expect(laterSliceOffsets(null, false)).toEqual([])
   })
 })

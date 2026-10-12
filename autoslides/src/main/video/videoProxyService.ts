@@ -416,6 +416,8 @@ export class VideoProxyService {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        // The mic-audio probe reads a file's size off a ranged answer.
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
 
         // Handle CORS preflight requests
         if (req.method === 'OPTIONS') {

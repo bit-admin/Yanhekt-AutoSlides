@@ -19,8 +19,14 @@ const log = createLogger('MicAudioProbe')
 
 /** ~30 seconds each at the file's ~130 kb/s. */
 const SLICE_BYTES = 500_000
-/** Roughly 10, 31 and 51 minutes in: past the wait before class, short of where most lectures end. */
-const SLICE_OFFSETS = [10_000_000, 30_000_000, 50_000_000]
+/** Where the first slice is cut: roughly 10 minutes in, past the wait before class. */
+const FIRST_SLICE_OFFSET = 10_000_000
+/** Where the others are cut when the file's size is not known: roughly 31 and 51 minutes in. */
+const LATER_SLICE_OFFSETS = [30_000_000, 50_000_000]
+/** Where they are cut when it is, as a share of the file. */
+const LATER_SLICE_SHARES = [0.5, 0.8]
+/** Where all of them are cut in a file that ends before the first offset. */
+const SHORT_FILE_SHARES = [0.2, 0.5, 0.8]
 /** The level is taken over windows this long. */
 const WINDOW_SECONDS = 0.1
 /** Loud-to-quiet swing that means something is being said. Dead tracks stay under 3 dB, speech starts at 13. */
@@ -71,18 +77,45 @@ export function hasSpeechLikeSound(range: { loud: number; quiet: number }): bool
   return range.loud > AUDIBLE_DBFS && range.loud - range.quiet >= SPEECH_SWING_DB
 }
 
-/** Whether one slice has speech in it; null when the slice could not be judged. */
-async function sliceHasSound(url: string, offset: number, signal: AbortSignal): Promise<boolean | null> {
+// The file size out of `Content-Range: bytes 0-9/1234` (`bytes */1234` on a 416), or null.
+export function totalFromContentRange(header: string | null): number | null {
+  const total = Number(header?.match(/\/(\d+)\s*$/)?.[1])
+  return Number.isFinite(total) && total > 0 ? total : null
+}
+
+/**
+ * Where to cut the slices that follow the first one. `total` is the file's
+ * size when the first answer told it, and `firstFit` whether the first offset
+ * was inside the file.
+ */
+export function laterSliceOffsets(total: number | null, firstFit: boolean): number[] {
+  if (total === null) return firstFit ? LATER_SLICE_OFFSETS : []
+  const shares = firstFit ? LATER_SLICE_SHARES : SHORT_FILE_SHARES
+  const last = total - SLICE_BYTES
+  if (last <= 0) return [0]
+  return shares.map((share) => Math.min(last, Math.floor(total * share)))
+}
+
+interface SliceResult {
+  /** Whether the slice has speech in it; null when it could not be judged. */
+  heard: boolean | null
+  total: number | null
+  /** The offset was inside the file. */
+  fit: boolean
+}
+
+async function measureSlice(url: string, offset: number, signal: AbortSignal): Promise<SliceResult> {
   const response = await fetch(url, { headers: { Range: `bytes=${offset}-${offset + SLICE_BYTES - 1}` }, signal })
-  // A short lecture ends before the later offsets.
-  if (response.status !== 206) return null
+  const total = totalFromContentRange(response.headers.get('Content-Range'))
+  // 416: the file ends before this offset.
+  if (response.status !== 206) return { heard: null, total, fit: false }
   const bytes = new Uint8Array(await response.arrayBuffer())
   const start = findAdtsFrame(bytes)
-  if (start < 0) return null
+  if (start < 0) return { heard: null, total, fit: true }
   const context = new OfflineAudioContext(1, 1, 48_000)
   const audio = await context.decodeAudioData(bytes.slice(start).buffer)
   const range = levelRange(audio.getChannelData(0), audio.sampleRate)
-  return range ? hasSpeechLikeSound(range) : null
+  return { heard: range ? hasSpeechLikeSound(range) : null, total, fit: true }
 }
 
 /**
@@ -92,15 +125,19 @@ async function sliceHasSound(url: string, offset: number, signal: AbortSignal): 
  */
 export async function isMicAudioAudible(url: string, signal: AbortSignal): Promise<boolean> {
   let measured = 0
-  for (const offset of SLICE_OFFSETS) {
+  const offsets = [FIRST_SLICE_OFFSET]
+  for (let i = 0; i < offsets.length; i++) {
     try {
-      const heard = await sliceHasSound(url, offset, signal)
-      if (heard === null) continue
+      const slice = await measureSlice(url, offsets[i], signal)
+      // The first answer says how long the file is, and so where the rest go.
+      if (i === 0) offsets.push(...laterSliceOffsets(slice.total, slice.fit))
+      if (slice.heard === null) continue
       measured++
-      if (heard) return true
+      if (slice.heard) return true
     } catch (error) {
       if (signal.aborted) return false
       log.warn('Classroom mic slice could not be measured:', error)
+      if (i === 0) offsets.push(...LATER_SLICE_OFFSETS)
     }
   }
   if (measured > 0) log.info('Classroom mic track has no speech on it; not offered')
