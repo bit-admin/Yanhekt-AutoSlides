@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue'
-import type { ConnectionMode } from '@common/types'
+import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
 import { languageService } from '@features/settings/languageService'
 import { DownloadService } from '@shared/services/downloadService'
 
@@ -22,6 +22,9 @@ export interface UseGeneralSettingsOptions {
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
   preferMicAudioByDefault: Ref<boolean>
+  checkMicAudioBeforeOffering: Ref<boolean>
+  yanhe2CaptionMode: Ref<Yanhe2CaptionMode>
+  yanhe2CaptionOffsetSeconds: Ref<number>
   resumeFromServerProgress: Ref<boolean>
   resumeFromServerProgressLectures: Ref<boolean>
   preventSystemSleep: Ref<boolean>
@@ -49,6 +52,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     maxManualTabs,
     showMorePlaybackSpeed,
     preferMicAudioByDefault,
+    checkMicAudioBeforeOffering,
+    yanhe2CaptionMode,
+    yanhe2CaptionOffsetSeconds,
     resumeFromServerProgress,
     resumeFromServerProgressLectures,
     preventSystemSleep,
@@ -74,6 +80,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempMaxManualTabs = ref(3)
   const tempShowMorePlaybackSpeed = ref(false)
   const tempPreferMicAudioByDefault = ref(false)
+  const tempCheckMicAudioBeforeOffering = ref(true)
+  const tempYanhe2CaptionMode = ref<Yanhe2CaptionMode>('mic')
+  const tempYanhe2CaptionOffsetSeconds = ref(YANHE2_CAPTION_OFFSET_DEFAULT)
   const tempResumeFromServerProgress = ref(true)
   const tempResumeFromServerProgressLectures = ref(true)
   const tempPreventSystemSleep = ref(true)
@@ -99,6 +108,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempMaxManualTabs.value = maxManualTabs.value
     tempShowMorePlaybackSpeed.value = showMorePlaybackSpeed.value
     tempPreferMicAudioByDefault.value = preferMicAudioByDefault.value
+    tempCheckMicAudioBeforeOffering.value = checkMicAudioBeforeOffering.value
+    tempYanhe2CaptionMode.value = yanhe2CaptionMode.value
+    tempYanhe2CaptionOffsetSeconds.value = yanhe2CaptionOffsetSeconds.value
     tempResumeFromServerProgress.value = resumeFromServerProgress.value
     tempResumeFromServerProgressLectures.value = resumeFromServerProgressLectures.value
     tempPreventSystemSleep.value = preventSystemSleep.value
@@ -164,6 +176,24 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       // No broadcast event needed: the default is only read when a playback tab
       // opens, and configStore is already kept in sync by config:onUpdate.
     }
+
+    if (tempCheckMicAudioBeforeOffering.value !== checkMicAudioBeforeOffering.value) {
+      const checkResult = await window.electronAPI.config.setCheckMicAudioBeforeOffering(tempCheckMicAudioBeforeOffering.value)
+      checkMicAudioBeforeOffering.value = checkResult.checkMicAudioBeforeOffering ?? true
+      // Open players follow through configStore (see useMicAudioCheck).
+    }
+
+    // An emptied number field reads as '' — keep the saved offset then.
+    const captionOffset = Number(tempYanhe2CaptionOffsetSeconds.value)
+    const nextCaptionOffset = Number.isFinite(captionOffset) && String(tempYanhe2CaptionOffsetSeconds.value) !== ''
+      ? captionOffset
+      : yanhe2CaptionOffsetSeconds.value
+    if (tempYanhe2CaptionMode.value !== yanhe2CaptionMode.value || nextCaptionOffset !== yanhe2CaptionOffsetSeconds.value) {
+      const captionResult = await window.electronAPI.config.setYanhe2Captions(tempYanhe2CaptionMode.value, nextCaptionOffset)
+      yanhe2CaptionMode.value = captionResult.yanhe2CaptionMode ?? 'mic'
+      yanhe2CaptionOffsetSeconds.value = captionResult.yanhe2CaptionOffsetSeconds ?? YANHE2_CAPTION_OFFSET_DEFAULT
+    }
+    tempYanhe2CaptionOffsetSeconds.value = yanhe2CaptionOffsetSeconds.value
 
     // Both resume toggles are read when a lecture opens, so — like the mic
     // default above — configStore's own config:onUpdate sync is enough.
@@ -238,6 +268,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempMaxManualTabs,
     tempShowMorePlaybackSpeed,
     tempPreferMicAudioByDefault,
+    tempCheckMicAudioBeforeOffering,
+    tempYanhe2CaptionMode,
+    tempYanhe2CaptionOffsetSeconds,
     tempResumeFromServerProgress,
     tempResumeFromServerProgressLectures,
     tempPreventSystemSleep,

@@ -171,6 +171,12 @@ export interface StoredAccount {
   lastUsedAt: number;
 }
 
+export type Yanhe2CaptionMode = 'mic' | 'offset';
+
+export const YANHE2_CAPTION_OFFSET_DEFAULT = 24;
+/** Either way: a lecture's captions may run early or late. */
+export const YANHE2_CAPTION_OFFSET_LIMIT = 600;
+
 export interface AppConfig {
   outputDirectory: string;
   connectionMode: ConnectionMode;
@@ -197,6 +203,17 @@ export interface AppConfig {
   // Select Yanhekt's classroom mic track as the audio source when a lecture has
   // one. Off by default: the mic is silent whenever the teacher did not wear it.
   preferMicAudioByDefault: boolean;
+  // Listen to a classroom mic track before offering it, so one recorded with
+  // the microphone off (silence or a steady hiss) is not offered. Applies to
+  // both the Yanhekt and the Yanhe 2.0 player.
+  checkMicAudioBeforeOffering: boolean;
+  // Yanhe 2.0 captions are in sync only on lectures recorded with a working
+  // classroom mic; on the others they are off by an amount that differs per
+  // lecture and that nothing in the data gives. `mic` offers captions only on
+  // the first kind; `offset` offers them everywhere and delays them by
+  // `yanhe2CaptionOffsetSeconds` on the second kind (a guess, 24 by default).
+  yanhe2CaptionMode: Yanhe2CaptionMode;
+  yanhe2CaptionOffsetSeconds: number;
   // Honor Yanhekt's own per-account watch position: seek there when a recorded
   // lecture opens in a *watch* tab, and report the playhead back while it plays.
   // Off by default — it changes where a video starts and sends the playhead to

@@ -9,13 +9,18 @@
  * clock and the camera follows it. A recording's camera is HLS and its screen
  * an MP4, but they are the same recordings Yanhekt serves, so the two are
  * synced on `currentTime` with no offset.
+ *
+ * A recording may also have the classroom microphone as its own AAC file (the
+ * same one Yanhekt offers). When picked it plays in a separate `<audio>` that
+ * follows the clock the same way; the page mutes the videos.
  */
-import { computed, onScopeDispose, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue'
+import { computed, nextTick, onScopeDispose, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue'
 import Hls, { Events } from 'hls.js'
 import type { Yanhe2SessionStatus } from '@common/yanhe2Calendar'
 import type { Yanhe2Playback, Yanhe2PlaybackStream, Yanhe2StreamType } from '@common/yanhe2Playback'
 import { getHlsConfig } from '@features/video/hlsConfig'
 import { createMediaSyncLoop, syncFollower } from '@features/video/mediaSync'
+import { useMicAudioCheck } from '@features/video/useMicAudioCheck'
 import { createSingleStreamHlsErrorHandler } from '@features/video/useVideoErrorRecovery'
 import { createLogger } from '@shared/utils/logger'
 
@@ -39,10 +44,19 @@ export interface UseYanhe2PlayerOptions {
   screenVideoPlayer: Ref<HTMLVideoElement | null>
   /** The room camera is offered only while this is true. */
   developerMode: Ref<boolean>
+  /** The classroom-microphone element. It lives outside the single/dual switch. */
+  micAudioPlayer: Ref<HTMLAudioElement | null>
+  /** Start a lecture on the classroom mic when it has one (the Yanhekt player's setting). */
+  preferMicAudio: Ref<boolean>
+  /** True while something besides the audio menu needs to know whether the mic track is live (captions). */
+  micVerdictWanted: Ref<boolean>
 }
 
 export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
-  const { account, courseId, subId, videoPlayer, cameraVideoPlayer, screenVideoPlayer, developerMode } = options
+  const {
+    account, courseId, subId, videoPlayer, cameraVideoPlayer, screenVideoPlayer, developerMode, micAudioPlayer, preferMicAudio,
+    micVerdictWanted,
+  } = options
 
   const loading = ref(false)
   const problem = ref<Yanhe2PlayerProblem | null>(null)
@@ -93,18 +107,95 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
   const pickDefault = (): Yanhe2StreamType | '' =>
     (['screen', 'camera', 'room'] as const).find((type) => !!streamOf(type)) ?? ''
 
+  // The classroom microphone: one more follower of whichever element owns the clock.
+  // aita lists the file for every recording, including ones whose microphone
+  // was off; with the "check before offering" setting it is offered only once
+  // a listen has found speech on it (useMicAudioCheck, shared with Yanhekt).
+  const micAudioUrl = computed(() => playback.value?.audioUrl || null)
+  const micCheck = useMicAudioCheck(micAudioUrl, micVerdictWanted)
+  const hasMicAudio = micCheck.available
+  /**
+   * Whether this recording's mic was really on: `live`, `dead` (no track, or
+   * one with nothing said on it), or `checking`. `unknown` when nobody asked.
+   */
+  const micState = computed<'live' | 'dead' | 'checking' | 'unknown'>(() => {
+    if (!playback.value) return 'checking'
+    if (!micAudioUrl.value) return 'dead'
+    if (micCheck.verdict.value === 'audible') return 'live'
+    if (micCheck.verdict.value === 'silent') return 'dead'
+    return micVerdictWanted.value ? 'checking' : 'unknown'
+  })
+  const micAudioOn = ref(false)
+  // "Mic audio by default" waits for the track to be offered, once per load.
+  let micDefaultPending = false
+
+  const syncMic = () => {
+    const master = masterVideo.value
+    const mic = micAudioPlayer.value
+    if (!micAudioOn.value || !master || !mic) return
+    mic.playbackRate = master.playbackRate
+    syncFollower(master, mic)
+  }
+
+  const detachMic = () => {
+    const mic = micAudioPlayer.value
+    if (!mic) return
+    mic.pause()
+    mic.removeAttribute('src')
+    mic.load()
+  }
+
+  const attachMic = () => {
+    const mic = micAudioPlayer.value
+    const url = micAudioUrl.value
+    if (!micAudioOn.value || !mic || !url) return
+    if (mic.src !== url) {
+      mic.src = url
+      mic.preload = 'auto'
+    }
+    const at = masterVideo.value?.currentTime
+    if (at && Number.isFinite(at)) {
+      try { mic.currentTime = at } catch { /* Not seekable yet; the sync loop lines it up. */ }
+    }
+    syncMic()
+  }
+
+  const setMicAudio = (on: boolean) => {
+    micDefaultPending = false
+    const next = on && hasMicAudio.value
+    if (next === micAudioOn.value) return
+    micAudioOn.value = next
+    if (next) attachMic()
+    else detachMic()
+  }
+
+  watch(hasMicAudio, (available) => {
+    if (!available) {
+      // Checked and found dead after all, or the setting was just turned on.
+      if (micAudioOn.value) setMicAudio(false)
+      return
+    }
+    if (!micDefaultPending) return
+    // The element mounts with the option, so wait for it before starting on the mic.
+    void nextTick(() => setMicAudio(true))
+  })
+
   const syncLoop = createMediaSyncLoop(() => {
     const screen = screenVideoPlayer.value
     const camera = cameraVideoPlayer.value
-    if (!isDualSelected.value || !screen || !camera) return
-    const rate = mode.value === 'recorded' ? playbackRate.value : 1
-    screen.playbackRate = rate
-    camera.playbackRate = rate
-    syncFollower(screen, camera)
+    if (isDualSelected.value && screen && camera) {
+      const rate = mode.value === 'recorded' ? playbackRate.value : 1
+      screen.playbackRate = rate
+      camera.playbackRate = rate
+      syncFollower(screen, camera)
+    }
+    syncMic()
   })
 
   const teardown = () => {
     syncLoop.stop()
+    // Held, not unloaded: the file is large and a stream switch should not refetch it.
+    micAudioPlayer.value?.pause()
     for (const { video, hls, onMetadata } of attachments) {
       if (onMetadata) video.removeEventListener('loadedmetadata', onMetadata)
       hls.value?.destroy()
@@ -179,15 +270,16 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
       resumeAt = 0
       attachOne(screen, screenStream, startAt, autoplay)
       attachOne(camera, cameraStream, startAt, autoplay)
-      if (attachments.length) syncLoop.start()
-      return
+    } else {
+      const video = videoPlayer.value
+      const stream = currentStream.value
+      if (!video || !stream) return
+      resumeAt = 0
+      attachOne(video, stream, startAt, autoplay)
     }
-
-    const video = videoPlayer.value
-    const stream = currentStream.value
-    if (!video || !stream) return
-    resumeAt = 0
-    attachOne(video, stream, startAt, autoplay)
+    if (!attachments.length) return
+    attachMic()
+    syncLoop.start()
   }
 
   /** `<video @error>`. hls.js reports its own failures; this is for the MP4 streams. */
@@ -216,6 +308,7 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     playbackRate.value = rate
     if (mode.value !== 'recorded') return
     for (const video of activeVideos()) video.playbackRate = rate
+    if (micAudioPlayer.value) micAudioPlayer.value.playbackRate = rate
   }
 
   const togglePlayback = () => {
@@ -226,6 +319,8 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     } else {
       for (const video of activeVideos()) video.pause()
     }
+    // Now rather than on the loop's next tick, so sound stops and starts with the picture.
+    syncMic()
   }
 
   const seekTo = (time: number) => {
@@ -233,11 +328,16 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     if (!master || !Number.isFinite(master.duration) || !Number.isFinite(time)) return
     const bounded = Math.min(Math.max(time, 0), master.duration)
     for (const video of activeVideos()) video.currentTime = bounded
+    const mic = micAudioPlayer.value
+    if (micAudioOn.value && mic && mic.readyState >= 1) mic.currentTime = bounded
   }
 
   const load = async () => {
     const ticket = ++loadTicket
     teardown()
+    detachMic()
+    micAudioOn.value = false
+    micDefaultPending = false
     loading.value = true
     problem.value = null
     playback.value = null
@@ -252,6 +352,7 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
       if (ticket !== loadTicket) return
       if (result.kind === 'ok') {
         playback.value = result.data
+        micDefaultPending = preferMicAudio.value && !!result.data.audioUrl
         selected.value = pickDefault()
         if (!selected.value) {
           sessionStatus.value = result.data.mode === 'live' ? 'live' : 'playable'
@@ -294,6 +395,7 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
   const dispose = () => {
     loadTicket++
     teardown()
+    detachMic()
     if (proxyClientId) {
       const id = proxyClientId
       proxyClientId = null
@@ -316,6 +418,10 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     isDualSelected,
     masterVideo,
     playbackRate,
+    hasMicAudio,
+    micState,
+    micAudioOn,
+    setMicAudio,
     load,
     selectStream,
     setPlaybackRate,

@@ -37,6 +37,7 @@ describe('isYanhe2PlayUrl', () => {
     expect(isYanhe2PlayUrl(TEACHER)).toBe(true);
     expect(isYanhe2PlayUrl(SCREEN)).toBe(true);
     expect(isYanhe2PlayUrl('https://aita.yanhekt.cn/play/2/vod3/x/Video1_12.ts')).toBe(true);
+    expect(isYanhe2PlayUrl('https://aita.yanhekt.cn/play/2/vod4/2026/09/21/67011470/1/SubAudio/07_59_03_42.aac')).toBe(true);
   });
 
   it('refuses other hosts, other trees and other files', () => {
@@ -126,6 +127,19 @@ describe('parseSubInfo', () => {
       { type: 'screen', format: 'hls', url: 'https://clive11.yanhekt.cn/live/217_VideoVga.m3u8' },
       { type: 'room', format: 'hls', url: 'https://clive11.yanhekt.cn/live/217_VideoRoom.m3u8' },
     ]);
+  });
+
+  it('reads the classroom mic out of audio_list', () => {
+    const AUDIO = 'https://aita.yanhekt.cn/play/2/vod4/2026/09/21/67011470/1/SubAudio/07_59_03_42.aac';
+    const body = recorded({ '0': { type: '3', preview_url: TEACHER } });
+    expect(parseSubInfo(body)?.audioUrl).toBe('');
+    Object.assign(body.data, { audio_list: { '0': { start_time: 42, url: AUDIO } } });
+    expect(parseSubInfo(body)?.audioUrl).toBe(AUDIO);
+    // Not an audio file, or not under /play/: no mic track.
+    Object.assign(body.data, { audio_list: { '0': { start_time: 42, url: TEACHER } } });
+    expect(parseSubInfo(body)?.audioUrl).toBe('');
+    Object.assign(body.data, { audio_list: { '0': { url: 'https://example.com/play/a.aac' } } });
+    expect(parseSubInfo(body)?.audioUrl).toBe('');
   });
 
   it('gives no streams for a session that has not started', () => {

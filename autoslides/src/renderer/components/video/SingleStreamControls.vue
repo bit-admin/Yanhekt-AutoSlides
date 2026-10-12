@@ -152,6 +152,22 @@
           </div>
         </div>
 
+        <!-- Captions, when the host has some for this video. -->
+        <button
+          v-if="captionsAvailable"
+          class="dual-icon-button captions-button"
+          :class="{ active: captionsOn }"
+          :aria-pressed="captionsOn"
+          :title="$t('playback.dual.captions')"
+          @click="emit('toggle-captions')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6"/>
+            <path d="M17 10.2a2.2 2.2 0 1 0 0 3.6"/>
+          </svg>
+        </button>
+
         <button
           class="dual-icon-button"
           @click="emit('toggle-fullscreen')"
@@ -271,6 +287,9 @@ withDefaults(defineProps<{
   canSwapOrder?: boolean
   /** False hides Picture in Picture: two videos cannot share one PiP window. */
   pipAvailable?: boolean
+  /** Shows the captions switch; the host draws the captions itself. */
+  captionsAvailable?: boolean
+  captionsOn?: boolean
   isFullscreen: boolean
   isCinemaMode: boolean
   isPictureInPicture: boolean
@@ -281,6 +300,8 @@ withDefaults(defineProps<{
   pickedAudio: undefined,
   canSwapOrder: false,
   pipAvailable: true,
+  captionsAvailable: false,
+  captionsOn: false,
 })
 
 const emit = defineEmits<{
@@ -298,6 +319,7 @@ const emit = defineEmits<{
   (e: 'toggle-more-panel'): void
   (e: 'toggle-cinema'): void
   (e: 'toggle-pip'): void
+  (e: 'toggle-captions'): void
   (e: 'pointer-over-controls', over: boolean): void
 }>()
 

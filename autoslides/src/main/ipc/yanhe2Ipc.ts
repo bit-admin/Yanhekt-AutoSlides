@@ -90,7 +90,7 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     if (result.kind === 'signed_out') broadcast();
     if (result.kind !== 'ok') return result;
 
-    const { status, sources, ...details } = result.data;
+    const { status, sources, audioUrl: upstreamAudio, ...details } = result.data;
     if ((status !== 'live' && status !== 'playable') || sources.length === 0) {
       return { kind: 'not_playable', status };
     }
@@ -108,7 +108,8 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
           : await videoProxyService.getYanhe2LiveUrl(badge, source.url),
       });
     }
-    const data: Yanhe2Playback = { mode: recorded ? 'recorded' : 'live', ...details, streams };
+    const audioUrl = recorded && upstreamAudio ? await videoProxyService.getYanhe2PlayUrl(badge, upstreamAudio) : '';
+    const data: Yanhe2Playback = { mode: recorded ? 'recorded' : 'live', ...details, streams, audioUrl };
     return { kind: 'ok', data };
   });
 
@@ -120,6 +121,13 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     if (result.kind !== 'ok' || result.data.length === 0) return result;
     const urls = await videoProxyService.getYanhe2SlideUrls(result.data.map((slide) => slide.url));
     return { kind: 'ok', data: result.data.map((slide, index) => ({ seconds: slide.seconds, url: urls[index] })) };
+  });
+
+  // One session's transcript, for the player's captions.
+  ipcMain.handle('yanhe2:transcript', async (_event, account: string, subId: unknown) => {
+    const result = await yanhe2Service.getTranscript(str(account), subId);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
   });
 
   ipcMain.handle('yanhe2:adoptCookies', async (_event, account: string, text: string) => {

@@ -28,6 +28,8 @@ export interface Yanhe2SubInfo {
   endAt: number;
   duration: number;
   sources: Yanhe2Source[];
+  /** The classroom microphone recording (one AAC file), or '' when there is none. Upstream URL; stays in main. */
+  audioUrl: string;
 }
 
 type Row = Record<string, unknown>;
@@ -60,7 +62,7 @@ const LIVE_KEY: [string, Yanhe2StreamType][] = [
 
 const ORDER: Yanhe2StreamType[] = ['camera', 'screen', 'room'];
 
-/** A recording URL the local proxy may sign: aita's own `/play/` tree, playlist, segment or MP4. */
+/** A recording URL the local proxy may fetch: aita's own `/play/` tree, playlist, segment, MP4 or the classroom AAC. */
 export function isYanhe2PlayUrl(value: string): boolean {
   let url: URL;
   try {
@@ -72,7 +74,7 @@ export function isYanhe2PlayUrl(value: string): boolean {
     url.origin === YANHE2_ORIGIN
     && url.pathname.startsWith('/play/')
     && !url.pathname.includes('..')
-    && /\.(m3u8|ts|mp4)$/i.test(url.pathname)
+    && /\.(m3u8|ts|mp4|aac)$/i.test(url.pathname)
   );
 }
 
@@ -95,10 +97,21 @@ function recordedSources(videoList: unknown): Yanhe2Source[] {
     const type = RECORDED_TYPE[text(item.type)];
     const url = text(item.preview_url);
     if (!type || found.has(type) || !isYanhe2PlayUrl(url)) continue;
+    // The AAC is the audio track (`audio_list`), never a stream.
     const format = /\.m3u8$/i.test(new URL(url).pathname) ? 'hls' : /\.mp4$/i.test(new URL(url).pathname) ? 'mp4' : null;
     if (format) found.set(type, { type, format, url });
   }
   return ORDER.flatMap((type) => found.get(type) ?? []);
+}
+
+/** `audio_list` is `{ "0": { start_time, url } }`: the classroom microphone, the same AAC Yanhekt serves. */
+function recordedAudio(audioList: unknown): string {
+  const items = isRow(audioList) ? Object.values(audioList) : Array.isArray(audioList) ? audioList : [];
+  for (const item of items) {
+    const url = isRow(item) ? text(item.url) : '';
+    if (isYanhe2PlayUrl(url) && /\.aac$/i.test(new URL(url).pathname)) return url;
+  }
+  return '';
 }
 
 function liveSources(liveUrl: unknown): Yanhe2Source[] {
@@ -133,6 +146,7 @@ export function parseSubInfo(body: unknown): Yanhe2SubInfo | null {
     endAt: seconds(data.end_at),
     duration: status === 'playable' ? seconds(data.duration) : 0,
     sources,
+    audioUrl: status === 'playable' ? recordedAudio(data.audio_list) : '',
   };
 }
 

@@ -1,5 +1,5 @@
 import { ref, watch, type Ref } from 'vue'
-import type { ConnectionMode } from '@common/types'
+import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
 import { configStore } from '@shared/services/configStore'
 import { DownloadService } from '@shared/services/downloadService'
 import { languageService } from '@features/settings/languageService'
@@ -18,6 +18,9 @@ export interface UseSettingsReturn {
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
   preferMicAudioByDefault: Ref<boolean>
+  checkMicAudioBeforeOffering: Ref<boolean>
+  yanhe2CaptionMode: Ref<Yanhe2CaptionMode>
+  yanhe2CaptionOffsetSeconds: Ref<number>
   resumeFromServerProgress: Ref<boolean>
   resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>
@@ -70,6 +73,9 @@ export function useSettings(): UseSettingsReturn {
   const maxManualTabs = ref(3)
   const showMorePlaybackSpeed = ref(false)
   const preferMicAudioByDefault = ref(false)
+  const checkMicAudioBeforeOffering = ref(true)
+  const yanhe2CaptionMode = ref<Yanhe2CaptionMode>('mic')
+  const yanhe2CaptionOffsetSeconds = ref(YANHE2_CAPTION_OFFSET_DEFAULT)
   const resumeFromServerProgress = ref(true)
   const resumeFromServerProgressLectures = ref(true)
   const developerMode = ref(false)
@@ -113,6 +119,9 @@ export function useSettings(): UseSettingsReturn {
       maxManualTabs.value = config.maxManualTabs || 3
       showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
       preferMicAudioByDefault.value = config.preferMicAudioByDefault ?? false
+      checkMicAudioBeforeOffering.value = config.checkMicAudioBeforeOffering ?? true
+      yanhe2CaptionMode.value = config.yanhe2CaptionMode ?? 'mic'
+      yanhe2CaptionOffsetSeconds.value = config.yanhe2CaptionOffsetSeconds ?? YANHE2_CAPTION_OFFSET_DEFAULT
       resumeFromServerProgress.value = config.resumeFromServerProgress ?? true
       resumeFromServerProgressLectures.value = config.resumeFromServerProgressLectures ?? true
       developerMode.value = config.developerMode ?? false
@@ -212,6 +221,9 @@ export function useSettings(): UseSettingsReturn {
     maxManualTabs,
     showMorePlaybackSpeed,
     preferMicAudioByDefault,
+    checkMicAudioBeforeOffering,
+    yanhe2CaptionMode,
+    yanhe2CaptionOffsetSeconds,
     resumeFromServerProgress,
     resumeFromServerProgressLectures,
     developerMode,

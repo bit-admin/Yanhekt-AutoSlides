@@ -30,6 +30,8 @@ export interface Yanhe2Playback {
   /** Recording length in seconds; 0 for live. */
   duration: number;
   streams: Yanhe2PlaybackStream[];
+  /** The classroom microphone track as a local proxy URL; '' when the recording has none (and always for live). */
+  audioUrl: string;
 }
 
 export interface Yanhe2PlaybackQuery {

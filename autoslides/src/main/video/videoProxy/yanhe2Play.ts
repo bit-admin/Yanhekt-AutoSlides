@@ -75,6 +75,8 @@ export async function handleYanhe2PlayRequest(
   }
 
   const isPlaylist = /\.m3u8$/i.test(new URL(upstream).pathname);
+  // The classroom AAC is outside the signature wall: it wants the Referer only.
+  const isAudio = /\.aac$/i.test(new URL(upstream).pathname);
   const headers: Record<string, string> = { ...UPSTREAM_HEADERS };
   // The MP4s are progressive files the <video> element seeks by byte range.
   if (!isPlaylist && typeof req.headers.range === 'string') headers.Range = req.headers.range;
@@ -87,7 +89,7 @@ export async function handleYanhe2PlayRequest(
   try {
     // The signed URL carries the account's signature and is never logged.
     response = await getAlongRoute(
-      signYanhe2PlayUrl(upstream, identity, Date.now()),
+      isAudio ? upstream : signYanhe2PlayUrl(upstream, identity, Date.now()),
       deps.intranetMapping,
       deps.agents,
       {

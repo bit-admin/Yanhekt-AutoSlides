@@ -23,7 +23,7 @@ import {
   sanitizeSavedLogins,
   type SavedLoginRecord,
 } from './savedLogins';
-import type { ConnectionMode } from '@common/types';
+import { YANHE2_CAPTION_OFFSET_DEFAULT, YANHE2_CAPTION_OFFSET_LIMIT, type ConnectionMode } from '@common/types';
 import type {
   AIClassifierMode,
   AIFilteringConfig,
@@ -228,6 +228,9 @@ export class ConfigService {
       maxManualTabs: this.store.get('maxManualTabs') ?? 3,
       showMorePlaybackSpeed: this.store.get('showMorePlaybackSpeed') ?? false,
       preferMicAudioByDefault: this.store.get('preferMicAudioByDefault') ?? false,
+      checkMicAudioBeforeOffering: this.store.get('checkMicAudioBeforeOffering') ?? true,
+      yanhe2CaptionMode: this.store.get('yanhe2CaptionMode') === 'offset' ? 'offset' : 'mic',
+      yanhe2CaptionOffsetSeconds: this.store.get('yanhe2CaptionOffsetSeconds') ?? YANHE2_CAPTION_OFFSET_DEFAULT,
       resumeFromServerProgress: this.store.get('resumeFromServerProgress') ?? true,
       resumeFromServerProgressLectures: this.store.get('resumeFromServerProgressLectures') ?? true,
       autoPostProcessing: this.store.get('autoPostProcessing'),
@@ -535,6 +538,19 @@ export class ConfigService {
 
   setPreferMicAudioByDefault(enabled: boolean): void {
     this.store.set('preferMicAudioByDefault', enabled);
+  }
+
+  setCheckMicAudioBeforeOffering(enabled: boolean): void {
+    this.store.set('checkMicAudioBeforeOffering', enabled);
+  }
+
+  /** `offsetSeconds` is kept to a tenth of a second and within the limit; anything else leaves the stored one. */
+  setYanhe2Captions(mode: unknown, offsetSeconds: unknown): void {
+    this.store.set('yanhe2CaptionMode', mode === 'offset' ? 'offset' : 'mic');
+    if (typeof offsetSeconds === 'number' && Number.isFinite(offsetSeconds)) {
+      const bounded = Math.min(YANHE2_CAPTION_OFFSET_LIMIT, Math.max(-YANHE2_CAPTION_OFFSET_LIMIT, offsetSeconds));
+      this.store.set('yanhe2CaptionOffsetSeconds', Math.round(bounded * 10) / 10);
+    }
   }
 
   setResumeFromServerProgress(enabled: boolean): void {

@@ -1,5 +1,5 @@
 import { nextTick, ref, type Ref } from 'vue'
-import type { ConnectionMode } from '@common/types'
+import type { ConnectionMode, Yanhe2CaptionMode } from '@common/types'
 import { useGeneralSettings } from './useGeneralSettings'
 import { useImageProcessingSettings } from './useImageProcessingSettings'
 import { useNetworkSettings } from './useNetworkSettings'
@@ -44,6 +44,9 @@ export interface UseAdvancedSettingsOptions {
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
   preferMicAudioByDefault: Ref<boolean>
+  checkMicAudioBeforeOffering: Ref<boolean>
+  yanhe2CaptionMode: Ref<Yanhe2CaptionMode>
+  yanhe2CaptionOffsetSeconds: Ref<number>
   resumeFromServerProgress: Ref<boolean>
   resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>

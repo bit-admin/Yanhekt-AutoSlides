@@ -143,6 +143,18 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setYanhe2Captions', async (_event, mode: unknown, offsetSeconds: unknown) => {
+    configService.setYanhe2Captions(mode, offsetSeconds);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setCheckMicAudioBeforeOffering', async (_event, enabled: boolean) => {
+    configService.setCheckMicAudioBeforeOffering(enabled === true);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setResumeFromServerProgress', async (_event, enabled: boolean) => {
     configService.setResumeFromServerProgress(enabled);
     broadcastConfig();

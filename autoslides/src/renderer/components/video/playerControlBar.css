@@ -145,6 +145,22 @@
   background-color: rgba(255, 255, 255, 0.14);
 }
 
+/* A switch that is on (captions): underlined, like a pressed key. */
+.dual-icon-button.captions-button {
+  position: relative;
+}
+
+.dual-icon-button.captions-button.active::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 1px;
+  height: 2px;
+  border-radius: 1px;
+  background-color: currentColor;
+}
+
 .dual-icon-button:disabled {
   opacity: 0.45;
   cursor: not-allowed;

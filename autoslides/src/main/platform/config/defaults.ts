@@ -11,6 +11,7 @@ import type {
   SlideExtractionConfig,
   CustomProviderId
 } from './types';
+import { YANHE2_CAPTION_OFFSET_DEFAULT } from '@common/types';
 
 export const AUTO_CROP_YOLO_INPUT_SIZES = [320, 480, 640, 960, 1280] as const;
 
@@ -177,6 +178,9 @@ export const defaultConfig: AppConfig = {
   maxManualTabs: 3,
   showMorePlaybackSpeed: false,
   preferMicAudioByDefault: false,
+  checkMicAudioBeforeOffering: true,
+  yanhe2CaptionMode: 'mic',
+  yanhe2CaptionOffsetSeconds: YANHE2_CAPTION_OFFSET_DEFAULT,
   resumeFromServerProgress: true,
   resumeFromServerProgressLectures: true,
   autoPostProcessing: true,

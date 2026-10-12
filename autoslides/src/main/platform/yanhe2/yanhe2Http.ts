@@ -22,6 +22,7 @@ export const YANHE2_READ_PATHS = {
   myCourses: '/vlabpassportapi/v1/account-profile/course',
   courseDetail: '/courseapi/v3/multi-search/get-course-detail',
   slides: '/pptnote/v1/schedule/search-ppt',
+  transcript: '/courseapi/v3/web-socket/search-trans-result',
 } as const;
 
 export type Yanhe2ReadPath = (typeof YANHE2_READ_PATHS)[keyof typeof YANHE2_READ_PATHS];

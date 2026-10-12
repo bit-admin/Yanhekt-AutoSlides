@@ -178,127 +178,171 @@
 
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.download') }}</h4>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.concurrentDownloadLimit') }}</label>
-      <div class="setting-description">{{ $t('advanced.concurrentDownloadDescription') }}</div>
-      <select
-        v-model="tempMaxConcurrentDownloads"
-        class="select-field"
-        @change="updateMaxConcurrentDownloads"
-      >
-        <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
-      </select>
-    </div>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.downloadMaxWorkers') }}</label>
-      <div class="setting-description">{{ $t('advanced.downloadMaxWorkersDescription') }}</div>
-      <select
-        v-model="tempDownloadMaxWorkers"
-        class="select-field"
-        @change="updateDownloadMaxWorkers"
-      >
-        <option v-for="v in [1, 2, 4, 8, 16, 32]" :key="v" :value="v">{{ v }}</option>
-      </select>
-    </div>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.downloadNumRetries') }}</label>
-      <select
-        v-model="tempDownloadNumRetries"
-        class="select-field"
-        @change="updateDownloadNumRetries"
-      >
-        <option v-for="v in [5, 10, 15, 20, 30]" :key="v" :value="v">{{ v }}</option>
-      </select>
+    <div class="setting-grid">
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.concurrentDownloadLimit') }}</label>
+        <div class="setting-description">{{ $t('advanced.concurrentDownloadDescription') }}</div>
+        <select
+          v-model="tempMaxConcurrentDownloads"
+          class="select-field"
+          @change="updateMaxConcurrentDownloads"
+        >
+          <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.downloadMaxWorkers') }}</label>
+        <div class="setting-description">{{ $t('advanced.downloadMaxWorkersDescription') }}</div>
+        <select
+          v-model="tempDownloadMaxWorkers"
+          class="select-field"
+          @change="updateDownloadMaxWorkers"
+        >
+          <option v-for="v in [1, 2, 4, 8, 16, 32]" :key="v" :value="v">{{ v }}</option>
+        </select>
+      </div>
+      <div class="setting-item full-width">
+        <label class="setting-label">{{ $t('advanced.downloadNumRetries') }}</label>
+        <select
+          v-model="tempDownloadNumRetries"
+          class="select-field"
+          @change="updateDownloadNumRetries"
+        >
+          <option v-for="v in [5, 10, 15, 20, 30]" :key="v" :value="v">{{ v }}</option>
+        </select>
+      </div>
     </div>
   </div>
 
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.videoPlayback') }}</h4>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.videoErrorRetryCount') }}</label>
-      <div class="setting-description">{{ $t('advanced.videoErrorDescription') }}</div>
-      <select
-        v-model="tempVideoRetryCount"
-        class="select-field"
-        @change="updateVideoRetryCount"
-      >
-        <option v-for="i in 6" :key="i" :value="i + 4">{{ i + 4 }}</option>
-      </select>
-    </div>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.videoTokenRefresh') }}</label>
-      <div class="setting-description">{{ $t('advanced.videoTokenRefreshDescription') }}</div>
-      <select
-        v-model="tempVideoTokenRefreshSeconds"
-        class="select-field"
-      >
-        <option v-for="opt in videoTokenRefreshOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-      </select>
-    </div>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.preferMicAudio') }}</label>
-      <div class="setting-description">{{ $t('advanced.preferMicAudioDescription') }}</div>
-      <div class="prevent-sleep-control">
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            v-model="tempPreferMicAudioByDefault"
-          />
-          {{ $t('advanced.enablePreferMicAudio') }}
-        </label>
+    <!-- Two per row, like the auto-crop parameters; related settings share a row. -->
+    <div class="setting-grid">
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.videoErrorRetryCount') }}</label>
+        <div class="setting-description">{{ $t('advanced.videoErrorDescription') }}</div>
+        <select
+          v-model="tempVideoRetryCount"
+          class="select-field"
+          @change="updateVideoRetryCount"
+        >
+          <option v-for="i in 6" :key="i" :value="i + 4">{{ i + 4 }}</option>
+        </select>
       </div>
-    </div>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.showMorePlaybackSpeed') }}</label>
-      <div class="setting-description">{{ $t('advanced.showMorePlaybackSpeedDescription') }}</div>
-      <div class="prevent-sleep-control">
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            v-model="tempShowMorePlaybackSpeed"
-          />
-          {{ $t('advanced.enableShowMorePlaybackSpeed') }}
-        </label>
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.videoTokenRefresh') }}</label>
+        <div class="setting-description">{{ $t('advanced.videoTokenRefreshDescription') }}</div>
+        <select
+          v-model="tempVideoTokenRefreshSeconds"
+          class="select-field"
+        >
+          <option v-for="opt in videoTokenRefreshOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
       </div>
-    </div>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.resumeServerProgress') }}</label>
-      <div class="setting-description">{{ $t('advanced.resumeServerProgressDescription') }}</div>
-      <div class="prevent-sleep-control">
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            v-model="tempResumeFromServerProgress"
-          />
-          {{ $t('advanced.enableResumeServerProgress') }}
-        </label>
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.preferMicAudio') }}</label>
+        <div class="setting-description">{{ $t('advanced.preferMicAudioDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="tempPreferMicAudioByDefault"
+            />
+            {{ $t('advanced.enablePreferMicAudio') }}
+          </label>
+        </div>
       </div>
-    </div>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.resumeServerProgressLectures') }}</label>
-      <div class="setting-description">{{ $t('advanced.resumeServerProgressLecturesDescription') }}</div>
-      <div class="prevent-sleep-control">
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            v-model="tempResumeFromServerProgressLectures"
-          />
-          {{ $t('advanced.enableResumeServerProgressLectures') }}
-        </label>
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.checkMicAudio') }}</label>
+        <div class="setting-description">{{ $t('advanced.checkMicAudioDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="tempCheckMicAudioBeforeOffering"
+            />
+            {{ $t('advanced.enableCheckMicAudio') }}
+          </label>
+        </div>
       </div>
-    </div>
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.preventSystemSleep') }}</label>
-      <div class="setting-description">{{ $t('advanced.preventSystemSleepDescription') }}</div>
-      <div class="prevent-sleep-control">
-        <label class="checkbox-label">
-          <input
-            type="checkbox"
-            v-model="tempPreventSystemSleep"
-          />
-          {{ $t('advanced.enablePreventSleep') }}
-        </label>
+      <div class="setting-item" :class="{ 'full-width': tempYanhe2CaptionMode !== 'offset' }">
+        <label class="setting-label">{{ $t('advanced.yanhe2Captions') }}</label>
+        <div class="setting-description">{{ $t('advanced.yanhe2CaptionsDescription') }}</div>
+        <select v-model="tempYanhe2CaptionMode" class="select-field">
+          <option value="mic">{{ $t('advanced.yanhe2CaptionsMicOnly') }}</option>
+          <option value="offset">{{ $t('advanced.yanhe2CaptionsFixedDelay') }}</option>
+        </select>
       </div>
+      <div v-if="tempYanhe2CaptionMode === 'offset'" class="setting-item">
+        <label class="setting-label">{{ $t('advanced.yanhe2CaptionDelay') }}</label>
+        <div class="setting-description">{{ $t('advanced.yanhe2CaptionDelayDescription') }}</div>
+        <div class="slide-interval-group">
+          <div class="slide-interval-input-wrapper">
+            <input
+              v-model.number="tempYanhe2CaptionOffsetSeconds"
+              type="number"
+              class="slide-interval-input"
+              step="0.5"
+              :min="-YANHE2_CAPTION_OFFSET_LIMIT"
+              :max="YANHE2_CAPTION_OFFSET_LIMIT"
+            />
+            <span class="interval-unit">{{ $t('settings.seconds') }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.resumeServerProgress') }}</label>
+        <div class="setting-description">{{ $t('advanced.resumeServerProgressDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="tempResumeFromServerProgress"
+            />
+            {{ $t('advanced.enableResumeServerProgress') }}
+          </label>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.resumeServerProgressLectures') }}</label>
+        <div class="setting-description">{{ $t('advanced.resumeServerProgressLecturesDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="tempResumeFromServerProgressLectures"
+            />
+            {{ $t('advanced.enableResumeServerProgressLectures') }}
+          </label>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.showMorePlaybackSpeed') }}</label>
+        <div class="setting-description">{{ $t('advanced.showMorePlaybackSpeedDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="tempShowMorePlaybackSpeed"
+            />
+            {{ $t('advanced.enableShowMorePlaybackSpeed') }}
+          </label>
+        </div>
+      </div>
+      <div class="setting-item">
+        <label class="setting-label">{{ $t('advanced.preventSystemSleep') }}</label>
+        <div class="setting-description">{{ $t('advanced.preventSystemSleepDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              v-model="tempPreventSystemSleep"
+            />
+            {{ $t('advanced.enablePreventSleep') }}
+          </label>
+        </div>
+      </div>
+    
     </div>
   </div>
 
@@ -330,6 +374,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { YANHE2_CAPTION_OFFSET_LIMIT } from '@common/types'
 import { useI18n } from 'vue-i18n'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PlaybackSettingsTab');
@@ -353,6 +398,9 @@ const videoTokenRefreshOptions = computed(() => [
 const {
   tempShowMorePlaybackSpeed,
   tempPreferMicAudioByDefault,
+  tempCheckMicAudioBeforeOffering,
+  tempYanhe2CaptionMode,
+  tempYanhe2CaptionOffsetSeconds,
   tempResumeFromServerProgress,
   tempResumeFromServerProgressLectures,
   tempPreventSystemSleep,

@@ -17,6 +17,45 @@
   margin-top: 6px;
 }
 
+/* Two settings per row (50/50); `.full-width` spans both. Rows are spaced by
+   the grid's own gap, never by item margins: the `:last-child` margin rules
+   (above, and the section one below) would otherwise give the last cell a
+   different height from its neighbour and push the two controls out of line. */
+.setting-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 16px;
+}
+
+/* Descriptions in one row differ in length; the description takes the slack
+   so the two controls still sit on one line. */
+/* The section-scoped selectors are needed too: `.advanced-setting-section
+   .setting-item` further down would otherwise win on source order and put its
+   margin back on every cell but the last. */
+.setting-grid .setting-item,
+.setting-grid .setting-item:last-child,
+.advanced-setting-section .setting-grid .setting-item,
+.advanced-setting-section .setting-grid .setting-item:last-child {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.setting-grid .setting-item .setting-description {
+  flex: 1;
+}
+
+.setting-grid .setting-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.setting-grid .setting-item .slide-interval-input-wrapper,
+.setting-grid .setting-item .select-field {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .setting-label {
   display: block;
   font-size: 12px;
@@ -87,7 +126,16 @@
   gap: 12px;
 }
 
+/* A column, with the description taking the slack, so two controls that sit
+   under descriptions of different lengths still line up. */
 .two-col-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.two-col-item .setting-description {
   flex: 1;
 }
 

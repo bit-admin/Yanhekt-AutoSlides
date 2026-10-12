@@ -352,7 +352,7 @@
         </div>
       </div>
 
-      <div class="auto-crop-grid">
+      <div class="setting-grid auto-crop-grid">
         <div class="setting-item">
           <label class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.blackThresholdDescription') }}</div>
@@ -425,7 +425,7 @@
     <div v-if="tempAutoCropDetectorMode !== 'canny_only'" class="advanced-setting-subsection">
       <h5>{{ $t('advanced.autoCrop.yolo.title') }}</h5>
 
-      <div class="auto-crop-grid">
+      <div class="setting-grid auto-crop-grid">
         <div class="setting-item full-width">
           <label class="setting-label">{{ $t('advanced.autoCrop.yolo.confidenceThreshold') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.yolo.confidenceThresholdDescription') }}</div>
@@ -830,29 +830,9 @@ const {
   line-height: 1.4;
 }
 
+/* The two-column layout itself is the shared `.setting-grid` (settings.css). */
 .auto-crop-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 16px;
-  row-gap: 0;
-  margin-bottom: 20px;
-}
-
-.auto-crop-grid .setting-item {
-  margin-bottom: 16px;
-}
-
-.auto-crop-grid .setting-item:last-child {
-  margin-top: 0;
-}
-
-.auto-crop-grid .setting-item.full-width {
-  grid-column: 1 / -1;
-}
-
-.auto-crop-grid .setting-item .slide-interval-input-wrapper {
-  width: 100%;
-  box-sizing: border-box;
+  margin-bottom: 36px;
 }
 
 .advanced-setting-subsection {

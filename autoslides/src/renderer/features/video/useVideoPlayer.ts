@@ -1,9 +1,10 @@
-import { ref, shallowRef, computed, nextTick, type Ref, type ShallowRef, type ComputedRef } from 'vue'
+import { ref, shallowRef, computed, nextTick, watch, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import type { ConnectionMode } from '@common/types'
 import Hls, { Events, ErrorDetails } from 'hls.js'
 import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
 import { createMediaSyncLoop, syncFollower } from './mediaSync'
+import { useMicAudioCheck } from './useMicAudioCheck'
 import { ApiClient } from '@shared/services/apiClient'
 import { createWatchProgressSync } from '@shared/services/watchProgressService'
 import type { SlideExtractionHandle } from '@shared/processing'
@@ -221,8 +222,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
    */
   const micAudioUrl = computed(() => playbackData.value?.audioUrl || null)
 
-  /** Whether the mic option should be offered at all. */
-  const hasMicAudio = computed(() => Boolean(micAudioUrl.value))
+  /**
+   * Whether the mic option should be offered at all. With the "check before
+   * offering" setting this turns true only once the track has been listened
+   * to, a moment after the lecture opens — see useMicAudioCheck.
+   */
+  const hasMicAudio = useMicAudioCheck(micAudioUrl).available
 
   const hasDualStreams = computed(() => {
     return Boolean(cameraStreamData.value && screenStreamData.value)
@@ -347,7 +352,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
    * so an attached element would decode ~100MB for nothing.
    */
   const micAudioUsable = computed(() =>
-    Boolean(micAudioUrl.value) && !slideExtractorInstance.value && !shouldVideoMute.value,
+    hasMicAudio.value && !slideExtractorInstance.value && !shouldVideoMute.value,
   )
 
   /**
@@ -416,6 +421,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   }
 
   const setSingleAudioSource = (source: 'video' | 'mic') => {
+    micDefaultPending = false
     singleAudioSource.value = source
     if (source === 'mic') {
       attachSingleMicAudio(videoPlayer.value?.currentTime)
@@ -424,6 +430,31 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
     applySingleAudioState()
   }
+
+  // "Mic audio by default", for a track whose check finished after the lecture
+  // opened. Once per open, and never over a choice the user already made.
+  let micDefaultPending = false
+  watch(hasMicAudio, async (available) => {
+    if (!available) {
+      // The option just went away (the check was turned on and found the
+      // track dead): do not leave the player on a source it no longer lists.
+      if (singleAudioSource.value === 'mic') setSingleAudioSource('video')
+      if (dual.dualAudioSource.value === 'mic') dual.setDualAudioSource('screen')
+      return
+    }
+    if (!micDefaultPending) return
+    micDefaultPending = false
+    if (!micAudioUsable.value) return
+    // The <audio> element mounts with the option.
+    await nextTick()
+    if (isDualStreamSelected.value) {
+      singleAudioSource.value = 'mic'
+      dual.setDualAudioSource('mic')
+    } else {
+      dual.setDualAudioSource('mic')
+      setSingleAudioSource('mic')
+    }
+  })
 
   const cleanupSingleVideoSource = () => {
     if (hls.value) {
@@ -530,6 +561,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         // Apply the user's default once per tab open, and only when this
         // lecture actually has a mic track. Read straight off configStore —
         // the default matters only at open time, so no broadcast is needed.
+        // While the track is still being checked the default waits for the
+        // verdict (the hasMicAudio watcher below).
+        micDefaultPending = configStore.preferMicAudioByDefault && !hasMicAudio.value
         if (configStore.preferMicAudioByDefault && micAudioUsable.value) {
           singleAudioSource.value = 'mic'
           dual.setDualAudioSource('mic')

@@ -38,6 +38,7 @@ export const yanhe2: ElectronAPI['yanhe2'] = {
   courseDetail: (account, query) => ipcRenderer.invoke('yanhe2:courseDetail', account, query),
   playback: (account, query) => ipcRenderer.invoke('yanhe2:playback', account, query),
   slides: (account, query) => ipcRenderer.invoke('yanhe2:slides', account, query),
+  transcript: (account, subId) => ipcRenderer.invoke('yanhe2:transcript', account, subId),
   prepareBrowserSignIn: () => ipcRenderer.invoke('yanhe2:prepareBrowserSignIn'),
   adoptBrowserSession: (account: string) => ipcRenderer.invoke('yanhe2:adoptBrowserSession', account),
 };
@@ -71,6 +72,8 @@ export const config: ElectronAPI['config'] = {
   setPreviewSeekSeconds: (seconds: number) => ipcRenderer.invoke('config:setPreviewSeekSeconds', seconds),
   setShowMorePlaybackSpeed: (enabled: boolean) => ipcRenderer.invoke('config:setShowMorePlaybackSpeed', enabled),
   setPreferMicAudioByDefault: (enabled: boolean) => ipcRenderer.invoke('config:setPreferMicAudioByDefault', enabled),
+  setCheckMicAudioBeforeOffering: (enabled: boolean) => ipcRenderer.invoke('config:setCheckMicAudioBeforeOffering', enabled),
+  setYanhe2Captions: (mode, offsetSeconds) => ipcRenderer.invoke('config:setYanhe2Captions', mode, offsetSeconds),
   setResumeFromServerProgress: (enabled: boolean) => ipcRenderer.invoke('config:setResumeFromServerProgress', enabled),
   setResumeFromServerProgressLectures: (enabled: boolean) =>
     ipcRenderer.invoke('config:setResumeFromServerProgressLectures', enabled),

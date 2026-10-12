@@ -103,6 +103,10 @@
             @toggle-cinema-mode="toggleCinemaMode"
           />
 
+          <!-- Classroom mic track. Outside the single/dual switch so a layout
+               change does not remount it and refetch the file. -->
+          <audio v-if="hasMicAudio" ref="micAudioPlayer" preload="auto"></audio>
+
           <div
             v-if="!isDualSelected"
             ref="videoContainer"
@@ -123,6 +127,9 @@
               {{ $t('playback.browserNotSupported') }}
             </video>
             <BufferingOverlay v-if="isBuffering" />
+            <div v-if="caption && !isPictureInPicture" class="caption-layer" :class="{ 'above-controls': controlsVisible }">
+              <span class="caption-text">{{ caption }}</span>
+            </div>
 
             <SingleStreamControls
               v-if="!isPictureInPicture"
@@ -143,23 +150,28 @@
               :playback-rate-options="playbackRateOptions"
               :show-speed-panel="showSpeedPanel"
               :show-more-panel="showMorePanel"
-              :has-mic-audio="false"
-              :show-audio-panel="false"
-              audio-source="video"
+              :has-mic-audio="hasMicAudio"
+              :show-audio-panel="showAudioPanel"
+              :audio-source="micAudioOn ? 'mic' : 'video'"
               :is-fullscreen="isFullscreen"
               :is-cinema-mode="isCinemaMode"
               :is-picture-in-picture="isPictureInPicture"
               :video-player-ready="!!videoPlayer"
+              :captions-available="captionsAvailable"
+              :captions-on="captionsOn"
               :format-time="formatPlaybackTime"
               @toggle-playback="togglePlayback"
               @seek-input="onSeekInput"
               @volume-input="applyVolume"
               @toggle-mute="toggleMute"
               @toggle-speed-panel="toggleSpeedPanel"
+              @toggle-audio-panel="toggleAudioPanel"
+              @set-audio-source="pickSingleAudio"
               @set-playback-rate="setRateFromPanel"
               @toggle-fullscreen="toggleFullscreen"
               @toggle-more-panel="toggleMorePanel"
               @toggle-cinema="toggleCinemaFromMenu"
+              @toggle-captions="toggleCaptions"
               @toggle-pip="togglePipFromMenu"
               @pointer-over-controls="pointerOverControls = $event"
             />
@@ -191,6 +203,9 @@
               </div>
               <BufferingOverlay v-if="isBuffering" />
             </div>
+            <div v-if="caption" class="caption-layer" :class="{ 'above-controls': controlsVisible }">
+              <span class="caption-text">{{ caption }}</span>
+            </div>
 
             <SingleStreamControls
               :mode="mode"
@@ -214,13 +229,15 @@
               :show-audio-panel="showAudioPanel"
               audio-source="video"
               :audio-sources="dualAudioSources"
-              :picked-audio="dualAudioSource"
+              :picked-audio="micAudioOn ? 'mic' : dualAudioSource"
               can-swap-order
               :pip-available="false"
               :is-fullscreen="isFullscreen"
               :is-cinema-mode="isCinemaMode"
               :is-picture-in-picture="false"
               :video-player-ready="true"
+              :captions-available="captionsAvailable"
+              :captions-on="captionsOn"
               :format-time="formatPlaybackTime"
               @toggle-playback="togglePlayback"
               @seek-input="onSeekInput"
@@ -233,6 +250,7 @@
               @toggle-fullscreen="toggleFullscreen"
               @toggle-more-panel="toggleMorePanel"
               @toggle-cinema="toggleCinemaFromMenu"
+              @toggle-captions="toggleCaptions"
               @swap-order="swapOrder"
               @pointer-over-controls="pointerOverControls = $event"
             />
@@ -285,12 +303,14 @@
 // shares its player chrome, but only plays: no slide extraction, no notes, no
 // task queue, no watch-position report. One stream, or camera + screen side by
 // side (Both Streams), driven by the same control bar. Under a recording it
-// lists the slides Yanhe 2.0 detected itself, to look at and copy.
+// lists the slides Yanhe 2.0 detected itself, to look at and copy, and the
+// control bar can caption it from Yanhe 2.0's transcript.
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Yanhe2StreamType } from '@common/yanhe2Playback'
 import { useYanhe2Player, YANHE2_BOTH_STREAMS, type Yanhe2StreamChoice } from '@features/yanhe2/useYanhe2Player'
+import { useYanhe2Captions } from '@features/yanhe2/useYanhe2Captions'
 import { useYanhe2Slides } from '@features/yanhe2/useYanhe2Slides'
 import type { GallerySlide } from '@features/video/gallerySlide'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
@@ -322,9 +342,14 @@ const { t } = useI18n()
 
 const videoPlayer = ref<HTMLVideoElement | null>(null)
 const cameraVideoPlayer = ref<HTMLVideoElement | null>(null)
+const micAudioPlayer = ref<HTMLAudioElement | null>(null)
 const screenVideoPlayer = ref<HTMLVideoElement | null>(null)
 const videoContainer = ref<HTMLElement | null>(null)
 const dualContainer = ref<HTMLElement | null>(null)
+
+// Captions depend on whether the mic was live, so a lecture with a transcript
+// has its mic track checked even when the audio menu's own check is off.
+const micVerdictWanted = ref(false)
 
 const {
   loading,
@@ -339,6 +364,10 @@ const {
   isDualSelected,
   masterVideo,
   playbackRate,
+  hasMicAudio,
+  micState,
+  micAudioOn,
+  setMicAudio,
   load,
   selectStream,
   setPlaybackRate,
@@ -353,6 +382,9 @@ const {
   cameraVideoPlayer,
   screenVideoPlayer,
   developerMode: toRef(configStore, 'developerMode'),
+  micAudioPlayer,
+  preferMicAudio: toRef(configStore, 'preferMicAudioByDefault'),
+  micVerdictWanted,
 })
 
 const { isBuffering } = useBufferingIndicator([videoPlayer, cameraVideoPlayer, screenVideoPlayer])
@@ -491,24 +523,39 @@ watch(masterVideo, (video) => {
   detachVideoListeners = () => listeners.forEach(([name, handler]) => video.removeEventListener(name, handler))
 })
 
+// Captions, from Yanhe 2.0's own transcript of the recording.
+const { hasTranscript, available: captionsAvailable, captionsOn, caption, toggle: toggleCaptions } = useYanhe2Captions({
+  account: props.account,
+  subId: props.session.subId,
+  playback,
+  currentTime,
+  micState,
+})
+watch(hasTranscript, (has) => { micVerdictWanted.value = has }, { immediate: true })
+
 const onSeekInput = (time: number) => {
   currentTime.value = time
   seekTo(time)
 }
 
-// Audio. One element is audible at a time: the single stream, or in Both
-// Streams whichever of the pair is picked (the other plays at volume 0).
+// Audio. One element is audible at a time: the single stream, in Both Streams
+// whichever of the pair is picked, or the classroom mic when the recording has
+// one and it is chosen. The others play at volume 0.
 const dualAudioSource = ref<'screen' | 'camera'>('screen')
 const dualAudioSources = computed(() => [
   { value: 'screen', label: t('playback.dual.screenAudio') },
   { value: 'camera', label: t('playback.dual.cameraAudio') },
+  ...(hasMicAudio.value ? [{ value: 'mic', label: t('playback.dual.micAudio') }] : []),
 ])
 const applyAudio = () => {
-  if (videoPlayer.value) videoPlayer.value.volume = volume.value
-  if (screenVideoPlayer.value) screenVideoPlayer.value.volume = dualAudioSource.value === 'screen' ? volume.value : 0
-  if (cameraVideoPlayer.value) cameraVideoPlayer.value.volume = dualAudioSource.value === 'camera' ? volume.value : 0
+  const mic = micAudioOn.value
+  const level = volume.value
+  if (videoPlayer.value) videoPlayer.value.volume = mic ? 0 : level
+  if (screenVideoPlayer.value) screenVideoPlayer.value.volume = !mic && dualAudioSource.value === 'screen' ? level : 0
+  if (cameraVideoPlayer.value) cameraVideoPlayer.value.volume = !mic && dualAudioSource.value === 'camera' ? level : 0
+  if (micAudioPlayer.value) micAudioPlayer.value.volume = mic ? level : 0
 }
-watch([videoPlayer, cameraVideoPlayer, screenVideoPlayer, dualAudioSource], applyAudio)
+watch([videoPlayer, cameraVideoPlayer, screenVideoPlayer, micAudioPlayer, dualAudioSource, micAudioOn], applyAudio)
 
 const applyVolume = (value: number) => {
   const clamped = Math.min(1, Math.max(0, value))
@@ -532,7 +579,12 @@ const toggleSpeedPanel = () => openOnly(showSpeedPanel)
 const toggleMorePanel = () => openOnly(showMorePanel)
 const toggleAudioPanel = () => openOnly(showAudioPanel)
 const pickDualAudio = (value: string) => {
-  dualAudioSource.value = value === 'camera' ? 'camera' : 'screen'
+  setMicAudio(value === 'mic')
+  if (value !== 'mic') dualAudioSource.value = value === 'camera' ? 'camera' : 'screen'
+  showAudioPanel.value = false
+}
+const pickSingleAudio = (source: 'video' | 'mic') => {
+  setMicAudio(source === 'mic')
   showAudioPanel.value = false
 }
 
@@ -655,6 +707,40 @@ onUnmounted(() => {
 <style scoped src="../video/playbackPageChrome.css"></style>
 
 <style scoped>
+/* Captions sit over the picture, and step up out of the control bar's way. */
+.caption-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  z-index: var(--z-sticky);
+  display: flex;
+  justify-content: center;
+  padding: 0 5%;
+  pointer-events: none;
+  transition: bottom 0.2s ease;
+}
+
+.caption-layer.above-controls {
+  bottom: 68px;
+}
+
+.caption-text {
+  max-width: 100%;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.72);
+  color: var(--text-on-fill);
+  font-size: clamp(15px, 2.2cqw, 28px);
+  line-height: 1.4;
+  text-align: center;
+}
+
+.video-container,
+.dual-playback-shell {
+  container-type: inline-size;
+}
+
 /* Same band as the Yanhekt player's Slide Extraction row. */
 .server-slides-header {
   display: flex;

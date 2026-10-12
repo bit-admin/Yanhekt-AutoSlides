@@ -13,6 +13,7 @@
  */
 import type {
   AppConfig,
+  Yanhe2CaptionMode,
   ConnectionMode,
   CampusProbeResult,
   AIFilteringConfig,
@@ -41,6 +42,7 @@ import type {
 import type { Yanhe2Course, Yanhe2CourseDetail, Yanhe2CourseDetailQuery } from '../shared/yanhe2Curriculum';
 import type { Yanhe2PlaybackQuery, Yanhe2PlaybackResult } from '../shared/yanhe2Playback';
 import type { Yanhe2Slide } from '../shared/yanhe2Slides';
+import type { Yanhe2TranscriptLine } from '../shared/yanhe2Transcript';
 import type {
   SlideMetadata,
   SlideMetadataKind,
@@ -423,6 +425,8 @@ export interface ElectronAPI {
     playback: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2PlaybackResult>;
     /** One session's server slides, as local proxy image URLs. Empty when it has none. */
     slides: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2ReadResult<Yanhe2Slide[]>>;
+    /** One session's transcript lines, in time order. Empty when it has none. */
+    transcript: (account: string, subId: string) => Promise<Yanhe2ReadResult<Yanhe2TranscriptLine[]>>;
     prepareBrowserSignIn: () => Promise<void>;
     /** `reason: 'pending'` until the browser sign-in webview holds a token. */
     adoptBrowserSession: (account: string) => Promise<Yanhe2SignInResult>;
@@ -451,6 +455,8 @@ export interface ElectronAPI {
     setPreviewSeekSeconds: (seconds: number) => Promise<AppConfig>;
     setShowMorePlaybackSpeed: (enabled: boolean) => Promise<AppConfig>;
     setPreferMicAudioByDefault: (enabled: boolean) => Promise<AppConfig>;
+    setCheckMicAudioBeforeOffering: (enabled: boolean) => Promise<AppConfig>;
+    setYanhe2Captions: (mode: Yanhe2CaptionMode, offsetSeconds: number) => Promise<AppConfig>;
     setResumeFromServerProgress: (enabled: boolean) => Promise<AppConfig>;
     setResumeFromServerProgressLectures: (enabled: boolean) => Promise<AppConfig>;
     setDeveloperMode: (enabled: boolean) => Promise<AppConfig>;
