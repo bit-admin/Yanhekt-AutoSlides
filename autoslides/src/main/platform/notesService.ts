@@ -15,6 +15,7 @@ import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
 import { buildSlideFolderName, type LectureIdentity } from '@common/lectureNaming';
 import type { ConfigService } from './configService';
+import { CbizTransport } from './cbizTransport';
 import { sharpService } from '@main/infra/sharpService';
 import type {
   NoteSummary,
@@ -44,6 +45,10 @@ const log = createLogger('NotesService');
 
 const BASE = 'https://cbiz.yanhekt.cn';
 
+/** fetch had no limit; these stop a stalled request from hanging a save or an import forever. */
+const REQUEST_TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 120_000;
+
 /** Thrown when no auth token is available (user not signed in via the main window). */
 export class NotesAuthError extends Error {
   constructor(message = 'Not signed in') {
@@ -59,7 +64,10 @@ interface ApiEnvelope<T> {
 }
 
 export class NotesService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly cbiz: CbizTransport = new CbizTransport(),
+  ) {}
 
   /** Verified minimal header set. `Xdomain-Client: web_user` is the critical gate. */
   private jsonHeaders(): Record<string, string> {
@@ -93,14 +101,23 @@ export class NotesService {
     path: string,
     body?: Record<string, unknown>,
   ): Promise<T> {
-    const init: RequestInit = { method, headers: this.jsonHeaders() };
-    if (body !== undefined) init.body = JSON.stringify(body);
-
-    const res = await fetch(`${BASE}${path}`, init);
-    if (!res.ok) {
+    // Through CbizTransport so notes take the same route as the rest of the API.
+    const res = await this.cbiz.send<ApiEnvelope<T>>({
+      method,
+      url: `${BASE}${path}`,
+      headers: this.jsonHeaders(),
+      data: body,
+      timeout: REQUEST_TIMEOUT_MS,
+      // Statuses are judged below, as they were with fetch.
+      validateStatus: () => true,
+    });
+    if (res.status < 200 || res.status >= 300) {
       throw new Error(`Note API request failed (${res.status}): ${method} ${path}`);
     }
-    const payload = (await res.json()) as ApiEnvelope<T>;
+    const payload = res.data;
+    if (!payload || typeof payload !== 'object') {
+      throw new Error(`Note API returned no data: ${method} ${path}`);
+    }
     if (payload.code !== 0) {
       throw new Error(payload.message || `Note API error code ${payload.code}`);
     }
@@ -260,15 +277,22 @@ export class NotesService {
     form.append('file', new Blob([data as BlobPart], { type: mime || 'application/octet-stream' }), filename || 'image.png');
     form.append('bucket', 'notes');
 
-    const res = await fetch(`${BASE}/v1/minio/upload`, {
+    const res = await this.cbiz.send<ApiEnvelope<{ host: string; path: string }>>({
       method: 'POST',
+      url: `${BASE}/v1/minio/upload`,
       headers: this.uploadHeaders(),
-      body: form,
+      data: form,
+      timeout: UPLOAD_TIMEOUT_MS,
+      maxBodyLength: Infinity,
+      validateStatus: () => true,
     });
-    if (!res.ok) {
+    if (res.status < 200 || res.status >= 300) {
       throw new Error(`Image upload failed (${res.status})`);
     }
-    const payload = (await res.json()) as ApiEnvelope<{ host: string; path: string }>;
+    const payload = res.data;
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Image upload returned no data');
+    }
     if (payload.code !== 0) {
       throw new Error(payload.message || `Image upload error code ${payload.code}`);
     }

@@ -112,11 +112,31 @@ export function isConnectionFailure(error: unknown): boolean {
   return axios.isAxiosError(error) && !error.response && !axios.isCancel(error);
 }
 
+/** Failures that happen before a connection exists, so the request cannot have reached the server. */
+const UNSENT_CODES = new Set([
+  'ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'EHOSTDOWN', 'ENETDOWN', 'EADDRNOTAVAIL', 'ENOTFOUND',
+  // TLS: the handshake failed, nothing was sent over it.
+  'ERR_TLS_CERT_ALTNAME_INVALID', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'SELF_SIGNED_CERT_IN_CHAIN',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE', 'CERT_HAS_EXPIRED',
+]);
+
+/**
+ * True when the request provably never left: the connection was refused,
+ * unroutable, or failed its TLS handshake. Narrower than `isConnectionFailure`,
+ * which also covers a timeout or reset after the request was sent. This is
+ * the test for retrying something that must not run twice.
+ */
+export function isUnsentFailure(error: unknown): boolean {
+  return isConnectionFailure(error) && axios.isAxiosError(error) && UNSENT_CODES.has(error.code ?? '');
+}
+
 export interface IntranetRequestOptions {
   mapper: IntranetUrlMapper;
   agents: IntranetAgents;
   /** Retry on the public host when the intranet address cannot be connected to. */
   publicFallback: boolean;
+  /** Which failures of the intranet attempt may be retried. Default: any connection failure. */
+  fallbackWhen?: (error: unknown) => boolean;
   /** Cap for the intranet attempt only, so a dead route does not hold the full timeout before falling back. */
   intranetTimeout?: number;
 }
@@ -130,7 +150,7 @@ export async function intranetRequest<T = unknown>(
   config: AxiosRequestConfig & { url: string },
   options: IntranetRequestOptions
 ): Promise<AxiosResponse<T>> {
-  const { mapper, agents, publicFallback, intranetTimeout } = options;
+  const { mapper, agents, publicFallback, intranetTimeout, fallbackWhen = isConnectionFailure } = options;
   const target = intranetTarget(config.url, (u) => mapper.rewriteUrl(u));
   const { httpAgent, httpsAgent } = agents;
   if (!target.host) {
@@ -149,7 +169,7 @@ export async function intranetRequest<T = unknown>(
   } catch (error) {
     if (!isConnectionFailure(error)) throw error;
     mapper.reportFailure();
-    if (!publicFallback) throw error;
+    if (!publicFallback || !fallbackWhen(error)) throw error;
     log.warn(`Intranet address for ${target.host} did not answer; using the public host for this request.`);
     // Default agents on purpose: the pool's may be bound to the campus NIC.
     return axios.request<T>(config);

@@ -3,8 +3,7 @@ import { app } from 'electron';
 import { getClientSignature } from '@common/crypto';
 import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
-import { IntranetAgentPool, intranetRequest } from '@main/infra/intranetTransport';
-import type { IntranetMappingService } from '@main/platform/intranetMappingService';
+import { CbizTransport } from '@main/platform/cbizTransport';
 import type { ConfigService } from '@main/platform/configService';
 const log = createLogger('PlatformApiClient');
 
@@ -132,34 +131,15 @@ export class ApiClient {
     "Xclient-Version": "v1"
   };
 
-  private agentPool: IntranetAgentPool | null = null;
+  private cbiz: CbizTransport;
 
-  constructor(private configService?: ConfigService, private intranetMapping?: IntranetMappingService) {
-    if (intranetMapping) {
-      this.agentPool = new IntranetAgentPool(intranetMapping);
-      intranetMapping.on('interfaceIpChanged', () => this.agentPool?.reset());
-    }
+  constructor(private configService?: ConfigService, cbiz: CbizTransport = new CbizTransport()) {
+    this.cbiz = cbiz;
   }
 
-  /** How long an API request may wait on the intranet address before the public host is tried. */
-  private static readonly INTRANET_TIMEOUT_MS = 4000;
-
-  /**
-   * Send one cbiz request, through the campus intranet when it is reachable.
-   * The public host is always the fallback, in every connection mode: nothing
-   * in the app works without the API, so it never depends on the intranet.
-   */
+  /** Send one cbiz request along the current route (see CbizTransport). */
   private send(config: AxiosRequestConfig & { url: string }): Promise<AxiosResponse> {
-    const mapping = this.intranetMapping;
-    if (!mapping || !this.agentPool) return axios.request(config);
-    void mapping.ensureFresh();
-    if (!mapping.isApiViaIntranet()) return axios.request(config);
-    return intranetRequest(config, {
-      mapper: mapping,
-      agents: this.agentPool.resolve(),
-      publicFallback: true,
-      intranetTimeout: ApiClient.INTRANET_TIMEOUT_MS,
-    });
+    return this.cbiz.send(config);
   }
 
   /**
