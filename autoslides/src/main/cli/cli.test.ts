@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseCliInvocation } from './invocation';
 import { parseDownloadArgs } from './downloadArgs';
+import { findInterfaceByAddress, resolveCliInterface } from './networkInterface';
 
 describe('parseCliInvocation', () => {
   it('is null for an ordinary app start', () => {
@@ -58,6 +59,7 @@ describe('parseDownloadArgs', () => {
       streams: ['screen'],
       outputDir: undefined,
       intranet: false,
+      interface: undefined,
       force: false,
       verbose: false,
     });
@@ -82,6 +84,9 @@ describe('parseDownloadArgs', () => {
     expect(parseDownloadArgs(['1', '--stream', 'audio']).kind).toBe('error');
     expect(parseDownloadArgs(['1', '-o']).kind).toBe('error');
     expect(parseDownloadArgs(['1', '--nope']).kind).toBe('error');
+    expect(parseDownloadArgs(['1', '--intranet', '--interface']).kind).toBe('error');
+    // Only intranet traffic is bound to an interface.
+    expect(parseDownloadArgs(['1', '--interface', 'en1']).kind).toBe('error');
     expect(parseDownloadArgs(['https://example.com/session/1']).kind).toBe('error');
     expect(parseDownloadArgs(['https://www.yanhekt.cn/course/64333']).kind).toBe('error');
   });
@@ -89,5 +94,42 @@ describe('parseDownloadArgs', () => {
   it('answers help and version without a session', () => {
     expect(parseDownloadArgs(['-h']).kind).toBe('help');
     expect(parseDownloadArgs(['1', '--version']).kind).toBe('version');
+  });
+});
+
+describe('--interface', () => {
+  const nic = (address: string, family = 'IPv4', internal = false) =>
+    ({ address, family, internal }) as never;
+  const table = {
+    lo0: [nic('127.0.0.1', 'IPv4', true)],
+    en0: [nic('fe80::1', 'IPv6'), nic('192.168.1.228')],
+    en1: [nic('192.168.31.58')],
+    awdl0: [nic('fe80::2', 'IPv6')],
+  };
+
+  it('is read with --intranet in either form', () => {
+    const parsed = parseDownloadArgs(['1', '--intranet', '--interface=en1']);
+    expect(parsed.kind === 'run' && parsed.options.interface).toBe('en1');
+    const spaced = parseDownloadArgs(['--interface', '192.168.31.58', '--intranet', '1']);
+    expect(spaced.kind === 'run' && spaced.options.interface).toBe('192.168.31.58');
+  });
+
+  it('resolves a name or one of the machine\'s addresses', () => {
+    expect(resolveCliInterface('en1', table)).toEqual({ ok: true, iface: { name: 'en1', address: '192.168.31.58' } });
+    expect(resolveCliInterface('192.168.1.228', table)).toEqual({ ok: true, iface: { name: 'en0', address: '192.168.1.228' } });
+  });
+
+  it('explains what is wrong and lists what exists', () => {
+    const noV4 = resolveCliInterface('awdl0', table);
+    expect(noV4.ok === false && noV4.message).toContain('has no IPv4 address');
+    const unknown = resolveCliInterface('en9', table);
+    expect(unknown.ok === false && unknown.message).toContain('en1 (192.168.31.58)');
+    // Loopback is never offered.
+    expect(resolveCliInterface('lo0', table).ok).toBe(false);
+  });
+
+  it('names the interface behind a saved address', () => {
+    expect(findInterfaceByAddress('192.168.31.58', table)).toEqual({ name: 'en1', address: '192.168.31.58' });
+    expect(findInterfaceByAddress('10.9.9.9', table)).toBeNull();
   });
 });

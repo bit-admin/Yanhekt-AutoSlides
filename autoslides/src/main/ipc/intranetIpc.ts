@@ -6,17 +6,25 @@ import { probeCampusConnection } from '@main/platform/campusNetworkProbe';
 export function registerIntranetIpcHandlers(services: IpcServices): void {
   const { intranetMappingService, configService } = services;
 
-  ipcMain.handle('intranet:setEnabled', async (_event, enabled: boolean) => {
-    intranetMappingService.setEnabled(enabled);
-    return intranetMappingService.getNetworkStatus();
-  });
-
   ipcMain.handle('intranet:getStatus', async () => {
+    // Settings and the player ask when they open; make the answer current.
+    await intranetMappingService.ensureFresh();
     return intranetMappingService.getNetworkStatus();
   });
 
   ipcMain.handle('intranet:getMappings', async () => {
     return intranetMappingService.getMappings();
+  });
+
+  // Settings → Network → Test Addresses: ask the campus resolver again, then
+  // the page times each domain's addresses on its own so rows fill in as they answer.
+  ipcMain.handle('intranet:refresh', async () => {
+    await intranetMappingService.refresh();
+    return { status: intranetMappingService.getNetworkStatus(), mappings: intranetMappingService.getMappings() };
+  });
+
+  ipcMain.handle('intranet:probeDomain', async (_event, domain: string) => {
+    return intranetMappingService.probeDomain(String(domain));
   });
 
   ipcMain.handle('intranet:getNetworkInterfaces', async () => {

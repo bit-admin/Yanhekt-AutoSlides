@@ -23,6 +23,7 @@ import {
   sanitizeSavedLogins,
   type SavedLoginRecord,
 } from './savedLogins';
+import type { ConnectionMode } from '@common/types';
 import type {
   AIClassifierMode,
   AIFilteringConfig,
@@ -464,7 +465,8 @@ export class ConfigService {
     this.ensureOutputDirectoryExists();
   }
 
-  setConnectionMode(mode: 'internal' | 'external'): void {
+  setConnectionMode(mode: ConnectionMode): void {
+    if (mode !== 'auto' && mode !== 'internal' && mode !== 'external') return;
     this.store.set('connectionMode', mode);
   }
 

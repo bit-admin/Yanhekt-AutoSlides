@@ -2,7 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AxiosResponse } from 'axios';
 
 const axiosGet = vi.hoisted(() => vi.fn());
-vi.mock('axios', () => ({ default: { get: axiosGet } }));
+// The transport sends through `axios.request`; these tests only care about the
+// (url, config) each attempt was made with.
+vi.mock('axios', () => ({
+  default: {
+    request: (config: { url: string }) => axiosGet(config.url, config),
+    isAxiosError: () => false,
+    isCancel: () => false,
+  },
+}));
 // proxyRequest reaches the logger (and so Electron's `app`) through the intranet transport.
 vi.mock('@main/infra/logger', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })
@@ -26,7 +34,9 @@ function makeAuth() {
 
 const intranetMapping = {
   rewriteUrl: (u: string) => u,
-  isEnabled: () => false
+  isEnabled: () => false,
+  allowsPublicFallback: () => false,
+  reportFailure: () => undefined
 } as unknown as IntranetMappingService;
 
 function response(status: number, data: unknown = 'body'): AxiosResponse {
@@ -36,7 +46,7 @@ function response(status: number, data: unknown = 'body'): AxiosResponse {
 function options(): ResignFetchOptions {
   return {
     intranetMapping,
-    agents: () => ({ httpAgent: {}, httpsAgent: {}, httpsAgentNoVerify: {} }) as never,
+    agents: () => ({ httpAgent: {}, httpsAgent: {} }) as never,
     baseHeaders: { 'User-Agent': 'test' },
     timeout: 1000,
     backoffMs: 0

@@ -11,13 +11,13 @@ import {
   rewriteM3u8TsUrls
 } from './videoProxy/urlHelpers';
 import { ProxyAuth } from './videoProxy/proxyAuth';
-import { buildAxiosConfig, fetchRecordedWithResign } from './videoProxy/proxyRequest';
+import { buildAxiosConfig, fetchRecordedWithResign, getAlongRoute } from './videoProxy/proxyRequest';
 import { applyNoStoreHeaders, shouldForwardUpstreamHeader } from './videoProxy/httpHeaders';
 import { handleYanhe2PlayRequest } from './videoProxy/yanhe2Play';
 import { YANHE2_PLAY_ROUTE, yanhe2PlayProxyUrl } from './videoProxy/yanhe2PlayUrls';
 import type { Yanhe2PlayIdentity } from '@main/platform/yanhe2/yanhe2Playback';
 import { createLogger } from '@main/infra/logger';
-import { IntranetAgentPool, intranetTarget } from '@main/infra/intranetTransport';
+import { IntranetAgentPool, intranetTarget, isConnectionFailure } from '@main/infra/intranetTransport';
 const log = createLogger('VideoProxy');
 
 /** Narrow an unknown catch value to the axios-ish fields this proxy logs. */
@@ -201,6 +201,7 @@ export class VideoProxyService {
    */
   async getVideoPlaybackUrls(session: RecordedSessionInput, token: string): Promise<VideoPlaybackUrls> {
     try {
+      await this.intranetMapping.ensureFresh();
       // Start proxy server if not already running
       const proxyPort = await this.startVideoProxy();
 
@@ -265,6 +266,7 @@ export class VideoProxyService {
    */
   async getLiveStreamUrls(stream: LiveStreamInput, token: string): Promise<VideoPlaybackUrls> {
     try {
+      await this.intranetMapping.ensureFresh();
       // Ensure this account's ProxyAuth exists (live needs no signature loop).
       this.getAuth(token);
 
@@ -533,9 +535,14 @@ export class VideoProxyService {
     let attempt = 0;
 
     while (true) {
-      const requestUrl = this.intranetMapping.rewriteUrl(rawUrl);
-      const agents = this.agentPool.resolve();
-      const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, headers, opts);
+      // Each pass asks for the route again: a failed IP is skipped by the
+      // round-robin, and once a re-check finds the intranet gone the URL comes
+      // back unmapped.
+      const target = intranetTarget(rawUrl, (u) => this.intranetMapping.rewriteUrl(u));
+      const requestUrl = target.url;
+      const viaIntranet = target.host !== null;
+      const { httpAgent, httpsAgent } = this.agentPool.resolve();
+      const axiosConfig = { ...buildAxiosConfig(headers, opts), httpAgent, httpsAgent };
 
       try {
         const response = await axios.get(requestUrl, axiosConfig);
@@ -543,7 +550,7 @@ export class VideoProxyService {
           return response;
         }
         // Non-200: fail over to the next IP (intranet only), else surface it.
-        if (this.intranetMapping.isEnabled() && attempt < maxRetries) {
+        if (viaIntranet && attempt < maxRetries) {
           this.markIpFailedForUrl(requestUrl, rawUrl);
           this.destroyStreamBody(response, opts.responseType);
           attempt++;
@@ -552,14 +559,19 @@ export class VideoProxyService {
         }
         return response;
       } catch (error: unknown) {
-        if (this.intranetMapping.isEnabled()) {
+        if (viaIntranet) {
           this.markIpFailedForUrl(requestUrl, rawUrl);
+          this.intranetMapping.reportFailure();
         }
         if (attempt < maxRetries) {
           attempt++;
           log.debug(`Live request failed, trying next IP (${attempt}/${maxRetries}):`, asHttpError(error).message);
           await this.delay(500);
           continue;
+        }
+        if (viaIntranet && this.intranetMapping.allowsPublicFallback() && isConnectionFailure(error)) {
+          log.warn('Live intranet addresses did not answer; using the public host for this request.');
+          return axios.get(rawUrl, buildAxiosConfig(headers, opts));
         }
         throw error;
       }
@@ -603,19 +615,11 @@ export class VideoProxyService {
       headers['Range'] = req.headers.range;
     }
 
-    // Same shape as every other proxied request: rewrite for intranet, then
-    // re-attach the real hostname so the upstream vhost still matches.
-    const target = intranetTarget(audioUrl, (u) => this.intranetMapping.rewriteUrl(u));
-    if (target.host) {
-      headers['Host'] = target.host;
-    }
-
-    const response = await axios.get(
-      target.url,
-      buildAxiosConfig(this.intranetMapping, this.agentPool.resolve(), headers, {
-        timeout: 30000,
-        responseType: 'stream',
-      }),
+    const response = await getAlongRoute(
+      audioUrl,
+      this.intranetMapping,
+      this.agentPool.resolve(),
+      buildAxiosConfig(headers, { timeout: 30000, responseType: 'stream' }),
     );
 
     // 206 is the normal answer to a Range request, so this cannot reuse

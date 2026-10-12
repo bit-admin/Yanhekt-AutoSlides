@@ -1,4 +1,5 @@
 import { nextTick, ref, type Ref } from 'vue'
+import type { ConnectionMode } from '@common/types'
 import { useGeneralSettings } from './useGeneralSettings'
 import { useImageProcessingSettings } from './useImageProcessingSettings'
 import { useNetworkSettings } from './useNetworkSettings'
@@ -36,7 +37,7 @@ export interface UseAdvancedSettingsOptions {
   themeMode: Ref<'system' | 'light' | 'dark'>
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
   preventSystemSleep: Ref<boolean>
-  connectionMode: Ref<'internal' | 'external'>
+  connectionMode: Ref<ConnectionMode>
   muteMode: Ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>
   taskSpeed: Ref<number>
   parallelTasks: Ref<number>

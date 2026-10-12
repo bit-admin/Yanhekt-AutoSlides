@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron';
 import type { ElectronAPI, DialogOptions } from './electronApi';
-import type { AppConfig, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import type { AppConfig, ConnectionMode, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 
 export const auth: ElectronAPI['auth'] = {
@@ -56,7 +56,7 @@ export const config: ElectronAPI['config'] = {
   selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
   probeOutputDirectory: () => ipcRenderer.invoke('config:probeOutputDirectory'),
   recreateOutputDirectory: () => ipcRenderer.invoke('config:recreateOutputDirectory'),
-  setConnectionMode: (mode: 'internal' | 'external') => ipcRenderer.invoke('config:setConnectionMode', mode),
+  setConnectionMode: (mode: ConnectionMode) => ipcRenderer.invoke('config:setConnectionMode', mode),
   setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
   setDownloadMaxWorkers: (count: number) => ipcRenderer.invoke('config:setDownloadMaxWorkers', count),
   setDownloadNumRetries: (count: number) => ipcRenderer.invoke('config:setDownloadNumRetries', count),

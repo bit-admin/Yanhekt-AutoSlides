@@ -11,6 +11,8 @@ export interface DownloadOptions {
   outputDir?: string;
   /** Force campus intranet routing for this run. */
   intranet: boolean;
+  /** Interface name or local IPv4 address to send intranet traffic from; the one saved in the app when absent. */
+  interface?: string;
   /** Replace an existing file instead of refusing. */
   force: boolean;
   verbose: boolean;
@@ -33,6 +35,7 @@ export function parseDownloadArgs(args: readonly string[]): DownloadArgsResult {
   let streams: CliStream[] = STREAM_CHOICES.screen;
   let outputDir: string | undefined;
   let intranet = false;
+  let iface: string | undefined;
   let force = false;
   let verbose = false;
 
@@ -69,6 +72,12 @@ export function parseDownloadArgs(args: readonly string[]): DownloadArgsResult {
       case '--intranet':
         intranet = true;
         break;
+      case '--interface': {
+        const value = takeValue();
+        if (!value) return { kind: 'error', message: `${name} needs an interface name or address` };
+        iface = value;
+        break;
+      }
       case '-f':
       case '--force':
         force = true;
@@ -85,6 +94,8 @@ export function parseDownloadArgs(args: readonly string[]): DownloadArgsResult {
   }
 
   if (target === undefined) return { kind: 'error', message: 'missing session link or id' };
+  // Only intranet traffic is ever bound to an interface, in the app as here.
+  if (iface !== undefined && !intranet) return { kind: 'error', message: '--interface only applies together with --intranet' };
 
   const parsed = parseSessionInput(target);
   if (parsed.kind === 'course') {
@@ -101,5 +112,5 @@ export function parseDownloadArgs(args: readonly string[]): DownloadArgsResult {
     };
   }
 
-  return { kind: 'run', options: { sessionId: parsed.sessionId, streams, outputDir, intranet, force, verbose } };
+  return { kind: 'run', options: { sessionId: parsed.sessionId, streams, outputDir, intranet, interface: iface, force, verbose } };
 }

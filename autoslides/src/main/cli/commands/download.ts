@@ -10,12 +10,14 @@
 // Files are named exactly as the app names them (`buildDownloadFileName`), so
 // a lecture fetched here shows up in the Lectures library like any other.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { cliProgramName } from '@common/cliCommands';
 import { buildDownloadFileName } from '@common/downloadNaming';
 import { lectureLabel } from '@common/lectureNaming';
 import { queueErrorText } from '@common/recordingProblems';
 import { parseDownloadArgs, type CliStream, type DownloadOptions } from '../downloadArgs';
+import { findInterfaceByAddress, resolveCliInterface } from '../networkInterface';
 import { EXIT, endStatusLine, fail, info, out, status } from '../terminal';
 import type { CliContext } from '../types';
 
@@ -39,6 +41,8 @@ export function downloadHelp(): string {
     '  -s, --stream <which>  screen (default), camera, or both',
     '  -o, --output <dir>    Save here for this run instead of the folder set in AutoSlides',
     '      --intranet        Use the campus intranet route (default: public network)',
+    '      --interface <if>  With --intranet: send from this interface (name such as en1, or its\n' +
+    '                        IPv4 address) instead of the one set in AutoSlides',
     '  -f, --force           Download again even if the file already exists',
     '  -v, --verbose         Print diagnostic logs',
     '  -h, --help            Show this help',
@@ -75,6 +79,11 @@ export async function runDownload(args: readonly string[], ctx: CliContext): Pro
   // the app's own connection mode is deliberately ignored (owner ruling), so a
   // command behaves the same whatever the app happens to be set to.
   const isIntranetMode = options.intranet;
+  const route = await pinRoute(options, ctx);
+  if (!route.ok) {
+    fail(PROGRAM, route.message);
+    return EXIT.usage;
+  }
 
   let lecture;
   try {
@@ -121,6 +130,48 @@ export async function runDownload(args: readonly string[], ctx: CliContext): Pro
   }
 
   return failures > 0 ? EXIT.failed : EXIT.ok;
+}
+
+/**
+ * Fix this run's route in the route service, so the API calls take it too, and
+ * say which interface an intranet run leaves by. Nothing is saved.
+ */
+async function pinRoute(
+  options: DownloadOptions,
+  ctx: CliContext
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const mapping = ctx.intranetMappingService;
+  if (!options.intranet) {
+    mapping.pinForThisProcess('external');
+    return { ok: true };
+  }
+
+  const interfaces = os.networkInterfaces();
+  if (options.interface !== undefined) {
+    const choice = resolveCliInterface(options.interface, interfaces);
+    if (!choice.ok) return choice;
+    mapping.pinForThisProcess('internal', choice.iface.address);
+    info(`Intranet route via ${choice.iface.name} (${choice.iface.address}).`);
+  } else {
+    mapping.pinForThisProcess('internal');
+    const saved = mapping.getInterfaceIp();
+    const iface = saved ? findInterfaceByAddress(saved, interfaces) : null;
+    if (iface) {
+      info(`Intranet route via ${iface.name} (${iface.address}), the interface set in AutoSlides.`);
+    } else if (saved) {
+      info(`Intranet route via the default interface: the address set in AutoSlides (${saved}) is not on any interface now. Use --interface to pick one.`);
+    } else {
+      info('Intranet route via the default interface. Use --interface to pick another.');
+    }
+  }
+
+  // Ask the campus resolver for the current addresses; the built-in table
+  // stands in when it does not answer.
+  await mapping.refresh();
+  if (!mapping.getNetworkStatus().reachable) {
+    info('The campus intranet did not answer from here, so this download may fail. Without --intranet it uses the public network.');
+  }
+  return { ok: true };
 }
 
 function resolveOutputDir(

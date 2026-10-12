@@ -5,7 +5,7 @@ import { spawn } from 'child_process';
 import { pipeline } from 'stream/promises';
 import { FFmpegService } from '@main/infra/ffmpegService';
 import { ConfigService } from '@main/platform/configService';
-import { IntranetMappingService } from '@main/platform/intranetMappingService';
+import { IntranetMappingService, type IntranetRoute } from '@main/platform/intranetMappingService';
 import { ApiClient } from '@main/platform/apiClient';
 import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '@common/crypto';
 import { formatEmptyRecording, formatSegmentsMissing, isEmptyMediaPlaylist, parseRecordingProblem } from '@common/recordingProblems';
@@ -88,14 +88,22 @@ export class M3u8DownloadService {
     }
 
     const outputDir = overrides.outputDir ?? this.configService.getConfig().outputDirectory;
-    const isIntranetMode = overrides.isIntranetMode ?? this.configService.getConfig().connectionMode === 'internal';
+    // A command line run names its route outright and means it. The app asks
+    // the route service, whose Auto mode may fall back to the public network.
+    let route: IntranetRoute;
+    if (overrides.isIntranetMode !== undefined) {
+      route = { intranet: overrides.isIntranetMode, publicFallback: false };
+    } else {
+      await this.intranetMapping.ensureFresh();
+      route = this.intranetMapping.route();
+    }
 
     const downloader = new M3u8Downloader(
       m3u8Url,
       outputDir,
       outputName,
       progressCallback,
-      isIntranetMode,
+      route,
       this.ffmpegService,
       this.intranetMapping,
       this.apiClient,
@@ -142,7 +150,7 @@ class M3u8Downloader {
   private outputDir: string;
   private name: string;
   private progressCallback: (progress: DownloadProgress) => void;
-  private isIntranetMode: boolean;
+  private route: IntranetRoute;
   private ffmpegService: FFmpegService;
   private intranetMapping: IntranetMappingService;
   private apiClient: ApiClient;
@@ -188,7 +196,7 @@ class M3u8Downloader {
     outputDir: string,
     name: string,
     progressCallback: (progress: DownloadProgress) => void,
-    isIntranetMode: boolean,
+    route: IntranetRoute,
     ffmpegService: FFmpegService,
     intranetMapping: IntranetMappingService,
     apiClient: ApiClient,
@@ -201,7 +209,7 @@ class M3u8Downloader {
     this.outputDir = outputDir;
     this.name = name;
     this.progressCallback = progressCallback;
-    this.isIntranetMode = isIntranetMode;
+    this.route = route;
     this.ffmpegService = ffmpegService;
     this.intranetMapping = intranetMapping;
     this.apiClient = apiClient;
@@ -359,7 +367,8 @@ class M3u8Downloader {
     // cannot drift apart on intranet behaviour.
     const bundle = createIntranetAxios({
       intranetMapping: this.intranetMapping,
-      isIntranetMode: this.isIntranetMode,
+      isIntranetMode: this.route.intranet,
+      publicFallback: this.route.publicFallback,
       maxSockets: this.maxWorkers,
     });
 
@@ -417,7 +426,7 @@ class M3u8Downloader {
       // URL built on a bare IP would get neither the rewrite nor its Host
       // header. Keep the playlist's own origin so root-absolute lines stay on
       // the hostname.
-      this.frontUrl = this.isIntranetMode
+      this.frontUrl = this.route.intranet
         ? new URL(m3u8Url).origin
         : response.request.res?.responseUrl?.split(response.request.path)[0] ||
           m3u8Url.substring(0, m3u8Url.lastIndexOf('/'));

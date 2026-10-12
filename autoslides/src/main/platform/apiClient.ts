@@ -1,8 +1,10 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { app } from 'electron';
 import { getClientSignature } from '@common/crypto';
 import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
+import { IntranetAgentPool, intranetRequest } from '@main/infra/intranetTransport';
+import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { ConfigService } from '@main/platform/configService';
 const log = createLogger('PlatformApiClient');
 
@@ -130,7 +132,35 @@ export class ApiClient {
     "Xclient-Version": "v1"
   };
 
-  constructor(private configService?: ConfigService) {}
+  private agentPool: IntranetAgentPool | null = null;
+
+  constructor(private configService?: ConfigService, private intranetMapping?: IntranetMappingService) {
+    if (intranetMapping) {
+      this.agentPool = new IntranetAgentPool(intranetMapping);
+      intranetMapping.on('interfaceIpChanged', () => this.agentPool?.reset());
+    }
+  }
+
+  /** How long an API request may wait on the intranet address before the public host is tried. */
+  private static readonly INTRANET_TIMEOUT_MS = 4000;
+
+  /**
+   * Send one cbiz request, through the campus intranet when it is reachable.
+   * The public host is always the fallback, in every connection mode: nothing
+   * in the app works without the API, so it never depends on the intranet.
+   */
+  private send(config: AxiosRequestConfig & { url: string }): Promise<AxiosResponse> {
+    const mapping = this.intranetMapping;
+    if (!mapping || !this.agentPool) return axios.request(config);
+    void mapping.ensureFresh();
+    if (!mapping.isApiViaIntranet()) return axios.request(config);
+    return intranetRequest(config, {
+      mapper: mapping,
+      agents: this.agentPool.resolve(),
+      publicFallback: true,
+      intranetTimeout: ApiClient.INTRANET_TIMEOUT_MS,
+    });
+  }
 
   /**
    * Omit Authorization when the caller marked the endpoint anonymous-safe
@@ -159,7 +189,9 @@ export class ApiClient {
       const { headers } = this.createHeaders(token);
 
 
-      const response: AxiosResponse = await axios.get(url, {
+      const response: AxiosResponse = await this.send({
+        method: 'GET',
+        url,
         headers,
         timeout: 10000,
         validateStatus: function (status) {
@@ -212,7 +244,9 @@ export class ApiClient {
     try {
       const url = "https://cbiz.yanhekt.cn/v1/cas/logout";
       const { headers } = this.createHeaders(token);
-      await axios.get(url, {
+      await this.send({
+        method: 'GET',
+        url,
         headers,
         timeout: 10000,
         validateStatus: function (status) {
@@ -257,7 +291,7 @@ export class ApiClient {
       config.data = data;
     }
 
-    const response: AxiosResponse = await axios(config);
+    const response: AxiosResponse = await this.send(config);
     return response.data;
   }
 
@@ -925,7 +959,9 @@ export class ApiClient {
       // Remove Authorization header since it's not needed
       delete headers["Authorization"];
 
-      const response = await axios.get(url, {
+      const response = await this.send({
+        method: 'GET',
+        url,
         headers,
         timeout: 10000,
         validateStatus: function (status) {

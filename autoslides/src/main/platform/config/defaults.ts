@@ -160,7 +160,8 @@ export const defaultAIFilteringConfig: AIFilteringConfig = {
 
 export const defaultConfig: AppConfig = {
   outputDirectory: path.join(os.homedir(), 'Downloads', 'AutoSlides'),
-  connectionMode: 'external',
+  // New installs only: a stored 'internal' / 'external' is the user's choice and is kept.
+  connectionMode: 'auto',
   campusPortalHost: '10.0.0.55',
   campusPortalUseHttps: false,
   maxConcurrentDownloads: 5,

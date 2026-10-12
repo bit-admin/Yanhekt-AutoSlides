@@ -17,7 +17,14 @@
 
     <div class="setting-item">
       <label class="setting-label">{{ $t('settings.connectionMode') }}</label>
+      <div class="setting-description">{{ $t('settings.connectionModeDescription') }}</div>
       <div class="mode-toggle">
+        <button
+          @click="tempConnectionMode = 'auto'"
+          :class="['mode-btn', { active: tempConnectionMode === 'auto' }]"
+        >
+          {{ $t('settings.autoNetwork') }}
+        </button>
         <button
           @click="tempConnectionMode = 'internal'"
           :class="['mode-btn', { active: tempConnectionMode === 'internal' }]"

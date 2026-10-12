@@ -92,6 +92,12 @@
             <p class="step-description">{{ $t('onboarding.connectionDescription') }}</p>
             <div class="mode-toggle">
               <button
+                @click="setConnectionMode('auto')"
+                :class="['mode-btn', { active: connectionMode === 'auto' }]"
+              >
+                {{ $t('settings.autoNetwork') }}
+              </button>
+              <button
                 @click="setConnectionMode('internal')"
                 :class="['mode-btn', { active: connectionMode === 'internal' }]"
               >

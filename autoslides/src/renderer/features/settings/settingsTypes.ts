@@ -27,6 +27,26 @@ export interface IntranetMapping {
   currentIndex?: number
 }
 
+/** One address of a mapped domain as the Test Addresses button found it. */
+export interface IntranetAddressResult {
+  ip: string
+  /** Milliseconds to answer; null when it did not. */
+  ms: number | null
+}
+
+/** A mapping row's test state: waiting for its answers, or holding them. */
+export interface IntranetDomainTest {
+  pending: boolean
+  results: IntranetAddressResult[]
+}
+
+/** What the last test ran against. */
+export interface IntranetTestMeta {
+  resolvedByCampusDns: boolean
+  interfaceIp: string | null
+  at: string
+}
+
 export interface NetworkInterfaceInfo {
   name: string
   address: string

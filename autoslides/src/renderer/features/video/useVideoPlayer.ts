@@ -1,4 +1,5 @@
 import { ref, shallowRef, computed, nextTick, type Ref, type ShallowRef, type ComputedRef } from 'vue'
+import type { ConnectionMode } from '@common/types'
 import Hls, { Events, ErrorDetails } from 'hls.js'
 import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
@@ -82,7 +83,7 @@ export interface UseVideoPlayerReturn {
   screenVideoPlayer: Ref<HTMLVideoElement | null>
   hls: ShallowRef<Hls | null>
   currentPlaybackRate: Ref<number>
-  connectionMode: Ref<'internal' | 'external'>
+  connectionMode: Ref<ConnectionMode>
   muteMode: Ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>
   isVideoMuted: Ref<boolean>
   isRetrying: Ref<boolean>
@@ -163,7 +164,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const micAudioPlayer = ref<HTMLAudioElement | null>(null)
   const hls = shallowRef<Hls | null>(null)
   const currentPlaybackRate = ref(1)
-  const connectionMode = ref<'internal' | 'external'>('external')
+  const connectionMode = ref<ConnectionMode>('external')
   const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
   const isVideoMuted = ref(false)
   const videoProxyClientId = ref<string | null>(null)
@@ -251,8 +252,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     return type && emptyStreamTypes.value.includes(type) ? [type] : []
   })
 
+  // High-speed playback outruns the public route, not the intranet one. In
+  // Auto mode the route in use is main's to say, so it is asked for in initConfig.
+  const intranetActive = ref(false)
   const showSpeedWarning = computed(() => {
-    return connectionMode.value === 'external' && currentPlaybackRate.value > 2
+    return !intranetActive.value && currentPlaybackRate.value > 2
   })
 
   const getCurrentPlaybackTime = () => {
@@ -997,6 +1001,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       connectionMode.value = config.connectionMode
       muteMode.value = config.muteMode || 'normal'
       maxVideoErrorRetries.value = config.videoRetryCount || 5
+      intranetActive.value = config.connectionMode === 'internal'
+      if (config.connectionMode === 'auto') {
+        intranetActive.value = (await window.electronAPI.intranet.getStatus()).enabled
+      }
     } catch (err) {
       log.error('Failed to load video player config:', err)
     }

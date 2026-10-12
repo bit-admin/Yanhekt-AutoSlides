@@ -239,10 +239,10 @@ app.on('activate', () => {
 // Initialize services
 const yanhe2Service = new Yanhe2Service(configService);
 const authService = new MainAuthService(configService, yanhe2Service);
-const apiClient = new MainApiClient(configService);
 const autoCropModelService = new AutoCropModelService(configService);
 const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
+const apiClient = new MainApiClient(configService, intranetMappingService);
 const videoProxyService = new VideoProxyService(
   apiClient,
   intranetMappingService,

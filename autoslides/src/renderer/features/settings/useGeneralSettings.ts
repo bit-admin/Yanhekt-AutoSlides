@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue'
+import type { ConnectionMode } from '@common/types'
 import { languageService } from '@features/settings/languageService'
 import { DownloadService } from '@shared/services/downloadService'
 
@@ -14,7 +15,7 @@ export interface UseGeneralSettingsOptions {
   previewSeekSeconds: Ref<number>
   themeMode: Ref<'system' | 'light' | 'dark'>
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
-  connectionMode: Ref<'internal' | 'external'>
+  connectionMode: Ref<ConnectionMode>
   muteMode: Ref<MuteMode>
   taskSpeed: Ref<number>
   parallelTasks: Ref<number>
@@ -66,7 +67,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempPreviewSeekSeconds = ref(150)
   const tempThemeMode = ref<'system' | 'light' | 'dark'>('system')
   const tempLanguageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
-  const tempConnectionMode = ref<'internal' | 'external'>('external')
+  const tempConnectionMode = ref<ConnectionMode>('auto')
   const tempMuteMode = ref<MuteMode>('normal')
   const tempTaskSpeed = ref(16)
   const tempParallelTasks = ref(2)

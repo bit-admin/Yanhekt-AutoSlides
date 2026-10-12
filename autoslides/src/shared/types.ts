@@ -25,7 +25,11 @@ export type AutoCropActiveModel = 'builtin' | 'custom';
 export type SSIMPresetMode = 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
 
 export type MuteMode = 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-export type ConnectionMode = 'internal' | 'external';
+/**
+ * `auto` uses the campus intranet while it can be reached and the public
+ * network otherwise; the other two force one route.
+ */
+export type ConnectionMode = 'auto' | 'internal' | 'external';
 
 export interface PHashExclusionItem {
   id: string;
@@ -170,8 +174,6 @@ export interface StoredAccount {
 export interface AppConfig {
   outputDirectory: string;
   connectionMode: ConnectionMode;
-  intranetMode?: boolean;
-  intranetMappings?: Record<string, string>;
   intranetInterfaceIp?: string;
   campusPortalHost: string;
   campusPortalUseHttps: boolean;

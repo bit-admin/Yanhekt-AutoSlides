@@ -67,7 +67,8 @@ export class AudioDownloadService {
     }
 
     const outputDir = expandTilde(this.configService.getConfig().outputDirectory);
-    const isIntranetMode = this.configService.getConfig().connectionMode === 'internal';
+    await this.intranetMapping.ensureFresh();
+    const route = this.intranetMapping.route();
 
     await fs.promises.mkdir(outputDir, { recursive: true });
 
@@ -80,7 +81,8 @@ export class AudioDownloadService {
     // One socket: this is a single sequential stream, not a segment pool.
     const bundle = createIntranetAxios({
       intranetMapping: this.intranetMapping,
-      isIntranetMode,
+      isIntranetMode: route.intranet,
+      publicFallback: route.publicFallback,
       maxSockets: 1,
       timeout: 60000,
     });

@@ -13,6 +13,7 @@
  */
 import type {
   AppConfig,
+  ConnectionMode,
   CampusProbeResult,
   AIFilteringConfig,
   PHashExclusionItem,
@@ -236,9 +237,17 @@ export interface IntranetMapping {
   currentIndex?: number;
 }
 
+export interface IntranetAddressProbe {
+  ip: string;
+  ms: number | null;
+}
+
 export interface IntranetStatus {
-  mode: string;
+  mode: ConnectionMode;
+  /** Whether requests are going through the intranet right now (in Auto: whether it was reachable). */
   enabled: boolean;
+  reachable: boolean;
+  resolvedByCampusDns: boolean;
   mappingCount: number;
   interfaceIp: string | null;
 }
@@ -425,7 +434,7 @@ export interface ElectronAPI {
     probeOutputDirectory: () => Promise<{ ok: true } | { ok: false; error: string }>;
     /** Recreate a missing output folder; never creates one whose drive is gone. */
     recreateOutputDirectory: () => Promise<{ ok: true } | { ok: false; error: string }>;
-    setConnectionMode: (mode: 'internal' | 'external') => Promise<AppConfig>;
+    setConnectionMode: (mode: ConnectionMode) => Promise<AppConfig>;
     setMaxConcurrentDownloads: (count: number) => Promise<AppConfig>;
     setDownloadMaxWorkers: (count: number) => Promise<AppConfig>;
     setDownloadNumRetries: (count: number) => Promise<AppConfig>;
@@ -591,9 +600,12 @@ export interface ElectronAPI {
     getAvailableSemesters: () => Promise<SemesterOption[]>;
   };
   intranet: {
-    setEnabled: (enabled: boolean) => Promise<IntranetStatus>;
     getStatus: () => Promise<IntranetStatus>;
     getMappings: () => Promise<{ [domain: string]: IntranetMapping }>;
+    /** Re-run the route check (campus DNS + reachability) and return what it found. */
+    refresh: () => Promise<{ status: IntranetStatus; mappings: { [domain: string]: IntranetMapping } }>;
+    /** Time an answer from each address of one mapped domain; `ms` is null when there was none. */
+    probeDomain: (domain: string) => Promise<IntranetAddressProbe[]>;
     getNetworkInterfaces: () => Promise<NetworkInterfaceInfo[]>;
     getInterfaceIp: () => Promise<string | null>;
     setInterfaceIp: (ip: string | null) => Promise<SetInterfaceIpResponse>;

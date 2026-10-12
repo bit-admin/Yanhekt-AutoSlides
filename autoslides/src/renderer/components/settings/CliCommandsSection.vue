@@ -116,6 +116,7 @@ const USAGE_ROWS: UsageRow[] = [
   { code: '-s, --stream', arg: 'screen|camera|both', descriptionKey: 'advanced.addons.cliOptStream', option: true },
   { code: '-o, --output', argKey: 'advanced.addons.cliArgFolder', descriptionKey: 'advanced.addons.cliOptOutput', option: true },
   { code: '--intranet', descriptionKey: 'advanced.addons.cliOptIntranet', option: true },
+  { code: '--interface', argKey: 'advanced.addons.cliArgInterface', descriptionKey: 'advanced.addons.cliOptInterface', option: true },
   { code: '-f, --force', descriptionKey: 'advanced.addons.cliOptForce', option: true },
   { code: 'autoslides', argKey: 'advanced.addons.cliArgCommand', descriptionKey: 'advanced.addons.cliUsageUmbrella' },
 ]

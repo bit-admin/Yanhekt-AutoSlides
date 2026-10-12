@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import type { IntranetMapping, NetworkInterfaceInfo } from './settingsTypes'
+import type { IntranetDomainTest, IntranetMapping, IntranetTestMeta, NetworkInterfaceInfo } from './settingsTypes'
 import { configStore } from '@shared/services/configStore'
 import { tokenManager } from '@shared/services/authService'
 import { createLogger } from '@shared/utils/logger'
@@ -24,6 +24,53 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
 
   const intranetMappings = ref<{ [domain: string]: IntranetMapping }>({})
   const expandedMappings = ref<{ [domain: string]: boolean }>({})
+
+  // ---- Test Addresses (display only; nothing here is saved) -----------------
+  const intranetTests = ref<{ [domain: string]: IntranetDomainTest }>({})
+  const intranetTesting = ref(false)
+  const intranetTestMeta = ref<IntranetTestMeta | null>(null)
+
+  /** Long enough for the row placeholders to be seen; on campus the answers take ~30ms. */
+  const MIN_TEST_MS = 450
+  const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
+  const testIntranetAddresses = async () => {
+    if (intranetTesting.value) return
+    intranetTesting.value = true
+    const settle = pause(MIN_TEST_MS)
+    const waiting = (domains: string[]) =>
+      Object.fromEntries(domains.map((domain) => [domain, { pending: true, results: [] }]))
+    intranetTests.value = waiting(Object.keys(intranetMappings.value))
+
+    try {
+      // Ask the campus DNS again first, so the list tested is the current one.
+      const { status, mappings } = await window.electronAPI.intranet.refresh()
+      intranetMappings.value = mappings
+      intranetTests.value = waiting(Object.keys(mappings))
+      intranetTestMeta.value = {
+        resolvedByCampusDns: status.resolvedByCampusDns,
+        interfaceIp: status.interfaceIp,
+        at: new Date().toLocaleTimeString(),
+      }
+
+      // One call per domain, so each row fills in as soon as its own addresses answer.
+      await Promise.all(Object.keys(mappings).map(async (domain) => {
+        let results: IntranetDomainTest['results'] = []
+        try {
+          results = await window.electronAPI.intranet.probeDomain(domain)
+        } catch (error) {
+          log.error(`Failed to test ${domain}:`, error)
+        }
+        await settle
+        intranetTests.value[domain] = { pending: false, results }
+      }))
+    } catch (error) {
+      log.error('Failed to test intranet addresses:', error)
+      intranetTests.value = {}
+    } finally {
+      intranetTesting.value = false
+    }
+  }
 
   const availableNetworkInterfaces = ref<NetworkInterfaceInfo[]>([])
   const intranetInterfaceIp = ref<string>('')
@@ -245,6 +292,10 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
   return {
     intranetMappings,
     expandedMappings,
+    intranetTests,
+    intranetTesting,
+    intranetTestMeta,
+    testIntranetAddresses,
     availableNetworkInterfaces,
     intranetInterfaceIp,
     tempIntranetInterfaceIp,

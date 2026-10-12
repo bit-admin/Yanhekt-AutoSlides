@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
 
 const interfaces = vi.hoisted(() => ({ current: {} as Record<string, unknown[]> }));
 vi.mock('node:os', () => ({ default: { networkInterfaces: () => interfaces.current } }));
@@ -12,6 +12,8 @@ import {
   createIntranetAxios,
   intranetTarget,
   resolveBindAddress,
+  intranetRequest,
+  isConnectionFailure,
   type IntranetUrlMapper,
 } from './intranetTransport';
 
@@ -21,21 +23,36 @@ function nic(address: string) {
   return { address, internal: false, family: 'IPv4' };
 }
 
-function makeMapper(state: { enabled: boolean; interfaceIp: string | null }): IntranetUrlMapper {
+function makeMapper(state: { enabled: boolean; interfaceIp: string | null }) {
   const mapUrl = (url: string) => url.replace('cvideo.yanhekt.cn', '10.0.34.24');
   return {
     isEnabled: () => state.enabled,
     getInterfaceIp: () => state.interfaceIp,
     mapUrl,
-    rewriteUrl: (url) => (state.enabled ? mapUrl(url) : url),
-  };
+    rewriteUrl: (url: string) => (state.enabled ? mapUrl(url) : url),
+    reportFailure: vi.fn(),
+  } satisfies IntranetUrlMapper;
 }
+
+/** What the network would say: a refused connection for intranet IPs in `dead`, 200 otherwise. */
+function fakeNetwork(dead: (url: string) => boolean) {
+  const seen: Array<{ url: string; host?: string }> = [];
+  const adapter: AxiosAdapter = async (config) => {
+    const url = String(config.url);
+    seen.push({ url, host: config.headers.get('Host') as string | undefined });
+    if (dead(url)) throw new AxiosError('connect ECONNREFUSED', 'ECONNREFUSED', config);
+    return { data: 'ok', status: 200, statusText: 'OK', headers: {}, config };
+  };
+  return { adapter, seen };
+}
+
+const viaIp = (url: string) => url.includes('10.0.34.24');
 
 type Interceptors = { forEach(fn: (h: { fulfilled?: (c: InternalAxiosRequestConfig) => unknown }) => void): void };
 
 /** Run a request config through the instance's request interceptors. */
 function intercept(instance: ReturnType<typeof createIntranetAxios>['instance'], url: string) {
-  let config = { url, headers: {} } as unknown as InternalAxiosRequestConfig;
+  let config = { url, headers: new AxiosHeaders() } as unknown as InternalAxiosRequestConfig;
   (instance.interceptors.request as unknown as Interceptors).forEach((handler) => {
     if (handler.fulfilled) config = handler.fulfilled(config) as InternalAxiosRequestConfig;
   });
@@ -105,8 +122,7 @@ describe('IntranetAgentPool', () => {
     expect(bound).not.toBe(unbound);
     expect(optionsOf(bound.httpAgent).localAddress).toBe(CAMPUS_IP);
     expect(optionsOf(bound.httpsAgent).localAddress).toBe(CAMPUS_IP);
-    expect(optionsOf(bound.httpsAgentNoVerify).localAddress).toBe(CAMPUS_IP);
-    expect(optionsOf(bound.httpsAgentNoVerify).rejectUnauthorized).toBe(false);
+    // Mapped campus nodes serve valid certificates; verification stays on.
     expect(optionsOf(bound.httpsAgent).rejectUnauthorized).toBeUndefined();
     expect(pool.resolve()).toBe(bound);
 
@@ -133,7 +149,7 @@ describe('createIntranetAxios', () => {
     });
     const config = intercept(bundle.instance, 'https://cvideo.yanhekt.cn/a.ts');
     expect(config.url).toBe('https://10.0.34.24/a.ts');
-    expect(config.headers['Host']).toBe('cvideo.yanhekt.cn');
+    expect(config.headers.get('Host')).toBe('cvideo.yanhekt.cn');
     bundle.destroy();
   });
 
@@ -153,7 +169,7 @@ describe('createIntranetAxios', () => {
     });
     const config = intercept(bundle.instance, 'https://cvideo.yanhekt.cn/a.ts');
     expect(config.url).toBe('https://cvideo.yanhekt.cn/a.ts');
-    expect(config.headers['Host']).toBeUndefined();
+    expect(config.headers.get('Host')).toBeUndefined();
     expect(optionsOf(bundle.instance.defaults.httpsAgent).localAddress).toBeUndefined();
     bundle.destroy();
   });
@@ -168,5 +184,104 @@ describe('createIntranetAxios', () => {
     expect(agent.localAddress).toBe(CAMPUS_IP);
     expect(agent.maxSockets).toBe(4);
     bundle.destroy();
+  });
+
+  it('fails like before when fallback is off, and reports the dead address', async () => {
+    const mapper = makeMapper({ enabled: true, interfaceIp: null });
+    const net = fakeNetwork(viaIp);
+    const bundle = createIntranetAxios({ intranetMapping: mapper, isIntranetMode: true, maxSockets: 4 });
+    bundle.instance.defaults.adapter = net.adapter;
+    await expect(bundle.instance.get('https://cvideo.yanhekt.cn/a.ts')).rejects.toMatchObject({ code: 'ECONNREFUSED' });
+    expect(net.seen).toHaveLength(1);
+    expect(mapper.reportFailure).toHaveBeenCalledTimes(1);
+    bundle.destroy();
+  });
+
+  it('retries a dead intranet address on the public host, then stays there', async () => {
+    const mapper = makeMapper({ enabled: true, interfaceIp: null });
+    const net = fakeNetwork(viaIp);
+    const bundle = createIntranetAxios({
+      intranetMapping: mapper,
+      isIntranetMode: true,
+      publicFallback: true,
+      maxSockets: 4,
+    });
+    bundle.instance.defaults.adapter = net.adapter;
+
+    for (let i = 0; i < 3; i++) {
+      const res = await bundle.instance.get(`https://cvideo.yanhekt.cn/${i}.ts`);
+      expect(res.status).toBe(200);
+    }
+    // Each of the first three tried the intranet, then the public host without the forced Host.
+    expect(net.seen.map((r) => r.url)).toEqual([
+      'https://10.0.34.24/0.ts', 'https://cvideo.yanhekt.cn/0.ts',
+      'https://10.0.34.24/1.ts', 'https://cvideo.yanhekt.cn/1.ts',
+      'https://10.0.34.24/2.ts', 'https://cvideo.yanhekt.cn/2.ts',
+    ]);
+    expect(net.seen[1].host).toBeUndefined();
+
+    // After three failures in a row the download no longer tries the intranet.
+    await bundle.instance.get('https://cvideo.yanhekt.cn/3.ts');
+    expect(net.seen.at(-1)?.url).toBe('https://cvideo.yanhekt.cn/3.ts');
+    expect(net.seen).toHaveLength(7);
+    bundle.destroy();
+  });
+
+  it('does not treat an HTTP error status as a dead route', async () => {
+    const mapper = makeMapper({ enabled: true, interfaceIp: null });
+    const seen: string[] = [];
+    const bundle = createIntranetAxios({ intranetMapping: mapper, isIntranetMode: true, publicFallback: true, maxSockets: 4 });
+    bundle.instance.defaults.adapter = async (config) => {
+      seen.push(String(config.url));
+      return { data: '', status: 403, statusText: 'Forbidden', headers: {}, config };
+    };
+    const res = await bundle.instance.get('https://cvideo.yanhekt.cn/a.ts', { validateStatus: null });
+    expect(res.status).toBe(403);
+    expect(seen).toEqual(['https://10.0.34.24/a.ts']);
+    expect(mapper.reportFailure).not.toHaveBeenCalled();
+    bundle.destroy();
+  });
+});
+
+describe('intranetRequest', () => {
+  const agents = () => new IntranetAgentPool(makeMapper({ enabled: false, interfaceIp: null })).resolve();
+  const original = axios.defaults.adapter;
+  const useNetwork = (dead: (url: string) => boolean) => {
+    const net = fakeNetwork(dead);
+    axios.defaults.adapter = net.adapter;
+    return net;
+  };
+
+  beforeEach(() => {
+    axios.defaults.adapter = original;
+  });
+
+  it('sends a mapped URL to its intranet address with the original Host', async () => {
+    const net = useNetwork(() => false);
+    const mapper = makeMapper({ enabled: true, interfaceIp: null });
+    await intranetRequest({ method: 'GET', url: 'https://cvideo.yanhekt.cn/a.m3u8' }, { mapper, agents: agents(), publicFallback: true });
+    expect(net.seen).toEqual([{ url: 'https://10.0.34.24/a.m3u8', host: 'cvideo.yanhekt.cn' }]);
+  });
+
+  it('goes straight to the public host while the route is off', async () => {
+    const net = useNetwork(() => false);
+    const mapper = makeMapper({ enabled: false, interfaceIp: null });
+    await intranetRequest({ method: 'GET', url: 'https://cvideo.yanhekt.cn/a.m3u8' }, { mapper, agents: agents(), publicFallback: true });
+    expect(net.seen.map((r) => r.url)).toEqual(['https://cvideo.yanhekt.cn/a.m3u8']);
+  });
+
+  it('falls back to the public host only when allowed', async () => {
+    const mapper = makeMapper({ enabled: true, interfaceIp: null });
+    let net = useNetwork(viaIp);
+    const res = await intranetRequest({ method: 'GET', url: 'https://cvideo.yanhekt.cn/a.m3u8' }, { mapper, agents: agents(), publicFallback: true });
+    expect(res.status).toBe(200);
+    expect(net.seen.map((r) => r.url)).toEqual(['https://10.0.34.24/a.m3u8', 'https://cvideo.yanhekt.cn/a.m3u8']);
+    expect(mapper.reportFailure).toHaveBeenCalledTimes(1);
+
+    net = useNetwork(viaIp);
+    await expect(
+      intranetRequest({ method: 'GET', url: 'https://cvideo.yanhekt.cn/a.m3u8' }, { mapper, agents: agents(), publicFallback: false })
+    ).rejects.toSatisfy(isConnectionFailure);
+    expect(net.seen).toHaveLength(1);
   });
 });

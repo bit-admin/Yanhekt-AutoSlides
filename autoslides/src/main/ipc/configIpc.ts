@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { IpcServices } from './types';
 import { broadcastConfig as broadcastConfigSnapshot } from './broadcastConfig';
 import type { AIServiceType } from '@main/platform/configService';
-import type { LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import type { ConnectionMode, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 import { expandTilde } from '@main/infra/pathUtils';
 import { probeOutputDir, recreateOutputDir } from '@main/infra/outputDir';
@@ -58,9 +58,9 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
-  ipcMain.handle('config:setConnectionMode', async (_event, mode: 'internal' | 'external') => {
+  ipcMain.handle('config:setConnectionMode', async (_event, mode: ConnectionMode) => {
     configService.setConnectionMode(mode);
-    intranetMappingService.setEnabled(mode === 'internal');
+    intranetMappingService.setMode(configService.getConfig().connectionMode);
     broadcastConfig();
     return configService.getConfig();
   });

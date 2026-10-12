@@ -1,4 +1,5 @@
 import { ref, watch, type Ref } from 'vue'
+import type { ConnectionMode } from '@common/types'
 import { configStore } from '@shared/services/configStore'
 import { DownloadService } from '@shared/services/downloadService'
 import { languageService } from '@features/settings/languageService'
@@ -8,7 +9,7 @@ const log = createLogger('Settings');
 export interface UseSettingsReturn {
   // Basic settings state
   outputDirectory: Ref<string>
-  connectionMode: Ref<'internal' | 'external'>
+  connectionMode: Ref<ConnectionMode>
   muteMode: Ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>
 
   // Task settings
@@ -41,7 +42,7 @@ export interface UseSettingsReturn {
   // Methods
   loadConfig: () => Promise<void>
   selectOutputDirectory: () => Promise<void>
-  setConnectionMode: (mode: 'internal' | 'external') => Promise<void>
+  setConnectionMode: (mode: ConnectionMode) => Promise<void>
   setMuteMode: () => Promise<void>
   setTaskSpeed: () => Promise<void>
   setParallelTasks: () => Promise<void>
@@ -53,7 +54,7 @@ export interface UseSettingsReturn {
 export function useSettings(): UseSettingsReturn {
   // Basic settings state
   const outputDirectory = ref('')
-  const connectionMode = ref<'internal' | 'external'>('external')
+  const connectionMode = ref<ConnectionMode>('auto')
   // Connection mode can be changed outside the settings modal (e.g. the Home-page
   // campus-network warning writes it directly). Mirror the broadcast-synced
   // configStore so the General tab never shows a stale value. This is an
@@ -145,7 +146,7 @@ export function useSettings(): UseSettingsReturn {
     }
   }
 
-  const setConnectionMode = async (mode: 'internal' | 'external') => {
+  const setConnectionMode = async (mode: ConnectionMode) => {
     try {
       const result = await window.electronAPI.config.setConnectionMode(mode)
       connectionMode.value = result.connectionMode

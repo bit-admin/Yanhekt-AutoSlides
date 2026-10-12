@@ -36,10 +36,43 @@
     <h4>{{ $t('advanced.intranetMapping') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.intranetMappingDescription') }}</div>
+      <div class="mapping-toolbar">
+        <div class="mapping-toolbar-note">
+          <template v-if="intranetTestMeta">
+            {{ intranetTestMeta.resolvedByCampusDns ? $t('advanced.intranetSourceCampusDns') : $t('advanced.intranetSourceBuiltIn') }}
+            <span class="mapping-toolbar-meta">
+              ·
+              <template v-if="intranetTestMeta.interfaceIp">
+                {{ $t('advanced.intranetTestedFrom', { address: intranetTestMeta.interfaceIp }) }} ·
+              </template>
+              {{ intranetTestMeta.at }}
+            </span>
+          </template>
+          <template v-else>{{ $t('advanced.intranetTestHint') }}</template>
+        </div>
+        <button type="button" class="btn btn--sm mapping-test-btn" :disabled="intranetTesting" @click="testIntranetAddresses">
+          <span v-if="intranetTesting" class="mapping-test-spinner" aria-hidden="true"></span>
+          {{ intranetTesting ? $t('advanced.intranetTesting') : $t('advanced.intranetTest') }}
+        </button>
+      </div>
       <div class="intranet-mapping-list">
-        <div v-for="(mapping, domain) in intranetMappings" :key="String(domain)" class="mapping-item">
+        <div
+          v-for="(mapping, domain, index) in intranetMappings"
+          :key="String(domain)"
+          class="mapping-item"
+          :style="{ '--row': index }"
+        >
           <div class="mapping-header" @click="toggleMappingExpanded(String(domain))">
             <div class="mapping-domain">{{ domain }}</div>
+            <div v-if="intranetTests[domain]" class="mapping-probe" aria-live="polite">
+              <span v-if="intranetTests[domain].pending" class="probe-waiting" aria-hidden="true">
+                <i></i><i></i><i></i>
+              </span>
+              <span v-else class="probe-result" :class="`probe-result--${summarize(intranetTests[domain].results).tone}`">
+                <span class="probe-dot" aria-hidden="true"></span>
+                {{ summarize(intranetTests[domain].results).text }}
+              </span>
+            </div>
             <div class="mapping-type">
               <span class="type-badge" :class="mapping.type">
                 {{ mapping.type === 'single' ? $t('advanced.singleIP') : $t('advanced.loadBalance') }}
@@ -52,26 +85,26 @@
             </div>
           </div>
           <div v-if="expandedMappings[String(domain)]" class="mapping-details">
-            <div v-if="mapping.type === 'single'" class="single-ip-details">
-              <div class="detail-row">
-                <span class="detail-label">{{ $t('advanced.ipAddresses') }}:</span>
-                <span class="detail-value">{{ mapping.ip }}</span>
-              </div>
+            <div v-if="mapping.type !== 'single'" class="detail-row">
+              <span class="detail-label">{{ $t('advanced.strategy') }}:</span>
+              <span class="detail-value">
+                {{ getStrategyDisplayName(mapping.strategy) }}
+              </span>
             </div>
-            <div v-else class="load-balance-details">
-              <div class="detail-row">
-                <span class="detail-label">{{ $t('advanced.strategy') }}:</span>
-                <span class="detail-value">
-                  {{ getStrategyDisplayName(mapping.strategy) }}
-                </span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">{{ $t('advanced.ipAddresses') }}:</span>
-                <div class="ip-list">
-                  <span v-for="ip in mapping.ips" :key="ip" class="ip-item">
-                    {{ ip }}
+            <div class="detail-row">
+              <span class="detail-label">{{ $t('advanced.ipAddresses') }}:</span>
+              <div class="ip-list">
+                <span
+                  v-for="ip in addressesOf(mapping)"
+                  :key="ip"
+                  class="ip-item"
+                  :class="{ 'ip-item--silent': addressResult(String(domain), ip)?.ms === null }"
+                >
+                  {{ ip }}
+                  <span v-if="addressResult(String(domain), ip)" class="ip-latency">
+                    {{ addressLatency(String(domain), ip) }}
                   </span>
-                </div>
+                </span>
               </div>
             </div>
           </div>
@@ -249,6 +282,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
+import { useI18n } from 'vue-i18n'
+import type { IntranetAddressResult, IntranetMapping } from '@features/settings/settingsTypes'
 
 const { advanced } = useSettingsContext()
 
@@ -259,6 +294,10 @@ const {
   availableNetworkInterfaces,
   intranetMappings,
   expandedMappings,
+  intranetTests,
+  intranetTesting,
+  intranetTestMeta,
+  testIntranetAddresses,
   refreshNetworkInterfaces,
   toggleMappingExpanded,
   getStrategyDisplayName,
@@ -277,6 +316,33 @@ const {
   removeWhitelistToken,
   formatTokenDisplay,
 } = advanced.network
+
+const { t } = useI18n()
+
+const addressesOf = (mapping: IntranetMapping): string[] =>
+  mapping.type === 'single' ? (mapping.ip ? [mapping.ip] : []) : (mapping.ips ?? [])
+
+const addressResult = (domain: string, ip: string): IntranetAddressResult | undefined => {
+  const test = intranetTests.value[domain]
+  return test && !test.pending ? test.results.find((r) => r.ip === ip) : undefined
+}
+
+const addressLatency = (domain: string, ip: string): string => {
+  const ms = addressResult(domain, ip)?.ms
+  return ms == null ? t('advanced.intranetTestNoAnswer') : `${ms} ms`
+}
+
+/** One line for a row: how many addresses answered and the quickest of them. */
+const summarize = (results: IntranetAddressResult[]): { tone: 'ok' | 'partial' | 'none'; text: string } => {
+  const times = results.flatMap((r) => (r.ms === null ? [] : [r.ms]))
+  if (times.length === 0) return { tone: 'none', text: t('advanced.intranetTestNoAnswer') }
+  const fastest = `${Math.min(...times)} ms`
+  if (results.length === 1) return { tone: 'ok', text: fastest }
+  return {
+    tone: times.length === results.length ? 'ok' : 'partial',
+    text: `${times.length}/${results.length} · ${fastest}`,
+  }
+}
 
 const statusClass = computed(() => {
   if (localRelayStatus.value?.error) return 'relay-status--error'
@@ -306,6 +372,115 @@ const statusClass = computed(() => {
   margin-top: 4px;
   font-size: 11px;
   color: var(--warning);
+}
+
+.mapping-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 6px 0;
+}
+
+.mapping-toolbar-note {
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.mapping-toolbar-meta {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.mapping-test-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mapping-test-spinner {
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid var(--border-strong);
+  border-top-color: var(--text-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* A row's test outcome, between the domain and its type chip. Each row
+   resolves on its own; --row staggers them into a short top-to-bottom sweep. */
+.mapping-probe {
+  margin-right: 10px;
+  font-size: 10px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.probe-waiting {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.probe-waiting i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+  animation: probe-wait 0.9s ease-in-out infinite;
+  animation-delay: calc(var(--row) * 40ms);
+}
+
+.probe-waiting i:nth-child(2) {
+  animation-delay: calc(var(--row) * 40ms + 0.15s);
+}
+
+.probe-waiting i:nth-child(3) {
+  animation-delay: calc(var(--row) * 40ms + 0.3s);
+}
+
+.probe-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  animation: probe-in 0.28s ease-out both;
+  animation-delay: calc(var(--row) * 40ms);
+}
+
+.probe-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--success);
+}
+
+.probe-result--partial .probe-dot {
+  background-color: var(--warning);
+}
+
+.probe-result--none .probe-dot {
+  background-color: var(--danger);
+}
+
+@keyframes probe-wait {
+  0%, 80%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+
+@keyframes probe-in {
+  from { opacity: 0; transform: translateX(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .probe-waiting i,
+  .probe-result,
+  .mapping-test-spinner {
+    animation: none;
+  }
 }
 
 .intranet-mapping-list {
@@ -435,6 +610,21 @@ const statusClass = computed(() => {
   display: inline-block;
   white-space: nowrap;
   line-height: 1.2;
+}
+
+.ip-latency {
+  margin-left: 5px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.ip-item--silent {
+  color: var(--text-muted);
+}
+
+.ip-item--silent .ip-latency {
+  color: var(--danger);
 }
 
 /* Gray-out shells for nested option groups. pointer-events still blocked on
