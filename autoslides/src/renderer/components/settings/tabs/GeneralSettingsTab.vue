@@ -466,11 +466,6 @@ function openLogFolder(): void {
   min-width: 0;
 }
 
-.mode-toggle {
-  display: flex;
-  gap: 4px;
-}
-
 .two-col-row {
   display: flex;
   gap: 12px;

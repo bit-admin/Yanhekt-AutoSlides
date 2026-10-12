@@ -954,11 +954,6 @@ const onSignInBrowserLogin = () => {
   min-width: 0;
 }
 
-.mode-toggle {
-  display: flex;
-  gap: 8px;
-}
-
 /* ── Notes add-ons steps ──────────────────────────────── */
 .notes-provider-detail {
   margin: 16px 0 0;

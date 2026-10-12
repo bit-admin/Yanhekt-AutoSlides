@@ -4,7 +4,7 @@
     <h4>{{ $t('advanced.ai.ml.classifierMode') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.ai.ml.classifierModeDescription') }}</div>
-      <div class="ai-service-type-selector">
+      <div class="mode-toggle">
         <button
           @click="tempAiClassifierMode = 'llm'"
           :class="['mode-btn', { active: tempAiClassifierMode === 'llm' }]"
@@ -86,7 +86,7 @@
         {{ $t('advanced.ai.serviceTypeDescription') }}
         <a href="#" @click.prevent="openCustomServiceDocs" class="external-link">{{ $t('advanced.ai.customServiceDocsLink') }}</a>
       </div>
-      <div class="ai-service-type-selector">
+      <div class="mode-toggle">
         <button
           @click="tempAiServiceType = 'builtin'"
           :class="['mode-btn', { active: tempAiServiceType === 'builtin' }]"
@@ -1129,12 +1129,6 @@ const openCopilotVerificationUrl = () => {
 
 .bool-toggle.disabled {
   cursor: not-allowed;
-}
-
-.ai-service-type-selector {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
 }
 
 .custom-api-settings {

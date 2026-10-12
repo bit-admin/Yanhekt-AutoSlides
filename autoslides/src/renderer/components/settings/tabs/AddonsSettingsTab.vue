@@ -16,7 +16,7 @@
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.addons.providerLabel') }}</label>
       <div class="setting-description">{{ $t('advanced.addons.providerDescription') }}</div>
-      <div class="addon-provider-selector">
+      <div class="mode-toggle">
         <button
           v-for="provider in WATCH_NOTES_PROVIDERS"
           :key="provider"
@@ -180,12 +180,6 @@ const {
 </script>
 
 <style scoped>
-.addon-provider-selector {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
 .addon-provider-detail {
   margin-top: 8px;
 }

@@ -361,6 +361,15 @@
 
 /* Segmented mode switch: the selected segment is raised paper on the
    elevated track (macOS segmented control), never a filled slab. */
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.setting-item .mode-toggle {
+  margin-top: 8px;
+}
+
 .mode-btn {
   flex: 1;
   padding: 6px 8px;
