@@ -1825,6 +1825,10 @@
     "timetable": "Week timetable"
   },
   "yanhe2Curriculum": {
+    "saveSlides": "Add Server Slides to Tasks",
+    "saveAllSlides": "Add All Server Slides to Tasks",
+    "saveAllNone": "No slides were added. These lectures have no slides, were not found on Yanhekt, or are already saved.",
+    "saveAllSome": "Added {count} sessions to task queue. {skipped} skipped: no slides, not found on Yanhekt, or already saved.",
     "title": "My Courses",
     "loading": "Loading courses…",
     "noCourses": "No Courses Found",

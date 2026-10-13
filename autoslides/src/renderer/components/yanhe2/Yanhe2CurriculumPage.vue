@@ -80,34 +80,77 @@
           :title="$t('yanhe2Curriculum.noSessions')"
           :hint="$t('yanhe2Curriculum.noSessionsHint')"
         />
-        <div v-else class="sessions-list custom-scrollbar">
-          <component
-            :is="isYanhe2Playable(s.status) ? 'button' : 'div'"
-            v-for="s in sessions"
-            :key="s.subId"
-            :type="isYanhe2Playable(s.status) ? 'button' : undefined"
-            :class="['session-item', { playable: isYanhe2Playable(s.status) }]"
-            @click="openYanhe2Session(s)"
-          >
-            <span class="session-icon">
-              <!-- Same generic-video glyph the Recorded sessions list uses. -->
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="14" rx="2"/>
-                <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/>
+        <div v-else class="sessions-container">
+          <!-- The Recorded sessions page's batch row and row chips, with the one
+               action a Yanhe 2.0 session has: [download] [Tasks]. Always shown;
+               whether a recording has slides is found out on click. -->
+          <div class="batch-actions">
+            <button type="button" class="btn batch-btn" :disabled="addingAll" @click="saveAllSlides">
+              <span v-if="addingAll" class="batch-lead spinning-ring" aria-hidden="true"></span>
+              <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-            </span>
-            <span class="session-info">
-              <span class="session-title">{{ sessionTitle(s) }}</span>
-              <span class="session-meta">
-                <span v-if="clockLine(s)" class="session-time">{{ clockLine(s) }}</span>
-                <span v-if="s.room">{{ s.room }}</span>
-                <span v-if="s.teacher" class="session-teacher">{{ s.teacher }}</span>
+              <span class="batch-label">{{ $t('yanhe2Curriculum.saveAllSlides') }}</span>
+              <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 11l3 3 8-8"/>
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+              </svg>
+            </button>
+          </div>
+          <div class="sessions-list custom-scrollbar">
+            <div
+              v-for="s in sessions"
+              :key="s.subId"
+              :class="['session-item', { playable: isYanhe2Playable(s.status) }]"
+              :role="isYanhe2Playable(s.status) ? 'button' : undefined"
+              :tabindex="isYanhe2Playable(s.status) ? 0 : undefined"
+              @click="openYanhe2Session(s)"
+              @keydown.enter.self="openYanhe2Session(s)"
+            >
+              <span class="session-icon">
+                <!-- Same generic-video glyph the Recorded sessions list uses. -->
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2"/>
+                  <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/>
+                </svg>
               </span>
-            </span>
-            <span v-if="s.status !== 'unknown'" :class="['session-status', `status-${s.status}`]">
-              {{ $t(`yanhe2Calendar.status.${s.status}`) }}
-            </span>
-          </component>
+              <span class="session-info">
+                <span class="session-title">{{ sessionTitle(s) }}</span>
+                <span class="session-meta">
+                  <span v-if="clockLine(s)" class="session-time">{{ clockLine(s) }}</span>
+                  <span v-if="s.room">{{ s.room }}</span>
+                  <span v-if="s.teacher" class="session-teacher">{{ s.teacher }}</span>
+                </span>
+              </span>
+              <span class="session-actions">
+                <span v-if="s.status !== 'unknown'" :class="['session-status', `status-${s.status}`]">
+                  {{ $t(`yanhe2Calendar.status.${s.status}`) }}
+                </span>
+                <!-- [download] [Tasks] : save this recording's server slides through Tasks.
+                     Only a recording can have any, so the chip is inert on every other row. -->
+                <button
+                  type="button"
+                  class="action-btn action-pair"
+                  :title="$t('yanhe2Curriculum.saveSlides')"
+                  :disabled="s.status !== 'playable' || isSavingYanhe2Slides(s.subId)"
+                  @click.stop="saveSlides(s)"
+                >
+                  <span v-if="isSavingYanhe2Slides(s.subId)" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 11l3 3 8-8"/>
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+                  </svg>
+                </button>
+              </span>
+            </div>
+          </div>
         </div>
       </template>
 
@@ -165,8 +208,8 @@
 <script setup lang="ts">
 // Yanhe 2.0 → Curriculum. The account's enrolled courses (aita's 我的课程), then
 // one course's sessions in the same page, then the Yanhe 2.0 playback tab.
-// Browse only: none of the Recorded sessions page's pin / index / task /
-// download actions exist here.
+// Of the Recorded sessions page's actions it has one: saving a session's server
+// slides through Tasks (a row chip, and the batch button for the whole list).
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, lessonRange, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
@@ -180,6 +223,12 @@ import {
   yanhe2SignedIn,
 } from '@features/platform/yanhe2AccountUi'
 import { useYanhe2Curriculum } from '@features/yanhe2/useYanhe2Curriculum'
+import {
+  isAddingAllYanhe2Slides,
+  isSavingYanhe2Slides,
+  saveAllYanhe2Slides,
+  saveYanhe2Slides,
+} from '@features/yanhe2/yanhe2SlideSave'
 import { academicTermLabel } from '@shared/i18n/displayNames'
 import EmptySetState from '../shell/EmptySetState.vue'
 import PageBanner from '../shell/PageBanner.vue'
@@ -257,6 +306,22 @@ const sessionTitle = (s: Yanhe2CalendarSession) => {
     timeZone: 'UTC',
   }).format(new Date(`${beijingDate(s.startAt * 1000)}T00:00:00Z`))
   return [day, lessons].filter(Boolean).join(' · ')
+}
+
+// Saving server slides, recordings only. One without slides (or not on
+// Yanhekt) is answered with a message box.
+const addingAll = computed(() => isAddingAllYanhe2Slides())
+const saveRequest = (s: Yanhe2CalendarSession) => ({
+  account: yanhe2ActiveBadge.value ?? '',
+  courseId: s.courseId,
+  subId: s.subId,
+})
+const saveSlides = (s: Yanhe2CalendarSession) => {
+  if (yanhe2ActiveBadge.value) void saveYanhe2Slides(saveRequest(s))
+}
+const saveAllSlides = () => {
+  if (!yanhe2ActiveBadge.value) return
+  void saveAllYanhe2Slides(sessions.value.filter((s) => s.status === 'playable').map(saveRequest))
 }
 
 const clockLine = (s: Yanhe2CalendarSession) => {
@@ -557,7 +622,71 @@ const clockLine = (s: Yanhe2CalendarSession) => {
   text-align: center;
 }
 
-/* Same rows as the Recorded sessions list, minus its action buttons. */
+/* The Recorded sessions page's batch row and spacing; its one button takes the row. */
+.sessions-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 16px;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.batch-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 16px 1fr 16px;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-weight: 500;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.batch-label {
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-lead,
+.batch-trail {
+  color: var(--text-secondary);
+}
+
+.batch-btn:hover:not(:disabled) .batch-lead,
+.batch-btn:hover:not(:disabled) .batch-trail {
+  color: var(--text-primary);
+}
+
+/* What a busy button shows in place of its leading glyph. */
+.spinning-ring {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--text-secondary);
+  border-radius: 50%;
+  animation: yanhe2-curriculum-spin 0.8s linear infinite;
+}
+
+.spinning-ring--sm {
+  width: 14px;
+  height: 14px;
+}
+
+/* Same rows as the Recorded sessions list. */
 .sessions-list {
   flex: 1;
   min-height: 0;
@@ -658,6 +787,48 @@ const clockLine = (s: Yanhe2CalendarSession) => {
   text-transform: uppercase;
   background-color: var(--bg-page-alt);
   color: var(--text-secondary);
+}
+
+/* Row actions: the status, then the Recorded sessions page's [verb target] chip. */
+.session-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.action-btn:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.action-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.action-pair {
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-surface);
 }
 
 .status-live {

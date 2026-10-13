@@ -33,6 +33,8 @@ export interface TaskItem {
   postProcessJobId?: string
   outputPath?: string
   extractedSlideFiles?: string[]
+  /** Run by its caller, not by this queue (`addExternalTask`). */
+  external?: boolean
 }
 
 export interface TaskQueueState {
@@ -150,13 +152,13 @@ class TaskQueueService {
   }
 
   /**
-   * Add a task that its caller runs itself: no playback tab, no slot, and the
-   * queue's Start and Pause leave it alone. It is listed as in progress from
-   * the start; the caller reports progress and the outcome with
-   * `updateTaskProgress` / `updateTaskStatus`, and may hand its slides to
+   * Add a task that its caller runs itself: no playback tab and no slot, and
+   * the queue's Start and Pause leave it alone. It waits as `queued` until the
+   * caller calls `beginExternalTask`, then reports progress and the outcome
+   * with `updateTaskProgress` / `updateTaskStatus`, and may hand its slides to
    * `startPostProcessing` like any other task.
    */
-  addRunningTask(taskData: {
+  addExternalTask(taskData: {
     name: string
     courseTitle: string
     sessionTitle: string
@@ -167,8 +169,16 @@ class TaskQueueService {
     if (!added.added) return added
     // The reactive row, not the object that was pushed: writes to that one are not tracked.
     const task = this.state.tasks.find(item => item.id === added.item.id) ?? added.item
-    this.applyTask(task, { type: 'START' })
+    task.external = true
     return { added: true, item: task }
+  }
+
+  /** Mark an external task as running. False when it is gone (removed while it waited) or not waiting. */
+  beginExternalTask(taskId: string): boolean {
+    const task = this.state.tasks.find(item => item.id === taskId)
+    if (!task?.external || task.status !== 'queued') return false
+    this.applyTask(task, { type: 'START' })
+    return true
   }
 
   // Start processing queue
@@ -264,7 +274,7 @@ class TaskQueueService {
   // Get next queued task (skipping any already running).
   private getNextQueuedTask(): TaskItem | null {
     return this.state.tasks.find(
-      task => task.status === 'queued' && !this.state.activeTaskIds.includes(task.id)
+      task => task.status === 'queued' && !task.external && !this.state.activeTaskIds.includes(task.id)
     ) || null
   }
 
@@ -319,9 +329,9 @@ class TaskQueueService {
     return this.state.tasks.find(task => task.id === taskId) || null
   }
 
-  // Check if queue has tasks
+  // Check if queue has tasks it can start itself (an external task waits for its own caller)
   get hasQueuedTasks(): boolean {
-    return this.queuedCount > 0
+    return this.state.tasks.some(task => task.status === 'queued' && !task.external)
   }
 
   // Check if queue is empty

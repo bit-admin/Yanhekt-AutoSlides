@@ -1825,6 +1825,10 @@
     "timetable": "周课表"
   },
   "yanhe2Curriculum": {
+    "saveSlides": "添加服务端幻灯片到提取任务",
+    "saveAllSlides": "添加全部服务端幻灯片到提取任务",
+    "saveAllNone": "没有添加任何幻灯片。这些课没有幻灯片、在延河课堂找不到，或已经保存过。",
+    "saveAllSome": "已添加 {count} 个课时到任务队列。跳过 {skipped} 个：没有幻灯片、在延河课堂找不到，或已经保存过。",
     "title": "我的课程",
     "loading": "正在加载课程…",
     "noCourses": "未找到课程",

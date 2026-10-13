@@ -1825,6 +1825,10 @@
     "timetable": "주간 시간표"
   },
   "yanhe2Curriculum": {
+    "saveSlides": "서버 슬라이드를 작업에 추가",
+    "saveAllSlides": "모든 서버 슬라이드를 작업에 추가",
+    "saveAllNone": "추가된 슬라이드가 없습니다. 이 강의들은 슬라이드가 없거나, Yanhekt에서 찾을 수 없거나, 이미 저장되었습니다.",
+    "saveAllSome": "{count}개의 세션을 작업 대기열에 추가했습니다. {skipped}개 건너뜀: 슬라이드 없음, Yanhekt에서 찾을 수 없음, 또는 이미 저장됨.",
     "title": "내 강의",
     "loading": "강의를 불러오는 중…",
     "noCourses": "강의를 찾을 수 없습니다",

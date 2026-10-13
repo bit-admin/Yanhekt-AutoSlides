@@ -85,8 +85,16 @@ export class Yanhe2SlideImportService {
 
   constructor(private readonly deps: Yanhe2SlideImportDeps) {}
 
-  /** Find the Yanhekt lecture and its folder, and check the folder is free. Writes nothing. */
+  /**
+   * Check the session has slides, find the Yanhekt lecture and its folder, and
+   * check the folder is free. Writes nothing.
+   */
   async prepare(account: string, query: unknown): Promise<Yanhe2SlideSavePrepared> {
+    // First, and cheapest: most refusals on a session list are a lecture with no slides.
+    const listed = await this.deps.yanhe2Service.getSlides(account, query);
+    if (listed.kind !== 'ok') return { kind: listed.kind };
+    if (!listed.data.some((slide) => isYanhe2SlideImageUrl(slide.url))) return { kind: 'no_slides' };
+
     const twin = await this.findTwin(account, query);
     if (twin.kind !== 'ok') return twin;
     const target = this.targetOf(twin.data);
