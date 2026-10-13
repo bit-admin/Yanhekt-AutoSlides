@@ -964,8 +964,9 @@ export class VideoProxyService {
       log.debug('Video proxy server stopped');
     }
 
-    // Destroy keep-alive agents to close idle sockets
-    this.agentPool.reset();
+    // Close idle keep-alive sockets. Not `reset()`: a request still waiting on
+    // its upstream ends when its client goes away, not by losing its socket.
+    this.agentPool.closeIdle();
 
     // Clear all active clients
     this.activeClients.clear();

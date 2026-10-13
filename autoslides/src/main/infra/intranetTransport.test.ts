@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import http from 'node:http';
+import net, { type AddressInfo, type Socket } from 'node:net';
 import axios, { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
 
 const interfaces = vi.hoisted(() => ({ current: {} as Record<string, unknown[]> }));
@@ -14,6 +16,8 @@ import {
   resolveBindAddress,
   intranetRequest,
   isConnectionFailure,
+  isUnsentFailure,
+  CONNECT_TIMEOUT_CODE,
   type IntranetUrlMapper,
 } from './intranetTransport';
 
@@ -137,6 +141,69 @@ describe('IntranetAgentPool', () => {
     const after = pool.resolve();
     expect(after).not.toBe(before);
     expect(optionsOf(after.httpAgent).localAddress).toBe(CAMPUS_IP);
+  });
+
+  it('times the connecting only: a slow answer is kept, a connection that never completes is not', async () => {
+    const pool = new IntranetAgentPool(makeMapper({ enabled: false, interfaceIp: null }), { connectTimeoutMs: 60 });
+    const { httpAgent, httpsAgent } = pool.resolve();
+
+    // Answers well after the connect limit.
+    const slow = http.createServer((_req, res) => setTimeout(() => res.end('late'), 200));
+    // Accepts the TCP connection and never speaks TLS, like an address that swallows packets.
+    const held = new Set<Socket>();
+    const mute = net.createServer((socket) => held.add(socket));
+    await new Promise<void>((resolve) => slow.listen(0, '127.0.0.1', resolve));
+    await new Promise<void>((resolve) => mute.listen(0, '127.0.0.1', resolve));
+    try {
+      const answer = await axios.get<string>(`http://127.0.0.1:${(slow.address() as AddressInfo).port}/`, { httpAgent });
+      expect(answer.data).toBe('late');
+
+      const failure = await axios
+        .get(`https://127.0.0.1:${(mute.address() as AddressInfo).port}/`, { httpsAgent, timeout: 5000 })
+        .catch((error: unknown) => error);
+      expect(failure).toMatchObject({ code: CONNECT_TIMEOUT_CODE });
+      // Nothing was sent, so even a write may be retried elsewhere.
+      expect(isUnsentFailure(failure)).toBe(true);
+    } finally {
+      pool.reset();
+      for (const socket of held) socket.destroy();
+      slow.close();
+      mute.close();
+    }
+  });
+
+  it('closeIdle closes free sockets and leaves a request in flight alone', async () => {
+    let releaseSlow: () => void = () => undefined;
+    const sockets = new Set<Socket>();
+    const server = http.createServer((req, res) => {
+      if (req.url === '/slow') releaseSlow = () => res.end('slow');
+      else res.end('fast');
+    });
+    server.on('connection', (socket) => {
+      sockets.add(socket);
+      socket.on('close', () => sockets.delete(socket));
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    const base = `http://127.0.0.1:${port}`;
+
+    const pool = new IntranetAgentPool(makeMapper({ enabled: false, interfaceIp: null }));
+    const { httpAgent } = pool.resolve();
+    try {
+      const slow = axios.get<string>(`${base}/slow`, { httpAgent });
+      await axios.get(`${base}/fast`, { httpAgent });
+      await vi.waitFor(() => expect(sockets.size).toBe(2));
+
+      pool.closeIdle();
+      await vi.waitFor(() => expect(sockets.size).toBe(1));
+
+      releaseSlow();
+      expect((await slow).data).toBe('slow');
+      expect(pool.resolve().httpAgent).toBe(httpAgent);
+    } finally {
+      pool.reset();
+      server.close();
+    }
   });
 });
 

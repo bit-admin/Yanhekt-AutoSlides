@@ -11,8 +11,13 @@ import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import { IntranetAgentPool, intranetRequest, isConnectionFailure, isUnsentFailure } from '@main/infra/intranetTransport';
 import type { IntranetMappingService } from './intranetMappingService';
 
-/** How long a read may wait on the intranet address before the public host is tried. */
-const INTRANET_READ_TIMEOUT_MS = 4000;
+/**
+ * How long connecting to an intranet address may take before the public host
+ * is tried. It times the connection only: aita answers some reads (a whole
+ * lecture's transcript or slides) in more than four seconds, and a cap on the
+ * answer threw those away and asked again over the public network.
+ */
+const INTRANET_CONNECT_TIMEOUT_MS = 4000;
 
 export class IntranetApiTransport {
   private agentPool: IntranetAgentPool | null = null;
@@ -20,7 +25,7 @@ export class IntranetApiTransport {
   /** Without a mapping (tests, tools that never route) every request goes to the public host. */
   constructor(private intranetMapping?: IntranetMappingService) {
     if (intranetMapping) {
-      this.agentPool = new IntranetAgentPool(intranetMapping);
+      this.agentPool = new IntranetAgentPool(intranetMapping, { connectTimeoutMs: INTRANET_CONNECT_TIMEOUT_MS });
       intranetMapping.on('interfaceIpChanged', () => this.agentPool?.reset());
     }
   }
@@ -28,12 +33,12 @@ export class IntranetApiTransport {
   /**
    * Send one request. `config.url` is always the public URL.
    *
-   * A read is retried on the public host after any connection failure, and is
-   * given only a few seconds on the intranet first. A write is different: once
-   * it may have reached the server, sending it again could apply it twice
-   * (a second note, a second upload). So a write gets the full timeout, is
+   * A read is retried on the public host after any connection failure. A
+   * write is different: once it may have reached the server, sending it again
+   * could apply it twice (a second note, a second upload). So a write is
    * retried only when the connection was never made, and waits for the route
-   * to be current before it starts.
+   * to be current before it starts. Either way an address that cannot be
+   * connected to is given up on after a few seconds, not the full timeout.
    */
   async send<T = unknown>(config: AxiosRequestConfig & { url: string }): Promise<AxiosResponse<T>> {
     const mapping = this.intranetMapping;
@@ -52,7 +57,6 @@ export class IntranetApiTransport {
       agents: this.agentPool.resolve(),
       publicFallback: true,
       fallbackWhen: isRead ? isConnectionFailure : isUnsentFailure,
-      intranetTimeout: isRead ? INTRANET_READ_TIMEOUT_MS : undefined,
     });
   }
 }

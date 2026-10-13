@@ -112,8 +112,12 @@ export function isConnectionFailure(error: unknown): boolean {
   return axios.isAxiosError(error) && !error.response && !axios.isCancel(error);
 }
 
+/** The code of a request whose connection was not made within a pool's `connectTimeoutMs`. */
+export const CONNECT_TIMEOUT_CODE = 'ERR_INTRANET_CONNECT_TIMEOUT';
+
 /** Failures that happen before a connection exists, so the request cannot have reached the server. */
 const UNSENT_CODES = new Set([
+  CONNECT_TIMEOUT_CODE,
   'ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'EHOSTDOWN', 'ENETDOWN', 'EADDRNOTAVAIL', 'ENOTFOUND',
   // TLS: the handshake failed, nothing was sent over it.
   'ERR_TLS_CERT_ALTNAME_INVALID', 'DEPTH_ZERO_SELF_SIGNED_CERT', 'SELF_SIGNED_CERT_IN_CHAIN',
@@ -137,8 +141,6 @@ export interface IntranetRequestOptions {
   publicFallback: boolean;
   /** Which failures of the intranet attempt may be retried. Default: any connection failure. */
   fallbackWhen?: (error: unknown) => boolean;
-  /** Cap for the intranet attempt only, so a dead route does not hold the full timeout before falling back. */
-  intranetTimeout?: number;
 }
 
 /**
@@ -150,13 +152,14 @@ export async function intranetRequest<T = unknown>(
   config: AxiosRequestConfig & { url: string },
   options: IntranetRequestOptions
 ): Promise<AxiosResponse<T>> {
-  const { mapper, agents, publicFallback, intranetTimeout, fallbackWhen = isConnectionFailure } = options;
+  const { mapper, agents, publicFallback, fallbackWhen = isConnectionFailure } = options;
   const target = intranetTarget(config.url, (u) => mapper.rewriteUrl(u));
   const { httpAgent, httpsAgent } = agents;
   if (!target.host) {
     return axios.request<T>({ ...config, httpAgent, httpsAgent });
   }
 
+  const startedAt = Date.now();
   try {
     return await axios.request<T>({
       ...config,
@@ -164,16 +167,50 @@ export async function intranetRequest<T = unknown>(
       headers: { ...config.headers, Host: target.host },
       httpAgent,
       httpsAgent,
-      ...(intranetTimeout && config.timeout ? { timeout: Math.min(intranetTimeout, config.timeout) } : {}),
     });
   } catch (error) {
     if (!isConnectionFailure(error)) throw error;
     mapper.reportFailure();
     if (!publicFallback || !fallbackWhen(error)) throw error;
-    log.warn(`Intranet address for ${target.host} did not answer; using the public host for this request.`);
+    // The code and the wait tell a dead route (refused, or the whole cap spent)
+    // from a slow answer or a socket closed under the request. Never the URL:
+    // it can carry a signature.
+    const code = (axios.isAxiosError(error) && error.code) || 'no code';
+    log.warn(`Intranet address for ${target.host} did not answer (${code} after ${Date.now() - startedAt} ms); using the public host for this request.`);
     // Default agents on purpose: the pool's may be bound to the campus NIC.
     return axios.request<T>(config);
   }
+}
+
+/**
+ * Give up on a connection the agent has not finished making (TCP, and TLS for
+ * https) after `ms`. Only the connecting is timed: once the socket is up, how
+ * long the server takes to answer is the request's own timeout. A slow answer
+ * is not a dead route.
+ */
+function limitConnectTime<T extends http.Agent>(agent: T, ms: number, connectedEvent: 'connect' | 'secureConnect'): T {
+  const createConnection = agent.createConnection.bind(agent);
+  agent.createConnection = (options, callback) => {
+    const socket = createConnection(options, callback);
+    if (!socket) return socket;
+    const timer = setTimeout(() => {
+      socket.destroy(Object.assign(new Error(`No connection within ${ms} ms`), { code: CONNECT_TIMEOUT_CODE }));
+    }, ms);
+    const stop = () => clearTimeout(timer);
+    socket.once(connectedEvent, stop);
+    socket.once('close', stop);
+    return socket;
+  };
+  return agent;
+}
+
+export interface IntranetAgentPoolOptions {
+  /**
+   * How long a new connection may take before the request fails with
+   * `CONNECT_TIMEOUT_CODE`, so a dead route is given up on quickly without
+   * capping how long a live one may take to answer. Default: no limit.
+   */
+  connectTimeoutMs?: number;
 }
 
 /**
@@ -186,8 +223,8 @@ export class IntranetAgentPool {
   /** The local IP the agents are bound to ('' means unbound / system default). */
   private boundAddress = '';
 
-  constructor(private mapper: IntranetUrlMapper) {
-    this.agents = IntranetAgentPool.build('');
+  constructor(private mapper: IntranetUrlMapper, private options: IntranetAgentPoolOptions = {}) {
+    this.agents = this.build('');
   }
 
   resolve(): IntranetAgents {
@@ -196,6 +233,21 @@ export class IntranetAgentPool {
       this.rebuild(desired);
     }
     return this.agents;
+  }
+
+  /**
+   * Close the sockets no request is using. For a server that stops while its
+   * last responses may still be on their way: destroying the agents instead
+   * would end those requests with a reset, which reads as a dead intranet
+   * address (a route check, and a retry on the public host for a response
+   * nobody is waiting for).
+   */
+  closeIdle(): void {
+    for (const agent of [this.agents.httpAgent, this.agents.httpsAgent]) {
+      for (const sockets of Object.values(agent.freeSockets)) {
+        for (const socket of sockets ?? []) socket.destroy();
+      }
+    }
   }
 
   /** Close every socket and return to unbound agents; the next `resolve()` rebinds if needed. */
@@ -210,16 +262,20 @@ export class IntranetAgentPool {
     } catch {
       // Ignore destroy errors on stale agents.
     }
-    this.agents = IntranetAgentPool.build(localAddress);
+    this.agents = this.build(localAddress);
     this.boundAddress = localAddress;
   }
 
-  private static build(localAddress: string): IntranetAgents {
+  private build(localAddress: string): IntranetAgents {
     const bind = localAddress ? { localAddress } : {};
-    return {
-      httpAgent: new http.Agent({ keepAlive: true, ...bind }),
-      httpsAgent: new https.Agent({ keepAlive: true, ...bind }),
-    };
+    const httpAgent = new http.Agent({ keepAlive: true, ...bind });
+    const httpsAgent = new https.Agent({ keepAlive: true, ...bind });
+    const { connectTimeoutMs } = this.options;
+    if (connectTimeoutMs) {
+      limitConnectTime(httpAgent, connectTimeoutMs, 'connect');
+      limitConnectTime(httpsAgent, connectTimeoutMs, 'secureConnect');
+    }
+    return { httpAgent, httpsAgent };
   }
 }
 
