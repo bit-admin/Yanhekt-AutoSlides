@@ -41,6 +41,18 @@ function parseInformation(value: unknown): { schoolYear: string; semester: strin
   return { schoolYear: text(info.kkxn), semester: text(info.kkxq), courseCode: text(info.kcwybm) };
 }
 
+/**
+ * The school year and semester of a course row. `information` names them on
+ * most rows, but every 2025-2026-1 course carries only `{"zhiyuan_id"}` there,
+ * so the term's own name (`2025-2026-1`) fills in what is missing.
+ */
+export function termFieldsOf(information: unknown, termName: unknown): ReturnType<typeof parseInformation> {
+  const info = parseInformation(information);
+  if (info.schoolYear && info.semester) return info;
+  const named = /^(\d{4}-\d{4})-([12])$/.exec(text(termName));
+  return named ? { ...info, schoolYear: named[1], semester: named[2] } : info;
+}
+
 /** The speaker among `Teachers`, when the row's own teacher field is empty. */
 function speakerOf(list: unknown, nameKey: string, speakerKey: string): string {
   const rows = (Array.isArray(list) ? list : []).filter(isRow);
@@ -74,7 +86,7 @@ export function parseCourseList(body: unknown): Yanhe2CoursePage | null {
       teacher: text(row.Teacher) || text(row.Realname) || speakerOf(row.Teachers, 'Realname', 'IsSpeaker'),
       college: text(row.KkxyName),
       term: text(row.TermName),
-      ...parseInformation(row.information),
+      ...termFieldsOf(row.information, row.TermName),
     });
   }
   const count = Number(total);
@@ -106,7 +118,7 @@ export function parseCourseDetail(body: unknown): Yanhe2CourseDetail | null {
   const courseId = text(data.id);
   if (!courseId) return null;
 
-  const info = parseInformation(data.information);
+  const info = termFieldsOf(data.information, data.term_name);
   const course: Yanhe2Course = {
     courseId,
     title: text(data.title),

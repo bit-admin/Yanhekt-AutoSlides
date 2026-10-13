@@ -21,6 +21,10 @@ export const YANHE2_READ_PATHS = {
   // (Referer + x-requested-with). The back end itself is reachable here.
   myCourses: '/vlabpassportapi/v1/account-profile/course',
   courseDetail: '/courseapi/v3/multi-search/get-course-detail',
+  // The catalogue by keyword. Not `pptnote/v1/searchlist`, the site's search box:
+  // that GET appends to the account's search history.
+  courseSearch: '/courseapi/v3/multi-search/get-course-list',
+  terms: '/courseapi/v2/schedule/search-term',
   slides: '/pptnote/v1/schedule/search-ppt',
   transcript: '/courseapi/v3/web-socket/search-trans-result',
 } as const;

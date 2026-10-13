@@ -54,6 +54,9 @@ const props = defineProps<{
   semesters: SemesterOption[]
   // Selected semester ids; an empty array means "all semesters".
   modelValue: number[]
+  // One semester at a time (Yanhe 2.0 filters by a single term): a pick
+  // replaces the selection and closes the menu.
+  single?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -125,10 +128,16 @@ const chooseAll = () => {
   if (props.modelValue.length > 0) {
     emit('update:modelValue', [])
   }
+  if (props.single) isOpen.value = false
 }
 
 // Toggling a semester keeps the menu open so several can be picked at once.
 const toggle = (id: number) => {
+  if (props.single) {
+    if (!props.modelValue.includes(id)) emit('update:modelValue', [id])
+    isOpen.value = false
+    return
+  }
   const next = props.modelValue.includes(id)
     ? props.modelValue.filter(x => x !== id)
     : [...props.modelValue, id]

@@ -19,7 +19,13 @@ const apiClient = new ApiClient()
 // Module-singleton search state: the left-panel search bar writes the keyword,
 // SearchPage.vue renders the results, and results persist across navigation.
 const keyword = ref('')
-const mode = ref<'live' | 'recorded'>('recorded')
+/**
+ * `yanhe2` is the Yanhe 2.0 catalogue. This module only holds the switch for
+ * it: that search, its terms and its results live in `features/yanhe2`
+ * (`useYanhe2Search`), which SearchPage.vue feeds this keyword.
+ */
+export type SearchMode = 'live' | 'recorded' | 'yanhe2'
+const mode = ref<SearchMode>('recorded')
 const availableSemesters = ref<SemesterOption[]>([])
 // Selected semester ids; an empty array means "all semesters" (no filter — the
 // backend's `semesters[]` param is simply omitted). `semesterInitialized`
@@ -70,6 +76,9 @@ const selectLatestSemester = async () => {
 
 const executeSearch = async (resetPage = true) => {
   cancelPendingSearch()
+
+  // Not a Yanhekt search: `useYanhe2Search` follows the keyword on its own.
+  if (mode.value === 'yanhe2') return
 
   const token = tokenManager.getToken()
   if (!token) {
@@ -139,7 +148,7 @@ const goToPage = async (page: number) => {
   }
 }
 
-const setMode = async (m: 'live' | 'recorded') => {
+const setMode = async (m: SearchMode) => {
   if (mode.value === m) return
   mode.value = m
   if (m === 'recorded' && !semesterInitialized.value) {
@@ -198,6 +207,7 @@ const openSavedSearch = async (kw: string, m: 'live' | 'recorded') => {
 }
 
 const selectResult = (course: Course) => {
+  if (mode.value === 'yanhe2') return
   openCourse(mode.value, course)
 }
 

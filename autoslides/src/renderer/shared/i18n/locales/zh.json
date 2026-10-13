@@ -1573,7 +1573,10 @@
     "semesterPlaceholder": "学期",
     "allSemesters": "全部学期",
     "semestersSelected": "已选 {count} 个学期",
-    "signInToSearch": "登录后搜索"
+    "signInToSearch": "登录后搜索",
+    "yanhe2ConnectTitle": "登录延河 2.0 后搜索课程",
+    "yanhe2ConnectHint": "这里搜索的是延河 2.0 的课程，它有自己的 24 小时会话，使用与 AutoSlides 相同的校园账号。",
+    "yanhe2ErrorFailed": "延河 2.0 没有返回搜索结果。请稍后重试。"
   },
   "tabs": {
     "info": "课程信息",

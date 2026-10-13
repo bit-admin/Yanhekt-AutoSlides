@@ -82,15 +82,13 @@
         />
         <div v-else class="sessions-container">
           <!-- The Recorded sessions page's batch row and row chips, with the one
-               action a Yanhe 2.0 session has: [download] [Tasks]. Always shown;
+               action a Yanhe 2.0 session has: [+] [Tasks], the Recorded page's own pair. Always shown;
                whether a recording has slides is found out on click. -->
           <div class="batch-actions">
             <button type="button" class="btn batch-btn" :disabled="addingAll" @click="saveAllSlides">
               <span v-if="addingAll" class="batch-lead spinning-ring" aria-hidden="true"></span>
               <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7,10 12,15 17,10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
+                  <path d="M12 5v14M5 12h14"/>
               </svg>
               <span class="batch-label">{{ $t('yanhe2Curriculum.saveAllSlides') }}</span>
               <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -142,7 +140,7 @@
                 <span v-if="s.status !== 'unknown'" :class="['session-status', `status-${s.status}`]">
                   {{ $t(`yanhe2Calendar.status.${s.status}`) }}
                 </span>
-                <!-- [download] [Tasks] : save this recording's server slides through Tasks.
+                <!-- [+] [Tasks] : save this recording's server slides through Tasks.
                      Only a recording can have any, so the chip is inert on every other row. -->
                 <button
                   type="button"
@@ -153,9 +151,7 @@
                 >
                   <span v-if="isSavingYanhe2Slides(s.subId)" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
                   <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7,10 12,15 17,10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
+                  <path d="M12 5v14M5 12h14"/>
                   </svg>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 11l3 3 8-8"/>
@@ -328,6 +324,16 @@ watch(() => selected.value?.courseId, () => {
 })
 
 // The course row names no room; its sessions do.
+// The title bar's Info tab chip reads "Sessions" on a sessions list, as it does
+// for Recorded.
+watch(
+  () => selected.value !== null,
+  (onSessions) => {
+    navigationStore.yanhe2OnSessions.value = onSessions
+  },
+  { immediate: true },
+)
+
 const classrooms = computed(() => [...new Set(sessions.value.map((s) => s.room).filter(Boolean))])
 
 // The row's title is its date and lessons: every row of the list is the same course.

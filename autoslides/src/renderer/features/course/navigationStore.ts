@@ -30,6 +30,9 @@ const activeNav = ref<NavTarget>('home')
 // course grid). Set by MainContent; read by the title bar so the Info tab chip
 // can label itself "Sessions" instead of "Recorded".
 const recordedOnSessions = ref(false)
+// The same for Yanhe 2.0's Curriculum page (My Courses grid vs. one course's
+// sessions). Set by that page.
+const yanhe2OnSessions = ref(false)
 const courseOpenRequest = ref<CourseOpenRequest | null>(null)
 // A Yanhekt course id to pre-search in Drive index mode (all semesters).
 // Consumed by CloudNotesTab (immediate watch).
@@ -95,6 +98,7 @@ const requestCloudIndexSearch = (term: string) => {
 export const navigationStore = {
   activeNav,
   recordedOnSessions,
+  yanhe2OnSessions,
   isWorkspacePage,
   courseOpenRequest,
   cloudIndexSearchRequest,

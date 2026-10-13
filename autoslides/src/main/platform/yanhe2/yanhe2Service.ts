@@ -22,6 +22,7 @@ import {
 } from '@common/yanhe2Calendar';
 import type { Yanhe2Course, Yanhe2CourseDetail } from '@common/yanhe2Curriculum';
 import type { Yanhe2PlaybackQuery } from '@common/yanhe2Playback';
+import type { Yanhe2CourseSearchPage, Yanhe2Term } from '@common/yanhe2Search';
 import type { Yanhe2Slide } from '@common/yanhe2Slides';
 import type { Yanhe2TranscriptLine } from '@common/yanhe2Transcript';
 import type { ConfigService } from '../configService';
@@ -29,6 +30,7 @@ import { fetchYanhe2Profile } from './yanhe2Api';
 import { fetchYanhe2Day, fetchYanhe2Week, type Yanhe2Fetched } from './yanhe2Calendar';
 import { fetchYanhe2CourseDetail, fetchYanhe2Courses } from './yanhe2Curriculum';
 import { fetchYanhe2SubInfo, type Yanhe2PlayIdentity, type Yanhe2SubInfo } from './yanhe2Playback';
+import { fetchYanhe2CourseSearch, fetchYanhe2Terms } from './yanhe2Search';
 import { fetchYanhe2Slides } from './yanhe2Slides';
 import { fetchYanhe2Transcript } from './yanhe2Transcript';
 import type { Yanhe2TwinKey } from './yanhe2Twin';
@@ -178,6 +180,28 @@ export class Yanhe2Service {
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
     return this.settle(account, await fetchYanhe2CourseDetail(stored.jwt, courseId));
+  }
+
+  /** Search: the terms the catalogue can be filtered by, newest first as aita sends them. */
+  async getTerms(account: string): Promise<Yanhe2ReadResult<Yanhe2Term[]>> {
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2Terms(stored.jwt));
+  }
+
+  /** Search: one page of the catalogue matching a keyword, in one term or all of them. */
+  async searchCourses(account: string, query: unknown): Promise<Yanhe2ReadResult<Yanhe2CourseSearchPage>> {
+    const { keyword, termId, page } = (query && typeof query === 'object' ? query : {}) as Record<string, unknown>;
+    if (typeof keyword !== 'string') return { kind: 'failed' };
+    if (termId !== null && !(Number.isInteger(termId) && (termId as number) > 0)) return { kind: 'failed' };
+    if (!Number.isInteger(page) || (page as number) < 1 || (page as number) > 10_000) return { kind: 'failed' };
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2CourseSearch(stored.jwt, {
+      keyword: keyword.trim().slice(0, 64),
+      termId: termId as number | null,
+      page: page as number,
+    }));
   }
 
   /**

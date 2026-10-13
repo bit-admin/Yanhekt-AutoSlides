@@ -1573,7 +1573,10 @@
     "semesterPlaceholder": "Semester",
     "allSemesters": "All semesters",
     "semestersSelected": "{count} semesters",
-    "signInToSearch": "Sign In to Search"
+    "signInToSearch": "Sign In to Search",
+    "yanhe2ConnectTitle": "Sign in to Yanhe 2.0 to search its courses",
+    "yanhe2ConnectHint": "This search runs on Yanhe 2.0, which keeps its own 24-hour session. It uses the same campus account as AutoSlides.",
+    "yanhe2ErrorFailed": "Yanhe 2.0 did not return search results. Try again later."
   },
   "tabs": {
     "info": "Info",

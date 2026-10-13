@@ -25,9 +25,12 @@ import type {
   Yanhe2WeekQuery,
 } from '@common/yanhe2Calendar'
 import type { Yanhe2Course, Yanhe2CourseDetail } from '@common/yanhe2Curriculum'
+import type { Yanhe2CourseSearchPage, Yanhe2CourseSearchQuery, Yanhe2Term } from '@common/yanhe2Search'
 import { cached } from '@shared/services/requestCache'
 
 const CURRICULUM_TTL_MS = 60 * 1000
+/** The term list changes twice a year. */
+const TERMS_TTL_MS = 30 * 60 * 1000
 
 /** Carries a non-`ok` result through `cached`, which only skips the memo on a rejection. */
 class NotOk {
@@ -71,5 +74,20 @@ export const yanhe2Reads = {
       `course|${account}|${courseId}`,
       CURRICULUM_TTL_MS,
       () => window.electronAPI.yanhe2.courseDetail(account, { courseId }),
+    ),
+  terms: (account: string): Promise<Yanhe2ReadResult<Yanhe2Term[]>> =>
+    readThroughCache(`terms|${account}`, TERMS_TTL_MS, () => window.electronAPI.yanhe2.terms(account)),
+  // Reused for a minute like the Curriculum lists, so paging back and forth,
+  // or returning from a course, does not ask aita again.
+  searchCourses: (account: string, query: Yanhe2CourseSearchQuery): Promise<Yanhe2ReadResult<Yanhe2CourseSearchPage>> =>
+    readThroughCache(
+      `search|${account}|${query.termId ?? ''}|${query.page}|${query.keyword}`,
+      CURRICULUM_TTL_MS,
+      // Fresh primitives: the caller's query may be read off reactive state.
+      () => window.electronAPI.yanhe2.searchCourses(account, {
+        keyword: query.keyword,
+        termId: query.termId,
+        page: query.page,
+      }),
     ),
 }

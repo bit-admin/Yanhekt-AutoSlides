@@ -1573,7 +1573,10 @@
     "semesterPlaceholder": "学期",
     "allSemesters": "すべての学期",
     "semestersSelected": "{count} 学期を選択",
-    "signInToSearch": "サインインして検索"
+    "signInToSearch": "サインインして検索",
+    "yanhe2ConnectTitle": "延河 2.0 にサインインしてコースを検索",
+    "yanhe2ConnectHint": "この検索は延河 2.0 で行います。延河 2.0 は独自の 24 時間セッションを持ち、AutoSlides と同じ学内アカウントを使います。",
+    "yanhe2ErrorFailed": "延河 2.0 から検索結果を取得できませんでした。しばらくしてからお試しください。"
   },
   "tabs": {
     "info": "情報",

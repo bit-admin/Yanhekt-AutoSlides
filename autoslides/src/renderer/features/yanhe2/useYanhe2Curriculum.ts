@@ -19,6 +19,17 @@ const log = createLogger('Yanhe2Curriculum')
 /** Why the current view has nothing to show. `signed_out` is handled by the host's session state. */
 export type Yanhe2CurriculumProblem = 'network' | 'failed'
 
+/**
+ * A course another page wants opened on its sessions (a Search result card).
+ * Module-level because the Curriculum page is mounted lazily: the request has
+ * to outlive the click that navigates there.
+ */
+const openRequest = ref<Yanhe2Course | null>(null)
+
+export function requestYanhe2CourseOpen(course: Yanhe2Course): void {
+  openRequest.value = { ...course }
+}
+
 export function useYanhe2Curriculum(options: {
   /** Signed-in account's student id, '' when there is none. */
   badge: Ref<string>
@@ -125,13 +136,28 @@ export function useYanhe2Curriculum(options: {
     if (active.value) void loadCourses()
   }
 
+  // Declared before the watch below, so on a first mount the course is already
+  // selected when that one decides between the grid and a sessions list.
+  watch(
+    openRequest,
+    (course) => {
+      if (!course) return
+      openRequest.value = null
+      openCourse(course)
+    },
+    { immediate: true },
+  )
+
   // Opening the page, a sign-in or an account switch each reload the view on
   // screen. Nothing is fetched while the page is hidden.
   watch(
     [active, signedIn, badge],
     ([isActive, isSignedIn, account], previous) => {
-      // Another account's courses are not this one's: back to the grid.
-      if (previous && account !== previous[2]) {
+      // Another account's courses are not this one's: back to the grid. On the
+      // immediate run Vue hands a multi-source watch `[]` as the previous
+      // values, not undefined; that is not an account switch, and treating it
+      // as one would drop a course opened from Search before the page mounted.
+      if (previous && previous.length > 0 && account !== previous[2]) {
         sessionsTicket++
         selected.value = null
         sessions.value = []

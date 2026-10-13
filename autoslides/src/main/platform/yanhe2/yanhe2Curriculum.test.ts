@@ -68,9 +68,9 @@ describe('parseCourseList', () => {
     });
   });
 
-  it('falls back to the speaker and survives a broken information string', () => {
+  it('falls back to the speaker, and to the term name when the information string is broken', () => {
     const parsed = parseCourseList(listBody([listRow(7, { Teacher: '', Realname: '', information: '{oops' })]));
-    expect(parsed?.courses[0]).toMatchObject({ teacher: 'teacher', schoolYear: '', semester: '', courseCode: '' });
+    expect(parsed?.courses[0]).toMatchObject({ teacher: 'teacher', schoolYear: '2026-2027', semester: '1', courseCode: '' });
   });
 
   it('skips rows without a usable id but still counts them for paging', () => {

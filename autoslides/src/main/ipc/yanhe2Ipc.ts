@@ -83,6 +83,19 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     return result;
   });
 
+  // Search reads, same rule.
+  ipcMain.handle('yanhe2:terms', async (_event, account: string) => {
+    const result = await yanhe2Service.getTerms(str(account));
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
+  ipcMain.handle('yanhe2:searchCourses', async (_event, account: string, query: unknown) => {
+    const result = await yanhe2Service.searchCourses(str(account), query);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
   // One session's streams. Recorded media is signed per request with a secret
   // that stays in main, so those URLs are swapped for local proxy ones here.
   // Live streams are the unsigned live CDN playlists: they go out as they are

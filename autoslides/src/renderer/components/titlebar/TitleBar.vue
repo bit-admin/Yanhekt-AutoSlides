@@ -358,7 +358,9 @@ const infoTabLabel = computed(() => {
     case 'yanhe2-calendar':
       return $t('tabs.yanhe2Calendar');
     case 'yanhe2-curriculum':
-      return $t('tabs.yanhe2Curriculum');
+      return navigationStore.yanhe2OnSessions.value
+        ? $t('tabs.sessions')
+        : $t('tabs.yanhe2Curriculum');
     case 'slides-review':
       return $t('tabs.slidesReview');
     case 'cloud-notes':

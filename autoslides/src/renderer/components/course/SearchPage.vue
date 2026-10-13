@@ -1,12 +1,29 @@
 <template>
   <div class="search-page">
-    <PageErrorNotice v-if="errorMessage && isLoggedIn" :error="errorMessage" />
+    <PageErrorNotice v-if="mode !== 'yanhe2' && errorMessage && isLoggedIn" :error="errorMessage" />
+    <PageBanner
+      v-if="mode === 'yanhe2' && yanhe2SignedIn && yanhe2Problem"
+      tone="danger"
+      :recheck-label="$t('yanhe2Calendar.retry')"
+      :busy="yanhe2Loading"
+      @recheck="refreshYanhe2"
+    >
+      {{ $t(yanhe2Problem === 'network' ? 'yanhe2Calendar.errorNetwork' : 'searchPage.yanhe2ErrorFailed') }}
+    </PageBanner>
     <div class="search-header">
       <SemesterSelect
         v-if="mode === 'recorded'"
         :semesters="availableSemesters"
         :model-value="selectedSemesterIds"
         @update:model-value="setSemesters"
+      />
+      <!-- Yanhe 2.0 filters by one term, so this one is single-choice. -->
+      <SemesterSelect
+        v-else-if="mode === 'yanhe2' && yanhe2SignedIn && yanhe2TermOptions.length > 0"
+        single
+        :semesters="yanhe2TermOptions"
+        :model-value="yanhe2TermId === null ? [] : [yanhe2TermId]"
+        @update:model-value="setYanhe2Term($event[0] ?? null)"
       />
       <div class="mode-switch">
         <button
@@ -21,10 +38,86 @@
         >
           {{ $t('navigation.recorded') }}
         </button>
+        <button
+          :class="['mode-pill', { active: mode === 'yanhe2' }]"
+          @click="setMode('yanhe2')"
+        >
+          {{ $t('navigation.yanhe2') }}
+        </button>
       </div>
     </div>
 
-    <div class="content">
+    <!-- Yanhe 2.0: the aita catalogue. A card opens that course's sessions on
+         the Curriculum page. -->
+    <div v-if="mode === 'yanhe2'" class="content">
+      <SignedOutPanel v-if="!yanhe2ActiveBadge" :title="$t('searchPage.signInToSearch')" />
+
+      <!-- Signed in to AutoSlides, but no live Yanhe 2.0 session for this account. -->
+      <div v-else-if="!yanhe2SignedIn" class="connect">
+        <template v-if="yanhe2MenuPhase !== 'idle'">
+          <div class="spinner"></div>
+          <p class="connect-hint">{{ $t('yanhe2Calendar.connecting') }}</p>
+        </template>
+        <template v-else>
+          <span class="connect-title">{{ $t('searchPage.yanhe2ConnectTitle') }}</span>
+          <p class="connect-hint">{{ $t('searchPage.yanhe2ConnectHint') }}</p>
+          <button type="button" class="btn btn--primary" @click="requestYanhe2SsoSignIn">
+            {{ $t('yanhe2Calendar.connectButton') }}
+          </button>
+        </template>
+      </div>
+
+      <div v-else-if="yanhe2Loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>{{ $t('courses.loading') }}</p>
+      </div>
+
+      <EmptySetState
+        v-else-if="!yanhe2Problem && yanhe2Loaded && yanhe2Results.length === 0"
+        :title="$t('courses.noResults')"
+      />
+
+      <div v-else-if="!yanhe2Problem" class="courses-grid custom-scrollbar">
+        <div
+          v-for="course in yanhe2Results"
+          :key="course.courseId"
+          class="course-card"
+          @click="openYanhe2Course(course)"
+        >
+          <div class="course-id">#{{ course.courseId }}</div>
+          <div class="course-info">
+            <h3 class="course-title" :class="courseTitleSizeClass(course.title)">{{ course.title }}</h3>
+            <p class="course-instructor">{{ course.teacher }}</p>
+            <p class="course-time">{{ academicTermLabel(course.schoolYear, course.semester, course.term) }}</p>
+            <p class="course-section" v-if="course.college">{{ course.college }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="yanhe2SignedIn && !yanhe2Loading && yanhe2Results.length > 0" class="pagination">
+        <button
+          :disabled="yanhe2Page === 1"
+          @click="goToYanhe2Page(yanhe2Page - 1)"
+          class="btn page-btn"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+        </button>
+        <span class="page-info">{{ yanhe2Page }} / {{ yanhe2PageCount }}</span>
+        <button
+          :disabled="yanhe2Page === yanhe2PageCount"
+          @click="goToYanhe2Page(yanhe2Page + 1)"
+          class="btn page-btn"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9,18 15,12 9,6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div v-else class="content">
       <SignedOutPanel v-if="!isLoggedIn" :title="$t('searchPage.signInToSearch')" />
 
       <div v-else-if="isLoading" class="loading-state">
@@ -90,13 +183,26 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { Yanhe2Course } from '@common/yanhe2Curriculum'
+import { navigationStore } from '@features/course/navigationStore'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
 import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@shared/i18n/displayNames'
+import type { SemesterOption } from '@shared/services/apiClient'
 import { useAuth } from '@features/platform/useAuth'
+import {
+  requestYanhe2SsoSignIn,
+  yanhe2ActiveBadge,
+  yanhe2MenuPhase,
+  yanhe2SignedIn,
+} from '@features/platform/yanhe2AccountUi'
+import { requestYanhe2CourseOpen } from '@features/yanhe2/useYanhe2Curriculum'
+import { useYanhe2Search } from '@features/yanhe2/useYanhe2Search'
 import SemesterSelect from './SemesterSelect.vue'
 import EmptySetState from '../shell/EmptySetState.vue'
+import PageBanner from '../shell/PageBanner.vue'
 import PageErrorNotice from '../shell/PageErrorNotice.vue'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
@@ -104,6 +210,7 @@ const { t } = useI18n()
 const { isLoggedIn } = useAuth()
 
 const {
+  keyword,
   mode,
   availableSemesters,
   selectedSemesterIds,
@@ -118,6 +225,45 @@ const {
   setSemesters,
   selectResult
 } = useSearchPage()
+
+// Yanhe 2.0: the same sidebar keyword, searched on aita while that source is
+// the one showing.
+const {
+  terms: yanhe2Terms,
+  termId: yanhe2TermId,
+  results: yanhe2Results,
+  page: yanhe2Page,
+  pageCount: yanhe2PageCount,
+  loading: yanhe2Loading,
+  problem: yanhe2Problem,
+  loaded: yanhe2Loaded,
+  refresh: refreshYanhe2,
+  setTerm: setYanhe2Term,
+  goToPage: goToYanhe2Page,
+} = useYanhe2Search({
+  keyword,
+  badge: yanhe2ActiveBadge,
+  signedIn: yanhe2SignedIn,
+  active: computed(() => navigationStore.activeNav.value === 'search' && mode.value === 'yanhe2'),
+})
+
+// aita's terms in the semester menu's own shape, so they are grouped by school
+// year and worded like the Yanhekt ones.
+const yanhe2TermOptions = computed<SemesterOption[]>(() =>
+  yanhe2Terms.value.map((term) => ({
+    id: term.id,
+    label: term.name,
+    labelEn: term.name,
+    schoolYear: term.schoolYear,
+    semester: term.semester,
+  })),
+)
+
+// A result opens where a Yanhe 2.0 course lives: its sessions on Curriculum.
+const openYanhe2Course = (course: Yanhe2Course) => {
+  requestYanhe2CourseOpen(course)
+  navigationStore.navigate('yanhe2-curriculum')
+}
 </script>
 
 <style scoped>
@@ -190,6 +336,30 @@ const {
   flex-direction: column;
   min-height: 0;
   padding: 0 24px 16px;
+}
+
+/* Same panel as the Yanhe 2.0 pages show without a Yanhe 2.0 session. */
+.connect {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.connect-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.connect-hint {
+  margin: 0 0 4px;
+  max-width: 28rem;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 
 .loading-state {
