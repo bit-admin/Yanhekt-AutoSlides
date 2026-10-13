@@ -9,14 +9,16 @@
     tabindex="0"
     ref="rootEl"
     :class="{ 'controls-hidden': !controlsVisible && isPlaying }"
+    :style="transcriptWidth === null ? undefined : { '--transcript-width': `${transcriptWidth}px` }"
     @keydown="onKeydown"
     @mousemove="showControls"
     @mouseleave="onPointerLeave"
   >
+    <div class="player-main">
     <!-- Floating top bar -->
     <div
       class="top-bar"
-      :class="{ 'controls-hidden': !controlsVisible && isPlaying }"
+      :class="{ 'controls-hidden': !controlsVisible && isPlaying, 'beside-transcript': showTranscript }"
       @mouseenter="pointerOverControls = true"
       @mouseleave="pointerOverControls = false"
     >
@@ -65,7 +67,7 @@
       </div>
     </div>
 
-    <div v-if="errorMessage" class="player-error">
+    <div v-if="errorMessage" class="player-error" :class="{ 'beside-transcript': showTranscript }">
       <span>{{ errorMessage }}</span>
       <div class="player-error-actions">
         <button
@@ -90,6 +92,7 @@
 
     <!-- Stage -->
     <div ref="stageEl" class="stage">
+      <div class="stage-main">
       <!-- Dual -->
       <div v-if="isDualMode" class="dual-video-grid">
         <div class="dual-video-panel" :style="{ order: cameraOrder }">
@@ -149,8 +152,14 @@
       <!-- Same ring as the playback page, for the initial attach and any stall. -->
       <BufferingOverlay v-if="isLoading || isBuffering" />
 
+      <!-- Captions sit just above the controls, and drop down when those hide. -->
+      <div v-if="caption" class="caption-layer" :style="{ bottom: `${captionBottom}px` }">
+        <span class="caption-text">{{ caption }}</span>
+      </div>
+
       <!-- Bottom overlay controls -->
       <div
+        ref="bottomOverlayEl"
         class="bottom-overlay"
         :class="{ 'controls-hidden': !controlsVisible && isPlaying }"
         @mouseenter="pointerOverControls = true"
@@ -250,9 +259,45 @@
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </button>
+
+            <!-- Opens to the side: the chevron turns back, not down. -->
+            <button
+              v-if="hasSubtitles"
+              class="chapter-trigger chapter-trigger--side"
+              :class="{ 'is-open': transcriptOpen }"
+              type="button"
+              :aria-expanded="transcriptOpen"
+              :title="$t('lectures.transcript')"
+              @click="onToggleTranscript"
+            >
+              <svg class="chapter-trigger-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 6h16M4 10h11M4 14h16M4 18h9"/>
+              </svg>
+              <span class="chapter-trigger-label">{{ $t('lectures.transcript') }}</span>
+              <svg class="chapter-trigger-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
           </div>
 
           <div class="transport-right">
+            <!-- Captions, when a subtitle file is saved beside this lecture. -->
+            <button
+              v-if="hasSubtitles"
+              class="dual-icon-button captions-button"
+              :class="{ active: captionsOn }"
+              :aria-pressed="captionsOn"
+              type="button"
+              :title="$t('playback.dual.captions')"
+              @click="toggleCaptions"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6"/>
+                <path d="M17 10.2a2.2 2.2 0 1 0 0 3.6"/>
+              </svg>
+            </button>
+
             <!-- Stream mode (moved out of top bar) — icon matches current mode -->
             <div v-if="hasStreamChoices" class="dual-popover-anchor">
               <button
@@ -543,6 +588,20 @@
           </div>
         </div>
       </div>
+      </div>
+
+      <!-- Beside the picture, so the slides strip along the bottom stays free;
+           inside the stage, so it comes along into fullscreen. -->
+      <LectureTranscriptPanel
+        v-if="showTranscript"
+        :cues="cues"
+        :current-index="currentCueIndex"
+        :format-time="formatTime"
+        @seek="seekToCue"
+        @close="toggleTranscript"
+        @width="transcriptWidth = $event"
+      />
+    </div>
     </div>
   </div>
 </template>
@@ -564,7 +623,9 @@ import { useLocalLecturePlayer, type DualAudioSource } from '@features/lectures/
 import { useLectureSlideChapters } from '@features/lectures/useLectureSlideChapters'
 import { navigationStore } from '@features/course/navigationStore'
 import { tabStore } from '@features/course/tabStore'
+import { useLectureSubtitles } from '@features/lectures/useLectureSubtitles'
 import LectureSlideStrip from './LectureSlideStrip.vue'
+import LectureTranscriptPanel from './LectureTranscriptPanel.vue'
 import BufferingOverlay from '@renderer/components/video/BufferingOverlay.vue'
 import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger'
@@ -658,8 +719,35 @@ const chapterTriggerLabel = computed(() => {
     : t('playback.slideChapters')
 })
 
+const subtitlePath = computed(() => props.session.subtitles?.path)
+const {
+  cues,
+  hasSubtitles,
+  currentIndex: currentCueIndex,
+  caption,
+  captionsOn,
+  transcriptOpen,
+  toggleCaptions,
+  toggleTranscript,
+} = useLectureSubtitles(subtitlePath, currentTime)
+
+/** The column's dragged width; null keeps the stylesheet's default share. */
+const transcriptWidth = ref<number | null>(null)
+
+const showTranscript = computed(() => hasSubtitles.value && transcriptOpen.value)
+
+// A hair past the cue's start, so the row clicked is the row marked.
+const seekToCue = (seconds: number) => seek(seconds + 0.01)
+
 const rootEl = ref<HTMLElement | null>(null)
 const stageEl = ref<HTMLElement | null>(null)
+
+// The controls' height changes with the slides strip, so the captions ask.
+const bottomOverlayEl = ref<HTMLElement | null>(null)
+const bottomOverlayHeight = ref(0)
+const overlayObserver = new ResizeObserver(() => {
+  bottomOverlayHeight.value = bottomOverlayEl.value?.offsetHeight ?? 0
+})
 
 const setScreenRef = (el: unknown) => {
   bindScreenEl((el as HTMLVideoElement | null) ?? null)
@@ -729,6 +817,16 @@ const showControls = () => {
   }
 }
 
+/** Clear of the controls while they show (their top 28px is only a fade), else near the edge. */
+const captionBottom = computed(() =>
+  controlsVisible.value || !isPlaying.value ? Math.max(24, bottomOverlayHeight.value - 16) : 24,
+)
+
+const onToggleTranscript = () => {
+  toggleTranscript()
+  showControls()
+}
+
 const toggleSlidesStrip = () => {
   slidesStripOpen.value = !slidesStripOpen.value
   showControls()
@@ -793,10 +891,12 @@ onMounted(async () => {
   // Space/arrows target this root; preventScroll so focus cannot nudge the title bar.
   rootEl.value?.focus({ preventScroll: true })
   showControls()
+  if (bottomOverlayEl.value) overlayObserver.observe(bottomOverlayEl.value)
 })
 
 onBeforeUnmount(() => {
   if (hideTimer) clearTimeout(hideTimer)
+  overlayObserver.disconnect()
   destroy()
 })
 
@@ -891,9 +991,10 @@ const onKeydown = (event: KeyboardEvent) => {
 
 <style scoped>
 .lecture-player {
+  /* Percent of the player's width, which the bar, the stage and the column share. */
+  --transcript-width: clamp(260px, 30%, 380px);
   position: relative;
   display: flex;
-  flex-direction: column;
   height: 100%;
   min-height: 0;
   background: #000;
@@ -904,6 +1005,15 @@ const onKeydown = (event: KeyboardEvent) => {
 
 .lecture-player.controls-hidden {
   cursor: none;
+}
+
+.player-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Top bar ─────────────────────────────────────────────────────── */
@@ -919,6 +1029,16 @@ const onKeydown = (event: KeyboardEvent) => {
   padding: 14px 16px 28px;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.28) 55%, transparent 100%);
   transition: opacity 0.2s ease;
+}
+
+/* The transcript column takes the stage's right edge; the bar and the error
+   notice stop where it starts (same width rule as the column itself). */
+.top-bar.beside-transcript {
+  right: var(--transcript-width);
+}
+
+.player-error.beside-transcript {
+  right: calc(var(--transcript-width) + 16px);
 }
 
 .top-bar.controls-hidden {
@@ -1013,8 +1133,44 @@ const onKeydown = (event: KeyboardEvent) => {
   flex: 1;
   min-height: 0;
   display: flex;
-  flex-direction: column;
   background: #000;
+}
+
+/* The picture and everything floating over it; the transcript column, when
+   open, is its sibling to the right. */
+.stage-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* The captions size themselves off the picture's width. */
+  container-type: inline-size;
+}
+
+/* Same look as the Yanhe 2.0 player's captions. */
+.caption-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  justify-content: center;
+  padding: 0 5%;
+  pointer-events: none;
+  transition: bottom 0.2s ease;
+}
+
+.caption-text {
+  max-width: 100%;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.72);
+  color: var(--text-on-fill);
+  font-size: clamp(15px, 2.2cqw, 28px);
+  line-height: 1.4;
+  text-align: center;
 }
 
 .dual-video-grid {
@@ -1231,6 +1387,10 @@ const onKeydown = (event: KeyboardEvent) => {
   transform: rotate(90deg);
 }
 
+.chapter-trigger--side.is-open .chapter-trigger-chevron {
+  transform: rotate(180deg);
+}
+
 .chapter-trigger-label {
   min-width: 0;
   overflow: hidden;
@@ -1245,6 +1405,10 @@ const onKeydown = (event: KeyboardEvent) => {
 
 .stage:fullscreen {
   background: #000;
+  /* The window's title bar is a drag region, and it stays one under a
+     fullscreen element: clicks in the top strip of the screen go to it and not
+     to what is drawn there (the transcript's close button). Take the strip back. */
+  -webkit-app-region: no-drag;
 }
 
 .stage:fullscreen .dual-video-grid,

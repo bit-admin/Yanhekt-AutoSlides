@@ -52,7 +52,7 @@
             v-if="viewMode === 'list'"
             class="edit-btn"
             :class="{ 'edit-btn-active': isSelectMode }"
-            :disabled="videos.length === 0 || isLoading"
+            :disabled="files.length === 0 || isLoading"
             @click="toggleSelectMode"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -177,8 +177,8 @@
 
       <div v-if="viewMode === 'list'" class="footer">
         <div class="footer-left">
-          <span v-if="isSelectMode">{{ $t('trash.selected') }}: {{ selectedPaths.length }} / {{ $t('trash.total') }}: {{ videos.length }}</span>
-          <span v-else>{{ $t('trash.total') }}: {{ videos.length }}</span>
+          <span v-if="isSelectMode">{{ $t('trash.selected') }}: {{ selectedPaths.length }} / {{ $t('trash.total') }}: {{ files.length }}</span>
+          <span v-else>{{ $t('trash.total') }}: {{ files.length }}</span>
         </div>
         <label class="group-toggle">
           <input type="checkbox" v-model="groupByCourse" />
@@ -196,7 +196,8 @@
       <LectureRenameModal
         v-if="showRenameModal"
         :items="selectedRecognised"
-        :existing-names="videos.map((v) => v.name)"
+        :subtitles="subtitles"
+        :existing-names="files.map((v) => v.name)"
         @close="showRenameModal = false"
         @done="onRenameDone"
       />
@@ -235,6 +236,8 @@ const showCloneModal = ref(false)
 
 const {
   videos,
+  subtitles,
+  files,
   isLoading,
   loadError,
   isSelectMode,
@@ -272,7 +275,7 @@ const {
   closePlayer,
   loadPoster,
   hydrate,
-} = useLectureLibrary(videos)
+} = useLectureLibrary(videos, subtitles)
 
 const activeJob = computed(() => queue.activeJob.value)
 

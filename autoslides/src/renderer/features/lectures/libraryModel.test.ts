@@ -181,6 +181,33 @@ describe('buildLibraryCourses', () => {
     expect(session.slideFolderPath).toBe('/out/slides_Course__c1s2')
   })
 
+  it('hangs a subtitle file on the session it belongs to, and never makes one', () => {
+    const videos = [
+      item({
+        name: 'screen_课__c1s2.mp4',
+        path: '/out/screen_课__c1s2.mp4',
+        courseId: '1',
+        sessionId: '2',
+        videoType: 'screen',
+        size: 100,
+      }),
+    ]
+    const subtitles = [
+      item({ name: 'screen_课__c1s2.srt', path: '/out/screen_课__c1s2.srt', courseId: '1', sessionId: '2', videoType: 'screen', size: 7, isSubtitle: true }),
+      // No video and no slides for these two: nothing to caption.
+      item({ name: 'screen_课__c1s9.srt', path: '/out/screen_课__c1s9.srt', courseId: '1', sessionId: '9', videoType: 'screen', isSubtitle: true }),
+      item({ name: 'screen_别__c8s1.srt', path: '/out/screen_别__c8s1.srt', courseId: '8', sessionId: '1', videoType: 'screen', isSubtitle: true }),
+    ]
+    const courses = buildLibraryCourses(videos, new Map(), [], subtitles)
+    expect(courses).toHaveLength(1)
+    expect(courses[0].sessions).toHaveLength(1)
+    expect(courses[0].sessions[0].subtitles?.path).toBe('/out/screen_课__c1s2.srt')
+    // Still the screen recording that plays and sources the poster.
+    expect(courses[0].sessions[0].screen?.path).toBe('/out/screen_课__c1s2.mp4')
+    expect(courses[0]).toMatchObject({ fileCount: 2, subtitleCount: 1, micCount: 0 })
+    expect(summarizeLibraryCourse(courses[0])).toMatchObject({ totalBytes: 107, subtitleCount: 1 })
+  })
+
   it('copies Yanhekt URLs onto a slides-only session', () => {
     const seeds: LibrarySlideSeed[] = [{
       courseId: '1',
@@ -458,6 +485,7 @@ describe('summarizeLibraryCourse', () => {
     fileCount: 3,
     dualCount: 1,
     micCount: 1,
+    subtitleCount: 0,
   })
 
   it('sums local bytes, spans weeks from titles or metadata, counts slides', () => {

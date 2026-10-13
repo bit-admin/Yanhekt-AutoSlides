@@ -9,8 +9,11 @@ import {
   formatLectureVideoDisplayName,
   formatSemesterToken,
   isLectureAudioExt,
+  isLectureSubtitleExt,
   isLectureVideoExt,
+  LECTURE_MEDIA_EXTENSIONS,
   parseLectureVideoName,
+  subtitleNameForVideo,
   withAscompTag,
 } from './lectureVideoNaming';
 
@@ -280,5 +283,37 @@ describe('mic audio (.aac)', () => {
     expect(isLectureAudioExt('.mp4')).toBe(false);
     expect(isLectureVideoExt('.mp4')).toBe(true);
     expect(isLectureVideoExt('.aac')).toBe(false);
+  });
+
+  it('knows a subtitle file without calling it media', () => {
+    expect(isLectureSubtitleExt('.srt')).toBe(true);
+    expect(isLectureSubtitleExt('.SRT')).toBe(true);
+    expect(isLectureSubtitleExt('.mp4')).toBe(false);
+    expect(LECTURE_MEDIA_EXTENSIONS.has('.srt')).toBe(false);
+  });
+
+  it('reads a downloaded subtitle file as its screen recording', () => {
+    const parsed = parseLectureVideoName('screen_泛函分析_第1周_星期三_第2大节__c62313s751843.srt');
+    expect(parsed).toMatchObject({
+      ext: '.srt',
+      courseId: '62313',
+      sessionId: '751843',
+      videoType: 'screen',
+      recognised: true,
+    });
+  });
+
+  it('names a subtitle file after its video, tags included', () => {
+    const video = '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=screen] [ascomp=tiny].mkv';
+    const subtitle = subtitleNameForVideo(video, '.srt');
+    expect(subtitle).toBe(
+      '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=screen] [ascomp=tiny].srt',
+    );
+    // Still filed under the same lecture and stream after the rename.
+    expect(parseLectureVideoName(subtitle)).toMatchObject({
+      courseId: '62313',
+      sessionId: '751843',
+      videoType: 'screen',
+    });
   });
 });

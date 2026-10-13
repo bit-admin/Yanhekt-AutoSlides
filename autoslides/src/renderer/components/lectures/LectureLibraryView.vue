@@ -126,6 +126,9 @@
               <span v-if="activeCourse.micCount > 0" class="chip chip--count">
                 {{ $t('lectures.libraryMicAudio') }} · {{ activeCourse.micCount }}
               </span>
+              <span v-if="activeCourse.subtitleCount > 0" class="chip chip--count">
+                {{ $t('lectures.subtitles') }} · {{ activeCourse.subtitleCount }}
+              </span>
               <span v-if="activeCourse.college" class="chip">{{ activeCourse.college }}</span>
             </div>
 
@@ -259,6 +262,9 @@
                   <span v-if="session.audio" class="ep-badge" :title="$t('lectures.micAudioHint')">
                     {{ $t('lectures.micAudio') }}
                   </span>
+                  <span v-if="session.subtitles" class="ep-badge" :title="$t('lectures.subtitlesHint')">
+                    {{ $t('lectures.subtitles') }}
+                  </span>
                   <span
                     v-if="session.screen?.compressPreset"
                     class="ep-badge ep-badge--comp"
@@ -349,6 +355,9 @@ const contentLine = computed(() => {
   }
   if (a.slidesCount > 0) {
     parts.push(t('lectures.librarySlidesCount', { count: a.slidesCount, total: a.episodeCount }))
+  }
+  if (a.subtitleCount > 0) {
+    parts.push(t('lectures.librarySubtitlesCount', { count: a.subtitleCount, total: a.episodeCount }))
   }
   return parts.join(' · ')
 })

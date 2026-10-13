@@ -26,7 +26,10 @@ const log = createLogger('LectureLibrary')
 
 export type LibraryBrowseLevel = 'courses' | 'course'
 
-export function useLectureLibrary(videos: Ref<LectureVideoItem[]>) {
+export function useLectureLibrary(
+  videos: Ref<LectureVideoItem[]>,
+  subtitles: Ref<LectureVideoItem[]>,
+) {
   const browseLevel = ref<LibraryBrowseLevel>('courses')
   const activeCourseId = ref<string | null>(null)
   const playerTarget = ref<LibraryPlayerTarget | null>(null)
@@ -38,7 +41,7 @@ export function useLectureLibrary(videos: Ref<LectureVideoItem[]>) {
   const posterInFlight = new Set<string>()
 
   const courses = computed<LibraryCourse[]>(() =>
-    buildLibraryCourses(videos.value, metaByCourse.value, slideSeeds.value),
+    buildLibraryCourses(videos.value, metaByCourse.value, slideSeeds.value, subtitles.value),
   )
 
   const activeCourse = computed(() =>

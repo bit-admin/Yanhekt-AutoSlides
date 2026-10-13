@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expandTilde, hasTraversalSegment, isPathInsideRoot } from '@main/infra/pathUtils';
 import { readOutputDir } from '@main/infra/outputDir';
-import { LECTURE_MEDIA_EXTENSIONS } from '@common/lectureVideoNaming';
+import { LECTURE_MEDIA_EXTENSIONS, LECTURE_SUBTITLE_EXTENSIONS } from '@common/lectureVideoNaming';
 import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
 
@@ -12,6 +12,9 @@ const log = createLogger('LecturesIpc');
 // Shared with asmediaProtocol and the renderer's bucketing so a format can
 // never be scannable but unplayable (or vice versa). Includes the mic .aac.
 const MEDIA_EXTENSIONS = LECTURE_MEDIA_EXTENSIONS;
+
+/** A whole lecture's transcript is well under 1 MB; anything far past that is not one. */
+const MAX_SUBTITLE_BYTES = 8 * 1024 * 1024;
 
 function assertNoTraversal(targetPath: string): void {
   if (hasTraversalSegment(targetPath)) {
@@ -38,7 +41,9 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
       for (const entry of entries) {
         if (!entry.isFile()) continue;
         const ext = path.extname(entry.name).toLowerCase();
-        if (!MEDIA_EXTENSIONS.has(ext)) continue;
+        // Subtitle sidecars are listed too; the renderer keeps them out of the
+        // Library and the compress queue.
+        if (!MEDIA_EXTENSIONS.has(ext) && !LECTURE_SUBTITLE_EXTENSIONS.has(ext)) continue;
         // Skip in-progress compress temps
         if (entry.name.includes('.compressing.tmp')) continue;
 
@@ -153,6 +158,28 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
     } catch (error) {
       log.error('Failed to open lecture video externally:', error);
       throw error;
+    }
+  });
+
+  /** A lecture's subtitle file as text, for the Lectures player; null when it cannot be read. */
+  ipcMain.handle('lectures:readSubtitles', async (_event, filePath: string): Promise<string | null> => {
+    try {
+      if (typeof filePath !== 'string' || !filePath) return null;
+      assertNoTraversal(filePath);
+      const outputDir = expandTilde(configService.getConfig().outputDirectory);
+      if (!isPathInsideRoot(outputDir, filePath)) {
+        throw new Error('Path is outside the output directory');
+      }
+      const resolved = path.resolve(filePath);
+      if (!LECTURE_SUBTITLE_EXTENSIONS.has(path.extname(resolved).toLowerCase())) {
+        throw new Error('Not a subtitle file');
+      }
+      const stat = await fs.promises.stat(resolved);
+      if (stat.size > MAX_SUBTITLE_BYTES) throw new Error('Subtitle file is too large');
+      return await fs.promises.readFile(resolved, 'utf8');
+    } catch (error) {
+      log.error('Failed to read lecture subtitles:', error);
+      return null;
     }
   });
 

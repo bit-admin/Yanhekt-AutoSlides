@@ -1,6 +1,7 @@
 import { computed, ref, watch } from 'vue'
 import {
   formatLectureVideoDisplayName,
+  isLectureSubtitleExt,
   parseLectureVideoName,
   type LectureCompressPresetTag,
   type LectureVideoType,
@@ -29,6 +30,8 @@ export interface LectureVideoItem {
   compressPreset?: LectureCompressPresetTag
   recognised: boolean
   hasEmbyTags: boolean
+  /** A subtitle sidecar. Its `videoType` is that of the video it is named after. */
+  isSubtitle?: boolean
 }
 
 export interface LectureCourseGroup {
@@ -63,7 +66,12 @@ function courseLabelFromItem(item: LectureVideoItem): string {
 }
 
 export function useLecturesPage() {
+  /** Media files only: this is what the Library, posters and compress read. */
   const videos = ref<LectureVideoItem[]>([])
+  /** Subtitle sidecars, shown in List view and renamed with their lecture. */
+  const subtitles = ref<LectureVideoItem[]>([])
+  /** Every listed file, for List view. */
+  const files = computed(() => [...videos.value, ...subtitles.value])
   const isLoading = ref(false)
   /** Last listVideos failure (raw, for PageErrorNotice), or null. */
   const loadError = ref<unknown>(null)
@@ -79,7 +87,7 @@ export function useLecturesPage() {
       const rows = await (overrides.lecturesProvider
         ? overrides.lecturesProvider.listVideos()
         : window.electronAPI.lectures.listVideos())
-      videos.value = rows.map((row) => {
+      const items = rows.map((row): LectureVideoItem => {
         const parsed = parseLectureVideoName(row.name)
         return {
           name: row.name,
@@ -95,14 +103,18 @@ export function useLecturesPage() {
           compressPreset: parsed.compressPreset,
           recognised: parsed.recognised,
           hasEmbyTags: parsed.hasEmbyTags,
+          isSubtitle: isLectureSubtitleExt(parsed.ext),
         }
       })
+      videos.value = items.filter((item) => !item.isSubtitle)
+      subtitles.value = items.filter((item) => item.isSubtitle)
       // Cleared only on success, so a retry keeps the banner (spinning) up.
       loadError.value = null
     } catch (error) {
       log.error('Failed to list videos', error)
       loadError.value = error
       videos.value = []
+      subtitles.value = []
     } finally {
       isLoading.value = false
     }
@@ -117,8 +129,8 @@ export function useLecturesPage() {
   )
 
   const groups = computed<LectureCourseGroup[]>(() => {
-    const recognised = videos.value.filter((v) => v.recognised)
-    const unrecognised = videos.value.filter((v) => !v.recognised)
+    const recognised = files.value.filter((v) => v.recognised)
+    const unrecognised = files.value.filter((v) => !v.recognised)
 
     if (!groupByCourse.value) {
       const flat: LectureCourseGroup[] = []
@@ -174,11 +186,11 @@ export function useLecturesPage() {
   })
 
   const selectedItems = computed(() =>
-    videos.value.filter((v) => selectedPaths.value.includes(v.path)),
+    files.value.filter((v) => selectedPaths.value.includes(v.path)),
   )
 
   const selectedScreenRecognised = computed(() =>
-    selectedItems.value.filter((v) => v.recognised && v.videoType === 'screen'),
+    selectedItems.value.filter((v) => v.recognised && v.videoType === 'screen' && !v.isSubtitle),
   )
 
   const selectedRecognised = computed(() =>
@@ -225,6 +237,8 @@ export function useLecturesPage() {
 
   return {
     videos,
+    subtitles,
+    files,
     isLoading,
     loadError,
     isSelectMode,

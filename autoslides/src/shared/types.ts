@@ -366,6 +366,8 @@ export interface LectureRenameOptions {
   includeSchoolYear: boolean;
   includeCollege: boolean;
   includeClassrooms: boolean;
+  /** Also rename each lecture's subtitle file to its video's new name. */
+  renameSubtitles: boolean;
 }
 
 // A recorded course pinned to the sidebar. `id` drives navigation/session loading;

@@ -39,6 +39,16 @@
         </div>
       </div>
 
+      <!-- Only about subtitle files that were not selected themselves. -->
+      <label
+        v-if="videoItems.length > 0"
+        class="lec-toggle"
+        :class="{ 'lec-toggle--disabled': !hasSubtitles }"
+      >
+        <input type="checkbox" v-model="options.renameSubtitles" :disabled="!hasSubtitles" />
+        <span>{{ $t('lectures.renameSubtitles') }}</span>
+      </label>
+
       <div class="dialog-actions">
         <button
           type="button"
@@ -70,6 +80,7 @@ import {
   buildDefaultRenameStem,
   buildLectureVideoFileName,
   episodeIndexForSession,
+  subtitleNameForVideo,
   type LectureVideoType,
 } from '@common/lectureVideoNaming'
 import { tokenManager } from '@shared/services/authService'
@@ -86,7 +97,10 @@ const log = createLogger('LectureRenameModal')
 const { t } = useI18n()
 
 const props = defineProps<{
+  /** The selected files: videos, and subtitle files selected in their own right. */
   items: LectureVideoItem[]
+  /** Every subtitle file in the output dir; the ones belonging to a selected video can follow it. */
+  subtitles: LectureVideoItem[]
   /** All basenames currently in the output dir (for collision avoidance). */
   existingNames: string[]
 }>()
@@ -146,57 +160,108 @@ interface PreviewRow {
   videoType: LectureVideoType
 }
 
+const lectureKey = (item: LectureVideoItem) =>
+  `${item.courseId}:${item.sessionId}:${item.videoType}`
+
+const renamable = (item: LectureVideoItem) =>
+  item.recognised && !!item.courseId && !!item.sessionId && !!item.videoType
+
+const videoItems = computed(() => props.items.filter((item) => !item.isSubtitle && renamable(item)))
+
+const selectedPaths = computed(() => new Set(props.items.map((item) => item.path)))
+
+/** Subtitle files of the selected videos, by the video they are named after. */
+const subtitlesByVideo = computed(() => {
+  const wanted = new Set(videoItems.value.map(lectureKey))
+  const map = new Map<string, LectureVideoItem[]>()
+  for (const subtitle of props.subtitles) {
+    if (!renamable(subtitle)) continue
+    const key = lectureKey(subtitle)
+    if (!wanted.has(key)) continue
+    map.set(key, [...(map.get(key) ?? []), subtitle])
+  }
+  return map
+})
+
+/** The checkbox decides for the subtitle files that were not selected themselves. */
+const hasSubtitles = computed(() =>
+  [...subtitlesByVideo.value.values()].some((list) =>
+    list.some((subtitle) => !selectedPaths.value.has(subtitle.path)),
+  ),
+)
+
+/** The Emby-style name for a file, before collisions are settled. */
+const targetName = (item: LectureVideoItem): string => {
+  const meta = metaByCourse.value.get(item.courseId!)
+  const episode = meta
+    ? episodeIndexForSession(meta.sessions, item.sessionId!)
+    : null
+  const sessionTitle =
+    meta?.sessions.find((s) => String(s.session_id) === String(item.sessionId))?.title
+    || item.displayName
+
+  const stem = buildDefaultRenameStem({
+    courseTitle: meta?.title || item.displayName,
+    sessionTitle,
+    semester: meta?.semester,
+    episode,
+    instructor: meta?.instructor,
+    schoolYear: meta?.schoolYear,
+    college: meta?.college,
+    classrooms: meta?.classrooms,
+    includeInstructor: options.includeInstructor,
+    includeSchoolYear: options.includeSchoolYear,
+    includeCollege: options.includeCollege,
+    includeClassrooms: options.includeClassrooms,
+  })
+
+  const ext = item.name.includes('.') ? item.name.slice(item.name.lastIndexOf('.')) : '.mp4'
+  return buildLectureVideoFileName({
+    stem,
+    courseId: item.courseId!,
+    sessionId: item.sessionId!,
+    videoType: item.videoType!,
+    compressPreset: item.compressPreset,
+    ext,
+  })
+}
+
 const previews = computed<PreviewRow[]>(() => {
   const existing = new Set(props.existingNames)
   const reserved = new Set<string>()
+  // One stream kept as both .mp4 and .mkv would claim the same subtitle twice.
+  const followed = new Set<string>()
 
-  return props.items
-    .filter((item) => item.recognised && item.courseId && item.sessionId && item.videoType)
-    .map((item) => {
-      const meta = metaByCourse.value.get(item.courseId!)
-      const episode = meta
-        ? episodeIndexForSession(meta.sessions, item.sessionId!)
-        : null
-      const sessionTitle =
-        meta?.sessions.find((s) => String(s.session_id) === String(item.sessionId))?.title
-        || item.displayName
+  const claim = (item: LectureVideoItem, desired: string): PreviewRow => {
+    const toName = allocateUniqueFileName(desired, new Set([...existing, ...reserved]), item.name)
+    reserved.add(toName)
+    return { path: item.path, fromName: item.name, toName, videoType: item.videoType! }
+  }
 
-      const stem = buildDefaultRenameStem({
-        courseTitle: meta?.title || item.displayName,
-        sessionTitle,
-        semester: meta?.semester,
-        episode,
-        instructor: meta?.instructor,
-        schoolYear: meta?.schoolYear,
-        college: meta?.college,
-        classrooms: meta?.classrooms,
-        includeInstructor: options.includeInstructor,
-        includeSchoolYear: options.includeSchoolYear,
-        includeCollege: options.includeCollege,
-        includeClassrooms: options.includeClassrooms,
-      })
+  const rows = videoItems.value.flatMap((item) => {
+    const row = claim(item, targetName(item))
+    const key = lectureKey(item)
+    if (followed.has(key)) return [row]
+    followed.add(key)
+    // The subtitle takes the video's whole new name, tags included, so a
+    // player opening the video still finds it. A selected one always follows.
+    const following = (subtitlesByVideo.value.get(key) ?? []).filter(
+      (subtitle) => options.renameSubtitles || selectedPaths.value.has(subtitle.path),
+    )
+    return [
+      row,
+      ...following.map((subtitle) =>
+        claim(subtitle, subtitleNameForVideo(row.toName, subtitle.ext)),
+      ),
+    ]
+  })
 
-      const ext = item.name.includes('.') ? item.name.slice(item.name.lastIndexOf('.')) : '.mp4'
-      let toName = buildLectureVideoFileName({
-        stem,
-        courseId: item.courseId!,
-        sessionId: item.sessionId!,
-        videoType: item.videoType!,
-        compressPreset: item.compressPreset,
-        ext,
-      })
+  // Subtitle files selected without their video are renamed on their own.
+  const alone = props.items
+    .filter((item) => item.isSubtitle && renamable(item) && !followed.has(lectureKey(item)))
+    .map((subtitle) => claim(subtitle, targetName(subtitle)))
 
-      const combined = new Set([...existing, ...reserved])
-      toName = allocateUniqueFileName(toName, combined, item.name)
-      reserved.add(toName)
-
-      return {
-        path: item.path,
-        fromName: item.name,
-        toName,
-        videoType: item.videoType!,
-      }
-    })
+  return [...rows, ...alone]
 })
 
 const apply = async () => {
@@ -243,6 +308,11 @@ const apply = async () => {
   color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
+}
+
+.lec-toggle--disabled {
+  color: var(--text-muted);
+  cursor: default;
 }
 
 .lec-toggle input {

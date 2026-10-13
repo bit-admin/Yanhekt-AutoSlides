@@ -41,6 +41,11 @@ export interface LibrarySession {
    * supplies an alternative audio track for whatever video is playing.
    */
   audio?: LibraryFileRef
+  /**
+   * Local subtitle file (`.srt`). Like the mic stem it is not a video and
+   * never makes a session on its own: it captions whatever is playing.
+   */
+  subtitles?: LibraryFileRef
   videoId?: string
   duration?: number
   /** Yanhekt camera (main) HLS URL — used when the camera file is not on disk. */
@@ -79,6 +84,8 @@ export interface LibraryCourse {
   dualCount: number
   /** Sessions with a local mic `.aac` on disk. */
   micCount: number
+  /** Sessions with a subtitle file on disk. */
+  subtitleCount: number
 }
 
 export type LocalStreamMode = 'dual' | 'screen' | 'camera'
@@ -228,6 +235,7 @@ export function buildLibraryCourses(
   items: LectureVideoItem[],
   metaByCourse: Map<string, LectureCourseMeta> = new Map(),
   slideSeeds: LibrarySlideSeed[] = [],
+  subtitleItems: LectureVideoItem[] = [],
 ): LibraryCourse[] {
   const recognised = items.filter((v) => v.recognised && v.courseId && v.sessionId)
 
@@ -237,6 +245,7 @@ export function buildLibraryCourses(
     screen?: LibraryFileRef
     camera?: LibraryFileRef
     audio?: LibraryFileRef
+    subtitles?: LibraryFileRef
     fallbackTitle: string
     slideFolderPath?: string
   }
@@ -301,6 +310,15 @@ export function buildLibraryCourses(
     if (!session.slideFolderPath) session.slideFolderPath = seed.folderPath
   }
 
+  // Subtitle files only join a session something else has already made.
+  for (const item of subtitleItems) {
+    if (!item.recognised || !item.courseId || !item.sessionId) continue
+    const session = courseMap.get(item.courseId)?.sessions.get(item.sessionId)
+    if (!session) continue
+    const ref = toFileRef(item, item.videoType ?? 'screen')
+    session.subtitles = session.subtitles ? pickBetter(session.subtitles, ref) : ref
+  }
+
   const courses: LibraryCourse[] = []
 
   for (const [courseId, bucket] of courseMap) {
@@ -325,6 +343,7 @@ export function buildLibraryCourses(
         screen: sess.screen,
         camera: sess.camera,
         audio: sess.audio,
+        subtitles: sess.subtitles,
         videoId: metaSession?.video_id,
         duration: metaSession?.duration,
         mainUrl: metaSession?.mainUrl,
@@ -340,6 +359,7 @@ export function buildLibraryCourses(
     let fileCount = 0
     let dualCount = 0
     let micCount = 0
+    let subtitleCount = 0
     for (const s of sessions) {
       if (s.screen) fileCount += 1
       if (s.camera) fileCount += 1
@@ -348,6 +368,10 @@ export function buildLibraryCourses(
       if (s.audio) {
         fileCount += 1
         micCount += 1
+      }
+      if (s.subtitles) {
+        fileCount += 1
+        subtitleCount += 1
       }
       if (s.screen && s.camera) dualCount += 1
     }
@@ -366,6 +390,7 @@ export function buildLibraryCourses(
       fileCount,
       dualCount,
       micCount,
+      subtitleCount,
     })
   }
 
@@ -475,9 +500,10 @@ export function formatSessionDate(
   return parts.join(' · ')
 }
 
-/** Total bytes of screen+camera files on a session. */
+/** Total bytes of a session's files on disk. */
 export function sessionTotalBytes(session: LibrarySession): number {
   return (session.screen?.size || 0) + (session.camera?.size || 0) + (session.audio?.size || 0)
+    + (session.subtitles?.size || 0)
 }
 
 /** Numbers behind the course page's About section — local files only, no API. */
@@ -485,6 +511,7 @@ export interface LibraryCourseAbout {
   totalBytes: number
   fileCount: number
   micCount: number
+  subtitleCount: number
   episodeCount: number
   /** Lowest/highest teaching week, or null when no session names a week. */
   weekRange: { from: number; to: number } | null
@@ -510,6 +537,7 @@ export function summarizeLibraryCourse(course: LibraryCourse): LibraryCourseAbou
     totalBytes,
     fileCount: course.fileCount,
     micCount: course.micCount,
+    subtitleCount: course.subtitleCount,
     episodeCount: course.episodeCount,
     weekRange: Number.isFinite(from) ? { from, to } : null,
     slidesCount,

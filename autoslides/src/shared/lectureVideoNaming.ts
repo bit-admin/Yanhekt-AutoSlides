@@ -46,6 +46,19 @@ export const LECTURE_MEDIA_EXTENSIONS: ReadonlySet<string> = new Set([
   ...LECTURE_AUDIO_EXTENSIONS,
 ]);
 
+/**
+ * Subtitle sidecars saved beside a lecture (the Yanhe 2.0 transcript download).
+ * Kept out of `LECTURE_MEDIA_EXTENSIONS` on purpose: a subtitle file is listed
+ * and renamed with its lecture, but it is never streamed, bucketed into the
+ * Library or compressed.
+ */
+export const LECTURE_SUBTITLE_EXTENSIONS: ReadonlySet<string> = new Set(['.srt']);
+
+/** True for an extension (with leading dot, any case) that holds subtitles. */
+export function isLectureSubtitleExt(ext: string): boolean {
+  return LECTURE_SUBTITLE_EXTENSIONS.has(ext.toLowerCase());
+}
+
 /** True for an extension (with leading dot, any case) that holds audio only. */
 export function isLectureAudioExt(ext: string): boolean {
   return LECTURE_AUDIO_EXTENSIONS.has(ext.toLowerCase());
@@ -285,6 +298,17 @@ export function withAscompTag(
   let stem = ext ? base.slice(0, -ext.length) : base;
   stem = stem.replace(ASCOMP_TAG, '').replace(/\s{2,}/g, ' ').trim();
   return `${stem} ${buildAscompTag(preset)}${ext}`;
+}
+
+/**
+ * The name a subtitle file needs so that players load it with `videoName`
+ * without being told: the video's whole stem, tags included, with the
+ * subtitle's own extension.
+ */
+export function subtitleNameForVideo(videoName: string, subtitleExt: string): string {
+  const extMatch = videoName.match(/(\.[^.]+)$/);
+  const stem = extMatch ? videoName.slice(0, -extMatch[1].length) : videoName;
+  return `${stem}${subtitleExt.startsWith('.') ? subtitleExt : `.${subtitleExt}`}`;
 }
 
 export interface SessionOrderProps {

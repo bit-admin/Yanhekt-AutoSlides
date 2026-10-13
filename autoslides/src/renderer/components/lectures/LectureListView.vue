@@ -75,7 +75,12 @@
         <!-- Stream type is said by the glyph (camera / monitor, as on the
              Session page), not by a color. -->
         <div class="folder-icon">
-          <svg v-if="item.videoType === 'camera'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg v-if="item.isSubtitle" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6"/>
+            <path d="M17 10.2a2.2 2.2 0 1 0 0 3.6"/>
+          </svg>
+          <svg v-else-if="item.videoType === 'camera'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
             <circle cx="12" cy="13" r="4"/>
           </svg>
@@ -99,8 +104,9 @@
           <div class="folder-mainline">
             <div class="folder-heading">
               <span class="folder-name" :title="item.name">{{ item.displayName }}</span>
+              <span v-if="item.isSubtitle" class="meta-badge meta-badge--subtitles">{{ $t('lectures.subtitles') }}</span>
               <span
-                v-if="item.videoType"
+                v-else-if="item.videoType"
                 class="meta-badge"
                 :class="'meta-badge--' + item.videoType"
               >{{ videoTypeLabel(item.videoType) }}</span>
@@ -429,7 +435,8 @@ const isGroupPartiallySelected = (group: LectureCourseGroup) => {
 
 .meta-badge--screen,
 .meta-badge--camera,
-.meta-badge--audio {
+.meta-badge--audio,
+.meta-badge--subtitles {
   border-color: var(--border-color);
   color: var(--text-secondary);
   background: var(--bg-selected);

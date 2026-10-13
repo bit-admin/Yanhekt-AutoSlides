@@ -22,6 +22,8 @@ export const lectures: ElectronAPI['lectures'] = {
     ipcRenderer.invoke('lectures:openOutputDirectory') as Promise<void>,
   openExternally: (filePath: string) =>
     ipcRenderer.invoke('lectures:openExternally', filePath) as Promise<void>,
+  readSubtitles: (filePath: string) =>
+    ipcRenderer.invoke('lectures:readSubtitles', filePath) as Promise<string | null>,
   getPoster: (filePath: string, seekSeconds?: number) =>
     ipcRenderer.invoke('lectures:getPoster', {
       path: filePath,

@@ -682,6 +682,8 @@ export interface ElectronAPI {
     reveal: (filePath: string) => Promise<void>;
     openOutputDirectory: () => Promise<void>;
     openExternally: (filePath: string) => Promise<void>;
+    /** The text of a subtitle file in the output folder, or null when it cannot be read. */
+    readSubtitles: (filePath: string) => Promise<string | null>;
     getPoster: (filePath: string, seekSeconds?: number) => Promise<string | null>;
   };
 
