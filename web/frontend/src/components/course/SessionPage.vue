@@ -99,6 +99,7 @@
         <div v-else class="playlist-list-wrap">
           <div v-if="sessions.length === 0" class="no-sessions">
             <p>{{ $t('sessions.noSessions') }}</p>
+            <p class="no-sessions-hint">{{ $t('sessions.noSessionsHint') }}</p>
           </div>
 
           <div v-else ref="listEl" class="sessions-list custom-scrollbar">
@@ -520,6 +521,15 @@ onMounted(() => {
   color: var(--text-secondary);
   font-style: italic;
   font-size: 0.875rem;
+}
+
+.no-sessions-hint {
+  max-width: 28rem;
+  margin: 0.5rem auto 0;
+  color: var(--text-muted);
+  font-style: normal;
+  font-size: 0.8125rem;
+  line-height: 1.45;
 }
 
 /* Responsive breakpoint styling */

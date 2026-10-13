@@ -306,6 +306,7 @@
     "monday": "Monday",
     "noCourseSelected": "No Course Selected",
     "noSessions": "No Sessions Found",
+    "noSessionsHint": "Yanhekt returned no sessions for this course. You may not have permission to watch it, or it has no recordings yet.",
     "noSubscriptions": "No subscribed courses",
     "participants": "Participants",
     "participantsCount": "Participants",

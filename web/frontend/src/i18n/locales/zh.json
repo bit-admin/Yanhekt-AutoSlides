@@ -306,6 +306,7 @@
     "monday": "星期一",
     "noCourseSelected": "未选择课程",
     "noSessions": "未找到课时",
+    "noSessionsHint": "延河课堂没有返回这门课程的课时。你可能没有观看权限，或者它还没有录像。",
     "noSubscriptions": "暂无订阅的课程",
     "participants": "参与者",
     "participantsCount": "人",

@@ -924,6 +924,7 @@
     "participantsCount": "参与者",
     "loadingSessions": "加载课时中…",
     "noSessions": "未找到课时",
+    "noSessionsHint": "延河课堂没有返回这门课程的课时。你可能没有观看权限，或者它还没有录像。",
     "addAllToTasks": "添加全部到提取任务",
     "downloadAllCamera": "下载全部摄像头录像",
     "downloadAllScreen": "下载全部屏幕录像",

@@ -924,6 +924,7 @@
     "participantsCount": "参加者",
     "loadingSessions": "セッションを読み込み中…",
     "noSessions": "セッションが見つかりません",
+    "noSessionsHint": "延河課堂はこのコースのセッションを返しませんでした。視聴する権限がないか、まだ録画がない可能性があります。",
     "addAllToTasks": "すべてをタスクに追加",
     "downloadAllCamera": "すべてのカメラビデオをダウンロード",
     "downloadAllScreen": "すべての画面ビデオをダウンロード",

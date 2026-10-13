@@ -924,6 +924,7 @@
     "participantsCount": "참가자",
     "loadingSessions": "세션 불러오는 중…",
     "noSessions": "세션을 찾을 수 없습니다",
+    "noSessionsHint": "Yanhekt에서 이 강의의 세션을 반환하지 않았습니다. 시청 권한이 없거나 아직 녹화가 없을 수 있습니다.",
     "addAllToTasks": "모두 작업에 추가",
     "downloadAllCamera": "모든 카메라 비디오 다운로드",
     "downloadAllScreen": "모든 화면 비디오 다운로드",

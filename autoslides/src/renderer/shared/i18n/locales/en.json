@@ -924,6 +924,7 @@
     "participantsCount": "Participants",
     "loadingSessions": "Loading sessions…",
     "noSessions": "No Sessions Found",
+    "noSessionsHint": "Yanhekt returned no sessions for this course. You may not have permission to watch it, or it has no recordings yet.",
     "addAllToTasks": "Add All to Tasks",
     "downloadAllCamera": "Download All Camera",
     "downloadAllScreen": "Download All Screen",

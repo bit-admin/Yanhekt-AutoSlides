@@ -621,11 +621,12 @@ export class ApiClient {
         throw new Error(errorMessage);
       }
 
+      // An empty list is an answer, not an error. Yanhekt sends `{code:0, data:[]}`
+      // both for a course with no recordings and for one this account may not
+      // watch (its own site says 暂无当前课程权限): the list carries no permission
+      // code, so the two cannot be told apart here. A wrong id or a bad token is
+      // a non-zero `code`, thrown above and in getCourseSessions.
       const formattedVideos = await this.getCourseSessions(courseId, token);
-
-      if (formattedVideos.length === 0) {
-        throw new Error(`Course information returned error, please check if authentication is obtained and course ID is correct`);
-      }
 
       const name = courseData.data.name_zh.trim();
       const nameEn = courseData.data.name_en?.trim() || undefined;

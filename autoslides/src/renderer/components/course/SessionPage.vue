@@ -86,13 +86,17 @@
         <p>{{ $t('sessions.loadingSessions') }}</p>
       </div>
 
+      <!-- Yanhekt answers an empty list both for a course with no recordings and
+           for one this account may not watch; it does not say which. -->
+      <EmptySetState
+        v-else-if="!errorMessage && sessions.length === 0"
+        :title="$t('sessions.noSessions')"
+        :hint="$t('sessions.noSessionsHint')"
+      />
+
       <div v-else-if="!errorMessage" class="main-content">
 
-        <div v-if="sessions.length === 0" class="no-sessions">
-          <p>{{ $t('sessions.noSessions') }}</p>
-        </div>
-
-        <div v-else class="sessions-container">
+        <div class="sessions-container">
           <div class="batch-actions">
             <!-- [verb] label [target]: the leading glyph is the action (+ / download),
                  the trailing glyph is where it lands (Task queue / camera / screen).
@@ -244,6 +248,7 @@ import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames
 import { useAuth } from '@features/platform/useAuth'
 import { yanhe2ActiveBadge } from '@features/platform/yanhe2AccountUi'
 import { openYanhe2Twin } from '../yanhe2/openCourseTwin'
+import EmptySetState from '../shell/EmptySetState.vue'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 import PageErrorNotice from '../shell/PageErrorNotice.vue'
 
@@ -642,13 +647,6 @@ onMounted(() => {
 
 .loading-state {
   padding: 48px 16px;
-}
-
-.no-sessions {
-  text-align: center;
-  padding: 48px 16px;
-  color: var(--text-secondary);
-  font-style: italic;
 }
 
 

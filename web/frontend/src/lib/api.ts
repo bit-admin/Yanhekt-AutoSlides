@@ -510,11 +510,11 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
     token,
   );
 
-  if (!videoList || videoList.length === 0) {
-    throw new Error(
-      "Course information returned error, please check if authentication is obtained and course ID is correct",
-    );
-  }
+  // An empty list is an answer, not an error. Yanhekt sends `{code:0, data:[]}`
+  // both for a course with no recordings and for one this account may not
+  // watch (its own site says 暂无当前课程权限): the list carries no permission
+  // code, so the two cannot be told apart here. A wrong id or a bad token is
+  // a non-zero `code`, which `request` throws.
 
   const name = courseData.name_zh.trim();
   const nameEn = courseData.name_en?.trim() || undefined;
@@ -523,7 +523,7 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
     .filter((n): n is string => !!n);
   const professor = professorNames[0] || "Unknown Teacher";
 
-  const formattedVideos: SessionData[] = videoList.map((video) => {
+  const formattedVideos: SessionData[] = (videoList ?? []).map((video) => {
     const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
     // The API returns numeric ids at runtime despite the declared string
     // types (the Electron app String()s them at every use site). Normalize
