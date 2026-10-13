@@ -70,6 +70,24 @@ describe('pickSyncWindows', () => {
     expect(Math.abs(windows[0] - windows[1])).toBeGreaterThanOrEqual(600);
   });
 
+  it('passes over a stretch where the transcript caught only scraps', () => {
+    // A dense first half-hour, then half an hour of one short line every 20 s: far more "pauses", none of them real.
+    const dense = lecture(1800, seeded(4));
+    const scraps = Array.from({ length: 90 }, (_, index) => ({ begin: 1800 + index * 20, end: 1802 + index * 20, text: 'x' }));
+    const windows = pickSyncWindows([...dense, ...scraps], 3600);
+    expect(windows.length).toBeGreaterThan(0);
+    for (const start of windows) expect(start + SYNC_WINDOW_SECONDS).toBeLessThanOrEqual(1800 + 60);
+  });
+
+  it('still listens to a transcript that is thin everywhere', () => {
+    const scraps = Array.from({ length: 180 }, (_, index) => ({ begin: index * 20, end: index * 20 + 2, text: 'x' }));
+    expect(pickSyncWindows(scraps, 3600).length).toBeGreaterThan(0);
+  });
+
+  it('leaves out the minutes before class settles', () => {
+    for (const start of pickSyncWindows(lecture(5400, seeded(5)), 5400)) expect(start).toBeGreaterThanOrEqual(120);
+  });
+
   it('has nowhere to listen when nobody ever pauses', () => {
     const lines = Array.from({ length: 300 }, (_, index) => ({ begin: index * 5, end: index * 5 + 5, text: 'x' }));
     expect(pickSyncWindows(lines, 1500)).toEqual([]);

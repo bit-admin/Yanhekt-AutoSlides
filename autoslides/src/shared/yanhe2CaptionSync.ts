@@ -41,6 +41,10 @@ const MIN_PAUSES = 3;
 /** Windows are taken this far apart, so two that agree are two measurements. */
 const WINDOW_SPACING_SECONDS = 600;
 const WINDOW_STEP_SECONDS = 30;
+/** The first minutes are the room filling up: loud, and none of it in the transcript. */
+const LEAD_IN_SECONDS = 120;
+/** A window the transcript covers less of than this is one where it dropped most of what was said. */
+const MIN_COVERAGE = 0.6;
 
 export interface HlsSegment {
   /** Seconds from the start of the recording. */
@@ -71,8 +75,12 @@ export function parseHlsSegments(playlist: string): HlsSegment[] {
 /**
  * Where to listen: up to `count` window starts (seconds), best first, each
  * `SYNC_WINDOW_SECONDS` long and inside the recording. A window is as good as
- * the number of pauses the transcript has in it; stretches the transcript
- * skips, or where the teacher never stops, are no use.
+ * the number of pauses the transcript has in it, as long as the transcript
+ * covers most of it: stretches it skips, or where the teacher never stops,
+ * are no use, and neither are stretches where it caught only scraps — every
+ * dropped sentence looks like a pause there, and none of them is one (sub
+ * `1610882`: the three windows richest in pauses were the three worst).
+ * Only a transcript that is thin everywhere is listened to where it is thin.
  */
 export function pickSyncWindows(lines: Yanhe2TranscriptLine[], durationSeconds: number, count = 3): number[] {
   const pauses: number[] = [];
@@ -81,16 +89,26 @@ export function pickSyncWindows(lines: Yanhe2TranscriptLine[], durationSeconds: 
     // A gap of minutes is the transcript missing, not a pause: only its two edges would match.
     if (gap >= PAUSE_SECONDS && gap <= 60) pauses.push(lines[index - 1].end);
   }
-  const candidates: { start: number; score: number }[] = [];
-  for (let start = 0; start + SYNC_WINDOW_SECONDS <= durationSeconds; start += WINDOW_STEP_SECONDS) {
+  const covered = (start: number): number => {
+    let seconds = 0;
+    for (const line of lines) {
+      seconds += Math.max(0, Math.min(line.end, start + SYNC_WINDOW_SECONDS) - Math.max(line.begin, start));
+    }
+    return seconds / SYNC_WINDOW_SECONDS;
+  };
+  const candidates: { start: number; score: number; coverage: number }[] = [];
+  const first = durationSeconds >= LEAD_IN_SECONDS + 2 * SYNC_WINDOW_SECONDS ? LEAD_IN_SECONDS : 0;
+  for (let start = first; start + SYNC_WINDOW_SECONDS <= durationSeconds; start += WINDOW_STEP_SECONDS) {
     const score = pauses.filter((at) => at >= start && at < start + SYNC_WINDOW_SECONDS).length;
-    if (score >= MIN_PAUSES) candidates.push({ start, score });
+    if (score >= MIN_PAUSES) candidates.push({ start, score, coverage: covered(start) });
   }
   candidates.sort((a, b) => b.score - a.score || a.start - b.start);
+  const dense = candidates.filter((candidate) => candidate.coverage >= MIN_COVERAGE);
+  const pool = dense.length > 0 ? dense : candidates;
 
   const picked: number[] = [];
   for (const spacing of [WINDOW_SPACING_SECONDS, SYNC_WINDOW_SECONDS]) {
-    for (const candidate of candidates) {
+    for (const candidate of pool) {
       if (picked.length >= count) return picked;
       if (picked.every((start) => Math.abs(start - candidate.start) >= spacing)) picked.push(candidate.start);
     }
