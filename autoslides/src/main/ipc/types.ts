@@ -1,5 +1,6 @@
 import type { MainAuthService } from '@main/platform/authService';
 import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
+import type { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import type { ApiClient } from '@main/platform/apiClient';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
@@ -37,6 +38,7 @@ import type { LocalLecturePosterService } from '@main/video/localLecturePosterSe
 export interface IpcServices {
   authService: MainAuthService;
   yanhe2Service: Yanhe2Service;
+  yanhe2TwinResolver: Yanhe2TwinResolver;
   apiClient: ApiClient;
   configService: ConfigService;
   intranetMappingService: IntranetMappingService;

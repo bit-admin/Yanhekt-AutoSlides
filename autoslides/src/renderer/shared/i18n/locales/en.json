@@ -1834,6 +1834,16 @@
     "otherPeriod": "Other Times",
     "timetable": "Week timetable"
   },
+  "courseTwin": {
+    "findOnYanhe2": "Find this course on Yanhe 2.0",
+    "findOnYanhekt": "Find this course on Yanhekt",
+    "notOnYanhe2": "This course was not found on Yanhe 2.0.",
+    "notOnYanhekt": "This course was not found on Yanhekt.",
+    "yanhe2SignedOut": "Sign in to Yanhe 2.0 to find this course there.",
+    "yanhektSignedOut": "Sign in to Yanhekt to find this course there.",
+    "network": "Could not look this course up. Check your connection and try again.",
+    "failed": "The course lookup failed. Try again later."
+  },
   "yanhe2Curriculum": {
     "downloadSubtitles": "Download Subtitles",
     "downloadAllSubtitles": "Download All Subtitles",

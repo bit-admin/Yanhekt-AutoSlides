@@ -21,6 +21,20 @@
           {{ $t('sessions.backToCourses') }}
         </button>
         <h2 :title="selected.title">{{ selected.title }}</h2>
+        <!-- The same course's sessions on Yanhekt (Recorded). -->
+        <button
+          type="button"
+          class="btn expand-btn"
+          :title="$t('courseTwin.findOnYanhekt')"
+          :disabled="findingTwin"
+          @click="findOnYanhekt"
+        >
+          <span v-if="findingTwin" class="spinning-ring" aria-hidden="true"></span>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
         <button type="button" class="btn expand-btn" :aria-expanded="showDetails" @click="showDetails = !showDetails">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ rotated: showDetails }" aria-hidden="true">
             <polyline points="6,9 12,15 18,9"/>
@@ -271,6 +285,7 @@ import { academicTermLabel } from '@shared/i18n/displayNames'
 import EmptySetState from '../shell/EmptySetState.vue'
 import PageBanner from '../shell/PageBanner.vue'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
+import { openYanhektTwin } from './openCourseTwin'
 import { openYanhe2Session } from './openYanhe2Session'
 
 const { t, locale } = useI18n()
@@ -322,6 +337,18 @@ const showDetails = ref(false)
 watch(() => selected.value?.courseId, () => {
   showDetails.value = false
 })
+
+const findingTwin = ref(false)
+const findOnYanhekt = async () => {
+  const course = selected.value
+  if (!course || !yanhe2ActiveBadge.value || findingTwin.value) return
+  findingTwin.value = true
+  try {
+    await openYanhektTwin(yanhe2ActiveBadge.value, course.courseId)
+  } finally {
+    findingTwin.value = false
+  }
+}
 
 // The course row names no room; its sessions do.
 // The title bar's Info tab chip reads "Sessions" on a sessions list, as it does

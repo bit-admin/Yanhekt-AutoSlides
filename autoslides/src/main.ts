@@ -363,6 +363,7 @@ if (!cliRun) registerAllIpcHandlers({
   slideTimelineService,
   yanhe2SlideImportService,
   yanhe2SubtitleService,
+  yanhe2TwinResolver,
   yanhe2CaptionSyncService,
   cacheManagementService,
   notesService,

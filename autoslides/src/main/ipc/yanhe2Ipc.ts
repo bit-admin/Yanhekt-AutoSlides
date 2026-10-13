@@ -14,7 +14,7 @@ import type { Yanhe2SlideSavePrepared, Yanhe2SlideSaveProgress, Yanhe2SlideSaveR
 // Settings field — never inside the broadcast config. Handlers that may change
 // a stored session broadcast config so `yanhe2SessionExpiry` follows.
 export function registerYanhe2IpcHandlers(services: IpcServices): void {
-  const { authService, yanhe2Service, yanhe2SlideImportService, yanhe2SubtitleService, yanhe2CaptionSyncService, configService, videoProxyService } = services;
+  const { authService, yanhe2Service, yanhe2TwinResolver, yanhe2SlideImportService, yanhe2SubtitleService, yanhe2CaptionSyncService, configService, videoProxyService } = services;
 
   const str = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
   const broadcast = () => broadcastConfig(configService);
@@ -92,6 +92,19 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('yanhe2:searchCourses', async (_event, account: string, query: unknown) => {
     const result = await yanhe2Service.searchCourses(str(account), query);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
+  // The same course on the other site, by the registrar's number both keep.
+  ipcMain.handle('yanhe2:findYanhektCourse', async (_event, account: string, query: unknown) => {
+    const result = await yanhe2TwinResolver.findYanhektCourse(str(account), query);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
+  ipcMain.handle('yanhe2:findYanhe2Course', async (_event, account: string, query: unknown) => {
+    const result = await yanhe2TwinResolver.findYanhe2Course(str(account), query);
     if (result.kind === 'signed_out') broadcast();
     return result;
   });

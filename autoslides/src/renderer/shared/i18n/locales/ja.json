@@ -1834,6 +1834,16 @@
     "otherPeriod": "その他の時間帯",
     "timetable": "週間時間割"
   },
+  "courseTwin": {
+    "findOnYanhe2": "このコースを延河 2.0 で探す",
+    "findOnYanhekt": "このコースを延河課堂で探す",
+    "notOnYanhe2": "延河 2.0 にこのコースは見つかりませんでした。",
+    "notOnYanhekt": "延河課堂にこのコースは見つかりませんでした。",
+    "yanhe2SignedOut": "延河 2.0 でこのコースを探すには、延河 2.0 にサインインしてください。",
+    "yanhektSignedOut": "延河課堂でこのコースを探すには、延河課堂にサインインしてください。",
+    "network": "コースを検索できませんでした。接続を確認してもう一度お試しください。",
+    "failed": "コースの検索に失敗しました。しばらくしてからお試しください。"
+  },
   "yanhe2Curriculum": {
     "downloadSubtitles": "字幕をダウンロード",
     "downloadAllSubtitles": "すべての字幕をダウンロード",

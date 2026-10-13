@@ -1,7 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import axios from 'axios';
 import { routeYanhe2Through, type Yanhe2Send } from './yanhe2Http';
-import { fetchYanhe2CourseSearch, fetchYanhe2Terms, parseCourseSearch, parseTerms } from './yanhe2Search';
+import {
+  fetchYanhe2CourseByCode,
+  fetchYanhe2CourseSearch,
+  fetchYanhe2Terms,
+  parseCourseSearch,
+  parseTerms,
+  pickCourseByCode,
+} from './yanhe2Search';
 
 const term = (id: unknown, extra: Record<string, unknown> = {}) => ({
   id,
@@ -139,5 +146,75 @@ describe('search requests', () => {
       data: [{ id: 42, name: '2026-2027-1', schoolYear: 2026, semester: 1, current: true }],
     });
     expect(url().pathname).toBe('/courseapi/v2/schedule/search-term');
+  });
+});
+
+describe('finding a course by its number', () => {
+  afterEach(() => routeYanhe2Through((config) => axios.request(config)));
+
+  const KEY = { courseCode: 'K-1', title: '大学物理实验', teachers: ['teacher-a', 'teacher-b'], termName: '2026-2027-1' };
+  const termsBody = { code: 0, total: '1', list: [term(42, { current: true })] };
+
+  /** Answers each request from its query; records the searches made. */
+  const serve = (answer: (params: URLSearchParams) => unknown) => {
+    const searches: string[] = [];
+    routeYanhe2Through(vi.fn<Yanhe2Send>(async (config) => {
+      const url = new URL(config.url);
+      if (url.pathname.endsWith('/search-term')) return { status: 200, data: termsBody } as never;
+      searches.push(`${url.searchParams.get('title')}#${url.searchParams.get('page')}@${url.searchParams.get('term')}/${url.searchParams.get('per_page')}`);
+      return { status: 200, data: answer(url.searchParams) } as never;
+    }));
+    return searches;
+  };
+
+  it('takes the one row with that number, never two', () => {
+    const a = { courseId: '1', courseCode: 'K-1' } as never;
+    const b = { courseId: '2', courseCode: 'K-2' } as never;
+    expect(pickCourseByCode([a, b], 'K-1')).toBe(a);
+    expect(pickCourseByCode([a, a], 'K-1')).toBeNull();
+    expect(pickCourseByCode([a, b], '')).toBeNull();
+  });
+
+  it('finds it by name in the course term with one search', async () => {
+    const searches = serve(() => searchBody([row('7', { kcwybm: 'K-0' }), row('8', { kcwybm: 'K-1' })], '2'));
+    const found = await fetchYanhe2CourseByCode('jwt', KEY);
+    expect(found).toMatchObject({ kind: 'ok', data: { courseId: '8', courseCode: 'K-1' } });
+    expect(searches).toEqual(['大学物理实验#1@42/200']);
+  });
+
+  it('says none when the name is not there, without reading further', async () => {
+    const searches = serve(() => searchBody([row('7', { kcwybm: 'K-0' })], '1'));
+    expect(await fetchYanhe2CourseByCode('jwt', KEY)).toEqual({ kind: 'ok', data: null });
+    expect(searches).toHaveLength(1);
+  });
+
+  it('tries the teachers before paging through a name with many sections', async () => {
+    const searches = serve((params) =>
+      params.get('title') === 'teacher-b'
+        ? searchBody([row('9', { kcwybm: 'K-1' })], '1')
+        : searchBody([row('7', { kcwybm: 'K-0' })], params.get('title') === KEY.title ? '2024' : '1'));
+    const found = await fetchYanhe2CourseByCode('jwt', KEY);
+    expect(found).toMatchObject({ kind: 'ok', data: { courseId: '9' } });
+    expect(searches).toEqual(['大学物理实验#1@42/200', 'teacher-a#1@42/200', 'teacher-b#1@42/200']);
+  });
+
+  it('reads on through the name when the teachers do not have it, up to the cap', async () => {
+    let searches = serve((params) =>
+      params.get('title') === KEY.title && params.get('page') === '3'
+        ? searchBody([row('9', { kcwybm: 'K-1' })], '2024')
+        : searchBody([row('7', { kcwybm: 'K-0' })], '2024'));
+    expect(await fetchYanhe2CourseByCode('jwt', KEY)).toMatchObject({ kind: 'ok', data: { courseId: '9' } });
+    expect(searches.slice(3)).toEqual(['大学物理实验#2@42/200', '大学物理实验#3@42/200']);
+
+    searches = serve(() => searchBody([row('7', { kcwybm: 'K-0' })], '99999'));
+    expect(await fetchYanhe2CourseByCode('jwt', KEY)).toEqual({ kind: 'ok', data: null });
+    // The first page, two teachers, then pages 2–10.
+    expect(searches).toHaveLength(12);
+  });
+
+  it('searches every term when aita does not list the course term', async () => {
+    const searches = serve(() => searchBody([row('8', { kcwybm: 'K-1' })], '1'));
+    await fetchYanhe2CourseByCode('jwt', { ...KEY, termName: '2019-2020-1' });
+    expect(searches).toEqual(['大学物理实验#1@null/200']);
   });
 });

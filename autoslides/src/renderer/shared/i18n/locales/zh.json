@@ -1834,6 +1834,16 @@
     "otherPeriod": "其他时段",
     "timetable": "周课表"
   },
+  "courseTwin": {
+    "findOnYanhe2": "在延河 2.0 查找该课程",
+    "findOnYanhekt": "在延河课堂查找该课程",
+    "notOnYanhe2": "在延河 2.0 没有找到这门课程。",
+    "notOnYanhekt": "在延河课堂没有找到这门课程。",
+    "yanhe2SignedOut": "请先登录延河 2.0，再在那里查找这门课程。",
+    "yanhektSignedOut": "请先登录延河课堂，再在那里查找这门课程。",
+    "network": "无法查找这门课程。请检查网络后重试。",
+    "failed": "课程查找失败。请稍后重试。"
+  },
   "yanhe2Curriculum": {
     "downloadSubtitles": "下载字幕",
     "downloadAllSubtitles": "下载全部字幕",

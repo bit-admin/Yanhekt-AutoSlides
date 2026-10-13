@@ -10,14 +10,27 @@
           {{ $t('sessions.backToCourses') }}
         </button>
         <h2>{{ courseDisplayTitle(course) }}</h2>
+        <!-- The same course's sessions on Yanhe 2.0. -->
+        <button
+          @click="findOnYanhe2"
+          class="btn twin-search-btn"
+          :title="$t('courseTwin.findOnYanhe2')"
+          :disabled="findingTwin"
+        >
+          <span v-if="findingTwin" class="twin-spinner" aria-hidden="true"></span>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+        <!-- A cloud, not a magnifier: the magnifier is the course search beside it. -->
         <button
           @click="searchInIndex"
           class="btn index-search-btn"
           :title="$t('sessions.searchInIndex')"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
           </svg>
         </button>
         <button
@@ -222,13 +235,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, toRef } from 'vue'
+import { computed, onMounted, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
 import { isPinned, togglePinnedCourse } from '@features/course/pinnedCourses'
 import { navigationStore } from '@features/course/navigationStore'
 import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames'
 import { useAuth } from '@features/platform/useAuth'
+import { yanhe2ActiveBadge } from '@features/platform/yanhe2AccountUi'
+import { openYanhe2Twin } from '../yanhe2/openCourseTwin'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 import PageErrorNotice from '../shell/PageErrorNotice.vue'
 
@@ -292,6 +307,20 @@ const searchInIndex = () => {
   navigationStore.requestCloudIndexSearch(courseId)
 }
 
+// Only the id is sent: main reads the course's number itself, so a course
+// opened from a pin (an id and a title) is found like any other.
+const findingTwin = ref(false)
+const findOnYanhe2 = async () => {
+  const courseId = String(courseDetails.value?.id || props.course?.id || '')
+  if (!courseId || findingTwin.value) return
+  findingTwin.value = true
+  try {
+    await openYanhe2Twin(yanhe2ActiveBadge.value, courseId)
+  } finally {
+    findingTwin.value = false
+  }
+}
+
 onMounted(() => {
   loadCourseSessions()
 })
@@ -352,11 +381,26 @@ onMounted(() => {
 
 /* Square 32×32 icon button, matching .expand-btn. Accent when pinned. */
 .pin-btn,
-.index-search-btn {
+.index-search-btn,
+.twin-search-btn {
   width: 32px;
   height: 32px;
   padding: 0;
   flex-shrink: 0;
+}
+
+.twin-spinner {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--text-secondary);
+  border-radius: 50%;
+  animation: twin-spin 0.8s linear infinite;
+}
+
+@keyframes twin-spin {
+  to { transform: rotate(360deg); }
 }
 
 .pin-btn.active {

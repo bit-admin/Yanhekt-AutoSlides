@@ -30,7 +30,7 @@ import { fetchYanhe2Profile } from './yanhe2Api';
 import { fetchYanhe2Day, fetchYanhe2Week, type Yanhe2Fetched } from './yanhe2Calendar';
 import { fetchYanhe2CourseDetail, fetchYanhe2Courses } from './yanhe2Curriculum';
 import { fetchYanhe2SubInfo, type Yanhe2PlayIdentity, type Yanhe2SubInfo } from './yanhe2Playback';
-import { fetchYanhe2CourseSearch, fetchYanhe2Terms } from './yanhe2Search';
+import { fetchYanhe2CourseByCode, fetchYanhe2CourseSearch, fetchYanhe2Terms, type Yanhe2CourseKey } from './yanhe2Search';
 import { fetchYanhe2Slides } from './yanhe2Slides';
 import { fetchYanhe2Transcript } from './yanhe2Transcript';
 import type { Yanhe2TwinKey } from './yanhe2Twin';
@@ -202,6 +202,16 @@ export class Yanhe2Service {
       termId: termId as number | null,
       page: page as number,
     }));
+  }
+
+  /**
+   * The Yanhe 2.0 course with a registrar's number, null when there is none.
+   * Main only: the key is built from a Yanhekt course row, not by the renderer.
+   */
+  async findCourseByCode(account: string, key: Yanhe2CourseKey): Promise<Yanhe2ReadResult<Yanhe2Course | null>> {
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2CourseByCode(stored.jwt, key));
   }
 
   /**
