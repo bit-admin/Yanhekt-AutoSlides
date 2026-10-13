@@ -44,7 +44,8 @@ export interface SlideMetadataSource {
 }
 
 export interface SlideExtractionMeta {
-  extractor: 'builtin' | 'qt';
+  // 'yanhe2' = not extracted here: the slides Yanhe 2.0 detected itself, saved as they came.
+  extractor: 'builtin' | 'qt' | 'yanhe2';
   ssimThreshold?: number;
   extractedAt: string;
   // How the extraction was initiated. Absent (legacy files) is treated as 'auto'.

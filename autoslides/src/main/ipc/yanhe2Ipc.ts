@@ -4,6 +4,7 @@ import { broadcastConfig } from './broadcastConfig';
 import type { Yanhe2ReadResult } from '@common/yanhe2Calendar';
 import type { Yanhe2Playback, Yanhe2PlaybackResult, Yanhe2PlaybackStream } from '@common/yanhe2Playback';
 import type { Yanhe2Slide } from '@common/yanhe2Slides';
+import type { Yanhe2SlideSavePrepared, Yanhe2SlideSaveProgress, Yanhe2SlideSaveResult } from '@common/yanhe2SlideSave';
 
 // Yanhe 2.0 (aita.yanhekt.cn) account. Every handler takes the signed-in
 // account's badge (student id) and plain strings. The JWT crosses the bridge
@@ -11,7 +12,7 @@ import type { Yanhe2Slide } from '@common/yanhe2Slides';
 // Settings field — never inside the broadcast config. Handlers that may change
 // a stored session broadcast config so `yanhe2SessionExpiry` follows.
 export function registerYanhe2IpcHandlers(services: IpcServices): void {
-  const { authService, yanhe2Service, configService, videoProxyService } = services;
+  const { authService, yanhe2Service, yanhe2SlideImportService, configService, videoProxyService } = services;
 
   const str = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
   const broadcast = () => broadcastConfig(configService);
@@ -121,6 +122,26 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     if (result.kind !== 'ok' || result.data.length === 0) return result;
     const urls = await videoProxyService.getYanhe2SlideUrls(result.data.map((slide) => slide.url));
     return { kind: 'ok', data: result.data.map((slide, index) => ({ seconds: slide.seconds, url: urls[index] })) };
+  });
+
+  // Saving the server slides as the same lecture's Yanhekt folder. `prepare`
+  // finds that lecture and writes nothing; `save` does the work and reports
+  // each slide written to the window that asked.
+  ipcMain.handle('yanhe2:prepareSlideSave', async (_event, account: string, query: unknown): Promise<Yanhe2SlideSavePrepared> => {
+    const result = await yanhe2SlideImportService.prepare(str(account), query);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
+  ipcMain.handle('yanhe2:saveSlides', async (event, account: string, query: unknown): Promise<Yanhe2SlideSaveResult> => {
+    const subId = str((query as { subId?: unknown } | null)?.subId);
+    const result = await yanhe2SlideImportService.save(str(account), query, (done, total) => {
+      if (event.sender.isDestroyed()) return;
+      const progress: Yanhe2SlideSaveProgress = { subId, done, total };
+      event.sender.send('yanhe2:slideSaveProgress', progress);
+    });
+    if (result.kind === 'signed_out') broadcast();
+    return result;
   });
 
   // One session's transcript, for the player's captions.

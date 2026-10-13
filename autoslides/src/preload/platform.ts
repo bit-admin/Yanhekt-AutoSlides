@@ -2,6 +2,7 @@ import { ipcRenderer } from 'electron';
 import type { ElectronAPI, DialogOptions } from './electronApi';
 import type { AppConfig, ConnectionMode, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
+import type { Yanhe2SlideSaveProgress } from '@common/yanhe2SlideSave';
 
 export const auth: ElectronAPI['auth'] = {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
@@ -38,6 +39,15 @@ export const yanhe2: ElectronAPI['yanhe2'] = {
   courseDetail: (account, query) => ipcRenderer.invoke('yanhe2:courseDetail', account, query),
   playback: (account, query) => ipcRenderer.invoke('yanhe2:playback', account, query),
   slides: (account, query) => ipcRenderer.invoke('yanhe2:slides', account, query),
+  prepareSlideSave: (account, query) => ipcRenderer.invoke('yanhe2:prepareSlideSave', account, query),
+  saveSlides: (account, query) => ipcRenderer.invoke('yanhe2:saveSlides', account, query),
+  onSlideSaveProgress: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, progress: Yanhe2SlideSaveProgress) => callback(progress);
+    ipcRenderer.on('yanhe2:slideSaveProgress', listener);
+    return () => {
+      ipcRenderer.removeListener('yanhe2:slideSaveProgress', listener);
+    };
+  },
   transcript: (account, subId) => ipcRenderer.invoke('yanhe2:transcript', account, subId),
   prepareBrowserSignIn: () => ipcRenderer.invoke('yanhe2:prepareBrowserSignIn'),
   adoptBrowserSession: (account: string) => ipcRenderer.invoke('yanhe2:adoptBrowserSession', account),

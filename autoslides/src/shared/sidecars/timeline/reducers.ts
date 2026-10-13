@@ -51,7 +51,7 @@ export function createEmptyTimeline(
  */
 export function ensureRecordedHostFields(timeline: SlideTimeline): SlideTimeline {
   const extractor: SlideTimelineExtractor =
-    timeline.extractor === 'builtin' || timeline.extractor === 'qt'
+    timeline.extractor === 'builtin' || timeline.extractor === 'qt' || timeline.extractor === 'yanhe2'
       ? timeline.extractor
       : 'qt';
   const kindOk = timeline.kind === 'recorded';

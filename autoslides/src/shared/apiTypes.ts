@@ -68,6 +68,8 @@ export interface LiveListResponse {
 
 export interface CourseData {
   id: string;
+  /** The registrar's course number, an opaque string. Yanhe 2.0 calls the same value `kcwybm`. */
+  number?: string;
   name_zh: string;
   /** English course name. Present on /v2/course/list and /v1/course; often absent.
    *  Display only — never let it reach a filename, note title, or Index upload. */

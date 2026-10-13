@@ -1850,6 +1850,18 @@
     "slideShownAt": "Shown At:",
     "slidesLoading": "Loading slides…",
     "slidesFailed": "Yanhe 2.0 did not return the slides for this lecture.",
-    "slidesEmpty": "Yanhe 2.0 has no slides for this lecture."
+    "slidesEmpty": "Yanhe 2.0 has no slides for this lecture.",
+    "saveSlides": "Save Slides",
+    "savingSlides": "Saving…",
+    "saveRefused": {
+      "signed_out": "Your Yanhe 2.0 session has ended. Sign in again, then retry.",
+      "yanhekt_signed_out": "Sign in to Yanhekt to save these slides. They are filed under the same lecture there.",
+      "no_match": "This lecture was not found on Yanhekt, so its slides were not saved.",
+      "no_slides": "Yanhe 2.0 has no slides for this lecture.",
+      "folder_in_use": "This lecture already has saved slides. Remove them in Slides to save again.",
+      "busy": "These slides are already being saved.",
+      "network": "Could not download the slides. Check your connection and try again.",
+      "failed": "The slides could not be saved. Try again later."
+    }
   }
 }

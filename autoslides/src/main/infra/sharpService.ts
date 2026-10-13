@@ -287,6 +287,30 @@ export class SharpService {
   }
 
   /**
+   * Re-encode any image sharp reads (a JPEG, say) as a slide PNG: indexed to
+   * 128 colors with the same settings as `reducePngColors`, or plain 8-bit
+   * when `indexed` is false.
+   * @returns The PNG, or null when sharp is unavailable or the image is unreadable
+   */
+  async toSlidePng(imageBuffer: Uint8Array, indexed: boolean): Promise<Uint8Array | null> {
+    this.ensureInitialized();
+    if (!this.sharp) {
+      log.warn('Sharp not available, cannot convert to PNG');
+      return null;
+    }
+
+    try {
+      const png = await this.sharp(Buffer.from(imageBuffer))
+        .png(indexed ? { palette: true, colors: 128, effort: 9, dither: 0 } : {})
+        .toBuffer();
+      return new Uint8Array(png);
+    } catch (error) {
+      log.error('Sharp PNG conversion failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * Resize image to specified dimensions
    * @param imageBuffer Original image buffer
    * @param width Target width

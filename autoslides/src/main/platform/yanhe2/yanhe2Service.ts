@@ -31,6 +31,7 @@ import { fetchYanhe2CourseDetail, fetchYanhe2Courses } from './yanhe2Curriculum'
 import { fetchYanhe2SubInfo, type Yanhe2PlayIdentity, type Yanhe2SubInfo } from './yanhe2Playback';
 import { fetchYanhe2Slides } from './yanhe2Slides';
 import { fetchYanhe2Transcript } from './yanhe2Transcript';
+import type { Yanhe2TwinKey } from './yanhe2Twin';
 import { decodeYanhe2Claims, extractYanhe2Jwt } from './yanhe2Token';
 import { createLogger } from '@main/infra/logger';
 
@@ -205,6 +206,31 @@ export class Yanhe2Service {
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
     return this.settle(account, await fetchYanhe2Slides(stored.jwt, { courseId, subId }));
+  }
+
+  /**
+   * The two values that find a session's Yanhekt lecture: the course number
+   * and the scheduled start. Both come from the course detail (the session
+   * rows a tab is opened from do not always carry the number); a session the
+   * detail does not list takes its start from `get-sub-info`. Main only.
+   */
+  async getTwinKey(account: string, query: unknown): Promise<Yanhe2ReadResult<Yanhe2TwinKey>> {
+    const { courseId, subId } = (query && typeof query === 'object' ? query : {}) as Partial<Yanhe2PlaybackQuery>;
+    if (typeof courseId !== 'string' || typeof subId !== 'string') return { kind: 'failed' };
+    if (!/^\d{1,12}$/.test(courseId) || !/^\d{1,12}$/.test(subId)) return { kind: 'failed' };
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+
+    const detail = this.settle(account, await fetchYanhe2CourseDetail(stored.jwt, courseId));
+    if (detail.kind !== 'ok') return detail;
+    const courseCode = detail.data.courseCode;
+    let startAt = detail.data.sessions.find((row) => row.subId === subId)?.startAt ?? 0;
+    if (!startAt) {
+      const sub = this.settle(account, await fetchYanhe2SubInfo(stored.jwt, { courseId, subId }));
+      if (sub.kind !== 'ok') return sub;
+      startAt = sub.data.startAt;
+    }
+    return { kind: 'ok', data: { courseCode, startAt } };
   }
 
   /** One session's speech-recognition transcript, in time order; empty when it has none. */

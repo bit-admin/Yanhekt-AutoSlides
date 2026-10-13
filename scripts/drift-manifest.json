@@ -9,7 +9,7 @@
     "autoslides/src/shared/sanitizeFileName.ts": "f80b77c24fd45f1c26ac1d170b47a8026aa276dbd3fa1124931268cd94eef9ca",
     "web/frontend/src/lib/sanitizeFileName.ts": "109eab0819d187eaaad4f14cd099881d4149aede960a040ba64b89b36ed0c484",
     "autoslides/src/shared/slideMetadataTypes.ts": "6246f4e7534019c4e927f79e5536ebcd9d4d4ab46d2c453bc1b03879e5a70799",
-    "web/frontend/src/lib/slideMetadataTypes.ts": "ea8e5da181c72809c30ade810daa5218034cc258898949de329aba1465a0058f",
+    "web/frontend/src/lib/slideMetadataTypes.ts": "5c75f66709218a03278cc78dd393cb4af28d2399fe536c614c0f06e6837c595b",
     "autoslides/src/shared/watchProgress.ts": "60997df5c8e4ae69a1679f2b4a77d09d6ad169b6834230fa83b2d6d8ccae9a90",
     "web/frontend/src/lib/watchProgress.ts": "766a702d58329de12af17fcf4d4192cb43aa4a02facd1ab1f1dd6c51f54823c9",
     "autoslides/src/renderer/shared/processing/changeDetection.ts": "8f3d8acd4b4e9e7e0ce89406e6ac459291c2092457593f7554a87424accce677",

@@ -149,6 +149,28 @@ class TaskQueueService {
     return { added: true, item: newTask }
   }
 
+  /**
+   * Add a task that its caller runs itself: no playback tab, no slot, and the
+   * queue's Start and Pause leave it alone. It is listed as in progress from
+   * the start; the caller reports progress and the outcome with
+   * `updateTaskProgress` / `updateTaskStatus`, and may hand its slides to
+   * `startPostProcessing` like any other task.
+   */
+  addRunningTask(taskData: {
+    name: string
+    courseTitle: string
+    sessionTitle: string
+    sessionId: string
+    courseId: string
+  }): TaskQueueAddResult {
+    const added = this.addToQueue(taskData)
+    if (!added.added) return added
+    // The reactive row, not the object that was pushed: writes to that one are not tracked.
+    const task = this.state.tasks.find(item => item.id === added.item.id) ?? added.item
+    this.applyTask(task, { type: 'START' })
+    return { added: true, item: task }
+  }
+
   // Start processing queue
   startQueue(): void {
     if (overrides.suppressRealWork) return // demo mode never runs real extraction

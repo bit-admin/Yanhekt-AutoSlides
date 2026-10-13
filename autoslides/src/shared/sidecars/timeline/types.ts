@@ -7,6 +7,9 @@
 //  - Host builtin extraction: media times from video.currentTime; extractor 'builtin'.
 //  - AutoSlidesQt CLI (--write-timeline): media PTS seconds; extractor 'qt'
 //    (no kind). Host stamps kind: 'recorded' after a Qt job for recorded lectures.
+//  - Yanhe 2.0 server slides, saved as they came: the time the server gave each
+//    slide, on the screen recording's clock; extractor 'yanhe2'. One time per
+//    slide, so changeAt === confirmedAt.
 // Times: changeAt = first change / true T1; confirmedAt = stability confirm.
 
 export const SLIDE_TIMELINE_VERSION = 1;
@@ -15,7 +18,7 @@ export const SLIDE_TIMELINE_FILENAME = 'timeline.json';
 export type ResolutionState = 'canonical' | 'duplicate' | 'gap';
 
 /** Who produced the capture events. Mirrors metadata.json extraction.extractor. */
-export type SlideTimelineExtractor = 'builtin' | 'qt';
+export type SlideTimelineExtractor = 'builtin' | 'qt' | 'yanhe2';
 
 export type GapReason =
   | 'unstable' // flicker / failed verify / pre-content

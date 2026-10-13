@@ -1870,12 +1870,6 @@ onUnmounted(async () => {
   border-bottom: 1px solid var(--border-color);
 }
 
-.slide-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
 .extraction-main {
   display: flex;
   align-items: center;
@@ -1960,15 +1954,6 @@ onUnmounted(async () => {
   align-items: stretch;
   gap: 12px;
   font-size: 11px;
-}
-
-.processing-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 
 /* Responsive design */

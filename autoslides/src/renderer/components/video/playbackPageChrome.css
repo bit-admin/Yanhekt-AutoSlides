@@ -449,6 +449,22 @@
 }
 
 /* Slide gallery section, under the player in both pages. */
+/* The header's buttons, and the spinner a busy one shows in place of its icon. */
+.slide-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.processing-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
 /* Slide counter */
 .slide-counter {
   display: flex;

@@ -42,6 +42,12 @@ import type {
 import type { Yanhe2Course, Yanhe2CourseDetail, Yanhe2CourseDetailQuery } from '../shared/yanhe2Curriculum';
 import type { Yanhe2PlaybackQuery, Yanhe2PlaybackResult } from '../shared/yanhe2Playback';
 import type { Yanhe2Slide } from '../shared/yanhe2Slides';
+import type {
+  Yanhe2SlideSavePrepared,
+  Yanhe2SlideSaveProgress,
+  Yanhe2SlideSaveQuery,
+  Yanhe2SlideSaveResult,
+} from '../shared/yanhe2SlideSave';
 import type { Yanhe2TranscriptLine } from '../shared/yanhe2Transcript';
 import type {
   SlideMetadata,
@@ -425,6 +431,11 @@ export interface ElectronAPI {
     playback: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2PlaybackResult>;
     /** One session's server slides, as local proxy image URLs. Empty when it has none. */
     slides: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2ReadResult<Yanhe2Slide[]>>;
+    /** Find the Yanhekt lecture a session's server slides would be saved under. Writes nothing. */
+    prepareSlideSave: (account: string, query: Yanhe2SlideSaveQuery) => Promise<Yanhe2SlideSavePrepared>;
+    /** Save the server slides into that lecture's `slides_*` folder as `Slide_*.png`. */
+    saveSlides: (account: string, query: Yanhe2SlideSaveQuery) => Promise<Yanhe2SlideSaveResult>;
+    onSlideSaveProgress: (callback: (progress: Yanhe2SlideSaveProgress) => void) => () => void;
     /** One session's transcript lines, in time order. Empty when it has none. */
     transcript: (account: string, subId: string) => Promise<Yanhe2ReadResult<Yanhe2TranscriptLine[]>>;
     prepareBrowserSignIn: () => Promise<void>;

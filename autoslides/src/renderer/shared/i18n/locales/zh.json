@@ -1850,6 +1850,18 @@
     "slideShownAt": "出现时间：",
     "slidesLoading": "正在加载幻灯片…",
     "slidesFailed": "延河 2.0 没有返回这节课的幻灯片。",
-    "slidesEmpty": "延河 2.0 没有这节课的幻灯片。"
+    "slidesEmpty": "延河 2.0 没有这节课的幻灯片。",
+    "saveSlides": "保存幻灯片",
+    "savingSlides": "正在保存…",
+    "saveRefused": {
+      "signed_out": "延河 2.0 登录已失效，请重新登录后重试。",
+      "yanhekt_signed_out": "请先登录延河课堂再保存，这些幻灯片会归到延河课堂的同一节课下。",
+      "no_match": "在延河课堂没有找到这节课，幻灯片未保存。",
+      "no_slides": "延河 2.0 没有这节课的幻灯片。",
+      "folder_in_use": "这节课已有保存的幻灯片，请先在课程幻灯片中移除后再保存。",
+      "busy": "这些幻灯片正在保存。",
+      "network": "幻灯片下载失败，请检查网络后重试。",
+      "failed": "幻灯片保存失败，请稍后再试。"
+    }
   }
 }

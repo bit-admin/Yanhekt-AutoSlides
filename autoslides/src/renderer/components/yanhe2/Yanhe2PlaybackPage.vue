@@ -256,7 +256,7 @@
             />
           </div>
 
-          <!-- Server slides: what Yanhe 2.0 detected on the screen recording. Display only. -->
+          <!-- Server slides: what Yanhe 2.0 detected on the screen recording. Save hands them to the task queue. -->
           <div v-if="slidesState !== 'idle'" class="slide-gallery">
             <div class="gallery-header server-slides-header">
               <div class="server-slides-main">
@@ -274,6 +274,17 @@
               <button v-if="slidesState === 'failed'" @click="loadSlides" class="btn">
                 {{ $t('playback.retry') }}
               </button>
+              <div v-else-if="serverSlides.length > 0" class="slide-actions">
+                <button class="btn btn--primary" :disabled="savingSlides" @click="saveSlides">
+                  <svg v-if="!savingSlides" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <div v-else class="processing-spinner"></div>
+                  {{ savingSlides ? $t('yanhe2Playback.savingSlides') : $t('yanhe2Playback.saveSlides') }}
+                </button>
+              </div>
             </div>
             <SlideGallery
               v-if="gallerySlides.length > 0"
@@ -312,6 +323,7 @@ import type { Yanhe2StreamType } from '@common/yanhe2Playback'
 import { useYanhe2Player, YANHE2_BOTH_STREAMS, type Yanhe2StreamChoice } from '@features/yanhe2/useYanhe2Player'
 import { useYanhe2Captions } from '@features/yanhe2/useYanhe2Captions'
 import { useYanhe2Slides } from '@features/yanhe2/useYanhe2Slides'
+import { isSavingYanhe2Slides, saveYanhe2Slides } from '@features/yanhe2/yanhe2SlideSave'
 import type { GallerySlide } from '@features/video/gallerySlide'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
@@ -456,6 +468,11 @@ const previewedSlide = computed(() => gallerySlides.value.find((slide) => slide.
 const openSlidePreview = (slide: GallerySlide) => {
   if (slide.dataUrl) previewedId.value = slide.id
 }
+// Saving is the task queue's: the page only starts it. A refusal is a message box, the rest is the task row.
+const savingSlides = computed(() => isSavingYanhe2Slides(props.session.subId))
+const saveSlides = () =>
+  void saveYanhe2Slides({ account: props.account, courseId: props.session.courseId, subId: props.session.subId })
+
 const slidesNote = computed(() => {
   if (slidesState.value === 'loading') return t('yanhe2Playback.slidesLoading')
   if (slidesState.value === 'failed') return t('yanhe2Playback.slidesFailed')

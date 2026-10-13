@@ -23,6 +23,7 @@ import type { NoteExportService } from '@main/export/noteExportService';
 import type { SlideExtractionService } from '@main/extraction/slideExtractionService';
 import type { SlideMetadataService } from '@main/extraction/slideMetadataService';
 import type { SlideTimelineService } from '@main/extraction/slideTimelineService';
+import type { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
 import type { NotesService } from '@main/platform/notesService';
 import type { ObsidianNotesService } from '@main/export/obsidianNotesService';
@@ -59,6 +60,7 @@ export interface IpcServices {
   slideExtractionService: SlideExtractionService;
   slideMetadataService: SlideMetadataService;
   slideTimelineService: SlideTimelineService;
+  yanhe2SlideImportService: Yanhe2SlideImportService;
   cacheManagementService: CacheManagementService;
   notesService: NotesService;
   obsidianNotesService: ObsidianNotesService;

@@ -7,7 +7,7 @@ import { IntranetApiTransport } from '@main/platform/intranetApiTransport';
 import type { ConfigService } from '@main/platform/configService';
 const log = createLogger('PlatformApiClient');
 
-import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
+import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
 
 export interface TagItem {
@@ -560,6 +560,43 @@ export class ApiClient {
     }
   }
 
+  /**
+   * One course's sessions, oldest first as the server lists them. Needs the
+   * login token: an anonymous request answers `code: 0` with an empty list, so
+   * an empty result is either "no sessions" or "not signed in".
+   */
+  async getCourseSessions(courseId: string, token: string): Promise<SessionData[]> {
+    // Session *detail by id* is a different endpoint — see getSessionById.
+    const sessionApiUrl = `https://cbiz.yanhekt.cn/v2/course/session/list?course_id=${courseId}`;
+    const sessionResponse = await this.makeRequest('GET', sessionApiUrl, token);
+    const sessionData = sessionResponse as SessionListApiResponse;
+
+    if (sessionData.code !== 0 && sessionData.code !== "0") {
+      throw new Error(`Failed to get course sessions: ${sessionData.message}`);
+    }
+
+    return (sessionData.data ?? []).map((video) => {
+      const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : '';
+      const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
+      const mainUrl = videoData ? videoData.main : '';
+      const vgaUrl = videoData ? videoData.vga : '';
+
+      return {
+        session_id: video.id,
+        video_id: realVideoId,
+        title: video.title,
+        duration: videoData ? parseInt(videoData.duration) : 0,
+        week_number: video.week_number,
+        day: video.day,
+        started_at: video.started_at,
+        ended_at: video.ended_at,
+        main_url: mainUrl,
+        vga_url: vgaUrl,
+        id: realVideoId
+      };
+    });
+  }
+
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
     try {
       const courseApiUrl = `https://cbiz.yanhekt.cn/v1/course?id=${courseId}&with_professor_badges=true`;
@@ -584,19 +621,9 @@ export class ApiClient {
         throw new Error(errorMessage);
       }
 
-      // Session *list* requires a login token (unauth returns code:0 + data:[]).
-      // Session *detail by id* is a different endpoint — see getSessionById.
-      const sessionApiUrl = `https://cbiz.yanhekt.cn/v2/course/session/list?course_id=${courseId}`;
-      const sessionResponse = await this.makeRequest('GET', sessionApiUrl, token);
-      const sessionData = sessionResponse as SessionListApiResponse;
+      const formattedVideos = await this.getCourseSessions(courseId, token);
 
-      if (sessionData.code !== 0 && sessionData.code !== "0") {
-        throw new Error(`Failed to get course sessions: ${sessionData.message}`);
-      }
-
-      const videoList = sessionData.data;
-
-      if (!videoList || videoList.length === 0) {
+      if (formattedVideos.length === 0) {
         throw new Error(`Course information returned error, please check if authentication is obtained and course ID is correct`);
       }
 
@@ -607,27 +634,6 @@ export class ApiClient {
         .map(p => p.name?.trim())
         .filter((n): n is string => !!n);
       const professor = professorNames[0] || "Unknown Teacher";
-
-      const formattedVideos = videoList.map((video) => {
-        const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : '';
-        const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
-        const mainUrl = videoData ? videoData.main : '';
-        const vgaUrl = videoData ? videoData.vga : '';
-
-        return {
-          session_id: video.id,
-          video_id: realVideoId,
-          title: video.title,
-          duration: videoData ? parseInt(videoData.duration) : 0,
-          week_number: video.week_number,
-          day: video.day,
-          started_at: video.started_at,
-          ended_at: video.ended_at,
-          main_url: mainUrl,
-          vga_url: vgaUrl,
-          id: realVideoId
-        };
-      });
 
       return {
         course_id: courseId,
