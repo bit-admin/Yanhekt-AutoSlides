@@ -48,6 +48,7 @@ import type {
   Yanhe2SlideSaveQuery,
   Yanhe2SlideSaveResult,
 } from '../shared/yanhe2SlideSave';
+import type { Yanhe2CaptionSyncResult } from '../shared/yanhe2CaptionSync';
 import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleQuery, Yanhe2SubtitleResult } from '../shared/yanhe2Subtitles';
 import type { Yanhe2TranscriptLine } from '../shared/yanhe2Transcript';
 import type {
@@ -443,6 +444,12 @@ export interface ElectronAPI {
     saveSubtitles: (account: string, query: Yanhe2SubtitleQuery, shift: number) => Promise<Yanhe2SubtitleResult>;
     /** One session's transcript lines, in time order. Empty when it has none. */
     transcript: (account: string, subId: string) => Promise<Yanhe2ReadResult<Yanhe2TranscriptLine[]>>;
+    /**
+     * How many seconds one recording's transcript must be held back by to match
+     * the recording. Measured from the recording's audio the first time (this
+     * can take a while), answered from the kept result after that.
+     */
+    captionSync: (account: string, query: Yanhe2SubtitleQuery) => Promise<Yanhe2CaptionSyncResult>;
     prepareBrowserSignIn: () => Promise<void>;
     /** `reason: 'pending'` until the browser sign-in webview holds a token. */
     adoptBrowserSession: (account: string) => Promise<Yanhe2SignInResult>;

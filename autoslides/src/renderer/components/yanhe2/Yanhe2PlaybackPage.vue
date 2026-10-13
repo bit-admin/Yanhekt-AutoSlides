@@ -127,8 +127,8 @@
               {{ $t('playback.browserNotSupported') }}
             </video>
             <BufferingOverlay v-if="isBuffering" />
-            <div v-if="caption && !isPictureInPicture" class="caption-layer" :class="{ 'above-controls': controlsVisible }">
-              <span class="caption-text">{{ caption }}</span>
+            <div v-if="captionText && !isPictureInPicture" class="caption-layer" :class="{ 'above-controls': controlsVisible }">
+              <span class="caption-text">{{ captionText }}</span>
             </div>
 
             <SingleStreamControls
@@ -203,8 +203,8 @@
               </div>
               <BufferingOverlay v-if="isBuffering" />
             </div>
-            <div v-if="caption" class="caption-layer" :class="{ 'above-controls': controlsVisible }">
-              <span class="caption-text">{{ caption }}</span>
+            <div v-if="captionText" class="caption-layer" :class="{ 'above-controls': controlsVisible }">
+              <span class="caption-text">{{ captionText }}</span>
             </div>
 
             <SingleStreamControls
@@ -290,7 +290,7 @@
                 </div>
                 <span v-if="!showTranscript && slidesNote" class="server-slides-note">{{ slidesNote }}</span>
               </div>
-              <!-- Offered on the captions' terms: no button where their timing is not trusted. -->
+              <!-- Offered on the captions' terms: no button on a lecture whose timing could not be measured. -->
               <div v-if="showTranscript" class="slide-actions">
                 <button v-if="captionsAvailable" class="btn btn--primary" :disabled="preparingSubtitles" @click="downloadSubtitles">
                   <svg v-if="!preparingSubtitles" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -400,10 +400,6 @@ const screenVideoPlayer = ref<HTMLVideoElement | null>(null)
 const videoContainer = ref<HTMLElement | null>(null)
 const dualContainer = ref<HTMLElement | null>(null)
 
-// Captions depend on whether the mic was live, so a lecture with a transcript
-// has its mic track checked even when the audio menu's own check is off.
-const micVerdictWanted = ref(false)
-
 const {
   loading,
   problem,
@@ -418,7 +414,6 @@ const {
   masterVideo,
   playbackRate,
   hasMicAudio,
-  micState,
   micAudioOn,
   setMicAudio,
   load,
@@ -437,7 +432,6 @@ const {
   developerMode: toRef(configStore, 'developerMode'),
   micAudioPlayer,
   preferMicAudio: toRef(configStore, 'preferMicAudioByDefault'),
-  micVerdictWanted,
 })
 
 const { isBuffering } = useBufferingIndicator([videoPlayer, cameraVideoPlayer, screenVideoPlayer])
@@ -520,18 +514,12 @@ const slidesNote = computed(() => {
   return serverSlides.value.length > 0 ? '' : t('yanhe2Playback.slidesEmpty')
 })
 
-// The transcript as a subtitle file, through the download list. Its times get
-// the delay the captions use here. Where the captions are not offered
-// (`captionDelay` null: the mic was off in the default mode, or is still being
-// checked) there is no button and nothing is downloaded.
+// The transcript as a subtitle file, through the download list, with the
+// delay the captions use. Offered where captions are; a lecture not measured
+// yet is measured first, and one that gives no answer gets a message box.
 const preparingSubtitles = computed(() => isPreparingYanhe2Subtitles(props.session.subId))
 const downloadSubtitles = () => {
-  const shiftSeconds = captionDelay.value
-  if (shiftSeconds === null) return
-  void downloadYanhe2Subtitles(
-    { account: props.account, courseId: props.session.courseId, subId: props.session.subId },
-    shiftSeconds,
-  )
+  void downloadYanhe2Subtitles({ account: props.account, courseId: props.session.courseId, subId: props.session.subId })
 }
 
 // Playback speed (recorded only; the bars hide it for live).
@@ -601,23 +589,25 @@ const {
   delay: captionDelay,
   hasTranscript,
   available: captionsAvailable,
+  syncing: captionsSyncing,
   captionsOn,
   caption,
   toggle: toggleCaptions,
 } = useYanhe2Captions({
   account: props.account,
+  courseId: props.session.courseId,
   subId: props.session.subId,
   playback,
   currentTime,
-  micState,
 })
-watch(hasTranscript, (has) => { micVerdictWanted.value = has }, { immediate: true })
+// While the lecture's delay is being measured the caption line says so.
+const captionText = computed(() => caption.value || (captionsSyncing.value ? t('yanhe2Playback.captionsSyncing') : ''))
 
 // The section under the player shows the slides or, switched over, the
 // transcript. A lecture without one has no switch and stays on its slides.
 const showTranscript = computed(() => transcriptView.value && hasTranscript.value)
 // The row being spoken, on the same terms as the captions: where the
-// transcript's timing is not trusted (`captionDelay` null) no row is marked.
+// transcript's delay is not known (`captionDelay` null) no row is marked.
 const transcriptIndex = computed(() =>
   captionDelay.value === null ? -1 : transcriptIndexAt(transcriptLines.value, currentTime.value - captionDelay.value),
 )

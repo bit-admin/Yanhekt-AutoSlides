@@ -229,7 +229,7 @@ export class ConfigService {
       showMorePlaybackSpeed: this.store.get('showMorePlaybackSpeed') ?? false,
       preferMicAudioByDefault: this.store.get('preferMicAudioByDefault') ?? false,
       checkMicAudioBeforeOffering: this.store.get('checkMicAudioBeforeOffering') ?? true,
-      yanhe2CaptionMode: this.store.get('yanhe2CaptionMode') === 'offset' ? 'offset' : 'mic',
+      yanhe2CaptionMode: this.store.get('yanhe2CaptionMode') === 'offset' ? 'offset' : 'auto',
       yanhe2CaptionOffsetSeconds: this.store.get('yanhe2CaptionOffsetSeconds') ?? YANHE2_CAPTION_OFFSET_DEFAULT,
       resumeFromServerProgress: this.store.get('resumeFromServerProgress') ?? true,
       resumeFromServerProgressLectures: this.store.get('resumeFromServerProgressLectures') ?? true,
@@ -546,7 +546,7 @@ export class ConfigService {
 
   /** `offsetSeconds` is kept to a tenth of a second and within the limit; anything else leaves the stored one. */
   setYanhe2Captions(mode: unknown, offsetSeconds: unknown): void {
-    this.store.set('yanhe2CaptionMode', mode === 'offset' ? 'offset' : 'mic');
+    this.store.set('yanhe2CaptionMode', mode === 'offset' ? 'offset' : 'auto');
     if (typeof offsetSeconds === 'number' && Number.isFinite(offsetSeconds)) {
       const bounded = Math.min(YANHE2_CAPTION_OFFSET_LIMIT, Math.max(-YANHE2_CAPTION_OFFSET_LIMIT, offsetSeconds));
       this.store.set('yanhe2CaptionOffsetSeconds', Math.round(bounded * 10) / 10);

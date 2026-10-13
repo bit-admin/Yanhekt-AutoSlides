@@ -269,7 +269,7 @@
         <label class="setting-label">{{ $t('advanced.yanhe2Captions') }}</label>
         <div class="setting-description">{{ $t('advanced.yanhe2CaptionsDescription') }}</div>
         <select v-model="tempYanhe2CaptionMode" class="select-field">
-          <option value="mic">{{ $t('advanced.yanhe2CaptionsMicOnly') }}</option>
+          <option value="auto">{{ $t('advanced.yanhe2CaptionsAuto') }}</option>
           <option value="offset">{{ $t('advanced.yanhe2CaptionsFixedDelay') }}</option>
         </select>
       </div>

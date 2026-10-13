@@ -81,7 +81,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempShowMorePlaybackSpeed = ref(false)
   const tempPreferMicAudioByDefault = ref(false)
   const tempCheckMicAudioBeforeOffering = ref(true)
-  const tempYanhe2CaptionMode = ref<Yanhe2CaptionMode>('mic')
+  const tempYanhe2CaptionMode = ref<Yanhe2CaptionMode>('auto')
   const tempYanhe2CaptionOffsetSeconds = ref(YANHE2_CAPTION_OFFSET_DEFAULT)
   const tempResumeFromServerProgress = ref(true)
   const tempResumeFromServerProgressLectures = ref(true)
@@ -190,7 +190,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       : yanhe2CaptionOffsetSeconds.value
     if (tempYanhe2CaptionMode.value !== yanhe2CaptionMode.value || nextCaptionOffset !== yanhe2CaptionOffsetSeconds.value) {
       const captionResult = await window.electronAPI.config.setYanhe2Captions(tempYanhe2CaptionMode.value, nextCaptionOffset)
-      yanhe2CaptionMode.value = captionResult.yanhe2CaptionMode ?? 'mic'
+      yanhe2CaptionMode.value = captionResult.yanhe2CaptionMode ?? 'auto'
       yanhe2CaptionOffsetSeconds.value = captionResult.yanhe2CaptionOffsetSeconds ?? YANHE2_CAPTION_OFFSET_DEFAULT
     }
     tempYanhe2CaptionOffsetSeconds.value = yanhe2CaptionOffsetSeconds.value

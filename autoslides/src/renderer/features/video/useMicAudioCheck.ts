@@ -9,23 +9,17 @@
  *
  * The verdict belongs to one URL: a new lecture starts unknown again. Turning
  * the setting on while a lecture is open checks that lecture then.
- *
- * A caller can also need the verdict for its own sake (`wanted`): Yanhe 2.0
- * captions are only in sync on lectures with a live mic. That runs the check
- * whatever the setting says, without changing what `available` means.
  */
 import { computed, onScopeDispose, ref, watch, type Ref } from 'vue'
 import { configStore } from '@shared/services/configStore'
 import { isMicAudioAudible } from './micAudioProbe'
 
-export function useMicAudioCheck(micAudioUrl: Ref<string | null>, wanted?: Ref<boolean>) {
+export function useMicAudioCheck(micAudioUrl: Ref<string | null>) {
   const verdict = ref<'unknown' | 'audible' | 'silent'>('unknown')
   const checkFirst = computed(() => configStore.checkMicAudioBeforeOffering ?? true)
   let probe: AbortController | null = null
 
-  const shouldCheck = computed(() => checkFirst.value || wanted?.value === true)
-
-  watch([micAudioUrl, shouldCheck], async ([url, check], previous) => {
+  watch([micAudioUrl, checkFirst], async ([url, check], previous) => {
     if (url !== previous?.[0]) {
       probe?.abort()
       probe = null
@@ -45,5 +39,5 @@ export function useMicAudioCheck(micAudioUrl: Ref<string | null>, wanted?: Ref<b
   /** True when the lecture has a mic track and nothing says it is dead. */
   const available = computed(() => !!micAudioUrl.value && (!checkFirst.value || verdict.value === 'audible'))
 
-  return { available, verdict }
+  return { available }
 }

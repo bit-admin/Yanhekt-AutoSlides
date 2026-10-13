@@ -179,7 +179,7 @@ export const defaultConfig: AppConfig = {
   showMorePlaybackSpeed: false,
   preferMicAudioByDefault: false,
   checkMicAudioBeforeOffering: true,
-  yanhe2CaptionMode: 'mic',
+  yanhe2CaptionMode: 'auto',
   yanhe2CaptionOffsetSeconds: YANHE2_CAPTION_OFFSET_DEFAULT,
   resumeFromServerProgress: true,
   resumeFromServerProgressLectures: true,

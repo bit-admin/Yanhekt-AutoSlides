@@ -4,6 +4,7 @@ import { broadcastConfig } from './broadcastConfig';
 import type { Yanhe2ReadResult } from '@common/yanhe2Calendar';
 import type { Yanhe2Playback, Yanhe2PlaybackResult, Yanhe2PlaybackStream } from '@common/yanhe2Playback';
 import type { Yanhe2Slide } from '@common/yanhe2Slides';
+import type { Yanhe2CaptionSyncResult } from '@common/yanhe2CaptionSync';
 import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleResult } from '@common/yanhe2Subtitles';
 import type { Yanhe2SlideSavePrepared, Yanhe2SlideSaveProgress, Yanhe2SlideSaveResult } from '@common/yanhe2SlideSave';
 
@@ -13,7 +14,7 @@ import type { Yanhe2SlideSavePrepared, Yanhe2SlideSaveProgress, Yanhe2SlideSaveR
 // Settings field — never inside the broadcast config. Handlers that may change
 // a stored session broadcast config so `yanhe2SessionExpiry` follows.
 export function registerYanhe2IpcHandlers(services: IpcServices): void {
-  const { authService, yanhe2Service, yanhe2SlideImportService, yanhe2SubtitleService, configService, videoProxyService } = services;
+  const { authService, yanhe2Service, yanhe2SlideImportService, yanhe2SubtitleService, yanhe2CaptionSyncService, configService, videoProxyService } = services;
 
   const str = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
   const broadcast = () => broadcastConfig(configService);
@@ -162,6 +163,14 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
   // One session's transcript, for the player's captions.
   ipcMain.handle('yanhe2:transcript', async (_event, account: string, subId: unknown) => {
     const result = await yanhe2Service.getTranscript(str(account), subId);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
+  // How far one recording's transcript is off the recording. Measured once
+  // (minutes of the recording's audio), then answered from the kept result.
+  ipcMain.handle('yanhe2:captionSync', async (_event, account: string, query: unknown): Promise<Yanhe2CaptionSyncResult> => {
+    const result = await yanhe2CaptionSyncService.measure(str(account), query);
     if (result.kind === 'signed_out') broadcast();
     return result;
   });

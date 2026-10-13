@@ -33,7 +33,8 @@ const log = createLogger('Yanhe2Play');
 
 const PLAYLIST_TIMEOUT_MS = 30_000;
 
-const UPSTREAM_HEADERS = {
+/** What aita's `/play/` tree wants on every request, beside the signature. */
+export const YANHE2_PLAY_HEADERS = {
   Referer: `${YANHE2_ORIGIN}/`,
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3',
 };
@@ -77,7 +78,7 @@ export async function handleYanhe2PlayRequest(
   const isPlaylist = /\.m3u8$/i.test(new URL(upstream).pathname);
   // The classroom AAC is outside the signature wall: it wants the Referer only.
   const isAudio = /\.aac$/i.test(new URL(upstream).pathname);
-  const headers: Record<string, string> = { ...UPSTREAM_HEADERS };
+  const headers: Record<string, string> = { ...YANHE2_PLAY_HEADERS };
   // The MP4s are progressive files the <video> element seeks by byte range.
   if (!isPlaylist && typeof req.headers.range === 'string') headers.Range = req.headers.range;
 

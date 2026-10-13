@@ -7,20 +7,18 @@
  * a video. A lecture without a transcript, or one that cannot be found on
  * Yanhekt (or Yanhekt is signed out), adds no row and writes nothing.
  *
- * Subtitles are offered on the captions' terms: only where the transcript's
- * timing can be trusted (`yanhe2CaptionDelay`). The player already knows that
- * for the lecture it has open and passes the delay. From a session list
- * nothing is open, so the classroom mic track is listened to here first, the
- * same check the player runs.
+ * Subtitles get the captions' timing: the fixed delay in that mode, otherwise
+ * the delay main measures for the lecture (`yanhe2:captionSync`, kept once
+ * measured, so a lecture the player has had captions on answers at once). A
+ * lecture whose delay cannot be measured gets no file.
  */
 import { reactive, ref } from 'vue'
 import { lectureLabel } from '@common/lectureNaming'
 import type { Yanhe2SubtitleRefusal } from '@common/yanhe2Subtitles'
-import { isMicAudioAudible } from '@features/video/micAudioProbe'
 import { i18n } from '@shared/i18n'
 import { DownloadService } from '@shared/services/downloadService'
 import { createLogger } from '@shared/utils/logger'
-import { yanhe2CaptionDelay } from './useYanhe2Captions'
+import { yanhe2FixedCaptionDelay } from './useYanhe2Captions'
 
 const log = createLogger('Yanhe2SubtitleDownload')
 
@@ -36,7 +34,7 @@ type Asked =
   | { kind: 'added'; itemId: string }
   /** The download list already has these subtitles. */
   | { kind: 'already_queued' }
-  /** The captions would not be offered on this lecture, so neither is the file. */
+  /** The lecture's caption delay could not be measured, so there is no file either. */
   | { kind: 'timing_unknown' }
   /** Already being asked about. */
   | { kind: 'busy' }
@@ -69,33 +67,22 @@ function showDownload(itemId?: string): void {
 }
 
 /**
- * The caption delay of a lecture nobody has open: read its mic track's URL,
- * listen to it, apply the captions' rule. Null when subtitles should not be
- * offered; a refusal when the lecture itself could not be read.
+ * The delay the captions use on that lecture. Null when it could not be
+ * measured; a refusal when the lecture itself could not be read.
  */
-async function checkedDelay(request: Yanhe2SubtitleRequest): Promise<number | null | Yanhe2SubtitleRefusal> {
+async function captionDelayOf(request: Yanhe2SubtitleRequest): Promise<number | null | Yanhe2SubtitleRefusal> {
+  const fixed = yanhe2FixedCaptionDelay()
+  if (fixed !== null) return fixed
   const { account, courseId, subId } = request
-  const playback = await window.electronAPI.yanhe2.playback(account, { courseId, subId })
-  if (playback.kind === 'signed_out' || playback.kind === 'network') return playback.kind
-  if (playback.kind !== 'ok' || playback.data.mode !== 'recorded') return 'failed'
-  // No mic track at all counts as a dead one, as in the player.
-  const audioUrl = playback.data.audioUrl
-  if (!audioUrl) return yanhe2CaptionDelay(false)
-
-  // The track is served by the local proxy, which runs only while someone holds it.
-  const clientId = await window.electronAPI.video.registerClient()
-  try {
-    return yanhe2CaptionDelay(await isMicAudioAudible(audioUrl, new AbortController().signal))
-  } finally {
-    void window.electronAPI.video.unregisterClient(clientId).catch(() => undefined)
-  }
+  const result = await window.electronAPI.yanhe2.captionSync(account, { courseId, subId })
+  if (result.kind === 'ok') return result.delay
+  return result.kind === 'unknown' ? null : result.kind
 }
 
 /**
  * Check one lecture and, if its subtitles can be had, add the download row.
- * `shiftSeconds` is the caller's own verdict; without one the mic is checked here.
  */
-async function ask(request: Yanhe2SubtitleRequest, shiftSeconds?: number): Promise<Asked> {
+async function ask(request: Yanhe2SubtitleRequest): Promise<Asked> {
   const { account, subId } = request
   if (asking.has(subId)) return { kind: 'busy' }
   asking.add(subId)
@@ -106,7 +93,7 @@ async function ask(request: Yanhe2SubtitleRequest, shiftSeconds?: number): Promi
     const prepared = await window.electronAPI.yanhe2.prepareSubtitles(account, query)
     if (prepared.kind !== 'ok') return { kind: prepared.kind }
 
-    const shift = shiftSeconds ?? await checkedDelay(request)
+    const shift = await captionDelayOf(request)
     if (shift === null) return { kind: 'timing_unknown' }
     if (typeof shift === 'string') return { kind: shift }
 
@@ -136,12 +123,10 @@ async function ask(request: Yanhe2SubtitleRequest, shiftSeconds?: number): Promi
 }
 
 /**
- * One lecture: a row in Download, or a message box saying why not. The player
- * passes the delay its captions use; a session list passes none and the mic is
- * checked first.
+ * One lecture: a row in Download, or a message box saying why not.
  */
-export async function downloadYanhe2Subtitles(request: Yanhe2SubtitleRequest, shiftSeconds?: number): Promise<void> {
-  const asked = await ask(request, shiftSeconds)
+export async function downloadYanhe2Subtitles(request: Yanhe2SubtitleRequest): Promise<void> {
+  const asked = await ask(request)
   if (asked.kind === 'added') showDownload(asked.itemId)
   else if (asked.kind === 'already_queued') notify(t('yanhe2Playback.subtitlesAlreadyQueued'))
   else if (asked.kind !== 'busy') notify(t(`yanhe2Playback.subtitlesRefused.${asked.kind}`))

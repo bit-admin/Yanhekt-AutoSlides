@@ -8,7 +8,7 @@
  * Yanhekt sign-in or no matching course and session writes nothing.
  *
  * The times are the transcript's own plus `shift`, the delay the player's
- * captions use for this lecture (0 where the classroom mic was live).
+ * captions use for this lecture (measured, or the fixed one from Settings).
  */
 import * as fs from 'fs/promises';
 import * as path from 'path';

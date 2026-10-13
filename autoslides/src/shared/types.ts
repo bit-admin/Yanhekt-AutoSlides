@@ -171,7 +171,7 @@ export interface StoredAccount {
   lastUsedAt: number;
 }
 
-export type Yanhe2CaptionMode = 'mic' | 'offset';
+export type Yanhe2CaptionMode = 'auto' | 'offset';
 
 export const YANHE2_CAPTION_OFFSET_DEFAULT = 24;
 /** Either way: a lecture's captions may run early or late. */
@@ -207,11 +207,11 @@ export interface AppConfig {
   // the microphone off (silence or a steady hiss) is not offered. Applies to
   // both the Yanhekt and the Yanhe 2.0 player.
   checkMicAudioBeforeOffering: boolean;
-  // Yanhe 2.0 captions are in sync only on lectures recorded with a working
-  // classroom mic; on the others they are off by an amount that differs per
-  // lecture and that nothing in the data gives. `mic` offers captions only on
-  // the first kind; `offset` offers them everywhere and delays them by
-  // `yanhe2CaptionOffsetSeconds` on the second kind (a guess, 24 by default).
+  // Yanhe 2.0 captions are off by a constant that differs per lecture and that
+  // nothing in the data gives. `auto` measures it against the recording's
+  // audio and offers captions where that gives an answer; `offset` offers
+  // them on every lecture, delayed by `yanhe2CaptionOffsetSeconds` (a guess,
+  // 24 by default).
   yanhe2CaptionMode: Yanhe2CaptionMode;
   yanhe2CaptionOffsetSeconds: number;
   // Honor Yanhekt's own per-account watch position: seek there when a recorded

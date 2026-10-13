@@ -48,14 +48,11 @@ export interface UseYanhe2PlayerOptions {
   micAudioPlayer: Ref<HTMLAudioElement | null>
   /** Start a lecture on the classroom mic when it has one (the Yanhekt player's setting). */
   preferMicAudio: Ref<boolean>
-  /** True while something besides the audio menu needs to know whether the mic track is live (captions). */
-  micVerdictWanted: Ref<boolean>
 }
 
 export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
   const {
     account, courseId, subId, videoPlayer, cameraVideoPlayer, screenVideoPlayer, developerMode, micAudioPlayer, preferMicAudio,
-    micVerdictWanted,
   } = options
 
   const loading = ref(false)
@@ -112,19 +109,7 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
   // was off; with the "check before offering" setting it is offered only once
   // a listen has found speech on it (useMicAudioCheck, shared with Yanhekt).
   const micAudioUrl = computed(() => playback.value?.audioUrl || null)
-  const micCheck = useMicAudioCheck(micAudioUrl, micVerdictWanted)
-  const hasMicAudio = micCheck.available
-  /**
-   * Whether this recording's mic was really on: `live`, `dead` (no track, or
-   * one with nothing said on it), or `checking`. `unknown` when nobody asked.
-   */
-  const micState = computed<'live' | 'dead' | 'checking' | 'unknown'>(() => {
-    if (!playback.value) return 'checking'
-    if (!micAudioUrl.value) return 'dead'
-    if (micCheck.verdict.value === 'audible') return 'live'
-    if (micCheck.verdict.value === 'silent') return 'dead'
-    return micVerdictWanted.value ? 'checking' : 'unknown'
-  })
+  const hasMicAudio = useMicAudioCheck(micAudioUrl).available
   const micAudioOn = ref(false)
   // "Mic audio by default" waits for the track to be offered, once per load.
   let micDefaultPending = false
@@ -419,7 +404,6 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     masterVideo,
     playbackRate,
     hasMicAudio,
-    micState,
     micAudioOn,
     setMicAudio,
     load,

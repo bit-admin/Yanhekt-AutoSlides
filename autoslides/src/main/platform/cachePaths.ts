@@ -32,6 +32,7 @@ export const FILESYSTEM_ONLY_CACHE_DIR_NAMES = [
 export const APP_CACHE_DIR_NAMES = [
   'thumbnails',
   'lecture-posters',
+  'caption-sync',
   'updates',
 ] as const;
 

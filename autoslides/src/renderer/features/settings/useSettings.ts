@@ -74,7 +74,7 @@ export function useSettings(): UseSettingsReturn {
   const showMorePlaybackSpeed = ref(false)
   const preferMicAudioByDefault = ref(false)
   const checkMicAudioBeforeOffering = ref(true)
-  const yanhe2CaptionMode = ref<Yanhe2CaptionMode>('mic')
+  const yanhe2CaptionMode = ref<Yanhe2CaptionMode>('auto')
   const yanhe2CaptionOffsetSeconds = ref(YANHE2_CAPTION_OFFSET_DEFAULT)
   const resumeFromServerProgress = ref(true)
   const resumeFromServerProgressLectures = ref(true)
@@ -120,7 +120,7 @@ export function useSettings(): UseSettingsReturn {
       showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
       preferMicAudioByDefault.value = config.preferMicAudioByDefault ?? false
       checkMicAudioBeforeOffering.value = config.checkMicAudioBeforeOffering ?? true
-      yanhe2CaptionMode.value = config.yanhe2CaptionMode ?? 'mic'
+      yanhe2CaptionMode.value = config.yanhe2CaptionMode ?? 'auto'
       yanhe2CaptionOffsetSeconds.value = config.yanhe2CaptionOffsetSeconds ?? YANHE2_CAPTION_OFFSET_DEFAULT
       resumeFromServerProgress.value = config.resumeFromServerProgress ?? true
       resumeFromServerProgressLectures.value = config.resumeFromServerProgressLectures ?? true
