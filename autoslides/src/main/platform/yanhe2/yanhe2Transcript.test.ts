@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { transcriptLineAt } from '@common/yanhe2Transcript';
+import { transcriptIndexAt, transcriptLineAt, transcriptToSrt } from '@common/yanhe2Transcript';
 import { parseYanhe2Transcript } from './yanhe2Transcript';
 
 const body = (content: unknown[]) => ({
@@ -65,5 +65,44 @@ describe('transcriptLineAt', () => {
     expect(transcriptLineAt(lines, 15)).toBeNull();
     expect(transcriptLineAt(lines, 24)).toBeNull();
     expect(transcriptLineAt([], 3)).toBeNull();
+  });
+
+  it('has an index that stays on a line through the pause after it', () => {
+    expect(transcriptIndexAt(lines, 0)).toBe(-1);
+    expect(transcriptIndexAt(lines, 5)).toBe(0);
+    expect(transcriptIndexAt(lines, 15)).toBe(1);
+    expect(transcriptIndexAt(lines, 99)).toBe(2);
+    expect(transcriptIndexAt([], 3)).toBe(-1);
+  });
+});
+
+describe('transcriptToSrt', () => {
+  const lines = [
+    { begin: 17, end: 18, text: '我用。' },
+    { begin: 82, end: 90, text: '我们开始\n上课了啊，' },
+    { begin: 88, end: 3725, text: '下一句。' },
+  ];
+
+  it('numbers the cues and writes SubRip clocks', () => {
+    expect(transcriptToSrt(lines)).toBe([
+      '1\n00:00:17,000 --> 00:00:18,000\n我用。\n',
+      // Cut short where the next line begins; a line break inside a line would end the cue.
+      '2\n00:01:22,000 --> 00:01:28,000\n我们开始 上课了啊，\n',
+      '3\n00:01:28,000 --> 01:02:05,000\n下一句。\n',
+    ].join('\n'));
+  });
+
+  it('holds every line back by the shift', () => {
+    expect(transcriptToSrt(lines, 24.5).split('\n')[1]).toBe('00:00:41,500 --> 00:00:42,500');
+  });
+
+  it('drops a line shifted to before the start and renumbers', () => {
+    const srt = transcriptToSrt(lines, -20);
+    expect(srt.startsWith('1\n00:01:02,000 --> 00:01:08,000')).toBe(true);
+  });
+
+  it('is empty for no lines or blank text', () => {
+    expect(transcriptToSrt([])).toBe('');
+    expect(transcriptToSrt([{ begin: 1, end: 2, text: '  ' }])).toBe('');
   });
 });

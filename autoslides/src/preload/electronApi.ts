@@ -48,6 +48,7 @@ import type {
   Yanhe2SlideSaveQuery,
   Yanhe2SlideSaveResult,
 } from '../shared/yanhe2SlideSave';
+import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleQuery, Yanhe2SubtitleResult } from '../shared/yanhe2Subtitles';
 import type { Yanhe2TranscriptLine } from '../shared/yanhe2Transcript';
 import type {
   SlideMetadata,
@@ -436,6 +437,10 @@ export interface ElectronAPI {
     /** Save the server slides into that lecture's `slides_*` folder as `Slide_*.png`. */
     saveSlides: (account: string, query: Yanhe2SlideSaveQuery) => Promise<Yanhe2SlideSaveResult>;
     onSlideSaveProgress: (callback: (progress: Yanhe2SlideSaveProgress) => void) => () => void;
+    /** Find the Yanhekt lecture a session's subtitles would be filed under. Writes nothing. */
+    prepareSubtitles: (account: string, query: Yanhe2SubtitleQuery) => Promise<Yanhe2SubtitlePrepared>;
+    /** Write the transcript as an `.srt` in the output folder, its times held back by `shift` seconds. */
+    saveSubtitles: (account: string, query: Yanhe2SubtitleQuery, shift: number) => Promise<Yanhe2SubtitleResult>;
     /** One session's transcript lines, in time order. Empty when it has none. */
     transcript: (account: string, subId: string) => Promise<Yanhe2ReadResult<Yanhe2TranscriptLine[]>>;
     prepareBrowserSignIn: () => Promise<void>;

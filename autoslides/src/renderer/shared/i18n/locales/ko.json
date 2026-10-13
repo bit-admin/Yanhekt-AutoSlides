@@ -1825,6 +1825,11 @@
     "timetable": "주간 시간표"
   },
   "yanhe2Curriculum": {
+    "downloadSubtitles": "자막 다운로드",
+    "downloadAllSubtitles": "모든 자막 다운로드",
+    "subtitlesAllAdded": "{count}개의 자막을 다운로드 대기열에 추가했습니다",
+    "subtitlesAllSome": "{count}개의 자막을 다운로드 대기열에 추가했습니다. {skipped}개 건너뜀: 전사본 없음, 마이크 꺼짐, Yanhekt에서 찾을 수 없음, 또는 이미 대기열에 있음.",
+    "subtitlesAllNone": "추가된 자막이 없습니다. 이 강의들은 전사본이 없거나, 마이크가 꺼져 있었거나, Yanhekt에서 찾을 수 없거나, 이미 대기열에 있습니다.",
     "saveSlides": "서버 슬라이드를 작업에 추가",
     "saveAllSlides": "모든 서버 슬라이드를 작업에 추가",
     "saveAllNone": "추가된 슬라이드가 없습니다. 이 강의들은 슬라이드가 없거나, Yanhekt에서 찾을 수 없거나, 이미 저장되었습니다.",
@@ -1850,6 +1855,19 @@
     "processing": "이 강의는 종료되었으며 녹화본을 아직 처리 중입니다.",
     "noRecording": "이 강의에는 재생할 녹화본이 없습니다.",
     "serverSlides": "서버 슬라이드",
+    "serverTranscript": "서버 전사본",
+    "transcriptLines": "줄",
+    "downloadSubtitles": "자막 다운로드",
+    "subtitlesAlreadyQueued": "이 자막은 이미 다운로드 대기열에 있습니다",
+    "subtitlesRefused": {
+      "timing_unknown": "이 강의의 자막은 제공되지 않습니다. 강의실 마이크가 녹음되지 않아 전사본의 시간을 믿을 수 없기 때문입니다. 설정 → 다운로드 및 재생 → 연하 2.0 자막에서 고정 지연을 적용해 제공하도록 바꿀 수 있습니다.",
+      "signed_out": "연하 2.0 세션이 종료되었습니다. 다시 로그인한 뒤 재시도하세요.",
+      "yanhekt_signed_out": "다운로드하려면 Yanhekt에 로그인하세요. 자막은 Yanhekt의 같은 강의 이름으로 저장됩니다.",
+      "no_match": "Yanhekt에서 이 강의를 찾지 못해 자막을 다운로드하지 않았습니다.",
+      "no_transcript": "연하 2.0에 이 강의의 전사본이 없습니다.",
+      "network": "자막을 내려받지 못했습니다. 연결을 확인하고 다시 시도하세요.",
+      "failed": "자막을 저장하지 못했습니다. 나중에 다시 시도하세요."
+    },
     "slideTitle": "슬라이드 {n}",
     "slideShownAt": "표시 시각:",
     "slidesLoading": "슬라이드를 불러오는 중…",

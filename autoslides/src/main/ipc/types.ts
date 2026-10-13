@@ -5,6 +5,7 @@ import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { VideoProxyService } from '@main/video/videoProxyService';
 import type { ThumbnailService } from '@main/video/thumbnailService';
+import type { Yanhe2SubtitleService } from '@main/video/yanhe2SubtitleService';
 import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
 import type { AudioDownloadService } from '@main/video/audioDownloadService';
 import type { PowerManagementService } from '@main/platform/powerManagementService';
@@ -61,6 +62,7 @@ export interface IpcServices {
   slideMetadataService: SlideMetadataService;
   slideTimelineService: SlideTimelineService;
   yanhe2SlideImportService: Yanhe2SlideImportService;
+  yanhe2SubtitleService: Yanhe2SubtitleService;
   cacheManagementService: CacheManagementService;
   notesService: NotesService;
   obsidianNotesService: ObsidianNotesService;

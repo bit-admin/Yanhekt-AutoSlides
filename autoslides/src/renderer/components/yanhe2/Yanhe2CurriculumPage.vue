@@ -98,6 +98,20 @@
                   <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
               </svg>
             </button>
+            <button type="button" class="btn batch-btn" :disabled="addingAllSubtitles" @click="downloadAllSubtitles">
+              <span v-if="addingAllSubtitles" class="batch-lead spinning-ring" aria-hidden="true"></span>
+              <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span class="batch-label">{{ $t('yanhe2Curriculum.downloadAllSubtitles') }}</span>
+              <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/>
+                  <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6"/>
+                  <path d="M17 10.2a2.2 2.2 0 1 0 0 3.6"/>
+              </svg>
+            </button>
           </div>
           <div class="sessions-list custom-scrollbar">
             <div
@@ -146,6 +160,27 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 11l3 3 8-8"/>
                   <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+                  </svg>
+                </button>
+                <!-- [download] [CC] : this recording's transcript as subtitles, through Download.
+                     The CC glyph is the player's captions button. -->
+                <button
+                  type="button"
+                  class="action-btn action-pair"
+                  :title="$t('yanhe2Curriculum.downloadSubtitles')"
+                  :disabled="s.status !== 'playable' || isPreparingYanhe2Subtitles(s.subId)"
+                  @click.stop="downloadSubtitles(s)"
+                >
+                  <span v-if="isPreparingYanhe2Subtitles(s.subId)" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/>
+                  <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6"/>
+                  <path d="M17 10.2a2.2 2.2 0 1 0 0 3.6"/>
                   </svg>
                 </button>
               </span>
@@ -208,8 +243,9 @@
 <script setup lang="ts">
 // Yanhe 2.0 → Curriculum. The account's enrolled courses (aita's 我的课程), then
 // one course's sessions in the same page, then the Yanhe 2.0 playback tab.
-// Of the Recorded sessions page's actions it has one: saving a session's server
-// slides through Tasks (a row chip, and the batch button for the whole list).
+// Of the Recorded sessions page's actions it has two, each a row chip and a
+// batch button: a session's server slides through Tasks, and its transcript as
+// subtitles through Download.
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, lessonRange, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
@@ -229,6 +265,12 @@ import {
   saveAllYanhe2Slides,
   saveYanhe2Slides,
 } from '@features/yanhe2/yanhe2SlideSave'
+import {
+  downloadAllYanhe2Subtitles,
+  downloadYanhe2Subtitles,
+  isAddingAllYanhe2Subtitles,
+  isPreparingYanhe2Subtitles,
+} from '@features/yanhe2/yanhe2SubtitleDownload'
 import { academicTermLabel } from '@shared/i18n/displayNames'
 import EmptySetState from '../shell/EmptySetState.vue'
 import PageBanner from '../shell/PageBanner.vue'
@@ -322,6 +364,17 @@ const saveSlides = (s: Yanhe2CalendarSession) => {
 const saveAllSlides = () => {
   if (!yanhe2ActiveBadge.value) return
   void saveAllYanhe2Slides(sessions.value.filter((s) => s.status === 'playable').map(saveRequest))
+}
+
+// Subtitles from a recording's transcript, through Download. Nothing is open
+// here, so each click first checks the lecture's mic the way the player does.
+const addingAllSubtitles = computed(() => isAddingAllYanhe2Subtitles())
+const downloadSubtitles = (s: Yanhe2CalendarSession) => {
+  if (yanhe2ActiveBadge.value) void downloadYanhe2Subtitles(saveRequest(s))
+}
+const downloadAllSubtitles = () => {
+  if (!yanhe2ActiveBadge.value) return
+  void downloadAllYanhe2Subtitles(sessions.value.filter((s) => s.status === 'playable').map(saveRequest))
 }
 
 const clockLine = (s: Yanhe2CalendarSession) => {
@@ -622,7 +675,7 @@ const clockLine = (s: Yanhe2CalendarSession) => {
   text-align: center;
 }
 
-/* The Recorded sessions page's batch row and spacing; its one button takes the row. */
+/* The Recorded sessions page's batch row and spacing; its buttons share the row equally. */
 .sessions-container {
   flex: 1;
   display: flex;
@@ -794,8 +847,13 @@ const clockLine = (s: Yanhe2CalendarSession) => {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-shrink: 0;
+}
+
+/* A little more air between the status and the chips than between the chips. */
+.session-actions .session-status {
+  margin-right: 4px;
 }
 
 .action-btn {

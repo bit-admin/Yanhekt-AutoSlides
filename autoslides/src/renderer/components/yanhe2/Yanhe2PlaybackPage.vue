@@ -256,12 +256,31 @@
             />
           </div>
 
-          <!-- Server slides: what Yanhe 2.0 detected on the screen recording. Save hands them to the task queue. -->
+          <!-- What Yanhe 2.0 made of the recording itself: the slides it detected
+               (Save hands them to the task queue) or its transcript. The two-way
+               switch (the Search page's Live | Recorded control) exists only on a
+               lecture that has a transcript. -->
           <div v-if="slidesState !== 'idle'" class="slide-gallery">
             <div class="gallery-header server-slides-header">
               <div class="server-slides-main">
-                <span class="server-slides-title">{{ $t('yanhe2Playback.serverSlides') }}</span>
-                <div v-if="slidesState === 'ready'" class="slide-counter">
+                <div v-if="hasTranscript" class="mode-switch">
+                  <button type="button" :class="['mode-pill', { active: !showTranscript }]" @click="transcriptView = false">
+                    {{ $t('yanhe2Playback.serverSlides') }}
+                  </button>
+                  <button type="button" :class="['mode-pill', { active: showTranscript }]" @click="transcriptView = true">
+                    {{ $t('yanhe2Playback.serverTranscript') }}
+                  </button>
+                </div>
+                <span v-else class="server-slides-title">{{ $t('yanhe2Playback.serverSlides') }}</span>
+                <div v-if="showTranscript" class="slide-counter">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="6" x2="20" y2="6"/>
+                    <line x1="4" y1="12" x2="20" y2="12"/>
+                    <line x1="4" y1="18" x2="14" y2="18"/>
+                  </svg>
+                  <span class="counter-text">{{ transcriptLines.length }} {{ $t('yanhe2Playback.transcriptLines') }}</span>
+                </div>
+                <div v-else-if="slidesState === 'ready'" class="slide-counter">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                     <circle cx="9" cy="9" r="2"/>
@@ -269,9 +288,21 @@
                   </svg>
                   <span class="counter-text">{{ serverSlides.length }} {{ $t('playback.slides') }}</span>
                 </div>
-                <span v-if="slidesNote" class="server-slides-note">{{ slidesNote }}</span>
+                <span v-if="!showTranscript && slidesNote" class="server-slides-note">{{ slidesNote }}</span>
               </div>
-              <button v-if="slidesState === 'failed'" @click="loadSlides" class="btn">
+              <!-- Offered on the captions' terms: no button where their timing is not trusted. -->
+              <div v-if="showTranscript" class="slide-actions">
+                <button v-if="captionsAvailable" class="btn btn--primary" :disabled="preparingSubtitles" @click="downloadSubtitles">
+                  <svg v-if="!preparingSubtitles" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <div v-else class="processing-spinner"></div>
+                  {{ $t('yanhe2Playback.downloadSubtitles') }}
+                </button>
+              </div>
+              <button v-else-if="slidesState === 'failed'" @click="loadSlides" class="btn">
                 {{ $t('playback.retry') }}
               </button>
               <div v-else-if="serverSlides.length > 0" class="slide-actions">
@@ -286,8 +317,15 @@
                 </button>
               </div>
             </div>
+            <Yanhe2TranscriptPanel
+              v-if="showTranscript"
+              :lines="transcriptLines"
+              :current-index="transcriptIndex"
+              :shift="captionDelay ?? 0"
+              :format-time="formatPlaybackTime"
+            />
             <SlideGallery
-              v-if="gallerySlides.length > 0"
+              v-else-if="gallerySlides.length > 0"
               :slides="gallerySlides"
               :format-slide-time="formatPlaybackTime"
               :deletable="false"
@@ -320,10 +358,12 @@ import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Yanhe2StreamType } from '@common/yanhe2Playback'
+import { transcriptIndexAt } from '@common/yanhe2Transcript'
 import { useYanhe2Player, YANHE2_BOTH_STREAMS, type Yanhe2StreamChoice } from '@features/yanhe2/useYanhe2Player'
-import { useYanhe2Captions } from '@features/yanhe2/useYanhe2Captions'
+import { useYanhe2Captions, yanhe2TranscriptView as transcriptView } from '@features/yanhe2/useYanhe2Captions'
 import { useYanhe2Slides } from '@features/yanhe2/useYanhe2Slides'
 import { isSavingYanhe2Slides, saveYanhe2Slides } from '@features/yanhe2/yanhe2SlideSave'
+import { downloadYanhe2Subtitles, isPreparingYanhe2Subtitles } from '@features/yanhe2/yanhe2SubtitleDownload'
 import type { GallerySlide } from '@features/video/gallerySlide'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
@@ -337,6 +377,7 @@ import DualStreamControls from '../video/DualStreamControls.vue'
 import PreviewModal from '../video/PreviewModal.vue'
 import SlideGallery from '../video/SlideGallery.vue'
 import SingleStreamControls from '../video/SingleStreamControls.vue'
+import Yanhe2TranscriptPanel from './Yanhe2TranscriptPanel.vue'
 
 const log = createLogger('Yanhe2PlaybackPage')
 
@@ -479,6 +520,20 @@ const slidesNote = computed(() => {
   return serverSlides.value.length > 0 ? '' : t('yanhe2Playback.slidesEmpty')
 })
 
+// The transcript as a subtitle file, through the download list. Its times get
+// the delay the captions use here. Where the captions are not offered
+// (`captionDelay` null: the mic was off in the default mode, or is still being
+// checked) there is no button and nothing is downloaded.
+const preparingSubtitles = computed(() => isPreparingYanhe2Subtitles(props.session.subId))
+const downloadSubtitles = () => {
+  const shiftSeconds = captionDelay.value
+  if (shiftSeconds === null) return
+  void downloadYanhe2Subtitles(
+    { account: props.account, courseId: props.session.courseId, subId: props.session.subId },
+    shiftSeconds,
+  )
+}
+
 // Playback speed (recorded only; the bars hide it for live).
 const defaultPlaybackRates = [1, 1.25, 1.5, 2, 5, 10, 16]
 const allPlaybackRates = [0.5, 0.75, 0.8, 0.9, 1, 1.1, 1.15, 1.2, 1.25, 1.5, 1.75, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
@@ -541,7 +596,15 @@ watch(masterVideo, (video) => {
 })
 
 // Captions, from Yanhe 2.0's own transcript of the recording.
-const { hasTranscript, available: captionsAvailable, captionsOn, caption, toggle: toggleCaptions } = useYanhe2Captions({
+const {
+  lines: transcriptLines,
+  delay: captionDelay,
+  hasTranscript,
+  available: captionsAvailable,
+  captionsOn,
+  caption,
+  toggle: toggleCaptions,
+} = useYanhe2Captions({
   account: props.account,
   subId: props.session.subId,
   playback,
@@ -549,6 +612,15 @@ const { hasTranscript, available: captionsAvailable, captionsOn, caption, toggle
   micState,
 })
 watch(hasTranscript, (has) => { micVerdictWanted.value = has }, { immediate: true })
+
+// The section under the player shows the slides or, switched over, the
+// transcript. A lecture without one has no switch and stays on its slides.
+const showTranscript = computed(() => transcriptView.value && hasTranscript.value)
+// The row being spoken, on the same terms as the captions: where the
+// transcript's timing is not trusted (`captionDelay` null) no row is marked.
+const transcriptIndex = computed(() =>
+  captionDelay.value === null ? -1 : transcriptIndexAt(transcriptLines.value, currentTime.value - captionDelay.value),
+)
 
 const onSeekInput = (time: number) => {
   currentTime.value = time
@@ -768,7 +840,8 @@ onUnmounted(() => {
   border-top: 1px solid var(--border-color);
 }
 
-.slide-gallery:has(.gallery-grid) .server-slides-header {
+.slide-gallery:has(.gallery-grid) .server-slides-header,
+.slide-gallery:has(.transcript-panel) .server-slides-header {
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -777,6 +850,49 @@ onUnmounted(() => {
   align-items: center;
   gap: 20px;
   min-width: 0;
+}
+
+/* The Search page's segmented control: a grouped track, the view on show a
+   raised pill. Its height is not that page's fixed control height: it
+   stretches to the row, so it is exactly as tall as the counter chip beside it. */
+.mode-switch {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-page-alt);
+  border: 1px solid var(--border-color);
+}
+
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mode-pill:hover {
+  color: var(--text-primary);
+}
+
+.mode-pill.active {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .server-slides-title {

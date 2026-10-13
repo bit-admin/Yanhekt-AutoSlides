@@ -3,7 +3,7 @@
  * `slides_*` folder of the same lecture on Yanhekt.
  *
  * `prepare` finds that lecture (course number + start time, see
- * `platform/yanhe2/yanhe2Twin.ts`) and names the folder; `save` downloads the
+ * `platform/yanhe2/yanhe2TwinResolver.ts`) and names the folder; `save` downloads the
  * JPEGs, re-encodes each as a `Slide_*.png` the way extraction saves its own
  * (indexed to 128 colors unless that setting is off) and writes
  * `metadata.json`. Post-processing is the renderer's, through the task queue.
@@ -19,13 +19,11 @@
 import axios from 'axios';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { CourseData, SessionData } from '@common/apiTypes';
 import { buildSlideFolderName } from '@common/lectureNaming';
 import type { SlideMetadataSource } from '@common/sidecars/metadata';
 import { createEmptyTimeline, recordCaptureConfirmed, type SlideTimeline } from '@common/sidecars/timeline';
 import type {
   Yanhe2SlideSavePrepared,
-  Yanhe2SlideSaveRefusal,
   Yanhe2SlideSaveResult,
   Yanhe2SlideSaveTarget,
 } from '@common/yanhe2SlideSave';
@@ -33,12 +31,11 @@ import { createIntranetAxios } from '@main/infra/intranetTransport';
 import { createLogger } from '@main/infra/logger';
 import { expandTilde } from '@main/infra/pathUtils';
 import { sharpService } from '@main/infra/sharpService';
-import type { ApiClient } from '@main/platform/apiClient';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
 import { isYanhe2SlideImageUrl } from '@main/platform/yanhe2/yanhe2Slides';
-import { pickTwinCourse, pickTwinSession } from '@main/platform/yanhe2/yanhe2Twin';
+import type { Yanhe2Twin as Twin, Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import type { SlideExtractionService } from './slideExtractionService';
 import type { SlideMetadataService } from './slideMetadataService';
 import type { SlideTimelineService } from './slideTimelineService';
@@ -62,16 +59,9 @@ const CONCURRENCY = 4;
 const IMAGE_TIMEOUT_MS = 30_000;
 const IMAGE_ATTEMPTS = 3;
 
-interface Twin {
-  course: CourseData;
-  session: SessionData;
-}
-
-type Found<T> = { kind: 'ok'; data: T } | { kind: Yanhe2SlideSaveRefusal };
-
 export interface Yanhe2SlideImportDeps {
   yanhe2Service: Yanhe2Service;
-  apiClient: ApiClient;
+  twinResolver: Yanhe2TwinResolver;
   configService: ConfigService;
   intranetMapping: IntranetMappingService;
   slideExtractionService: SlideExtractionService;
@@ -95,7 +85,7 @@ export class Yanhe2SlideImportService {
     if (listed.kind !== 'ok') return { kind: listed.kind };
     if (!listed.data.some((slide) => isYanhe2SlideImageUrl(slide.url))) return { kind: 'no_slides' };
 
-    const twin = await this.findTwin(account, query);
+    const twin = await this.deps.twinResolver.find(account, query);
     if (twin.kind !== 'ok') return twin;
     const target = this.targetOf(twin.data);
     if (this.saving.has(target.folderPath)) return { kind: 'busy' };
@@ -110,7 +100,7 @@ export class Yanhe2SlideImportService {
     query: unknown,
     onProgress: (done: number, total: number) => void,
   ): Promise<Yanhe2SlideSaveResult> {
-    const twin = await this.findTwin(account, query);
+    const twin = await this.deps.twinResolver.find(account, query);
     if (twin.kind !== 'ok') return twin;
     const target = this.targetOf(twin.data);
     if (this.saving.has(target.folderPath)) return { kind: 'busy' };
@@ -222,30 +212,6 @@ export class Yanhe2SlideImportService {
     const dir = expandTilde(folderPath);
     await Promise.all(written.map((file) => fs.rm(path.join(dir, file), { force: true }).catch(() => { /* best effort */ })));
     return null;
-  }
-
-  private async findTwin(account: string, query: unknown): Promise<Found<Twin>> {
-    const { apiClient, configService, yanhe2Service } = this.deps;
-    const key = await yanhe2Service.getTwinKey(account, query);
-    if (key.kind !== 'ok') return { kind: key.kind };
-    if (!key.data.courseCode || !key.data.startAt) return { kind: 'no_match' };
-
-    // The session list is empty without a sign-in, which would read as "no match".
-    const token = configService.getAuthToken();
-    if (!token) return { kind: 'yanhekt_signed_out' };
-
-    try {
-      const listed = await apiClient.getCourseList(token, { keyword: key.data.courseCode, page: 1, pageSize: 16 });
-      const course = pickTwinCourse(listed.data ?? [], key.data.courseCode);
-      if (!course) return { kind: 'no_match' };
-      const sessions = await apiClient.getCourseSessions(String(course.id), token);
-      const session = pickTwinSession(sessions, key.data.startAt);
-      return session ? { kind: 'ok', data: { course, session } } : { kind: 'no_match' };
-    } catch (error) {
-      if (axios.isAxiosError(error) && !error.response) return { kind: 'network' };
-      log.warn('Yanhekt lookup for a Yanhe 2.0 session failed:', error instanceof Error ? error.message : error);
-      return { kind: 'failed' };
-    }
   }
 
   private targetOf({ course, session }: Twin): Yanhe2SlideSaveTarget {

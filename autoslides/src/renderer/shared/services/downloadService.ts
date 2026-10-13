@@ -39,7 +39,11 @@ export interface DownloadItem {
   // dedupe, the item id and the queue panel all keep working untouched, and
   // extractionOrchestrator already gates auto-extract on 'screen', so audio
   // items are excluded from slide extraction for free.
-  videoType: 'camera' | 'screen' | 'audio'
+  //
+  // 'subtitles' is a Yanhe 2.0 transcript written as an `.srt`. It is not
+  // fetched by this service at all: whoever adds it passes the function that
+  // does the work (`addToQueue`'s second argument), and the queue only runs it.
+  videoType: 'camera' | 'screen' | 'audio' | 'subtitles'
   status: DownloadStatus
   progress: number
   error?: string
@@ -62,6 +66,9 @@ export interface DownloadItem {
   postProcessJobId?: string
 }
 
+/** The work of an item this service does not download itself. A throw is the item's error. */
+export type DownloadRunner = (item: DownloadItem) => Promise<void>
+
 export type DownloadQueueAddResult =
   | { added: true; item: DownloadItem }
   | { added: false; existingItem: DownloadItem }
@@ -70,6 +77,8 @@ class DownloadServiceClass {
   private items = reactive<DownloadItem[]>([])
   private activeDownloads = new Set<string>()
   private maxConcurrent = ref(5)
+  // Items that bring their own work instead of a stream URL, by item id.
+  private runners = new Map<string, DownloadRunner>()
 
   constructor() {
     // The extraction orchestrator reads the queue through this provider rather
@@ -78,7 +87,12 @@ class DownloadServiceClass {
   }
 
   // Queue management
-  addToQueue(item: Omit<DownloadItem, 'id' | 'status' | 'progress' | 'addedAt'>): DownloadQueueAddResult {
+  // `run`, when given, is the whole download: the item still queues, counts
+  // against the concurrency limit, and can be retried or removed like any other.
+  addToQueue(
+    item: Omit<DownloadItem, 'id' | 'status' | 'progress' | 'addedAt'>,
+    run?: DownloadRunner,
+  ): DownloadQueueAddResult {
     // Check for duplicates
     const duplicate = this.items.find(existing =>
       existing.sessionId === item.sessionId &&
@@ -98,6 +112,7 @@ class DownloadServiceClass {
       addedAt: Date.now()
     }
 
+    if (run) this.runners.set(downloadItem.id, run)
     this.items.push(downloadItem)
     this.processQueue()
     // Hook into the extraction queue. The extraction queue handles its own
@@ -137,6 +152,7 @@ class DownloadServiceClass {
         if (index !== -1) {
           this.items.splice(index, 1)
         }
+        this.runners.delete(id)
       }
       this.processQueue()
       this.notifyExtractionQueueChange()
@@ -180,6 +196,7 @@ class DownloadServiceClass {
       if (index !== -1) {
         this.items.splice(index, 1)
       }
+      this.runners.delete(item.id)
     })
   }
 
@@ -226,6 +243,20 @@ class DownloadServiceClass {
 
     try {
       log.debug(`Starting download: ${item.name}`)
+
+      const run = this.runners.get(item.id)
+      if (run) {
+        await run(item)
+        // Removed or cancelled while it ran: leave what that set.
+        if (item.status === 'downloading') {
+          item.status = 'completed'
+          item.progress = 100
+          item.completedAt = Date.now()
+        }
+        this.activeDownloads.delete(item.id)
+        this.processQueue()
+        return
+      }
 
       // Get video stream URL from session data
       const sessionData = await this.getSessionVideoUrl(item.sessionId, item.videoType)

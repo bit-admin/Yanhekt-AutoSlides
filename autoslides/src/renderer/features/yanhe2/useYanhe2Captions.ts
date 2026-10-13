@@ -23,6 +23,22 @@ const log = createLogger('Yanhe2Captions')
 // lectures opened after it. Not saved across launches.
 const captionsOn = ref(false)
 
+/**
+ * The section under the player: its slides (false) or its transcript (true).
+ * One switch for every Yanhe 2.0 tab, like the captions', and not saved either.
+ */
+export const yanhe2TranscriptView = ref(false)
+
+/**
+ * Seconds to hold a transcript back by on a lecture whose classroom mic was
+ * live or not; null when it should not be offered at all. The one rule the
+ * captions, the transcript view and the subtitle download share.
+ */
+export function yanhe2CaptionDelay(micLive: boolean): number | null {
+  if (micLive) return 0
+  return configStore.yanhe2CaptionMode === 'offset' ? (configStore.yanhe2CaptionOffsetSeconds ?? 0) : null
+}
+
 export function useYanhe2Captions(options: {
   account: string
   subId: string
@@ -58,10 +74,9 @@ export function useYanhe2Captions(options: {
   /** Seconds to hold each line back by; null when captions should not be offered. */
   const delay = computed<number | null>(() => {
     if (!hasTranscript.value) return null
-    if (micState.value === 'live') return 0
     // Until the mic has been judged there is no telling which kind this is.
-    if (micState.value !== 'dead') return null
-    return configStore.yanhe2CaptionMode === 'offset' ? (configStore.yanhe2CaptionOffsetSeconds ?? 0) : null
+    if (micState.value !== 'live' && micState.value !== 'dead') return null
+    return yanhe2CaptionDelay(micState.value === 'live')
   })
 
   const available = computed(() => delay.value !== null)
@@ -71,5 +86,6 @@ export function useYanhe2Captions(options: {
   })
   const toggle = () => { captionsOn.value = !captionsOn.value }
 
-  return { hasTranscript, available, captionsOn, caption, toggle }
+  // `lines` and `delay` are also what the page's transcript view reads.
+  return { lines, delay, hasTranscript, available, captionsOn, caption, toggle }
 }

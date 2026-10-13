@@ -48,6 +48,8 @@ export const yanhe2: ElectronAPI['yanhe2'] = {
       ipcRenderer.removeListener('yanhe2:slideSaveProgress', listener);
     };
   },
+  prepareSubtitles: (account, query) => ipcRenderer.invoke('yanhe2:prepareSubtitles', account, query),
+  saveSubtitles: (account, query, shift) => ipcRenderer.invoke('yanhe2:saveSubtitles', account, query, shift),
   transcript: (account, subId) => ipcRenderer.invoke('yanhe2:transcript', account, subId),
   prepareBrowserSignIn: () => ipcRenderer.invoke('yanhe2:prepareBrowserSignIn'),
   adoptBrowserSession: (account: string) => ipcRenderer.invoke('yanhe2:adoptBrowserSession', account),

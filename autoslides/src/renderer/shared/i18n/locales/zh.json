@@ -1825,6 +1825,11 @@
     "timetable": "周课表"
   },
   "yanhe2Curriculum": {
+    "downloadSubtitles": "下载字幕",
+    "downloadAllSubtitles": "下载全部字幕",
+    "subtitlesAllAdded": "已添加 {count} 个字幕到下载队列。",
+    "subtitlesAllSome": "已添加 {count} 个字幕到下载队列。跳过 {skipped} 个：没有转写、麦克风未录音、在延河课堂找不到，或已在队列中。",
+    "subtitlesAllNone": "没有添加任何字幕。这些课没有转写、麦克风未录音、在延河课堂找不到，或已在队列中。",
     "saveSlides": "添加服务端幻灯片到提取任务",
     "saveAllSlides": "添加全部服务端幻灯片到提取任务",
     "saveAllNone": "没有添加任何幻灯片。这些课没有幻灯片、在延河课堂找不到，或已经保存过。",
@@ -1850,6 +1855,19 @@
     "processing": "这节课已结束，录像仍在处理中。",
     "noRecording": "这节课没有可播放的录像。",
     "serverSlides": "服务端幻灯片",
+    "serverTranscript": "服务端转写",
+    "transcriptLines": "句",
+    "downloadSubtitles": "下载字幕",
+    "subtitlesAlreadyQueued": "这份字幕已在下载队列中",
+    "subtitlesRefused": {
+      "timing_unknown": "这节课不提供字幕：教室麦克风没有录音，转写的时间无法确定。可在 设置 → 下载与播放 → 延河 2.0 字幕 中改为按固定延迟提供。",
+      "signed_out": "延河 2.0 登录已失效，请重新登录后重试。",
+      "yanhekt_signed_out": "请先登录延河课堂再下载，字幕会按延河课堂的同一节课命名。",
+      "no_match": "在延河课堂没有找到这节课，字幕未下载。",
+      "no_transcript": "延河 2.0 没有这节课的转写。",
+      "network": "字幕下载失败，请检查网络后重试。",
+      "failed": "字幕保存失败，请稍后再试。"
+    },
     "slideTitle": "幻灯片 {n}",
     "slideShownAt": "出现时间：",
     "slidesLoading": "正在加载幻灯片…",

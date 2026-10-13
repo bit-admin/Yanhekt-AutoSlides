@@ -1825,6 +1825,11 @@
     "timetable": "Week timetable"
   },
   "yanhe2Curriculum": {
+    "downloadSubtitles": "Download Subtitles",
+    "downloadAllSubtitles": "Download All Subtitles",
+    "subtitlesAllAdded": "Added {count} subtitle files to download queue",
+    "subtitlesAllSome": "Added {count} subtitle files to download queue. {skipped} skipped: no transcript, mic off, not found on Yanhekt, or already queued.",
+    "subtitlesAllNone": "No subtitles were added. These lectures have no transcript, had the classroom mic off, were not found on Yanhekt, or are already queued.",
     "saveSlides": "Add Server Slides to Tasks",
     "saveAllSlides": "Add All Server Slides to Tasks",
     "saveAllNone": "No slides were added. These lectures have no slides, were not found on Yanhekt, or are already saved.",
@@ -1850,6 +1855,19 @@
     "processing": "This lecture has ended and its recording is still being processed.",
     "noRecording": "This lecture has no recording to play.",
     "serverSlides": "Server Slides",
+    "serverTranscript": "Server Transcript",
+    "transcriptLines": "Lines",
+    "downloadSubtitles": "Download Subtitles",
+    "subtitlesAlreadyQueued": "These subtitles are already in the download queue",
+    "subtitlesRefused": {
+      "timing_unknown": "Subtitles are not offered for this lecture: its classroom mic was off, so the transcript's timing cannot be trusted. Settings → Download & Playback → Yanhe 2.0 Captions can offer them with a fixed delay.",
+      "signed_out": "Your Yanhe 2.0 session has ended. Sign in again, then retry.",
+      "yanhekt_signed_out": "Sign in to Yanhekt to download these subtitles. They are named for the same lecture there.",
+      "no_match": "This lecture was not found on Yanhekt, so its subtitles were not downloaded.",
+      "no_transcript": "Yanhe 2.0 has no transcript for this lecture.",
+      "network": "Could not download the subtitles. Check your connection and try again.",
+      "failed": "The subtitles could not be saved. Try again later."
+    },
     "slideTitle": "Slide {n}",
     "slideShownAt": "Shown At:",
     "slidesLoading": "Loading slides…",
