@@ -13,7 +13,7 @@ import {
 
 const V = path.resolve('/home/kate/Vault');
 const note = path.join(V, 'Courses', 'Analysis.md');
-const SLIDES = 'slides_泛函分析__c62313s751843';
+const SLIDES = 'slides_泛函分析__c70101s850101';
 
 describe('findVaultRoot', () => {
   const vaults = new Set([V]);
@@ -72,8 +72,8 @@ describe('resolveSlidesDir', () => {
 
 describe('noteFileNameFromTitle', () => {
   it('keeps the middle dot and strips unsafe characters', () => {
-    expect(noteFileNameFromTitle('c62313s751843 · 泛函分析 · 第1周 星期三 第2大节'))
-      .toBe('c62313s751843 · 泛函分析 · 第1周 星期三 第2大节.md');
+    expect(noteFileNameFromTitle('c70101s850101 · 泛函分析 · 第1周 星期三 第2大节'))
+      .toBe('c70101s850101 · 泛函分析 · 第1周 星期三 第2大节.md');
     expect(noteFileNameFromTitle('A/B: C? [x] #1.')).toBe('A B C x 1.md');
     expect(noteFileNameFromTitle('   ')).toBe('AutoSlides.md');
   });

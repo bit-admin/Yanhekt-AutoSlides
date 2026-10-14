@@ -52,8 +52,8 @@ describe('pickCourseFromList', () => {
 
   it('string-compares numeric ids from the API', () => {
     // Runtime JSON often delivers numeric ids even though the type says string.
-    const rows = [{ ...sampleRow(71736), id: 71736 as unknown as string }]
-    expect(pickCourseFromList('71736', rows)?.id).toBe('71736')
+    const rows = [{ ...sampleRow(71001), id: 71001 as unknown as string }]
+    expect(pickCourseFromList('71001', rows)?.id).toBe('71001')
   })
 
   it('returns null when nothing matches (never takes the first fuzzy hit)', () => {

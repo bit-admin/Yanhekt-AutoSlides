@@ -26,9 +26,9 @@ const row = (id: unknown, extra: Record<string, unknown> = {}) => ({
   title: '泛函分析',
   realname: 'teacher',
   username: '6120100001',
-  kcwybm: '20262027110017113901',
-  course_code: '20262027110017113901',
-  information: '{"kcdm":"100171139","kkxn":"2026-2027","kkxq":"1","kcwybm":"20262027110017113901"}',
+  kcwybm: '20262027110099010101',
+  course_code: '20262027110099010101',
+  information: '{"kcdm":"100990101","kkxn":"2026-2027","kkxq":"1","kcwybm":"20262027110099010101"}',
   term: '_42_',
   term_name: '2026-2027-1',
   kkxy_name: '数学与统计学院',
@@ -68,27 +68,27 @@ describe('parseTerms', () => {
 
 describe('parseCourseSearch', () => {
   it('reads a row into the Curriculum course shape, with the string total', () => {
-    expect(parseCourseSearch(searchBody([row('103690')], '8'))).toEqual({
+    expect(parseCourseSearch(searchBody([row('200101')], '8'))).toEqual({
       total: 8,
       courses: [{
-        courseId: '103690',
+        courseId: '200101',
         title: '泛函分析',
         teacher: 'teacher',
         college: '数学与统计学院',
         term: '2026-2027-1',
         schoolYear: '2026-2027',
         semester: '1',
-        courseCode: '20262027110017113901',
+        courseCode: '20262027110099010101',
       }],
     });
   });
 
   it('takes course_code when a hand-made row has no kcwybm, and a null college as none', () => {
     const parsed = parseCourseSearch(searchBody([
-      row('63030', { kcwybm: '', course_code: 'hand_1769071367_598', information: '', kkxy_name: null, term_name: '2021-2022试用' }),
+      row('150301', { kcwybm: '', course_code: 'hand_1700000000_123', information: '', kkxy_name: null, term_name: '2021-2022试用' }),
     ]));
     expect(parsed?.courses[0]).toMatchObject({
-      courseCode: 'hand_1769071367_598',
+      courseCode: 'hand_1700000000_123',
       college: '',
       schoolYear: '',
       semester: '',
@@ -97,7 +97,7 @@ describe('parseCourseSearch', () => {
 
   it('reads the term off its name when information does not carry it', () => {
     const parsed = parseCourseSearch(searchBody([
-      row('50426', { information: '{"zhiyuan_id":788}', term_name: '2025-2026-1' }),
+      row('150201', { information: '{"zhiyuan_id":788}', term_name: '2025-2026-1' }),
     ]));
     expect(parsed?.courses[0]).toMatchObject({ term: '2025-2026-1', schoolYear: '2025-2026', semester: '1' });
   });
@@ -120,7 +120,7 @@ describe('search requests', () => {
   };
 
   it('sends the bare term id, and no term at all for every term', async () => {
-    let url = capture(searchBody([row('103690')]));
+    let url = capture(searchBody([row('200101')]));
     const result = await fetchYanhe2CourseSearch('jwt', { keyword: '泛函', termId: 42, page: 2 });
     expect(result.kind).toBe('ok');
     expect(url().pathname).toBe('/courseapi/v3/multi-search/get-course-list');

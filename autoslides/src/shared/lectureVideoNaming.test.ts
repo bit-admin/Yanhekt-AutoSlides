@@ -19,10 +19,10 @@ import {
 
 describe('parseLectureVideoName — legacy downloads', () => {
   it('parses screen_…__c…s… names', () => {
-    const name = 'screen_泛函分析_第1周_星期三_第2大节__c62313s751843.mp4';
+    const name = 'screen_泛函分析_第1周_星期三_第2大节__c70101s850101.mp4';
     const parsed = parseLectureVideoName(name);
-    expect(parsed.courseId).toBe('62313');
-    expect(parsed.sessionId).toBe('751843');
+    expect(parsed.courseId).toBe('70101');
+    expect(parsed.sessionId).toBe('850101');
     expect(parsed.videoType).toBe('screen');
     expect(parsed.recognised).toBe(true);
     expect(parsed.hasEmbyTags).toBe(false);
@@ -52,10 +52,10 @@ describe('parseLectureVideoName — legacy downloads', () => {
 describe('parseLectureVideoName — Emby tags', () => {
   it('parses yhid + vtype tags', () => {
     const name =
-      '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=screen].mp4';
+      '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c70101s850101] [vtype=screen].mp4';
     const parsed = parseLectureVideoName(name);
-    expect(parsed.courseId).toBe('62313');
-    expect(parsed.sessionId).toBe('751843');
+    expect(parsed.courseId).toBe('70101');
+    expect(parsed.sessionId).toBe('850101');
     expect(parsed.videoType).toBe('screen');
     expect(parsed.hasEmbyTags).toBe(true);
     expect(parsed.hasVtypeTag).toBe(true);
@@ -65,12 +65,12 @@ describe('parseLectureVideoName — Emby tags', () => {
   it('display name strips tags and prefixes', () => {
     expect(
       formatLectureVideoDisplayName(
-        '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=screen].mp4',
+        '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c70101s850101] [vtype=screen].mp4',
       ),
     ).toBe('泛函分析 - S01E02 - 第1周 星期三 第2大节');
 
     expect(
-      formatLectureVideoDisplayName('screen_泛函分析_第1周_星期三_第2大节__c62313s751843.mp4'),
+      formatLectureVideoDisplayName('screen_泛函分析_第1周_星期三_第2大节__c70101s850101.mp4'),
     ).toBe('泛函分析_第1周_星期三_第2大节');
   });
 });
@@ -79,12 +79,12 @@ describe('buildLectureVideoFileName', () => {
   it('appends tags after a sanitised stem', () => {
     const name = buildLectureVideoFileName({
       stem: '泛函分析 - S01E02 - 第1周 星期三 第2大节',
-      courseId: '62313',
-      sessionId: '751843',
+      courseId: '70101',
+      sessionId: '850101',
       videoType: 'screen',
     });
     expect(name).toBe(
-      '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=screen].mp4',
+      '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c70101s850101] [vtype=screen].mp4',
     );
     expect(parseLectureVideoName(name).recognised).toBe(true);
   });
@@ -144,16 +144,16 @@ describe('ascomp compress tag', () => {
 
   it('legacy __c…s… stays recognised after [ascomp=…] is appended', () => {
     const name = withAscompTag(
-      'screen_泛函分析_第1周_星期三_第2大节__c62313s751843.mp4',
+      'screen_泛函分析_第1周_星期三_第2大节__c70101s850101.mp4',
       'tiny',
     );
     expect(name).toBe(
-      'screen_泛函分析_第1周_星期三_第2大节__c62313s751843 [ascomp=tiny].mp4',
+      'screen_泛函分析_第1周_星期三_第2大节__c70101s850101 [ascomp=tiny].mp4',
     );
     const parsed = parseLectureVideoName(name);
     expect(parsed.recognised).toBe(true);
-    expect(parsed.courseId).toBe('62313');
-    expect(parsed.sessionId).toBe('751843');
+    expect(parsed.courseId).toBe('70101');
+    expect(parsed.sessionId).toBe('850101');
     expect(parsed.videoType).toBe('screen');
     expect(parsed.compressPreset).toBe('tiny');
   });
@@ -246,10 +246,10 @@ describe('allocateUniqueFileName', () => {
 describe('mic audio (.aac)', () => {
   it('parses an audio_… legacy download name', () => {
     const parsed = parseLectureVideoName(
-      'audio_泛函分析_第1周_星期三_第2大节__c62313s751843.aac',
+      'audio_泛函分析_第1周_星期三_第2大节__c70101s850101.aac',
     );
-    expect(parsed.courseId).toBe('62313');
-    expect(parsed.sessionId).toBe('751843');
+    expect(parsed.courseId).toBe('70101');
+    expect(parsed.sessionId).toBe('850101');
     expect(parsed.videoType).toBe('audio');
     expect(parsed.ext).toBe('.aac');
     expect(parsed.recognised).toBe(true);
@@ -257,7 +257,7 @@ describe('mic audio (.aac)', () => {
 
   it('parses an Emby-renamed [vtype=audio] name', () => {
     const parsed = parseLectureVideoName(
-      '泛函分析 - S01E02 - 第1周 [yhid=c62313s751843] [vtype=audio].aac',
+      '泛函分析 - S01E02 - 第1周 [yhid=c70101s850101] [vtype=audio].aac',
     );
     expect(parsed.videoType).toBe('audio');
     expect(parsed.hasEmbyTags).toBe(true);
@@ -269,12 +269,12 @@ describe('mic audio (.aac)', () => {
     expect(
       buildLectureVideoFileName({
         stem: '泛函分析 - S01E02 - 第1周',
-        courseId: '62313',
-        sessionId: '751843',
+        courseId: '70101',
+        sessionId: '850101',
         videoType: 'audio',
         ext: '.aac',
       }),
-    ).toBe('泛函分析 - S01E02 - 第1周 [yhid=c62313s751843] [vtype=audio].aac');
+    ).toBe('泛函分析 - S01E02 - 第1周 [yhid=c70101s850101] [vtype=audio].aac');
   });
 
   it('separates audio from video extensions', () => {
@@ -293,26 +293,26 @@ describe('mic audio (.aac)', () => {
   });
 
   it('reads a downloaded subtitle file as its screen recording', () => {
-    const parsed = parseLectureVideoName('screen_泛函分析_第1周_星期三_第2大节__c62313s751843.srt');
+    const parsed = parseLectureVideoName('screen_泛函分析_第1周_星期三_第2大节__c70101s850101.srt');
     expect(parsed).toMatchObject({
       ext: '.srt',
-      courseId: '62313',
-      sessionId: '751843',
+      courseId: '70101',
+      sessionId: '850101',
       videoType: 'screen',
       recognised: true,
     });
   });
 
   it('names a subtitle file after its video, tags included', () => {
-    const video = '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=screen] [ascomp=tiny].mkv';
+    const video = '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c70101s850101] [vtype=screen] [ascomp=tiny].mkv';
     const subtitle = subtitleNameForVideo(video, '.srt');
     expect(subtitle).toBe(
-      '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=screen] [ascomp=tiny].srt',
+      '泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c70101s850101] [vtype=screen] [ascomp=tiny].srt',
     );
     // Still filed under the same lecture and stream after the rename.
     expect(parseLectureVideoName(subtitle)).toMatchObject({
-      courseId: '62313',
-      sessionId: '751843',
+      courseId: '70101',
+      sessionId: '850101',
       videoType: 'screen',
     });
   });

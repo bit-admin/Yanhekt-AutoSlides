@@ -6,7 +6,7 @@ import { sha256Hex, type D1Database, type Env } from './lib/runtime';
 const TOKEN = '0123456789abcdef0123456789abcdef';
 
 function payload(overrides: Partial<SharePayload> = {}): SharePayload {
-  return { v: 2, c: '62313', s: '751843', p: '2026/6', n: 7, h: 'abcdef1abcdef2abcdef3', ...overrides } as SharePayload;
+  return { v: 2, c: '70101', s: '850101', p: '2026/6', n: 7, h: 'abcdef1abcdef2abcdef3', ...overrides } as SharePayload;
 }
 
 /** Records every prepared SQL + bound args; `existingShareId` drives the duplicate branch. */

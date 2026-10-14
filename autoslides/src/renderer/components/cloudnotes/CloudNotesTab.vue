@@ -819,7 +819,7 @@ function termOptionLabel(tm: IndexTermOption): string {
 function sessionMeta(l: IndexLecture): string {
   return [instructorOf(l), termLabel(l)].filter(Boolean).join(' · ')
 }
-/** Course-row second line: "#60490 · 王一夫 · 2025-2026 · Fall" (no college). */
+/** Course-row second line: "#70201 · 王一夫 · 2025-2026 · Fall" (no college). */
 function courseSub(g: { courseId: string; items: IndexLecture[] }): string {
   const first = g.items[0]
   return [

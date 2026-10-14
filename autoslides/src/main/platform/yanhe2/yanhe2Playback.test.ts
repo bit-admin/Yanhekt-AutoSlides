@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { isYanhe2PlayUrl, parseSubInfo, signYanhe2PlayPath, signYanhe2PlayUrl } from './yanhe2Playback';
 
 const identity = { userId: 10001, tenantId: 21, playSigningPhone: '13800138000' };
-const TEACHER = 'https://aita.yanhekt.cn/play/2/vod3/2026/09/21/67003639/1/Video1/Video1.m3u8';
+const TEACHER = 'https://aita.yanhekt.cn/play/2/vod3/2026/09/21/51230000/1/Video1/Video1.m3u8';
 const SCREEN = 'https://aita.yanhekt.cn/play/frim_files/ppt2026/2026-09-21/2026-09-21/AAAA_1080p.mp4';
 const ROOM = 'https://aita.yanhekt.cn/play/default/2026/09/21/bbbb_1920_1080.mp4';
 
 describe('signYanhe2PlayPath', () => {
   it('matches the golden vector', () => {
-    expect(signYanhe2PlayPath('/play/2/vod3/2026/09/21/67003639/1/Video1/Video1.m3u8', identity, 1700000000))
-      .toBe('10001-1700000000-64045f6c23579f3de2974d9bb2d122f5');
+    expect(signYanhe2PlayPath('/play/2/vod3/2026/09/21/51230000/1/Video1/Video1.m3u8', identity, 1700000000))
+      .toBe('10001-1700000000-8fe2ba7907c0093a7e04cd17e3a32e91');
   });
 
   it('signs each path on its own', () => {
@@ -23,12 +23,12 @@ describe('signYanhe2PlayUrl', () => {
   it('hashes the pathname only and keeps an existing query', () => {
     const signed = new URL(signYanhe2PlayUrl(`${TEACHER}?clientUUID=x`, identity, 1700000000_000));
     expect(signed.searchParams.get('clientUUID')).toBe('x');
-    expect(signed.searchParams.get('t')).toBe('10001-1700000000-64045f6c23579f3de2974d9bb2d122f5');
+    expect(signed.searchParams.get('t')).toBe('10001-1700000000-8fe2ba7907c0093a7e04cd17e3a32e91');
   });
 
   it('replaces a stale t', () => {
     const signed = new URL(signYanhe2PlayUrl(`${TEACHER}?t=old`, identity, 1700000000_000));
-    expect(signed.searchParams.getAll('t')).toEqual(['10001-1700000000-64045f6c23579f3de2974d9bb2d122f5']);
+    expect(signed.searchParams.getAll('t')).toEqual(['10001-1700000000-8fe2ba7907c0093a7e04cd17e3a32e91']);
   });
 });
 
@@ -37,7 +37,7 @@ describe('isYanhe2PlayUrl', () => {
     expect(isYanhe2PlayUrl(TEACHER)).toBe(true);
     expect(isYanhe2PlayUrl(SCREEN)).toBe(true);
     expect(isYanhe2PlayUrl('https://aita.yanhekt.cn/play/2/vod3/x/Video1_12.ts')).toBe(true);
-    expect(isYanhe2PlayUrl('https://aita.yanhekt.cn/play/2/vod4/2026/09/21/67011470/1/SubAudio/07_59_03_42.aac')).toBe(true);
+    expect(isYanhe2PlayUrl('https://aita.yanhekt.cn/play/2/vod4/2026/09/21/51234567/1/SubAudio/07_59_03_42.aac')).toBe(true);
   });
 
   it('refuses other hosts, other trees and other files', () => {
@@ -130,7 +130,7 @@ describe('parseSubInfo', () => {
   });
 
   it('reads the classroom mic out of audio_list', () => {
-    const AUDIO = 'https://aita.yanhekt.cn/play/2/vod4/2026/09/21/67011470/1/SubAudio/07_59_03_42.aac';
+    const AUDIO = 'https://aita.yanhekt.cn/play/2/vod4/2026/09/21/51234567/1/SubAudio/07_59_03_42.aac';
     const body = recorded({ '0': { type: '3', preview_url: TEACHER } });
     expect(parseSubInfo(body)?.audioUrl).toBe('');
     Object.assign(body.data, { audio_list: { '0': { start_time: 42, url: AUDIO } } });

@@ -22,22 +22,22 @@ const SESSION = '第1周 星期三 第2大节';
 
 describe('formatLectureToken / parseLectureToken', () => {
   it('emits recorded and live tokens without the folder __ prefix', () => {
-    expect(formatLectureToken({ courseId: '62313', sessionId: '751843' })).toBe('c62313s751843');
-    expect(formatLectureToken({ courseId: '71736', liveId: '761952' })).toBe('c71736l761952');
-    expect(formatLectureToken({ liveId: '761952' })).toBe('l761952');
+    expect(formatLectureToken({ courseId: '70101', sessionId: '850101' })).toBe('c70101s850101');
+    expect(formatLectureToken({ courseId: '71001', liveId: '760952' })).toBe('c71001l760952');
+    expect(formatLectureToken({ liveId: '760952' })).toBe('l760952');
     expect(formatLectureToken({})).toBe('');
   });
 
   it('parses a token at the start of a note title', () => {
-    expect(parseLectureToken('c62313s751843 · 泛函分析 · 第1周 星期三 第2大节')).toEqual({
-      courseId: '62313',
-      sessionId: '751843',
+    expect(parseLectureToken('c70101s850101 · 泛函分析 · 第1周 星期三 第2大节')).toEqual({
+      courseId: '70101',
+      sessionId: '850101',
       liveId: undefined,
     });
-    expect(parseLectureToken('c71736l761952 · x')).toEqual({
-      courseId: '71736',
+    expect(parseLectureToken('c71001l760952 · x')).toEqual({
+      courseId: '71001',
       sessionId: undefined,
-      liveId: '761952',
+      liveId: '760952',
     });
   });
 });
@@ -96,40 +96,40 @@ describe('parse / strip round-trip', () => {
 // `session.course_id`. A live folder carries both, so broadcasts of one course
 // group together while each broadcast stays a distinct folder.
 //
-// Values below are real: live 761952 / 761951 are two broadcasts of course
-// 71736, and 71735 is a DIFFERENT course sharing the title 电工和电子技术BⅡ.
+// Values below are real: live 760952 / 761951 are two broadcasts of course
+// 71001, and 71735 is a DIFFERENT course sharing the title 电工和电子技术BⅡ.
 describe('live broadcasts carry course id + broadcast id', () => {
   it('emits course then live, in that order', () => {
-    expect(buildLectureIdSuffix({ courseId: '71736', liveId: '761952' })).toBe('__c71736l761952');
+    expect(buildLectureIdSuffix({ courseId: '71001', liveId: '760952' })).toBe('__c71001l760952');
   });
 
   it('falls back to the broadcast alone when no course id resolved', () => {
-    expect(buildLectureIdSuffix({ liveId: '761952' })).toBe('__l761952');
+    expect(buildLectureIdSuffix({ liveId: '760952' })).toBe('__l760952');
   });
 
   it('never writes a broadcast id into the course slot', () => {
     const name = buildSlideFolderName(
       { courseTitle: '电工和电子技术BⅡ', sectionGroupTitle: '第21周 星期日 第2大节' },
-      { courseId: '71736', liveId: '761952' },
+      { courseId: '71001', liveId: '760952' },
     );
     expect(parseLectureIds(name)).toEqual({
-      courseId: '71736',
+      courseId: '71001',
       sessionId: undefined,
-      liveId: '761952',
+      liveId: '760952',
     });
   });
 
   it('strips and displays like any other id block', () => {
-    expect(formatLectureDisplayName('slides_泛函分析_2024秋季__c71736l761952'))
+    expect(formatLectureDisplayName('slides_泛函分析_2024秋季__c71001l760952'))
       .toBe('泛函分析_2024秋季');
-    expect(formatLectureDisplayName('slides_泛函分析_2024秋季__l761952'))
+    expect(formatLectureDisplayName('slides_泛函分析_2024秋季__l760952'))
       .toBe('泛函分析_2024秋季');
   });
 
   it('keeps two broadcasts of ONE course in distinct folders', () => {
     const parts = { courseTitle: '电工和电子技术BⅡ', sectionGroupTitle: '第21周 星期日 第2大节' };
-    const a = buildSlideFolderName(parts, { courseId: '71736', liveId: '761952' });
-    const b = buildSlideFolderName(parts, { courseId: '71736', liveId: '761951' });
+    const a = buildSlideFolderName(parts, { courseId: '71001', liveId: '760952' });
+    const b = buildSlideFolderName(parts, { courseId: '71001', liveId: '761951' });
     expect(a).not.toBe(b);
     // ...but reporting the same course, so they group together.
     expect(parseLectureIds(a).courseId).toBe(parseLectureIds(b).courseId);
@@ -137,12 +137,12 @@ describe('live broadcasts carry course id + broadcast id', () => {
 
   it('separates two same-titled courses broadcasting at once', () => {
     const parts = { courseTitle: '电工和电子技术BⅡ', sectionGroupTitle: '第21周 星期日 第2大节' };
-    expect(parseLectureIds(buildSlideFolderName(parts, { courseId: '71736', liveId: '761952' })).courseId)
+    expect(parseLectureIds(buildSlideFolderName(parts, { courseId: '71001', liveId: '760952' })).courseId)
       .not.toBe(parseLectureIds(buildSlideFolderName(parts, { courseId: '71735', liveId: '761878' })).courseId);
   });
 
   it('drops a session id that has no course to belong to', () => {
-    expect(buildLectureIdSuffix({ sessionId: '751843', liveId: '761952' })).toBe('__l761952');
+    expect(buildLectureIdSuffix({ sessionId: '850101', liveId: '760952' })).toBe('__l760952');
   });
 
   it('emits nothing for a non-numeric broadcast id', () => {

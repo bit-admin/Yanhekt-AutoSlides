@@ -8,7 +8,7 @@ const listRow = (id: unknown, extra: Record<string, unknown> = {}) => ({
   Realname: 'teacher',
   TermName: '2026-2027-1',
   KkxyName: '数学与统计学院',
-  information: '{"kcdm":"100171139","kkxn":"2026-2027","kkxq":"1","kcwybm":"20262027110017113901","zhiyuan_id":20668}',
+  information: '{"kcdm":"100990101","kkxn":"2026-2027","kkxq":"1","kcwybm":"20262027110099010101","zhiyuan_id":30001}',
   Teachers: [{ Username: '6120100001', Realname: 'teacher', IsSpeaker: '1' }],
   ...extra,
 });
@@ -36,12 +36,12 @@ const detailBody = (subList: unknown, extra: Record<string, unknown> = {}) => ({
   code: 0,
   msg: 'success',
   data: {
-    id: '103690',
+    id: '200101',
     title: '泛函分析',
     realname: 'teacher',
-    kcwybm: '20262027110017113901',
-    course_code: '0017113901',
-    information: '{"kkxn":"2026-2027","kkxq":"1","kcwybm":"20262027110017113901"}',
+    kcwybm: '20262027110099010101',
+    course_code: '0099010101',
+    information: '{"kkxn":"2026-2027","kkxq":"1","kcwybm":"20262027110099010101"}',
     term_name: '2026-2027-1',
     kkxy_name: '数学与统计学院',
     sub_list: subList,
@@ -51,19 +51,19 @@ const detailBody = (subList: unknown, extra: Record<string, unknown> = {}) => ({
 
 describe('parseCourseList', () => {
   it('reads PascalCase rows and stringifies the numeric id', () => {
-    const parsed = parseCourseList(listBody([listRow(114922)], 1));
+    const parsed = parseCourseList(listBody([listRow(210301)], 1));
     expect(parsed).toEqual({
       rows: 1,
       total: 1,
       courses: [{
-        courseId: '114922',
+        courseId: '210301',
         title: '泛函分析',
         teacher: 'teacher',
         college: '数学与统计学院',
         term: '2026-2027-1',
         schoolYear: '2026-2027',
         semester: '1',
-        courseCode: '20262027110017113901',
+        courseCode: '20262027110099010101',
       }],
     });
   });
@@ -96,14 +96,14 @@ describe('parseCourseDetail', () => {
     }));
     expect(detail?.sessions.map((s) => s.subId)).toEqual(['1', '2', '3']);
     expect(detail?.sessions[0]).toEqual({
-      courseId: '103690',
+      courseId: '200101',
       subId: '1',
       title: '泛函分析',
       subTitle: '2026-09-21第1-2节',
       teacher: 'teacher',
       room: '良乡校区文萃楼-F102',
       college: '数学与统计学院',
-      courseCode: '20262027110017113901',
+      courseCode: '20262027110099010101',
       startAt: 1789948800,
       endAt: 1789954500,
       status: 'playable',
@@ -111,7 +111,7 @@ describe('parseCourseDetail', () => {
   });
 
   it('uses kcwybm, not the shortened course_code', () => {
-    expect(parseCourseDetail(detailBody([]))?.courseCode).toBe('20262027110017113901');
+    expect(parseCourseDetail(detailBody([]))?.courseCode).toBe('20262027110099010101');
   });
 
   it('reads an empty sub_list as a course with no sessions', () => {

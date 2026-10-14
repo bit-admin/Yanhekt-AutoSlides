@@ -4,7 +4,7 @@ import { fromAsmediaUrl, toAsmediaUrl } from './asmediaUrl';
 describe('asmediaUrl', () => {
   it('round-trips paths with Chinese, spaces, and Emby brackets', () => {
     const abs =
-      '/path/to/lectures/泛函分析 - S01E01 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=camera].mp4';
+      '/path/to/lectures/泛函分析 - S01E01 - 第1周 星期三 第2大节 [yhid=c70101s850101] [vtype=camera].mp4';
     const url = toAsmediaUrl(abs);
     expect(url.startsWith('asmedia://local/')).toBe(true);
     expect(url).not.toContain(' ');

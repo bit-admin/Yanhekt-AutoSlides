@@ -23,13 +23,13 @@ afterEach(() => {
 describe('Yanhe 2.0 JSON requests', () => {
   it('all go through the installed sender, to the public URL, without following redirects', async () => {
     const sender = route(answer(200, { code: 200 }));
-    await readYanhe2('jwt', YANHE2_READ_PATHS.courseDetail, { course_id: '103690' });
+    await readYanhe2('jwt', YANHE2_READ_PATHS.courseDetail, { course_id: '200101' });
     await fetchYanhe2Profile('jwt');
 
     expect(sender).toHaveBeenCalledTimes(2);
     const [detail, profile] = sender.mock.calls.map(([config]) => config);
     // The transport decides the address; callers always name the public host.
-    expect(detail.url).toBe('https://aita.yanhekt.cn/courseapi/v3/multi-search/get-course-detail?course_id=103690');
+    expect(detail.url).toBe('https://aita.yanhekt.cn/courseapi/v3/multi-search/get-course-detail?course_id=200101');
     expect(profile.url).toBe('https://aita.yanhekt.cn/userapi/v1/infosimple');
     for (const config of [detail, profile]) {
       expect(config.method).toBe('GET');
@@ -61,10 +61,10 @@ describe('Yanhe 2.0 JSON requests', () => {
   });
 
   it('reads the profile the same way', async () => {
-    route(answer(200, { code: 200, params: { id: 99698, tenant_id: 21, phone: '10000000000' } }));
+    route(answer(200, { code: 200, params: { id: 10003, tenant_id: 21, phone: '10000000000' } }));
     expect(await fetchYanhe2Profile('jwt')).toEqual({
       kind: 'ok',
-      profile: { userId: 99698, tenantId: 21, playSigningPhone: '10000000000' },
+      profile: { userId: 10003, tenantId: 21, playSigningPhone: '10000000000' },
     });
     route(answer(403));
     expect(await fetchYanhe2Profile('jwt')).toEqual({ kind: 'rejected' });

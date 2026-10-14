@@ -370,8 +370,8 @@ export function splitNoteDisplayName(displayName: string): { course: string; ses
 }
 
 /**
- * Managed note title. Recorded: `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节`.
- * Live: `c71736l761952 · <course> · <section>`. The leading token is the dedup
+ * Managed note title. Recorded: `c70101s850101 · 泛函分析 · 第1周 星期三 第2大节`.
+ * Live: `c71001l760952 · <course> · <section>`. The leading token is the dedup
  * key (list endpoint returns titles, not content). Missing identity degrades to
  * the human parts only (web-capture / offline).
  */
@@ -409,7 +409,7 @@ export function formatNoteDisplayTitle(title: string, managed = false): string {
 
 /**
  * Folder-stem inverse of `buildManagedNoteTitle` for export: underscores, no
- * token. `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节` →
+ * token. `c70101s850101 · 泛函分析 · 第1周 星期三 第2大节` →
  * `泛函分析_第1周_星期三_第2大节`.
  */
 export function managedNoteDisplayName(title: string): string {

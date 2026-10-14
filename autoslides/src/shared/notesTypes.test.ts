@@ -21,24 +21,24 @@ import {
 describe('managed note titles', () => {
   it('builds the recorded form with id first and spaced session', () => {
     expect(
-      buildManagedNoteTitle('泛函分析_第1周_星期三_第2大节', { courseId: '62313', sessionId: '751843' }),
-    ).toBe('c62313s751843 · 泛函分析 · 第1周 星期三 第2大节');
+      buildManagedNoteTitle('泛函分析_第1周_星期三_第2大节', { courseId: '70101', sessionId: '850101' }),
+    ).toBe('c70101s850101 · 泛函分析 · 第1周 星期三 第2大节');
   });
 
   it('builds the live form with course + broadcast ids', () => {
     expect(
-      buildManagedNoteTitle('电工和电子技术BⅡ_2024秋季', { courseId: '71736', liveId: '761952' }),
-    ).toBe('c71736l761952 · 电工和电子技术BⅡ 2024秋季');
+      buildManagedNoteTitle('电工和电子技术BⅡ_2024秋季', { courseId: '71001', liveId: '760952' }),
+    ).toBe('c71001l760952 · 电工和电子技术BⅡ 2024秋季');
   });
 
   it('round-trips folder stem and identity', () => {
     const title = buildManagedNoteTitle('泛函分析_第1周_星期三_第2大节', {
-      courseId: 62313,
-      sessionId: 751843,
+      courseId: 70101,
+      sessionId: 850101,
     });
     expect(managedNoteIdentity(title)).toEqual({
-      courseId: '62313',
-      sessionId: '751843',
+      courseId: '70101',
+      sessionId: '850101',
       liveId: undefined,
     });
     expect(managedNoteDisplayName(title)).toBe('泛函分析_第1周_星期三_第2大节');
@@ -72,7 +72,7 @@ describe('managed note titles', () => {
 
   it('strips the lecture token from managed-group sidebar titles only', () => {
     const recorded = 'c61838s751030 · 泛函分析 · 第1周 星期三 第2大节';
-    const live = 'c71736l761952 · 电工和电子技术BⅡ · 2024秋季';
+    const live = 'c71001l760952 · 电工和电子技术BⅡ · 2024秋季';
     expect(formatNoteDisplayTitle(recorded, true)).toBe('泛函分析 · 第1周 星期三 第2大节');
     expect(formatNoteDisplayTitle(live, true)).toBe('电工和电子技术BⅡ · 2024秋季');
     expect(formatNoteDisplayTitle(recorded, false)).toBe(recorded);

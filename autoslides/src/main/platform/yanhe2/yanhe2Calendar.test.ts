@@ -30,7 +30,7 @@ const row = (courseId: string, subId: string, startAt: string, extra: Record<str
   lecturer_name: 'teacher',
   room_name: '良乡校区文萃楼-F102',
   kkxy_name: '数学与统计学院',
-  course_code: '20262027110017113901',
+  course_code: '20262027110099010101',
   start_at: startAt,
   end_at: '1790559300',
   sub_status: '2',
@@ -40,7 +40,7 @@ const row = (courseId: string, subId: string, startAt: string, extra: Record<str
 
 describe('parseDayList', () => {
   it('keeps the page fields and drops the rest', () => {
-    const day = parseDayList({ code: 0, total: 1, list: [period(46, '第一节', [row('103690', '1567406', '1790553600')])] });
+    const day = parseDayList({ code: 0, total: 1, list: [period(46, '第一节', [row('200101', '3040406', '1790553600')])] });
     expect(day?.periods).toEqual([{
       id: 46,
       name: '第一节',
@@ -48,14 +48,14 @@ describe('parseDayList', () => {
       endTime: '09:35',
       loaded: true,
       sessions: [{
-        courseId: '103690',
-        subId: '1567406',
+        courseId: '200101',
+        subId: '3040406',
         title: '泛函分析',
         subTitle: '2026-09-28第1-2节',
         teacher: 'teacher',
         room: '良乡校区文萃楼-F102',
         college: '数学与统计学院',
-        courseCode: '20262027110017113901',
+        courseCode: '20262027110099010101',
         startAt: 1790553600,
         endAt: 1790559300,
         status: 'upcoming',
@@ -118,8 +118,8 @@ describe('parseWeekSchedule', () => {
           {
             day: '2026-09-28',
             course: [{
-              id: '1569010',
-              course_id: '104946',
+              id: '3020010',
+              course_id: '201501',
               course_title: '智慧养老',
               status: '2',
               start_at: '1790579700',
@@ -132,7 +132,7 @@ describe('parseWeekSchedule', () => {
       },
     });
     expect(days?.map((d) => d.day)).toEqual(['2026-09-28', '2026-09-29']);
-    expect(days?.[0].sessions[0]).toMatchObject({ subId: '1569010', courseId: '104946', title: '智慧养老', status: 'upcoming' });
+    expect(days?.[0].sessions[0]).toMatchObject({ subId: '3020010', courseId: '201501', title: '智慧养老', status: 'upcoming' });
     expect(days?.[1].sessions).toEqual([]);
   });
 

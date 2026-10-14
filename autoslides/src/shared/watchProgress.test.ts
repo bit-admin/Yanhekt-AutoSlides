@@ -20,7 +20,7 @@ describe('parseUserProgress', () => {
 
   it('parses the decimal strings the API actually sends', () => {
     expect(parseUserProgress({
-      id: '1', badge: '6120120125', session_id: 751843,
+      id: '1', badge: '6100000002', session_id: 850101,
       progress_overall: '5936', progress_current: '2300', status: 0,
     })).toEqual({ current: 2300, overall: 5936 });
   });

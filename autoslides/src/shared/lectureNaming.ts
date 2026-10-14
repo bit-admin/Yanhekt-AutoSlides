@@ -41,8 +41,8 @@ export interface LectureIdentity {
 // All ids are digits, which is what makes the letter tags unambiguous
 // separators. Grammar, in this fixed order:
 //   `__c<courseId>[s<sessionId>][l<liveId>]`
-// recorded → `__c62313s751843`; live → `__c71736l761952`; live with no
-// resolvable course → `__l761952`.
+// recorded → `__c70101s850101`; live → `__c71001l760952`; live with no
+// resolvable course → `__l760952`.
 const ID_SUFFIX_PATTERN = /__(?:c(\d+))?(?:s(\d+))?(?:l(\d+))?$/;
 
 /**
@@ -104,9 +104,9 @@ export function parseLectureIds(name: string): ParsedLectureIds {
 
 /**
  * Leading id token used in managed note titles and share payloads (no `__`):
- *   recorded → `c62313s751843`
- *   live     → `c71736l761952`
- *   live, no course → `l761952`
+ *   recorded → `c70101s850101`
+ *   live     → `c71001l760952`
+ *   live, no course → `l760952`
  * Empty when no usable id exists. Session is only emitted with a course.
  */
 export function formatLectureToken(identity: LectureIdentity): string {

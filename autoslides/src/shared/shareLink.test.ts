@@ -17,11 +17,11 @@ import {
 
 const HOST = 'https://coss.yanhekt.cn';
 const hash = (h: string) => `${HOST}/images/2026/6/${h}.png`;
-const IDS = { courseId: '62313', sessionId: '751843' };
+const IDS = { courseId: '70101', sessionId: '850101' };
 
 describe('shareLink codec', () => {
   it('round-trips a payload through encode → decode', () => {
-    const payload: SharePayload = { v: 2, c: '62313', s: '751843', p: '2026/6', n: 7, h: 'abc1234def5678' };
+    const payload: SharePayload = { v: 2, c: '70101', s: '850101', p: '2026/6', n: 7, h: 'abc1234def5678' };
     const decoded = decodeSharePayload(encodeSharePayload(payload));
     expect(decoded).toEqual(payload);
   });
@@ -59,22 +59,22 @@ describe('shareLink codec', () => {
     ];
     const payload = buildSharePayload(IDS, urls);
     expect(payload.v).toBe(2);
-    expect(payload.c).toBe('62313');
-    expect(payload.s).toBe('751843');
+    expect(payload.c).toBe('70101');
+    expect(payload.s).toBe('850101');
     expect(payload.p).toBe('2026/6');
     expect(payload.n).toBe(7);
     expect(payload.h).toBe(a.slice(0, 7) + b.slice(0, 7) + c.slice(0, 7));
     expect(payload.o).toEqual({ '1': '2025/12' });
     expect(sharePayloadIdentity(payload)).toEqual({
-      courseId: '62313',
-      sessionId: '751843',
+      courseId: '70101',
+      sessionId: '850101',
       liveId: undefined,
     });
   });
 
   it('records a live broadcast id without inventing a session', () => {
-    const payload = buildSharePayload({ courseId: '71736', liveId: '761952' }, [hash('e'.repeat(32))]);
-    expect(payload).toMatchObject({ v: 2, c: '71736', l: '761952' });
+    const payload = buildSharePayload({ courseId: '71001', liveId: '760952' }, [hash('e'.repeat(32))]);
+    expect(payload).toMatchObject({ v: 2, c: '71001', l: '760952' });
     expect(payload.s).toBeUndefined();
   });
 
@@ -105,8 +105,8 @@ describe('shareLink codec', () => {
     const url = buildShareUrl(buildSharePayload(IDS, [hash('d'.repeat(32))]));
     expect(url.startsWith('https://share.ruc.edu.kg/v1#')).toBe(true);
     const frag = url.split('#')[1];
-    expect(decodeSharePayload(frag)?.c).toBe('62313');
-    expect(decodeSharePayload(frag)?.s).toBe('751843');
+    expect(decodeSharePayload(frag)?.c).toBe('70101');
+    expect(decodeSharePayload(frag)?.s).toBe('850101');
   });
 
   it('round-trips a v3 payload with a delta timeline', () => {

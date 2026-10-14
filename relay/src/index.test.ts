@@ -188,7 +188,7 @@ describe('watch progress', () => {
   }
 
   it('accepts only integer session ids and playheads', () => {
-    expect(parseSessionId('831116')).toBe('831116');
+    expect(parseSessionId('850201')).toBe('850201');
     expect(parseSessionId('83a116')).toBeNull();
     expect(parseSessionId('')).toBeNull();
     expect(parseSessionId(null)).toBeNull();
@@ -205,11 +205,11 @@ describe('watch progress', () => {
       'https://relay.test',
       TOKEN,
       false,
-      '831116'
+      '850201'
     );
     const lines = out.split('\n');
-    expect(lines[2]).toContain('&sid=831116');
-    expect(lines[3]).toContain('&sid=831116'); // nested playlists keep reporting
+    expect(lines[2]).toContain('&sid=850201');
+    expect(lines[3]).toContain('&sid=850201'); // nested playlists keep reporting
     expect(rewriteM3u8('0001.ts\n', 'https://cvideo.yanhekt.cn/a/b/v.m3u8', 'https://relay.test', TOKEN, false)).not.toContain('sid=');
   });
 

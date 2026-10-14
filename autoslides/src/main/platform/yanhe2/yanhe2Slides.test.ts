@@ -4,8 +4,8 @@ import { isYanhe2SlideImageUrl, parseYanhe2Slides } from './yanhe2Slides';
 const DIR = 'https://aita.yanhekt.cn/ai-nginx/ai3/ppt/20260921/a9b53472-2d31-4cfc-bcdd-f21535c152fe';
 
 const row = (file: string, created: number, extra: Record<string, unknown> = {}) => ({
-  sub_id: '1546346',
-  course_id: '103690',
+  sub_id: '3000101',
+  course_id: '200101',
   created_sec: created,
   content: JSON.stringify({
     detecttype: 'ppt',

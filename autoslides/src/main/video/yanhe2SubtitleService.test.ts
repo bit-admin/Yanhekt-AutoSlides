@@ -7,10 +7,10 @@ import { yanhe2SubtitleStem } from './yanhe2SubtitleService';
 
 describe('yanhe2SubtitleStem', () => {
   it('is the stem of the same lecture\'s Yanhekt screen download', () => {
-    const target = { courseId: '74119', courseTitle: '泛函分析', sessionId: '901186', sessionTitle: '第4周 星期一 第1大节' };
+    const target = { courseId: '80101', courseTitle: '泛函分析', sessionId: '900101', sessionTitle: '第4周 星期一 第1大节' };
     // What useSessionPage queues for Download Screen, through the same builder.
-    const screenDownload = buildDownloadFileName({ name: 'screen_泛函分析_第4周 星期一 第1大节', courseId: '74119', sessionId: '901186' });
+    const screenDownload = buildDownloadFileName({ name: 'screen_泛函分析_第4周 星期一 第1大节', courseId: '80101', sessionId: '900101' });
     expect(yanhe2SubtitleStem(target)).toBe(screenDownload);
-    expect(yanhe2SubtitleStem(target)).toBe('screen_泛函分析_第4周_星期一_第1大节__c74119s901186');
+    expect(yanhe2SubtitleStem(target)).toBe('screen_泛函分析_第4周_星期一_第1大节__c80101s900101');
   });
 });

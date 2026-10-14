@@ -94,14 +94,14 @@ describe("/api/yanhekt proxy", () => {
 
   it("allows live detail by id and strips the Bearer upstream", async () => {
     const res = await app.request(
-      "/api/yanhekt/v1/live?id=766560&with_session=true&with_course=true",
+      "/api/yanhekt/v1/live?id=760202&with_session=true&with_course=true",
       { headers: { Authorization: `Bearer ${TOKEN}` } },
       env(),
     );
     expect(res.status).toBe(200);
     const call = upstreamCall();
     expect(call.url).toBe(
-      "https://cbiz.yanhekt.cn/v1/live?id=766560&with_session=true&with_course=true",
+      "https://cbiz.yanhekt.cn/v1/live?id=760202&with_session=true&with_course=true",
     );
     expect(call.headers.Authorization).toBeUndefined();
   });
@@ -110,7 +110,7 @@ describe("/api/yanhekt proxy", () => {
     // The allowlist keeps prefix semantics for reads, so /v1/live/<x> still
     // forwards — but it must forward *authenticated*, like /v1/course does.
     await app.request(
-      "/api/yanhekt/v1/live/766560",
+      "/api/yanhekt/v1/live/760202",
       { headers: { Authorization: `Bearer ${TOKEN}` } },
       env(),
     );
@@ -138,12 +138,12 @@ describe("/api/yanhekt proxy", () => {
 
   it("keeps the Bearer on session detail, the hop that carries user_progress", async () => {
     await app.request(
-      "/api/yanhekt/v1/course/session?session_id=831116&with_video=true",
+      "/api/yanhekt/v1/course/session?session_id=850201&with_video=true",
       { headers: { Authorization: `Bearer ${TOKEN}` } },
       env(),
     );
     const call = upstreamCall();
-    expect(call.url).toBe("https://cbiz.yanhekt.cn/v1/course/session?session_id=831116&with_video=true");
+    expect(call.url).toBe("https://cbiz.yanhekt.cn/v1/course/session?session_id=850201&with_video=true");
     // Anonymous here would silently mean "never watched" for every account.
     expect(call.headers.Authorization).toBe(`Bearer ${TOKEN}`);
   });
@@ -154,7 +154,7 @@ describe("/api/yanhekt proxy", () => {
       {
         method: "PUT",
         headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: "831116", seconds: 3105 }),
+        body: JSON.stringify({ session_id: "850201", seconds: 3105 }),
       },
       env(),
     );
@@ -167,7 +167,7 @@ describe("/api/yanhekt proxy", () => {
 
   it("does not widen the progress write allowance to its subpaths", async () => {
     const res = await app.request(
-      "/api/yanhekt/v1/course/session/user/progress/831116",
+      "/api/yanhekt/v1/course/session/user/progress/850201",
       { method: "PUT", headers: { Authorization: `Bearer ${TOKEN}` } },
       env(),
     );

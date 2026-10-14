@@ -78,8 +78,8 @@ export function compareToolFolders(a: string, b: string): number {
  * unique. Local copy — this frontend is a separate deployable and cannot import
  * the app's `@common/lectureNaming`.
  *
- * Grammar (fixed order): recorded → `__c62313s751843`; live → `__c71736l761952`;
- * live with no resolvable course → `__l761952`.
+ * Grammar (fixed order): recorded → `__c70101s850101`; live → `__c71001l760952`;
+ * live with no resolvable course → `__l760952`.
  */
 const ID_SUFFIX_PATTERN = /__(?:c(\d+))?(?:s(\d+))?(?:l(\d+))?$/;
 
@@ -123,7 +123,7 @@ const numericId = (value: string | number | null | undefined): string | undefine
 /**
  * The id block for a lecture, in this fixed order:
  *   `__c<courseId>[s<sessionId>][l<liveId>]`
- * Recorded → `__c62313s751843`; live → `__c71736l761952`. '' when no usable id.
+ * Recorded → `__c70101s850101`; live → `__c71001l760952`. '' when no usable id.
  *
  * A live id gets its own slot because it identifies one *broadcast*, not the
  * course — writing it as a courseId would make every broadcast of a course look

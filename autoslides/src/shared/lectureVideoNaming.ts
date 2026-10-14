@@ -1,10 +1,10 @@
 // Local lecture video filename parse/format for the Lectures workspace.
 //
 // Downloads historically look like:
-//   screen_泛函分析_第1周_星期三_第2大节__c62313s751843.mp4
+//   screen_泛函分析_第1周_星期三_第2大节__c70101s850101.mp4
 // Rename writes Emby-style provider tags so the human stem can drop the prefix
 // without losing identity:
-//   泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c62313s751843] [vtype=screen].mp4
+//   泛函分析 - S01E02 - 第1周 星期三 第2大节 [yhid=c70101s850101] [vtype=screen].mp4
 //
 // S = course semester (1/2 → S01/S02), NOT week.
 // E = 1-based index of sessionId in a stably sorted course session list.

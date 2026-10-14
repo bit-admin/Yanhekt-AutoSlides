@@ -6,7 +6,7 @@ const body = (content: unknown[]) => ({
   code: 0,
   msg: '获取同传结果成功',
   total: 1,
-  list: [{ sub_id: '1546346', trans_type: 'ainew', all_content: content, trans_content: JSON.stringify(content) }],
+  list: [{ sub_id: '3000101', trans_type: 'ainew', all_content: content, trans_content: JSON.stringify(content) }],
 });
 
 describe('parseYanhe2Transcript', () => {

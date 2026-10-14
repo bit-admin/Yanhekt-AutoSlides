@@ -1,6 +1,6 @@
 # AutoSlides architecture
 
-This is the developer map of this monorepo: four independently-installed packages, no root `package.json`, no npm workspaces. User-facing walkthroughs live in the root [`README.md`](../README.md) (desktop) and in each project's own README. Image-analysis maths (SSIM, pHash, ML, auto-crop) live in the [Image Analysis Technical Report](image-analysis-technical-report.pdf) — this document does not re-derive them.
+This is the developer map of this monorepo: four independently-installed packages, no root `package.json`, no npm workspaces. User-facing walkthroughs live in the root [`README.md`](../README.md) (desktop) and in each project's own README. Image-analysis maths (SSIM, pHash, ML, auto-crop) live in the [Image Analysis Technical Report](image-analysis-technical-report.pdf) — this document does not re-derive them. The second Yanhekt site, Yanhe 2.0 (`aita.yanhekt.cn`), has its own API reference in [`aita-yanhekt.md`](aita-yanhekt.md).
 
 Read this if you are about to change behaviour, port a fix across packages, add an IPC/API surface, or clone a Worker.
 
@@ -44,7 +44,7 @@ Each package has its own `package.json` / lockfile. Commands always run **inside
 ├── scripts/             Cross-package glue (drift checker only)
 │   ├── check-drift.mjs
 │   └── drift-manifest.json
-├── docs/                README screenshots, this guide, the image-analysis report
+├── docs/                README screenshots, this guide, the Yanhe 2.0 API reference, the image-analysis report
 ├── .github/workflows/   ci.yml, build.yml, release.yml
 ├── README.md            Desktop user guide + (this) architecture pointer
 └── LICENSE              Apache-2.0
@@ -726,7 +726,9 @@ Up to **3** attempts: invalidate cached token, re-mint, re-sign, retry. Surface 
 
 ## 9. Yanhekt API
 
-Yanhekt (`yanhekt.cn`) is the campus lecture platform every package talks to. This section is the contract: hosts, headers, which calls need a login token, and the JSON shapes we actually read. Examples below were probed **2026-09-09** against course **62313** / session **751843** (泛函分析, Functional Analysis, 2025–2026 第一学期) unless noted. Personal fields from the probe token (`badge`, `nickname`, `phone`, note titles, enrolled-only lists) are redacted.
+Yanhekt (`yanhekt.cn`) is the campus lecture platform every package talks to. This section is the contract: hosts, headers, which calls need a login token, and the JSON shapes we actually read. Examples below use a fictional course **70101** / session **850101** (泛函分析, Functional Analysis, 2025–2026 第一学期) unless noted. Course titles, teacher names, ids, rooms and recording paths in the examples are made up; field names, shapes and codes are as observed. Personal fields (`badge`, `nickname`, `phone`, note titles, enrolled-only lists) are redacted.
+
+This section covers `www.yanhekt.cn` / `cbiz.yanhekt.cn` only. Yanhe 2.0 (`aita.yanhekt.cn`) is a separate API with its own ids, sign-in, envelopes and media signing; its contract, including how its courses and sessions map onto the cbiz ids below, is in [Yanhe 2.0 (`aita.yanhekt.cn`)](aita-yanhekt.md).
 
 Writes were **not** live-tested; request bodies come from our clients.
 
@@ -740,6 +742,7 @@ Writes were **not** live-tested; request bodies come from our clients.
 | `coss.yanhekt.cn` | Public MinIO/COS (`/images/…`) |
 | `www.yanhekt.cn` | Official SPA. **Spoof this Origin** on server-side cbiz calls |
 | `sso.bit.edu.cn` | Campus CAS (login only; not Yanhekt) |
+| `aita.yanhekt.cn` | Yanhe 2.0: a separate API, sign-in and `/play/` signing scheme. See [`aita-yanhekt.md`](aita-yanhekt.md) |
 
 Almost every cbiz response is:
 
@@ -835,12 +838,12 @@ Four id namespaces. Do not mix them.
 
 | Id | What it is | Example (泛函分析) |
 |---|---|---|
-| **course** | Offering in a term (`/v1/course?id=`, `/v2/course/list`) | `62313` |
-| **session** | One calendar slot of that course (`/v1/course/session?session_id=`) | `751843` |
-| **live / broadcast** | One live capture of a session (`/v2/live/list` row `id`; nested `live.id`) | `652885` |
-| **video** | One recorded asset (`videos[].id` / `video_ids[]` / `/v1/video?id=`) | `456913` |
+| **course** | Offering in a term (`/v1/course?id=`, `/v2/course/list`) | `70101` |
+| **session** | One calendar slot of that course (`/v1/course/session?session_id=`) | `850101` |
+| **live / broadcast** | One live capture of a session (`/v2/live/list` row `id`; nested `live.id`) | `650101` |
+| **video** | One recorded asset (`videos[].id` / `video_ids[]` / `/v1/video?id=`) | `450101` |
 
-**`session_id` is globally unique** and enough to recover `course_id`. `GET /v1/course/session?session_id=751843` (anonymous) returns `course_id: 62313` plus a nested `course` (names, college, term). Share already fans this out. Desktop course pages still enumerate via the **list** hop, which needs `course_id` **and** a login token. The Download panel's session-id row uses this detail hop (`getSessionDownloadInfo`) and then `/v1/video` — not the list.
+**`session_id` is globally unique** and enough to recover `course_id`. `GET /v1/course/session?session_id=850101` (anonymous) returns `course_id: 70101` plus a nested `course` (names, college, term). Share already fans this out. Desktop course pages still enumerate via the **list** hop, which needs `course_id` **and** a login token. The Download panel's session-id row uses this detail hop (`getSessionDownloadInfo`) and then `/v1/video` — not the list.
 
 Live identity is a separate namespace. A finished session’s nested `live.id` is the broadcast id (`l` in share payloads). Live-list rows carry the real course id on `session.course_id` (present on sampled rows); nested `course.id` is often missing. **A broadcast id is resolvable on its own**: `GET /v1/live?id=<live id>&with_session=true&with_course=true` (anonymous) returns the broadcast plus its session and full course — including `course.id` and `classrooms[]`, neither of which a list row has. Never page the live list to find a row by id.
 
@@ -850,7 +853,7 @@ Share payload v2/v3 stores `c` / `s` / `l` (course / session / live). `c` is den
 
 ### 9.5 Catalog, course, session, live
 
-Used by desktop `ApiClient`, web `/api/yanhekt/*`, share `lib/yanhekt.ts`. Query `semesters[]` is repeated for each tag id (empty = all terms). `keyword` on course list accepts a name **or** a numeric course id (`keyword=62313` returns one row).
+Used by desktop `ApiClient`, web `/api/yanhekt/*`, share `lib/yanhekt.ts`. Query `semesters[]` is repeated for each tag id (empty = all terms). `keyword` on course list accepts a name **or** a numeric course id (`keyword=70101` returns one row).
 
 #### `GET /v2/course/list`
 
@@ -867,20 +870,20 @@ Anonymous. Paginator. **Only** this list (and subscribe/private list) returns `c
     "total": 1,
     "data": [
       {
-        "id": 62313,
+        "id": 70101,
         "name_zh": "泛函分析",
         "name_en": "Functional Analysis",
-        "code": "100171139",
-        "number": "20252026110017113901",
+        "code": "100990101",
+        "number": "20252026110099010101",
         "school_year": "2025-2026",
         "semester": "1",
         "college_name": "数学与统计学院",
         "college_code": "217",
         "participant_count": 61,
         "image_url": "https://coss.yanhekt.cn/images/colleges/shuxue.png",
-        "professors": ["石靖"],
+        "professors": ["沈墨白"],
         "classrooms": [
-          { "id": 289, "name": "文萃楼F302", "number": "2701C3002X" }
+          { "id": 201, "name": "明理楼A302", "number": "9901A3002X" }
         ]
       }
     ]
@@ -890,7 +893,7 @@ Anonymous. Paginator. **Only** this list (and subscribe/private list) returns `c
 
 (`semester` is a **string** on the list, a **number** on `/v1/course`. Writers stringify.)
 
-#### `GET /v1/course?id=62313&with_professor_badges=true`
+#### `GET /v1/course?id=70101&with_professor_badges=true`
 
 Anonymous. Single object. **No `classrooms`.** Professors are objects. Cover often comes from `image_url` or `college.image_url`.
 
@@ -898,16 +901,16 @@ Anonymous. Single object. **No `classrooms`.** Professors are objects. Cover oft
 {
   "code": 0,
   "data": {
-    "id": 62313,
+    "id": 70101,
     "name_zh": "泛函分析",
     "name_en": "Functional Analysis",
     "school_year": "2025-2026",
     "semester": 1,
     "college_name": "数学与统计学院",
     "image_url": "https://coss.yanhekt.cn/images/colleges/shuxue.png",
-    "professor_badges": ["6120120125"],
+    "professor_badges": ["6100000002"],
     "professors": [
-      { "id": 4344, "name": "石靖", "title": "副教授", "badge": "6120120125" }
+      { "id": 4001, "name": "沈墨白", "title": "副教授", "badge": "6100000002" }
     ],
     "college": { "id": 36, "name": "数学与统计学院", "name_en": "School of Mathematics and Statistics" },
     "tags": [
@@ -922,33 +925,33 @@ Anonymous. Single object. **No `classrooms`.** Professors are objects. Cover oft
 
 Desktop `getCourseInfo` uses this hop (anonymous-ok) then the session **list** (auth). Share uses it to fill professors when session-nested `course` is thin.
 
-#### `GET /v2/course/session/list?course_id=62313`
+#### `GET /v2/course/session/list?course_id=70101`
 
 **Auth required** (`data: []` if not). Bare array (not a paginator). This is how desktop/web hydrate playback: `videos[].main` / `videos[].vga` are the unsigned VOD URLs we later sign.
 
-Probe: **29** sessions; first row is `751843`:
+Probe: **29** sessions; first row is `850101`:
 
 ```json
 {
   "code": 0,
   "data": [
     {
-      "id": 751843,
-      "course_id": 62313,
+      "id": 850101,
+      "course_id": 70101,
       "title": "第1周 星期三 第2大节",
       "week_number": 4,
       "day": "3",
       "started_at": "2025-09-17 09:55:00",
       "ended_at": "2025-09-17 11:30:00",
-      "location": "2701C3002X",
-      "video_ids": [456913],
+      "location": "9901A3002X",
+      "video_ids": [450101],
       "videos": [
         {
-          "id": 456913,
+          "id": 450101,
           "duration": "5936",
           "format": "m3u8",
-          "main": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/Video1/Video1.m3u8",
-          "vga": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/VGA/VGA.m3u8",
+          "main": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/Video1/Video1.m3u8",
+          "vga": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/VGA/VGA.m3u8",
           "start_main": "0",
           "start_vga": "21"
         }
@@ -960,7 +963,7 @@ Probe: **29** sessions; first row is `751843`:
 
 `day` is a string here, a number on session-by-id. Other keys we do not require: `badge`, `section_start` / `section_end`, `is_live`, `is_record`, `week_type`.
 
-#### `GET /v1/course/session?session_id=751843&with_video=true`
+#### `GET /v1/course/session?session_id=850101&with_video=true`
 
 Anonymous. Desktop `getSessionById` is **unused**, but the same hop backs `getSessionDownloadInfo` (Download panel → download by session id/URL). Share `fetchSession` / `fetchLectureMeta` use this. Nested `course` has **no professors** and empty `image_url`; overlay `/v1/course` for those. `with_video=true` still does **not** attach `videos[]` — only `video_ids`. Recover VOD via `/v1/video?id=` or the authenticated list.
 
@@ -968,18 +971,18 @@ Anonymous. Desktop `getSessionById` is **unused**, but the same hop backs `getSe
 {
   "code": 0,
   "data": {
-    "id": 751843,
-    "course_id": 62313,
+    "id": 850101,
+    "course_id": 70101,
     "title": "第1周 星期三 第2大节",
     "week_number": 4,
     "day": 3,
     "started_at": "2025-09-17 09:55:00",
     "ended_at": "2025-09-17 11:30:00",
-    "location": "2701C3002X",
-    "badge": "6120120125",
-    "video_ids": [456913],
+    "location": "9901A3002X",
+    "badge": "6100000002",
+    "video_ids": [450101],
     "course": {
-      "id": 62313,
+      "id": 70101,
       "name_zh": "泛函分析",
       "name_en": "Functional Analysis",
       "college_name": "数学与统计学院",
@@ -988,11 +991,11 @@ Anonymous. Desktop `getSessionById` is **unused**, but the same hop backs `getSe
       "image_url": ""
     },
     "live": {
-      "id": 652885,
-      "source_id": 62313,
+      "id": 650101,
+      "source_id": 70101,
       "status": 3,
       "title": "泛函分析",
-      "subtitle": "文萃楼F302",
+      "subtitle": "明理楼A302",
       "target": "https://clive13.yanhekt.cn/live/23375_Video1.m3u8",
       "target_vga": "https://clive13.yanhekt.cn/live/23375_VGA.m3u8",
       "target_room": "https://clive13.yanhekt.cn/live/23375_Video2.m3u8"
@@ -1010,7 +1013,7 @@ Finished `live.target*` URLs 404 on the CDN; they are useful while `status` is l
 {
   "id": "<row id>",
   "badge": "<account badge>",
-  "session_id": 751843,
+  "session_id": 850101,
   "progress_overall": "5936",
   "progress_current": "2300",
   "status": 0,
@@ -1033,7 +1036,7 @@ Content-Type: application/json
 Authorization: Bearer <32-hex>
 Xdomain-Client: web_user
 
-{"session_id":"751843","seconds":2305}
+{"session_id":"850101","seconds":2305}
 ```
 
 ```json
@@ -1054,20 +1057,20 @@ Public catalog is a paginator (probe: thousands of rows). A row:
 
 ```json
 {
-  "id": 770304,
-  "title": "物理光学课程实践",
-  "subtitle": "理教楼403",
+  "id": 760101,
+  "title": "概率论实验",
+  "subtitle": "博学楼403",
   "status": 1,
-  "schedule_started_at": "2026-09-09 15:15:00",
-  "schedule_ended_at": "2026-09-09 17:40:00",
+  "schedule_started_at": "2026-03-11 15:15:00",
+  "schedule_ended_at": "2026-03-11 17:40:00",
   "participant_count": 126,
-  "img": "https://coss.yanhekt.cn/images/colleges/guangdian.png",
-  "source_id": 73385,
-  "target": "https://clive10.yanhekt.cn/live/10429_Video1.m3u8",
-  "target_vga": "https://clive10.yanhekt.cn/live/10429_VGA.m3u8",
-  "target_room": "https://clive10.yanhekt.cn/live/10429_Video2.m3u8",
+  "img": "https://coss.yanhekt.cn/images/colleges/shuxue.png",
+  "source_id": 73001,
+  "target": "https://clive10.yanhekt.cn/live/10001_Video1.m3u8",
+  "target_vga": "https://clive10.yanhekt.cn/live/10001_VGA.m3u8",
+  "target_room": "https://clive10.yanhekt.cn/live/10001_Video2.m3u8",
   "course": { "id": null, "image_url": "" },
-  "session": { "course_id": 73385, "professor": null, "section_group_title": "第2周 星期三 第4大节" }
+  "session": { "course_id": 73001, "professor": null, "section_group_title": "第2周 星期三 第4大节" }
 }
 ```
 
@@ -1075,9 +1078,9 @@ Public catalog is a paginator (probe: thousands of rows). A row:
 
 Our `LiveStream.status` comment is `0=ended, 1=live, 2=upcoming`. Live-list rows in this probe used `1` (same-day) and `2` (later days); a **finished** session’s nested `live.status` was `3`. Prefer schedule timestamps. Cover: use `img`, not `course.image_url` (often `""`). Course id: use `session.course_id` (or `source_id`), not `course.id`.
 
-#### `GET /v1/live?id=766560&with_session=true&with_course=true`
+#### `GET /v1/live?id=760202&with_session=true&with_course=true`
 
-Broadcast detail **by id**, anonymous-ok. Probed 2026-09-11 against live `766560` / course `68437`.
+Broadcast detail **by id**, anonymous-ok. Example: live `760202` / course `68001`.
 
 **Both `with_*` flags are required.** Omitting either answers `61101114 系统繁忙` with `data: []` — a hard error, not a partial payload. Unknown id → `12131011 直播不存在`; missing `id` → `61101210`.
 
@@ -1095,9 +1098,9 @@ The payload is a live-list row **plus** more, so `transformLiveStreamToCourse` c
 | `participant_count` | present (e.g. `69`) | **absent** |
 | `looking_count` | absent | present — *current viewers*, not enrolment. Do **not** map it onto `participant_count` |
 
-`session.professor` can still be `null` here (observed on `770335`), same as on list rows — keep the optional chaining.
+`session.professor` can still be `null` here (observed on `760303`), same as on list rows — keep the optional chaining.
 
-`course.name_en` arrives HTML-escaped on some courses (`Design &#97;nd Practice of Opto-electronic system`) — the dirty-`name_en` case: render through `usableEnglishTitle()`, which decodes entities before its CJK check.
+`course.name_en` arrives HTML-escaped on some courses (`Theory &#97;nd Practice of Numerical Methods`) — the dirty-`name_en` case: render through `usableEnglishTitle()`, which decodes entities before its CJK check.
 
 #### `GET /v1/tag/list?with_sub=true`
 
@@ -1119,7 +1122,7 @@ Anonymous. `id=0` is what we send (the official site sometimes sends a badge; `0
 { "code": 0, "data": { "token": "<16-char>", "expired_at": 1788945263, "now": 1788944663 } }
 ```
 
-#### `GET /v1/video?id=456913`
+#### `GET /v1/video?id=450101`
 
 Anonymous. Not on the web allowlist. Desktop calls it for the mic URL (`getVideoAssets`) and for download by session id (`getSessionDownloadInfo`, session-by-id → `video_ids[0]` → here), since session-by-id only returns `video_ids`:
 
@@ -1127,14 +1130,14 @@ Anonymous. Not on the web allowlist. Desktop calls it for the mic URL (`getVideo
 {
   "code": 0,
   "data": {
-    "id": 456913,
+    "id": 450101,
     "course_id": 0,
     "session_id": 0,
     "format": "m3u8",
-    "main": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/Video1/Video1.m3u8",
-    "vga": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/VGA/VGA.m3u8",
-    "audio": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/SubAudio/09_53_19_21.aac",
-    "audio_origin": "https://cvideo.yanhekt.cn/vod/2025/09/17/46558716/0/SubAudio/09_53_19_21.aac",
+    "main": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/Video1/Video1.m3u8",
+    "vga": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/VGA/VGA.m3u8",
+    "audio": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/SubAudio/09_53_19_21.aac",
+    "audio_origin": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/SubAudio/09_53_19_21.aac",
     "duration": "5936",
     "start_main": "0",
     "start_vga": "21"
@@ -1146,7 +1149,7 @@ Anonymous. Not on the web allowlist. Desktop calls it for the mic URL (`getVideo
 
 **`audio` / `audio_origin` — classroom SubAudio sidecar.** Among the cbiz hops this repo uses, **only** `GET /v1/video` returns them. They are absent from:
 
-- authenticated `/v2/course/session/list` `videos[]` (same video id `456913` has `main`/`vga`/`start_*` but no `audio*`)
+- authenticated `/v2/course/session/list` `videos[]` (same video id `450101` has `main`/`vga`/`start_*` but no `audio*`)
 - anonymous `/v1/course/session` (no `videos[]` at all, only `video_ids`)
 - live list (`target` / `target_vga` / `target_room` only)
 
@@ -1289,7 +1292,7 @@ Consumers: Lectures slides strip (`deriveCues`); Slides preview Metadata (`appea
 
 ### 10.4 Managed note content
 
-Every AutoSlides-imported **Yanhekt** Editor.js note ends with a `code` block under sentinel `autoslides`, carrying `slides` (folder `metadata.json` or null), `timeline` (full `timeline.json` or null), and `note` (displayName / imageCount / importedAt / shareUrl). `noteImageUrls` ignores the block. Watch-mode titles look like `c62313s751843 · 泛函分析 · 第1周 星期三 第2大节` (live uses `l`). Disk `slides_*` folder names are unchanged. Obsidian watch notes are not this document: main appends `![](<vault-relative path>)` only, images under the vault's attachment folder. Notion watch notes are image blocks on a page the student picked; the token never leaves main.
+Every AutoSlides-imported **Yanhekt** Editor.js note ends with a `code` block under sentinel `autoslides`, carrying `slides` (folder `metadata.json` or null), `timeline` (full `timeline.json` or null), and `note` (displayName / imageCount / importedAt / shareUrl). `noteImageUrls` ignores the block. Watch-mode titles look like `c70101s850101 · 泛函分析 · 第1周 星期三 第2大节` (live uses `l`). Disk `slides_*` folder names are unchanged. Obsidian watch notes are not this document: main appends `![](<vault-relative path>)` only, images under the vault's attachment folder. Notion watch notes are image blocks on a page the student picked; the token never leaves main.
 
 ---
 
@@ -1443,6 +1446,7 @@ Leaving `SSO_RESUME_KEY` unset is valid. Leaving `AI_ORIGIN` unset 503s `/api/ai
 | Web user/clone guide | [`web/README.md`](../web/README.md) |
 | Share encoding + Index privacy | [`share/README.md`](../share/README.md) |
 | Yanhekt cbiz / CDN / CAS | this document [§9](#9-yanhekt-api) |
+| Yanhe 2.0 (`aita.yanhekt.cn`) API, `/play/` signing, server slides, transcripts | [`docs/aita-yanhekt.md`](aita-yanhekt.md) |
 | Relay signing + cache | [`relay/README.md`](../relay/README.md) |
 | SSIM / pHash / ML / crop maths | [`docs/image-analysis-technical-report.pdf`](image-analysis-technical-report.pdf) |
 | Drift groups | [`scripts/check-drift.mjs`](../scripts/check-drift.mjs) |

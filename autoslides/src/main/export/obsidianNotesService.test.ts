@@ -14,8 +14,8 @@ vi.mock('electron', () => ({
 import { ObsidianNotesService } from './obsidianNotesService';
 import type { ConfigService } from '@main/platform/configService';
 
-const SLIDES = 'slides_泛函分析__c62313s751843';
-const TITLE = 'c62313s751843 · 泛函分析 · 第1周';
+const SLIDES = 'slides_泛函分析__c70101s850101';
+const TITLE = 'c70101s850101 · 泛函分析 · 第1周';
 const png = new Uint8Array([137, 80, 78, 71]).buffer;
 
 let tmp: string;

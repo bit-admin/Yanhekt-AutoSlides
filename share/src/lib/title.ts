@@ -6,7 +6,7 @@ export interface ParsedTitle {
 /**
  * AutoSlides embeds an id block in folder and note names, because course titles
  * are not unique: `__c<courseId>[s<sessionId>][l<liveId>]` — e.g.
- * `__c62313s751843` for a recorded lecture, `__c71736l761952` for a live
+ * `__c70101s850101` for a recorded lecture, `__c71001l760952` for a live
  * broadcast. The app strips it before a title reaches a share payload, but
  * strip it here too so a raw name can never render with the id visible. Kept as
  * a local copy — this Worker is a separate deployable and cannot import the

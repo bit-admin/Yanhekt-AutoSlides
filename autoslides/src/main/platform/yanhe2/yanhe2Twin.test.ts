@@ -47,28 +47,28 @@ describe('yanhektStartSeconds', () => {
 describe('pickTwinCourse', () => {
   it('takes the row with exactly that number', () => {
     // A course-code keyword answers with every term's offering.
-    const rows = [course('62313', '20252026110017113901'), course('74119', '20262027110017113901')];
-    expect(pickTwinCourse(rows, '20262027110017113901')?.id).toBe('74119');
+    const rows = [course('70101', '20252026110099010101'), course('80101', '20262027110099010101')];
+    expect(pickTwinCourse(rows, '20262027110099010101')?.id).toBe('80101');
   });
 
   it('compares whole strings, never numbers', () => {
-    expect(pickTwinCourse([course('1', '20261-03-0300225-1782873783828')], '20261-03-0300225-1782873783828')?.id).toBe('1');
-    expect(pickTwinCourse([course('1', '0017113901')], '17113901')).toBeNull();
-    expect(pickTwinCourse([course('1', '202620271MHE1000112')], '202620271mhe1000112')).toBeNull();
+    expect(pickTwinCourse([course('1', '20261-03-0309902-1782345678901')], '20261-03-0309902-1782345678901')?.id).toBe('1');
+    expect(pickTwinCourse([course('1', '0099010101')], '99010101')).toBeNull();
+    expect(pickTwinCourse([course('1', '202620271MTH1000112')], '202620271mth1000112')).toBeNull();
   });
 
   it('has no answer for none, two, or no key', () => {
-    expect(pickTwinCourse([], '20262027110017113901')).toBeNull();
+    expect(pickTwinCourse([], '20262027110099010101')).toBeNull();
     expect(pickTwinCourse([course('1', 'x'), course('2', 'x')], 'x')).toBeNull();
     expect(pickTwinCourse([course('1', undefined)], '')).toBeNull();
   });
 });
 
 describe('pickTwinSession', () => {
-  const sessions = [session('901186', '2026-09-21 08:00:00'), session('901190', '2026-09-23 08:00:00')];
+  const sessions = [session('900101', '2026-09-21 08:00:00'), session('900102', '2026-09-23 08:00:00')];
 
   it('takes the session that starts at that second', () => {
-    expect(pickTwinSession(sessions, 1789948800)?.session_id).toBe('901186');
+    expect(pickTwinSession(sessions, 1789948800)?.session_id).toBe('900101');
   });
 
   it('has no answer for a different time, two at once, or no time', () => {

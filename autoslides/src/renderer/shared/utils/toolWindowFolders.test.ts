@@ -29,17 +29,17 @@ function meta(courseId?: string, sessionId?: string, courseTitle?: string): Slid
 // from <= v4.4.1 have neither.
 describe('getCourseKey fallback chain', () => {
   it('1. prefers the course id embedded in the folder name', () => {
-    const folder = { name: 'slides_泛函分析_第1周_星期三_第2大节__c62313s751843' };
-    expect(getCourseKey(folder)).toBe('id:62313');
-    expect(getCourseId(folder)).toBe('62313');
-    expect(getSessionId(folder)).toBe('751843');
+    const folder = { name: 'slides_泛函分析_第1周_星期三_第2大节__c70101s850101' };
+    expect(getCourseKey(folder)).toBe('id:70101');
+    expect(getCourseId(folder)).toBe('70101');
+    expect(getSessionId(folder)).toBe('850101');
   });
 
   it('2. falls back to metadata.json when the name has no ids', () => {
-    const folder = { name: 'slides_泛函分析_第1周_星期三_第2大节', metadata: meta('62313', '751843') };
-    expect(getCourseKey(folder)).toBe('id:62313');
-    expect(getCourseId(folder)).toBe('62313');
-    expect(getSessionId(folder)).toBe('751843');
+    const folder = { name: 'slides_泛函分析_第1周_星期三_第2大节', metadata: meta('70101', '850101') };
+    expect(getCourseKey(folder)).toBe('id:70101');
+    expect(getCourseId(folder)).toBe('70101');
+    expect(getSessionId(folder)).toBe('850101');
   });
 
   it('3. falls back to the parsed course title when there is neither', () => {
@@ -50,7 +50,7 @@ describe('getCourseKey fallback chain', () => {
   });
 
   it('groups an id-bearing folder apart from an identically-titled id-less one', () => {
-    const identified = { name: 'slides_泛函分析_第1周_星期三_第2大节__c62313s751843' };
+    const identified = { name: 'slides_泛函分析_第1周_星期三_第2大节__c70101s850101' };
     const anonymous = { name: 'slides_泛函分析_第1周_星期三_第5大节', metadata: null };
     expect(getCourseKey(identified)).not.toBe(getCourseKey(anonymous));
     // ...while both still render the same course label, which is why the header
@@ -65,21 +65,21 @@ describe('getCourseKey fallback chain', () => {
     expect(formatToolFolderName(a.name)).toBe(formatToolFolderName(b.name));
   });
 
-  // Real values: broadcasts 761952 and 761951 are both course 71736.
+  // Real values: broadcasts 760952 and 761951 are both course 71001.
   it('groups two broadcasts of one course together, keyed on the course id', () => {
-    const a = { name: 'slides_电工和电子技术BⅡ_第21周_星期日_第2大节__c71736l761952' };
-    const b = { name: 'slides_电工和电子技术BⅡ_第21周_星期日_第4大节__c71736l761951' };
+    const a = { name: 'slides_电工和电子技术BⅡ_第21周_星期日_第2大节__c71001l760952' };
+    const b = { name: 'slides_电工和电子技术BⅡ_第21周_星期日_第4大节__c71001l761951' };
     expect(a.name).not.toBe(b.name);
-    expect(getCourseKey(a)).toBe('id:71736');
+    expect(getCourseKey(a)).toBe('id:71001');
     expect(getCourseKey(a)).toBe(getCourseKey(b));
-    expect(getCourseId(a)).toBe('71736');
-    expect(getLiveId(a)).toBe('761952');
+    expect(getCourseId(a)).toBe('71001');
+    expect(getLiveId(a)).toBe('760952');
     expect(getLiveId(b)).toBe('761951');
   });
 
-  // 71735 and 71736 are two real courses sharing the title 电工和电子技术BⅡ.
+  // 71735 and 71001 are two real courses sharing the title 电工和电子技术BⅡ.
   it('separates same-titled courses broadcasting concurrently', () => {
-    const a = { name: 'slides_电工和电子技术BⅡ_第21周_星期日_第2大节__c71736l761952' };
+    const a = { name: 'slides_电工和电子技术BⅡ_第21周_星期日_第2大节__c71001l760952' };
     const b = { name: 'slides_电工和电子技术BⅡ_第21周_星期日_第2大节__c71735l761878' };
     expect(getCourseKey(a)).not.toBe(getCourseKey(b));
   });
@@ -87,27 +87,27 @@ describe('getCourseKey fallback chain', () => {
   // A broadcast id alone must never become a course key, or every broadcast
   // would be its own group.
   it('does NOT key on a bare live id', () => {
-    const a = { name: 'slides_泛函分析_2024秋季__l761952' };
+    const a = { name: 'slides_泛函分析_2024秋季__l760952' };
     const b = { name: 'slides_泛函分析_2024秋季__l772100' };
     expect(getCourseKey(a)).toBe('name:泛函分析_2024秋季');
     expect(getCourseKey(a)).toBe(getCourseKey(b));
     expect(getCourseId(a)).toBeUndefined();
-    expect(getLiveId(a)).toBe('761952');
+    expect(getLiveId(a)).toBe('760952');
   });
 
   it('reads a live id from metadata without letting it drive grouping', () => {
     const folder = {
       name: 'slides_泛函分析_2024秋季',
-      metadata: { ...meta(undefined, undefined, '泛函分析'), source: { liveId: '761952' } },
+      metadata: { ...meta(undefined, undefined, '泛函分析'), source: { liveId: '760952' } },
     } as { name: string; metadata: SlideMetadata };
     expect(getCourseKey(folder)).toBe('name:泛函分析_2024秋季');
-    expect(getLiveId(folder)).toBe('761952');
+    expect(getLiveId(folder)).toBe('760952');
   });
 
   it('prefers the recorded course title over the parsed one as the label', () => {
     const folder = {
-      name: 'slides_AS-export-name__c62313',
-      metadata: meta('62313', undefined, '泛函分析'),
+      name: 'slides_AS-export-name__c70101',
+      metadata: meta('70101', undefined, '泛函分析'),
     };
     expect(getCourseLabel(folder)).toBe('泛函分析');
   });
@@ -115,9 +115,9 @@ describe('getCourseKey fallback chain', () => {
 
 describe('compareToolFolderEntries', () => {
   it('orders sessions within a course by week, then weekday, then period', () => {
-    const wed = { name: 'slides_泛函分析_第1周_星期三_第2大节__c62313s751843' };
-    const fri = { name: 'slides_泛函分析_第1周_星期五_第2大节__c62313s751844' };
-    const week2 = { name: 'slides_泛函分析_第2周_星期三_第2大节__c62313s761138' };
+    const wed = { name: 'slides_泛函分析_第1周_星期三_第2大节__c70101s850101' };
+    const fri = { name: 'slides_泛函分析_第1周_星期五_第2大节__c70101s850102' };
+    const week2 = { name: 'slides_泛函分析_第2周_星期三_第2大节__c70101s860138' };
     expect([week2, fri, wed].sort(compareToolFolderEntries).map((f) => f.name))
       .toEqual([wed.name, fri.name, week2.name]);
   });
@@ -125,9 +125,9 @@ describe('compareToolFolderEntries', () => {
   it('keeps each course contiguous so one header is emitted per course', () => {
     const folders = [
       { name: 'slides_高等数学_第1周_星期一_第1大节__c2002s1' },
-      { name: 'slides_泛函分析_第1周_星期三_第2大节__c62313s751843' },
+      { name: 'slides_泛函分析_第1周_星期三_第2大节__c70101s850101' },
       { name: 'slides_高等数学_第2周_星期一_第1大节__c2002s2' },
-      { name: 'slides_泛函分析_第2周_星期三_第2大节__c62313s761138' },
+      { name: 'slides_泛函分析_第2周_星期三_第2大节__c70101s860138' },
     ];
     const keys = [...folders].sort(compareToolFolderEntries).map(getCourseKey);
     // No key reappears after a different key has intervened.
@@ -136,12 +136,12 @@ describe('compareToolFolderEntries', () => {
 
   it('splits two same-titled courses into adjacent but separate runs', () => {
     const folders = [
-      { name: 'slides_泛函分析_第1周_星期三_第2大节__c62313s1' },
+      { name: 'slides_泛函分析_第1周_星期三_第2大节__c70101s1' },
       { name: 'slides_泛函分析_第1周_星期三_第5大节', metadata: null },
-      { name: 'slides_泛函分析_第2周_星期三_第2大节__c62313s2' },
+      { name: 'slides_泛函分析_第2周_星期三_第2大节__c70101s2' },
       { name: 'slides_泛函分析_第2周_星期三_第5大节', metadata: null },
     ];
     const keys = [...folders].sort(compareToolFolderEntries).map(getCourseKey);
-    expect(keys).toEqual(['id:62313', 'id:62313', 'name:泛函分析', 'name:泛函分析']);
+    expect(keys).toEqual(['id:70101', 'id:70101', 'name:泛函分析', 'name:泛函分析']);
   });
 });
