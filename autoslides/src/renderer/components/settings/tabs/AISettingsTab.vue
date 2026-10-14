@@ -338,12 +338,6 @@
             class="text-input model-name-input"
             :placeholder="$t('advanced.ai.modelNamePlaceholder')"
           />
-          <select v-model="selectedModelPreset" @change="onModelPresetChange" class="select-field model-preset-select">
-            <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
-            <option v-for="preset in modelPresets" :key="preset.name" :value="preset.name">
-              {{ preset.label }}
-            </option>
-          </select>
         </div>
       </div>
 
@@ -417,7 +411,7 @@
           >
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option
-              v-for="preset in modelPresetsByProvider.modelscope"
+              v-for="preset in modelscopeModelPresets"
               :key="preset.name"
               :value="preset.name"
               :disabled="tempCustomModelChain.includes(preset.name)"
@@ -907,10 +901,8 @@ const {
   isLoadingBuiltinModel,
   builtinModelError,
   apiUrlPresets,
-  modelPresets,
-  modelPresetsByProvider,
+  modelscopeModelPresets,
   selectedApiUrlPreset,
-  selectedModelPreset,
   currentCustomProvider,
   tempCustomModelChain,
   exhaustedModels,
@@ -924,7 +916,6 @@ const {
   addPendingModel,
   refreshBuiltinModel,
   onApiUrlPresetChange,
-  onModelPresetChange,
   resetAiPrompt,
   updateAiBatchSize,
   openCustomServiceDocs,

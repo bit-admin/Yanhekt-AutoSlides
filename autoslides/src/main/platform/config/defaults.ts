@@ -48,15 +48,11 @@ export const DEFAULT_MODELSCOPE_MODELS: string[] = [
   'Qwen/Qwen3.5-122B-A10B',
   'Qwen/Qwen3.5-35B-A3B',
   'Qwen/Qwen3.5-27B',
-  'MiniMax/MiniMax-M3'
+  'Qwen/Qwen3.8-27B'
 ];
 
 export function detectCustomProviderFromUrl(url: string): CustomProviderId {
-  if (!url) return 'other';
   if (url.includes('api-inference.modelscope.cn')) return 'modelscope';
-  if (url.includes('opencode.ai/zen')) return 'opencode_zen';
-  if (url.includes('integrate.api.nvidia.com')) return 'nvidia';
-  if (url.includes('apihub.agnes-ai.com')) return 'agnes';
   return 'other';
 }
 

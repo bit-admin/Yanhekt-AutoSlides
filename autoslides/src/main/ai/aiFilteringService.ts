@@ -149,7 +149,7 @@ export class AIFilteringService {
       };
     }
 
-    // Custom (modelscope / opencode_zen / nvidia / agnes / other)
+    // Custom (modelscope / other)
     const apiKey = config.customApiKey;
     return {
       headers: {

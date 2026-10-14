@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron';
 import type { ElectronAPI, DialogOptions } from './electronApi';
-import type { AppConfig, ConnectionMode, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import type { AppConfig, ConnectionMode, CustomProviderId, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 import type { Yanhe2SlideSaveProgress } from '@common/yanhe2SlideSave';
 
@@ -195,7 +195,7 @@ export const config: ElectronAPI['config'] = {
     customApiKey?: string;
     customModelName?: string;
     customModelChain?: string[];
-    customProviderId?: 'modelscope' | 'opencode_zen' | 'nvidia' | 'agnes' | 'other';
+    customProviderId?: CustomProviderId;
     copilotGhoToken?: string;
     copilotModelName?: string;
     copilotUsername?: string;

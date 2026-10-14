@@ -4,7 +4,7 @@ import { coalesce } from '@shared/services/requestCache'
 import { useCopilotOAuth, type CopilotOAuthStep } from './useCopilotOAuth'
 import { useMlClassifierSettings, type AIClassifierMode, type MlThresholdValues, type MlModelInfo } from './useMlClassifierSettings'
 import { useModelChain, type ModelPreset } from './useModelChain'
-import { detectCustomProvider, MODELSCOPE_API_BASE_URL, OPENCODE_ZEN_API_BASE_URL, type CustomProviderId } from './providerDetect'
+import { detectCustomProvider, MODELSCOPE_API_BASE_URL, type CustomProviderId } from './providerDetect'
 import type { AIRequestSettings, BuiltinCompletionParams } from '@common/aiRequestSettings'
 import {
   resolveRendererAICompletionParams,
@@ -273,49 +273,25 @@ export function useAISettings(options: UseAISettingsOptions) {
   const isLoadingBuiltinModel = ref(false)
   const builtinModelError = ref('')
 
-  // Presets
+  // Presets. ModelScope is the only named provider; any other base URL is a
+  // generic custom endpoint with a free-text model name.
   const apiUrlPresets: ApiUrlPreset[] = [
-    { id: 'modelscope', label: 'ModelScope', url: MODELSCOPE_API_BASE_URL },
-    { id: 'opencode_zen', label: 'OpenCode Zen', url: OPENCODE_ZEN_API_BASE_URL },
-    { id: 'nvidia', label: 'NVIDIA NIM', url: 'https://integrate.api.nvidia.com/v1' },
-    { id: 'agnes', label: 'Agnes AI', url: 'https://apihub.agnes-ai.com/v1' }
+    { id: 'modelscope', label: 'ModelScope', url: MODELSCOPE_API_BASE_URL }
   ]
 
-  const modelPresetsByProvider: Record<CustomProviderId, ModelPreset[]> = {
-    modelscope: [
-      { label: 'Qwen3.5-397B-A17B', name: 'Qwen/Qwen3.5-397B-A17B' },
-      { label: 'Qwen3.5-122B-A10B', name: 'Qwen/Qwen3.5-122B-A10B' },
-      { label: 'Qwen3.5-35B-A3B', name: 'Qwen/Qwen3.5-35B-A3B' },
-      { label: 'Qwen3.5-27B', name: 'Qwen/Qwen3.5-27B' },
-      { label: 'MiniMax-M3', name: 'MiniMax/MiniMax-M3' }
-    ],
-    opencode_zen: [
-      { label: 'mimo-v2.5-free', name: 'mimo-v2.5-free' }
-    ],
-    nvidia: [
-      { label: 'Qwen3.5-397B-A17B', name: 'qwen/qwen3.5-397b-a17b' },
-      { label: 'Qwen3.5-122B-A10B', name: 'qwen/qwen3.5-122b-a10b' },
-      { label: 'Kimi-K2.6', name: 'moonshotai/kimi-k2.6' },
-      { label: 'Minimax M3', name: 'minimaxai/minimax-m3' },
-      { label: 'Gemma 4 31B IT', name: 'google/gemma-4-31b-it' }
-    ],
-    agnes: [
-      { label: 'Agnes 2.5 Flash', name: 'agnes-2.5-flash' },
-      { label: 'Agnes 2.0 Flash', name: 'agnes-2.0-flash' }
-    ],
-    other: []
-  }
+  const modelscopeModelPresets: ModelPreset[] = [
+    { label: 'Qwen3.5-397B-A17B', name: 'Qwen/Qwen3.5-397B-A17B' },
+    { label: 'Qwen3.5-122B-A10B', name: 'Qwen/Qwen3.5-122B-A10B' },
+    { label: 'Qwen3.5-35B-A3B', name: 'Qwen/Qwen3.5-35B-A3B' },
+    { label: 'Qwen3.5-27B', name: 'Qwen/Qwen3.5-27B' },
+    { label: 'Qwen3.8-27B', name: 'Qwen/Qwen3.8-27B' }
+  ]
 
   const selectedApiUrlPreset = ref('')
-  const selectedModelPreset = ref('')
 
   // Custom-provider identity derived from the current (temp) URL.
   const currentCustomProvider = computed<CustomProviderId>(() =>
     detectCustomProvider(tempAiCustomApiBaseUrl.value)
-  )
-
-  const modelPresets = computed<ModelPreset[]>(
-    () => modelPresetsByProvider[currentCustomProvider.value] ?? []
   )
 
   // Compose sub-composables
@@ -328,7 +304,7 @@ export function useAISettings(options: UseAISettingsOptions) {
   watch(tempAiServiceType, (next, prev) => {
     if (next === 'custom' && prev !== 'custom' && !tempAiCustomApiBaseUrl.value) {
       tempAiCustomApiBaseUrl.value = MODELSCOPE_API_BASE_URL
-      modelChain.tempCustomModelChain.value = modelPresetsByProvider.modelscope.map(p => p.name)
+      modelChain.tempCustomModelChain.value = modelscopeModelPresets.map(p => p.name)
       if (modelChain.tempCustomModelChain.value.length > 0) {
         tempAiCustomModelName.value = modelChain.tempCustomModelChain.value[0]
       }
@@ -574,12 +550,6 @@ export function useAISettings(options: UseAISettingsOptions) {
     }
   }
 
-  const onModelPresetChange = () => {
-    if (selectedModelPreset.value) {
-      tempAiCustomModelName.value = selectedModelPreset.value
-    }
-  }
-
   const onImageResizePresetChange = () => {
     const preset = imageResizePresets.find(p => p.key === selectedImageResizePreset.value)
     if (preset) {
@@ -647,7 +617,6 @@ export function useAISettings(options: UseAISettingsOptions) {
       modelChain.tempCustomModelChain.value = [aiCustomModelName.value]
     }
     selectedApiUrlPreset.value = ''
-    selectedModelPreset.value = ''
     const matchingPreset = imageResizePresets.find(
       p => p.width === aiImageResizeWidth.value && p.height === aiImageResizeHeight.value
     )
@@ -737,10 +706,8 @@ export function useAISettings(options: UseAISettingsOptions) {
 
     // Presets
     apiUrlPresets,
-    modelPresets,
-    modelPresetsByProvider,
+    modelscopeModelPresets,
     selectedApiUrlPreset,
-    selectedModelPreset,
 
     // Model chain (delegated)
     currentCustomProvider,
@@ -771,7 +738,6 @@ export function useAISettings(options: UseAISettingsOptions) {
     saveAISettings,
     refreshBuiltinModel,
     onApiUrlPresetChange,
-    onModelPresetChange,
     onImageResizePresetChange,
     resetAiPrompt,
     updateAiBatchSize,
