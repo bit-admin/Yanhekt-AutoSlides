@@ -74,7 +74,6 @@ export class CliInstallService {
     const expected = buildWrapperScript(wrapper, exePath, PLATFORM);
     return {
       name: wrapper.name,
-      command: wrapper.command,
       path: filePath,
       state: classifyWrapper(this.readWrapper(filePath), expected),
     };

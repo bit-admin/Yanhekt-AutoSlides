@@ -1,42 +1,53 @@
 // How a process start is recognised as a command line run.
 //
-// A wrapper starts the app as `<exe> --cli[=<command>] -- <args…>`:
-//   - `--cli=download -- 123456`  → the `download` command (the `yhdl` wrapper)
-//   - `--cli -- download 123456`  → the umbrella wrapper; the command is args[0]
+// A wrapper starts the app as `<exe> --cli=<wrapper name> -- <args…>`, and the
+// first argument names the command: `yhdl search 微积分` arrives as
+// `--cli=yhdl -- search 微积分`. The wrapper name is only the program name
+// help text shows; every wrapper takes the same commands. A dev run may pass a
+// bare `--cli`.
+//
+// A Yanhekt link may stand in for the command, since it says what it is:
+// `yhdl <session link>` downloads it and `yhdl <course link>` shows the course.
+// A bare number may not: it could be either kind of id.
 //
 // The bare `--` matters: Chromium stops reading switches there, so a user's
 // `--version` or `--output` is never taken for one of its own.
-import { isCliCommandId, type CliCommandId } from '@common/cliCommands';
+import { CLI_DEFAULT_PROGRAM, isCliCommandId, type CliCommandId } from '@common/cliCommands';
+import { parseSessionInput } from '@common/sessionInput';
 
 export interface CliInvocation {
-  /** `null` when the command name was not one we know — the dispatcher reports it. */
+  /** What the user typed to start it (`yhdl`, `autoslides`), for help and error text. */
+  program: string;
+  /** `null` when no command was given, or the word was not one we know. */
   command: CliCommandId | null;
-  /** The word the user typed for the command, when it came from the umbrella wrapper. */
+  /** The word the user typed for the command, kept for the error message. Absent when a link stood in for it. */
   commandWord?: string;
-  /** True when started through a wrapper bound to one command (`yhdl`). */
-  bound: boolean;
   args: string[];
 }
 
 const CLI_SWITCH = '--cli';
+const PROGRAM_NAME = /^[A-Za-z0-9._-]+$/;
 
 export function parseCliInvocation(argv: readonly string[]): CliInvocation | null {
   const index = argv.findIndex((arg) => arg === CLI_SWITCH || arg.startsWith(`${CLI_SWITCH}=`));
   if (index === -1) return null;
 
+  const named = argv[index].slice(CLI_SWITCH.length + 1);
+  const program = PROGRAM_NAME.test(named) ? named : CLI_DEFAULT_PROGRAM;
+
   const rest = argv.slice(index + 1);
   const args = rest[0] === '--' ? rest.slice(1) : rest;
 
-  const switchArg = argv[index];
-  if (switchArg !== CLI_SWITCH) {
-    const word = switchArg.slice(CLI_SWITCH.length + 1);
-    return { command: isCliCommandId(word) ? word : null, commandWord: word, bound: true, args };
-  }
-
   const [word, ...commandArgs] = args;
   if (word === undefined || word.startsWith('-')) {
-    // `autoslides --help` / `--version`: no command, the dispatcher handles the flags.
-    return { command: null, bound: false, args };
+    // `yhdl`, `yhdl --help`, `yhdl --version`: the dispatcher handles them.
+    return { program, command: null, args };
   }
-  return { command: isCliCommandId(word) ? word : null, commandWord: word, bound: false, args: commandArgs };
+  if (isCliCommandId(word)) return { program, command: word, commandWord: word, args: commandArgs };
+  if (!/^\d+$/.test(word)) {
+    const link = parseSessionInput(word);
+    if (link.kind === 'session') return { program, command: 'download', args };
+    if (link.kind === 'course') return { program, command: 'course', args };
+  }
+  return { program, command: null, commandWord: word, args: commandArgs };
 }

@@ -1,18 +1,31 @@
 // Terminal output for command line runs.
 //
 // `process.stdout`/`stderr` directly, never `console`: production builds strip
-// console calls (terser `drop_console`). stdout carries only results (the path
-// of each finished file) so it can be piped; everything a person reads —
-// progress, notices, errors — goes to stderr.
+// console calls (terser `drop_console`). stdout carries only results — a
+// command's table, the path of each finished file, or with `--json` one JSON
+// document — so it can be piped; everything a person reads while it runs
+// (progress, notices, errors) goes to stderr.
 
 export const out = (text: string): void => {
   process.stdout.write(`${text}\n`);
 };
 
+let noticesWritten = false;
+
 export const info = (text: string): void => {
   endStatusLine();
   process.stderr.write(`${text}\n`);
+  noticesWritten = true;
 };
+
+/**
+ * A blank line on stderr between notices and what follows, so a table does not
+ * sit flush against "Listing … with …". Never on stdout, which stays pipeable.
+ */
+export function separate(): void {
+  if (noticesWritten) process.stderr.write('\n');
+  noticesWritten = false;
+}
 
 export const fail = (program: string, text: string): void => {
   info(`${program}: ${text}`);
@@ -35,11 +48,3 @@ export function endStatusLine(): void {
   process.stderr.write('\r\x1b[2K');
   statusLineOpen = false;
 }
-
-/** Exit codes shared by every command. */
-export const EXIT = {
-  ok: 0,
-  failed: 1,
-  usage: 2,
-  interrupted: 130,
-} as const;

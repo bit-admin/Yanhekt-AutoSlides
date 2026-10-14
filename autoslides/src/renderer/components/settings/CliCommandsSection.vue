@@ -110,14 +110,24 @@ interface UsageRow {
   option?: boolean
 }
 
-// Keep in step with `downloadHelp()` in main/cli/commands/download.ts.
+// Keep in step with the command table in main/cli (each command's `options`
+// and `help.ts`); `yhdl <command> --help` is the full manual.
 const USAGE_ROWS: UsageRow[] = [
-  { code: 'yhdl', argKey: 'advanced.addons.cliArgSession', descriptionKey: 'advanced.addons.cliUsageDownload' },
+  { code: 'yhdl search', argKey: 'advanced.addons.cliArgKeyword', descriptionKey: 'advanced.addons.cliUsageSearch' },
+  { code: 'yhdl mine', descriptionKey: 'advanced.addons.cliUsageMine' },
+  { code: 'yhdl course', argKey: 'advanced.addons.cliArgCourse', descriptionKey: 'advanced.addons.cliUsageCourse' },
+  { code: '--token', argKey: 'advanced.addons.cliArgToken', descriptionKey: 'advanced.addons.cliOptToken', option: true },
+  { code: 'yhdl session', argKey: 'advanced.addons.cliArgSession', descriptionKey: 'advanced.addons.cliUsageSession' },
+  { code: 'yhdl download', argKey: 'advanced.addons.cliArgSession', descriptionKey: 'advanced.addons.cliUsageDownload' },
   { code: '-s, --stream', arg: 'screen|camera|both', descriptionKey: 'advanced.addons.cliOptStream', option: true },
   { code: '-o, --output', argKey: 'advanced.addons.cliArgFolder', descriptionKey: 'advanced.addons.cliOptOutput', option: true },
+  { code: '--course', argKey: 'advanced.addons.cliArgCourse', descriptionKey: 'advanced.addons.cliOptCourse', option: true },
+  { code: '-f, --force', descriptionKey: 'advanced.addons.cliOptForce', option: true },
+  { code: 'yhdl', argKey: 'advanced.addons.cliArgLink', descriptionKey: 'advanced.addons.cliUsageLink' },
+  { code: 'yhdl', argKey: 'advanced.addons.cliArgCommand', descriptionKey: 'advanced.addons.cliUsageCommon' },
+  { code: '--json', descriptionKey: 'advanced.addons.cliOptJson', option: true },
   { code: '--intranet', descriptionKey: 'advanced.addons.cliOptIntranet', option: true },
   { code: '--interface', argKey: 'advanced.addons.cliArgInterface', descriptionKey: 'advanced.addons.cliOptInterface', option: true },
-  { code: '-f, --force', descriptionKey: 'advanced.addons.cliOptForce', option: true },
   { code: 'autoslides', argKey: 'advanced.addons.cliArgCommand', descriptionKey: 'advanced.addons.cliUsageUmbrella' },
 ]
 

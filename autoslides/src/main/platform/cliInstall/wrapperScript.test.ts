@@ -9,15 +9,17 @@ import {
   wrapperFileName,
 } from './wrapperScript';
 
-const umbrella = CLI_WRAPPERS.find((w) => w.command === null)!;
+const umbrella = CLI_WRAPPERS.find((w) => w.opensApp)!;
 const yhdl = CLI_WRAPPERS.find((w) => w.name === 'yhdl')!;
 
 describe('buildWrapperScript', () => {
-  it('binds a posix wrapper to its command and ends switch parsing', () => {
+  it('names its program in the switch and ends switch parsing', () => {
     const script = buildWrapperScript(yhdl, '/Applications/AutoSlides.app/Contents/MacOS/AutoSlides', 'posix');
     expect(script.startsWith('#!/bin/sh\n')).toBe(true);
     expect(script).toContain(WRAPPER_MARKER);
-    expect(script).toContain(`exec "$APP" --cli=download -- "$@"`);
+    expect(script).toContain(`exec "$APP" --cli=yhdl -- "$@"`);
+    // Only the umbrella opens the app; `yhdl` with no arguments prints help.
+    expect(script).not.toContain('exec "$APP"\n');
   });
 
   it('quotes a path that contains a single quote', () => {
@@ -28,13 +30,13 @@ describe('buildWrapperScript', () => {
   it('opens the app when the umbrella command gets no arguments', () => {
     const script = buildWrapperScript(umbrella, '/opt/AutoSlides/autoslides', 'posix');
     expect(script).toContain('if [ "$#" -eq 0 ]; then\n  exec "$APP"\nfi');
-    expect(script).toContain('exec "$APP" --cli -- "$@"');
+    expect(script).toContain('exec "$APP" --cli=autoslides -- "$@"');
   });
 
   it('writes a CRLF batch file on Windows and returns the exit code', () => {
     const script = buildWrapperScript(yhdl, 'C:\\Program Files\\AutoSlides\\AutoSlides.exe', 'win32');
     expect(script).toContain(WRAPPER_MARKER);
-    expect(script).toContain('"%APP%" --cli=download -- %*\r\n');
+    expect(script).toContain('"%APP%" --cli=yhdl -- %*\r\n');
     expect(script.endsWith('exit /b %ERRORLEVEL%\r\n')).toBe(true);
     expect(script.replace(/\r\n/g, '')).not.toContain('\n');
   });

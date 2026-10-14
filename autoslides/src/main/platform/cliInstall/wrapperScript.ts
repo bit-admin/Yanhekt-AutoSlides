@@ -2,7 +2,7 @@
 // classification — the service next door does the disk work.
 //
 // A wrapper is a few lines that start the app binary in command line mode:
-//   <exe> --cli[=<command>] -- <the user's arguments>
+//   <exe> --cli=<wrapper name> -- <the user's arguments>
 // The bare `--` stops Chromium reading the user's flags as its own switches.
 //
 // Every wrapper carries `WRAPPER_MARKER`. It is how the installer tells its own
@@ -38,12 +38,11 @@ function posixScript(wrapper: CliWrapper, exePath: string): string {
     '  exit 127',
     'fi',
   ];
-  if (wrapper.command === null) {
-    // The umbrella command with no arguments opens the app, like `code`.
-    lines.push('if [ "$#" -eq 0 ]; then', '  exec "$APP"', 'fi', 'exec "$APP" --cli -- "$@"');
-  } else {
-    lines.push(`exec "$APP" --cli=${wrapper.command} -- "$@"`);
+  if (wrapper.opensApp) {
+    // With no arguments, open the app, like `code`.
+    lines.push('if [ "$#" -eq 0 ]; then', '  exec "$APP"', 'fi');
   }
+  lines.push(`exec "$APP" --cli=${wrapper.name} -- "$@"`);
   return `${lines.join('\n')}\n`;
 }
 
@@ -64,17 +63,10 @@ function windowsScript(wrapper: CliWrapper, exePath: string): string {
     '  exit /b 127',
     ')',
   ];
-  if (wrapper.command === null) {
-    lines.push(
-      'if "%~1"=="" (',
-      '  start "" "%APP%"',
-      '  exit /b 0',
-      ')',
-      '"%APP%" --cli -- %*'
-    );
-  } else {
-    lines.push(`"%APP%" --cli=${wrapper.command} -- %*`);
+  if (wrapper.opensApp) {
+    lines.push('if "%~1"=="" (', '  start "" "%APP%"', '  exit /b 0', ')');
   }
+  lines.push(`"%APP%" --cli=${wrapper.name} -- %*`);
   lines.push('exit /b %ERRORLEVEL%');
   // Batch files want CRLF; cmd.exe mis-parses labels and blocks with bare LF.
   return `${lines.join('\r\n')}\r\n`;

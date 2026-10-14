@@ -121,6 +121,18 @@ interface VideoTokenApiResponse extends BaseApiResponse {
   };
 }
 
+/**
+ * A lookup that Yanhekt answered: the id does not exist, or the session has no
+ * recording yet. Anything else (network, auth, upstream down) stays a plain
+ * Error. The message is the same one the app always showed.
+ */
+export class YanhektLookupError extends Error {
+  constructor(message: string, readonly kind: 'not_found' | 'no_recording') {
+    super(message);
+    this.name = 'YanhektLookupError';
+  }
+}
+
 export class ApiClient {
   private readonly BASE_HEADERS = {
     "Origin": "https://www.yanhekt.cn",
@@ -597,29 +609,54 @@ export class ApiClient {
     });
   }
 
+  /**
+   * One course's detail from `/v1/course` alone — names, teachers, term,
+   * college. Anonymous-ok; the session list is a separate, signed-in hop
+   * ({@link getCourseSessions}), so a caller that has no token can still show
+   * the course.
+   */
+  async getCourseDetail(courseId: string, token: string): Promise<Omit<CourseInfoResponse, 'videos'>> {
+    const courseApiUrl = `https://cbiz.yanhekt.cn/v1/course?id=${courseId}&with_professor_badges=true`;
+    const courseResponse = await this.makeRequest('GET', courseApiUrl, token, undefined, { allowAnonymous: true });
+    const courseData = courseResponse as CourseInfoApiResponse;
+
+    if (courseData.code !== 0 && courseData.code !== "0") {
+      switch (courseData.code) {
+        case 12111010:
+          throw new YanhektLookupError("Course not found, please check if course ID is correct", 'not_found');
+        case 13001001:
+          throw new Error("Authentication failed, please check if token is valid");
+        case 99151011:
+          throw new Error("Remote server error or is temporarily down, please try again later");
+        default:
+          throw new Error(`Course ID: ${courseId}, ${courseData.message}`);
+      }
+    }
+
+    const name = courseData.data.name_zh.trim();
+    const nameEn = courseData.data.name_en?.trim() || undefined;
+
+    const professorNames = (courseData.data.professors || [])
+      .map(p => p.name?.trim())
+      .filter((n): n is string => !!n);
+    const professor = professorNames[0] || "Unknown Teacher";
+
+    return {
+      course_id: courseId,
+      title: name,
+      title_en: nameEn,
+      professor: professor,
+      professors: professorNames,
+      college_name: courseData.data.college_name,
+      school_year: courseData.data.school_year,
+      semester: courseData.data.semester,
+      image_url: courseData.data.image_url || courseData.data.college?.image_url || undefined,
+    };
+  }
+
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
     try {
-      const courseApiUrl = `https://cbiz.yanhekt.cn/v1/course?id=${courseId}&with_professor_badges=true`;
-      const courseResponse = await this.makeRequest('GET', courseApiUrl, token, undefined, { allowAnonymous: true });
-      const courseData = courseResponse as CourseInfoApiResponse;
-
-      if (courseData.code !== 0 && courseData.code !== "0") {
-        let errorMessage = courseData.message;
-        switch (courseData.code) {
-          case 12111010:
-            errorMessage = "Course not found, please check if course ID is correct";
-            break;
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `Course ID: ${courseId}, ${courseData.message}`;
-        }
-        throw new Error(errorMessage);
-      }
+      const detail = await this.getCourseDetail(courseId, token);
 
       // An empty list is an answer, not an error. Yanhekt sends `{code:0, data:[]}`
       // both for a course with no recordings and for one this account may not
@@ -628,26 +665,7 @@ export class ApiClient {
       // a non-zero `code`, thrown above and in getCourseSessions.
       const formattedVideos = await this.getCourseSessions(courseId, token);
 
-      const name = courseData.data.name_zh.trim();
-      const nameEn = courseData.data.name_en?.trim() || undefined;
-
-      const professorNames = (courseData.data.professors || [])
-        .map(p => p.name?.trim())
-        .filter((n): n is string => !!n);
-      const professor = professorNames[0] || "Unknown Teacher";
-
-      return {
-        course_id: courseId,
-        title: name,
-        title_en: nameEn,
-        professor: professor,
-        professors: professorNames,
-        college_name: courseData.data.college_name,
-        school_year: courseData.data.school_year,
-        semester: courseData.data.semester,
-        image_url: courseData.data.image_url || courseData.data.college?.image_url || undefined,
-        videos: formattedVideos
-      };
+      return { ...detail, videos: formattedVideos };
     } catch (error: unknown) {
       log.error('Failed to get course info:', error);
       throw error;
@@ -694,13 +712,13 @@ export class ApiClient {
     }) as SessionDetailApiResponse;
 
     if ((detail.code !== 0 && detail.code !== "0") || !detail.data || Array.isArray(detail.data) || !detail.data.id) {
-      throw new Error(`Session ${sessionId} not found`);
+      throw new YanhektLookupError(`Session ${sessionId} not found`, 'not_found');
     }
 
     const s = detail.data;
     const videoId = s.video_ids && s.video_ids.length > 0 ? String(s.video_ids[0]) : '';
     if (!videoId) {
-      throw new Error(`Session ${sessionId} has no recording yet`);
+      throw new YanhektLookupError(`Session ${sessionId} has no recording yet`, 'no_recording');
     }
 
     const video = await this.makeRequest('GET', `https://cbiz.yanhekt.cn/v1/video?id=${encodeURIComponent(videoId)}`, token, undefined, {
