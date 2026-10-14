@@ -137,15 +137,15 @@
               :is-playing="isPlaying"
               :controls-visible="controlsVisible"
               :should-disable-controls="false"
-              :should-video-mute="false"
-              mute-label-key="playback.mutedByApp"
+              :should-video-mute="audioModeMuted"
+              :mute-label-key="audioModeLabel"
               :current-time="currentTime"
               :duration="duration"
               :can-seek="canSeek"
               :seek-progress="seekProgress"
-              :effective-volume="volume"
+              :effective-volume="effectiveVolume"
               :volume-progress="volumeProgress"
-              :is-muted="volume <= 0"
+              :is-muted="effectiveVolume <= 0"
               :current-playback-rate="playbackRate"
               :playback-rate-options="playbackRateOptions"
               :show-speed-panel="showSpeedPanel"
@@ -212,15 +212,15 @@
               :is-playing="isPlaying"
               :controls-visible="controlsVisible"
               :should-disable-controls="false"
-              :should-video-mute="false"
-              mute-label-key="playback.mutedByApp"
+              :should-video-mute="audioModeMuted"
+              :mute-label-key="audioModeLabel"
               :current-time="currentTime"
               :duration="duration"
               :can-seek="canSeek"
               :seek-progress="seekProgress"
-              :effective-volume="volume"
+              :effective-volume="effectiveVolume"
               :volume-progress="volumeProgress"
-              :is-muted="volume <= 0"
+              :is-muted="effectiveVolume <= 0"
               :current-playback-rate="playbackRate"
               :playback-rate-options="playbackRateOptions"
               :show-speed-panel="showSpeedPanel"
@@ -365,6 +365,7 @@ import { useYanhe2Slides } from '@features/yanhe2/useYanhe2Slides'
 import { isSavingYanhe2Slides, saveYanhe2Slides } from '@features/yanhe2/yanhe2SlideSave'
 import { downloadYanhe2Subtitles, isPreparingYanhe2Subtitles } from '@features/yanhe2/yanhe2SubtitleDownload'
 import type { GallerySlide } from '@features/video/gallerySlide'
+import { audioModeLabelKey, isMutedByAudioMode } from '@features/video/audioMode'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
@@ -553,7 +554,12 @@ const seekProgress = computed(() => {
   if (!canSeek.value) return '0%'
   return `${Math.min(100, Math.max(0, (currentTime.value / duration.value) * 100))}%`
 })
-const volumeProgress = computed(() => `${Math.min(100, Math.max(0, volume.value * 100))}%`)
+// Settings → General → Audio Mode silences the player the way it does the
+// Yanhekt one: every element at 0, the slider swapped for the mode's label.
+const audioModeMuted = computed(() => isMutedByAudioMode(configStore.muteMode, mode.value))
+const audioModeLabel = computed(() => audioModeLabelKey(configStore.muteMode))
+const effectiveVolume = computed(() => (audioModeMuted.value ? 0 : volume.value))
+const volumeProgress = computed(() => `${Math.min(100, Math.max(0, effectiveVolume.value * 100))}%`)
 
 let detachVideoListeners: (() => void) | null = null
 watch(masterVideo, (video) => {
@@ -628,15 +634,17 @@ const dualAudioSources = computed(() => [
 ])
 const applyAudio = () => {
   const mic = micAudioOn.value
-  const level = volume.value
+  const level = effectiveVolume.value
   if (videoPlayer.value) videoPlayer.value.volume = mic ? 0 : level
   if (screenVideoPlayer.value) screenVideoPlayer.value.volume = !mic && dualAudioSource.value === 'screen' ? level : 0
   if (cameraVideoPlayer.value) cameraVideoPlayer.value.volume = !mic && dualAudioSource.value === 'camera' ? level : 0
   if (micAudioPlayer.value) micAudioPlayer.value.volume = mic ? level : 0
 }
-watch([videoPlayer, cameraVideoPlayer, screenVideoPlayer, micAudioPlayer, dualAudioSource, micAudioOn], applyAudio)
+watch([videoPlayer, cameraVideoPlayer, screenVideoPlayer, micAudioPlayer, dualAudioSource, micAudioOn, audioModeMuted], applyAudio)
 
 const applyVolume = (value: number) => {
+  // The bar disables its volume controls; this keeps the keyboard out too.
+  if (audioModeMuted.value) return
   const clamped = Math.min(1, Math.max(0, value))
   volume.value = clamped
   if (clamped > 0) lastNonZeroVolume.value = clamped

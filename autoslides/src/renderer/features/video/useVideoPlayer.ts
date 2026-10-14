@@ -1,5 +1,5 @@
 import { ref, shallowRef, computed, nextTick, watch, type Ref, type ShallowRef, type ComputedRef } from 'vue'
-import type { ConnectionMode } from '@common/types'
+import type { ConnectionMode, MuteMode } from '@common/types'
 import Hls, { Events, ErrorDetails } from 'hls.js'
 import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
@@ -12,6 +12,7 @@ import { attachEmptyRecordingGuard, createFatalErrorReporter, createSingleStream
 import { useDualStreamPlayer } from './useDualStreamPlayer'
 import { applyPlaybackRate, applyMute } from './singleStreamPlayback'
 import { getHlsConfig } from './hlsConfig'
+import { isMutedByAudioMode } from './audioMode'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
@@ -85,7 +86,7 @@ export interface UseVideoPlayerReturn {
   hls: ShallowRef<Hls | null>
   currentPlaybackRate: Ref<number>
   connectionMode: Ref<ConnectionMode>
-  muteMode: Ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>
+  muteMode: ComputedRef<MuteMode>
   isVideoMuted: Ref<boolean>
   isRetrying: Ref<boolean>
   retryMessage: Ref<string>
@@ -166,7 +167,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const hls = shallowRef<Hls | null>(null)
   const currentPlaybackRate = ref(1)
   const connectionMode = ref<ConnectionMode>('external')
-  const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
+  // Live, not read once: an open tab follows a change to Audio Mode.
+  const muteMode = computed<MuteMode>(() => configStore.muteMode || 'normal')
   const isVideoMuted = ref(false)
   const videoProxyClientId = ref<string | null>(null)
   const isRetrying = ref(false)
@@ -183,19 +185,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   let isHlsRecovering = false
 
   // Computed properties
-  const shouldVideoMute = computed(() => {
-    switch (muteMode.value) {
-      case 'mute_all':
-        return true
-      case 'mute_live':
-        return mode === 'live'
-      case 'mute_recorded':
-        return mode === 'recorded'
-      case 'normal':
-      default:
-        return false
-    }
-  })
+  const shouldVideoMute = computed(() => isMutedByAudioMode(muteMode.value, mode))
 
   const isScreenRecordingSelected = computed(() => {
     if (!playbackData.value || !selectedStream.value) return false
@@ -1033,7 +1023,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     try {
       const config = configStore
       connectionMode.value = config.connectionMode
-      muteMode.value = config.muteMode || 'normal'
       maxVideoErrorRetries.value = config.videoRetryCount || 5
       intranetActive.value = config.connectionMode === 'internal'
       if (config.connectionMode === 'auto') {

@@ -676,6 +676,7 @@ import { usePerformanceOptimization } from '@features/video/usePerformanceOptimi
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
 import { useSlideGallery } from '@features/video/useSlideGallery'
+import { audioModeLabelKey } from '@features/video/audioMode'
 import PostProcessingProgressBar from './PostProcessingProgressBar.vue'
 import SlideGallery from './SlideGallery.vue'
 import PreviewModal from './PreviewModal.vue'
@@ -987,11 +988,7 @@ const { selectedSlide } = slideGallery
 
 const cameraPanelOrder = computed(() => isDualOrderSwapped.value ? 2 : 1)
 const screenPanelOrder = computed(() => isDualOrderSwapped.value ? 1 : 2)
-const globalMuteModeLabelKey = computed(() => {
-  if (muteMode.value === 'mute_live') return 'playback.liveMuted'
-  if (muteMode.value === 'mute_recorded') return 'playback.recordedMuted'
-  return 'playback.mutedByApp'
-})
+const globalMuteModeLabelKey = computed(() => audioModeLabelKey(muteMode.value))
 const dualSeekProgress = computed(() => {
   if (!dualCanSeek.value || dualDuration.value <= 0) return '0%'
   const progress = (dualCurrentTime.value / dualDuration.value) * 100
@@ -1594,9 +1591,10 @@ watch(shouldVideoMute, (shouldMute) => {
   }
 
   if (videoPlayer.value) {
-    // When leaving policy mute, restore the user's chosen volume (not a hard 1)
-    // so the custom volume control stays authoritative.
-    videoPlayer.value.volume = shouldMute ? 0 : singleVolume.value
+    // Routes the video and the mic alike. When leaving policy mute it restores
+    // the user's chosen volume (not a hard 1), so the custom volume control
+    // stays authoritative.
+    applySingleAudioState()
     if (shouldMute) {
       videoPlayer.value.setAttribute('data-muted-by-app', 'true')
       performanceOptimization.startSilentAudio()
