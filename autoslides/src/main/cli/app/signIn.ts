@@ -1,14 +1,21 @@
+import { accountName } from '../credentials';
 import { CliError } from '../errors';
 import type { AppCommandContext } from './types';
+
+export interface AppSignIn {
+  token: string;
+  /** The saved account the token belongs to; null when it is not among them (a pasted token). */
+  account: { name: string; badge: string } | null;
+}
 
 /**
  * Every app command runs as the account AutoSlides is signed in with, even
  * where a request could go out without it: driving the app means acting as
- * its user. Waits for the launch-time sign-in to settle, then returns the
- * token. Settings → Network "prefer anonymous" still decides, per request,
- * whether the token is sent.
+ * its user. There is no flag to pick another account or token. Waits for the
+ * launch-time sign-in to settle, then returns the token. Settings → Network
+ * "prefer anonymous" still decides, per request, whether the token is sent.
  */
-export async function requireSignIn(ctx: AppCommandContext): Promise<string> {
+export async function requireSignIn(ctx: AppCommandContext): Promise<AppSignIn> {
   const { signedIn } = await ctx.renderer.request('signInState', {});
   const token = ctx.configService.getAuthToken();
   if (!signedIn || !token) {
@@ -18,5 +25,6 @@ export async function requireSignIn(ctx: AppCommandContext): Promise<string> {
       'Sign in in the AutoSlides window, then run the command again.'
     );
   }
-  return token;
+  const saved = (ctx.configService.getConfig().accounts ?? []).find((a) => a.token === token);
+  return { token, account: saved ? { name: accountName(saved), badge: saved.badge } : null };
 }

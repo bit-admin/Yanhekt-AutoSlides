@@ -74,8 +74,10 @@ function sentToApp(id: string, command: AppCommand): CliCommand {
 }
 
 const CLIENT_APP_COMMANDS: Record<CliAppCommandId, CliCommand> = {
-  search: sentToApp('search', APP_COMMANDS.search),
-  download: sentToApp('download', APP_COMMANDS.download),
+  ...(Object.fromEntries(Object.entries(APP_COMMANDS).map(([id, command]) => [id, sentToApp(id, command)])) as Record<
+    keyof typeof APP_COMMANDS,
+    CliCommand
+  >),
   schema: schemaCommand('app'),
 };
 
@@ -119,9 +121,6 @@ function reportError(program: string, json: boolean, error: CliError, helpTopic?
 }
 
 function unknownWordHint(word: string, program: string): string {
-  if (/^\d+$/.test(word) && modeOf(program) === 'app') {
-    return `A number can be a session or a course id, so say which: '${program} download ${word}' or '${program} download --course ${word}'.`;
-  }
   if (/^\d+$/.test(word)) {
     return `A number can be a session or a course id, so say which: '${program} download ${word}', '${program} session ${word}' or '${program} course ${word}'.`;
   }

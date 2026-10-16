@@ -19,8 +19,12 @@
 export const CLI_COMMAND_IDS = ['search', 'mine', 'course', 'session', 'download', 'terms', 'whoami', 'schema'] as const;
 export type CliCommandId = (typeof CLI_COMMAND_IDS)[number];
 
-/** What the app-driving wrapper takes. `schema` answers in the terminal; the rest run in the app. */
-export const CLI_APP_COMMAND_IDS = ['search', 'download', 'schema'] as const;
+/**
+ * What the app-driving wrapper takes: the same words, run in the app (`schema`
+ * answers in the terminal). Its own list, so a terminal command can exist
+ * before its app counterpart does.
+ */
+export const CLI_APP_COMMAND_IDS = ['search', 'mine', 'course', 'session', 'download', 'terms', 'whoami', 'schema'] as const;
 export type CliAppCommandId = (typeof CLI_APP_COMMAND_IDS)[number];
 
 export interface CliWrapper {

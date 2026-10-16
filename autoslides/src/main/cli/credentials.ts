@@ -39,7 +39,7 @@ export type CredentialResult =
   | { ok: true; credentials: Credentials }
   | { ok: false; code: 'usage' | 'auth_required'; message: string; hint?: string };
 
-const accountName = (a: StoredAccount): string => a.displayName || a.nickname || a.badge;
+export const accountName = (a: StoredAccount): string => a.displayName || a.nickname || a.badge;
 
 export function resolveCredentials(input: CredentialInput): CredentialResult {
   const usage = (message: string): CredentialResult => ({ ok: false, code: 'usage', message });

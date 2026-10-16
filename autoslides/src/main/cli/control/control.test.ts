@@ -207,7 +207,12 @@ describe('autoslides on the command line', () => {
     expect(code).toBe(0);
     const schema = JSON.parse(stdout);
     expect(schema.runs_in).toBe('the AutoSlides app');
-    expect(schema.commands.map((c: { name: string }) => c.name)).toEqual(['search', 'download', 'schema']);
+    expect(schema.commands.map((c: { name: string }) => c.name)).toEqual(['search', 'mine', 'course', 'session', 'download', 'terms', 'whoami', 'schema']);
+    for (const command of schema.commands) {
+      const names = command.options.map((o: { name: string }) => o.name);
+      expect(names).not.toContain('--token');
+      expect(names).not.toContain('--account');
+    }
     const download = schema.commands.find((c: { name: string }) => c.name === 'download');
     const flags = download.options.map((o: { name: string }) => o.name);
     expect(flags).toContain('--no-wait');
@@ -217,11 +222,9 @@ describe('autoslides on the command line', () => {
     expect(schema.exit_codes.appUnavailable).toBe(6);
   });
 
-  it('points a terminal-only command at yhdl', async () => {
-    const { code, stdout } = await run(['mine', '--json']);
+  it('takes no flag to choose an account: the app\'s sign-in is the only one', async () => {
+    const { code, stdout } = await run(['course', '70101', '--token', '0123456789abcdef0123456789abcdef', '--json']);
     expect(code).toBe(2);
-    const answer = JSON.parse(stdout);
-    expect(answer.error.message).toBe('mine is not an autoslides command yet');
-    expect(answer.error.hint).toContain("'yhdl mine'");
+    expect(JSON.parse(stdout).error.message).toBe('unknown option: --token');
   });
 });

@@ -166,8 +166,7 @@ const USAGE_ROWS: UsageRow[] = [
   { code: '--json', descriptionKey: 'advanced.addons.cliOptJson', option: true },
   { code: '--intranet', descriptionKey: 'advanced.addons.cliOptIntranet', option: true },
   { code: '--interface', argKey: 'advanced.addons.cliArgInterface', descriptionKey: 'advanced.addons.cliOptInterface', option: true },
-  { code: 'autoslides', descriptionKey: 'advanced.addons.cliUsageUmbrella' },
-  { code: 'autoslides search', argKey: 'advanced.addons.cliArgKeyword', descriptionKey: 'advanced.addons.cliUsageAppSearch' },
+  { code: 'autoslides', argKey: 'advanced.addons.cliArgCommand', descriptionKey: 'advanced.addons.cliUsageUmbrella' },
   { code: 'autoslides download', argKey: 'advanced.addons.cliArgSession', descriptionKey: 'advanced.addons.cliUsageAppDownload' },
   { code: '--no-wait', descriptionKey: 'advanced.addons.cliOptNoWait', option: true },
 ]

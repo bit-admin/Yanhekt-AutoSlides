@@ -84,12 +84,8 @@ export function programHelp(commands: CommandTable, program: string, mode: CliMo
     'Commands:',
     ...ids.map((id) => `  ${id.padEnd(width)}  ${commands[id].summary}`),
     '',
-    ...(mode === 'terminal'
-      ? [
-          `A Yanhekt link works on its own: '${program} <session link>' downloads it,`,
-          `'${program} <course link>' shows the course. A bare id needs its command.`,
-        ]
-      : [`A session link works on its own: '${program} <session link>' downloads it.`]),
+    `A Yanhekt link works on its own: '${program} <session link>' downloads it,`,
+    `'${program} <course link>' shows the course. A bare id needs its command.`,
     '',
     'Every command takes --json for one machine-readable answer on stdout.',
     EXIT_LINE,
@@ -132,10 +128,7 @@ export function buildSchema(commands: CommandTable, program: string, version: st
       session: 'A session id or https://www.yanhekt.cn/session/<id>',
       course: 'A course id or https://www.yanhekt.cn/course/<id>',
       bare_number: 'Means whatever the command expects; a link says which it is.',
-      link_alone:
-        mode === 'app'
-          ? 'A session link may replace the command and runs download. A bare number may not.'
-          : 'A link may replace the command: a session link runs download, a course link runs course. A bare number may not.',
+      link_alone: 'A link may replace the command: a session link runs download, a course link runs course. A bare number may not.',
     },
     commands: Object.keys(commands).map((id) => {
       const c = commands[id];

@@ -16,12 +16,12 @@ export const appSearchCommand: AppCommand = {
   positionals: { min: 1, max: Infinity },
   data: SEARCH_DATA,
   serve: async (input, ctx) => {
-    const token = await requireSignIn(ctx);
+    const { token } = await requireSignIn(ctx);
     return searchCourses(input, {
       apiClient: ctx.apiClient,
       token,
       notice: ctx.term.info,
-      nextStep: `Run '${input.program} download --course <id> --dry-run' to see a course's recordings.`,
+      nextStep: `Run '${input.program} course <id>' to list a course's sessions.`,
     });
   },
 };

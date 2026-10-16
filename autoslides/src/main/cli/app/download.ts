@@ -143,7 +143,7 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
   const dryRun = input.options['dry-run'] === true;
   const wait = input.options['no-wait'] !== true;
 
-  const token = await requireSignIn(ctx);
+  const { token } = await requireSignIn(ctx);
   const outputDir = outputDirOf(ctx);
   const { targets, skipped } = await collectTargets(input, {
     apiClient: ctx.apiClient,
