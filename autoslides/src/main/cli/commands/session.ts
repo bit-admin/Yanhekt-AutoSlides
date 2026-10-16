@@ -1,5 +1,6 @@
 // `yhdl session <session link or id>`: one session, its course and its
 // recordings. Anonymous: session detail by id, then the video record.
+import type { ApiClient } from '@main/platform/apiClient';
 import { englishTitle, formatDuration, formatTime } from '../format';
 import { parseSessionTarget } from '../targets';
 import { termKey } from '../terms';
@@ -7,9 +8,10 @@ import type { CliCommand, CliContext, CommandInput, CommandResult } from '../typ
 
 const ANONYMOUS = '';
 
-async function run(input: CommandInput, ctx: CliContext): Promise<CommandResult> {
+/** The session lookup, for both the terminal command (anonymous) and the app's (its token). */
+export async function showSession(input: CommandInput, apiClient: ApiClient, token: string): Promise<CommandResult> {
   const sessionId = parseSessionTarget(input.positionals[0], input.program);
-  const { session, course, audioUrl } = await ctx.apiClient.getSessionDownloadInfo(sessionId, ANONYMOUS);
+  const { session, course, audioUrl } = await apiClient.getSessionDownloadInfo(sessionId, token);
 
   const data = {
     session: {
@@ -52,6 +54,11 @@ async function run(input: CommandInput, ctx: CliContext): Promise<CommandResult>
   };
 }
 
+const run = (input: CommandInput, ctx: CliContext): Promise<CommandResult> => showSession(input, ctx.apiClient, ANONYMOUS);
+
+export const SESSION_DATA =
+  '{ session: { id, title, week, day, started_at, ended_at, duration (s), streams: { screen, camera }, mic }, course: { id, title, title_en, college, term } }';
+
 export const sessionCommand: CliCommand = {
   summary: 'Show one session and its recordings (no sign-in)',
   args: '<session link or id>',
@@ -64,6 +71,6 @@ export const sessionCommand: CliCommand = {
   options: [],
   positionals: { min: 1, max: 1 },
   network: true,
-  data: '{ session: { id, title, week, day, started_at, ended_at, duration (s), streams: { screen, camera }, mic }, course: { id, title, title_en, college, term } }',
+  data: SESSION_DATA,
   run,
 };

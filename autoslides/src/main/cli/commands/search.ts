@@ -49,7 +49,7 @@ export async function searchCourses(input: CommandInput, deps: SearchDeps): Prom
   const termArg = input.options.term;
   if (typeof termArg === 'string' && termArg.toLowerCase() !== 'all') {
     const match = matchTerm(termArg, await deps.apiClient.getAvailableSemesters());
-    if (!match) throw new CliError('usage', `unknown term: ${termArg}`, `Run 'yhdl terms' to see the terms Yanhekt has.`);
+    if (!match) throw new CliError('usage', `unknown term: ${termArg}`, `Run '${input.program} terms' to see the terms Yanhekt has.`);
     semesters = [match.id];
     term = semesterTermKey(match);
   }

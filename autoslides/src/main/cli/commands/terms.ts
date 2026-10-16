@@ -1,10 +1,12 @@
 // `yhdl terms`: the terms Yanhekt filters by, for `search --term`. Anonymous.
+import type { ApiClient } from '@main/platform/apiClient';
 import { table } from '../format';
 import { semesterTermKey } from '../terms';
 import type { CliCommand, CliContext, CommandResult } from '../types';
 
-async function run(_input: unknown, ctx: CliContext): Promise<CommandResult> {
-  const terms = (await ctx.apiClient.getAvailableSemesters()).map((o) => ({
+/** The term list, for both the terminal command and the app's. */
+export async function listTerms(apiClient: ApiClient): Promise<CommandResult> {
+  const terms = (await apiClient.getAvailableSemesters()).map((o) => ({
     id: String(o.id),
     term: semesterTermKey(o),
     label: o.label,
@@ -16,6 +18,10 @@ async function run(_input: unknown, ctx: CliContext): Promise<CommandResult> {
   };
 }
 
+const run = (_input: unknown, ctx: CliContext): Promise<CommandResult> => listTerms(ctx.apiClient);
+
+export const TERMS_DATA = '{ terms: [{ id, term, label, label_en }] }';
+
 export const termsCommand: CliCommand = {
   summary: 'List the terms search --term accepts',
   args: '',
@@ -24,6 +30,6 @@ export const termsCommand: CliCommand = {
   options: [],
   positionals: { min: 0, max: 0 },
   network: true,
-  data: '{ terms: [{ id, term, label, label_en }] }',
+  data: TERMS_DATA,
   run,
 };
