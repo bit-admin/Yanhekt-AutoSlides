@@ -78,6 +78,7 @@ import { layoutStore } from '@shared/services/layoutStore'
 import { rightPanelStore } from '@shared/services/rightPanelStore'
 import { TaskQueue } from '@shared/services/taskQueueService'
 import { DownloadService } from '@shared/services/downloadService'
+import { installCliControlHandler } from '@features/download/cliControlHandler'
 import { PostProcessingService } from '@shared/services/postProcessingService'
 
 // Whether any long-running work is active. Drives the main-process warning shown
@@ -453,8 +454,12 @@ onMounted(() => {
 
   window.addEventListener('resize', updateSizes)
 
+  // `autoslides` commands: answer main once the app (and its queue) is up.
+  const uninstallCliControl = installCliControlHandler()
+
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
+    uninstallCliControl()
   })
 })
 </script>

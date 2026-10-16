@@ -405,6 +405,13 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setAllowCliControl', async (_, enabled: boolean) => {
+    configService.setAllowCliControl(enabled);
+    services.cliControlServer.applyConfig();
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setPreferAnonymousApiRequests', async (_, enabled: boolean) => {
     configService.setPreferAnonymousApiRequests(enabled);
     broadcastConfig();

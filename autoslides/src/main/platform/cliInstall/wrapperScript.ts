@@ -38,7 +38,7 @@ function posixScript(wrapper: CliWrapper, exePath: string): string {
     '  exit 127',
     'fi',
   ];
-  if (wrapper.opensApp) {
+  if (wrapper.drivesApp) {
     // With no arguments, open the app, like `code`.
     lines.push('if [ "$#" -eq 0 ]; then', '  exec "$APP"', 'fi');
   }
@@ -63,7 +63,7 @@ function windowsScript(wrapper: CliWrapper, exePath: string): string {
     '  exit /b 127',
     ')',
   ];
-  if (wrapper.opensApp) {
+  if (wrapper.drivesApp) {
     lines.push('if "%~1"=="" (', '  start "" "%APP%"', '  exit /b 0', ')');
   }
   lines.push(`"%APP%" --cli=${wrapper.name} -- %*`);

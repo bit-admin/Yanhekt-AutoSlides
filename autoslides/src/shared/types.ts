@@ -301,6 +301,10 @@ export interface AppConfig {
   // Settings → Add-ons → Tools: show the Tools window icon button beside Settings
   // at the foot of the navigator. Default off — Settings then takes the full row.
   showToolsButton: boolean;
+  // Settings → Add-ons → Command Line: let `autoslides` commands drive this app
+  // over a local socket (main `cli/control`). Default on; off closes the socket
+  // and the command refuses without starting the app. `yhdl` is unaffected.
+  allowCliControl: boolean;
   // When true, omit Authorization on Yanhekt endpoints that work without a
   // login (public catalog, public live list, course detail, video token).
   // Session list, personal lists, notes, and account APIs still send the token.

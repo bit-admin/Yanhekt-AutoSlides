@@ -269,6 +269,7 @@ export class ConfigService {
       notionWorkspaceName: this.store.get('notionWorkspaceName') ?? '',
       cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       showToolsButton: this.store.get('showToolsButton') ?? false,
+      allowCliControl: this.store.get('allowCliControl') ?? true,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
       developerMode: this.store.get('developerMode') ?? false,
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
@@ -348,6 +349,10 @@ export class ConfigService {
 
   setShowToolsButton(enabled: boolean): void {
     this.store.set('showToolsButton', enabled);
+  }
+
+  setAllowCliControl(enabled: boolean): void {
+    this.store.set('allowCliControl', enabled);
   }
 
   getPreferAnonymousApiRequests(): boolean {

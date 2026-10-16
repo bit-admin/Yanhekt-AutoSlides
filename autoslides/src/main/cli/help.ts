@@ -1,6 +1,5 @@
 // Help text and the `schema` document, both generated from the command table
 // so they cannot drift from what the parser accepts. Pure.
-import type { CliCommandId } from '@common/cliCommands';
 import { optionLabel, type OptionSpec } from './args';
 import { TOKEN_ENV } from './credentials';
 import { CLI_ERROR_CODES, EXIT } from './errors';
@@ -32,14 +31,33 @@ export function commandOptions(command: CliCommand): OptionSpec[] {
     ...(command.tokenUse ? TOKEN_OPTIONS : []),
     ...(command.network ? NETWORK_OPTIONS : []),
     JSON_OPTION,
-    VERBOSE_OPTION,
+    ...(command.runsInApp ? [] : [VERBOSE_OPTION]),
     HELP_OPTION,
   ];
 }
 
+/** Which kind of program the help describes (see `@common/cliCommands`). */
+export type CliMode = 'terminal' | 'app';
+
+type CommandTable = Readonly<Record<string, CliCommand>>;
+
+const INTRO: Record<CliMode, string[]> = {
+  terminal: [
+    'Look up and download Yanhekt recordings. Only the personal lists (a',
+    'course\'s sessions, your own courses) use a sign-in; everything else is anonymous.',
+  ],
+  app: [
+    'Drive the AutoSlides app. Commands run inside the app, which starts if it',
+    'is not running and must be signed in to Yanhekt. They follow its settings:',
+    'network route, anonymous requests, output folder, auto-extraction.',
+  ],
+};
+
+const EXIT_LINE = 'Exit codes: 0 ok, 1 failed, 2 usage, 3 not found, 4 sign-in needed, 5 network, 6 app unavailable, 130 interrupted.';
+
 const fill = (text: string, program: string): string => text.replace(/\{program\}/g, program);
 
-export function commandHelp(id: CliCommandId, command: CliCommand, program: string): string {
+export function commandHelp(id: string, command: CliCommand, program: string): string {
   const options = commandOptions(command);
   const width = Math.max(...options.map((o) => optionLabel(o).length));
   return [
@@ -55,33 +73,53 @@ export function commandHelp(id: CliCommandId, command: CliCommand, program: stri
   ].join('\n');
 }
 
-export function programHelp(commands: Record<CliCommandId, CliCommand>, program: string, opensApp: boolean): string {
-  const ids = Object.keys(commands) as CliCommandId[];
+export function programHelp(commands: CommandTable, program: string, mode: CliMode): string {
+  const ids = Object.keys(commands);
   const width = Math.max(...ids.map((id) => id.length));
   return [
     `Usage: ${program} <command> [options]`,
     '',
-    'Look up and download Yanhekt recordings. Only the personal lists (a',
-    'course\'s sessions, your own courses) use a sign-in; everything else is anonymous.',
+    ...INTRO[mode],
     '',
     'Commands:',
     ...ids.map((id) => `  ${id.padEnd(width)}  ${commands[id].summary}`),
     '',
-    `A Yanhekt link works on its own: '${program} <session link>' downloads it,`,
-    `'${program} <course link>' shows the course. A bare id needs its command.`,
+    ...(mode === 'terminal'
+      ? [
+          `A Yanhekt link works on its own: '${program} <session link>' downloads it,`,
+          `'${program} <course link>' shows the course. A bare id needs its command.`,
+        ]
+      : [`A session link works on its own: '${program} <session link>' downloads it.`]),
     '',
     'Every command takes --json for one machine-readable answer on stdout.',
-    `Exit codes: 0 ok, 1 failed, 2 usage, 3 not found, 4 sign-in needed, 5 network, 130 interrupted.`,
+    EXIT_LINE,
     '',
     `Run '${program} <command> --help' for a command's options, or '${program} schema' for all of it as JSON.`,
-    ...(opensApp ? [`Run '${program}' with no arguments to open the app.`] : []),
+    ...(mode === 'app'
+      ? [
+          `Run '${program}' with no arguments to open the app.`,
+          "Commands that run in the terminal without the app: 'yhdl --help'.",
+        ]
+      : []),
   ].join('\n');
 }
 
-export function buildSchema(commands: Record<CliCommandId, CliCommand>, program: string, version: string) {
+const AUTH: Record<CliMode, object> = {
+  terminal: {
+    env: TOKEN_ENV,
+    order: ['--token', '--account', TOKEN_ENV, 'the account signed in to AutoSlides'],
+    note: 'Only the personal lists send a token: a course\'s sessions (course, download --course) and the account\'s courses (mine). Search, course details, session lookups and video downloads are anonymous.',
+  },
+  app: {
+    note: 'Every command runs inside AutoSlides (started if it is not running) as the account it is signed in with; signed out is error sign_in_required. Requests follow its Settings > Network (route, prefer anonymous requests). Command-line control can be turned off in Settings > Add-ons > Command Line (error cli_control_disabled).',
+  },
+};
+
+export function buildSchema(commands: CommandTable, program: string, version: string, mode: CliMode) {
   return {
     program,
     version,
+    runs_in: mode === 'app' ? 'the AutoSlides app' : 'this terminal process',
     output: {
       json: 'With --json, stdout is exactly one JSON object: {"ok":true,"data":…} or {"ok":false,"error":{"code","message","hint"?},"data"?}. Progress and notices go to stderr.',
       text: 'Without --json, stdout carries only results (tables, or the path of each downloaded file).',
@@ -89,25 +127,24 @@ export function buildSchema(commands: Record<CliCommandId, CliCommand>, program:
     },
     exit_codes: EXIT,
     error_codes: Object.fromEntries(Object.entries(CLI_ERROR_CODES).map(([code, v]) => [code, v])),
-    auth: {
-      env: TOKEN_ENV,
-      order: ['--token', '--account', TOKEN_ENV, 'the account signed in to AutoSlides'],
-      note: 'Only the personal lists send a token: a course\'s sessions (course, download --course) and the account\'s courses (mine). Search, course details, session lookups and video downloads are anonymous.',
-    },
+    auth: AUTH[mode],
     arguments: {
       session: 'A session id or https://www.yanhekt.cn/session/<id>',
       course: 'A course id or https://www.yanhekt.cn/course/<id>',
       bare_number: 'Means whatever the command expects; a link says which it is.',
-      link_alone: 'A link may replace the command: a session link runs download, a course link runs course. A bare number may not.',
+      link_alone:
+        mode === 'app'
+          ? 'A session link may replace the command and runs download. A bare number may not.'
+          : 'A link may replace the command: a session link runs download, a course link runs course. A bare number may not.',
     },
-    commands: (Object.keys(commands) as CliCommandId[]).map((id) => {
+    commands: Object.keys(commands).map((id) => {
       const c = commands[id];
       return {
         name: id,
         usage: `${program} ${id}${c.args ? ` ${c.args}` : ''} [options]`,
         summary: c.summary,
         description: c.description.filter(Boolean).join(' '),
-        token: c.tokenUse ?? 'never',
+        token: c.runsInApp ? 'the app\'s signed-in account' : (c.tokenUse ?? 'never'),
         options: commandOptions(c)
           .filter((o) => o.long !== 'help')
           .map((o) => ({

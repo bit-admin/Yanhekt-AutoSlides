@@ -14,6 +14,8 @@ import {
  *   not on commit).
  * - Tools: whether the Tools window icon button rides beside Settings at the
  *   foot of the navigator.
+ * - Command Line: whether `autoslides` commands may drive the app (the
+ *   wrappers themselves install at once, outside this lifecycle).
  * Self-contained like useCloudSettings — reads/writes config directly and joins
  * the Settings page's prepare/discard/commit lifecycle.
  */
@@ -32,6 +34,8 @@ export function useAddonsSettings() {
   const tempObsidianVaultIsVault = ref<boolean | null>(null)
   const showToolsButton = ref(false)
   const tempShowToolsButton = ref(false)
+  const allowCliControl = ref(true)
+  const tempAllowCliControl = ref(true)
 
   // Notion connection. Not buffered like the rest: see useNotionConnection.
   const notion = useNotionConnection()
@@ -66,6 +70,7 @@ export function useAddonsSettings() {
     obsidianSubfolder.value = cfg.obsidianSubfolder ?? 'AutoSlides'
     obsidianAutoCreateNote.value = cfg.obsidianAutoCreateNote ?? false
     showToolsButton.value = cfg.showToolsButton ?? false
+    allowCliControl.value = cfg.allowCliControl ?? true
     resetTemp()
   }
 
@@ -76,6 +81,7 @@ export function useAddonsSettings() {
     tempObsidianSubfolder.value = obsidianSubfolder.value
     tempObsidianAutoCreateNote.value = obsidianAutoCreateNote.value
     tempShowToolsButton.value = showToolsButton.value
+    tempAllowCliControl.value = allowCliControl.value
     notion.reset()
     void probeTempVault()
   }
@@ -112,6 +118,10 @@ export function useAddonsSettings() {
       await window.electronAPI.config.setShowToolsButton(tempShowToolsButton.value)
       showToolsButton.value = tempShowToolsButton.value
     }
+    if (tempAllowCliControl.value !== allowCliControl.value) {
+      await window.electronAPI.config.setAllowCliControl(tempAllowCliControl.value)
+      allowCliControl.value = tempAllowCliControl.value
+    }
   }
 
   return {
@@ -124,6 +134,7 @@ export function useAddonsSettings() {
     selectObsidianVault,
     notion,
     tempShowToolsButton,
+    tempAllowCliControl,
     load,
     resetTemp,
     save,

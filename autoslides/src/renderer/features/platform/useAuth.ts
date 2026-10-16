@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue'
-import { AuthService, TokenManager, tokenManager } from '@shared/services/authService'
+import { AuthService, TokenManager, markStartupAuthSettled, tokenManager } from '@shared/services/authService'
 import { ApiClient, type UserData } from '@shared/services/apiClient'
 import { toDisplayName } from './usePinyinName'
 import { configStore } from '@shared/services/configStore'
@@ -390,7 +390,10 @@ export function useAuth(): UseAuthReturn {
 
   const verifyExistingToken = async () => {
     const token = tokenManager.getToken()
-    if (!token) return
+    if (!token) {
+      markStartupAuthSettled()
+      return
+    }
 
     // Pre-populate the display name from stored names while waiting for the
     // API. Do NOT flip isLoggedIn here: the server is the authority, and the
@@ -425,6 +428,7 @@ export function useAuth(): UseAuthReturn {
     } finally {
       isVerifyingToken.value = false
       isAutoSigningIn.value = false
+      markStartupAuthSettled()
     }
   }
 

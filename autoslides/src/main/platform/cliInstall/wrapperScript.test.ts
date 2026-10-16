@@ -9,7 +9,7 @@ import {
   wrapperFileName,
 } from './wrapperScript';
 
-const umbrella = CLI_WRAPPERS.find((w) => w.opensApp)!;
+const umbrella = CLI_WRAPPERS.find((w) => w.drivesApp)!;
 const yhdl = CLI_WRAPPERS.find((w) => w.name === 'yhdl')!;
 
 describe('buildWrapperScript', () => {

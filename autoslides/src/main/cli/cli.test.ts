@@ -244,7 +244,7 @@ describe('help and schema', () => {
   });
 
   it('describes every command for agents', () => {
-    const schema = buildSchema(commands, 'yhdl', '5.1.0');
+    const schema = buildSchema(commands, 'yhdl', '5.1.0', 'terminal');
     expect(schema.commands.map((c) => c.name)).toEqual(Object.keys(commands));
     const course = schema.commands.find((c) => c.name === 'course')!;
     expect(course.token).toBe('To list sessions');

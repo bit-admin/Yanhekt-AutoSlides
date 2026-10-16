@@ -5,13 +5,17 @@ import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
 import type { OptionSpec } from './args';
 import type { CliError } from './errors';
 
-/** What a command may use. Only the services a headless run actually needs. */
+/** What a command may use in the terminal process. Only the services a headless run actually needs. */
 export interface CliContext {
   version: string;
   configService: ConfigService;
   apiClient: ApiClient;
   intranetMappingService: IntranetMappingService;
   m3u8DownloadService: M3u8DownloadService;
+  /** Where the running app listens for `autoslides` commands. */
+  controlSocketPath: string;
+  /** Start the app in the background; false when this build cannot (a dev run). */
+  launchApp: () => boolean;
   /** Route service logs to stderr (`--verbose`). */
   setVerbose: () => void;
   /**
@@ -52,6 +56,8 @@ export interface CliCommand {
   positionals: { min: number; max: number };
   /** Takes `--intranet` / `--interface` and pins the route before running. */
   network: boolean;
+  /** Runs inside the app (`autoslides`): no `--verbose`, the app keeps its own logs. */
+  runsInApp?: boolean;
   /** When the command uses a login token, in a sentence; absent = never. Adds `--token` / `--account`. */
   tokenUse?: string;
   /** The shape of `data` in the JSON answer, for `schema`. */

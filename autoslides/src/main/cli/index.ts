@@ -1,14 +1,17 @@
 // Command line entry: dispatch one invocation to its command.
 //
 // Reached from `main.ts` when the process was started by a wrapper (see
-// `invocation.ts`); no window, IPC or menu exists in such a run. Commands are
-// registered in `COMMANDS` — typed by `CliCommandId`, so an id added to
-// `@common/cliCommands` fails to compile until it has an implementation.
+// `invocation.ts`); no window, IPC or menu exists in such a run. The wrapper
+// decides which table answers (`@common/cliCommands`): `yhdl` runs `COMMANDS`
+// here, `autoslides` sends `APP_COMMANDS` to the running app over its socket
+// (`control/client.ts`). Both tables are typed by their id lists, so an id
+// added there fails to compile until it has an implementation.
 //
 // Every command answers the same way: a result (or a thrown error) becomes
 // either text on stdout, or with `--json` exactly one JSON object.
-import { CLI_WRAPPERS, type CliCommandId } from '@common/cliCommands';
+import { cliDrivesApp, type CliAppCommandId, type CliCommandId } from '@common/cliCommands';
 import { setLoggerConsoleMode } from '@main/infra/logger';
+import { APP_COMMANDS, type AppCommand } from './app';
 import { parseArgs } from './args';
 import { toCliError } from './classifyError';
 import { courseCommand } from './commands/course';
@@ -18,8 +21,9 @@ import { searchCommand } from './commands/search';
 import { sessionCommand } from './commands/session';
 import { termsCommand } from './commands/terms';
 import { whoamiCommand } from './commands/whoami';
+import { runInApp } from './control/client';
 import { CliError, EXIT } from './errors';
-import { buildSchema, commandHelp, commandOptions, programHelp } from './help';
+import { buildSchema, commandHelp, commandOptions, programHelp, type CliMode } from './help';
 import type { CliInvocation } from './invocation';
 import { pinRoute } from './route';
 import { fail, info, out, separate } from './terminal';
@@ -27,23 +31,30 @@ import type { CliCommand, CliContext, CommandResult } from './types';
 
 export { parseCliInvocation, type CliInvocation } from './invocation';
 export { createCliInterrupts } from './interrupts';
+export { APP_COMMANDS } from './app';
+export { CliControlServer } from './control/server';
+export { RendererBridge } from './control/rendererBridge';
+export { controlSocketPath } from './control/protocol';
+export { launchApp } from './control/client';
 export { EXIT as CLI_EXIT } from './errors';
 export type { CliContext } from './types';
 
-const schemaCommand: CliCommand = {
-  summary: 'Describe every command, option, exit code and JSON shape, as JSON',
-  args: '',
-  description: ['Print a description of this command line as JSON, for scripts and AI agents.'],
-  examples: ['schema'],
-  options: [],
-  positionals: { min: 0, max: 0 },
-  network: false,
-  data: 'This document',
-  run: async (input, ctx) => {
-    const schema = buildSchema(COMMANDS, input.program, ctx.version);
-    return { data: schema, text: JSON.stringify(schema, null, 2) };
-  },
-};
+function schemaCommand(mode: CliMode): CliCommand {
+  return {
+    summary: 'Describe every command, option, exit code and JSON shape, as JSON',
+    args: '',
+    description: ['Print a description of this command line as JSON, for scripts and AI agents.'],
+    examples: ['schema'],
+    options: [],
+    positionals: { min: 0, max: 0 },
+    network: false,
+    data: 'This document',
+    run: async (input, ctx) => {
+      const schema = buildSchema(TABLES[mode], input.program, ctx.version, mode);
+      return { data: schema, text: JSON.stringify(schema, null, 2) };
+    },
+  };
+}
 
 const COMMANDS: Record<CliCommandId, CliCommand> = {
   search: searchCommand,
@@ -53,10 +64,27 @@ const COMMANDS: Record<CliCommandId, CliCommand> = {
   download: downloadCommand,
   terms: termsCommand,
   whoami: whoamiCommand,
-  schema: schemaCommand,
+  schema: schemaCommand('terminal'),
 };
 
-const opensApp = (program: string): boolean => CLI_WRAPPERS.some((w) => w.name === program && w.opensApp);
+/** The terminal end of an app command: parsed and described here, run in the app. */
+function sentToApp(id: string, command: AppCommand): CliCommand {
+  const { serve: _serve, ...spec } = command;
+  return { ...spec, network: false, runsInApp: true, run: (input, ctx) => runInApp(id, input, ctx) };
+}
+
+const CLIENT_APP_COMMANDS: Record<CliAppCommandId, CliCommand> = {
+  search: sentToApp('search', APP_COMMANDS.search),
+  download: sentToApp('download', APP_COMMANDS.download),
+  schema: schemaCommand('app'),
+};
+
+const TABLES: Record<CliMode, Readonly<Record<string, CliCommand>>> = {
+  terminal: COMMANDS,
+  app: CLIENT_APP_COMMANDS,
+};
+
+const modeOf = (program: string): CliMode => (cliDrivesApp(program) ? 'app' : 'terminal');
 
 function report(program: string, json: boolean, result: CommandResult): number {
   const { data, error } = result;
@@ -91,6 +119,9 @@ function reportError(program: string, json: boolean, error: CliError, helpTopic?
 }
 
 function unknownWordHint(word: string, program: string): string {
+  if (/^\d+$/.test(word) && modeOf(program) === 'app') {
+    return `A number can be a session or a course id, so say which: '${program} download ${word}' or '${program} download --course ${word}'.`;
+  }
   if (/^\d+$/.test(word)) {
     return `A number can be a session or a course id, so say which: '${program} download ${word}', '${program} session ${word}' or '${program} course ${word}'.`;
   }
@@ -98,14 +129,23 @@ function unknownWordHint(word: string, program: string): string {
 }
 
 async function runCommand(
-  id: CliCommandId,
+  id: string,
   args: readonly string[],
   program: string,
   ctx: CliContext
 ): Promise<number> {
-  const command = COMMANDS[id];
   // Known before parsing, so even a usage error answers in JSON.
   const json = args.includes('--json');
+  const mode = modeOf(program);
+  const command = TABLES[mode][id];
+  if (!command) {
+    // Only an app wrapper lacks some ids: they are terminal commands.
+    return reportError(
+      program,
+      json,
+      new CliError('usage', `${id} is not an ${program} command yet`, `'yhdl ${id}' runs it in the terminal, without the app.`)
+    );
+  }
 
   const parsed = parseArgs(args, commandOptions(command));
   if (!parsed.ok) return reportError(program, json, new CliError('usage', parsed.message), id);
@@ -145,14 +185,16 @@ export async function runCli(invocation: CliInvocation, ctx: CliContext): Promis
   // The terminal belongs to the command; service logs appear only with --verbose.
   setLoggerConsoleMode('silent');
   const { program } = invocation;
+  const mode = modeOf(program);
+  const table = TABLES[mode];
 
   if (invocation.command) return runCommand(invocation.command, invocation.args, program, ctx);
 
   const word = invocation.commandWord;
   if (word === 'help') {
     const topic = invocation.args[0];
-    if (topic && topic in COMMANDS) out(commandHelp(topic as CliCommandId, COMMANDS[topic as CliCommandId], program));
-    else out(programHelp(COMMANDS, program, opensApp(program)));
+    if (topic && table[topic]) out(commandHelp(topic, table[topic], program));
+    else out(programHelp(table, program, mode));
     return EXIT.ok;
   }
 
@@ -170,7 +212,7 @@ export async function runCli(invocation: CliInvocation, ctx: CliContext): Promis
     return EXIT.ok;
   }
   if (flag === undefined || flag === '-h' || flag === '--help') {
-    out(programHelp(COMMANDS, program, opensApp(program)));
+    out(programHelp(table, program, mode));
     return EXIT.ok;
   }
   return reportError(program, json, new CliError('usage', `unknown option: ${flag}`, `Run '${program} --help' for the commands.`));

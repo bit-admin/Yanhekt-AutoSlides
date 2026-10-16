@@ -110,3 +110,22 @@ export class TokenManager {
 }
 
 export const tokenManager = new TokenManager();
+
+// Launch-time sign-in: the stored token is checked (and, when it is dead, the
+// saved campus password may be tried) once the left panel mounts. Anything that
+// must know whether the app ended up signed in — an `autoslides` command sent
+// right after a launch — waits for this rather than reading a token that may
+// still be about to be dropped.
+let settleStartupAuth: () => void = () => {};
+const startupAuth = new Promise<void>((resolve) => {
+  settleStartupAuth = resolve;
+});
+
+/** Called by `useAuth` when the launch-time check has finished, whatever its outcome. */
+export function markStartupAuthSettled(): void {
+  settleStartupAuth();
+}
+
+export function whenStartupAuthSettled(): Promise<void> {
+  return startupAuth;
+}

@@ -33,6 +33,7 @@ import type { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import type { NotionNotesService } from '@main/export/notionNotesService';
 import type { LocalRelayService } from '@main/video/localRelayService';
 import type { CliInstallService } from '@main/platform/cliInstall/cliInstallService';
+import type { CliControlServer, RendererBridge } from '@main/cli';
 import type { LocalLecturePosterService } from '@main/video/localLecturePosterService';
 
 export interface IpcServices {
@@ -72,4 +73,7 @@ export interface IpcServices {
   obsidianNotesService: ObsidianNotesService;
   notionNotesService: NotionNotesService;
   cliInstallService: CliInstallService;
+  /** `autoslides` commands: the socket, and the renderer's side of them. */
+  cliControlServer: CliControlServer;
+  cliControlBridge: RendererBridge;
 }

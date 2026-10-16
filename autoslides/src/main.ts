@@ -51,12 +51,24 @@ import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/
 import { initLogFile, setLogVerbose, flushLogFile } from '@main/infra/logFile';
 import { createLogger, setLoggerConsoleMode } from '@main/infra/logger';
 import { CliInstallService } from '@main/platform/cliInstall/cliInstallService';
-import { CLI_EXIT, createCliInterrupts, parseCliInvocation, runCli } from '@main/cli';
+import {
+  APP_COMMANDS,
+  CLI_EXIT,
+  CliControlServer,
+  RendererBridge,
+  controlSocketPath,
+  createCliInterrupts,
+  launchApp,
+  parseCliInvocation,
+  runCli,
+} from '@main/cli';
 
 // Command line run (`yhdl …`, `autoslides download …`): a wrapper on PATH
 // started this binary with `--cli`. The same services are built below, but no
 // window, menu or IPC — the command runs once the app is ready and the process
 // exits with its code. Everything GUI-only in this file is behind `!cliRun`.
+// An `autoslides` command only passes through such a process: it is sent to the
+// running app's control socket and runs there (`@main/cli/control`).
 const cliRun = parseCliInvocation(process.argv);
 // Chromium's own session data (caches, GPU state) goes to a throwaway folder,
 // so a command can run while the app itself is open on the real one.
@@ -92,6 +104,18 @@ registerAsmediaScheme();
 // `AutoSlides-Demo` userData dir. Must run BEFORE `new ConfigService()` below,
 // since electron-store resolves its path from userData at construction.
 applyDemoUserData(app);
+
+// One app per user data folder (so demo mode runs beside the real one). A
+// second launch — a Dock click, `autoslides` with no arguments — brings the
+// running window forward instead. Command line runs never take the lock, and
+// neither does a dev build: it shares the installed app's user data folder,
+// and `npm start` must still run while the installed app is open.
+if (!cliRun && app.isPackaged && !app.requestSingleInstanceLock()) {
+  app.exit(0);
+}
+
+// Where the running app listens for `autoslides` commands; both ends compute it.
+const cliSocketPath = controlSocketPath(app.getPath('userData'), { dev: !app.isPackaged });
 
 const configService = new ConfigService();
 
@@ -137,6 +161,9 @@ app.setName('AutoSlides');
 // user confirms past the "work still running" warning.
 let quitRequested = false;
 
+// The one main window (the Tools window is another BrowserWindow).
+let mainWindowRef: BrowserWindow | null = null;
+
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1440,
@@ -166,6 +193,11 @@ const createWindow = () => {
       // the preload reads reliably (process.env is not dependable there).
       ...demoWebPreferences()
     }
+  });
+
+  mainWindowRef = mainWindow;
+  mainWindow.on('closed', () => {
+    if (mainWindowRef === mainWindow) mainWindowRef = null;
   });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -229,6 +261,18 @@ app.on('ready', () => {
   createWindow();
 });
 
+app.on('second-instance', () => {
+  if (!app.isReady()) return;
+  const win = mainWindowRef;
+  if (!win) {
+    createWindow();
+    return;
+  }
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -286,6 +330,19 @@ const notesService = new NotesService(configService, apiTransport);
 const obsidianNotesService = new ObsidianNotesService(configService);
 const notionNotesService = new NotionNotesService(configService);
 const cliInstallService = new CliInstallService();
+const cliControlBridge = new RendererBridge(
+  () => mainWindowRef,
+  () => {
+    if (app.isReady() && !mainWindowRef) createWindow();
+  },
+);
+const cliControlServer = new CliControlServer({
+  socketPath: cliSocketPath,
+  configService,
+  apiClient,
+  renderer: cliControlBridge,
+  commands: APP_COMMANDS,
+});
 
 const windowManager = new WindowManager();
 windowManager.setConfigService(configService);
@@ -308,6 +365,8 @@ app.whenReady().then(() => {
       apiClient,
       intranetMappingService,
       m3u8DownloadService,
+      controlSocketPath: cliSocketPath,
+      launchApp: () => launchApp(app.isPackaged),
       setVerbose: () => setLoggerConsoleMode('all'),
       onInterrupt: cliInterrupts.onInterrupt,
     }).then(exitCli);
@@ -317,6 +376,8 @@ app.whenReady().then(() => {
   windowManager.setupYuketangClassCapture();
   // Start LAN relay if Developer mode is on and the user left it enabled.
   void localRelayService.applyConfig();
+  // Take `autoslides` commands, unless Settings turned that off.
+  cliControlServer.applyConfig();
 });
 
 app.on('before-quit', () => {
@@ -329,6 +390,7 @@ app.on('before-quit', () => {
 app.on('will-quit', () => {
   powerManagementService.cleanup();
   void localRelayService.stop();
+  if (!cliRun) cliControlServer.stop();
   flushLogFile();
 });
 
@@ -369,5 +431,7 @@ if (!cliRun) registerAllIpcHandlers({
   notesService,
   obsidianNotesService,
   notionNotesService,
-  cliInstallService
+  cliInstallService,
+  cliControlServer,
+  cliControlBridge,
 });

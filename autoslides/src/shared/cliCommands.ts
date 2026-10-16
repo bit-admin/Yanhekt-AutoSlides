@@ -1,35 +1,57 @@
 // The command line surface, shared by both processes.
 //
 // The packaged app is its own CLI: a wrapper script on PATH starts the app
-// binary with `--cli=<wrapper name> -- <args>`, and `main.ts` runs the command
-// named by the first argument without opening a window (see `@main/cli`). This
-// file is the one table both sides read: main dispatches on `CLI_COMMAND_IDS`,
-// the installer writes one wrapper per `CLI_WRAPPERS` row, and Settings →
-// Add-ons lists the same rows.
+// binary with `--cli=<wrapper name> -- <args>` (see `@main/cli`). This file is
+// the one table both sides read: main dispatches on the command ids, the
+// installer writes one wrapper per `CLI_WRAPPERS` row, and Settings → Add-ons
+// lists the same rows.
 //
-// Adding a feature = one command in `@main/cli/commands` and its id here.
+// Two kinds of wrapper:
+// - terminal only (`yhdl`): the command runs in that process, with no window,
+//   anonymous where it can be and with its own route flags.
+// - driving the app (`autoslides`): the command is sent to the running app
+//   (started if need be) and runs there, signed in and under its settings.
+//
+// Adding a terminal feature = one command in `@main/cli/commands` and its id in
+// `CLI_COMMAND_IDS`; an app feature = one in `@main/cli/app` and its id in
+// `CLI_APP_COMMAND_IDS`.
 
 export const CLI_COMMAND_IDS = ['search', 'mine', 'course', 'session', 'download', 'terms', 'whoami', 'schema'] as const;
 export type CliCommandId = (typeof CLI_COMMAND_IDS)[number];
 
+/** What the app-driving wrapper takes. `schema` answers in the terminal; the rest run in the app. */
+export const CLI_APP_COMMAND_IDS = ['search', 'download', 'schema'] as const;
+export type CliAppCommandId = (typeof CLI_APP_COMMAND_IDS)[number];
+
 export interface CliWrapper {
   /** File name on PATH (`.cmd` is appended on Windows). It is also the program name help text shows. */
   name: string;
-  /** Run with no arguments, open the app (like `code`) instead of printing help. */
-  opensApp: boolean;
+  /**
+   * Commands run inside the app instead of in the terminal. With no arguments
+   * it also opens the app (like `code`) instead of printing help.
+   */
+  drivesApp: boolean;
 }
 
 /** Program name when the switch carries none (a dev run). */
 export const CLI_DEFAULT_PROGRAM = 'autoslides';
 
-// Both take the same commands (`yhdl search …`, `autoslides search …`).
 export const CLI_WRAPPERS: readonly CliWrapper[] = [
-  { name: 'autoslides', opensApp: true },
-  { name: 'yhdl', opensApp: false },
+  { name: 'autoslides', drivesApp: true },
+  { name: 'yhdl', drivesApp: false },
 ];
+
+/** Whether this program name drives the app. Any name not in the table (a future alias) stays terminal only. */
+export function cliDrivesApp(program: string): boolean {
+  return CLI_WRAPPERS.some((w) => w.name === program && w.drivesApp);
+}
 
 export function isCliCommandId(value: string): value is CliCommandId {
   return (CLI_COMMAND_IDS as readonly string[]).includes(value);
+}
+
+export function isCliAppCommandId(value: string): value is CliAppCommandId {
+  return (CLI_APP_COMMAND_IDS as readonly string[]).includes(value);
 }
 
 // ── Install status (main → Settings) ─────────────────────────────────────────

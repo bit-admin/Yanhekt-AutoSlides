@@ -214,6 +214,7 @@ export const defaultConfig: AppConfig = {
   notionWorkspaceName: '',
   cloudShareEmbedTimeline: true,
   showToolsButton: false,
+  allowCliControl: true,
   preferAnonymousApiRequests: false,
   developerMode: false,
   localRelayEnabled: false,

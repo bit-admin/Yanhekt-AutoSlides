@@ -31,6 +31,7 @@ import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../
 import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/notionNotesTypes';
 import type { LogLevel, LogSource } from '../shared/logFormat';
 import type { CliInstallResult, CliInstallStatus } from '../shared/cliCommands';
+import type { CliControlRequest, CliControlResponse, CliDownloadUpdate } from '../shared/cliControl';
 import type { Yanhe2ProfileSummary, Yanhe2SessionState, Yanhe2SignInResult } from '../shared/yanhe2';
 import type {
   Yanhe2CalendarDay,
@@ -524,6 +525,7 @@ export interface ElectronAPI {
     setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => Promise<AppConfig>;
     setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
+    setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
     setRememberPassword: (enabled: boolean) => Promise<AppConfig>;
     setAutoSignIn: (enabled: boolean) => Promise<AppConfig>;
@@ -658,11 +660,19 @@ export interface ElectronAPI {
     getStatus: () => Promise<LocalRelayStatus>;
   };
 
-  /** Command line wrappers on PATH (Settings → Add-ons → Command Line). */
+  /**
+   * Command line wrappers on PATH (Settings → Add-ons → Command Line), and the
+   * renderer's side of `autoslides` commands (`@common/cliControl`).
+   */
   cli: {
     getStatus: () => Promise<CliInstallStatus>;
     install: () => Promise<CliInstallResult>;
     uninstall: () => Promise<CliInstallResult>;
+    /** Subscribe to main's questions; returns an unsubscribe. Then call `controlReady`. */
+    onControlRequest: (callback: (request: CliControlRequest) => void) => () => void;
+    controlReady: () => void;
+    controlRespond: (response: CliControlResponse) => void;
+    controlDownloadUpdate: (update: CliDownloadUpdate) => void;
   };
 
   video: {

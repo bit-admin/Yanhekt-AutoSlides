@@ -149,6 +149,7 @@ export const config: ElectronAPI['config'] = {
   setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => ipcRenderer.invoke('config:setWatchNotes', patch),
   setCloudShareEmbedTimeline: (enabled: boolean) => ipcRenderer.invoke('config:setCloudShareEmbedTimeline', enabled),
   setShowToolsButton: (enabled: boolean) => ipcRenderer.invoke('config:setShowToolsButton', enabled),
+  setAllowCliControl: (enabled: boolean) => ipcRenderer.invoke('config:setAllowCliControl', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => ipcRenderer.invoke('config:setPreferAnonymousApiRequests', enabled),
   setRememberPassword: (enabled: boolean) => ipcRenderer.invoke('config:setRememberPassword', enabled),
   setAutoSignIn: (enabled: boolean) => ipcRenderer.invoke('config:setAutoSignIn', enabled),

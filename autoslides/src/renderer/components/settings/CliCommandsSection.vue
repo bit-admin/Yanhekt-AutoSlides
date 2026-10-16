@@ -7,6 +7,17 @@
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.addons.cliDescription') }}</div>
 
+      <!-- A setting, unlike Install / Remove: it waits for the page's Save. -->
+      <div class="cli-allow">
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="tempAllowCliControl" />
+            {{ $t('advanced.addons.cliAllowControl') }}
+          </label>
+        </div>
+        <div class="setting-description">{{ $t('advanced.addons.cliAllowControlDescription') }}</div>
+      </div>
+
       <div class="cli-box">
         <div class="cli-group">
           <div class="cli-group-title">{{ $t('advanced.addons.cliStatusTitle') }}</div>
@@ -39,10 +50,34 @@
           </div>
         </div>
 
-        <!-- The same ground `yhdl --help` covers, so the page doubles as the manual. -->
+        <!-- The same ground `yhdl --help` covers, so the page doubles as the manual.
+             Long, so it starts folded. -->
         <div class="cli-group">
-          <div class="cli-group-title">{{ $t('advanced.addons.cliUsageTitle') }}</div>
-          <div class="cli-table">
+          <button
+            type="button"
+            class="cli-group-title cli-usage-toggle"
+            :aria-expanded="usageOpen"
+            aria-controls="cli-usage-table"
+            @click="usageOpen = !usageOpen"
+          >
+            <svg
+              class="cli-usage-chevron"
+              :class="{ 'is-open': usageOpen }"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            {{ $t('advanced.addons.cliUsageTitle') }}
+          </button>
+          <div v-show="usageOpen" id="cli-usage-table" class="cli-table">
             <div class="cli-table-header">
               <span>{{ $t('advanced.addons.cliColCommand') }}</span>
               <span>{{ $t('advanced.addons.cliColDescription') }}</span>
@@ -87,9 +122,12 @@
 import { computed, onMounted, ref } from 'vue'
 import type { CliInstallStatus, CliUnsupportedReason } from '@common/cliCommands'
 import { createLogger } from '@shared/utils/logger'
+import { useSettingsContext } from '@features/settings/settingsContext'
 import QuarantineNotice from '../shell/QuarantineNotice.vue'
 
 const log = createLogger('CliCommands')
+
+const { tempAllowCliControl } = useSettingsContext().advanced.addons
 
 // One line for the pair: the two wrappers are installed and removed together.
 type OverallState = 'installed' | 'not_installed' | 'outdated'
@@ -128,7 +166,10 @@ const USAGE_ROWS: UsageRow[] = [
   { code: '--json', descriptionKey: 'advanced.addons.cliOptJson', option: true },
   { code: '--intranet', descriptionKey: 'advanced.addons.cliOptIntranet', option: true },
   { code: '--interface', argKey: 'advanced.addons.cliArgInterface', descriptionKey: 'advanced.addons.cliOptInterface', option: true },
-  { code: 'autoslides', argKey: 'advanced.addons.cliArgCommand', descriptionKey: 'advanced.addons.cliUsageUmbrella' },
+  { code: 'autoslides', descriptionKey: 'advanced.addons.cliUsageUmbrella' },
+  { code: 'autoslides search', argKey: 'advanced.addons.cliArgKeyword', descriptionKey: 'advanced.addons.cliUsageAppSearch' },
+  { code: 'autoslides download', argKey: 'advanced.addons.cliArgSession', descriptionKey: 'advanced.addons.cliUsageAppDownload' },
+  { code: '--no-wait', descriptionKey: 'advanced.addons.cliOptNoWait', option: true },
 ]
 
 const UNSUPPORTED_KEYS: Record<CliUnsupportedReason, string> = {
@@ -136,6 +177,7 @@ const UNSUPPORTED_KEYS: Record<CliUnsupportedReason, string> = {
   translocated: 'advanced.addons.cliUnsupportedTranslocated',
 }
 
+const usageOpen = ref(false)
 const status = ref<CliInstallStatus | null>(null)
 const busy = ref(false)
 const error = ref('')
@@ -186,6 +228,13 @@ onMounted(async () => {
 
 <style scoped>
 /* Mirrors the Extractor box (PlaybackSettingsTab `.extractor-*`). */
+.cli-allow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
 .cli-box {
   display: flex;
   flex-direction: column;
@@ -207,6 +256,40 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.cli-usage-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cli-usage-toggle:hover {
+  color: var(--text-secondary);
+}
+
+.cli-usage-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+  border-radius: 4px;
+}
+
+.cli-usage-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.cli-usage-chevron.is-open {
+  transform: rotate(90deg);
 }
 
 .cli-status-row {
