@@ -1,14 +1,16 @@
 <template>
-  <!-- macOS-style password menu: a key heading and one row per remembered
-       account. Rows pick on mousedown and the panel prevents it, so focus stays
-       in the field (or the <webview>) that opened the menu. Hosts position the
-       root through their own class. -->
   <div
     class="saved-login-menu"
     role="listbox"
     :aria-label="$t('auth.passwords')"
     @mousedown.prevent
   >
+    <!-- macOS-style password menu: a key heading and one row per remembered
+         account. Rows pick on mousedown and the panel prevents it, so focus
+         stays in the field (or the <webview>) that opened the menu. Hosts
+         position the root through their own class, so this comment must stay
+         inside the root: a comment above it makes a second root in dev builds
+         and the host class is dropped. -->
     <div class="saved-login-heading">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="8" cy="15" r="4"/>
