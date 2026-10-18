@@ -105,9 +105,13 @@ export interface CliInstallStatus {
 export interface CliSkillStatus {
   /** The folder an agent links to; refreshed on every launch. */
   path: string;
-  /** What Settings copies for the user to paste into an agent. */
-  prompt: string;
+  /** What Settings copies for the user to paste into an agent, per scope. */
+  prompts: Record<CliSkillScope, string>;
 }
+
+/** Where the agent installs the skill: for every project (the default), or the current one only. */
+export type CliSkillScope = 'personal' | 'project';
+export const CLI_SKILL_SCOPES: readonly CliSkillScope[] = ['personal', 'project'];
 
 export interface CliInstallResult {
   success: boolean;

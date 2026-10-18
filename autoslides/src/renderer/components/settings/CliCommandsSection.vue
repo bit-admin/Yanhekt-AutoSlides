@@ -55,6 +55,21 @@
         <div v-if="status?.skill" class="cli-group">
           <div class="cli-group-title">{{ $t('advanced.addons.cliSkillTitle') }}</div>
           <div class="setting-description">{{ $t('advanced.addons.cliSkillDescription') }}</div>
+          <!-- Which prompt to copy. Not saved, like the other per-use choices. -->
+          <div class="mode-toggle" role="radiogroup" :aria-label="$t('advanced.addons.cliSkillTitle')">
+            <button
+              v-for="scope in CLI_SKILL_SCOPES"
+              :key="scope"
+              type="button"
+              role="radio"
+              :aria-checked="skillScope === scope"
+              :class="['mode-btn', { active: skillScope === scope }]"
+              @click="skillScope = scope"
+            >
+              {{ $t(SCOPE_KEYS[scope].label) }}
+            </button>
+          </div>
+          <div class="setting-description">{{ $t(SCOPE_KEYS[skillScope].hint) }}</div>
           <div class="cli-status-row">
             <code class="cli-status-path" :title="status.skill.path">{{ status.skill.path }}</code>
             <div class="cli-actions">
@@ -87,7 +102,7 @@
             </svg>
             {{ $t('advanced.addons.cliSkillPrompt') }}
           </button>
-          <pre v-show="promptOpen" id="cli-skill-prompt" class="cli-skill-prompt">{{ status.skill.prompt }}</pre>
+          <pre v-show="promptOpen" id="cli-skill-prompt" class="cli-skill-prompt">{{ status.skill.prompts[skillScope] }}</pre>
         </div>
 
         <!-- The same ground `yhdl --help` covers, so the page doubles as the manual.
@@ -160,7 +175,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import type { CliInstallStatus, CliUnsupportedReason } from '@common/cliCommands'
+import { CLI_SKILL_SCOPES, type CliInstallStatus, type CliSkillScope, type CliUnsupportedReason } from '@common/cliCommands'
 import { createLogger } from '@shared/utils/logger'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import QuarantineNotice from '../shell/QuarantineNotice.vue'
@@ -220,6 +235,12 @@ const UNSUPPORTED_KEYS: Record<CliUnsupportedReason, string> = {
 
 const usageOpen = ref(false)
 const promptOpen = ref(false)
+const skillScope = ref<CliSkillScope>('personal')
+
+const SCOPE_KEYS: Record<CliSkillScope, { label: string; hint: string }> = {
+  personal: { label: 'advanced.addons.cliSkillScopePersonal', hint: 'advanced.addons.cliSkillScopePersonalHint' },
+  project: { label: 'advanced.addons.cliSkillScopeProject', hint: 'advanced.addons.cliSkillScopeProjectHint' },
+}
 const promptCopied = ref(false)
 let copiedTimer: ReturnType<typeof setTimeout> | null = null
 const status = ref<CliInstallStatus | null>(null)
@@ -262,7 +283,7 @@ const run = async (action: 'install' | 'uninstall'): Promise<void> => {
 }
 
 const copySkillPrompt = async (): Promise<void> => {
-  const prompt = status.value?.skill?.prompt
+  const prompt = status.value?.skill?.prompts[skillScope.value]
   if (!prompt) return
   try {
     await navigator.clipboard.writeText(prompt)

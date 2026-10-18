@@ -149,7 +149,13 @@ export class CliInstallService {
       // An older copy is still better than none.
       if (!fs.existsSync(path.join(skillDir, 'SKILL.md'))) return null;
     }
-    return { path: skillDir, prompt: buildSkillPrompt(skillDir, HOST_PLATFORM) };
+    return {
+      path: skillDir,
+      prompts: {
+        personal: buildSkillPrompt(skillDir, HOST_PLATFORM, 'personal'),
+        project: buildSkillPrompt(skillDir, HOST_PLATFORM, 'project'),
+      },
+    };
   }
 
   async getStatus(): Promise<CliInstallStatus> {
