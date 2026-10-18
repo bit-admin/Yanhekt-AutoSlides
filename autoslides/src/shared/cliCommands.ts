@@ -22,10 +22,10 @@ export type CliCommandId = (typeof CLI_COMMAND_IDS)[number];
 /**
  * What the app-driving wrapper takes: the same words, run in the app (`schema`
  * answers in the terminal), plus what only the app has (`downloads`, its
- * Download panel). Its own list, so a terminal command can exist before its
+ * Download panel; `config`, its settings). Its own list, so a terminal command can exist before its
  * app counterpart does.
  */
-export const CLI_APP_COMMAND_IDS = ['search', 'mine', 'course', 'session', 'download', 'downloads', 'terms', 'whoami', 'schema'] as const;
+export const CLI_APP_COMMAND_IDS = ['search', 'mine', 'course', 'session', 'download', 'downloads', 'terms', 'whoami', 'config', 'schema'] as const;
 export type CliAppCommandId = (typeof CLI_APP_COMMAND_IDS)[number];
 
 export interface CliWrapper {

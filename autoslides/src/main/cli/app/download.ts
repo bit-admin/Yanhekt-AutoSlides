@@ -47,7 +47,7 @@ function outputDirOf(ctx: AppCommandContext): string {
     throw new CliError(
       'failed',
       `the AutoSlides output folder is not available (${dir || 'not set'})`,
-      'Choose one in Settings > Download & Playback, or reconnect its drive.'
+      'Choose one in Settings > General > Output Directory, or reconnect its drive.'
     );
   }
   return dir;

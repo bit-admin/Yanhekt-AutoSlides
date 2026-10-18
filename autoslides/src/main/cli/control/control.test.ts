@@ -207,7 +207,7 @@ describe('autoslides on the command line', () => {
     expect(code).toBe(0);
     const schema = JSON.parse(stdout);
     expect(schema.runs_in).toBe('the AutoSlides app');
-    expect(schema.commands.map((c: { name: string }) => c.name)).toEqual(['search', 'mine', 'course', 'session', 'download', 'downloads', 'terms', 'whoami', 'schema']);
+    expect(schema.commands.map((c: { name: string }) => c.name)).toEqual(['search', 'mine', 'course', 'session', 'download', 'downloads', 'terms', 'whoami', 'config', 'schema']);
     for (const command of schema.commands) {
       const names = command.options.map((o: { name: string }) => o.name);
       expect(names).not.toContain('--token');
