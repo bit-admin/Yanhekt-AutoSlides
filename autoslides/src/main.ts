@@ -47,7 +47,7 @@ import { slideMetadataService } from '@main/extraction/slideMetadataService';
 import { slideTimelineService } from '@main/extraction/slideTimelineService';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
-import { applyConnectionMode } from '@main/ipc/applyConnectionMode';
+import { createSettingsWriter } from '@main/ipc/settingsWriter';
 import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
 import { initLogFile, setLogVerbose, flushLogFile } from '@main/infra/logFile';
 import { createLogger, setLoggerConsoleMode } from '@main/infra/logger';
@@ -340,9 +340,7 @@ const cliControlBridge = new RendererBridge(
 const cliControlServer = new CliControlServer({
   socketPath: cliSocketPath,
   configService,
-  settings: {
-    setConnectionMode: (mode) => applyConnectionMode(configService, intranetMappingService, mode),
-  },
+  settings: createSettingsWriter(configService, intranetMappingService),
   apiClient,
   renderer: cliControlBridge,
   commands: APP_COMMANDS,

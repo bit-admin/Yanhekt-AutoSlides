@@ -1,5 +1,5 @@
-import type { ConnectionMode } from '@common/types';
 import type { ApiClient } from '@main/platform/apiClient';
+import type { SettingsWriter } from '@main/ipc/settingsWriter';
 import type { ConfigService } from '@main/platform/configService';
 import type { RendererBridge } from '../control/rendererBridge';
 import type { CliCommand, CommandInput, CommandResult } from '../types';
@@ -16,10 +16,7 @@ export interface AppTerminal {
  * The settings a command may change, each applied exactly as the Settings
  * page applies it (saved, put into effect, sent to every window).
  */
-export interface AppSettingsWriter {
-  /** Returns the mode as saved. */
-  setConnectionMode: (mode: ConnectionMode) => ConnectionMode;
-}
+export type AppSettingsWriter = SettingsWriter;
 
 /** What a command running inside the app may use. */
 export interface AppCommandContext {

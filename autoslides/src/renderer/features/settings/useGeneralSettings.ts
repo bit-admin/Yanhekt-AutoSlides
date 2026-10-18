@@ -1,7 +1,9 @@
-import { ref, watch, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
 import { languageService } from '@features/settings/languageService'
+import { configStore } from '@shared/services/configStore'
 import { DownloadService } from '@shared/services/downloadService'
+import { followOutsideChange } from './followOutsideChange'
 
 type MuteMode = 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'
 
@@ -91,12 +93,11 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempAutoSignIn = ref(true)
   const tempYanhe2SignInWithMain = ref(true)
 
-  // Connection Mode can also change outside this page (`autoslides config
-  // connection_mode`). Follow it unless the field was edited here, or Save
-  // would write the page's stale copy back over it.
-  watch(connectionMode, (next, previous) => {
-    if (tempConnectionMode.value === previous) tempConnectionMode.value = next
-  })
+  // Settings the command line can change too (`autoslides config`).
+  followOutsideChange(() => configStore.connectionMode, tempConnectionMode)
+  followOutsideChange(() => configStore.maxConcurrentDownloads, tempMaxConcurrentDownloads)
+  followOutsideChange(() => configStore.downloadMaxWorkers, tempDownloadMaxWorkers)
+  followOutsideChange(() => configStore.downloadNumRetries, tempDownloadNumRetries)
 
   const resetTemp = () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value

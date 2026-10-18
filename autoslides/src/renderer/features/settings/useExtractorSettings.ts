@@ -6,6 +6,8 @@ import {
   qtSupportsWriteTimeline,
 } from '@common/qtExtractorFeatures'
 import { overrides } from '@shared/overrideRegistry'
+import { configStore } from '@shared/services/configStore'
+import { followOutsideChange } from './followOutsideChange'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractorSettings');
 
@@ -14,6 +16,9 @@ export function useExtractorSettings() {
   const tempQtExtractorAutoRun = ref(false)
   const qtExtractorAutoPostProcess = ref(true)
   const tempQtExtractorAutoPostProcess = ref(true)
+  // The command line can change both (`autoslides config`).
+  followOutsideChange(() => configStore.qtExtractor?.autoRunAfterDownload, tempQtExtractorAutoRun)
+  followOutsideChange(() => configStore.qtExtractor?.autoPostProcessAfter, tempQtExtractorAutoPostProcess)
   const qtExtractorBinaryPath = ref('')
   const qtExtractorResolvedPath = ref('')
   const qtExtractorStatusOk = ref(false)

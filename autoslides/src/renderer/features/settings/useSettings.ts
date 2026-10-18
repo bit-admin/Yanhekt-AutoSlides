@@ -57,6 +57,11 @@ export interface UseSettingsReturn {
 export function useSettings(): UseSettingsReturn {
   // Basic settings state
   const outputDirectory = ref('')
+  // Also set outside the page (`autoslides config output_dir`); it is written
+  // at once (no buffer), so a live mirror is safe.
+  watch(() => configStore.outputDirectory, (dir) => {
+    if (dir !== undefined) outputDirectory.value = dir
+  })
   const connectionMode = ref<ConnectionMode>('auto')
   // Connection mode can be changed outside the settings modal (e.g. the Home-page
   // campus-network warning writes it directly). Mirror the broadcast-synced

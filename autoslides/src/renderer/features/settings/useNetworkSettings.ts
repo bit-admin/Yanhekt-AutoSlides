@@ -3,6 +3,7 @@ import type { IntranetDomainTest, IntranetMapping, IntranetTestMeta, NetworkInte
 import { configStore } from '@shared/services/configStore'
 import { tokenManager } from '@shared/services/authService'
 import { createLogger } from '@shared/utils/logger'
+import { followOutsideChange } from './followOutsideChange'
 const log = createLogger('NetworkSettings')
 
 const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i
@@ -80,6 +81,9 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
   // ---- Local relay (buffered; applied on Save) -----------------------------
   const preferAnonymousApiRequests = ref(false)
   const tempPreferAnonymousApiRequests = ref(false)
+  // The command line can change both (`autoslides config`).
+  followOutsideChange(() => configStore.intranetInterfaceIp ?? '', tempIntranetInterfaceIp)
+  followOutsideChange(() => configStore.preferAnonymousApiRequests, tempPreferAnonymousApiRequests)
 
   const localRelayEnabled = ref(false)
   const localRelayPort = ref(8787)

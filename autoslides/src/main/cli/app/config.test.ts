@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { CommandInput } from '../types';
 import { appConfigCommand } from './config';
 import type { AppCommandContext } from './types';
@@ -22,22 +25,36 @@ const storedConfig = {
   yanhe2SignInWithMain: true,
 };
 
-const applied: string[] = [];
+const applied: Array<[string, unknown]> = [];
+let current: Record<string, unknown> = structuredClone(storedConfig);
+
+/** Records each write and applies it to `current`, as ConfigService would. */
+const writer = new Proxy({} as Record<string, (value: unknown) => void>, {
+  get: (_target, method: string) => (value: unknown) => {
+    applied.push([method, value]);
+    const field = method.replace(/^set/, '');
+    const key = field.charAt(0).toLowerCase() + field.slice(1);
+    if (key === 'qtExtractorAutoRun') current.qtExtractor = { ...(current.qtExtractor as object), autoRunAfterDownload: value };
+    else if (key === 'qtExtractorAutoPostProcess') current.qtExtractor = { ...(current.qtExtractor as object), autoPostProcessAfter: value };
+    else if (key === 'intranetInterfaceIp') current.intranetInterfaceIp = value ?? '';
+    else current[key] = value;
+  },
+});
 
 function context(signedIn = true): AppCommandContext {
   return {
-    configService: { getConfig: () => storedConfig, getAuthToken: () => (signedIn ? TOKEN : '') },
-    settings: {
-      setConnectionMode: (mode: string) => {
-        applied.push(mode);
-        return mode;
-      },
-    },
+    configService: { getConfig: () => current, getAuthToken: () => (signedIn ? TOKEN : '') },
+    settings: writer,
     // Never asked: config does not need the app signed in.
     renderer: { request: async () => { throw new Error('asked the renderer'); } },
     term: { info: () => {}, status: () => {}, endStatusLine: () => {}, out: () => {} },
   } as unknown as AppCommandContext;
 }
+
+beforeEach(() => {
+  applied.length = 0;
+  current = structuredClone(storedConfig);
+});
 
 const input = (positionals: string[]): CommandInput => ({ program: 'autoslides', positionals, options: {}, json: true });
 
@@ -85,9 +102,8 @@ describe('autoslides config', () => {
   });
 
   it('sets the connection mode through the app, as Save in Settings would', async () => {
-    applied.length = 0;
     const result = await appConfigCommand.serve(input(['connection_mode', 'internal']), context(false));
-    expect(applied).toEqual(['internal']);
+    expect(applied).toEqual([['setConnectionMode', 'internal']]);
     expect(result.data).toEqual({
       key: 'connection_mode',
       value: 'internal',
@@ -98,14 +114,51 @@ describe('autoslides config', () => {
     expect(result.text).toBe('connection_mode: auto -> internal');
   });
 
-  it('refuses a mode it does not know, and any other key, without changing anything', async () => {
-    applied.length = 0;
-    await expect(appConfigCommand.serve(input(['connection_mode', 'intranet']), context())).rejects.toMatchObject({ code: 'usage' });
-    await expect(appConfigCommand.serve(input(['output_dir', '/tmp']), context())).rejects.toMatchObject({
-      code: 'usage',
-      message: 'output_dir is read-only here',
-    });
-    await expect(appConfigCommand.serve(input(['anonymous_requests', 'false']), context())).rejects.toMatchObject({ code: 'usage' });
+  it('sets every listed key, each through its own writer method', async () => {
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'as-config-'));
+    try {
+      const cases: Array<[string, string, string, unknown, unknown]> = [
+        ['output_dir', folder, 'setOutputDirectory', path.normalize(folder), path.normalize(folder)],
+        ['intranet_interface', 'default', 'setIntranetInterfaceIp', null, null],
+        ['anonymous_requests', 'off', 'setPreferAnonymousApiRequests', false, false],
+        ['concurrent_downloads', '10', 'setMaxConcurrentDownloads', 10, 10],
+        ['download_workers', '1', 'setDownloadMaxWorkers', 1, 1],
+        ['download_retries', '30', 'setDownloadNumRetries', 30, 30],
+        ['extract_after_download', 'false', 'setQtExtractorAutoRun', false, false],
+        ['post_process_after_extraction', 'yes', 'setQtExtractorAutoPostProcess', true, true],
+      ];
+      for (const [key, raw, method, written, shown] of cases) {
+        applied.length = 0;
+        const result = await appConfigCommand.serve(input([key, raw]), context());
+        expect(applied, key).toEqual([[method, written]]);
+        expect((result.data as { value: unknown }).value, key).toEqual(shown);
+      }
+    } finally {
+      fs.rmSync(folder, { recursive: true, force: true });
+    }
+  });
+
+  it('says when a value is already set', async () => {
+    const result = await appConfigCommand.serve(input(['concurrent_downloads', '3']), context());
+    expect(result.text).toBe('concurrent_downloads is already 3.');
+    expect((result.data as { changed: boolean }).changed).toBe(false);
+  });
+
+  it('refuses a wrong value without changing anything', async () => {
+    const wrong: Array<[string, string]> = [
+      ['connection_mode', 'intranet'],
+      ['anonymous_requests', 'maybe'],
+      ['concurrent_downloads', '0'],
+      ['concurrent_downloads', '11'],
+      ['download_workers', '2.5'],
+      ['download_retries', '-1'],
+      ['output_dir', 'Lectures'],
+      ['output_dir', path.join(os.tmpdir(), 'as-config-missing-folder')],
+      ['intranet_interface', 'no-such-interface-0'],
+    ];
+    for (const [key, raw] of wrong) {
+      await expect(appConfigCommand.serve(input([key, raw]), context()), `${key} ${raw}`).rejects.toMatchObject({ code: 'usage' });
+    }
     expect(applied).toEqual([]);
   });
 });

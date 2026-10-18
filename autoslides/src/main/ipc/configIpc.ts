@@ -2,7 +2,7 @@ import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
-import { applyConnectionMode } from './applyConnectionMode';
+import { createSettingsWriter } from './settingsWriter';
 import { broadcastConfig as broadcastConfigSnapshot } from './broadcastConfig';
 import type { AIServiceType } from '@main/platform/configService';
 import type { ConnectionMode, CustomProviderId, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
@@ -25,14 +25,14 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   } = services;
 
   const broadcastConfig = (): void => broadcastConfigSnapshot(configService);
+  const settings = createSettingsWriter(configService, intranetMappingService);
 
   ipcMain.handle('config:get', async () => {
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setOutputDirectory', async (_event, directory: string) => {
-    configService.setOutputDirectory(directory);
-    broadcastConfig();
+    settings.setOutputDirectory(directory);
     return configService.getConfig();
   });
 
@@ -60,25 +60,22 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('config:setConnectionMode', async (_event, mode: ConnectionMode) => {
-    applyConnectionMode(configService, intranetMappingService, mode);
+    settings.setConnectionMode(mode);
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setMaxConcurrentDownloads', async (_event, count: number) => {
-    configService.setMaxConcurrentDownloads(count);
-    broadcastConfig();
+    settings.setMaxConcurrentDownloads(count);
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setDownloadMaxWorkers', async (_event, count: number) => {
-    configService.setDownloadMaxWorkers(count);
-    broadcastConfig();
+    settings.setDownloadMaxWorkers(count);
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setDownloadNumRetries', async (_event, count: number) => {
-    configService.setDownloadNumRetries(count);
-    broadcastConfig();
+    settings.setDownloadNumRetries(count);
     return configService.getConfig();
   });
 
@@ -412,8 +409,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('config:setPreferAnonymousApiRequests', async (_, enabled: boolean) => {
-    configService.setPreferAnonymousApiRequests(enabled);
-    broadcastConfig();
+    settings.setPreferAnonymousApiRequests(enabled);
     return configService.getConfig();
   });
 

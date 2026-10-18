@@ -1,8 +1,12 @@
 import { ipcMain } from 'electron';
+import { createSettingsWriter } from './settingsWriter';
 import type { IpcServices } from './types';
 
 export function registerQtExtractorIpcHandlers(services: IpcServices): void {
-  const { qtExtractorService, configService } = services;
+  const { qtExtractorService, configService, intranetMappingService } = services;
+  // The two toggles now reach every window's config, so the extraction queue
+  // (which reads `configStore.qtExtractor`) sees them without a restart.
+  const settings = createSettingsWriter(configService, intranetMappingService);
 
   ipcMain.handle('qtExtractor:getStatus', async () => {
     return await qtExtractorService.verifyBinary();
@@ -25,11 +29,11 @@ export function registerQtExtractorIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('qtExtractor:setAutoRun', async (_event, enabled: boolean) => {
-    configService.setQtExtractorAutoRun(!!enabled);
+    settings.setQtExtractorAutoRun(!!enabled);
   });
 
   ipcMain.handle('qtExtractor:setAutoPostProcess', async (_event, enabled: boolean) => {
-    configService.setQtExtractorAutoPostProcess(!!enabled);
+    settings.setQtExtractorAutoPostProcess(!!enabled);
   });
 
   ipcMain.handle(

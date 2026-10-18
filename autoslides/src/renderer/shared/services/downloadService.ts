@@ -1,8 +1,9 @@
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { buildDownloadFileName } from './downloadNaming'
 import { ExtractionQueue } from './extractionQueueService'
 import { ApiClient } from './apiClient'
 import { tokenManager } from './authService'
+import { configStore } from './configStore'
 import { overrides } from '../overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('Download');
@@ -84,6 +85,11 @@ class DownloadServiceClass {
     // The extraction orchestrator reads the queue through this provider rather
     // than importing DownloadService as a value (breaks the import cycle).
     ExtractionQueue.setJobProvider(() => this.items)
+    // The limit can change outside Settings (`autoslides config
+    // concurrent_downloads`); apply whatever is stored.
+    watch(() => configStore.maxConcurrentDownloads, (max) => {
+      if (typeof max === 'number') this.setMaxConcurrent(max)
+    })
   }
 
   // Queue management
