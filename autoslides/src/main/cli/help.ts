@@ -107,7 +107,7 @@ const AUTH: Record<CliMode, object> = {
     note: 'Only the personal lists send a token: a course\'s sessions (course, download --course) and the account\'s courses (mine). Search, course details, session lookups and video downloads are anonymous.',
   },
   app: {
-    note: 'Every command runs inside AutoSlides (started if it is not running) as the account it is signed in with; signed out is error sign_in_required. Requests follow its Settings > Network (route, prefer anonymous requests). Command-line control can be turned off in Settings > Add-ons > Command Line (error cli_control_disabled).',
+    note: 'Every command runs inside AutoSlides (started if it is not running) as the account it is signed in with. A command that talks to Yanhekt fails with sign_in_required while the app is signed out; config, and downloads other than retry, stay inside the app and work signed out. Requests follow its Settings > Network (route, prefer anonymous requests). Command-line control can be turned off in Settings > Add-ons > Command Line (error cli_control_disabled).',
   },
 };
 
