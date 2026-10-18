@@ -222,6 +222,7 @@
       "cliAllowControlDescription": "允许你或 AI 智能体输入的 autoslides 命令以当前登录的账号在本应用中查找课程和课节、加入下载。yhdl 不受此项影响。",
       "cliUsageAppDownload": "将课节加入下载面板并等待完成。按 Ctrl-C 只会停止等待，下载仍会继续。",
       "cliOptNoWait": "加入队列后立即返回。",
+      "cliUsageAppDownloads": "不带操作时列出下载面板。wait 等待未完成的下载结束；cancel 和 retry 等同于面板上的按钮（指定课节，或用 --all）；clear 移除已完成和失败的条目。",
       "cliStatusTitle": "状态",
       "cliStateInstalled": "已安装",
       "cliStateNotInstalled": "未安装",

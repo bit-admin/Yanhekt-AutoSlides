@@ -14,7 +14,7 @@ export const EXIT = {
 
 export const CLI_ERROR_CODES = {
   usage: { exit: EXIT.usage, meaning: 'The command line was wrong; nothing was requested' },
-  not_found: { exit: EXIT.notFound, meaning: 'Yanhekt has no course or session with that id' },
+  not_found: { exit: EXIT.notFound, meaning: 'Yanhekt has no course or session with that id, or the app\'s download list has nothing for it' },
   no_recording: { exit: EXIT.notFound, meaning: 'The session exists but has no recording (yet), or not the stream asked for' },
   auth_required: { exit: EXIT.auth, meaning: 'A personal list (a course\'s sessions, your enrolled courses) needs a Yanhekt token and none was found' },
   sign_in_required: { exit: EXIT.auth, meaning: 'AutoSlides is not signed in to Yanhekt; every command that drives the app needs it' },

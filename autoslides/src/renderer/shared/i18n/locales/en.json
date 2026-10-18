@@ -222,6 +222,7 @@
       "cliAllowControlDescription": "Let autoslides commands, typed by you or an AI agent, look up courses and sessions and queue downloads in this app as your signed-in account. yhdl works either way.",
       "cliUsageAppDownload": "Queue a lecture in the Download panel and wait for it. Ctrl-C stops waiting; the download keeps going.",
       "cliOptNoWait": "Return once it is queued.",
+      "cliUsageAppDownloads": "With no action, list the Download panel. wait follows unfinished downloads to the end; cancel and retry are the panel's buttons (name a session, or use --all); clear removes finished and failed rows.",
       "cliStatusTitle": "Status",
       "cliStateInstalled": "Installed",
       "cliStateNotInstalled": "Not installed",

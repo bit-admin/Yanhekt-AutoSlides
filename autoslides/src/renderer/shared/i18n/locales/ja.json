@@ -222,6 +222,7 @@
       "cliAllowControlDescription": "あなたや AI エージェントが入力した autoslides コマンドが、サインイン中のアカウントでこのアプリのコースやセッションの検索、ダウンロード追加を行えるようにします。yhdl はこの設定に関係なく使えます。",
       "cliUsageAppDownload": "授業をダウンロードパネルに追加し、完了まで待ちます。Ctrl-C は待つのをやめるだけで、ダウンロードは続きます。",
       "cliOptNoWait": "キューに追加したらすぐに戻ります。",
+      "cliUsageAppDownloads": "操作を指定しないとダウンロードパネルを一覧表示します。wait は未完了のダウンロードが終わるまで待ちます。cancel と retry はパネルのボタンと同じです（セッションを指定するか --all）。clear は完了・失敗した行を消します。",
       "cliStatusTitle": "状態",
       "cliStateInstalled": "インストール済み",
       "cliStateNotInstalled": "未インストール",

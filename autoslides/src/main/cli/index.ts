@@ -9,7 +9,7 @@
 //
 // Every command answers the same way: a result (or a thrown error) becomes
 // either text on stdout, or with `--json` exactly one JSON object.
-import { cliDrivesApp, type CliAppCommandId, type CliCommandId } from '@common/cliCommands';
+import { CLI_APP_PROGRAM, cliDrivesApp, type CliAppCommandId, type CliCommandId } from '@common/cliCommands';
 import { setLoggerConsoleMode } from '@main/infra/logger';
 import { APP_COMMANDS, type AppCommand } from './app';
 import { parseArgs } from './args';
@@ -138,12 +138,12 @@ async function runCommand(
   const mode = modeOf(program);
   const command = TABLES[mode][id];
   if (!command) {
-    // Only an app wrapper lacks some ids: they are terminal commands.
-    return reportError(
-      program,
-      json,
-      new CliError('usage', `${id} is not an ${program} command yet`, `'yhdl ${id}' runs it in the terminal, without the app.`)
-    );
+    // A terminal command the app wrapper does not take yet, or an app-only one.
+    const error =
+      mode === 'app'
+        ? new CliError('usage', `${id} is not an ${program} command yet`, `'yhdl ${id}' runs it in the terminal, without the app.`)
+        : new CliError('usage', `${id} needs the AutoSlides app`, `'${CLI_APP_PROGRAM} ${id}' runs it there.`);
+    return reportError(program, json, error);
   }
 
   const parsed = parseArgs(args, commandOptions(command));

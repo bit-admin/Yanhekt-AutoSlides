@@ -21,10 +21,11 @@ export type CliCommandId = (typeof CLI_COMMAND_IDS)[number];
 
 /**
  * What the app-driving wrapper takes: the same words, run in the app (`schema`
- * answers in the terminal). Its own list, so a terminal command can exist
- * before its app counterpart does.
+ * answers in the terminal), plus what only the app has (`downloads`, its
+ * Download panel). Its own list, so a terminal command can exist before its
+ * app counterpart does.
  */
-export const CLI_APP_COMMAND_IDS = ['search', 'mine', 'course', 'session', 'download', 'terms', 'whoami', 'schema'] as const;
+export const CLI_APP_COMMAND_IDS = ['search', 'mine', 'course', 'session', 'download', 'downloads', 'terms', 'whoami', 'schema'] as const;
 export type CliAppCommandId = (typeof CLI_APP_COMMAND_IDS)[number];
 
 export interface CliWrapper {
@@ -57,6 +58,9 @@ export function isCliCommandId(value: string): value is CliCommandId {
 export function isCliAppCommandId(value: string): value is CliAppCommandId {
   return (CLI_APP_COMMAND_IDS as readonly string[]).includes(value);
 }
+
+/** The program name of the wrapper that drives the app, for hints from the other ones. */
+export const CLI_APP_PROGRAM = CLI_WRAPPERS.find((w) => w.drivesApp)?.name ?? CLI_DEFAULT_PROGRAM;
 
 // ── Install status (main → Settings) ─────────────────────────────────────────
 

@@ -169,6 +169,7 @@ const USAGE_ROWS: UsageRow[] = [
   { code: 'autoslides', argKey: 'advanced.addons.cliArgCommand', descriptionKey: 'advanced.addons.cliUsageUmbrella' },
   { code: 'autoslides download', argKey: 'advanced.addons.cliArgSession', descriptionKey: 'advanced.addons.cliUsageAppDownload' },
   { code: '--no-wait', descriptionKey: 'advanced.addons.cliOptNoWait', option: true },
+  { code: 'autoslides downloads', arg: 'wait|cancel|retry|clear', descriptionKey: 'advanced.addons.cliUsageAppDownloads' },
 ]
 
 const UNSUPPORTED_KEYS: Record<CliUnsupportedReason, string> = {

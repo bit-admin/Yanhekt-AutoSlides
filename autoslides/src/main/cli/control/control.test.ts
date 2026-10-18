@@ -189,13 +189,13 @@ describe('a command sent to the app', () => {
 });
 
 describe('autoslides on the command line', () => {
-  const run = async (args: string[]): Promise<{ code: number; stdout: string }> => {
+  const run = async (args: string[], program = 'autoslides'): Promise<{ code: number; stdout: string }> => {
     const { runCli, parseCliInvocation } = await import('../index');
     const written: string[] = [];
     vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => (written.push(String(chunk)), true));
     vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     try {
-      const code = await runCli(parseCliInvocation(['exe', '--cli=autoslides', '--', ...args])!, { version: '5.1.0' } as never);
+      const code = await runCli(parseCliInvocation(['exe', `--cli=${program}`, '--', ...args])!, { version: '5.1.0' } as never);
       return { code, stdout: written.join('') };
     } finally {
       vi.restoreAllMocks();
@@ -207,7 +207,7 @@ describe('autoslides on the command line', () => {
     expect(code).toBe(0);
     const schema = JSON.parse(stdout);
     expect(schema.runs_in).toBe('the AutoSlides app');
-    expect(schema.commands.map((c: { name: string }) => c.name)).toEqual(['search', 'mine', 'course', 'session', 'download', 'terms', 'whoami', 'schema']);
+    expect(schema.commands.map((c: { name: string }) => c.name)).toEqual(['search', 'mine', 'course', 'session', 'download', 'downloads', 'terms', 'whoami', 'schema']);
     for (const command of schema.commands) {
       const names = command.options.map((o: { name: string }) => o.name);
       expect(names).not.toContain('--token');
@@ -220,6 +220,14 @@ describe('autoslides on the command line', () => {
     expect(download.token).toBe("the app's signed-in account");
     expect(schema.error_codes.sign_in_required.exit).toBe(4);
     expect(schema.exit_codes.appUnavailable).toBe(6);
+  });
+
+  it('sends yhdl to autoslides for the Download panel, which only the app has', async () => {
+    const { code, stdout } = await run(['downloads', '--json'], 'yhdl');
+    expect(code).toBe(2);
+    const { error } = JSON.parse(stdout);
+    expect(error.message).toBe('downloads needs the AutoSlides app');
+    expect(error.hint).toBe("'autoslides downloads' runs it there.");
   });
 
   it('takes no flag to choose an account: the app\'s sign-in is the only one', async () => {

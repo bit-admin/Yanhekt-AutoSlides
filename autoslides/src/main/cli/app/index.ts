@@ -2,6 +2,7 @@
 // describes the commands and answers in the terminal.
 import type { CliAppCommandId } from '@common/cliCommands';
 import { appDownloadCommand } from './download';
+import { appDownloadsCommand } from './downloads';
 import { appCourseCommand, appMineCommand, appSessionCommand, appTermsCommand, appWhoamiCommand } from './lookups';
 import { appSearchCommand } from './search';
 import type { AppCommand } from './types';
@@ -12,6 +13,7 @@ export const APP_COMMANDS: Record<Exclude<CliAppCommandId, 'schema'>, AppCommand
   course: appCourseCommand,
   session: appSessionCommand,
   download: appDownloadCommand,
+  downloads: appDownloadsCommand,
   terms: appTermsCommand,
   whoami: appWhoamiCommand,
 };

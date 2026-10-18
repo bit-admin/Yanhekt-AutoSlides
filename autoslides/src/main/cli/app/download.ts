@@ -10,7 +10,7 @@
 //
 // Ctrl-C in the terminal only stops waiting; what was queued keeps going.
 import fs from 'node:fs';
-import { isFinalDownloadState, type CliDownloadUpdate } from '@common/cliControl';
+import type { CliDownloadUpdate } from '@common/cliControl';
 import {
   ITEM_SHAPE,
   STREAM_OPTION,
@@ -28,14 +28,14 @@ import {
 } from '../downloadPlan';
 import { CliError } from '../errors';
 import type { CommandInput, CommandResult } from '../types';
+import { followDownloads, type Followed } from './followDownloads';
 import { requireSignIn } from './signIn';
 import type { AppCommand, AppCommandContext } from './types';
 
 /** An item the app is downloading for this command. */
-interface Following {
+interface Following extends Followed {
   /** Its row in `items`. */
   index: number;
-  itemId: string;
   stream: CliStream;
   filePath: string;
 }
@@ -60,80 +60,25 @@ function finalItem(item: Item, follow: Following, update: CliDownloadUpdate): It
   return { ...item, status: 'failed', path: null, error: { code: 'failed', message } };
 }
 
-/** Wait for every followed item to end, showing their progress. Resolves early when the client leaves. */
+/** Wait for every followed item to end, recording how each one ended in `items`. */
 function follow(following: Following[], items: Item[], input: CommandInput, ctx: AppCommandContext): Promise<void> {
-  return new Promise((resolve) => {
-    const progress = new Map<string, CliDownloadUpdate>();
-    const stops: Array<() => void> = [];
-    let left = following.length;
-    let closed = false;
-
-    const close = (): void => {
-      if (closed) return;
-      closed = true;
-      stops.forEach((stop) => stop());
-      ctx.signal.removeEventListener('abort', close);
-      ctx.term.endStatusLine();
-      resolve();
-    };
-
-    const render = (): void => {
-      const states = following.map((f) => progress.get(f.itemId)).filter((u): u is CliDownloadUpdate => !!u);
-      if (following.length === 1) {
-        const [only] = states;
-        if (!only) return;
-        const stream = following[0].stream;
-        ctx.term.status(
-          only.state === 'queued' ? `Waiting in the download list (${stream})…`
-          : only.state === 'processing' ? `Merging ${stream}…`
-          : `Downloading ${stream}  ${only.progress}%`
-        );
-        return;
+  return followDownloads(following, ctx, {
+    onEnd: (f, update) => {
+      const item = finalItem(items[f.index], f, update);
+      items[f.index] = item;
+      if (item.status === 'downloaded') {
+        if (!input.json) ctx.term.out(f.filePath);
+      } else {
+        ctx.term.info(`${item.session_title ?? item.session_id} (${f.stream}): ${item.error?.message}`);
       }
-      const done = following.length - left;
-      const percent = Math.floor(states.reduce((sum, u) => sum + u.progress, 0) / following.length);
-      ctx.term.status(`Downloading  ${done}/${following.length} finished  ${percent}%`);
-    };
-
-    for (const f of following) {
-      let finished = false;
-      stops.push(
-        ctx.renderer.watchDownload(f.itemId, (update) => {
-          if (finished || closed) return;
-          progress.set(f.itemId, update);
-          if (!isFinalDownloadState(update.state)) {
-            render();
-            return;
-          }
-          finished = true;
-          left -= 1;
-          const item = finalItem(items[f.index], f, update);
-          items[f.index] = item;
-          if (item.status === 'downloaded') {
-            ctx.term.endStatusLine();
-            if (!input.json) ctx.term.out(f.filePath);
-          } else {
-            ctx.term.info(`${item.session_title ?? item.session_id} (${f.stream}): ${item.error?.message}`);
-          }
-          // After the loop, so every watcher is registered before any stops.
-          if (left === 0) queueMicrotask(close);
-          else render();
-        })
-      );
-    }
-
-    stops.push(
-      ctx.renderer.onReset((reason) => {
-        for (const f of following) {
-          if (items[f.index].status === 'queued') {
-            items[f.index] = { ...items[f.index], status: 'failed', path: null, error: { code: 'failed', message: reason } };
-          }
+    },
+    onReset: (reason) => {
+      for (const f of following) {
+        if (items[f.index].status === 'queued') {
+          items[f.index] = { ...items[f.index], status: 'failed', path: null, error: { code: 'failed', message: reason } };
         }
-        close();
-      })
-    );
-    ctx.signal.addEventListener('abort', close);
-    if (left === 0) queueMicrotask(close);
+      }
+    },
   });
 }
 
@@ -202,7 +147,7 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
         continue;
       }
       ctx.renderer.seedDownload(queued);
-      following.push({ index: items.length, itemId: queued.itemId, stream, filePath });
+      following.push({ index: items.length, itemId: queued.itemId, label: stream, stream, filePath });
       items.push({ ...base, status: 'queued', path: filePath });
     }
   }

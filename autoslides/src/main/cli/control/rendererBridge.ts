@@ -112,9 +112,14 @@ export class RendererBridge {
     for (const listener of [...(this.listeners.get(update.itemId) ?? [])]) listener(update);
   }
 
-  /** Note an item's state as `queueDownload` answered it, before any update arrives. */
+  /**
+   * Note an item's state as the renderer answered it (`queueDownload`,
+   * `followDownloads`). It replaces whatever was kept: the renderer sends its
+   * updates in order, so the answer is newer than any update before it, and an
+   * item retried since its last update must not look finished.
+   */
   seedDownload(update: CliDownloadUpdate): void {
-    if (!this.latest.has(update.itemId)) this.latest.set(update.itemId, update);
+    this.latest.set(update.itemId, update);
   }
 
   /**
