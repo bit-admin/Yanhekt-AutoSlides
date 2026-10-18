@@ -11,6 +11,8 @@
 // The wrappers hold the absolute path of this app's executable, so they go
 // stale when the app is moved; `getStatus` reports that as `outdated` and
 // installing again rewrites them.
+//
+// It also keeps the agent skill (`skillBundle.ts`) where agents can link to it.
 import { app } from 'electron';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
@@ -20,6 +22,7 @@ import {
   CLI_WRAPPERS,
   type CliInstallResult,
   type CliInstallStatus,
+  type CliSkillStatus,
   type CliUnsupportedReason,
   type CliWrapper,
   type CliWrapperStatus,
@@ -33,11 +36,14 @@ import {
   wrapperFileName,
   type WrapperPlatform,
 } from './wrapperScript';
+import { SKILL_NAME, syncSkill } from './skillBundle';
+import { buildSkillPrompt } from './skillPrompt';
 
 const log = createLogger('CliInstall');
 
 const PLATFORM: WrapperPlatform = process.platform === 'win32' ? 'win32' : 'posix';
 const PATH_PROBE_TIMEOUT_MS = 4000;
+const HOST_PLATFORM = process.platform === 'win32' ? 'win32' : process.platform === 'darwin' ? 'darwin' : 'linux';
 
 export class CliInstallService {
   getBinDir(): string {
@@ -112,6 +118,40 @@ export class CliInstallService {
     });
   }
 
+  /** Where this build carries the skill. */
+  private getBundledSkillDir(): string {
+    return app.isPackaged
+      ? path.join(process.resourcesPath, 'skills', SKILL_NAME)
+      : path.join(app.getAppPath(), '..', 'skills', SKILL_NAME);
+  }
+
+  /**
+   * The folder agents link to: a copy under userData, the same path on every
+   * launch and across updates. A dev build uses the repo folder itself, since
+   * it shares userData with the installed app.
+   */
+  private getSkillDir(): string {
+    return app.isPackaged ? path.join(app.getPath('userData'), 'skills', SKILL_NAME) : this.getBundledSkillDir();
+  }
+
+  /** Bring the skill copy up to date with this build. Runs on every launch; cheap when nothing changed. */
+  syncSkill(): CliSkillStatus | null {
+    const skillDir = this.getSkillDir();
+    try {
+      const result = syncSkill(this.getBundledSkillDir(), skillDir);
+      if (result === 'missing') {
+        log.warn('This build carries no agent skill:', this.getBundledSkillDir());
+        return null;
+      }
+      if (result === 'copied') log.info('Agent skill updated:', skillDir);
+    } catch (error) {
+      log.error('Failed to update the agent skill:', error);
+      // An older copy is still better than none.
+      if (!fs.existsSync(path.join(skillDir, 'SKILL.md'))) return null;
+    }
+    return { path: skillDir, prompt: buildSkillPrompt(skillDir, HOST_PLATFORM) };
+  }
+
   async getStatus(): Promise<CliInstallStatus> {
     const binDir = this.getBinDir();
     const exePath = this.getExecutablePath();
@@ -121,12 +161,9 @@ export class CliInstallService {
       reason,
       binDir,
       onPath: await this.isBinDirOnPath(binDir),
-      pathCommand: buildPathCommand(
-        process.env.SHELL,
-        process.platform === 'win32' ? 'win32' : process.platform === 'darwin' ? 'darwin' : 'linux',
-        binDir
-      ),
+      pathCommand: buildPathCommand(process.env.SHELL, HOST_PLATFORM, binDir),
       wrappers: CLI_WRAPPERS.map((wrapper) => this.wrapperStatus(wrapper, binDir, exePath)),
+      skill: this.syncSkill(),
     };
   }
 

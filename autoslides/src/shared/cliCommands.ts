@@ -97,6 +97,16 @@ export interface CliInstallStatus {
   /** A command the user can paste into a terminal to put `binDir` on PATH. */
   pathCommand: string;
   wrappers: CliWrapperStatus[];
+  /** The agent skill the app ships; null when this build carries none. */
+  skill: CliSkillStatus | null;
+}
+
+/** The agent skill for the commands (repo `skills/autoslides-cli`), kept by the app at a fixed path. */
+export interface CliSkillStatus {
+  /** The folder an agent links to; refreshed on every launch. */
+  path: string;
+  /** What Settings copies for the user to paste into an agent. */
+  prompt: string;
 }
 
 export interface CliInstallResult {

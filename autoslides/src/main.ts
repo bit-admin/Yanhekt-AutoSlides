@@ -380,6 +380,8 @@ app.whenReady().then(() => {
   void localRelayService.applyConfig();
   // Take `autoslides` commands, unless Settings turned that off.
   cliControlServer.applyConfig();
+  // Keep the agent skill's copy in step with this release.
+  cliInstallService.syncSkill();
 });
 
 app.on('before-quit', () => {

@@ -50,6 +50,46 @@
           </div>
         </div>
 
+        <!-- The agent skill the app ships (main/platform/cliInstall/skillBundle.ts).
+             The prompt starts folded; Copy Prompt is the whole job. -->
+        <div v-if="status?.skill" class="cli-group">
+          <div class="cli-group-title">{{ $t('advanced.addons.cliSkillTitle') }}</div>
+          <div class="setting-description">{{ $t('advanced.addons.cliSkillDescription') }}</div>
+          <div class="cli-status-row">
+            <code class="cli-status-path" :title="status.skill.path">{{ status.skill.path }}</code>
+            <div class="cli-actions">
+              <button type="button" class="btn btn--sm" @click="copySkillPrompt">
+                {{ promptCopied ? $t('advanced.addons.cliSkillCopied') : $t('advanced.addons.cliSkillCopy') }}
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="cli-group-title cli-usage-toggle"
+            :aria-expanded="promptOpen"
+            aria-controls="cli-skill-prompt"
+            @click="promptOpen = !promptOpen"
+          >
+            <svg
+              class="cli-usage-chevron"
+              :class="{ 'is-open': promptOpen }"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            {{ $t('advanced.addons.cliSkillPrompt') }}
+          </button>
+          <pre v-show="promptOpen" id="cli-skill-prompt" class="cli-skill-prompt">{{ status.skill.prompt }}</pre>
+        </div>
+
         <!-- The same ground `yhdl --help` covers, so the page doubles as the manual.
              Long, so it starts folded. -->
         <div class="cli-group">
@@ -119,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { CliInstallStatus, CliUnsupportedReason } from '@common/cliCommands'
 import { createLogger } from '@shared/utils/logger'
 import { useSettingsContext } from '@features/settings/settingsContext'
@@ -179,6 +219,9 @@ const UNSUPPORTED_KEYS: Record<CliUnsupportedReason, string> = {
 }
 
 const usageOpen = ref(false)
+const promptOpen = ref(false)
+const promptCopied = ref(false)
+let copiedTimer: ReturnType<typeof setTimeout> | null = null
 const status = ref<CliInstallStatus | null>(null)
 const busy = ref(false)
 const error = ref('')
@@ -217,6 +260,26 @@ const run = async (action: 'install' | 'uninstall'): Promise<void> => {
     busy.value = false
   }
 }
+
+const copySkillPrompt = async (): Promise<void> => {
+  const prompt = status.value?.skill?.prompt
+  if (!prompt) return
+  try {
+    await navigator.clipboard.writeText(prompt)
+  } catch (e) {
+    log.warn('Failed to copy the skill prompt:', e)
+    return
+  }
+  promptCopied.value = true
+  if (copiedTimer) clearTimeout(copiedTimer)
+  copiedTimer = setTimeout(() => {
+    promptCopied.value = false
+  }, 2000)
+}
+
+onUnmounted(() => {
+  if (copiedTimer) clearTimeout(copiedTimer)
+})
 
 onMounted(async () => {
   try {
@@ -330,6 +393,7 @@ onMounted(async () => {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 11px;
   font-weight: 400;
@@ -407,6 +471,21 @@ onMounted(async () => {
 
 .cli-usage-description {
   color: var(--text-secondary);
+}
+
+.cli-skill-prompt {
+  margin: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
 }
 
 .cli-notice {

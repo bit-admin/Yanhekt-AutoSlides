@@ -41,6 +41,9 @@ const config: ForgeConfig = {
       // read the bytes off disk via process.resourcesPath at runtime.
       // Terms open in the browser (https://learn.ruc.edu.kg/terms) — no bundled RTF.
       'resources/models',
+      // The agent skill for the command line (repo `skills/`). The app copies
+      // it under userData on launch for agents to link (cliInstall/skillBundle.ts).
+      '../skills',
       // Include FFmpeg binary for all platforms
       'node_modules/ffmpeg-static',
       // Include ffprobe binary (@ffprobe-installer/*; NOT part of ffmpeg-static).
