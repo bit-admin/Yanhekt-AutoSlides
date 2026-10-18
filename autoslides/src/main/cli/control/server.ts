@@ -11,7 +11,7 @@ import net from 'node:net';
 import type { ApiClient } from '@main/platform/apiClient';
 import type { ConfigService } from '@main/platform/configService';
 import { createLogger } from '@main/infra/logger';
-import type { AppCommand, AppCommandContext } from '../app/types';
+import type { AppCommand, AppCommandContext, AppSettingsWriter } from '../app/types';
 import { toCliError } from '../classifyError';
 import { CliError } from '../errors';
 import type { CommandInput } from '../types';
@@ -23,6 +23,7 @@ const log = createLogger('CliControl');
 export interface CliControlServerDeps {
   socketPath: string;
   configService: ConfigService;
+  settings: AppSettingsWriter;
   apiClient: ApiClient;
   renderer: RendererBridge;
   commands: Readonly<Record<string, AppCommand>>;
@@ -122,6 +123,7 @@ export class CliControlServer {
 
     const ctx: AppCommandContext = {
       configService: this.deps.configService,
+      settings: this.deps.settings,
       apiClient: this.deps.apiClient,
       renderer: this.deps.renderer,
       signal,

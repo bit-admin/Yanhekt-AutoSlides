@@ -6,6 +6,7 @@
 // Items are named by their item id (from `--json`), or by a session id or link,
 // which takes every row of that session. An app-only command: `yhdl` has no
 // queue. Yanhekt rows only: the renderer leaves Yanhe 2.0 transcripts out.
+// Works while signed out, except `retry`, which downloads again.
 import path from 'node:path';
 import type { CliDownloadUpdate, CliQueueItem } from '@common/cliControl';
 import { buildDownloadFileName } from '@common/downloadNaming';
@@ -192,7 +193,8 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
     throw new CliError('usage', '--all takes no item or session arguments');
   }
 
-  await requireSignIn(ctx);
+  // Only a retry reaches Yanhekt (it downloads again); the rest is the panel's own business.
+  if (action === 'retry') await requireSignIn(ctx);
   const rows = await listRows(ctx);
   const outputDir = ctx.configService.getConfig().outputDirectory || null;
 

@@ -127,6 +127,7 @@ describe('a command sent to the app', () => {
     server = new CliControlServer({
       socketPath,
       configService: { getConfig: () => ({ allowCliControl: allow }) } as never,
+      settings: {} as never,
       apiClient: {} as never,
       renderer: {} as never,
       commands: { echo },

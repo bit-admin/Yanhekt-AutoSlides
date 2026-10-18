@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
 import { languageService } from '@features/settings/languageService'
 import { DownloadService } from '@shared/services/downloadService'
@@ -90,6 +90,13 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempRememberPassword = ref(true)
   const tempAutoSignIn = ref(true)
   const tempYanhe2SignInWithMain = ref(true)
+
+  // Connection Mode can also change outside this page (`autoslides config
+  // connection_mode`). Follow it unless the field was edited here, or Save
+  // would write the page's stale copy back over it.
+  watch(connectionMode, (next, previous) => {
+    if (tempConnectionMode.value === previous) tempConnectionMode.value = next
+  })
 
   const resetTemp = () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value

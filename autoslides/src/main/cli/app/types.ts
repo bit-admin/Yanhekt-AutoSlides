@@ -1,3 +1,4 @@
+import type { ConnectionMode } from '@common/types';
 import type { ApiClient } from '@main/platform/apiClient';
 import type { ConfigService } from '@main/platform/configService';
 import type { RendererBridge } from '../control/rendererBridge';
@@ -11,9 +12,20 @@ export interface AppTerminal {
   out: (text: string) => void;
 }
 
+/**
+ * The settings a command may change, each applied exactly as the Settings
+ * page applies it (saved, put into effect, sent to every window).
+ */
+export interface AppSettingsWriter {
+  /** Returns the mode as saved. */
+  setConnectionMode: (mode: ConnectionMode) => ConnectionMode;
+}
+
 /** What a command running inside the app may use. */
 export interface AppCommandContext {
+  /** Read the config here; change it only through `settings`. */
   configService: ConfigService;
+  settings: AppSettingsWriter;
   apiClient: ApiClient;
   renderer: RendererBridge;
   term: AppTerminal;

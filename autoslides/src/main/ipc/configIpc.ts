@@ -2,6 +2,7 @@ import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
+import { applyConnectionMode } from './applyConnectionMode';
 import { broadcastConfig as broadcastConfigSnapshot } from './broadcastConfig';
 import type { AIServiceType } from '@main/platform/configService';
 import type { ConnectionMode, CustomProviderId, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
@@ -59,9 +60,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('config:setConnectionMode', async (_event, mode: ConnectionMode) => {
-    configService.setConnectionMode(mode);
-    intranetMappingService.setMode(configService.getConfig().connectionMode);
-    broadcastConfig();
+    applyConnectionMode(configService, intranetMappingService, mode);
     return configService.getConfig();
   });
 

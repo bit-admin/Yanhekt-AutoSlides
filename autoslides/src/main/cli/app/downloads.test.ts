@@ -133,9 +133,12 @@ describe('autoslides downloads', () => {
     await expect(serve(['stauts'], app)).rejects.toMatchObject({ code: 'usage' });
   });
 
-  it('needs the app signed in, like every autoslides command', async () => {
-    await expect(serve([], fakeApp(queue(), false))).rejects.toBeInstanceOf(CliError);
-    await expect(serve([], fakeApp(queue(), false))).rejects.toMatchObject({ code: 'sign_in_required' });
+  it('works while signed out, except retry, which downloads again', async () => {
+    const app = fakeApp(queue(), false);
+    expect(((await serve([], app)).data as { items: unknown[] }).items).toHaveLength(4);
+    await expect(serve(['cancel', 'b'], app)).resolves.toBeDefined();
+    await expect(serve(['retry', 'c'], app)).rejects.toBeInstanceOf(CliError);
+    await expect(serve(['retry', 'c'], app)).rejects.toMatchObject({ code: 'sign_in_required' });
   });
 
   it('waits for what is unfinished and prints the finished file', async () => {
