@@ -50,6 +50,7 @@ export interface UseAdvancedSettingsOptions {
   resumeFromServerProgress: Ref<boolean>
   resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>
+  logYanhektCatalog: Ref<boolean>
   yanhektLiveWorkaround: Ref<YanhektLiveWorkaroundConfig>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>

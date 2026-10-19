@@ -495,6 +495,7 @@ export interface ElectronAPI {
     setResumeFromServerProgress: (enabled: boolean) => Promise<AppConfig>;
     setResumeFromServerProgressLectures: (enabled: boolean) => Promise<AppConfig>;
     setDeveloperMode: (enabled: boolean) => Promise<AppConfig>;
+    setLogYanhektCatalog: (enabled: boolean) => Promise<AppConfig>;
     setYanhektLiveWorkaround: (value: YanhektLiveWorkaroundConfig) => Promise<AppConfig>;
     setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;

@@ -733,6 +733,7 @@
     "developerModeDescription": "개발자 모드를 사용하면 자세한 로그가 기록됩니다.",
     "enableDeveloperMode": "개발자 모드 사용",
     "openLogFolder": "로그 폴더 열기",
+    "logYanhektCatalog": "Yanhekt 정보 기록",
     "workarounds": "임시 조치",
     "yanhektLiveWorkaround": "Yanhekt 라이브 영상 다시 붙이기",
     "yanhektLiveWorkaroundDescription": "임시 조치입니다. Yanhekt 라이브 서버가 다른 영상을 돌려줄 수 있습니다. 각 이름이 재생할 서버 응답을 고르세요. 주소가 이미 Video1, VGA, Video2인 응답은 그대로 둡니다. 녹화와 Yanhe 2.0은 그대로입니다. 다음에 라이브를 열 때 적용됩니다.",

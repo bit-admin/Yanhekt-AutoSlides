@@ -273,6 +273,7 @@ export class ConfigService {
       allowCliControl: this.store.get('allowCliControl') ?? true,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
       developerMode: this.store.get('developerMode') ?? false,
+      logYanhektCatalog: this.getLogYanhektCatalog(),
       yanhektLiveWorkaround: this.getYanhektLiveWorkaround(),
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
       localRelayPort: this.store.get('localRelayPort') ?? 8787,
@@ -574,6 +575,15 @@ export class ConfigService {
 
   setDeveloperMode(enabled: boolean): void {
     this.store.set('developerMode', enabled);
+  }
+
+  /** Effective value: off whenever Developer mode is off, even if the key was left true. */
+  getLogYanhektCatalog(): boolean {
+    return this.getDeveloperMode() && this.store.get('logYanhektCatalog') === true;
+  }
+
+  setLogYanhektCatalog(enabled: boolean): void {
+    this.store.set('logYanhektCatalog', enabled);
   }
 
   getYanhektLiveWorkaround(): YanhektLiveWorkaroundConfig {

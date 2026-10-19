@@ -335,6 +335,12 @@
           {{ $t('advanced.enableDeveloperMode') }}
         </label>
       </div>
+      <div v-if="tempDeveloperMode" class="prevent-sleep-control developer-catalog">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempLogYanhektCatalog" />
+          {{ $t('advanced.logYanhektCatalog') }}
+        </label>
+      </div>
       <div class="developer-note">
         <div class="setting-description">{{ $t('advanced.developerModeDescription') }}</div>
         <button
@@ -351,13 +357,13 @@
     <div class="advanced-setting-subsection">
       <h5>{{ $t('advanced.workarounds') }}</h5>
       <div class="setting-item">
+        <div class="setting-description">{{ $t('advanced.yanhektLiveWorkaroundDescription') }}</div>
         <div class="prevent-sleep-control">
           <label class="checkbox-label">
             <input type="checkbox" v-model="tempYanhektLiveWorkaround.enabled" />
             {{ $t('advanced.yanhektLiveWorkaround') }}
           </label>
         </div>
-        <div class="setting-description">{{ $t('advanced.yanhektLiveWorkaroundDescription') }}</div>
         <div class="workaround-map" :class="{ 'is-off': !tempYanhektLiveWorkaround.enabled }">
           <div class="workaround-head">
             <span>{{ $t('advanced.yanhektLiveShownAs') }}</span>
@@ -438,6 +444,7 @@ const {
   tempParallelTasks,
   tempMaxManualTabs,
   tempDeveloperMode,
+  tempLogYanhektCatalog,
   tempYanhektLiveWorkaround,
   tempRememberPassword,
   tempAutoSignIn,
@@ -492,6 +499,10 @@ function onWorkaroundSource(shown: YanhektLiveStreamKind, event: Event): void {
 </script>
 
 <style scoped>
+.developer-catalog {
+  margin-top: 8px;
+}
+
 .developer-note {
   display: flex;
   align-items: baseline;

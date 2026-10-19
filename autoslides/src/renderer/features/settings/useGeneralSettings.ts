@@ -32,6 +32,7 @@ export interface UseGeneralSettingsOptions {
   resumeFromServerProgressLectures: Ref<boolean>
   preventSystemSleep: Ref<boolean>
   developerMode: Ref<boolean>
+  logYanhektCatalog: Ref<boolean>
   yanhektLiveWorkaround: Ref<YanhektLiveWorkaroundConfig>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
@@ -63,6 +64,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     resumeFromServerProgressLectures,
     preventSystemSleep,
     developerMode,
+    logYanhektCatalog,
     yanhektLiveWorkaround,
     rememberPassword,
     autoSignIn,
@@ -92,6 +94,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempResumeFromServerProgressLectures = ref(true)
   const tempPreventSystemSleep = ref(true)
   const tempDeveloperMode = ref(false)
+  const tempLogYanhektCatalog = ref(false)
   const tempYanhektLiveWorkaround = ref<YanhektLiveWorkaroundConfig>(normalizeYanhektLiveWorkaround(undefined))
   const tempRememberPassword = ref(true)
   const tempAutoSignIn = ref(true)
@@ -127,6 +130,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempResumeFromServerProgressLectures.value = resumeFromServerProgressLectures.value
     tempPreventSystemSleep.value = preventSystemSleep.value
     tempDeveloperMode.value = developerMode.value
+    tempLogYanhektCatalog.value = logYanhektCatalog.value
     tempYanhektLiveWorkaround.value = { ...yanhektLiveWorkaround.value }
     tempRememberPassword.value = rememberPassword.value
     tempAutoSignIn.value = autoSignIn.value
@@ -240,6 +244,14 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     if (tempDeveloperMode.value !== developerMode.value) {
       const developerResult = await window.electronAPI.config.setDeveloperMode(tempDeveloperMode.value)
       developerMode.value = developerResult.developerMode ?? false
+      // Turning Developer mode off clears the catalog flag in main.
+      logYanhektCatalog.value = developerResult.logYanhektCatalog ?? false
+    }
+
+    if (!tempDeveloperMode.value) tempLogYanhektCatalog.value = false
+    if (tempLogYanhektCatalog.value !== logYanhektCatalog.value) {
+      const catalogResult = await window.electronAPI.config.setLogYanhektCatalog(tempLogYanhektCatalog.value)
+      logYanhektCatalog.value = catalogResult.logYanhektCatalog ?? false
     }
 
     if (!sameYanhektLiveWorkaround(tempYanhektLiveWorkaround.value, yanhektLiveWorkaround.value)) {
@@ -294,6 +306,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempResumeFromServerProgressLectures,
     tempPreventSystemSleep,
     tempDeveloperMode,
+    tempLogYanhektCatalog,
     tempYanhektLiveWorkaround,
     tempRememberPassword,
     tempAutoSignIn,

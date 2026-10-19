@@ -28,6 +28,7 @@ import type { SlideMetadataService } from '@main/extraction/slideMetadataService
 import type { SlideTimelineService } from '@main/extraction/slideTimelineService';
 import type { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
+import type { YanhektCatalogStore } from '@main/platform/yanhektCatalog';
 import type { NotesService } from '@main/platform/notesService';
 import type { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import type { NotionNotesService } from '@main/export/notionNotesService';
@@ -69,6 +70,8 @@ export interface IpcServices {
   yanhe2SubtitleService: Yanhe2SubtitleService;
   yanhe2CaptionSyncService: Yanhe2CaptionSyncService;
   cacheManagementService: CacheManagementService;
+  /** Developer-mode Yanhekt catalog file in the log folder. */
+  yanhektCatalogStore: YanhektCatalogStore;
   notesService: NotesService;
   obsidianNotesService: ObsidianNotesService;
   notionNotesService: NotionNotesService;

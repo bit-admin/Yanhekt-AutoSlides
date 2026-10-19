@@ -49,7 +49,8 @@ import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
 import { createSettingsWriter } from '@main/ipc/settingsWriter';
 import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
-import { initLogFile, setLogVerbose, flushLogFile } from '@main/infra/logFile';
+import { initLogFile, setLogVerbose, flushLogFile, getLogDir } from '@main/infra/logFile';
+import { YanhektCatalogStore } from '@main/platform/yanhektCatalog';
 import { createLogger, setLoggerConsoleMode } from '@main/infra/logger';
 import { CliInstallService } from '@main/platform/cliInstall/cliInstallService';
 import {
@@ -295,6 +296,17 @@ const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
 const apiTransport = new IntranetApiTransport(intranetMappingService);
 const apiClient = new MainApiClient(configService, apiTransport);
+// Developer-mode catalog of raw cbiz responses, written under logs/. A command
+// line run does not open the log file (the app may already hold it), and it
+// does not record into the catalog either.
+const yanhektCatalogLog = createLogger('YanhektCatalog');
+const yanhektCatalogStore = new YanhektCatalogStore(() => getLogDir(), {
+  warn: (message, error) => yanhektCatalogLog.warn(message, error),
+});
+if (!cliRun) {
+  apiClient.setCatalogSink(yanhektCatalogStore);
+  yanhektCatalogStore.setEnabled(configService.getLogYanhektCatalog());
+}
 // Yanhe 2.0 JSON takes the same route as the rest of the API.
 routeYanhe2Through((config) => apiTransport.send(config));
 const videoProxyService = new VideoProxyService(
@@ -395,6 +407,7 @@ app.on('will-quit', () => {
   powerManagementService.cleanup();
   void localRelayService.stop();
   if (!cliRun) cliControlServer.stop();
+  yanhektCatalogStore.flushSync();
   flushLogFile();
 });
 
@@ -432,6 +445,7 @@ if (!cliRun) registerAllIpcHandlers({
   yanhe2TwinResolver,
   yanhe2CaptionSyncService,
   cacheManagementService,
+  yanhektCatalogStore,
   notesService,
   obsidianNotesService,
   notionNotesService,

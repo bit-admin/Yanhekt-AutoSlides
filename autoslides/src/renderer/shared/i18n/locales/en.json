@@ -733,6 +733,7 @@
     "developerModeDescription": "Enable Developer Mode for verbose logging.",
     "enableDeveloperMode": "Enable Developer Mode",
     "openLogFolder": "Open Log Folder",
+    "logYanhektCatalog": "Log Yanhekt Catalog",
     "workarounds": "Temporary Workarounds",
     "yanhektLiveWorkaround": "Relabel Yanhekt Live Streams",
     "yanhektLiveWorkaroundDescription": "Temporary. The Yanhekt live server sometimes sends the wrong picture. Choose which server response each label plays. An answer whose addresses already say Video1, VGA, and Video2 is left alone. Recordings and Yanhe 2.0 are not affected. Takes effect the next time a live stream is opened.",

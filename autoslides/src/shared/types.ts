@@ -316,6 +316,10 @@ export interface AppConfig {
   // When true, show the Developer workspace page (Auto Crop detection lab, etc.).
   // Default off.
   developerMode: boolean;
+  // When true (and Developer mode is on), merge Yanhekt course, session, and live
+  // responses into `<userData>/logs/yanhekt-catalog.json`. A later response
+  // replaces fields it carries. Default off. Turning Developer mode off clears it.
+  logYanhektCatalog: boolean;
   // Temporary. Which server response each Yanhekt live label plays, plus the
   // workaround version that order belongs to. Recordings and Yanhe 2.0 are not
   // affected. Default is the 2026-10-19 rotation. See @common/yanhektLiveWorkaround.

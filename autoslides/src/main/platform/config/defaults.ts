@@ -218,6 +218,7 @@ export const defaultConfig: AppConfig = {
   allowCliControl: true,
   preferAnonymousApiRequests: false,
   developerMode: false,
+  logYanhektCatalog: false,
   yanhektLiveWorkaround: defaultYanhektLiveWorkaround(),
   localRelayEnabled: false,
   localRelayPort: 8787,

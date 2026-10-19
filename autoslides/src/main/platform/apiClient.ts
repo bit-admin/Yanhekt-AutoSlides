@@ -5,6 +5,7 @@ import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
 import { IntranetApiTransport } from '@main/platform/intranetApiTransport';
 import type { ConfigService } from '@main/platform/configService';
+import type { YanhektCatalogSink } from '@main/platform/yanhektCatalog';
 const log = createLogger('PlatformApiClient');
 
 import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
@@ -144,9 +145,16 @@ export class ApiClient {
   };
 
   private cbiz: IntranetApiTransport;
+  /** Developer-mode catalog. Null unless the desktop app turned it on. */
+  private catalogSink: YanhektCatalogSink | null = null;
 
   constructor(private configService?: ConfigService, cbiz: IntranetApiTransport = new IntranetApiTransport()) {
     this.cbiz = cbiz;
+  }
+
+  /** Record raw cbiz responses. A throw here must never fail the request. */
+  setCatalogSink(sink: YanhektCatalogSink | null): void {
+    this.catalogSink = sink;
   }
 
   /** Send one cbiz request along the current route (see IntranetApiTransport). */
@@ -284,7 +292,17 @@ export class ApiClient {
     }
 
     const response: AxiosResponse = await this.send(config);
+    if (method === 'GET') this.noteCatalog(url, response.data);
     return response.data;
+  }
+
+  private noteCatalog(url: string, body: unknown): void {
+    if (!this.catalogSink) return;
+    try {
+      this.catalogSink.observe(url, body);
+    } catch (error: unknown) {
+      log.warn('Yanhekt catalog update failed:', error);
+    }
   }
 
   async getLiveList(token: string, page = 1, pageSize = 16, userRelationshipType = 0): Promise<LiveListResponse> {

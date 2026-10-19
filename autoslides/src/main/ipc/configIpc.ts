@@ -21,7 +21,8 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     llmApiService,
     aiPromptsService,
     windowManager,
-    localRelayService
+    localRelayService,
+    yanhektCatalogStore
   } = services;
 
   const broadcastConfig = (): void => broadcastConfigSnapshot(configService);
@@ -183,6 +184,15 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setLogYanhektCatalog', async (_event, enabled: boolean) => {
+    // Refused while Developer mode is off, so a stale checkbox cannot start it.
+    const on = enabled === true && configService.getDeveloperMode();
+    configService.setLogYanhektCatalog(on);
+    yanhektCatalogStore.setEnabled(on);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setYanhektLiveWorkaround', async (_event, value: unknown) => {
     configService.setYanhektLiveWorkaround(value);
     broadcastConfig();
@@ -197,7 +207,10 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     // the flag and tears down the LAN server so it cannot keep listening.
     if (!enabled) {
       configService.setLocalRelayConfig({ enabled: false });
+      // The catalog is developer-only. Forget the flag too.
+      configService.setLogYanhektCatalog(false);
     }
+    yanhektCatalogStore.setEnabled(configService.getLogYanhektCatalog());
     await localRelayService.applyConfig();
     broadcastConfig();
     return configService.getConfig();
