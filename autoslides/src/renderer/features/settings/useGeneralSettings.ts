@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue'
-import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
+import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode, type YanhektLiveWorkaroundConfig } from '@common/types'
+import { normalizeYanhektLiveWorkaround, sameYanhektLiveWorkaround } from '@common/yanhektLiveWorkaround'
 import { languageService } from '@features/settings/languageService'
 import { configStore } from '@shared/services/configStore'
 import { DownloadService } from '@shared/services/downloadService'
@@ -31,6 +32,7 @@ export interface UseGeneralSettingsOptions {
   resumeFromServerProgressLectures: Ref<boolean>
   preventSystemSleep: Ref<boolean>
   developerMode: Ref<boolean>
+  yanhektLiveWorkaround: Ref<YanhektLiveWorkaroundConfig>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
@@ -61,6 +63,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     resumeFromServerProgressLectures,
     preventSystemSleep,
     developerMode,
+    yanhektLiveWorkaround,
     rememberPassword,
     autoSignIn,
     yanhe2SignInWithMain
@@ -89,6 +92,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempResumeFromServerProgressLectures = ref(true)
   const tempPreventSystemSleep = ref(true)
   const tempDeveloperMode = ref(false)
+  const tempYanhektLiveWorkaround = ref<YanhektLiveWorkaroundConfig>(normalizeYanhektLiveWorkaround(undefined))
   const tempRememberPassword = ref(true)
   const tempAutoSignIn = ref(true)
   const tempYanhe2SignInWithMain = ref(true)
@@ -123,6 +127,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempResumeFromServerProgressLectures.value = resumeFromServerProgressLectures.value
     tempPreventSystemSleep.value = preventSystemSleep.value
     tempDeveloperMode.value = developerMode.value
+    tempYanhektLiveWorkaround.value = { ...yanhektLiveWorkaround.value }
     tempRememberPassword.value = rememberPassword.value
     tempAutoSignIn.value = autoSignIn.value
     tempYanhe2SignInWithMain.value = yanhe2SignInWithMain.value
@@ -237,6 +242,12 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       developerMode.value = developerResult.developerMode ?? false
     }
 
+    if (!sameYanhektLiveWorkaround(tempYanhektLiveWorkaround.value, yanhektLiveWorkaround.value)) {
+      const workaroundResult = await window.electronAPI.config.setYanhektLiveWorkaround({ ...tempYanhektLiveWorkaround.value })
+      yanhektLiveWorkaround.value = normalizeYanhektLiveWorkaround(workaroundResult.yanhektLiveWorkaround)
+      tempYanhektLiveWorkaround.value = { ...yanhektLiveWorkaround.value }
+    }
+
     if (tempRememberPassword.value !== rememberPassword.value) {
       const rememberResult = await window.electronAPI.config.setRememberPassword(tempRememberPassword.value)
       rememberPassword.value = rememberResult.rememberPassword ?? true
@@ -283,6 +294,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempResumeFromServerProgressLectures,
     tempPreventSystemSleep,
     tempDeveloperMode,
+    tempYanhektLiveWorkaround,
     tempRememberPassword,
     tempAutoSignIn,
     tempYanhe2SignInWithMain,

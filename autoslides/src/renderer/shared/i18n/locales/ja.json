@@ -729,10 +729,15 @@
       "modelChainEmpty": "チェーンにモデルがありません。AI 分類を有効にするには下から追加してください。",
       "modelTemporarilyUnavailable": "サービスは一時的に利用できません"
     },
-    "developerMode": "開発者とログ",
+    "developerMode": "開発者",
     "developerModeDescription": "開発者モードを有効にすると、詳細なログを記録します。",
     "enableDeveloperMode": "開発者モードを有効にする",
-    "openLogFolder": "ログフォルダを開く"
+    "openLogFolder": "ログフォルダを開く",
+    "workarounds": "一時的な回避策",
+    "yanhektLiveWorkaround": "延河課堂ライブの映像を付け直す",
+    "yanhektLiveWorkaroundDescription": "一時的な対処です。延河課堂のライブサーバーが別の映像を返すことがあります。各ラベルが再生するサーバーの応答を選んでください。アドレスがすでに Video1、VGA、Video2 の応答はそのままです。録画と延河 2.0 は変わりません。次にライブを開いたときから有効です。",
+    "yanhektLiveShownAs": "表示名",
+    "yanhektLiveServerSent": "サーバーの応答"
   },
   "courses": {
     "title": {

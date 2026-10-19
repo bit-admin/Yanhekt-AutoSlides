@@ -12,6 +12,7 @@ import type {
   CustomProviderId
 } from './types';
 import { YANHE2_CAPTION_OFFSET_DEFAULT } from '@common/types';
+import { defaultYanhektLiveWorkaround } from '@common/yanhektLiveWorkaround';
 
 export const AUTO_CROP_YOLO_INPUT_SIZES = [320, 480, 640, 960, 1280] as const;
 
@@ -217,6 +218,7 @@ export const defaultConfig: AppConfig = {
   allowCliControl: true,
   preferAnonymousApiRequests: false,
   developerMode: false,
+  yanhektLiveWorkaround: defaultYanhektLiveWorkaround(),
   localRelayEnabled: false,
   localRelayPort: 8787,
   localRelayWhitelistEnabled: true,

@@ -157,6 +157,7 @@ const advancedSettings = useAdvancedSettings(
     resumeFromServerProgress: settings.resumeFromServerProgress,
     resumeFromServerProgressLectures: settings.resumeFromServerProgressLectures,
     developerMode: settings.developerMode,
+    yanhektLiveWorkaround: settings.yanhektLiveWorkaround,
     rememberPassword: settings.rememberPassword,
     autoSignIn: settings.autoSignIn,
     yanhe2SignInWithMain: settings.yanhe2SignInWithMain,

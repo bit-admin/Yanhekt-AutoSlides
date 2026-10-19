@@ -95,6 +95,7 @@ export const config: ElectronAPI['config'] = {
   setResumeFromServerProgressLectures: (enabled: boolean) =>
     ipcRenderer.invoke('config:setResumeFromServerProgressLectures', enabled),
   setDeveloperMode: (enabled: boolean) => ipcRenderer.invoke('config:setDeveloperMode', enabled),
+  setYanhektLiveWorkaround: (value) => ipcRenderer.invoke('config:setYanhektLiveWorkaround', value),
   setAutoPostProcessing: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessing', enabled),
   setAutoPostProcessingLive: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessingLive', enabled),
   getAutoPostProcessingLive: () => ipcRenderer.invoke('config:getAutoPostProcessingLive'),

@@ -729,10 +729,15 @@
       "modelChainEmpty": "链中暂无模型。请在下方添加以启用 AI 分类。",
       "modelTemporarilyUnavailable": "服务暂不可用"
     },
-    "developerMode": "开发者与日志",
+    "developerMode": "开发者",
     "developerModeDescription": "启用开发者模式以记录详细日志。",
     "enableDeveloperMode": "启用开发者模式",
-    "openLogFolder": "打开日志文件夹"
+    "openLogFolder": "打开日志文件夹",
+    "workarounds": "临时变通",
+    "yanhektLiveWorkaround": "重标延河课堂直播画面",
+    "yanhektLiveWorkaroundDescription": "临时措施。延河课堂的直播服务器有时会答错画面。为每个名称选择要播放的服务器响应。地址已经是 Video1、VGA 和 Video2 的回答保持原样。不影响录播和延河 2.0。下次打开直播时生效。",
+    "yanhektLiveShownAs": "名称",
+    "yanhektLiveServerSent": "服务器响应"
   },
   "courses": {
     "title": {

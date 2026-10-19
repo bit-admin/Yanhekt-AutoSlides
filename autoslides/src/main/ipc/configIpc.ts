@@ -183,6 +183,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setYanhektLiveWorkaround', async (_event, value: unknown) => {
+    configService.setYanhektLiveWorkaround(value);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
     configService.setDeveloperMode(enabled);
     // Developer mode also turns on debug/info in the log file, no restart.

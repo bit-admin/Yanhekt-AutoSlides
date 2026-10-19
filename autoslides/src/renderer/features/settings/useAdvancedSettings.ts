@@ -1,5 +1,5 @@
 import { nextTick, ref, type Ref } from 'vue'
-import type { ConnectionMode, Yanhe2CaptionMode } from '@common/types'
+import type { ConnectionMode, Yanhe2CaptionMode, YanhektLiveWorkaroundConfig } from '@common/types'
 import { useGeneralSettings } from './useGeneralSettings'
 import { useImageProcessingSettings } from './useImageProcessingSettings'
 import { useNetworkSettings } from './useNetworkSettings'
@@ -50,6 +50,7 @@ export interface UseAdvancedSettingsOptions {
   resumeFromServerProgress: Ref<boolean>
   resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>
+  yanhektLiveWorkaround: Ref<YanhektLiveWorkaroundConfig>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>

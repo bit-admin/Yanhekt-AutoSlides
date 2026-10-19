@@ -38,6 +38,8 @@ async function loadThumbnail(mode: 'live' | 'recorded', course: Course): Promise
       screenUrl = course.target_vga
       seekSeconds = 0
       cacheKey = id
+      // The other two raw fields travel with it. Main relabels before it picks
+      // the screen, so a swapped live answer still previews the screen.
     } else {
       // Recorded: preview the latest session's screen recording at 1 min in.
       const info = await apiClient.getCourseInfo(id, token)
@@ -49,11 +51,15 @@ async function loadThumbnail(mode: 'live' | 'recorded', course: Course): Promise
       cacheKey = last.video_id || id
     }
 
-    if (!screenUrl) return
+    // Live: after the relabel the screen picture is on another field, so a
+    // missing VGA url is not a reason to skip.
+    if (!screenUrl && !(mode === 'live' && (course.target || course.target_room))) return
 
     const dataUrl = await window.electronAPI.video.getScreenThumbnail({
       kind: mode,
-      screenUrl,
+      screenUrl: screenUrl ?? '',
+      liveTarget: mode === 'live' ? course.target : undefined,
+      liveRoomUrl: mode === 'live' ? course.target_room : undefined,
       seekSeconds,
       cacheKey,
       token

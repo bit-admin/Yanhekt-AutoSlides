@@ -24,6 +24,7 @@ import {
   type SavedLoginRecord,
 } from './savedLogins';
 import { YANHE2_CAPTION_OFFSET_DEFAULT, YANHE2_CAPTION_OFFSET_LIMIT, type ConnectionMode } from '@common/types';
+import { normalizeYanhektLiveWorkaround, type YanhektLiveWorkaroundConfig } from '@common/yanhektLiveWorkaround';
 import type {
   AIClassifierMode,
   AIFilteringConfig,
@@ -272,6 +273,7 @@ export class ConfigService {
       allowCliControl: this.store.get('allowCliControl') ?? true,
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
       developerMode: this.store.get('developerMode') ?? false,
+      yanhektLiveWorkaround: this.getYanhektLiveWorkaround(),
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
       localRelayPort: this.store.get('localRelayPort') ?? 8787,
       localRelayWhitelistEnabled: this.store.get('localRelayWhitelistEnabled') ?? true,
@@ -572,6 +574,15 @@ export class ConfigService {
 
   setDeveloperMode(enabled: boolean): void {
     this.store.set('developerMode', enabled);
+  }
+
+  getYanhektLiveWorkaround(): YanhektLiveWorkaroundConfig {
+    return normalizeYanhektLiveWorkaround(this.store.get('yanhektLiveWorkaround'));
+  }
+
+  setYanhektLiveWorkaround(value: unknown): void {
+    const stored = normalizeYanhektLiveWorkaround(value);
+    this.store.set('yanhektLiveWorkaround', stored);
   }
 
   getRememberPassword(): boolean {

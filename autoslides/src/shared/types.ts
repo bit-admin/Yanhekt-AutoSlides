@@ -3,6 +3,9 @@
 //  - Trash and Crop manifest entries (consumed by main, renderer)
 
 import type { WatchNotesProviderId } from './watchNotesProviders';
+import type { YanhektLiveWorkaroundConfig } from './yanhektLiveWorkaround';
+
+export type { YanhektLiveWorkaroundConfig } from './yanhektLiveWorkaround';
 
 // Result of probing the campus authentication portal's online-status endpoint.
 export interface CampusProbeResult {
@@ -313,6 +316,10 @@ export interface AppConfig {
   // When true, show the Developer workspace page (Auto Crop detection lab, etc.).
   // Default off.
   developerMode: boolean;
+  // Temporary. Which server response each Yanhekt live label plays, plus the
+  // workaround version that order belongs to. Recordings and Yanhe 2.0 are not
+  // affected. Default is the 2026-10-19 rotation. See @common/yanhektLiveWorkaround.
+  yanhektLiveWorkaround: YanhektLiveWorkaroundConfig;
   // Local LAN relay server (Worker-compatible /playlist + /segment API). Opt-in;
   // binds 0.0.0.0 so other devices on the network can stream recorded HLS.
   // Independent of the in-app localhost VideoProxyService.

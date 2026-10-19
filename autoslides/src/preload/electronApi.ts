@@ -13,6 +13,7 @@
  */
 import type {
   AppConfig,
+  YanhektLiveWorkaroundConfig,
   Yanhe2CaptionMode,
   ConnectionMode,
   CampusProbeResult,
@@ -494,6 +495,7 @@ export interface ElectronAPI {
     setResumeFromServerProgress: (enabled: boolean) => Promise<AppConfig>;
     setResumeFromServerProgressLectures: (enabled: boolean) => Promise<AppConfig>;
     setDeveloperMode: (enabled: boolean) => Promise<AppConfig>;
+    setYanhektLiveWorkaround: (value: YanhektLiveWorkaroundConfig) => Promise<AppConfig>;
     setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;
     getAutoPostProcessingLive: () => Promise<boolean>;
@@ -681,6 +683,9 @@ export interface ElectronAPI {
     getScreenThumbnail: (req: {
       kind: 'live' | 'recorded';
       screenUrl: string;
+      /** Live only. The other raw fields, so a relabel can still find the screen. */
+      liveTarget?: string;
+      liveRoomUrl?: string;
       seekSeconds: number;
       cacheKey: string;
       token: string;

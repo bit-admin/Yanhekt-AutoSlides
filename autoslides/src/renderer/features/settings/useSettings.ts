@@ -1,5 +1,6 @@
 import { ref, watch, type Ref } from 'vue'
 import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
+import { normalizeYanhektLiveWorkaround, type YanhektLiveWorkaroundConfig } from '@common/yanhektLiveWorkaround'
 import { configStore } from '@shared/services/configStore'
 import { DownloadService } from '@shared/services/downloadService'
 import { languageService } from '@features/settings/languageService'
@@ -24,6 +25,7 @@ export interface UseSettingsReturn {
   resumeFromServerProgress: Ref<boolean>
   resumeFromServerProgressLectures: Ref<boolean>
   developerMode: Ref<boolean>
+  yanhektLiveWorkaround: Ref<YanhektLiveWorkaroundConfig>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
@@ -84,6 +86,7 @@ export function useSettings(): UseSettingsReturn {
   const resumeFromServerProgress = ref(true)
   const resumeFromServerProgressLectures = ref(true)
   const developerMode = ref(false)
+  const yanhektLiveWorkaround = ref<YanhektLiveWorkaroundConfig>(normalizeYanhektLiveWorkaround(undefined))
   const rememberPassword = ref(true)
   const autoSignIn = ref(true)
   const yanhe2SignInWithMain = ref(true)
@@ -130,6 +133,7 @@ export function useSettings(): UseSettingsReturn {
       resumeFromServerProgress.value = config.resumeFromServerProgress ?? true
       resumeFromServerProgressLectures.value = config.resumeFromServerProgressLectures ?? true
       developerMode.value = config.developerMode ?? false
+      yanhektLiveWorkaround.value = normalizeYanhektLiveWorkaround(config.yanhektLiveWorkaround)
       rememberPassword.value = config.rememberPassword ?? true
       autoSignIn.value = config.autoSignIn ?? true
       yanhe2SignInWithMain.value = config.yanhe2SignInWithMain ?? true
@@ -232,6 +236,7 @@ export function useSettings(): UseSettingsReturn {
     resumeFromServerProgress,
     resumeFromServerProgressLectures,
     developerMode,
+    yanhektLiveWorkaround,
     rememberPassword,
     autoSignIn,
     yanhe2SignInWithMain,

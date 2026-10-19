@@ -729,10 +729,15 @@
       "modelChainEmpty": "No models in chain. Add one below to enable AI classification.",
       "modelTemporarilyUnavailable": "Service temporarily unavailable"
     },
-    "developerMode": "Developer and Logging",
+    "developerMode": "Developer",
     "developerModeDescription": "Enable Developer Mode for verbose logging.",
     "enableDeveloperMode": "Enable Developer Mode",
-    "openLogFolder": "Open Log Folder"
+    "openLogFolder": "Open Log Folder",
+    "workarounds": "Temporary Workarounds",
+    "yanhektLiveWorkaround": "Relabel Yanhekt Live Streams",
+    "yanhektLiveWorkaroundDescription": "Temporary. The Yanhekt live server sometimes sends the wrong picture. Choose which server response each label plays. An answer whose addresses already say Video1, VGA, and Video2 is left alone. Recordings and Yanhe 2.0 are not affected. Takes effect the next time a live stream is opened.",
+    "yanhektLiveShownAs": "Label",
+    "yanhektLiveServerSent": "Server Response"
   },
   "courses": {
     "title": {

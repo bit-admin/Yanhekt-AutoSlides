@@ -11,6 +11,9 @@ export interface ScreenThumbnailRequest {
   kind: 'live' | 'recorded';
   /** Raw screen-recording m3u8 url (target_vga for live, session vga_url for recorded). */
   screenUrl: string;
+  /** Live only. The other two raw fields, so the relabel can still find the screen. */
+  liveTarget?: string;
+  liveRoomUrl?: string;
   seekSeconds: number;
   /** Stable cache key: course id for live, session video_id for recorded. */
   cacheKey: string;
@@ -43,14 +46,15 @@ export class ThumbnailService {
   ) {}
 
   async getScreenThumbnail(req: ScreenThumbnailRequest): Promise<string | null> {
-    if (!req.screenUrl || !req.cacheKey || !req.token) return null;
+    // Live may only have the screen on another field once the relabel runs.
+    if (!req.cacheKey || !req.token || (!req.screenUrl && !req.liveTarget && !req.liveRoomUrl)) return null;
 
     // Cache hits first.
     if (req.kind === 'recorded') {
       const cached = this.readDiskCache(req.cacheKey);
       if (cached) return cached;
     } else {
-      const entry = this.liveCache.get(req.cacheKey);
+      const entry = this.liveCache.get(this.liveCacheKey(req));
       if (entry && Date.now() - entry.ts < LIVE_TTL_MS) return entry.dataUrl;
     }
 
@@ -68,7 +72,7 @@ export class ThumbnailService {
       if (req.kind === 'recorded') {
         this.writeDiskCache(req.cacheKey, buffer);
       } else {
-        this.liveCache.set(req.cacheKey, { dataUrl, ts: Date.now() });
+        this.liveCache.set(this.liveCacheKey(req), { dataUrl, ts: Date.now() });
       }
       return dataUrl;
     } catch (error) {
@@ -93,10 +97,23 @@ export class ThumbnailService {
       return result.streams.vga?.url || '';
     }
     const result = await this.videoProxyService.getLiveStreamUrls(
-      { id: req.cacheKey, title: '', target_vga: req.screenUrl },
+      {
+        id: req.cacheKey,
+        title: '',
+        target: req.liveTarget,
+        target_vga: req.screenUrl,
+        target_room: req.liveRoomUrl,
+      },
       req.token
     );
+    // Keyed by the picture, so a live relabel still returns the screen.
     return result.streams.screen?.url || '';
+  }
+
+  /** The three raw URLs are part of the key: toggling the relabel must not
+   * replay the previous picture for the rest of the minute. */
+  private liveCacheKey(req: ScreenThumbnailRequest): string {
+    return `${req.cacheKey}|${req.screenUrl}|${req.liveTarget ?? ''}|${req.liveRoomUrl ?? ''}`;
   }
 
   private grabFrame(ffmpegPath: string, url: string, seekSeconds: number): Promise<Buffer | null> {

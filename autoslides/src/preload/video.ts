@@ -9,6 +9,8 @@ export const video: ElectronAPI['video'] = {
   getScreenThumbnail: (req: {
     kind: 'live' | 'recorded';
     screenUrl: string;
+    liveTarget?: string;
+    liveRoomUrl?: string;
     seekSeconds: number;
     cacheKey: string;
     token: string;
