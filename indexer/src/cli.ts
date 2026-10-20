@@ -361,7 +361,7 @@ async function main(): Promise<void> {
       return;
     }
     if (cmd === 'merge') {
-      const files = positionals.slice(1).map((f) => resolve(f));
+      const files = positionals.slice(1).map((f: string) => resolve(f));
       if (files.length === 0) die('merge needs at least one file: merge <other.db> [more.db …]');
       for (const f of files) {
         if (!existsSync(f)) die(`no such file: ${f}`);
