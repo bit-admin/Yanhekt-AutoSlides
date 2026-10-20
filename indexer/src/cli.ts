@@ -4,7 +4,7 @@
  */
 
 import { parseArgs } from 'node:util';
-import { closeSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { resolve } from 'node:path';
 import { Crawler, TransientError, defaultLanes, rangeLane, type CrawlerConfig, type LaneSpec } from './crawler.ts';
@@ -24,6 +24,7 @@ Commands
   now       Crawl immediately for --minutes (default 10), ignoring the window.
   status    Local progress. With --remote: what D1 holds and where every device is.
   upload    Send rows changed since the last upload to Cloudflare D1.
+  merge F…  Merge other index files (e.g. GitHub Actions artifacts) into this one.
   dump      Write the shared tables as SQL files (alternative to upload).
 
 What to crawl
@@ -108,6 +109,17 @@ function num(name: string, min: number, max: number): number {
 
 function log(msg: string): void {
   console.log(`[${cnClock(Date.now())} UTC+8] ${msg}`);
+}
+
+/** In GitHub Actions, also write to the job summary page (markdown). */
+function jobSummary(markdown: string): void {
+  const file = process.env.GITHUB_STEP_SUMMARY;
+  if (!file) return;
+  try {
+    appendFileSync(file, `${markdown}\n`);
+  } catch {
+    /* summary is best-effort */
+  }
 }
 
 function parseWindow(s: string): [number, number] {
@@ -282,6 +294,18 @@ async function crawl(
   if (range && !idle) {
     log(`  to continue: run the same command again (--from ${range.start}${range.end != null ? ` --to ${range.end}` : ''}); it resumes at the saved position`);
   }
+  jobSummary(
+    [
+      `### Crawl stopped: ${reason}`,
+      '',
+      `${s.requests} requests · ${s.sessionsFound} sessions found · ${s.sessionsMissing} missing · ${s.courses} courses · ${s.videos} video URLs`,
+      '',
+      '```',
+      ...laneLines(crawler.progress(), Date.now()),
+      `database: ${t.sessions} sessions (ids ${t.minSessionId}–${t.maxSessionId}), ${t.courses} courses, ${t.videos} video URLs`,
+      '```',
+    ].join('\n'),
+  );
   return { reason, idle };
 }
 
@@ -310,7 +334,7 @@ async function main(): Promise<void> {
     if (files.length > 0) log(`apply in order: for f in ${resolve(opts.out)}/*.sql; do npx wrangler d1 execute <db> --remote --file="$f"; done`);
     return;
   }
-  if (cmd !== 'run' && cmd !== 'now' && cmd !== 'upload') die(`unknown command "${cmd}" (try --help)`);
+  if (cmd !== 'run' && cmd !== 'now' && cmd !== 'upload' && cmd !== 'merge') die(`unknown command "${cmd}" (try --help)`);
   if (opts.upload || cmd === 'upload') d1Target(); // fail fast on missing credentials
 
   const release = acquireLock(dbPath);
@@ -334,6 +358,20 @@ async function main(): Promise<void> {
   try {
     if (cmd === 'upload') {
       await doUpload(store, ac.signal);
+      return;
+    }
+    if (cmd === 'merge') {
+      const files = positionals.slice(1).map((f) => resolve(f));
+      if (files.length === 0) die('merge needs at least one file: merge <other.db> [more.db …]');
+      for (const f of files) {
+        if (!existsSync(f)) die(`no such file: ${f}`);
+        if (f === dbPath) die('cannot merge a database into itself');
+        const { rows, lanes } = store.mergeFrom(f, Date.now());
+        log(`merged ${f}: ${Object.entries(rows).map(([k, v]) => `${v} ${k}`).join(', ')} (inserted or improved)`);
+        for (const [key, l] of Object.entries(lanes)) log(`  its lane ${key}: next id ${l.cursor}${l.done ? ' (done)' : ''}`);
+      }
+      const t = store.totals();
+      log(`database now: ${t.sessions} sessions (ids ${t.minSessionId}–${t.maxSessionId}), ${t.courses} courses, ${t.videos} video URLs`);
       return;
     }
 

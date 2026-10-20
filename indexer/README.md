@@ -13,6 +13,8 @@ By default it makes two kinds of request, both without login:
 | `GET /v1/course/session?session_id=` | every id | the session (title, week, time, room, `state`, **`video_ids`**), a copy of its course, its live-broadcast record |
 | `GET /v1/course?id=&with_professor_badges=true` | once per new course | full course details: **teachers**, tags, college, image, introduction |
 
+Every field of both responses is kept, in its own column, or in an `extra` JSON column if it's a field we don't know yet. Only three are dropped, because they are always empty or redundant without login: the session's `user_progress`, the live record's `laravel_through_key` (a join artefact equal to the session id) and the course's `user_mapping_type`. The course copy inside each session response is stored once and then replaced by the fuller `/v1/course` record, so no request is spent twice.
+
 That is enough to find any course by name or teacher and list all its sessions. The recorded URLs (camera, screen, mic) are **not** in the session response, only the `video_ids`. Your client resolves them when a lecture is played (`GET /v1/video?id=`, no login), or the index can fill them in later with `--only-videos`.
 
 The login-only session list (`/v2/course/session/list`) is never used.
@@ -97,6 +99,65 @@ Prefer wrangler? `npm run dump -- --out ./d1-dump` writes the same merge stateme
 
 **Size:** about 1 KB per session with its live record, so roughly 1 GB for the full history without video URLs. That needs Workers Paid; the free plan allows 500 MB per database.
 
+## Running on GitHub Actions
+
+The **Indexer** workflow (`.github/workflows/indexer.yml`) runs the same crawler on a GitHub runner for up to about 5 h 40 min, with no time window. When it finishes, the database is available to download, and you merge it into your local one.
+
+### Setup (once)
+
+1. The workflow must be on the repository's **default branch** before it appears under *Actions* (GitHub only lists manually started workflows from there).
+2. Optional repository secrets (*Settings → Secrets and variables → Actions*):
+   - `INDEX_ARTIFACT_PASSPHRASE`: encrypts the downloadable database. **Set this if the repository is public.** Artifacts of a public repository can be downloaded by anyone signed in to GitHub.
+   - `CF_ACCOUNT_ID`, `CF_D1_DATABASE_ID`, `CF_API_TOKEN`: only if you want runs to upload to D1 directly.
+
+### Starting a run
+
+*Actions → Indexer → Run workflow*, or with the GitHub CLI:
+
+```sh
+gh workflow run indexer.yml -f from=822999 -f to=743000 -f minutes=330
+```
+
+| Input | Default | |
+|---|---|---|
+| `from` / `to` | empty | range to crawl, same as `--from` / `--to`. Both empty = default lanes |
+| `minutes` | 330 | crawl time, max 340 (leaves room for setup and upload within GitHub's 6-hour limit) |
+| `mode` | sessions | `sessions`, `sessions-and-videos` or `videos-only` |
+| `interval_ms` | 1000 | time between requests |
+| `continue_from_run` | empty | run id of an earlier Indexer run: download its database and keep going |
+| `upload_to_d1` | off | also upload to D1 at the end (needs the `CF_*` secrets) |
+
+The run first checks that Yanhekt answers from GitHub's network (runners are outside China) and stops at once if not. At the end, the run page's summary shows the crawl report, the database status and the exact inputs to continue.
+
+### Long crawls: chaining runs
+
+One run of 330 minutes at 1 request/second is about 19,000 requests, roughly 17,000 session ids, so a term (~75k ids) takes 4–5 runs. To continue, start the workflow again with the **same `from` / `to`** and `continue_from_run` set to the previous run's id (shown in its summary and URL). The new run downloads the previous database, resumes the range where it stopped, and its artifact contains everything so far. You only need to download the last one.
+
+Two runs over **different** ranges can run at once; download both and merge both. Please don't run more than two at a time: each one adds a request per second to a university service.
+
+### Downloading and merging
+
+```sh
+# from the run page (Artifacts → yanhekt-index), or:
+gh run download <run-id> -n yanhekt-index -D artifacts/<run-id>
+
+# if INDEX_ARTIFACT_PASSPHRASE is set (on Windows, use Git Bash):
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in artifacts/<run-id>/yanhekt-index.db.gz.enc | gunzip > run-<run-id>.db
+# if not:
+gunzip -c artifacts/<run-id>/yanhekt-index.db.gz > run-<run-id>.db
+
+npm run merge -- run-<run-id>.db       # several files at once is fine
+npm run upload                         # optional: push the merged rows to D1
+```
+
+`merge` uses the same rules as D1: new rows are added, a full course record replaces a thin copy, and nothing is downgraded. Merged rows are marked as changed, so your next `upload` includes them. Merging the same file twice is harmless.
+
+### Things to know
+
+- Artifacts are kept for **30 days**. Download or chain runs before then. Private repositories count artifacts against the account's Actions storage quota.
+- GitHub's terms say Actions are for work related to the repository's software project. This index feeds the app's course lookup, but it's your call whether that fits your use.
+- If the run is cancelled or crashes, the database is still packaged and uploaded with whatever was saved, and the range can be continued from it.
+
 ## Filling in video URLs later
 
 ```sh
@@ -143,6 +204,7 @@ The window is always Beijing time, whatever the computer's time zone. Use `--win
 | `--upload` | off | upload after each crawl |
 | `--device NAME` | hostname | name in the D1 progress table |
 | `--remote` | off | `status`: show D1 |
+| `merge FILE…` | — | command: merge other index files (e.g. Actions artifacts) into this one |
 | `--db PATH` | ./data/yanhekt-index.db | |
 | `--gap-threshold`, `--probe-step`, `--probe-count` | 150, 500, 20 | hole skipping (see below) |
 | `--refresh-days N` | 14 | re-check recent sessions that had no video id yet |

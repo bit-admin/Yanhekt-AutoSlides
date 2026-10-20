@@ -12,6 +12,8 @@ import {
   SCHEMA_SQL,
   SESSION_API,
   SESSION_SKIP,
+  SYNC_TABLE_NAMES,
+  SYNC_TABLES,
   VIDEO_API,
   VIDEO_ZERO_SKIP,
 } from './schema.ts';
@@ -310,6 +312,54 @@ export class SqliteStore implements Store {
       minSessionId: n('SELECT COALESCE(MIN(id), 0) FROM sessions'),
       maxSessionId: n('SELECT COALESCE(MAX(id), 0) FROM sessions'),
     };
+  }
+
+  /**
+   * Merge another index file (e.g. a GitHub Actions artifact) into this one,
+   * with the same rules as a D1 upload. Merged rows get `changed_at = nowMs`
+   * so the next `upload` from this device includes them. Returns rows
+   * inserted or updated per table, and the other file's lane positions.
+   */
+  mergeFrom(path: string, nowMs: number): { rows: Record<string, number>; lanes: Record<string, LaneState> } {
+    const cols = (schema: string, table: string) =>
+      (this.db.prepare(`PRAGMA ${schema}.table_info(${table})`).all() as Array<{ name: string }>).map((c) => c.name);
+    this.db.prepare('ATTACH DATABASE ? AS src').run(path);
+    try {
+      const rows: Record<string, number> = {};
+      this.begin();
+      try {
+        for (const table of SYNC_TABLE_NAMES) {
+          const theirs = new Set(cols('src', table));
+          if (theirs.size === 0) {
+            rows[table] = 0;
+            continue;
+          }
+          const shared = cols('main', table).filter((c) => theirs.has(c));
+          const rule = SYNC_TABLES[table];
+          const select = shared.map((c) => (c === 'changed_at' ? '? AS changed_at' : q(c))).join(', ');
+          const sets = shared.filter((c) => c !== 'id' && !(rule.keep as readonly string[]).includes(c)).map((c) => `${q(c)} = excluded.${q(c)}`);
+          const r = this.db
+            .prepare(
+              `INSERT INTO main.${table} (${shared.map(q).join(', ')}) SELECT ${select} FROM src.${table} WHERE true
+               ON CONFLICT(id) DO UPDATE SET ${sets.join(', ')} WHERE ${rule.where}`,
+            )
+            .run(nowMs);
+          rows[table] = Number(r.changes);
+        }
+        this.commit();
+      } catch (err) {
+        this.rollback();
+        throw err;
+      }
+      const lanes = Object.fromEntries(
+        (this.db.prepare("SELECT key, value FROM src.crawl_state WHERE key LIKE 'lane:%'").all() as Array<{ key: string; value: string }>).map(
+          (r) => [r.key.slice('lane:'.length), JSON.parse(r.value) as LaneState],
+        ),
+      );
+      return { rows, lanes };
+    } finally {
+      this.db.exec('DETACH DATABASE src');
+    }
   }
 
   startRun(nowMs: number): number {
