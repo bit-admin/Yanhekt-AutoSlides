@@ -1,57 +1,60 @@
 #!/usr/bin/env node
 /**
- * yanhekt-indexer — local, no-auth Yanhekt session indexer.
- *
- *   node src/cli.ts run      wait for the nightly window, crawl until it closes, repeat
- *   node src/cli.ts now      crawl right now for --minutes (testing / catch-up)
- *   node src/cli.ts status   progress, coverage per term, recent runs
- *   node src/cli.ts dump     write SQL files for `wrangler d1 execute --file`
- *
- * Run `node src/cli.ts --help` for options.
+ * yanhekt-indexer — local, no-auth Yanhekt session indexer. See README.md.
  */
 
 import { parseArgs } from 'node:util';
 import { closeSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { resolve } from 'node:path';
-import { Crawler, TransientError, type CrawlerConfig } from './crawler.ts';
+import { Crawler, TransientError, defaultLanes, rangeLane, type CrawlerConfig, type LaneSpec } from './crawler.ts';
 import { SqliteStore } from './store.ts';
 import { cnClock, inWindow, nextWindowStartMs, windowEndMs } from './time.ts';
 import { Budget, Pacer, YanhektClient, sleep } from './yanhekt.ts';
-import { printStatus } from './status.ts';
+import { laneLines, printStatus } from './status.ts';
 import { dumpForD1 } from './dump.ts';
+import { D1Http, d1FromEnv, printRemoteStatus, upload } from './remote.ts';
 
-const DEFAULT_UA = 'AutoSlides-Indexer/0.1 (+https://github.com/bit-admin/Yanhekt-AutoSlides)';
+const DEFAULT_UA = 'AutoSlides-Indexer/0.2 (+https://github.com/bit-admin/Yanhekt-AutoSlides)';
 
-const HELP = `yanhekt-indexer — walk Yanhekt session ids without logging in, store everything in SQLite.
+const HELP = `yanhekt-indexer — walk Yanhekt session ids without logging in, store them in SQLite, upload to D1.
 
 Commands
-  run       Wait for the window, crawl until it closes, then wait for the next night.
-            Keep it running (tmux, systemd, launchd, Task Scheduler…).
-  now       Crawl immediately, ignoring the window, for --minutes (default 10).
-  status    Show progress, per-term coverage and recent runs.
-  dump      Write the database as SQL files for Cloudflare D1 (--out DIR).
+  run       Wait for the nightly window, crawl until it closes, repeat every night.
+  now       Crawl immediately for --minutes (default 10), ignoring the window.
+  status    Local progress. With --remote: what D1 holds and where every device is.
+  upload    Send rows changed since the last upload to Cloudflare D1.
+  dump      Write the shared tables as SQL files (alternative to upload).
 
-Options
-  --db PATH             SQLite file (default ./data/yanhekt-index.db)
-  --window 2-5          Crawl window in Beijing time (UTC+8), start-end hours (default 2-5)
-  --once                run: exit after one window instead of waiting for the next
+What to crawl
+  (default)             forward from --initial-id to the newest id, and backfill down to --floor-id
+  --from A [--to B]     only ids A→B (either direction), or A upward to the newest id.
+                        Re-running the same command continues where it stopped.
+  --restart             forget the saved position of the selected lane(s) and start over
+  --videos              also fetch recorded URLs (/v1/video), including for sessions stored earlier
+  --only-videos         only fetch recorded URLs for stored sessions; no scanning
+  --no-course-detail    skip /v1/course (keeps the thinner course copy that comes with each session)
+
+Pace and schedule
+  --window 2-5          crawl window, Beijing time (UTC+8), start-end hours (default 2-5)
+  --once                run: exit after one window
   --minutes N           now: how long to crawl (default 10)
-  --interval-ms N       Time between request starts, min 250 (default 1000 = 1 req/s)
-  --max-requests N      Cap per window / per 'now' run, 0 = no cap (default 0)
-  --batch N             Session ids per round / transaction (default 25)
-  --initial-id N        Where both lanes start on a fresh database (default 932000)
-  --floor-id N          Backfill stops below this id (default 1)
-  --no-videos           Do not call /v1/video (no stream URLs)
-  --no-course-detail    Do not call /v1/course + professor list (nested course only)
-  --gap-threshold N     Misses in a row before probing ahead (default 150)
-  --probe-step N        Probe spacing (default 500)
-  --probe-count N       Probes per gap (default 20)
-  --refresh-days N      Re-check sessions without video that ended within N days (default 14)
+  --interval-ms N       time between request starts, min 250 (default 1000 = 1 req/s)
+  --max-requests N      cap per window / per 'now' run, 0 = none (default 0)
+  --batch N             session ids per round / transaction (default 25)
+  --initial-id N        default lanes' starting point on a fresh database (default 932000)
+  --floor-id N          backfill stops below this id (default 1)
+
+Upload (needs CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN, e.g. in .env)
+  --upload              run/now: upload after each crawl
+  --device NAME         name shown in the D1 progress table (default: hostname)
+  --remote              status: show D1 instead of the local database
+
+Other
+  --db PATH             SQLite file (default ./data/yanhekt-index.db)
+  --out DIR / --max-mb N   dump: output directory (default ./d1-dump) / file size (default 50)
   --user-agent S        User-Agent header (default identifies this project)
-  --out DIR             dump: output directory (default ./d1-dump)
-  --max-mb N            dump: max size of one SQL file (default 50)
-  -q, --quiet           Only log round summaries and errors
+  -q, --quiet           only progress lines and errors
   -h, --help
 `;
 
@@ -67,12 +70,19 @@ const { values: opts, positionals } = parseArgs({
     batch: { type: 'string', default: '25' },
     'initial-id': { type: 'string', default: '932000' },
     'floor-id': { type: 'string', default: '1' },
-    'no-videos': { type: 'boolean', default: false },
+    from: { type: 'string' },
+    to: { type: 'string' },
+    restart: { type: 'boolean', default: false },
+    videos: { type: 'boolean', default: false },
+    'only-videos': { type: 'boolean', default: false },
     'no-course-detail': { type: 'boolean', default: false },
     'gap-threshold': { type: 'string', default: '150' },
     'probe-step': { type: 'string', default: '500' },
     'probe-count': { type: 'string', default: '20' },
     'refresh-days': { type: 'string', default: '14' },
+    upload: { type: 'boolean', default: false },
+    device: { type: 'string' },
+    remote: { type: 'boolean', default: false },
     'user-agent': { type: 'string', default: DEFAULT_UA },
     out: { type: 'string', default: './d1-dump' },
     'max-mb': { type: 'string', default: '50' },
@@ -81,17 +91,19 @@ const { values: opts, positionals } = parseArgs({
   },
 });
 
-function num(name: string, min: number, max: number): number {
-  const raw = (opts as Record<string, unknown>)[name];
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n < min || n > max) die(`--${name} must be a number between ${min} and ${max} (got ${String(raw)})`);
-  return Math.trunc(n);
-}
-
 function die(msg: string): never {
   console.error(`error: ${msg}`);
   process.exit(2);
   throw new Error(msg); // unreachable; keeps `never` honest for the type checker
+}
+
+function num(name: string, min: number, max: number): number {
+  const raw = (opts as Record<string, unknown>)[name];
+  const n = Number(raw);
+  if (raw === undefined || !Number.isFinite(n) || n < min || n > max) {
+    die(`--${name} must be a number between ${min} and ${max} (got ${String(raw)})`);
+  }
+  return Math.trunc(n);
 }
 
 function log(msg: string): void {
@@ -134,9 +146,9 @@ function acquireLock(dbPath: string): () => void {
       } catch {
         /* unreadable: treat as stale */
       }
-      const alive = holder.host === hostname() && typeof holder.pid === 'number' && pidAlive(holder.pid);
-      if (alive || (holder.host && holder.host !== hostname())) {
-        die(`${dbPath} is in use by pid ${holder.pid} on ${holder.host} (${path}). Delete the lock file if that process is gone.`);
+      const sameHost = holder.host === hostname();
+      if ((sameHost && typeof holder.pid === 'number' && pidAlive(holder.pid)) || (holder.host && !sameHost)) {
+        die(`${dbPath} is in use by pid ${holder.pid} on ${holder.host}. Stop that process first (or delete ${path} if it is gone).`);
       }
       unlinkSync(path);
     }
@@ -153,14 +165,39 @@ function pidAlive(pid: number): boolean {
   }
 }
 
-interface RunLimits {
-  deadlineMs: number;
-  maxRequests: number;
-  parkUntil: (nowMs: number) => number;
+function d1Target() {
+  const t = d1FromEnv(process.env);
+  if (!t) die('set CF_ACCOUNT_ID, CF_D1_DATABASE_ID and CF_API_TOKEN (see .env.example)');
+  return t;
 }
 
-/** Crawl until the deadline, the request cap, Ctrl-C, or repeated failures. */
-async function crawl(store: SqliteStore, config: CrawlerConfig, limits: RunLimits, signal: AbortSignal, intervalMs: number) {
+async function doUpload(store: SqliteStore, signal: AbortSignal): Promise<void> {
+  const t = d1Target();
+  const sent = await upload(store, new D1Http(t), t.databaseId, {
+    device: opts.device?.trim() || hostname(),
+    maxRequestBytes: 800_000,
+    maxStatements: 200,
+    log,
+    signal,
+  });
+  log(`upload done: ${Object.entries(sent).map(([k, v]) => `${v} ${k}`).join(', ')}`);
+}
+
+interface CrawlResult {
+  reason: string;
+  /** Nothing left to do for these lanes (range finished, or frontier + backfill done). */
+  idle: boolean;
+}
+
+/** Crawl until the deadline, the request cap, Ctrl-C, nothing left, or repeated failures. */
+async function crawl(
+  store: SqliteStore,
+  config: CrawlerConfig,
+  lanes: LaneSpec[],
+  limits: { deadlineMs: number; maxRequests: number; parkUntil: (nowMs: number) => number },
+  signal: AbortSignal,
+  intervalMs: number,
+): Promise<CrawlResult> {
   const budget = new Budget(limits.maxRequests || Number.MAX_SAFE_INTEGER, limits.deadlineMs, intervalMs);
   const api = new YanhektClient({
     fetch,
@@ -173,6 +210,7 @@ async function crawl(store: SqliteStore, config: CrawlerConfig, limits: RunLimit
     budget,
     store,
     config,
+    lanes,
     now: Date.now,
     parkUntil: limits.parkUntil,
     signal,
@@ -180,14 +218,11 @@ async function crawl(store: SqliteStore, config: CrawlerConfig, limits: RunLimit
   });
 
   const runId = store.startRun(Date.now());
-  const s = crawler.state;
-  log(
-    `start: forward at ${s.forward.cursor}${s.forward.parkedUntilMs && s.forward.parkedUntilMs > Date.now() ? ' (parked)' : ''}, ` +
-      `backfill at ${s.backfill.cursor}${s.backfill.done ? ' (done)' : ''}; until ${cnClock(limits.deadlineMs)} UTC+8, ` +
-      `${limits.maxRequests || 'no'} request cap, ${intervalMs} ms between requests`,
-  );
+  log(`start: until ${cnClock(limits.deadlineMs)} UTC+8, ${limits.maxRequests || 'no'} request cap, ${intervalMs} ms between requests`);
+  for (const line of laneLines(crawler.progress(), Date.now())) log(`  ${line}`);
 
   let reason = 'deadline';
+  let idle = false;
   let failures = 0;
   let lastReport = Date.now();
   for (;;) {
@@ -203,14 +238,14 @@ async function crawl(store: SqliteStore, config: CrawlerConfig, limits: RunLimit
       const r = await crawler.runRound();
       failures = 0;
       if (r === 'idle') {
-        reason = 'nothing to do (frontier reached, backfill done)';
+        reason = 'nothing left to do';
+        idle = true;
         break;
       }
       if (r === 'aborted') {
         reason = 'interrupted';
         break;
       }
-      if (r === 'budget') continue; // loop head names the reason
     } catch (err) {
       if (!(err instanceof TransientError)) {
         store.finishRun(runId, crawler.stats, `crashed: ${String(err)}`, Date.now());
@@ -231,19 +266,23 @@ async function crawl(store: SqliteStore, config: CrawlerConfig, limits: RunLimit
     }
     if (Date.now() - lastReport >= 60_000) {
       lastReport = Date.now();
-      const st = crawler.state;
-      log(
-        `progress: ${crawler.stats.requests} requests, ${crawler.stats.sessionsFound} sessions ` +
-          `(${crawler.stats.sessionsMissing} missing), ${crawler.stats.videos} videos, ${crawler.stats.courses} courses; ` +
-          `forward ${st.forward.cursor}, backfill ${st.backfill.cursor}`,
-      );
+      const s = crawler.stats;
+      log(`progress: ${s.requests} requests, ${s.sessionsFound} sessions (${s.sessionsMissing} missing), ${s.courses} courses, ${s.videos} videos`);
     }
   }
   store.finishRun(runId, crawler.stats, reason, Date.now());
-  log(
-    `stop (${reason}): ${crawler.stats.requests} requests, ${crawler.stats.sessionsFound} sessions found, ` +
-      `${crawler.stats.sessionsMissing} missing, ${crawler.stats.videos} videos, ${crawler.stats.courses} courses`,
-  );
+
+  // End-of-run report: what happened, where each lane is, how to continue.
+  const s = crawler.stats;
+  const t = store.totals();
+  log(`stop (${reason}): ${s.requests} requests, ${s.sessionsFound} sessions found, ${s.sessionsMissing} missing, ${s.courses} courses, ${s.videos} videos`);
+  for (const line of laneLines(crawler.progress(), Date.now())) log(`  ${line}`);
+  log(`  database: ${t.sessions} sessions (ids ${t.minSessionId}–${t.maxSessionId}), ${t.courses} courses, ${t.videos} video URLs, ${t.videosQueued} queued`);
+  const range = lanes.find((l) => l.key.startsWith('range:'));
+  if (range && !idle) {
+    log(`  to continue: run the same command again (--from ${range.start}${range.end != null ? ` --to ${range.end}` : ''}); it resumes at the saved position`);
+  }
+  return { reason, idle };
 }
 
 async function main(): Promise<void> {
@@ -252,40 +291,27 @@ async function main(): Promise<void> {
     console.log(HELP);
     return;
   }
-
   const dbPath = resolve(opts.db);
 
   if (cmd === 'status') {
+    if (opts.remote) {
+      await printRemoteStatus(new D1Http(d1Target()));
+      return;
+    }
     const store = new SqliteStore(dbPath);
-    printStatus(store.db);
+    printStatus(store);
     store.close();
     return;
   }
   if (cmd === 'dump') {
     const store = new SqliteStore(dbPath);
-    dumpForD1(store.db, resolve(opts.out), num('max-mb', 1, 1000) * 1024 * 1024, log);
+    const files = dumpForD1(store.db, resolve(opts.out), num('max-mb', 1, 1000) * 1024 * 1024, log);
     store.close();
+    if (files.length > 0) log(`apply in order: for f in ${resolve(opts.out)}/*.sql; do npx wrangler d1 execute <db> --remote --file="$f"; done`);
     return;
   }
-  if (cmd !== 'run' && cmd !== 'now') die(`unknown command "${cmd}" (try --help)`);
-
-  const [startHour, endHour] = parseWindow(opts.window);
-  const intervalMs = num('interval-ms', 250, 600_000);
-  const maxRequests = num('max-requests', 0, 1e9);
-  const config: CrawlerConfig = {
-    initialSessionId: num('initial-id', 1, 1e12),
-    floorSessionId: num('floor-id', 1, 1e12),
-    fetchVideos: !opts['no-videos'],
-    fetchCourseDetail: !opts['no-course-detail'],
-    batchSize: num('batch', 1, 1000),
-    gapThreshold: num('gap-threshold', 10, 1e6),
-    probeStep: num('probe-step', 10, 1e6),
-    probeCount: num('probe-count', 1, 1000),
-    refreshDays: num('refresh-days', 0, 365),
-    refreshEveryRounds: 10,
-    refreshPerRound: 5,
-    maxUnexpectedInRow: 5,
-  };
+  if (cmd !== 'run' && cmd !== 'now' && cmd !== 'upload') die(`unknown command "${cmd}" (try --help)`);
+  if (opts.upload || cmd === 'upload') d1Target(); // fail fast on missing credentials
 
   const release = acquireLock(dbPath);
   const store = new SqliteStore(dbPath);
@@ -304,26 +330,63 @@ async function main(): Promise<void> {
   };
   process.on('SIGINT', onSignal);
   process.on('SIGTERM', onSignal);
-  log(`database ${dbPath}`);
 
   try {
+    if (cmd === 'upload') {
+      await doUpload(store, ac.signal);
+      return;
+    }
+
+    log(`database ${dbPath}`);
+    const [startHour, endHour] = parseWindow(opts.window);
+    const intervalMs = num('interval-ms', 250, 600_000);
+    const maxRequests = num('max-requests', 0, 1e9);
+    const onlyVideos = opts['only-videos'];
+    const config: CrawlerConfig = {
+      fetchVideos: opts.videos || onlyVideos,
+      fetchCourseDetail: !opts['no-course-detail'],
+      batchSize: num('batch', 1, 1000),
+      gapThreshold: num('gap-threshold', 10, 1e6),
+      probeStep: num('probe-step', 10, 1e6),
+      probeCount: num('probe-count', 1, 1000),
+      refreshDays: onlyVideos ? 0 : num('refresh-days', 0, 365),
+      refreshEveryRounds: 10,
+      refreshPerRound: 5,
+      maxUnexpectedInRow: 5,
+    };
+
+    let lanes: LaneSpec[];
+    if (onlyVideos) lanes = [];
+    else if (opts.from !== undefined) lanes = [rangeLane(num('from', 1, 1e12), opts.to !== undefined ? num('to', 1, 1e12) : null)];
+    else if (opts.to !== undefined) die('--to needs --from');
+    else lanes = defaultLanes(num('initial-id', 2, 1e12), num('floor-id', 1, 1e12));
+
+    if (opts.restart) {
+      for (const l of lanes) store.deleteState(`lane:${l.key}`);
+      log(`restart: cleared saved position of ${lanes.map((l) => l.key).join(', ') || '(no lanes)'}`);
+    }
+    if (config.fetchVideos) {
+      const queued = store.queueMissingVideos(Date.now());
+      if (queued > 0) log(`queued ${queued} stored video ids that have no URL yet`);
+    }
+
+    const finished = (r: CrawlResult) => r.idle && (onlyVideos || opts.from !== undefined);
+
     if (cmd === 'now') {
       const minutes = num('minutes', 1, 24 * 60);
       await crawl(
         store,
         config,
-        {
-          deadlineMs: Date.now() + minutes * 60_000,
-          maxRequests,
-          parkUntil: (now) => now + 3600_000,
-        },
+        lanes,
+        { deadlineMs: Date.now() + minutes * 60_000, maxRequests, parkUntil: (now) => now + 3600_000 },
         ac.signal,
         intervalMs,
       );
+      if (opts.upload && !ac.signal.aborted) await doUpload(store, ac.signal);
       return;
     }
 
-    // run: sleep outside the window, crawl inside it.
+    // run: sleep outside the window, crawl inside it, every night.
     while (!ac.signal.aborted) {
       const now = Date.now();
       if (!inWindow(now, startHour, endHour)) {
@@ -336,15 +399,21 @@ async function main(): Promise<void> {
         continue;
       }
       const end = windowEndMs(now, startHour, endHour);
-      await crawl(
+      const r = await crawl(
         store,
         config,
+        lanes,
         { deadlineMs: end, maxRequests, parkUntil: (t) => nextWindowStartMs(t, startHour) },
         ac.signal,
         intervalMs,
       );
+      if (opts.upload && !ac.signal.aborted) await doUpload(store, ac.signal);
+      if (finished(r)) {
+        log('all selected work is done; exiting');
+        break;
+      }
       if (opts.once) break;
-      // Finished early (frontier + backfill done, or gave up): wait out this window.
+      // Finished early tonight (newest id reached, backfill done, or gave up): wait out the window.
       if (Date.now() < end) await sleep(end - Date.now(), ac.signal);
     }
   } finally {

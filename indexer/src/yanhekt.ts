@@ -1,10 +1,9 @@
 /**
  * Anonymous cbiz client. Only endpoints that answer without a login token:
  *
- *   GET /v1/course/session?session_id=       session + nested course + nested live
- *   GET /v1/video?id=                        stream URLs (main / vga / room / audio)
- *   GET /v1/course?id=                       course detail (tags, college, …)
- *   GET /v1/course/professor/list?course_id= teachers
+ *   GET /v1/course/session?session_id=  session + nested course + nested live (no recorded URLs)
+ *   GET /v1/course?id=                  course detail: teachers, tags, college, …
+ *   GET /v1/video?id=                   recorded URLs (main / vga / room / audio)
  *
  * cbiz answers HTTP 200 with a `code` envelope. The official Origin is
  * required: a foreign Origin is HTTP 403 at the edge.
@@ -38,7 +37,6 @@ export interface Api {
   session(id: number): Promise<Outcome<Json>>;
   video(id: number): Promise<Outcome<Json>>;
   course(id: number): Promise<Outcome<Json>>;
-  professors(courseId: number): Promise<Outcome<unknown[]>>;
 }
 
 /** Sleep that wakes early (without throwing) when `signal` aborts. */
@@ -127,12 +125,9 @@ export class YanhektClient implements Api {
     return this.get(`/v1/video?id=${id}`, MISSING_CODE.video);
   }
 
+  /** `with_professor_badges=true` makes `professors` carry the full teacher list (names, titles, badges). */
   course(id: number): Promise<Outcome<Json>> {
     return this.get(`/v1/course?id=${id}&with_professor_badges=true`, MISSING_CODE.course);
-  }
-
-  professors(courseId: number): Promise<Outcome<unknown[]>> {
-    return this.get(`/v1/course/professor/list?course_id=${courseId}`, MISSING_CODE.course, true);
   }
 
   private headers(): Record<string, string> {

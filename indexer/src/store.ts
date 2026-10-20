@@ -3,7 +3,7 @@
 import { DatabaseSync, type StatementSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { asObject, professorNames, splitRow, toSql, videoIdsOf, type SqlValue } from './extract.ts';
+import { asObject, professorNames, splitRow, videoIdsOf, type SqlValue } from './extract.ts';
 import {
   COURSE_API,
   COURSE_SKIP,
@@ -17,6 +17,7 @@ import {
 } from './schema.ts';
 import type { Json } from './yanhekt.ts';
 
+/** Position of one scan lane. Saved under `lane:<key>` in crawl_state. */
 export interface LaneState {
   /** Next id to look at. */
   cursor: number;
@@ -24,15 +25,10 @@ export interface LaneState {
   missRun: number;
   /** First id of that missing run. */
   missRunStart: number | null;
-  /** Forward lane only: parked at the frontier until this time. */
+  /** Parked at the newest id until this time (lanes that park at the frontier). */
   parkedUntilMs: number | null;
-  /** Backfill lane only: reached the floor. */
+  /** Reached its end (or the newest id, for lanes that finish there). */
   done: boolean;
-}
-
-export interface CrawlState {
-  forward: LaneState;
-  backfill: LaneState;
 }
 
 export interface PendingVideo {
@@ -48,16 +44,16 @@ export interface RunStats {
   videos: number;
 }
 
-/** What the crawler needs from storage. Implemented by SqliteStore; faked in tests. */
+/** What the crawler needs from storage. */
 export interface Store {
   begin(): void;
   commit(): void;
   rollback(): void;
-  loadState(fallback: CrawlState): CrawlState;
-  saveState(state: CrawlState): void;
+  loadLane(key: string): LaneState | null;
+  saveLane(key: string, state: LaneState): void;
   saveSession(raw: Json, nowMs: number, opts: { refreshed: boolean; queueVideos: boolean }): void;
   markSessionGone(id: number, nowMs: number): void;
-  saveCourseDetail(raw: Json, professors: unknown[] | null, nowMs: number): void;
+  saveCourseDetail(raw: Json, nowMs: number): void;
   markCourse(id: number, status: 'missing' | 'error', nowMs: number): void;
   saveVideo(raw: Json, sessionId: number, nowMs: number): void;
   markVideoMissing(id: number, sessionId: number, nowMs: number): void;
@@ -124,21 +120,35 @@ export class SqliteStore implements Store {
     if (this.db.isTransaction) this.db.exec('ROLLBACK');
   }
 
-  loadState(fallback: CrawlState): CrawlState {
-    const row = this.stmt('SELECT value FROM crawl_state WHERE key = ?').get('lanes') as { value: string } | undefined;
-    if (!row) return structuredClone(fallback);
-    const saved = JSON.parse(row.value) as Partial<CrawlState>;
-    return {
-      forward: { ...fallback.forward, ...saved.forward },
-      backfill: { ...fallback.backfill, ...saved.backfill },
-    };
+  getState(key: string): string | null {
+    const row = this.stmt('SELECT value FROM crawl_state WHERE key = ?').get(key) as { value: string } | undefined;
+    return row ? row.value : null;
   }
 
-  saveState(state: CrawlState): void {
-    this.run('INSERT INTO crawl_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [
-      'lanes',
-      JSON.stringify(state),
-    ]);
+  setState(key: string, value: string): void {
+    this.run('INSERT INTO crawl_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [key, value]);
+  }
+
+  deleteState(key: string): void {
+    this.run('DELETE FROM crawl_state WHERE key = ?', [key]);
+  }
+
+  loadLane(key: string): LaneState | null {
+    const v = this.getState(`lane:${key}`);
+    return v ? (JSON.parse(v) as LaneState) : null;
+  }
+
+  saveLane(key: string, state: LaneState): void {
+    this.setState(`lane:${key}`, JSON.stringify(state));
+  }
+
+  /** Every saved lane, by key. */
+  allLanes(): Record<string, LaneState> {
+    const rows = this.stmt("SELECT key, value FROM crawl_state WHERE key LIKE 'lane:%' ORDER BY key").all() as Array<{
+      key: string;
+      value: string;
+    }>;
+    return Object.fromEntries(rows.map((r) => [r.key.slice('lane:'.length), JSON.parse(r.value) as LaneState]));
   }
 
   saveSession(raw: Json, nowMs: number, opts: { refreshed: boolean; queueVideos: boolean }): void {
@@ -148,65 +158,77 @@ export class SqliteStore implements Store {
 
     const row = splitRow(raw, SESSION_API, SESSION_SKIP);
     const api = [...names(SESSION_API), 'extra'];
-    const cols = [...api, 'live_id', 'first_seen_at', 'fetched_at', 'refreshed_at', 'gone_at'];
-    const sql = upsertSql('sessions', cols, [...api, 'live_id', 'fetched_at'], [
+    const cols = [...api, 'live_id', 'first_seen_at', 'fetched_at', 'changed_at', 'refreshed_at', 'gone_at'];
+    const sql = upsertSql('sessions', cols, [...api, 'live_id', 'fetched_at', 'changed_at'], [
       'refreshed_at = COALESCE(excluded.refreshed_at, sessions.refreshed_at)',
       'gone_at = NULL',
     ]);
-    this.run(sql, [...api.map((c) => row[c]), liveId, nowMs, nowMs, opts.refreshed ? nowMs : null, null]);
+    this.run(sql, [...api.map((c) => row[c]), liveId, nowMs, nowMs, nowMs, opts.refreshed ? nowMs : null, null]);
 
     if (live && liveId != null) {
       const lrow = splitRow(live, LIVE_API, LIVE_SKIP);
       const lapi = [...names(LIVE_API), 'extra'];
-      const lcols = [...lapi, 'session_id', 'fetched_at'];
-      this.run(upsertSql('lives', lcols, lcols.slice(1)), [...lapi.map((c) => lrow[c]), id, nowMs]);
+      const lcols = [...lapi, 'session_id', 'fetched_at', 'changed_at'];
+      this.run(upsertSql('lives', lcols, lcols.slice(1)), [...lapi.map((c) => lrow[c]), id, nowMs, nowMs]);
     }
 
-    // The nested course is a free, slightly thinner copy of /v1/course.
-    // Insert it once; the detail fetch later fills in the rest.
+    // The nested course is a free, slightly thinner copy of /v1/course
+    // (no teachers, tags or image). Insert it once; the detail fetch fills in the rest.
     const course = asObject(raw.course);
     if (course && course.id != null) {
       const crow = splitRow(course, COURSE_API, COURSE_SKIP);
       const capi = [...names(COURSE_API), 'extra'];
-      this.run(upsertSql('courses', [...capi, 'first_seen_at'], 'nothing'), [...capi.map((c) => crow[c]), nowMs]);
+      this.run(upsertSql('courses', [...capi, 'first_seen_at', 'changed_at'], 'nothing'), [
+        ...capi.map((c) => crow[c]),
+        nowMs,
+        nowMs,
+      ]);
     }
 
     if (opts.queueVideos) {
-      for (const vid of videoIdsOf(raw)) {
-        this.run(
-          `INSERT INTO pending_videos (video_id, session_id, added_at)
-           SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM videos WHERE id = ?)
-           ON CONFLICT(video_id) DO NOTHING`,
-          [vid, id, nowMs, vid],
-        );
-      }
+      for (const vid of videoIdsOf(raw)) this.queueVideo(vid, id, nowMs);
     }
   }
 
-  markSessionGone(id: number, nowMs: number): void {
-    this.run('UPDATE sessions SET gone_at = ?, refreshed_at = ? WHERE id = ?', [nowMs, nowMs, id]);
+  private queueVideo(videoId: number, sessionId: number, nowMs: number): void {
+    this.run(
+      `INSERT INTO pending_videos (video_id, session_id, added_at)
+       SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM videos WHERE id = ?)
+       ON CONFLICT(video_id) DO NOTHING`,
+      [videoId, sessionId, nowMs, videoId],
+    );
   }
 
-  saveCourseDetail(raw: Json, professors: unknown[] | null, nowMs: number): void {
+  /** Queue every stored `video_ids` entry that has no video row yet. Returns how many were added. */
+  queueMissingVideos(nowMs: number): number {
+    const r = this.stmt(
+      `INSERT INTO pending_videos (video_id, session_id, added_at)
+       SELECT CAST(j.value AS INTEGER), s.id, ?
+       FROM sessions s, json_each(s.video_ids) j
+       WHERE s.video_ids <> '[]'
+         AND NOT EXISTS (SELECT 1 FROM videos v WHERE v.id = CAST(j.value AS INTEGER))
+       ON CONFLICT(video_id) DO NOTHING`,
+    ).run(nowMs);
+    return Number(r.changes);
+  }
+
+  markSessionGone(id: number, nowMs: number): void {
+    this.run('UPDATE sessions SET gone_at = ?, refreshed_at = ?, changed_at = ? WHERE id = ?', [nowMs, nowMs, nowMs, id]);
+  }
+
+  saveCourseDetail(raw: Json, nowMs: number): void {
     const row = splitRow(raw, COURSE_API, COURSE_SKIP);
     const api = [...names(COURSE_API), 'extra'];
-    const own = ['professor_list', 'professor_names', 'first_seen_at', 'detail_status', 'detail_fetched_at'];
-    const list = professors ?? (Array.isArray(raw.professors) ? raw.professors : []);
-    const sql = upsertSql('courses', [...api, ...own], [...api, 'professor_list', 'professor_names', 'detail_status', 'detail_fetched_at']);
-    this.run(sql, [
-      ...api.map((c) => row[c]),
-      professors ? toSql(professors) : null,
-      professorNames(list).join('、') || null,
-      nowMs,
-      'ok',
-      nowMs,
-    ]);
+    const own = ['professor_names', 'first_seen_at', 'detail_status', 'detail_fetched_at', 'changed_at'];
+    const sql = upsertSql('courses', [...api, ...own], [...api, 'professor_names', 'detail_status', 'detail_fetched_at', 'changed_at']);
+    this.run(sql, [...api.map((c) => row[c]), professorNames(raw.professors).join('、') || null, nowMs, 'ok', nowMs, nowMs]);
   }
 
   markCourse(id: number, status: 'missing' | 'error', nowMs: number): void {
     this.run(
-      'UPDATE courses SET detail_status = ?, detail_attempts = detail_attempts + 1, detail_fetched_at = ? WHERE id = ?',
-      [status, nowMs, id],
+      `UPDATE courses SET detail_status = ?, detail_attempts = detail_attempts + 1,
+         detail_fetched_at = ?, changed_at = ? WHERE id = ?`,
+      [status, nowMs, nowMs, id],
     );
   }
 
@@ -214,18 +236,14 @@ export class SqliteStore implements Store {
     const skip = VIDEO_ZERO_SKIP.filter((k) => raw[k] == null || Number(raw[k]) === 0);
     const row = splitRow(raw, VIDEO_API, skip);
     const api = [...names(VIDEO_API), 'extra'];
-    const cols = [...api, 'session_id', 'status', 'fetched_at'];
-    this.run(upsertSql('videos', cols, cols.slice(1)), [...api.map((c) => row[c]), sessionId, 'ok', nowMs]);
+    const cols = [...api, 'session_id', 'status', 'fetched_at', 'changed_at'];
+    this.run(upsertSql('videos', cols, cols.slice(1)), [...api.map((c) => row[c]), sessionId, 'ok', nowMs, nowMs]);
     this.run('DELETE FROM pending_videos WHERE video_id = ?', [Number(raw.id)]);
   }
 
   markVideoMissing(id: number, sessionId: number, nowMs: number): void {
-    this.run(upsertSql('videos', ['id', 'session_id', 'status', 'fetched_at'], ['session_id', 'status', 'fetched_at']), [
-      id,
-      sessionId,
-      'missing',
-      nowMs,
-    ]);
+    const cols = ['id', 'session_id', 'status', 'fetched_at', 'changed_at'];
+    this.run(upsertSql('videos', cols, cols.slice(1)), [id, sessionId, 'missing', nowMs, nowMs]);
     this.run('DELETE FROM pending_videos WHERE video_id = ?', [id]);
   }
 
@@ -277,6 +295,21 @@ export class SqliteStore implements Store {
        ORDER BY ended_at DESC LIMIT ?`,
     ).all(beforeCn, afterCn, refreshedBeforeMs, limit) as Array<{ id: number }>;
     return rows.map((r) => r.id);
+  }
+
+  /** Small summary used by `status`, end-of-run reports and the D1 progress row. */
+  totals(): Record<string, number> {
+    const n = (sql: string) => Number(Object.values(this.stmt(sql).get() as object)[0] ?? 0);
+    return {
+      sessions: n('SELECT COUNT(*) FROM sessions'),
+      sessionsWithVideo: n("SELECT COUNT(*) FROM sessions WHERE video_ids <> '[]'"),
+      courses: n('SELECT COUNT(*) FROM courses'),
+      coursesDetailed: n("SELECT COUNT(*) FROM courses WHERE detail_status = 'ok'"),
+      videos: n("SELECT COUNT(*) FROM videos WHERE status = 'ok'"),
+      videosQueued: n('SELECT COUNT(*) FROM pending_videos'),
+      minSessionId: n('SELECT COALESCE(MIN(id), 0) FROM sessions'),
+      maxSessionId: n('SELECT COALESCE(MAX(id), 0) FROM sessions'),
+    };
   }
 
   startRun(nowMs: number): number {

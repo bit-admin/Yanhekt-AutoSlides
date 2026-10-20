@@ -1,40 +1,44 @@
-/** `status` command: what is in the database and where the lanes are. */
+/** `status` command and the end-of-run progress report. */
 
-import type { DatabaseSync } from 'node:sqlite';
+import type { LaneProgress } from './crawler.ts';
+import type { SqliteStore } from './store.ts';
 import { cnClock } from './time.ts';
 
-function one(db: DatabaseSync, sql: string): number {
-  const row = db.prepare(sql).get() as Record<string, number> | undefined;
-  return row ? Number(Object.values(row)[0] ?? 0) : 0;
+/** One line per lane: where it is, how far through its range, and what to run to continue. */
+export function laneLines(progress: LaneProgress[], nowMs: number): string[] {
+  return progress.map(({ spec, state, runStartCursor }) => {
+    const moved = Math.abs(state.cursor - runStartCursor);
+    let where = `next id ${state.cursor}`;
+    if (spec.end != null) {
+      const total = Math.abs(spec.end - spec.start) + 1;
+      const covered = Math.min(total, Math.abs(state.cursor - spec.start));
+      const pct = ((covered / total) * 100).toFixed(1);
+      const left = Math.max(0, total - covered);
+      where += `, ${pct}% of ${spec.start}→${spec.end} (${left} ids left)`;
+      if (!state.done && moved > 0) where += `, ≈${Math.ceil(left / moved)} more run(s) at this pace`;
+    }
+    if (state.done) where += ' — done';
+    else if (state.parkedUntilMs != null && state.parkedUntilMs > nowMs) {
+      where += ` — at the newest id, waiting until ${cnClock(state.parkedUntilMs)} UTC+8`;
+    }
+    return `${spec.key.padEnd(24)} ${where}; this run ${moved} ids`;
+  });
 }
 
-export function printStatus(db: DatabaseSync): void {
-  const lanes = db.prepare("SELECT value FROM crawl_state WHERE key = 'lanes'").get() as { value: string } | undefined;
-  const state = lanes ? JSON.parse(lanes.value) : null;
-
+export function printStatus(store: SqliteStore): void {
+  const db = store.db;
+  const t = store.totals();
   console.log('Totals');
-  console.log(`  sessions        ${one(db, 'SELECT COUNT(*) FROM sessions')}` +
-    `  (with video ${one(db, "SELECT COUNT(*) FROM sessions WHERE video_ids <> '[]'")},` +
-    ` cancelled/no video ${one(db, "SELECT COUNT(*) FROM sessions WHERE video_ids = '[]'")},` +
-    ` gone ${one(db, 'SELECT COUNT(*) FROM sessions WHERE gone_at IS NOT NULL')})`);
-  console.log(`  courses         ${one(db, 'SELECT COUNT(*) FROM courses')}` +
-    `  (detail ok ${one(db, "SELECT COUNT(*) FROM courses WHERE detail_status = 'ok'")},` +
-    ` pending ${one(db, 'SELECT COUNT(*) FROM courses WHERE detail_status IS NULL')},` +
-    ` missing/error ${one(db, "SELECT COUNT(*) FROM courses WHERE detail_status IN ('missing','error')")})`);
-  console.log(`  videos          ${one(db, "SELECT COUNT(*) FROM videos WHERE status = 'ok'")}` +
-    `  (missing ${one(db, "SELECT COUNT(*) FROM videos WHERE status = 'missing'")},` +
-    ` queued ${one(db, 'SELECT COUNT(*) FROM pending_videos')})`);
-  console.log(`  lives           ${one(db, 'SELECT COUNT(*) FROM lives')}`);
-  console.log(`  failures        ${one(db, 'SELECT COUNT(*) FROM failures')}   skipped gaps ${one(db, 'SELECT COUNT(*) FROM gaps')}`);
+  console.log(`  sessions  ${t.sessions}  (with video ids ${t.sessionsWithVideo}; ids ${t.minSessionId}–${t.maxSessionId})`);
+  console.log(`  courses   ${t.courses}  (with detail ${t.coursesDetailed})`);
+  console.log(`  videos    ${t.videos}  (queued ${t.videosQueued})`);
 
-  console.log('\nLanes');
-  if (!state) console.log('  (not started)');
-  else {
-    const f = state.forward;
-    const b = state.backfill;
-    const parked = f.parkedUntilMs && f.parkedUntilMs > Date.now() ? `, parked until ${cnClock(f.parkedUntilMs)} UTC+8` : '';
-    console.log(`  forward   next id ${f.cursor}${parked}${f.missRun ? `, ${f.missRun} misses in a row` : ''}`);
-    console.log(`  backfill  next id ${b.cursor}${b.done ? ' (done)' : ''}${b.missRun ? `, ${b.missRun} misses in a row` : ''}`);
+  console.log('\nLanes (saved positions)');
+  const lanes = store.allLanes();
+  if (Object.keys(lanes).length === 0) console.log('  (none yet)');
+  for (const [key, l] of Object.entries(lanes)) {
+    const parked = l.parkedUntilMs && l.parkedUntilMs > Date.now() ? `, waiting until ${cnClock(l.parkedUntilMs)} UTC+8` : '';
+    console.log(`  ${key.padEnd(24)} next id ${l.cursor}${l.done ? ' (done)' : ''}${parked}`);
   }
 
   const terms = db
@@ -45,24 +49,30 @@ export function printStatus(db: DatabaseSync): void {
        GROUP BY c.school_year, c.semester ORDER BY lo DESC`,
     )
     .all() as Array<{ year: string | null; sem: number | null; sessions: number; courses: number; lo: number; hi: number }>;
-  console.log('\nCoverage by term (session ids seen)');
+  console.log('\nCoverage by term');
   if (terms.length === 0) console.log('  (none yet)');
-  for (const t of terms) {
-    const label = t.year ? `${t.year} 第${t.sem === 2 ? '二' : t.sem === 1 ? '一' : String(t.sem)}学期` : '(unknown)';
-    console.log(`  ${label.padEnd(20)} ${String(t.sessions).padStart(7)} sessions  ${String(t.courses).padStart(5)} courses  ids ${t.lo}–${t.hi}`);
+  for (const r of terms) {
+    const label = r.year ? `${r.year} 第${r.sem === 2 ? '二' : r.sem === 1 ? '一' : String(r.sem)}学期` : '(unknown)';
+    console.log(`  ${label.padEnd(20)} ${String(r.sessions).padStart(7)} sessions  ${String(r.courses).padStart(5)} courses  ids ${r.lo}–${r.hi}`);
   }
 
-  const runs = db
-    .prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 5')
-    .all() as Array<Record<string, number | string | null>>;
+  const uploads = db.prepare("SELECT key, value FROM crawl_state WHERE key LIKE 'upload:%'").all() as Array<{ key: string; value: string }>;
+  if (uploads.length > 0) {
+    console.log('\nLast upload position (per D1 database and table)');
+    for (const u of uploads) {
+      const { t: at } = JSON.parse(u.value) as { t: number };
+      console.log(`  ${u.key.split(':').slice(1).join(' / ')}: rows changed up to ${at ? cnClock(at) : '—'} UTC+8`);
+    }
+  }
+
+  const runs = db.prepare('SELECT * FROM runs ORDER BY id DESC LIMIT 5').all() as Array<Record<string, number | string | null>>;
   console.log('\nRecent runs');
   if (runs.length === 0) console.log('  (none yet)');
   for (const r of runs) {
-    const start = cnClock(Number(r.started_at));
     const mins = r.ended_at ? Math.round((Number(r.ended_at) - Number(r.started_at)) / 60_000) : null;
     console.log(
-      `  ${start}  ${mins == null ? 'running/crashed' : `${mins} min`}  ${r.requests} req, ` +
-        `${r.sessions_found} sessions, ${r.sessions_missing} missing, ${r.videos} videos, ${r.courses} courses — ${r.stop_reason ?? ''}`,
+      `  ${cnClock(Number(r.started_at))}  ${mins == null ? 'running/crashed' : `${mins} min`}  ${r.requests} req, ` +
+        `${r.sessions_found} sessions, ${r.sessions_missing} missing, ${r.courses} courses, ${r.videos} videos — ${r.stop_reason ?? ''}`,
     );
   }
 }

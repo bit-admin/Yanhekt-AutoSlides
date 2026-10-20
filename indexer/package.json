@@ -1,17 +1,18 @@
 {
   "name": "yanhekt-indexer",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
-  "description": "Local, no-auth Yanhekt session indexer. Walks session ids at a gentle rate inside a nightly window and stores everything in SQLite.",
+  "description": "Local, no-auth Yanhekt session indexer. Walks session ids at a gentle rate inside a nightly window, stores them in SQLite, uploads to Cloudflare D1.",
   "engines": {
     "node": ">=22.18"
   },
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning src/cli.ts run",
-    "now": "node --disable-warning=ExperimentalWarning src/cli.ts now",
-    "status": "node --disable-warning=ExperimentalWarning src/cli.ts status",
-    "dump": "node --disable-warning=ExperimentalWarning src/cli.ts dump",
+    "start": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts run",
+    "now": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts now",
+    "status": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts status",
+    "upload": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts upload",
+    "dump": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts dump",
     "test": "node --disable-warning=ExperimentalWarning --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },

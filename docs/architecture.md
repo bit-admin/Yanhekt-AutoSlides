@@ -10,7 +10,7 @@ Read this if you are about to change behaviour, port a fix across packages, add 
 | Web client | [`web/`](../web/) | Cloudflare Worker (Hono) + Vue 3 SPA | [learn.ruc.edu.kg](https://learn.ruc.edu.kg) |
 | Share / Index | [`share/`](../share/) | Cloudflare Worker + two React SPAs | [share.ruc.edu.kg](https://share.ruc.edu.kg) |
 | Recorded HLS relay | [`relay/`](../relay/) | Cloudflare Worker (Cache API) | [relay.ruc.edu.kg](https://relay.ruc.edu.kg) |
-| Session indexer | [`indexer/`](../indexer/) | Local Node CLI + SQLite (no auth) | — (runs on your machine) |
+| Session indexer | [`indexer/`](../indexer/) | Local Node CLI + SQLite (no auth), uploads to Cloudflare D1 | — (runs on your machines) |
 
 Each package has its own `package.json` / lockfile. Commands always run **inside** the package directory (`cd autoslides && npm test`, never from the repo root — except the drift checker).
 

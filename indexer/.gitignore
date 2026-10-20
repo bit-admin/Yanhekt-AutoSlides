@@ -6,3 +6,4 @@ data/
 *.lock
 d1-dump/
 *.log
+.env
