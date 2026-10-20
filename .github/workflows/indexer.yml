@@ -1,0 +1,187 @@
+name: Indexer
+
+# Crawl Yanhekt session ids (no login) for up to ~5h40m on a GitHub runner and
+# hand back the SQLite database as an artifact. See indexer/README.md
+# ("Running on GitHub Actions").
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: 'Start session id. Empty = default lanes (forward from 932000 + backfill down).'
+        required: false
+        default: ''
+      to:
+        description: 'End session id, inclusive. Empty = up to the newest id. Needs "from".'
+        required: false
+        default: ''
+      minutes:
+        description: 'How long to crawl, 1-340.'
+        required: true
+        default: '330'
+      mode:
+        description: 'What to fetch.'
+        type: choice
+        options: [sessions, sessions-and-videos, videos-only]
+        default: sessions
+      interval_ms:
+        description: 'Milliseconds between requests (min 250; 1000 = 1 request/second).'
+        required: true
+        default: '1000'
+      continue_from_run:
+        description: 'Run id of an earlier Indexer run to continue (its database is downloaded first). Empty = new database.'
+        required: false
+        default: ''
+      upload_to_d1:
+        description: 'Also upload to Cloudflare D1 (needs CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN secrets).'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read # to download an earlier run's artifact
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    # GitHub-hosted jobs are capped at 6 h; the crawl stops on its own well before.
+    timeout-minutes: 358
+    defaults:
+      run:
+        working-directory: indexer
+    env:
+      DB: data/yanhekt-index.db
+      PASSPHRASE: ${{ secrets.INDEX_ARTIFACT_PASSPHRASE }}
+      NODE_FLAGS: --disable-warning=ExperimentalWarning
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # latest 22.x; the indexer needs >= 22.18
+
+      - name: Check inputs
+        env:
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+          MINUTES: ${{ inputs.minutes }}
+          INTERVAL: ${{ inputs.interval_ms }}
+          CONTINUE: ${{ inputs.continue_from_run }}
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          num='^[0-9]+$'
+          [[ -z "$FROM" || "$FROM" =~ $num ]] || fail "from must be a number"
+          [[ -z "$TO" || "$TO" =~ $num ]] || fail "to must be a number"
+          [[ -z "$TO" || -n "$FROM" ]] || fail "to needs from"
+          [[ "$MINUTES" =~ $num && "$MINUTES" -ge 1 && "$MINUTES" -le 340 ]] || fail "minutes must be 1-340"
+          [[ "$INTERVAL" =~ $num && "$INTERVAL" -ge 250 ]] || fail "interval_ms must be >= 250"
+          [[ -z "$CONTINUE" || "$CONTINUE" =~ $num ]] || fail "continue_from_run must be a run id (a number)"
+          node --version
+
+      - name: Download earlier database
+        if: inputs.continue_from_run != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: yanhekt-index
+          run-id: ${{ inputs.continue_from_run }}
+          github-token: ${{ github.token }}
+          path: indexer/artifact-in
+
+      - name: Unpack earlier database
+        if: inputs.continue_from_run != ''
+        run: |
+          mkdir -p data
+          if [ -f artifact-in/yanhekt-index.db.gz.enc ]; then
+            [ -n "$PASSPHRASE" ] || { echo "::error::That run's database is encrypted; set the INDEX_ARTIFACT_PASSPHRASE secret."; exit 1; }
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:PASSPHRASE -in artifact-in/yanhekt-index.db.gz.enc | gunzip > "$DB"
+          else
+            gunzip -c artifact-in/yanhekt-index.db.gz > "$DB"
+          fi
+          node $NODE_FLAGS src/cli.ts status --db "$DB" | head -20
+
+      - name: Check Yanhekt is reachable from this runner
+        run: |
+          body=$(curl -sS --max-time 20 'https://cbiz.yanhekt.cn/v1/course/session?session_id=753801' \
+            -H 'Origin: https://www.yanhekt.cn' -H 'Referer: https://www.yanhekt.cn/' -H 'Xdomain-Client: web_user' \
+            -w '\n%{http_code}' || true)
+          code=$(echo "$body" | tail -n1)
+          if [ "$code" != "200" ] || ! echo "$body" | grep -q '"code":0'; then
+            echo "::error::cbiz.yanhekt.cn is not answering normally from GitHub's network (HTTP $code). Run the indexer locally instead."
+            echo "$body" | head -c 500
+            exit 1
+          fi
+          echo "Yanhekt reachable."
+
+      - name: Crawl
+        env:
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+          MINUTES: ${{ inputs.minutes }}
+          INTERVAL: ${{ inputs.interval_ms }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          args=(now --db "$DB" --minutes "$MINUTES" --interval-ms "$INTERVAL" -q)
+          [ -n "$FROM" ] && args+=(--from "$FROM")
+          [ -n "$TO" ] && args+=(--to "$TO")
+          case "$MODE" in
+            sessions-and-videos) args+=(--videos) ;;
+            videos-only) args+=(--only-videos) ;;
+          esac
+          node $NODE_FLAGS src/cli.ts "${args[@]}"
+
+      - name: Upload to Cloudflare D1
+        if: inputs.upload_to_d1
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_D1_DATABASE_ID: ${{ secrets.CF_D1_DATABASE_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: node $NODE_FLAGS src/cli.ts upload --db "$DB" --device github-actions
+
+      - name: Status
+        if: always()
+        run: |
+          [ -f "$DB" ] || { echo "No database was created."; exit 0; }
+          # Opening and closing also folds the SQLite WAL back into the .db file.
+          node $NODE_FLAGS src/cli.ts status --db "$DB" | tee status.txt
+          { echo '### Database'; echo '```'; cat status.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Package database
+        if: always()
+        run: |
+          [ -f "$DB" ] || exit 0
+          mkdir -p artifact-out
+          gzip -c "$DB" > artifact-out/yanhekt-index.db.gz
+          if [ -n "$PASSPHRASE" ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:PASSPHRASE \
+              -in artifact-out/yanhekt-index.db.gz -out artifact-out/yanhekt-index.db.gz.enc
+            rm artifact-out/yanhekt-index.db.gz
+          else
+            echo "::warning::INDEX_ARTIFACT_PASSPHRASE is not set, so the artifact is not encrypted. In a public repository anyone signed in to GitHub can download it."
+          fi
+          ls -la artifact-out
+
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yanhekt-index
+          path: indexer/artifact-out/
+          if-no-files-found: warn
+          retention-days: 30
+          compression-level: 0 # already gzip-compressed
+
+      - name: Next steps
+        if: always()
+        env:
+          RUN_ID: ${{ github.run_id }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+        run: |
+          {
+            echo '### Next'
+            echo "- **Download:** the \`yanhekt-index\` artifact below, or \`gh run download $RUN_ID -n yanhekt-index\`."
+            echo "- **Merge locally:** see indexer/README.md → *Running on GitHub Actions*."
+            echo "- **Continue this crawl:** run the workflow again with **continue_from_run = $RUN_ID** and the same from / to (${FROM:-empty} / ${TO:-empty})."
+          } >> "$GITHUB_STEP_SUMMARY"

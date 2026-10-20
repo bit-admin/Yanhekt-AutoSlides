@@ -1,0 +1,24 @@
+{
+  "name": "yanhekt-indexer",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Local, no-auth Yanhekt session indexer. Walks session ids at a gentle rate inside a nightly window, stores them in SQLite, uploads to Cloudflare D1.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts run",
+    "now": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts now",
+    "status": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts status",
+    "upload": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts upload",
+    "dump": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts dump",
+    "merge": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts merge",
+    "test": "node --disable-warning=ExperimentalWarning --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "typescript": "^5.9.3"
+  }
+}
