@@ -7,8 +7,6 @@ import { asObject, professorNames, splitRow, videoIdsOf, type SqlValue } from '.
 import {
   COURSE_API,
   COURSE_SKIP,
-  LIVE_API,
-  LIVE_SKIP,
   SCHEMA_SQL,
   SESSION_API,
   SESSION_SKIP,
@@ -155,24 +153,14 @@ export class SqliteStore implements Store {
 
   saveSession(raw: Json, nowMs: number, opts: { refreshed: boolean; queueVideos: boolean }): void {
     const id = Number(raw.id);
-    const live = asObject(raw.live);
-    const liveId = live && live.id != null ? Number(live.id) : null;
-
     const row = splitRow(raw, SESSION_API, SESSION_SKIP);
     const api = [...names(SESSION_API), 'extra'];
-    const cols = [...api, 'live_id', 'first_seen_at', 'fetched_at', 'changed_at', 'refreshed_at', 'gone_at'];
-    const sql = upsertSql('sessions', cols, [...api, 'live_id', 'fetched_at', 'changed_at'], [
+    const cols = [...api, 'first_seen_at', 'fetched_at', 'changed_at', 'refreshed_at', 'gone_at'];
+    const sql = upsertSql('sessions', cols, [...api, 'fetched_at', 'changed_at'], [
       'refreshed_at = COALESCE(excluded.refreshed_at, sessions.refreshed_at)',
       'gone_at = NULL',
     ]);
-    this.run(sql, [...api.map((c) => row[c]), liveId, nowMs, nowMs, nowMs, opts.refreshed ? nowMs : null, null]);
-
-    if (live && liveId != null) {
-      const lrow = splitRow(live, LIVE_API, LIVE_SKIP);
-      const lapi = [...names(LIVE_API), 'extra'];
-      const lcols = [...lapi, 'session_id', 'fetched_at', 'changed_at'];
-      this.run(upsertSql('lives', lcols, lcols.slice(1)), [...lapi.map((c) => lrow[c]), id, nowMs, nowMs]);
-    }
+    this.run(sql, [...api.map((c) => row[c]), nowMs, nowMs, nowMs, opts.refreshed ? nowMs : null, null]);
 
     // The nested course is a free, slightly thinner copy of /v1/course
     // (no teachers, tags or image). Insert it once; the detail fetch fills in the rest.

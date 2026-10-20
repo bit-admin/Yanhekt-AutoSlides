@@ -35,7 +35,7 @@ test('upload is incremental and resumable', async () => {
   const first = await upload(store, d1, 'db1', opts);
   assert.equal(first.sessions, 50);
   assert.equal(first.courses, 7);
-  assert.equal(first.lives, 50);
+  assert.equal('lives' in first, false);
   assert.equal(d1.n('SELECT COUNT(*) FROM sessions'), 50);
   assert.ok(d1.requests > 3, 'split into several requests');
 

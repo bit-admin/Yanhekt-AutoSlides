@@ -4,9 +4,9 @@
  */
 
 import { parseArgs } from 'node:util';
-import { appendFileSync, closeSync, existsSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
 import { hostname } from 'node:os';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { Crawler, TransientError, defaultLanes, rangeLane, type CrawlerConfig, type LaneSpec } from './crawler.ts';
 import { SqliteStore } from './store.ts';
 import { cnClock, inWindow, nextWindowStartMs, windowEndMs } from './time.ts';
@@ -134,6 +134,7 @@ function parseWindow(s: string): [number, number] {
 /** One process per database. The lock file holds pid + host; a dead pid on this host is stale. */
 function acquireLock(dbPath: string): () => void {
   const path = `${dbPath}.lock`;
+  mkdirSync(dirname(path), { recursive: true }); // fresh checkout: data/ does not exist yet
   const me = JSON.stringify({ pid: process.pid, host: hostname(), started: new Date().toISOString() });
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

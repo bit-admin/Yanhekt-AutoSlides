@@ -1,7 +1,7 @@
 /**
  * Anonymous cbiz client. Only endpoints that answer without a login token:
  *
- *   GET /v1/course/session?session_id=  session + nested course + nested live (no recorded URLs)
+ *   GET /v1/course/session?session_id=  session + nested course + nested live (live not stored; no recorded URLs)
  *   GET /v1/course?id=                  course detail: teachers, tags, college, …
  *   GET /v1/video?id=                   recorded URLs (main / vga / room / audio)
  *

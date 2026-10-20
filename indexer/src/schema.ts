@@ -1,7 +1,7 @@
 /**
  * Table layout. API fields are stored column-for-column under their API
- * names; any key we do not know lands in `extra` (JSON), so nothing the API
- * returns is dropped. Columns after the API block are ours.
+ * names; any key we do not know lands in `extra` (JSON). A few keys are
+ * dropped on purpose (the `*_SKIP` lists). Columns after the API block are ours.
  *
  * Times from Yanhekt (`started_at`, …) are Beijing wall-clock TEXT, as sent.
  * Our own times (`first_seen_at`, `fetched_at`, `changed_at`, …) are epoch ms.
@@ -41,41 +41,12 @@ export const SESSION_API: Columns = [
   ['digit_human', 'TEXT'],
   ['video_ids', 'TEXT'],
 ];
-/** Session keys stored elsewhere (nested objects) or meaningless anonymously. */
+/**
+ * Session keys not kept in the session row: `course` is stored in `courses`;
+ * `live` (the live-broadcast record) is not stored at all, since its stream
+ * URLs only work during the lecture; `user_progress` is empty anonymously.
+ */
 export const SESSION_SKIP = ['course', 'live', 'user_progress'];
-
-export const LIVE_API: Columns = [
-  ['id', 'INTEGER'],
-  ['source_id', 'INTEGER'],
-  ['source_type', 'INTEGER'],
-  ['status', 'INTEGER'],
-  ['type', 'INTEGER'],
-  ['schedule_started_at', 'TEXT'],
-  ['schedule_ended_at', 'TEXT'],
-  ['started_at', 'TEXT'],
-  ['ended_at', 'TEXT'],
-  ['location', 'TEXT'],
-  ['caster_id', 'TEXT'],
-  ['caster_name', 'TEXT'],
-  ['caster_stream', 'TEXT'],
-  ['title', 'TEXT'],
-  ['subtitle', 'TEXT'],
-  ['views', 'INTEGER'],
-  ['target', 'TEXT'],
-  ['target_vga', 'TEXT'],
-  ['target_room', 'TEXT'],
-  ['img', 'TEXT'],
-  ['visibility', 'INTEGER'],
-  ['code_required', 'INTEGER'],
-  ['code', 'TEXT'],
-  ['state', 'INTEGER'],
-  ['version', 'TEXT'],
-  ['created_at', 'TEXT'],
-  ['updated_at', 'TEXT'],
-  ['is_record_room', 'INTEGER'],
-];
-/** Join artefact of the session query. */
-export const LIVE_SKIP = ['laravel_through_key'];
 
 export const COURSE_API: Columns = [
   ['id', 'INTEGER'],
@@ -147,8 +118,7 @@ function cols(api: Columns, own: string): string {
 /** Tables that are uploaded to D1 (and created there). */
 export const SHARED_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS sessions (
-${cols(SESSION_API, `  live_id INTEGER,
-  first_seen_at INTEGER NOT NULL,
+${cols(SESSION_API, `  first_seen_at INTEGER NOT NULL,
   fetched_at INTEGER NOT NULL,
   refreshed_at INTEGER,
   gone_at INTEGER,
@@ -158,14 +128,6 @@ CREATE INDEX IF NOT EXISTS idx_sessions_course ON sessions(course_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_changed ON sessions(changed_at, id);
 CREATE INDEX IF NOT EXISTS idx_sessions_no_video ON sessions(ended_at) WHERE state = 1 AND video_ids = '[]' AND gone_at IS NULL;
-
-CREATE TABLE IF NOT EXISTS lives (
-${cols(LIVE_API, `  session_id INTEGER,
-  fetched_at INTEGER NOT NULL,
-  changed_at INTEGER NOT NULL`)}
-);
-CREATE INDEX IF NOT EXISTS idx_lives_session ON lives(session_id);
-CREATE INDEX IF NOT EXISTS idx_lives_changed ON lives(changed_at, id);
 
 CREATE TABLE IF NOT EXISTS courses (
 ${cols(COURSE_API, `  professor_names TEXT,
@@ -269,10 +231,6 @@ export const SYNC_TABLES = {
   sessions: {
     keep: ['first_seen_at'],
     where: 'excluded.fetched_at >= sessions.fetched_at',
-  },
-  lives: {
-    keep: [] as string[],
-    where: 'excluded.fetched_at >= lives.fetched_at',
   },
   videos: {
     keep: [] as string[],

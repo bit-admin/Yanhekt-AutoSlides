@@ -6,7 +6,7 @@ import type { Json } from './yanhekt.ts';
 export type SqlValue = string | number | null;
 export type Row = Record<string, SqlValue>;
 
-/** Some live URLs arrive double-escaped (`https:\/\/clive13…`). */
+/** Some URLs arrive double-escaped (`https:\/\/cvideo…`). */
 function unescapeSlashes(s: string): string {
   return s.includes('\\/') ? s.replaceAll('\\/', '/') : s;
 }

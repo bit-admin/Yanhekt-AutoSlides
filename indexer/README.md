@@ -10,10 +10,10 @@ By default it makes two kinds of request, both without login:
 
 | Request | When | Gives |
 |---|---|---|
-| `GET /v1/course/session?session_id=` | every id | the session (title, week, time, room, `state`, **`video_ids`**), a copy of its course, its live-broadcast record |
+| `GET /v1/course/session?session_id=` | every id | the session (title, week, time, room, `state`, **`video_ids`**) and a copy of its course |
 | `GET /v1/course?id=&with_professor_badges=true` | once per new course | full course details: **teachers**, tags, college, image, introduction |
 
-Every field of both responses is kept, in its own column, or in an `extra` JSON column if it's a field we don't know yet. Only three are dropped, because they are always empty or redundant without login: the session's `user_progress`, the live record's `laravel_through_key` (a join artefact equal to the session id) and the course's `user_mapping_type`. The course copy inside each session response is stored once and then replaced by the fuller `/v1/course` record, so no request is spent twice.
+Every field of both responses is kept, in its own column, or in an `extra` JSON column if it's a field we don't know yet. Three are dropped: the session's `live` (the live-broadcast record, whose stream URLs only work during the lecture), the session's `user_progress` and the course's `user_mapping_type` (both always empty without login). The course copy inside each session response is stored once and then replaced by the fuller `/v1/course` record, so no request is spent twice.
 
 That is enough to find any course by name or teacher and list all its sessions. The recorded URLs (camera, screen, mic) are **not** in the session response, only the `video_ids`. Your client resolves them when a lecture is played (`GET /v1/video?id=`, no login), or the index can fill them in later with `--only-videos`.
 
@@ -97,7 +97,7 @@ npm start -- --from 742999 --to 605000 --upload --device server
 
 Prefer wrangler? `npm run dump -- --out ./d1-dump` writes the same merge statements as SQL files: `for f in d1-dump/*.sql; do npx wrangler d1 execute yanhekt-index --remote --file="$f"; done`.
 
-**Size:** about 1 KB per session with its live record, so roughly 1 GB for the full history without video URLs. That needs Workers Paid; the free plan allows 500 MB per database.
+**Size:** about 0.5 KB per session, so roughly 500 MB for the full history without video URLs. That is right at the free plan's 500 MB per database, so plan on Workers Paid for the full history.
 
 ## Running on GitHub Actions
 
@@ -240,8 +240,7 @@ API fields keep their API names as columns. Fields we don't know yet go into an 
 | Table | Uploaded | Contents |
 |---|---|---|
 | `courses` | ✓ | course fields (`tags`, `college`, `professors`, `introduction` as JSON), `professor_names` (e.g. `张三、李四`), `detail_status` |
-| `sessions` | ✓ | every session field, `video_ids` (JSON array), `live_id`, `gone_at` |
-| `lives` | ✓ | live-broadcast record (`target*` URLs only work during the lecture) |
+| `sessions` | ✓ | every session field, `video_ids` (JSON array), `gone_at` |
 | `videos` | ✓ | `main`, `vga`, `room`, `audio` (+ `*_origin`), `duration`, `start_*`, `session_id` (only with `--videos` / `--only-videos`) |
 | `device_progress` | D1 only | each device's lanes and totals at its last upload |
 | `pending_videos`, `gaps`, `failures`, `runs`, `crawl_state` | — | device-local queue, logs, positions |

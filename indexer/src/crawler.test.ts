@@ -59,20 +59,17 @@ test('range lane: walks exactly from→to, either direction, and resumes', async
   assert.equal(st.parkedUntilMs, null);
 });
 
-test('rows keep every field: columns, extra, unescaped URLs, nested live, teachers from /v1/course', async () => {
+test('rows keep every field: columns, extra, no live record, teachers from /v1/course', async () => {
   const api = new FakeApi([1000]);
   const { crawler, store } = make(api, [rangeLane(1000, 1000)]);
   await drain(crawler);
   const s = store.db.prepare('SELECT * FROM sessions WHERE id = 1000').get() as Record<string, unknown>;
   assert.equal(s.course_id, 506);
   assert.equal(s.video_ids, '[10000]');
-  assert.equal(s.live_id, 101_000);
-  assert.deepEqual(JSON.parse(String(s.extra)), { brand_new_field: 'kept in extra' });
+  assert.equal('live_id' in s, false);
+  assert.deepEqual(JSON.parse(String(s.extra)), { brand_new_field: 'kept in extra' }); // live not in extra either
   assert.ok(Number(s.changed_at) > 0);
-
-  const l = store.db.prepare('SELECT * FROM lives WHERE id = 101000').get() as Record<string, unknown>;
-  assert.equal(l.target, 'https://clive13.yanhekt.cn/live/1_Video1.m3u8');
-  assert.equal(l.extra, null); // laravel_through_key dropped
+  assert.equal(store.db.prepare("SELECT name FROM sqlite_schema WHERE name = 'lives'").get(), undefined);
 
   const c = store.db.prepare('SELECT * FROM courses WHERE id = 506').get() as Record<string, unknown>;
   assert.equal(c.detail_status, 'ok');
