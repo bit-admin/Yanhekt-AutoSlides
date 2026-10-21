@@ -66,7 +66,9 @@ For example, `npm start -- --from 822999 --to 743000` covers all of 2025–2026 
 
 ## Several devices and Cloudflare D1
 
-Each device crawls into its own SQLite file and uploads to one shared D1 database. Uploads only send rows that changed since that device's last upload to that database. Rows are merged by id: a full course record beats the thinner copy that comes with a session, and otherwise the newer fetch wins. So devices can upload overlapping data in any order.
+Each device crawls into its own SQLite file and uploads to one shared D1 database. Uploads only send courses that changed since that device's last upload to that database (a new session changes its course). Courses are merged by id: a full course record beats the thinner copy that comes with a session, and otherwise the newer fetch wins; session id lists are combined, minus sessions a device knows are gone. So devices can upload overlapping data in any order.
+
+**D1 is not a copy of the local database.** It holds a slim layout with only what the Index serves (see [D1 layout](#d1-layout)), sized for D1's free plan. The local SQLite keeps every field, so D1 can gain a field later without recrawling.
 
 **One-time setup:**
 
@@ -78,6 +80,7 @@ Each device crawls into its own SQLite file and uploads to one shared D1 databas
 
 ```sh
 npm run upload                          # creates the tables on first use, then sends what changed
+npm run upload -- --reset               # once, after the D1 layout changed: drop D1's tables and send everything
 npm start -- --upload                   # or: upload automatically after each night's crawl
 npm run status -- --remote              # check the shared result
 ```
@@ -93,11 +96,19 @@ npm start -- --from 892999 --to 743000 --upload --device laptop
 npm start -- --from 742999 --to 605000 --upload --device server
 ```
 
-`--device` is the name shown in `status --remote` (default: the computer's hostname). The first upload of a big database takes a while (500 rows per page, ≤ 200 statements / 800 KB per request). If it's interrupted, the next `upload` continues where it stopped.
+`--device` is the name shown in `status --remote` (default: the computer's hostname). The first upload of a big database takes a while (≤ 200 statements / 800 KB per request). If it's interrupted, or D1 refuses because the daily write limit is reached, the next `upload` continues where it stopped.
 
-Prefer wrangler? `npm run dump -- --out ./d1-dump` writes the same merge statements as SQL files: `for f in d1-dump/*.sql; do npx wrangler d1 execute yanhekt-index --remote --file="$f"; done`.
+Prefer wrangler? `npm run dump -- --out ./d1-dump` writes the same statements as SQL files: `for f in d1-dump/*.sql; do npx wrangler d1 execute yanhekt-index --remote --file="$f"; done`. With `--local` instead of `--remote` it fills wrangler's local D1, for trying the Index locally (`wrangler dev` in `share/`). Add `--reset` to the dump to drop the old tables first.
 
-**Size:** about 0.5 KB per session, so roughly 500 MB for the full history without video URLs. That is right at the free plan's 500 MB per database, so plan on Workers Paid for the full history.
+**Free plan budget** (500 MB, 100k rows written and 5M rows read per day; every index entry counts as a written row). Measured on 2026-27 term 1 (39k sessions, 4.4k courses; 1.9 MB in D1):
+
+| | Per course | Full history (~900k sessions, ~50k courses) |
+|---|---|---|
+| Size | ~440 B (row, session ids, search keys) | ~25 MB |
+| Rows written | ~10 the first time (row + ~9 search keys); 1 each later upload that brings it new sessions | ~0.5M once, i.e. ~5–6 days at the daily limit; then ~50k per new term plus a few thousand per daily upload |
+| Rows read per search | ≤ 33 per search key, then the candidates; all of each key's entries in the term only when every key is common | ~100–500 typical, ~1.2k worst seen |
+
+Video URLs are never uploaded.
 
 ## Running on GitHub Actions
 
@@ -204,6 +215,7 @@ The window is always Beijing time, whatever the computer's time zone. Use `--win
 | `--upload` | off | upload after each crawl |
 | `--device NAME` | hostname | name in the D1 progress table |
 | `--remote` | off | `status`: show D1 |
+| `--reset` | off | `upload` / `dump`: drop D1's tables first and send everything |
 | `merge FILE…` | — | command: merge other index files (e.g. Actions artifacts) into this one |
 | `--db PATH` | ./data/yanhekt-index.db | |
 | `--gap-threshold`, `--probe-step`, `--probe-count` | 150, 500, 20 | hole skipping (see below) |
@@ -235,17 +247,18 @@ The window is always Beijing time, whatever the computer's time zone. Use `--win
 
 ## Data
 
+### Local database
+
 API fields keep their API names as columns. Fields we don't know yet go into an `extra` JSON column, so nothing is lost if Yanhekt adds fields. Yanhekt times (`started_at` …) are Beijing-time text as sent; our own `*_at` columns are epoch milliseconds.
 
-| Table | Uploaded | Contents |
-|---|---|---|
-| `courses` | ✓ | course fields (`tags`, `college`, `professors`, `introduction` as JSON), `professor_names` (e.g. `张三、李四`), `detail_status` |
-| `sessions` | ✓ | every session field, `video_ids` (JSON array), `gone_at` |
-| `videos` | ✓ | `main`, `vga`, `room`, `audio` (+ `*_origin`), `duration`, `start_*`, `session_id` (only with `--videos` / `--only-videos`) |
-| `device_progress` | D1 only | each device's lanes and totals at its last upload |
-| `pending_videos`, `gaps`, `failures`, `runs`, `crawl_state` | — | device-local queue, logs, positions |
+| Table | Contents |
+|---|---|
+| `courses` | course fields (`tags`, `college`, `professors`, `introduction` as JSON), `professor_names` (e.g. `张三、李四`), `detail_status` |
+| `sessions` | every session field, `video_ids` (JSON array), `gone_at` |
+| `videos` | `main`, `vga`, `room`, `audio` (+ `*_origin`), `duration`, `start_*`, `session_id` (only with `--videos` / `--only-videos`); never uploaded |
+| `pending_videos`, `gaps`, `failures`, `runs`, `crawl_state` | device-local queue, logs, positions |
 
-Example queries (local `sqlite3 data/yanhekt-index.db`, or `npx wrangler d1 execute yanhekt-index --remote --command "…"`):
+Example queries (`sqlite3 data/yanhekt-index.db`):
 
 ```sql
 -- Find an old course by name or teacher
@@ -257,6 +270,21 @@ SELECT id, title, started_at, location, video_ids
 FROM sessions WHERE course_id = 64333 AND state = 1 AND video_ids <> '[]'
 ORDER BY started_at;
 ```
+
+### D1 layout
+
+Defined in `src/d1model.ts` (layout version 3, kept in D1's `meta` table). `upload` and `dump` convert local rows into it; the share Worker's Index API reads it.
+
+| Table | Contents |
+|---|---|
+| `courses` | `name` (Chinese), `number` (the registrar code; equals Yanhe 2.0's `kcwybm`, so it matches courses between the two sites, see `docs/aita-yanhekt.md` §4), `term` (our key, e.g. `2026-2027-1`), `teachers` (JSON array of names; no titles or staff numbers), `session_ids` (JSON array, ascending), `detail`, `fetched_at` |
+| `course_grams` | the search index, keyed by `(term, gram, course_id)`: CJK 2-character pieces of the course name and teacher names, `w:` + other words of those, and `n:` + registrar code under the empty term (found in any term) (`src/grams.ts`) |
+| `meta` | `schema` (layout version) and `data` (changed by every upload that sent something; the Index API keys its cache by it) |
+| `device_progress` | each device's lanes and totals at its last upload |
+
+There is no sessions table: a client reads a session's details from Yanhekt (`/v1/course/session`, no login); only the list of a course's sessions needs the crawl. Left out on purpose: English names, session details, teacher titles, colleges, undergraduate/graduate level, course categories, video URLs, room codes, staff numbers, images, introductions, and the crawler's own bookkeeping.
+
+What each device last sent is kept locally in `d1_sent` (a hash of each course's D1 row and of its search keys, per D1 database); `--reset` clears it for that database.
 
 ## Behind a proxy
 
@@ -273,7 +301,10 @@ npm install && npm run typecheck
 |---|---|
 | `src/crawler.ts` | lanes, probes, rounds |
 | `src/store.ts` | SQLite |
-| `src/schema.ts` | every column, listed once; also the D1 merge rules |
+| `src/schema.ts` | local database: every column, listed once; `merge` rules |
+| `src/d1model.ts` | D1 layout, conversion from local rows, D1 merge rules |
+| `src/grams.ts` | search keys; also imported by the share Worker |
 | `src/remote.ts` | D1 HTTP client and upload |
+| `src/dump.ts` | the D1 layout as SQL files |
 | `src/yanhekt.ts` | Yanhekt client and pacing |
 | `src/cli.ts` | commands, window loop, lock, backoff, end-of-run report |

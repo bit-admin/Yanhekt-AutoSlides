@@ -1,17 +1,25 @@
 /**
- * `dump` command: the shared tables as plain SQL files, for people who prefer
- *   npx wrangler d1 execute <db> --remote --file=<file>
- * over `upload`. Statements are the same merge-upserts `upload` sends, so
- * dumps from several devices can be applied in any order.
+ * `dump` command: the D1 projection (d1model.ts) as plain SQL files, for
+ *   npx wrangler d1 execute <db> [--local | --remote] --file=<file>
+ * instead of `upload`. Statements are the same merge-upserts `upload` sends
+ * (every course, with its grams), so dumps from several devices can be
+ * applied in any order. With `reset`, the first file drops every D1 table
+ * first. Dumping does not touch `upload`'s record of what was sent.
  * D1 rejects BEGIN/COMMIT in imported files, so none are written.
  */
 
 import { closeSync, mkdirSync, openSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
-import { mergeStatement, SHARED_SCHEMA_SQL, SYNC_TABLE_NAMES } from './schema.ts';
+import { courseStatements, D1_RESET_SQL, D1_SCHEMA_SQL, dataVersionStatement, localSessionsReader } from './d1model.ts';
 
-export function dumpForD1(db: DatabaseSync, outDir: string, maxBytes: number, log: (m: string) => void): string[] {
+export function dumpForD1(
+  db: DatabaseSync,
+  outDir: string,
+  maxBytes: number,
+  log: (m: string) => void,
+  opts: { reset?: boolean } = {},
+): string[] {
   mkdirSync(outDir, { recursive: true });
   let part = 0;
   let fd = -1;
@@ -33,16 +41,17 @@ export function dumpForD1(db: DatabaseSync, outDir: string, maxBytes: number, lo
     size += bytes;
   };
 
-  write(`${SHARED_SCHEMA_SQL.trim()}\n`);
-  for (const table of SYNC_TABLE_NAMES) {
-    let rows = 0;
-    for (const row of db.prepare(`SELECT * FROM ${table} ORDER BY id`).iterate() as Iterable<Record<string, unknown>>) {
-      write(`${mergeStatement(table, row)};\n`);
-      rows += 1;
-    }
-    log(`dump: ${table}: ${rows} rows`);
+  if (opts.reset) write(`${D1_RESET_SQL.trim()}\n`);
+  write(`${D1_SCHEMA_SQL.trim()}\n`);
+
+  const sessionsOf = localSessionsReader(db);
+  let courses = 0;
+  for (const row of db.prepare('SELECT * FROM courses ORDER BY id').iterate() as Iterable<Record<string, unknown>>) {
+    for (const stmt of courseStatements(row, sessionsOf(Number(row.id)))) write(`${stmt};\n`);
+    courses += 1;
   }
+  write(`${dataVersionStatement(Date.now())};\n`);
   if (fd >= 0) closeSync(fd);
-  log(`dump: wrote ${files.length} file(s) to ${outDir}`);
+  log(`dump: ${courses} courses in ${files.length} file(s) in ${outDir}`);
   return files;
 }

@@ -7,12 +7,12 @@
  * Our own times (`first_seen_at`, `fetched_at`, `changed_at`, …) are epoch ms.
  *
  * Two groups of tables:
- * - shared (SYNC_TABLES + device_progress): uploaded to Cloudflare D1. Every
- *   write sets `changed_at`, which is what makes uploads incremental.
+ * - shared (SYNC_TABLES): what `merge` combines between local databases, and
+ *   what `upload` projects into D1 (d1model.ts; D1 is a slim layout, not a
+ *   copy). Every write sets `changed_at`; `upload` sends a course when its
+ *   projection changed since that device last sent it (`d1_sent`).
  * - local (queues, logs, crawl positions): stay on the device.
  */
-
-import { sqlLiteral } from './sql.ts';
 
 export type ColType = 'INTEGER' | 'TEXT';
 export type Columns = ReadonlyArray<readonly [name: string, type: ColType]>;
@@ -115,7 +115,7 @@ function cols(api: Columns, own: string): string {
   return [...lines, '  extra TEXT', own].join(',\n');
 }
 
-/** Tables that are uploaded to D1 (and created there). */
+/** Shared tables (see above). `device_progress` is unused locally; D1 has its own copy. */
 export const SHARED_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS sessions (
 ${cols(SESSION_API, `  first_seen_at INTEGER NOT NULL,
@@ -203,6 +203,15 @@ CREATE TABLE IF NOT EXISTS crawl_state (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+-- What this device last sent to each D1 database, per course (remote.ts).
+CREATE TABLE IF NOT EXISTS d1_sent (
+  target TEXT NOT NULL,
+  course_id INTEGER NOT NULL,
+  row_sig TEXT NOT NULL,
+  grams_sig TEXT NOT NULL,
+  PRIMARY KEY (target, course_id)
+) WITHOUT ROWID;
 `;
 
 export const SCHEMA_SQL = SHARED_SCHEMA_SQL + LOCAL_SCHEMA_SQL;
@@ -216,7 +225,7 @@ export function statements(sql: string): string[] {
 }
 
 /**
- * How two copies of the same row are merged when several devices upload.
+ * How two copies of the same row are merged by `merge` (local databases).
  * The incoming row (`excluded`) replaces the stored one only when it is at
  * least as good: a fuller status first, then the newer fetch.
  */
@@ -240,17 +249,3 @@ export const SYNC_TABLES = {
 
 export type SyncTable = keyof typeof SYNC_TABLES;
 export const SYNC_TABLE_NAMES = Object.keys(SYNC_TABLES) as SyncTable[];
-
-/** One self-contained merge-upsert statement (literals inlined) for D1. */
-export function mergeStatement(table: SyncTable, row: Record<string, unknown>): string {
-  const rule = SYNC_TABLES[table];
-  const columns = Object.keys(row);
-  const sets = columns
-    .filter((c) => c !== 'id' && !(rule.keep as readonly string[]).includes(c))
-    .map((c) => `"${c}" = excluded."${c}"`);
-  return (
-    `INSERT INTO ${table} (${columns.map((c) => `"${c}"`).join(', ')}) VALUES (${columns
-      .map((c) => sqlLiteral(row[c]))
-      .join(', ')}) ` + `ON CONFLICT(id) DO UPDATE SET ${sets.join(', ')} WHERE ${rule.where}`
-  );
-}

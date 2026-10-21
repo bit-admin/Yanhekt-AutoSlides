@@ -23,9 +23,9 @@ Commands
   run       Wait for the nightly window, crawl until it closes, repeat every night.
   now       Crawl immediately for --minutes (default 10), ignoring the window.
   status    Local progress. With --remote: what D1 holds and where every device is.
-  upload    Send rows changed since the last upload to Cloudflare D1.
+  upload    Send rows changed since the last upload to Cloudflare D1 (its slim layout, not a copy).
   merge F…  Merge other index files (e.g. GitHub Actions artifacts) into this one.
-  dump      Write the shared tables as SQL files (alternative to upload).
+  dump      Write the D1 layout as SQL files (alternative to upload; also for a local D1).
 
 What to crawl
   (default)             forward from --initial-id to the newest id, and backfill down to --floor-id
@@ -50,6 +50,8 @@ Upload (needs CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN, e.g. in .env)
   --upload              run/now: upload after each crawl
   --device NAME         name shown in the D1 progress table (default: hostname)
   --remote              status: show D1 instead of the local database
+  --reset               upload/dump: drop every D1 table first and send everything
+                        (needed once after the D1 layout changes)
 
 Other
   --db PATH             SQLite file (default ./data/yanhekt-index.db)
@@ -84,6 +86,7 @@ const { values: opts, positionals } = parseArgs({
     upload: { type: 'boolean', default: false },
     device: { type: 'string' },
     remote: { type: 'boolean', default: false },
+    reset: { type: 'boolean', default: false },
     'user-agent': { type: 'string', default: DEFAULT_UA },
     out: { type: 'string', default: './d1-dump' },
     'max-mb': { type: 'string', default: '50' },
@@ -184,10 +187,11 @@ function d1Target() {
   return t;
 }
 
-async function doUpload(store: SqliteStore, signal: AbortSignal): Promise<void> {
+async function doUpload(store: SqliteStore, signal: AbortSignal, reset = false): Promise<void> {
   const t = d1Target();
   const sent = await upload(store, new D1Http(t), t.databaseId, {
     device: opts.device?.trim() || hostname(),
+    reset,
     maxRequestBytes: 800_000,
     maxStatements: 200,
     log,
@@ -330,9 +334,9 @@ async function main(): Promise<void> {
   }
   if (cmd === 'dump') {
     const store = new SqliteStore(dbPath);
-    const files = dumpForD1(store.db, resolve(opts.out), num('max-mb', 1, 1000) * 1024 * 1024, log);
+    const files = dumpForD1(store.db, resolve(opts.out), num('max-mb', 1, 1000) * 1024 * 1024, log, { reset: opts.reset });
     store.close();
-    if (files.length > 0) log(`apply in order: for f in ${resolve(opts.out)}/*.sql; do npx wrangler d1 execute <db> --remote --file="$f"; done`);
+    if (files.length > 0) log(`apply in order: for f in ${resolve(opts.out)}/*.sql; do npx wrangler d1 execute <db> --local|--remote --file="$f"; done`);
     return;
   }
   if (cmd !== 'run' && cmd !== 'now' && cmd !== 'upload' && cmd !== 'merge') die(`unknown command "${cmd}" (try --help)`);
@@ -358,7 +362,7 @@ async function main(): Promise<void> {
 
   try {
     if (cmd === 'upload') {
-      await doUpload(store, ac.signal);
+      await doUpload(store, ac.signal, opts.reset);
       return;
     }
     if (cmd === 'merge') {

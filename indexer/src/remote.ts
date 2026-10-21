@@ -6,14 +6,29 @@
  *   Authorization: Bearer <token>        (permission: Account → D1 → Edit)
  *   { "batch": [{ "sql": "…" }, …] }     (statements run as one batch)
  *
- * Uploads are incremental: every shared row carries `changed_at`, and the
- * last uploaded (changed_at, id) per table and per D1 database is kept in
- * crawl_state. Rows are merge-upserted (see SYNC_TABLES), so several devices
- * can upload overlapping data in any order.
+ * D1 holds a slim projection of the local database (d1model.ts), not a copy:
+ * one row per course with its session ids, plus search grams. Uploads are
+ * incremental per course: for each course, a hash of its D1 row and of its
+ * grams is kept locally (`d1_sent`, per D1 database), and only courses whose
+ * row or grams changed are sent; grams only when they changed. Rows are
+ * merge-upserted, so several devices can upload overlapping data in any
+ * order. Progress is saved after each request, so an interrupted upload (for
+ * example D1's daily write limit) continues where it stopped.
  */
 
+import { createHash } from 'node:crypto';
 import { hostname } from 'node:os';
-import { mergeStatement, SHARED_SCHEMA_SQL, statements, SYNC_TABLE_NAMES, type SyncTable } from './schema.ts';
+import {
+  courseGramsStatement,
+  courseRowStatement,
+  D1_RESET_SQL,
+  D1_SCHEMA_SQL,
+  D1_SCHEMA_VERSION,
+  dataVersionStatement,
+  localSessionsReader,
+  projectCourse,
+} from './d1model.ts';
+import { statements } from './schema.ts';
 import { sqlLiteral } from './sql.ts';
 import type { SqliteStore } from './store.ts';
 import { sleep } from './yanhekt.ts';
@@ -92,6 +107,8 @@ export class D1Http implements D1Exec {
 
 export interface UploadOptions {
   device: string;
+  /** Drop every D1 table first and send everything again (needed after a layout change). */
+  reset?: boolean;
   /** Max bytes of SQL per request (each statement must stay under D1's 100 KB). */
   maxRequestBytes: number;
   /** Max statements per request. */
@@ -104,15 +121,110 @@ export function defaultDevice(): string {
   return hostname();
 }
 
-/** Push rows changed since the last upload to D1. Returns rows sent per table. */
-export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string, opts: UploadOptions): Promise<Record<string, number>> {
-  await d1.exec(statements(SHARED_SCHEMA_SQL));
-
-  const sent: Record<string, number> = {};
-  for (const table of SYNC_TABLE_NAMES) {
-    sent[table] = await uploadTable(store, d1, databaseId, table, opts);
-    if (opts.signal?.aborted) break;
+/** The D1 layout version, or null for an empty database, or 'old' for a layout from before versioning. */
+async function remoteSchema(d1: D1Exec): Promise<number | 'old' | null> {
+  const [r] = await d1.exec(["SELECT name FROM sqlite_schema WHERE type = 'table' AND name IN ('meta', 'courses')"]);
+  const names = new Set((r?.results ?? []).map((x) => String(x.name)));
+  if (names.has('meta')) {
+    const [v] = await d1.exec(["SELECT value FROM meta WHERE key = 'schema'"]);
+    return Number(v?.results?.[0]?.value ?? 0) || 'old';
   }
+  return names.has('courses') ? 'old' : null;
+}
+
+export interface UploadResult {
+  /** Courses whose row was sent. */
+  courses: number;
+  /** Courses whose search grams were sent. */
+  grams: number;
+}
+
+const hash = (text: string) => createHash('sha1').update(text).digest('hex').slice(0, 16);
+
+const PAGE = 500;
+
+/** Push every course that changed since this device's last upload to this D1 database. */
+export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string, opts: UploadOptions): Promise<UploadResult> {
+  const db = store.db;
+  if (opts.reset) {
+    opts.log('upload: --reset: dropping every D1 table and sending everything again');
+    await d1.exec(statements(D1_RESET_SQL));
+    db.prepare('DELETE FROM d1_sent WHERE target = ?').run(databaseId);
+  } else {
+    const version = await remoteSchema(d1);
+    if (version !== null && version !== D1_SCHEMA_VERSION) {
+      throw new Error(
+        `D1 has another layout (${version === 'old' ? 'from before layout versions' : `version ${version}`}; this indexer writes version ${D1_SCHEMA_VERSION}). ` +
+          'Run `npm run upload -- --reset` to drop it and upload everything again.',
+      );
+    }
+  }
+  await d1.exec(statements(D1_SCHEMA_SQL));
+
+  const sessionsOf = localSessionsReader(db);
+  const page = db.prepare(`SELECT * FROM courses WHERE id > ? ORDER BY id LIMIT ${PAGE}`);
+  const sentSig = db.prepare('SELECT row_sig, grams_sig FROM d1_sent WHERE target = ? AND course_id = ?');
+  const saveSig = db.prepare(
+    'INSERT INTO d1_sent (target, course_id, row_sig, grams_sig) VALUES (?, ?, ?, ?) ' +
+      'ON CONFLICT(target, course_id) DO UPDATE SET row_sig = excluded.row_sig, grams_sig = excluded.grams_sig',
+  );
+  const total = Number(Object.values(db.prepare('SELECT COUNT(*) FROM courses').get() as object)[0]);
+  opts.log(`upload: checking ${total} courses`);
+
+  const result: UploadResult = { courses: 0, grams: 0 };
+  let batch: string[] = [];
+  let bytes = 0;
+  let sigs: Array<[number, string, string, boolean, boolean]> = [];
+  let lastLog = Date.now();
+  const flush = async () => {
+    if (batch.length === 0) return;
+    await d1.exec(batch);
+    // Saved only after D1 accepted the request, so nothing is skipped after a failure.
+    db.exec('BEGIN');
+    for (const [id, rowSig, gramsSig, row, grams] of sigs) {
+      saveSig.run(databaseId, id, rowSig, gramsSig);
+      if (row) result.courses += 1;
+      if (grams) result.grams += 1;
+    }
+    db.exec('COMMIT');
+    batch = [];
+    bytes = 0;
+    sigs = [];
+    if (Date.now() - lastLog > 15_000) {
+      lastLog = Date.now();
+      opts.log(`upload: sent ${result.courses} courses so far`);
+    }
+  };
+
+  let after = 0;
+  for (;;) {
+    if (opts.signal?.aborted) break;
+    const rows = page.all(after) as Array<Record<string, unknown>>;
+    if (rows.length === 0) break;
+    after = Number(rows[rows.length - 1].id);
+    for (const local of rows) {
+      const { row, grams, gone } = projectCourse(local, sessionsOf(Number(local.id)));
+      const rowSig = hash(JSON.stringify([row, gone]));
+      const gramsSig = hash(JSON.stringify([row.term, [...grams].sort()]));
+      const prev = sentSig.get(databaseId, row.id) as { row_sig: string; grams_sig: string } | undefined;
+      const stmts: string[] = [];
+      const sendRow = prev?.row_sig !== rowSig;
+      if (sendRow) stmts.push(courseRowStatement(row, gone));
+      const gramsStmt = prev?.grams_sig !== gramsSig ? courseGramsStatement(row, grams) : null;
+      if (gramsStmt) stmts.push(gramsStmt);
+      if (stmts.length === 0) continue;
+      const size = stmts.reduce((n, x) => n + Buffer.byteLength(x), 0);
+      if (batch.length > 0 && (bytes + size > opts.maxRequestBytes || batch.length + stmts.length > opts.maxStatements)) {
+        await flush();
+      }
+      batch.push(...stmts);
+      bytes += size;
+      sigs.push([row.id, rowSig, gramsSig, sendRow, gramsStmt !== null]);
+    }
+  }
+  await flush();
+  if (result.courses + result.grams > 0) await d1.exec([dataVersionStatement(Date.now())]);
+  opts.log(`upload: sent ${result.courses} courses (${result.grams} with new search grams)`);
 
   // One progress row per device, so every device's position is visible remotely.
   const lanes = store.allLanes();
@@ -121,79 +233,30 @@ export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string,
       `${sqlLiteral(JSON.stringify(lanes))}, ${sqlLiteral(JSON.stringify(store.totals()))}, ${Date.now()}) ` +
       'ON CONFLICT(device) DO UPDATE SET lanes = excluded.lanes, totals = excluded.totals, uploaded_at = excluded.uploaded_at',
   ]);
-  return sent;
-}
-
-async function uploadTable(store: SqliteStore, d1: D1Exec, databaseId: string, table: SyncTable, opts: UploadOptions): Promise<number> {
-  const key = `upload:${databaseId}:${table}`;
-  const saved = store.getState(key);
-  let mark = saved ? (JSON.parse(saved) as { t: number; id: number }) : { t: 0, id: 0 };
-  const pending = Number(
-    Object.values(
-      store.db
-        .prepare(`SELECT COUNT(*) FROM ${table} WHERE changed_at > ? OR (changed_at = ? AND id > ?)`)
-        .get(mark.t, mark.t, mark.id) as object,
-    )[0],
-  );
-  if (pending === 0) {
-    opts.log(`upload: ${table}: up to date`);
-    return 0;
-  }
-  opts.log(`upload: ${table}: ${pending} changed rows`);
-
-  const page = store.db.prepare(
-    `SELECT * FROM ${table} WHERE changed_at > ? OR (changed_at = ? AND id > ?) ORDER BY changed_at, id LIMIT 500`,
-  );
-  let sent = 0;
-  let lastLog = Date.now();
-  for (;;) {
-    if (opts.signal?.aborted) break;
-    const rows = page.all(mark.t, mark.t, mark.id) as Array<Record<string, unknown>>;
-    if (rows.length === 0) break;
-
-    let batch: string[] = [];
-    let bytes = 0;
-    let batchLast = mark;
-    const flush = async () => {
-      if (batch.length === 0) return;
-      await d1.exec(batch);
-      sent += batch.length;
-      mark = batchLast;
-      store.setState(key, JSON.stringify(mark)); // progress survives an interrupted upload
-      batch = [];
-      bytes = 0;
-    };
-    for (const row of rows) {
-      const stmt = mergeStatement(table, row);
-      const size = Buffer.byteLength(stmt);
-      if (batch.length > 0 && (bytes + size > opts.maxRequestBytes || batch.length >= opts.maxStatements)) await flush();
-      batch.push(stmt);
-      bytes += size;
-      batchLast = { t: Number(row.changed_at), id: Number(row.id) };
-    }
-    await flush();
-    if (Date.now() - lastLog > 15_000) {
-      lastLog = Date.now();
-      opts.log(`upload: ${table}: ${sent}/${pending}`);
-    }
-  }
-  opts.log(`upload: ${table}: sent ${sent} rows`);
-  return sent;
+  return result;
 }
 
 /** Print what D1 holds and where every device is. */
 export async function printRemoteStatus(d1: D1Exec): Promise<void> {
-  const [counts] = await d1.exec([
-    `SELECT (SELECT COUNT(*) FROM sessions) AS sessions, (SELECT COUNT(*) FROM courses) AS courses,
-            (SELECT COUNT(*) FROM courses WHERE detail_status = 'ok') AS courses_detailed,
-            (SELECT COUNT(*) FROM videos WHERE status = 'ok') AS videos,
-            (SELECT MIN(id) FROM sessions) AS min_id, (SELECT MAX(id) FROM sessions) AS max_id`,
+  const version = await remoteSchema(d1);
+  if (version === null) {
+    console.log('D1 is empty (nothing uploaded yet).');
+    return;
+  }
+  if (version !== D1_SCHEMA_VERSION) {
+    console.log(`D1 has another layout (${version}); run \`npm run upload -- --reset\`.`);
+    return;
+  }
+  // One pass over the course rows (about one row read per course).
+  const [byTerm] = await d1.exec([
+    `SELECT term, COUNT(*) AS courses, SUM(detail) AS detailed, SUM(json_array_length(session_ids)) AS sessions
+       FROM courses GROUP BY term ORDER BY term DESC`,
   ]);
-  const c = counts?.results?.[0] ?? {};
+  const terms = byTerm?.results ?? [];
+  const sum = (k: string) => terms.reduce((n, t) => n + Number(t[k] ?? 0), 0);
   console.log('D1 totals');
-  console.log(`  sessions ${c.sessions}  (ids ${c.min_id ?? '–'}–${c.max_id ?? '–'})`);
-  console.log(`  courses  ${c.courses}  (with detail ${c.courses_detailed})`);
-  console.log(`  videos   ${c.videos}`);
+  console.log(`  courses  ${sum('courses')}  (with detail ${sum('detailed')})`);
+  console.log(`  sessions ${sum('sessions')}`);
 
   const [devices] = await d1.exec(['SELECT device, lanes, totals, uploaded_at FROM device_progress ORDER BY uploaded_at DESC']);
   console.log('\nDevices (as of their last upload)');
@@ -208,15 +271,8 @@ export async function printRemoteStatus(d1: D1Exec): Promise<void> {
     }
   }
 
-  const [terms] = await d1.exec([
-    `SELECT c.school_year AS year, c.semester AS sem, COUNT(*) AS sessions, COUNT(DISTINCT s.course_id) AS courses,
-            MIN(s.id) AS lo, MAX(s.id) AS hi
-     FROM sessions s LEFT JOIN courses c ON c.id = s.course_id
-     GROUP BY c.school_year, c.semester ORDER BY lo DESC`,
-  ]);
   console.log('\nD1 coverage by term');
-  for (const t of terms?.results ?? []) {
-    const label = t.year ? `${t.year} 第${Number(t.sem) === 2 ? '二' : Number(t.sem) === 1 ? '一' : String(t.sem)}学期` : '(unknown)';
-    console.log(`  ${label.padEnd(20)} ${String(t.sessions).padStart(7)} sessions  ${String(t.courses).padStart(5)} courses  ids ${t.lo}–${t.hi}`);
+  for (const t of terms) {
+    console.log(`  ${String(t.term ?? '(unknown)').padEnd(14)} ${String(t.sessions).padStart(7)} sessions  ${String(t.courses).padStart(5)} courses`);
   }
 }
