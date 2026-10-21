@@ -50,6 +50,15 @@ describe('parseSearchParams', () => {
     expect(ok('q=数学&term=2026-2027-1&term=2026-2027-1').term).toBe('2026-2027-1');
   });
 
+  it('needs no term when q is a course id, a course link or a registrar code', () => {
+    expect(ok('q=12345').term).toBeNull();
+    expect(ok('q=' + encodeURIComponent('https://www.yanhekt.cn/course/12345')).term).toBeNull();
+    expect(ok('q=202620271MTH1000112').term).toBeNull();
+    expect(ok('q=20261-17-1709901-1781234567890').term).toBeNull();
+    expect(err('q=programming').error).toBe('term-required'); // long, but no digit
+    expect(err('q=数学 12345').error).toBe('term-required');
+  });
+
   it('ignores unknown parameters', () => {
     expect(ok('q=数学&limit=999&sort=x' + T).q).toBe('数学');
   });
@@ -61,5 +70,6 @@ describe('cacheKey', () => {
     const b = cacheKey('https://x', ok('limit=3&q=数学 分析' + T), '1');
     expect(a).toBe(b);
     expect(cacheKey('https://x', ok('q=数学 分析' + T), '2')).not.toBe(a);
+    expect(cacheKey('https://x', ok('q=12345'), '1')).toBe('https://x/api/search?q=12345&v=1');
   });
 });

@@ -23,10 +23,11 @@ The API is not versioned in the path. Changes will be additive (new fields, new 
 
 ## `GET /api/search`
 
-Finds **courses** (one row per course offering, i.e. one section in one term) in **one term**. Searching all terms, or several at once, is not supported: a client asks term by term.
+Finds **courses** (one row per course offering, i.e. one section in one term). A name or teacher search is within **one term**: searching all terms, or several at once, is not supported, so a client asks term by term. A course id or registrar code names one course by itself and needs no term.
 
 ```
 GET /api/search?q=电路分析&term=2026-2027-1
+GET /api/search?q=202620271MTH1000112
 ```
 
 ### Parameters
@@ -34,7 +35,7 @@ GET /api/search?q=电路分析&term=2026-2027-1
 | Name | | |
 |---|---|---|
 | `q` | **required** | 2–64 characters, at most 6 words, and at least one word of 2+ characters. Empty searches are refused. |
-| `term` | **required** | exactly one term key, e.g. `2026-2027-1` |
+| `term` | **required**, except for an identifier | exactly one term key, e.g. `2026-2027-1`. Leave it out when `q` is a course id, a course link or a registrar code (8+ characters, no spaces, with a digit); only that identifier is then looked up. |
 
 Other parameters are ignored. There is no paging: one response holds the best 200 matches, and `total` says how many there are.
 
@@ -48,7 +49,7 @@ Other parameters are ignored. There is no paging: one response holds the best 20
 | Latin letters / digits (2+ characters) | a word of the course name or of a teacher's name **starts with** it | `name`, `teacher` |
 | 1 character | only narrows what the other words found | |
 
-Two whole-query identifiers match in **any** term (the result's `term` says which):
+Two whole-query identifiers match in **any** term, with or without `term` (the result's `term` says which):
 
 | Query | Matches | `match.fields` |
 |---|---|---|
@@ -65,7 +66,7 @@ The registrar code is cbiz's `number`, which equals Yanhe 2.0's `kcwybm`, so pas
 
 ```jsonc
 {
-  "query": { "q": "电路分析", "term": "2026-2027-1" },  // the search as understood (normalized)
+  "query": { "q": "电路分析", "term": "2026-2027-1" },  // the search as understood (normalized); term null for an identifier lookup
   "total": 32,                     // all matches; results holds at most 200
   "truncated": false,              // true: over 5000 courses matched the words; only the newest 5000 were ranked
   "results": [
@@ -102,7 +103,7 @@ Errors are JSON with a stable `error` code and a human `message`; parameter erro
 | 400 | `query-required` | `q` missing or blank |
 | 400 | `query-too-short` | fewer than 2 characters, or no word of 2+ characters |
 | 400 | `query-too-long` | over 64 characters or 6 words |
-| 400 | `term-required` | `term` missing |
+| 400 | `term-required` | `term` missing and `q` is not a course id or registrar code |
 | 400 | `bad-param` | any other invalid parameter (see `param`): several terms, a malformed term, a session link, a non-numeric course id |
 | 404 | `not-found` | unknown `/api/` path, or unknown course |
 | 405 | `method-not-allowed` | not `GET` |

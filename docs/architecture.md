@@ -604,7 +604,7 @@ Contract: [`share/docs/api.md`](../share/docs/api.md). Read-only, no auth; the z
 
 | Method | Path | Behaviour |
 |---|---|---|
-| `GET` | `/api/search?q=…&term=…` | Course search over D1 `yanhekt-index` in exactly one term (`2026-2027-1`; required, several refused). `q` required (2–64 chars, ≤ 6 words, AND). Returns ids, name, registrar `number`, teachers, session count; best 200, no paging. No college, level, category or English-name data (left out of D1 on purpose). |
+| `GET` | `/api/search?q=…&term=…` | Course search over D1 `yanhekt-index` in exactly one term (`2026-2027-1`; several refused). `term` may be left out only when `q` is a course id, course link or registrar code; then only that identifier is looked up. `q` required (2–64 chars, ≤ 6 words, AND). Returns ids, name, registrar `number`, teachers, session count; best 200, no paging. No college, level, category or English-name data (left out of D1 on purpose). |
 | `GET` | `/api/courses/{id}/sessions` | The course's session ids; clients read each session from Yanhekt. |
 | any | `/api/*` else | 404 JSON |
 | any | `/v2/api/*` | 503 `{ error: 'retired' }` |

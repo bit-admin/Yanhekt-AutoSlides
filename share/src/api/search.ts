@@ -2,8 +2,9 @@
  * `GET /api/search` against the `yanhekt-index` D1 database. The layout is
  * the indexer's (indexer/src/d1model.ts); this Worker only reads it.
  *
- * Every search is within one term, and `course_grams` is keyed by term first,
- * so only that term's entries are read. Two round trips, no table scans:
+ * Every word search is within one term, and `course_grams` is keyed by term
+ * first, so only that term's entries are read. A query without a term is a
+ * course id or registrar code and reads one or two rows. Two round trips, no table scans:
  *   1. one batch: the first CAP+1 course ids of each search key (a gram, or a
  *      `w:` prefix range), plus the whole query as a registrar code or a
  *      course id (those match in any term).
@@ -42,7 +43,7 @@ export interface CourseResult {
 }
 
 export interface SearchResponse {
-  query: { q: string; term: string };
+  query: { q: string; term: string | null };
   /** All matches; `results` holds at most MAX_RESULTS of them. */
   total: number;
   truncated: boolean;
@@ -80,9 +81,11 @@ function coursesByIds(db: D1Database, ids: number[]): D1PreparedStatement {
 }
 
 async function candidates(db: D1Database, p: SearchParams): Promise<{ rows: CourseRow[]; truncated: boolean }> {
-  const keys = searchKeys(p.tokens);
+  // Without a term the query is an identifier (searchParams.ts): look up only that.
+  const term = p.term;
+  const keys = term === null ? [] : searchKeys(p.tokens);
   const stmts = keys.map((k) => {
-    const [sql, binds] = keySql(p.term, k);
+    const [sql, binds] = keySql(term!, k);
     return db.prepare(`${sql} LIMIT ${CAP + 1}`).bind(...binds);
   });
   const asNumber = numberKey(p.q);
@@ -96,6 +99,7 @@ async function candidates(db: D1Database, p: SearchParams): Promise<{ rows: Cour
   if (/^\d{1,9}$/.test(p.q)) stmts.push(db.prepare(`SELECT ${COURSE_COLUMNS} FROM courses WHERE id = ?`).bind(Number(p.q)));
   const first = await db.batch<Record<string, unknown>>(stmts);
 
+  if (term === null) return { rows: first.flatMap((r) => r.results as unknown as CourseRow[]), truncated: false };
   const identified = first.slice(keys.length).flatMap((r) => r.results as unknown as CourseRow[]);
   const lists = first.slice(0, keys.length).map((r) => [...new Set(r.results.map((x) => Number(x.course_id)))]);
   const complete = lists.filter((l) => l.length <= CAP).sort((a, b) => a.length - b.length);
@@ -108,7 +112,7 @@ async function candidates(db: D1Database, p: SearchParams): Promise<{ rows: Cour
   }
 
   // Every key is common in this term: intersect them all in D1.
-  const parts = keys.map((k) => keySql(p.term, k));
+  const parts = keys.map((k) => keySql(term, k));
   const { results } = await db
     .prepare(
       `SELECT ${COURSE_COLUMNS} FROM courses WHERE id IN (${parts.map(([sql]) => sql).join(' INTERSECT ')}) ` +

@@ -3,15 +3,18 @@
  * key. Pure; see docs/api.md for the contract.
  */
 
-import { searchWords, wordLookup } from '../../../indexer/src/grams.ts';
+import { numberKey, searchWords, wordLookup } from '../../../indexer/src/grams.ts';
 
 export interface SearchParams {
   /** Normalized query: trimmed, inner whitespace collapsed. */
   q: string;
   /** Lowercased words of `q` (split as the indexer splits text); every one must match. */
   tokens: string[];
-  /** The one term searched, e.g. `2026-2027-1`. */
-  term: string;
+  /**
+   * The one term searched, e.g. `2026-2027-1`. Null only when `q` is an
+   * identifier (see `isIdentifierQuery`); then only identifiers are looked up.
+   */
+  term: string | null;
 }
 
 export interface ParamError {
@@ -46,6 +49,14 @@ function list(params: URLSearchParams, name: string): string[] {
   return out;
 }
 
+/**
+ * A query that can name one course by itself, in any term: a course id, or
+ * something shaped like a registrar code (8+ characters, no spaces, a digit).
+ */
+export function isIdentifierQuery(q: string): boolean {
+  return /^\d{1,9}$/.test(q) || (numberKey(q) !== null && /\d/.test(q));
+}
+
 /** A pasted course link becomes its id; a session link is refused (sessions are not in the index). */
 export function normalizeQuery(raw: string): string | ParamError {
   const link = YANHEKT_LINK.exec(raw);
@@ -71,7 +82,10 @@ export function parseSearchParams(params: URLSearchParams): SearchParams | Param
   }
 
   const terms = list(params, 'term');
-  if (terms.length === 0) return bad('term', 'term-required', 'term is required, e.g. term=2026-2027-1');
+  if (terms.length === 0) {
+    if (isIdentifierQuery(q)) return { q, tokens, term: null };
+    return bad('term', 'term-required', 'term is required (e.g. term=2026-2027-1) unless q is a course id or registrar code');
+  }
   if (terms.length > 1) return bad('term', 'bad-param', 'search one term at a time');
   if (!TERM_KEY.test(terms[0])) return bad('term', 'bad-param', `term must look like 2026-2027-1 (got ${terms[0]})`);
 
@@ -89,7 +103,7 @@ export function isParamError(v: unknown): v is ParamError {
 export function cacheKey(origin: string, p: SearchParams, version: string): string {
   const qs = new URLSearchParams();
   qs.set('q', p.q);
-  qs.set('term', p.term);
+  if (p.term) qs.set('term', p.term);
   qs.set('v', version);
   return `${origin}/api/search?${qs}`;
 }

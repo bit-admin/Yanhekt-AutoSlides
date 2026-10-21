@@ -64,6 +64,16 @@ describe('search', () => {
     expect(await ids(`q=${encodeURIComponent('https://www.yanhekt.cn/course/104')}&${T}`)).toEqual([104]);
   });
 
+  it('without a term, looks up only the identifier', async () => {
+    db.log.length = 0;
+    const r = await search(db, params('q=90'));
+    expect(r).toMatchObject({ query: { q: '90', term: null }, total: 1, results: [{ id: 90, term: '2025-2026-1' }] });
+    expect(db.log.some((sql) => sql.includes('course_grams WHERE term = ? AND'))).toBe(false);
+    addCourse(db, { id: 203, name: '概率论与数理统计B', number: '202620271MTH1000112', year: '2025-2026' });
+    expect(await ids('q=202620271mth1000112')).toEqual([203]);
+    expect(await ids('q=99999')).toEqual([]);
+  });
+
   it('finds a course by its whole registrar code (Yanhe 2.0 kcwybm), in any term and format', async () => {
     addCourse(db, { id: 201, name: '泛函分析', number: '20262027110099010101' });
     addCourse(db, { id: 202, name: '偏微分方程', number: '20261-03-0309902-1782345678901', year: '2025-2026' });
