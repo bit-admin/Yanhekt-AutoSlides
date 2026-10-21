@@ -67,6 +67,8 @@ const demoApiTransport: ApiTransport = {
   subscribeCourse: async () => undefined,
   unsubscribeCourse: async () => undefined,
   getCourseInfo: async (courseId: string) => demoCourseInfo(courseId),
+  // Demo lives keep their live-id names.
+  getLiveSessionId: async () => null,
   // Demo ships no media, so no lecture has a mic track.
   getVideoAssets: async () => ({}),
   // Demo ships no media, so there is nothing to download by session id.

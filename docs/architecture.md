@@ -1058,7 +1058,9 @@ Broadcast detail **by id**, anonymous-ok. Example: live `760202` / course `68001
 
 **Both `with_*` flags are required.** Omitting either answers `61101114 系统繁忙` with `data: []` — a hard error, not a partial payload. Unknown id → `12131011 直播不存在`; missing `id` → `61101210`.
 
-This is the only way to resolve a broadcast id without paging the live list, and it is what `web/` uses for a cold deep link to `/player/live/:id` (`PlayerRoute.hydrateLive`). Desktop has no equivalent path — it always opens live from an in-hand list row.
+This is the only way to resolve a broadcast id without paging the live list, and it is what `web/` uses for a cold deep link to `/player/live/:id` (`PlayerRoute.hydrateLive`).
+
+**It is also the live → session lookup (23.72).** `session.id` here is the session behind the broadcast, and the session exists before the class starts (its `video_ids` stay `[]` until the recording attaches). Live extraction names its folder `__c<course>s<session>l<live>` from it: the session id makes the folder findable by session, the live id keeps it apart from the recorded extraction of the same session (the titles are identical, and extraction appends into an existing folder). The managed note title token has room for one of `s`/`l`, so a live watch note is titled `c<course>s<session> · …`, the same note the recording's watch note uses. One lookup per broadcast, cached for the renderer's life (desktop `features/course/liveSessionIds.ts` → `ApiClient.getLiveSessionId`, web `composables/liveSessionIds.ts` → `getLiveById`), awaited for up to 5s when extraction builds the name; a failure or timeout keeps the old `__c<course>l<live>` name. The Lectures slides strip prefers the folder without `l` when both match a session, since live folders have no `timeline.json`. Deliberately not used: the `/v1/live/list` twin's `session_id` ([§9.5.1](#9x-v1-twins-of-the-v2-endpoints)).
 
 The payload is a live-list row **plus** more, so `transformLiveStreamToCourse` consumes it unchanged:
 

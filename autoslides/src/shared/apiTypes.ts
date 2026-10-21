@@ -39,6 +39,8 @@ export interface LiveStream {
     image_url?: string;
   };
   session?: {
+    /** The session id. Only on `GET /v1/live?id=` detail; list rows lack it. */
+    id?: number | string;
     // The real course id behind this broadcast. Verified present on 63/63
     // sampled live rows — far more reliable than the sibling `course` object
     // (14/63), which is why this is the source used for live identity.

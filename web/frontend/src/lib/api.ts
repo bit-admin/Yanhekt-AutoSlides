@@ -45,6 +45,8 @@ export interface LiveStream {
     name_en?: string;
   };
   session?: {
+    /** The session id. Only on `GET /v1/live?id=` detail; list rows lack it. */
+    id?: number | string;
     // The real course id behind this broadcast (present on every sampled live
     // row, unlike the partial sibling `course` object).
     course_id?: number | string;

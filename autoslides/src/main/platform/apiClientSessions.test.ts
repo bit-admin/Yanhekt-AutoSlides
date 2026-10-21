@@ -52,3 +52,24 @@ describe('getCourseSessions', () => {
     await expect(client.getCourseSessions('70101', 'tok')).rejects.toThrow('用户未登录');
   });
 });
+
+describe('getLiveSessionId', () => {
+  const answering = (body: unknown) => {
+    const client = new ApiClient();
+    const calls: string[] = [];
+    (client as unknown as { makeRequest: (m: string, url: string) => Promise<unknown> }).makeRequest =
+      async (_m, url) => { calls.push(url); return body; };
+    return { client, calls };
+  };
+
+  it('reads session.id off /v1/live detail, with both with_* flags', async () => {
+    const { client, calls } = answering({ code: 0, data: { id: 788727, session: { id: 920698 } } });
+    expect(await client.getLiveSessionId('788727', 'tok')).toBe('920698');
+    expect(calls[0]).toBe('https://cbiz.yanhekt.cn/v1/live?id=788727&with_session=true&with_course=true');
+  });
+
+  it('returns null on an error code or a missing session', async () => {
+    expect(await answering({ code: 12131011, message: '直播不存在' }).client.getLiveSessionId('1', 'tok')).toBeNull();
+    expect(await answering({ code: 0, data: { session: null } }).client.getLiveSessionId('1', 'tok')).toBeNull();
+  });
+});

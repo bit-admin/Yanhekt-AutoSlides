@@ -23,6 +23,12 @@ export interface Course {
   /** The real course id; only set for live, where `id` is a broadcast id. */
   courseId?: string;
   /**
+   * Live only: the session behind this broadcast, when the row carried it
+   * (`GET /v1/live?id=` detail does; list rows do not). Naming resolves a
+   * missing one through `liveSessionIds.ts`.
+   */
+  liveSessionId?: string;
+  /**
    * The Chinese course name (`name_zh`). **Canonical** — the IndexedDB folder key,
    * slide metadata `source.courseTitle` and managed note titles all derive from
    * this. Never swap it for a localized string.
@@ -82,6 +88,7 @@ export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
     // Broadcast id above; the real course id rides alongside so slide folders
     // group by course while staying unique per broadcast.
     courseId: stream.session?.course_id != null ? String(stream.session.course_id) : undefined,
+    liveSessionId: stream.session?.id != null ? String(stream.session.id) : undefined,
     title: stream.title || "Untitled",
     instructor: stream.session?.professor?.name || "Unknown",
     time: `${startTime} - ${endTime}`,

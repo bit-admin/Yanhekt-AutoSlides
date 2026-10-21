@@ -29,6 +29,7 @@ import { watchNotesStore } from '../../stores/watchNotesStore'
 import type { Course } from '../useCourseList'
 import type { SessionData } from '../../lib/api'
 import { demoHooks } from '../../lib/demoRegistry'
+import { rememberLiveSessionId, resolveLiveSessionId } from '../liveSessionIds'
 import { createLogger } from '../../lib/logger'
 const log = createLogger('VideoSlideExtraction')
 
@@ -94,7 +95,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   // distinct lectures would share one folder record. Mirrors the desktop app's
   // `buildSlideFolderName`; the `__` delimiter is safe because sanitizeFileName
   // collapses `_{2,}`, so it is appended after sanitizing.
-  const buildFolderName = (): string => {
+  const buildFolderName = (liveSessionId?: string): string => {
     let folderName = 'slides'
     if (course.value?.title) {
       folderName += `_${sanitizeFileName(course.value.title)}`
@@ -106,25 +107,33 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     }
     // Live: `course.id` is a broadcast id, not a course id — its own slot, so it
     // still makes the folder unique per broadcast without masquerading as a course.
+    // The session id (from `/v1/live?id=`) rides along: `__c…s…l…` can be found
+    // by session yet stays apart from the recorded extraction of that session.
     return `${folderName}${buildLectureIdSuffix(
       mode === 'live'
-        ? { courseId: course.value?.courseId, liveId: course.value?.id }
+        ? { courseId: course.value?.courseId, sessionId: liveSessionId, liveId: course.value?.id }
         : { courseId: course.value?.id, sessionId: session.value?.session_id },
     )}`
   }
 
   // Build the SlideExtractionInput payload from current course/session state.
   const buildExtractionInput = async (): Promise<SlideExtractionInput> => {
-    const folderName = buildFolderName()
+    let liveSessionId: string | undefined
+    if (mode === 'live') {
+      rememberLiveSessionId(course.value?.id, course.value?.liveSessionId)
+      liveSessionId = await resolveLiveSessionId(course.value?.id)
+    }
+    const folderName = buildFolderName(liveSessionId)
     currentFolder.value = folderName
 
     // Record per-folder metadata (best-effort). All web extractions are watch
     // mode: the user is watching, completeness is unverifiable.
-    const sessionId = session.value?.session_id ? String(session.value.session_id) : undefined
+    const sessionId =
+      mode === 'live'
+        ? liveSessionId
+        : session.value?.session_id ? String(session.value.session_id) : undefined
     // Live rows have no `session` of their own, but `section_group_title` is the
     // same string a recorded session uses as its title and encodes week + day.
-    // Everything a recorded folder records is available EXCEPT the session id,
-    // which cannot exist until the lecture has finished and been published.
     const liveSessionTitle =
       mode === 'live' ? course.value?.session?.section_group_title : undefined
     const liveSessionParts = parseSessionTitle(liveSessionTitle)

@@ -21,6 +21,7 @@ export interface ApiTransport {
   subscribeCourse(token: string, courseId: string): Promise<void>;
   unsubscribeCourse(token: string, courseId: string): Promise<void>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
+  getLiveSessionId(liveId: string, token: string): Promise<string | null>;
   getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }>;
   getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo>;
   getSessionProgress(sessionId: string, token: string): Promise<unknown>;
@@ -38,6 +39,7 @@ const realApiTransport: ApiTransport = {
   subscribeCourse: (token, courseId) => window.electronAPI.api.subscribeCourse(token, courseId),
   unsubscribeCourse: (token, courseId) => window.electronAPI.api.unsubscribeCourse(token, courseId),
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
+  getLiveSessionId: (liveId, token) => window.electronAPI.api.getLiveSessionId(liveId, token),
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
   getVideoAssets: (videoId, token) => window.electronAPI.api.getVideoAssets(videoId, token),
   getSessionDownloadInfo: (sessionId, token) => window.electronAPI.api.getSessionDownloadInfo(sessionId, token),
@@ -249,6 +251,16 @@ export class ApiClient {
     } catch (error) {
       log.error('Failed to get course info:', error);
       throw error;
+    }
+  }
+
+  /** Session id behind a live broadcast, or null. Never throws. */
+  async getLiveSessionId(liveId: string, token: string): Promise<string | null> {
+    try {
+      return await this.transport.getLiveSessionId(liveId, token);
+    } catch (error) {
+      log.warn('Failed to look up a live session id:', error);
+      return null;
     }
   }
 

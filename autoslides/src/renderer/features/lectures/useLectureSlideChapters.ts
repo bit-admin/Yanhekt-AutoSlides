@@ -121,7 +121,7 @@ export function useLectureSlideChapters(
       const folders = overrides.resultsProvider
         ? await overrides.resultsProvider.getFolders()
         : await window.electronAPI.pdfmaker.getFolders()
-      const match = folders.find(folder => {
+      const matches = folders.filter(folder => {
         const ids = parseLectureIds(folder.name)
         return (
           !!ids.courseId &&
@@ -130,6 +130,9 @@ export function useLectureSlideChapters(
           String(ids.sessionId) === wantSession
         )
       })
+      // A live extraction of the session (`__c…s…l…`) matches too, but it has
+      // no timeline.json, so the recorded folder wins when both exist.
+      const match = matches.find(folder => !parseLectureIds(folder.name).liveId) ?? matches[0]
 
       if (!match) {
         chapters.value = []

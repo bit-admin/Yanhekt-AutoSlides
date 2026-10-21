@@ -21,6 +21,12 @@ export interface Course {
    */
   courseId?: string
   /**
+   * Live only: the session behind this broadcast, when the row carried it
+   * (`GET /v1/live?id=` detail does; list rows do not). Naming resolves a
+   * missing one through `liveSessionIds.ts`.
+   */
+  liveSessionId?: string
+  /**
    * The Chinese course name (`name_zh`). **Canonical** — on-disk folder names,
    * download filenames, Drive note titles, metadata.json and Index uploads all
    * derive from this. Never swap it for a localized string.
@@ -80,6 +86,7 @@ export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
     // folders can group by course while staying unique per broadcast.
     id: stream.id || stream.live_id || '',
     courseId: stream.session?.course_id != null ? String(stream.session.course_id) : undefined,
+    liveSessionId: stream.session?.id != null ? String(stream.session.id) : undefined,
     title: stream.title || 'Untitled',
     instructor: stream.session?.professor?.name || 'Unknown',
     time: `${startTime} - ${endTime}`,

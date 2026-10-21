@@ -7,6 +7,7 @@ import { createLogger } from '@shared/utils/logger'
 import { buildSlideFolderName, SLIDE_FOLDER_PREFIX, type LectureIdentity } from '@common/lectureNaming'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { tabStore } from '@features/course/tabStore'
+import { knownLiveSessionId } from '@features/course/liveSessionIds'
 import { cloudStorageStore } from './cloudStorageStore'
 import {
   yanhektWatchSink,
@@ -93,9 +94,11 @@ function deriveNoteNaming(tabId: string): {
   const session = tab.session as { title?: string; session_id?: string | number } | null
   // Live: `course.id` is a broadcast id and `course.courseId` the real course —
   // same split as useSlideExtraction, so the note title matches the folder.
+  // The session id is the one extraction named its folder with (it starts
+  // first); the note title then reads `c…s…`, same as the recording's note.
   const isLive = tab.mode === 'live'
   const identity: LectureIdentity = isLive
-    ? { courseId: tab.course?.courseId, liveId: tab.course?.id }
+    ? { courseId: tab.course?.courseId, sessionId: knownLiveSessionId(tab.course?.id), liveId: tab.course?.id }
     : { courseId: tab.course?.id, sessionId: session?.session_id }
   const folderName = buildSlideFolderName(
     {

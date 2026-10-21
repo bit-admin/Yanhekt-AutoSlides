@@ -639,6 +639,30 @@ export class ApiClient {
   }
 
   /**
+   * The session id behind one live broadcast, from `GET /v1/live?id=` detail
+   * (anonymous-ok; both `with_*` flags are required or it answers 61101114).
+   * List rows carry no session id, but the session exists before the class
+   * starts, so a live lecture can be named by it. Null when the lookup fails or
+   * the answer has no numeric id — callers keep the live-id name then.
+   */
+  async getLiveSessionId(liveId: string, token: string): Promise<string | null> {
+    try {
+      const url = `https://cbiz.yanhekt.cn/v1/live?id=${encodeURIComponent(liveId)}&with_session=true&with_course=true`;
+      const response = (await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true })) as {
+        code?: number | string;
+        data?: { session?: { id?: number | string } | null } | null;
+      };
+      if (response.code !== 0 && response.code !== '0') return null;
+      const id = response.data?.session?.id;
+      const text = id == null ? '' : String(id).trim();
+      return /^\d+$/.test(text) ? text : null;
+    } catch (error: unknown) {
+      log.warn('Failed to look up the session of live', liveId, error);
+      return null;
+    }
+  }
+
+  /**
    * One course's detail from `/v1/course` alone — names, teachers, term,
    * college. Anonymous-ok; the session list is a separate, signed-in hop
    * ({@link getCourseSessions}), so a caller that has no token can still show

@@ -23,6 +23,7 @@ export interface SlideExtractionStatus {
 export type { Course } from '@features/course/useCourseList'
 import type { Course } from '@features/course/useCourseList'
 import { configStore } from '@shared/services/configStore'
+import { rememberLiveSessionId, resolveLiveSessionId } from '@features/course/liveSessionIds'
 
 import type { SessionData } from '@common/apiTypes'
 /** Recorded session row from /v1/course (alias kept for existing importers). */
@@ -138,11 +139,19 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     // extraction's slides merge into the other course's folder (mkdir -p).
     //
     // In live mode `course.id` is a BROADCAST id, not a course id
-    // (transformLiveStreamToCourse), and there is no session. The real course id
-    // rides on `course.courseId` (from the live row's `session.course_id`), so a
-    // live folder carries both: the course id groups broadcasts of one course
-    // together, the broadcast id keeps each one a distinct folder.
+    // (transformLiveStreamToCourse). The real course id rides on
+    // `course.courseId` (from the live row's `session.course_id`), and the
+    // session id comes from `/v1/live?id=` (the session exists before class).
+    // A live folder carries all three, `__c<course>s<session>l<live>`: the
+    // session id lets it be found by session, the live id keeps it apart from
+    // the recorded extraction of the same session. If the lookup fails the
+    // name falls back to `__c<course>l<live>`.
     const isLive = mode === 'live'
+    let liveSessionId: string | undefined
+    if (isLive) {
+      rememberLiveSessionId(course.value?.id, course.value?.liveSessionId)
+      liveSessionId = await resolveLiveSessionId(course.value?.id)
+    }
     const folderName = buildSlideFolderName(
       {
         courseTitle: course.value?.title,
@@ -150,7 +159,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
         sectionGroupTitle: isLive ? course.value?.session?.section_group_title : undefined,
       },
       isLive
-        ? { courseId: course.value?.courseId, liveId: course.value?.id }
+        ? { courseId: course.value?.courseId, sessionId: liveSessionId, liveId: course.value?.id }
         : { courseId: course.value?.id, sessionId: session.value?.session_id },
     )
 
@@ -163,13 +172,12 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     // it records 'auto'. Live folders now get metadata too (kind: 'live').
     // Offline/web-capture paths don't use this composable and stay metadata-free.
     {
-      const sessionId = session.value?.session_id ? String(session.value.session_id) : undefined
+      const sessionId = isLive
+        ? liveSessionId
+        : session.value?.session_id ? String(session.value.session_id) : undefined
       // Live rows carry no `session` object of their own, but their
       // `section_group_title` ("第21周 星期日 第2大节") is the same string a
-      // recorded session uses as its title, and encodes week + weekday. A live
-      // folder can therefore record everything a recorded one does EXCEPT the
-      // session id, which cannot exist yet — a recording is only published once
-      // the lecture has finished.
+      // recorded session uses as its title, and encodes week + weekday.
       const liveSessionTitle = isLive ? course.value?.session?.section_group_title : undefined
       const liveSessionParts = parseSessionTitle(liveSessionTitle)
       void recordRecordedExtraction({

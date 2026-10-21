@@ -641,6 +641,8 @@ export interface ElectronAPI {
      *  does not need the course to have sessions, so it works for live-only
      *  courses. Resolves null when the course or its names are unavailable. */
     getCourseNames: (courseId: string, token: string) => Promise<{ nameZh: string; nameEn?: string } | null>;
+    /** Session id behind a live broadcast (`/v1/live?id=` detail). Null when unknown. */
+    getLiveSessionId: (liveId: string, token: string) => Promise<string | null>;
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
     /** Mic-audio URL for one video id (GET /v1/video). Absent when the room recorded no mic. */
     getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;
