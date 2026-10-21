@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@main/infra/logger', () => ({ createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }));
 
-import { Yanhe2TwinResolver } from './yanhe2TwinResolver';
+import { twinMetadataSource, Yanhe2TwinResolver } from './yanhe2TwinResolver';
 import { yanhe2SessionTitle } from './yanhe2Twin';
 
 // 2026-09-21 15:15 Beijing.
@@ -64,5 +64,34 @@ describe('Yanhe2TwinResolver.find', () => {
   it('stops on a network failure rather than dropping the ids', async () => {
     const error = Object.assign(new Error('socket hang up'), { isAxiosError: true });
     expect(await resolver({ listError: error }).find('1120000000', query)).toEqual({ kind: 'network' });
+  });
+});
+
+describe('twinMetadataSource', () => {
+  it('keeps the registrar number from Yanhe 2.0, with or without the Yanhekt course', async () => {
+    const found = await resolver().find('1120000000', query);
+    expect(found.kind).toBe('ok');
+    if (found.kind !== 'ok') return;
+    expect(found.data.courseNumber).toBe('K-0001');
+    expect(twinMetadataSource(found.data)).toMatchObject({
+      courseId: '80101', courseNumber: 'K-0001', sessionId: '900101', sessionTitle: '第4周 星期一 第5大节',
+    });
+
+    const missing = await resolver({ courses: [] }).find('1120000000', query);
+    if (missing.kind !== 'ok') throw new Error('expected ok');
+    expect(twinMetadataSource(missing.data)).toEqual({
+      courseTitle: '泛函分析', courseNumber: 'K-0001', sessionTitle: '2026-09-21 第8-10节',
+    });
+  });
+
+  it("falls back to the Yanhekt course's number when Yanhe 2.0 gave none", () => {
+    const source = twinMetadataSource({
+      course: COURSE as never,
+      session: null,
+      target: { courseId: '80101', courseTitle: '泛函分析', sessionId: '', sessionTitle: '2026-09-21 第8-10节' },
+      courseNumber: '',
+    });
+    expect(source.courseNumber).toBe('K-0001');
+    expect(source.sessionId).toBeUndefined();
   });
 });

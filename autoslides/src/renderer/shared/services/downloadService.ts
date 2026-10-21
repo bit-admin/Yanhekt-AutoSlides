@@ -35,6 +35,10 @@ export interface DownloadItem {
   // stamp the extracted folder's metadata. Optional because a queued item may
   // predate a known course (e.g. a thin/pinned course with no id).
   courseId?: string
+  // The registrar's course number, for the extracted folder's metadata, when
+  // the caller has it (a Yanhe 2.0 row: `kcwybm`). Without it main looks the
+  // number up from `courseId`.
+  courseNumber?: string
   // 'audio' is Yanhekt's classroom mic stem (a plain .aac sidecar), not a
   // stream. Modelling it here rather than as a parallel queue is deliberate:
   // dedupe, the item id and the queue panel all keep working untouched, and

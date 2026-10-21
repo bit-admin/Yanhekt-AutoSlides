@@ -55,6 +55,7 @@ import type {
 import type { Yanhe2CaptionSyncResult } from '../shared/yanhe2CaptionSync';
 import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleQuery, Yanhe2SubtitleResult } from '../shared/yanhe2Subtitles';
 import type { Yanhe2DownloadKind, Yanhe2DownloadPrepared, Yanhe2DownloadQuery } from '../shared/yanhe2Download';
+import type { Yanhe2ExtractionPrepared, Yanhe2ExtractionQuery } from '../shared/yanhe2Extraction';
 import type { Yanhe2TranscriptLine } from '../shared/yanhe2Transcript';
 import type {
   SlideMetadata,
@@ -457,6 +458,8 @@ export interface ElectronAPI {
     saveSubtitles: (account: string, query: Yanhe2SubtitleQuery, shift: number) => Promise<Yanhe2SubtitleResult>;
     /** What a recording has to download, and the Yanhekt lecture it is filed under. Writes nothing. */
     prepareDownload: (account: string, query: Yanhe2DownloadQuery) => Promise<Yanhe2DownloadPrepared>;
+    /** The Yanhekt lecture a recording's extracted slides are filed under, and their metadata. Writes nothing. */
+    prepareExtraction: (account: string, query: Yanhe2ExtractionQuery) => Promise<Yanhe2ExtractionPrepared>;
     /** One session's transcript lines, in time order. Empty when it has none. */
     transcript: (account: string, subId: string) => Promise<Yanhe2ReadResult<Yanhe2TranscriptLine[]>>;
     /**

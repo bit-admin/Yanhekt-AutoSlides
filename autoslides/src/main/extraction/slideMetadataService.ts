@@ -120,6 +120,18 @@ export class SlideMetadataService {
   }
 
   /**
+   * Add the registrar's course number to a folder recorded without one, once
+   * it has been looked up. No-op if the folder has no metadata, already has a
+   * number, or has since been recorded for another course.
+   */
+  async setCourseNumber(folderPath: string, courseId: string, courseNumber: string): Promise<void> {
+    await this.mutate(folderPath, (current) => {
+      if (!current || current.source.courseNumber || current.source.courseId !== courseId) return null;
+      return { ...current, source: { ...current.source, courseNumber } };
+    });
+  }
+
+  /**
    * Write a full metadata object wholesale (used to restore `metadata.json` when
    * a managed cloud note is exported back into a local `slides_*` folder).
    * Preserves the snapshot's `createdAt`; `updatedAt` is refreshed by `mutate`.

@@ -55,6 +55,7 @@ export const yanhe2: ElectronAPI['yanhe2'] = {
   prepareSubtitles: (account, query) => ipcRenderer.invoke('yanhe2:prepareSubtitles', account, query),
   saveSubtitles: (account, query, shift) => ipcRenderer.invoke('yanhe2:saveSubtitles', account, query, shift),
   prepareDownload: (account, query) => ipcRenderer.invoke('yanhe2:prepareDownload', account, query),
+  prepareExtraction: (account, query) => ipcRenderer.invoke('yanhe2:prepareExtraction', account, query),
   transcript: (account, subId) => ipcRenderer.invoke('yanhe2:transcript', account, subId),
   captionSync: (account, query) => ipcRenderer.invoke('yanhe2:captionSync', account, query),
   prepareBrowserSignIn: () => ipcRenderer.invoke('yanhe2:prepareBrowserSignIn'),

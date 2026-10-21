@@ -1888,8 +1888,8 @@
     "subtitlesAllNone": "No subtitles were added. These lectures have no transcript, their timing could not be measured, or they are already queued.",
     "saveSlides": "Add Server Slides to Tasks",
     "saveAllSlides": "Add All Server Slides to Tasks",
-    "saveAllNone": "No slides were added. These lectures have no slides or are already saved.",
-    "saveAllSome": "Added {count} sessions to task queue. {skipped} skipped: no slides or already saved.",
+    "saveAllNone": "No sessions were added. They are already in Tasks or their slides are already saved.",
+    "saveAllSome": "Added {count} sessions to task queue. {skipped} skipped: already in Tasks or slides already saved.",
     "title": "My Courses",
     "loading": "Loading courses…",
     "noCourses": "No Courses Found",
@@ -1952,6 +1952,12 @@
       "network": "Could not prepare the download. Check your connection and try again.",
       "failed": "The download could not be prepared. Try again later."
     },
-    "downloadRoomUnavailable": "The room camera cannot be downloaded"
+    "downloadRoomUnavailable": "The room camera cannot be downloaded",
+    "extractionNeedsScreen": "Switch to the screen stream to extract slides",
+    "extractionRefused": {
+      "signed_out": "Your Yanhe 2.0 session has ended. Sign in again, then retry.",
+      "network": "Could not look up this lecture. Check your connection and try again.",
+      "failed": "Slide extraction could not be started for this lecture. Try again later."
+    }
   }
 }

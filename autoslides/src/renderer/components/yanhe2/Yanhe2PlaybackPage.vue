@@ -34,7 +34,7 @@
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
         </button>
-        <button @click="load" class="btn refresh-btn" :disabled="loading" :title="$t('playback.refresh')">
+        <button @click="load" class="btn refresh-btn" :disabled="loading || isTaskRunning" :title="$t('playback.refresh')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
             <path d="M21 3v5h-5"/>
@@ -109,7 +109,7 @@
             :is-dual-stream-selected="isDualSelected"
             :is-picture-in-picture="isPictureInPicture"
             :is-cinema-mode="isCinemaMode"
-            :should-disable-controls="false"
+            :should-disable-controls="isTaskRunning"
             :video-player-ready="!!videoPlayer"
             :has-dual-streams="hasDualStreams"
             :dual-stream-key="YANHE2_BOTH_STREAMS"
@@ -152,7 +152,7 @@
               :mode="mode"
               :is-playing="isPlaying"
               :controls-visible="controlsVisible"
-              :should-disable-controls="false"
+              :should-disable-controls="isTaskRunning"
               :should-video-mute="audioModeMuted"
               :mute-label-key="audioModeLabel"
               :current-time="currentTime"
@@ -227,7 +227,7 @@
               :mode="mode"
               :is-playing="isPlaying"
               :controls-visible="controlsVisible"
-              :should-disable-controls="false"
+              :should-disable-controls="isTaskRunning"
               :should-video-mute="audioModeMuted"
               :mute-label-key="audioModeLabel"
               :current-time="currentTime"
@@ -272,23 +272,39 @@
             />
           </div>
 
-          <!-- What Yanhe 2.0 made of the recording itself: the slides it detected
-               (Save hands them to the task queue) or its transcript. The two-way
-               switch (the Search page's Live | Recorded control) exists only on a
-               lecture that has a transcript. -->
-          <div v-if="slidesState !== 'idle'" class="slide-gallery">
+          <!-- Under a recording: slide extraction (the Yanhekt player's switch and
+               gallery), or what Yanhe 2.0 made of it itself, its slides (Save hands
+               them to the task queue) or its transcript. The view switch sits on the
+               right; it opens on Server Slides when Yanhe 2.0 has slides, otherwise
+               on Slide Extraction. A running extraction (a task's too) always shows
+               its own gallery, and the switch is hidden meanwhile. -->
+          <div v-if="isRecording" class="slide-gallery">
             <div class="gallery-header server-slides-header">
               <div class="server-slides-main">
-                <div v-if="hasTranscript" class="mode-switch">
-                  <button type="button" :class="['mode-pill', { active: !showTranscript }]" @click="transcriptView = false">
-                    {{ $t('yanhe2Playback.serverSlides') }}
-                  </button>
-                  <button type="button" :class="['mode-pill', { active: showTranscript }]" @click="transcriptView = true">
-                    {{ $t('yanhe2Playback.serverTranscript') }}
-                  </button>
-                </div>
-                <span v-else class="server-slides-title">{{ $t('yanhe2Playback.serverSlides') }}</span>
-                <div v-if="showTranscript" class="slide-counter">
+                <template v-if="galleryView === 'extraction'">
+                  <label class="extraction-toggle" :title="canExtract ? undefined : $t('yanhe2Playback.extractionNeedsScreen')">
+                    <input
+                      type="checkbox"
+                      v-model="isSlideExtractionEnabled"
+                      @change="toggleSlideExtraction"
+                      :disabled="isTaskRunning || (!isSlideExtractionEnabled && !canExtract)"
+                    />
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
+                  </label>
+                  <div class="slide-counter">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="9" cy="9" r="2"/>
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                    </svg>
+                    <span class="counter-text">
+                      {{ isSlideExtractionEnabled ? extractedSlides.length : 0 }} {{ $t('playback.slides') }}
+                      <span v-if="isSlideExtractionEnabled" class="counter-status">{{ $t('playback.extracted') }}</span>
+                    </span>
+                  </div>
+                </template>
+                <div v-else-if="galleryView === 'transcript'" class="slide-counter">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="4" y1="6" x2="20" y2="6"/>
                     <line x1="4" y1="12" x2="20" y2="12"/>
@@ -296,7 +312,7 @@
                   </svg>
                   <span class="counter-text">{{ transcriptLines.length }} {{ $t('yanhe2Playback.transcriptLines') }}</span>
                 </div>
-                <div v-else-if="slidesState === 'ready'" class="slide-counter">
+                <div v-else-if="slidesState === 'ready' && serverSlides.length > 0" class="slide-counter">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                     <circle cx="9" cy="9" r="2"/>
@@ -304,49 +320,132 @@
                   </svg>
                   <span class="counter-text">{{ serverSlides.length }} {{ $t('playback.slides') }}</span>
                 </div>
-                <span v-if="!showTranscript && slidesNote" class="server-slides-note">{{ slidesNote }}</span>
               </div>
-              <!-- Offered on the captions' terms: no button on a lecture whose timing could not be measured. -->
-              <div v-if="showTranscript" class="slide-actions">
-                <button v-if="captionsAvailable" class="btn btn--primary" :disabled="preparingSubtitles" @click="downloadSubtitles">
-                  <svg v-if="!preparingSubtitles" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7,10 12,15 17,10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  <div v-else class="processing-spinner"></div>
-                  {{ $t('yanhe2Playback.downloadSubtitles') }}
+
+              <div class="server-slides-side">
+                <div v-if="galleryView === 'extraction'" class="slide-actions">
+                  <button
+                    v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
+                    @click="executePostProcessing()"
+                    class="btn btn--primary"
+                    :disabled="isPostProcessing"
+                    :title="$t('playback.postProcessTip')"
+                  >
+                    <svg v-if="!isPostProcessing" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                      <path d="m2 17 10 5 10-5"/>
+                      <path d="m2 12 10 5 10-5"/>
+                    </svg>
+                    <div v-else class="processing-spinner"></div>
+                    {{ isPostProcessing ? $t('playback.postProcessing') : $t('playback.postProcess') }}
+                  </button>
+                  <button
+                    v-if="isSlideExtractionEnabled && extractedSlides.length > 0 && !isTaskRunning"
+                    @click="clearAllSlides"
+                    class="btn btn--danger-outline"
+                    :title="$t('playback.clearAllTip')"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3,6 5,6 21,6"/>
+                      <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                      <line x1="10" y1="11" x2="10" y2="17"/>
+                      <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                    {{ $t('playback.clearAll') }}
+                  </button>
+                </div>
+                <!-- Offered on the captions' terms: no button on a lecture whose timing could not be measured. -->
+                <div v-else-if="galleryView === 'transcript'" class="slide-actions">
+                  <button v-if="captionsAvailable" class="btn btn--primary" :disabled="preparingSubtitles" @click="downloadSubtitles">
+                    <svg v-if="!preparingSubtitles" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7,10 12,15 17,10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <div v-else class="processing-spinner"></div>
+                    {{ $t('yanhe2Playback.downloadSubtitles') }}
+                  </button>
+                </div>
+                <button v-else-if="slidesState === 'failed'" @click="loadSlides" class="btn">
+                  {{ $t('playback.retry') }}
                 </button>
-              </div>
-              <button v-else-if="slidesState === 'failed'" @click="loadSlides" class="btn">
-                {{ $t('playback.retry') }}
-              </button>
-              <div v-else-if="serverSlides.length > 0" class="slide-actions">
-                <button class="btn btn--primary" :disabled="savingSlides" @click="saveSlides">
-                  <svg v-if="!savingSlides" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7,10 12,15 17,10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
-                  <div v-else class="processing-spinner"></div>
-                  {{ savingSlides ? $t('yanhe2Playback.savingSlides') : $t('yanhe2Playback.saveSlides') }}
-                </button>
+                <div v-else-if="serverSlides.length > 0" class="slide-actions">
+                  <button class="btn btn--primary" :disabled="savingSlides" @click="saveSlides">
+                    <svg v-if="!savingSlides" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7,10 12,15 17,10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <div v-else class="processing-spinner"></div>
+                    {{ savingSlides ? $t('yanhe2Playback.savingSlides') : $t('yanhe2Playback.saveSlides') }}
+                  </button>
+                </div>
+
+                <!-- The Search page's segmented control. Server Transcript only on a lecture
+                     that has one. Hidden while extraction runs: the view is then its gallery. -->
+                <div v-if="!isSlideExtractionEnabled" class="mode-switch">
+                  <button
+                    type="button"
+                    :class="['mode-pill', { active: galleryView === 'extraction' }]"
+                    :disabled="isTaskRunning"
+                    @click="pickView('extraction')"
+                  >
+                    {{ $t('playback.slideExtraction') }}
+                  </button>
+                  <button
+                    type="button"
+                    :class="['mode-pill', { active: galleryView === 'server' }]"
+                    :disabled="isTaskRunning"
+                    @click="pickView('server')"
+                  >
+                    {{ $t('yanhe2Playback.serverSlides') }}
+                  </button>
+                  <button
+                    v-if="hasTranscript"
+                    type="button"
+                    :class="['mode-pill', { active: galleryView === 'transcript' }]"
+                    :disabled="isTaskRunning"
+                    @click="pickView('transcript')"
+                  >
+                    {{ $t('yanhe2Playback.serverTranscript') }}
+                  </button>
+                </div>
               </div>
             </div>
+
+            <template v-if="galleryView === 'extraction'">
+              <!-- As in the Yanhekt player: a task's post-processing shows in Tasks instead. -->
+              <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0 && !isTaskRunning" class="post-process-status-bar">
+                <div class="status-bar-content">
+                  <PostProcessingProgressBar :state="fromPlaybackStatus(postProcessStatus)" labels="long" />
+                </div>
+              </div>
+              <SlideGallery
+                v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
+                :slides="extractedSlides"
+                :format-slide-time="formatSlideTime"
+                @preview="openSlideModal"
+                @delete="deleteSlide"
+              />
+            </template>
             <Yanhe2TranscriptPanel
-              v-if="showTranscript"
+              v-else-if="galleryView === 'transcript'"
               :lines="transcriptLines"
               :current-index="transcriptIndex"
               :shift="captionDelay ?? 0"
               :format-time="formatPlaybackTime"
             />
-            <SlideGallery
-              v-else-if="gallerySlides.length > 0"
-              :slides="gallerySlides"
-              :format-slide-time="formatPlaybackTime"
-              :deletable="false"
-              @preview="openSlidePreview"
-            />
+            <template v-else>
+              <SlideGallery
+                v-if="gallerySlides.length > 0"
+                :slides="gallerySlides"
+                :format-slide-time="formatPlaybackTime"
+                :deletable="false"
+                @preview="openSlidePreview"
+              />
+              <!-- Loading, failed or none: said in the gallery's place, not in the header. -->
+              <p v-else-if="slidesNote" class="server-slides-note">{{ slidesNote }}</p>
+            </template>
           </div>
         </div>
       </div>
@@ -360,17 +459,24 @@
       :time-label="$t('yanhe2Playback.slideShownAt')"
       @close="previewedId = null"
     />
+    <PreviewModal
+      :slide="selectedSlide"
+      :format-slide-time="formatSlideTime"
+      @close="closeSlideModal"
+      @delete="deleteSlide"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-// A Yanhe 2.0 session opened from the Calendar. Looks like PlaybackPage and
-// shares its player chrome, but only plays: no slide extraction, no notes, no
-// task queue, no watch-position report. One stream, or camera + screen side by
-// side (Both Streams), driven by the same control bar. Under a recording it
-// lists the slides Yanhe 2.0 detected itself, to look at and copy, and the
-// control bar can caption it from Yanhe 2.0's transcript.
-import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
+// A Yanhe 2.0 session opened from the Calendar or Curriculum, or by a task.
+// Looks like PlaybackPage and shares its player chrome. One stream, or camera +
+// screen side by side (Both Streams), driven by the same control bar. Under a
+// recording: slide extraction from the screen stream, as in the Yanhekt player
+// (watch mode here, task mode when the queue drives it), filed under the same
+// lecture on Yanhekt; the slides Yanhe 2.0 detected itself, to look at, copy
+// and save; and its transcript. No notes and no watch-position report.
+import { computed, onMounted, onUnmounted, ref, shallowRef, toRef, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Yanhe2DownloadKind } from '@common/yanhe2Download'
@@ -379,6 +485,12 @@ import { transcriptIndexAt } from '@common/yanhe2Transcript'
 import { useYanhe2Player, YANHE2_BOTH_STREAMS, type Yanhe2StreamChoice } from '@features/yanhe2/useYanhe2Player'
 import { useYanhe2Captions, yanhe2TranscriptView as transcriptView } from '@features/yanhe2/useYanhe2Captions'
 import { useYanhe2Slides } from '@features/yanhe2/useYanhe2Slides'
+import { useYanhe2TaskDriver } from '@features/yanhe2/useYanhe2TaskDriver'
+import { usePostProcessing } from '@features/download/usePostProcessing'
+import { useSlideExtraction, type Course, type ExtractionLecture, type Session } from '@features/video/useSlideExtraction'
+import { useSlideGallery } from '@features/video/useSlideGallery'
+import { usePerformanceOptimization } from '@features/video/usePerformanceOptimization'
+import { fromPlaybackStatus } from '@shared/postProcessing/displayAdapter'
 import { isSavingYanhe2Slides, saveYanhe2Slides } from '@features/yanhe2/yanhe2SlideSave'
 import { downloadYanhe2Subtitles, isPreparingYanhe2Subtitles } from '@features/yanhe2/yanhe2SubtitleDownload'
 import { downloadYanhe2Recording, isPreparingYanhe2Download } from '@features/yanhe2/yanhe2Download'
@@ -393,6 +505,7 @@ import { layoutStore } from '@shared/services/layoutStore'
 import { createLogger } from '@shared/utils/logger'
 import BufferingOverlay from '../video/BufferingOverlay.vue'
 import DualStreamControls from '../video/DualStreamControls.vue'
+import PostProcessingProgressBar from '../video/PostProcessingProgressBar.vue'
 import PreviewModal from '../video/PreviewModal.vue'
 import SlideGallery from '../video/SlideGallery.vue'
 import SingleStreamControls from '../video/SingleStreamControls.vue'
@@ -527,6 +640,7 @@ const savingSlides = computed(() => isSavingYanhe2Slides(props.session.subId))
 const saveSlides = () =>
   void saveYanhe2Slides({ account: props.account, courseId: props.session.courseId, subId: props.session.subId })
 
+// Where the server-slides view says what it has instead of a gallery.
 const slidesNote = computed(() => {
   if (slidesState.value === 'loading') return t('yanhe2Playback.slidesLoading')
   if (slidesState.value === 'failed') return t('yanhe2Playback.slidesFailed')
@@ -562,6 +676,138 @@ const downloadCurrent = () => {
     { account: props.account, courseId: props.session.courseId, subId: props.session.subId },
     [...downloadKinds.value],
   )
+}
+
+// Slide extraction from the screen stream, as in the Yanhekt player. The
+// folder and metadata are the same lecture's on Yanhekt (main finds it when
+// extraction starts); a lecture it cannot look up does not start, and the
+// switch goes back off with a message box (a task's row says it instead).
+let extractionRefusal: string | null = null
+const notify = (message: string) => void window.electronAPI.dialog?.showMessageBox?.({ type: 'info', message })
+const resolveLecture = async (): Promise<ExtractionLecture | null> => {
+  extractionRefusal = null
+  try {
+    // Plain strings only: nothing reactive crosses the bridge.
+    const prepared = await window.electronAPI.yanhe2.prepareExtraction(props.account, {
+      courseId: props.session.courseId,
+      subId: props.session.subId,
+    })
+    if (prepared.kind === 'ok') return { ...prepared.target, source: prepared.source }
+    extractionRefusal = t(`yanhe2Playback.extractionRefused.${prepared.kind}`)
+  } catch (error) {
+    log.error('Yanhe 2.0 extraction could not be prepared:', error)
+    extractionRefusal = t('yanhe2Playback.extractionRefused.failed')
+  }
+  if (!taskDriver.isTaskMode.value) notify(extractionRefusal)
+  return null
+}
+
+const slideExtraction = useSlideExtraction({
+  mode: 'recorded',
+  course: ref<Course | null>(null),
+  session: ref<Session | null>(null),
+  currentPlaybackRate: playbackRate,
+  // Read at each start; the driver is created below.
+  isTaskExtraction: () => taskDriver.isTaskMode.value,
+  resolveLecture,
+})
+// This tab's own element, never a querySelector that could find another tab's.
+slideExtraction.videoElementProvider.value = () => videoPlayer.value
+const { isSlideExtractionEnabled, extractedSlides, toggleSlideExtraction } = slideExtraction
+
+const slideGallery = useSlideGallery({
+  extractedSlides,
+  slideExtractorInstance: slideExtraction.slideExtractorInstance,
+  t,
+})
+const { selectedSlide, openSlideModal, closeSlideModal, deleteSlide, clearAllSlides, formatSlideTime } = slideGallery
+
+const postProcessing = usePostProcessing({
+  extractedSlides,
+  slideExtractorInstance: slideExtraction.slideExtractorInstance,
+  deleteSlide,
+  getExtractorInstanceId: () => slideExtraction.extractorInstanceId.value,
+})
+const { isPostProcessing, postProcessStatus, executePostProcessing } = postProcessing
+
+/** Extraction reads the single screen stream, as in the Yanhekt player. */
+const canExtract = computed(() => !isDualSelected.value && currentStream.value?.type === 'screen')
+
+const startExtraction = async (): Promise<string | null> => {
+  if (!isSlideExtractionEnabled.value) {
+    isSlideExtractionEnabled.value = true
+    await toggleSlideExtraction()
+  }
+  if (isSlideExtractionEnabled.value && slideExtraction.slideExtractorInstance.value) return null
+  return extractionRefusal ?? 'Failed to start slide extraction'
+}
+const stopExtraction = () => {
+  if (!isSlideExtractionEnabled.value) return
+  isSlideExtractionEnabled.value = false
+  void toggleSlideExtraction()
+}
+
+// Another stream on screen (or a reload) ends the extraction.
+watch(canExtract, (ok) => {
+  if (!ok) stopExtraction()
+})
+watch(playbackRate, (rate) => {
+  if (isSlideExtractionEnabled.value) slideExtraction.slideExtractorInstance.value?.setPlaybackRate(Number(rate))
+})
+
+// Each slide joins the gallery; while watching, each one also gets a
+// post-processing pass, as in the Yanhekt player (a task's run once at the end).
+const isOurs = (event: Event) => {
+  const detail = (event as CustomEvent).detail
+  return detail?.instanceId === slideExtraction.extractorInstanceId.value && detail?.mode === 'recorded'
+}
+const onSlideExtracted = async (event: Event) => {
+  if (!isOurs(event)) return
+  extractedSlides.value.push((event as CustomEvent).detail.slide)
+  slideExtraction.updateSlideExtractionStatus()
+  if (!taskDriver.isTaskMode.value && configStore.autoPostProcessingLive !== false) {
+    await executePostProcessing(false)
+  }
+}
+const onSlidesCleared = (event: Event) => {
+  if (!isOurs(event)) return
+  extractedSlides.value = []
+  selectedSlide.value = null
+  slideExtraction.updateSlideExtractionStatus()
+}
+
+// Task mode: the queue plays the lecture here, at the task speed, from the start.
+const taskDriver = useYanhe2TaskDriver({
+  subId: props.session.subId,
+  videoPlayer,
+  loading,
+  problem,
+  hasScreen: computed(() => streams.value.some((stream) => stream.type === 'screen')),
+  onScreen: canExtract,
+  selectScreen: () => selectStream('screen'),
+  setPlaybackRate,
+  startExtraction,
+  stopExtraction,
+  outputPath: () => slideExtraction.slideExtractorInstance.value?.getOutputPath() ?? null,
+  slideFiles: () => extractedSlides.value.map((slide) => `${slide.title}.png`),
+})
+const { isTaskRunning } = taskDriver
+
+// The section's view: picked by hand, or Server Slides when Yanhe 2.0 has
+// slides (or is still being asked) and Slide Extraction when it has none. The
+// transcript choice is the shared switch the captions also read.
+type GalleryView = 'extraction' | 'server' | 'transcript'
+const pickedView = ref<'extraction' | 'server' | null>(null)
+const galleryView = computed<GalleryView>(() => {
+  if (isTaskRunning.value || isSlideExtractionEnabled.value) return 'extraction'
+  if (transcriptView.value && hasTranscript.value) return 'transcript'
+  if (pickedView.value) return pickedView.value
+  const hasServerSlides = slidesState.value === 'loading' || (slidesState.value === 'ready' && serverSlides.value.length > 0)
+  return hasServerSlides ? 'server' : 'extraction'
+})
+const pickView = (view: GalleryView) => {
+  transcriptView.value = view === 'transcript'
+  if (view !== 'transcript') pickedView.value = view
 }
 
 // Playback speed (recorded only; the bars hide it for live).
@@ -602,6 +848,17 @@ const audioModeLabel = computed(() => audioModeLabelKey(configStore.muteMode))
 const effectiveVolume = computed(() => (audioModeMuted.value ? 0 : volume.value))
 const volumeProgress = computed(() => `${Math.min(100, Math.max(0, effectiveVolume.value * 100))}%`)
 
+// Keeps a recording playing (and extracting) in the background, as the
+// Yanhekt player does: keep-alive, wake lock, the power blocker.
+const perf = usePerformanceOptimization({
+  mode: 'recorded',
+  // Only read: whichever element owns the clock.
+  videoPlayer: masterVideo as unknown as Ref<HTMLVideoElement | null>,
+  hls: shallowRef(null),
+  currentPlaybackRate: playbackRate,
+  shouldVideoMute: audioModeMuted,
+})
+
 let detachVideoListeners: (() => void) | null = null
 watch(masterVideo, (video) => {
   detachVideoListeners?.()
@@ -611,7 +868,28 @@ watch(masterVideo, (video) => {
   duration.value = 0
   if (!video) return
 
-  const onPlayState = () => { isPlaying.value = !video.paused && !video.ended }
+  const onPlayState = () => {
+    isPlaying.value = !video.paused && !video.ended
+    if (!isRecording.value) return
+    if (isPlaying.value) {
+      perf.startKeepAlive()
+      void perf.requestWakeLock()
+      void perf.requestPowerManagement()
+      if (audioModeMuted.value) perf.startSilentAudio()
+    } else {
+      perf.stopKeepAlive()
+      perf.releaseWakeLock()
+      void perf.releasePowerManagement()
+      perf.stopSilentAudio()
+    }
+  }
+  // A stall holds the extraction's clock, as in the Yanhekt player.
+  const onWaiting = () => {
+    if (isSlideExtractionEnabled.value) slideExtraction.slideExtractorInstance.value?.pauseForBuffering()
+  }
+  const onCanPlay = () => {
+    if (isSlideExtractionEnabled.value) slideExtraction.slideExtractorInstance.value?.resumeAfterBuffering()
+  }
   const onTime = () => { currentTime.value = video.currentTime }
   const onDuration = () => {
     duration.value = Number.isFinite(video.duration) ? video.duration : 0
@@ -625,6 +903,8 @@ watch(masterVideo, (video) => {
     ['timeupdate', onTime],
     ['loadedmetadata', onDuration],
     ['durationchange', onDuration],
+    ['waiting', onWaiting],
+    ['canplay', onCanPlay],
   ]
   listeners.forEach(([name, handler]) => video.addEventListener(name, handler))
   detachVideoListeners = () => listeners.forEach(([name, handler]) => video.removeEventListener(name, handler))
@@ -650,9 +930,6 @@ const {
 // While the lecture's delay is being measured the caption line says so.
 const captionText = computed(() => caption.value || (captionsSyncing.value ? t('yanhe2Playback.captionsSyncing') : ''))
 
-// The section under the player shows the slides or, switched over, the
-// transcript. A lecture without one has no switch and stays on its slides.
-const showTranscript = computed(() => transcriptView.value && hasTranscript.value)
 // The row being spoken, on the same terms as the captions: where the
 // transcript's delay is not known (`captionDelay` null) no row is marked.
 const transcriptIndex = computed(() =>
@@ -807,7 +1084,7 @@ const videoKeyboard = useVideoKeyboard({
   mode: props.session.status === 'live' ? 'live' : 'recorded',
   seekSeconds: 5,
   volumeStep: 0.05,
-  isModalOpen: () => !!previewedSlide.value,
+  isModalOpen: () => !!previewedSlide.value || !!selectedSlide.value,
   isDisabled: () => !props.isVisible || !masterVideo.value,
   isAnyFullscreen: () => isFullscreen.value,
   seekBy: (delta) => seekTo(currentTime.value + delta),
@@ -820,13 +1097,23 @@ const videoKeyboard = useVideoKeyboard({
 
 onMounted(() => {
   document.addEventListener('fullscreenchange', onFullscreenChange)
+  window.addEventListener('slideExtracted', onSlideExtracted)
+  window.addEventListener('slidesCleared', onSlidesCleared)
   videoKeyboard.attach()
+  taskDriver.register()
+  void postProcessing.initConfig()
+  void perf.initConfig().then(() => perf.setupEventListeners())
   void load()
 })
 
 onUnmounted(() => {
   document.removeEventListener('fullscreenchange', onFullscreenChange)
+  window.removeEventListener('slideExtracted', onSlideExtracted)
+  window.removeEventListener('slidesCleared', onSlidesCleared)
   videoKeyboard.detach()
+  taskDriver.dispose()
+  slideExtraction.cleanupSlideExtraction()
+  void perf.cleanupAll()
   detachVideoListeners?.()
   if (isCinemaMode.value) toggleCinemaMode()
 })
@@ -887,6 +1174,7 @@ onUnmounted(() => {
 /* Same band as the Yanhekt player's Slide Extraction row. */
 .server-slides-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
@@ -895,7 +1183,9 @@ onUnmounted(() => {
 }
 
 .slide-gallery:has(.gallery-grid) .server-slides-header,
-.slide-gallery:has(.transcript-panel) .server-slides-header {
+.slide-gallery:has(.transcript-panel) .server-slides-header,
+.slide-gallery:has(.post-process-status-bar) .server-slides-header,
+.slide-gallery:has(.server-slides-note) .server-slides-header {
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -906,9 +1196,24 @@ onUnmounted(() => {
   min-width: 0;
 }
 
+/* The switch and the counter keep their one line; the actions wrap below instead. */
+.server-slides-main > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* The view's own actions, then the view switch at the far right. */
+.server-slides-side {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+
 /* The Search page's segmented control: a grouped track, the view on show a
    raised pill. Its height is not that page's fixed control height: it
-   stretches to the row, so it is exactly as tall as the counter chip beside it. */
+   stretches to the row, so it is exactly as tall as the buttons beside it. */
 .mode-switch {
   display: flex;
   align-items: stretch;
@@ -938,8 +1243,17 @@ onUnmounted(() => {
   transition: all 0.15s;
 }
 
-.mode-pill:hover {
+.mode-pill:hover:not(:disabled) {
   color: var(--text-primary);
+}
+
+.mode-pill:disabled:not(.active) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mode-pill:disabled.active {
+  cursor: default;
 }
 
 .mode-pill.active {
@@ -949,16 +1263,12 @@ onUnmounted(() => {
   box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
-.server-slides-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
+/* No server slides to show: said in the gallery's place. */
 .server-slides-note {
+  margin: 0;
+  padding: 24px 16px;
   font-size: 13px;
   color: var(--text-secondary);
-  min-width: 0;
+  text-align: center;
 }
 </style>

@@ -9,17 +9,34 @@
 // with a timeout) for the driver to appear after navigation, then awaits its
 // `start()`. No global events, no retry storm, no acknowledgment Set.
 
+import type { Yanhe2CalendarSession } from '@common/yanhe2Calendar'
+
+/**
+ * A task that plays a Yanhe 2.0 recording: the video is aita's, while the
+ * task's ids and titles are the same lecture's on Yanhekt (ids '' where it has
+ * none), so its slides land in that lecture's folder.
+ */
+export interface Yanhe2TaskSource {
+  /** The AutoSlides account (badge) whose Yanhe 2.0 session plays it. */
+  account: string
+  /** The session row it was added from; `subId` identifies it. */
+  session: Yanhe2CalendarSession
+}
+
 export interface TaskContext {
   taskId: string
   sessionId: string
   courseId: string
   courseTitle: string
   sessionTitle: string
+  yanhe2?: Yanhe2TaskSource
 }
 
 export interface TaskDriver {
   mode: 'live' | 'recorded'
   sessionId?: string
+  /** Set by a Yanhe 2.0 player: the aita session it plays. Such a driver only runs Yanhe 2.0 tasks. */
+  yanhe2SubId?: string
   /** Begin playback + slide extraction; resolves once running, rejects on failure. */
   start(task: TaskContext): Promise<void>
   /** Stop playback + slide extraction (queue paused / current task removed). */
@@ -63,9 +80,13 @@ class TaskCoordinatorClass {
   private findDriver(task: TaskContext): TaskDriver | null {
     // The automated queue only drives recorded-mode sessions; a driver matches
     // by mode + sessionId, exactly the filter the old window-event handlers used.
+    // A Yanhe 2.0 task matches by its aita session instead: its Yanhekt session
+    // id may be '' (not on Yanhekt), and its player is a different page.
+    const subId = task.yanhe2?.session.subId
     return (
-      [...this.drivers].find(
-        (d) => d.mode === 'recorded' && d.sessionId === task.sessionId
+      [...this.drivers].find((d) =>
+        d.mode === 'recorded' &&
+        (subId ? d.yanhe2SubId === subId : !d.yanhe2SubId && d.sessionId === task.sessionId)
       ) || null
     )
   }

@@ -103,7 +103,7 @@ export class Yanhe2DownloadService {
     if (streams.length === 0) return { kind: 'no_recording' };
 
     const twin = await this.twinResolver.find(account, query);
-    return twin.kind === 'ok' ? { kind: 'ok', target: twin.data.target, streams } : twin;
+    return twin.kind === 'ok' ? { kind: 'ok', target: twin.data.target, courseNumber: twin.data.courseNumber, streams } : twin;
   }
 
   /** True when this service owns the id, so the shared cancel channel can route to it. */

@@ -7,6 +7,8 @@ import type { Yanhe2Slide } from '@common/yanhe2Slides';
 import type { Yanhe2CaptionSyncResult } from '@common/yanhe2CaptionSync';
 import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleResult } from '@common/yanhe2Subtitles';
 import type { Yanhe2DownloadPrepared } from '@common/yanhe2Download';
+import type { Yanhe2ExtractionPrepared } from '@common/yanhe2Extraction';
+import { twinMetadataSource } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import type { Yanhe2SlideSavePrepared, Yanhe2SlideSaveProgress, Yanhe2SlideSaveResult } from '@common/yanhe2SlideSave';
 
 // Yanhe 2.0 (aita.yanhekt.cn) account. Every handler takes the signed-in
@@ -193,6 +195,16 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     const result = await yanhe2DownloadService.prepare(str(account), query);
     if (result.kind === 'signed_out') broadcast();
     return result;
+  });
+
+  // The Yanhekt lecture a recording's extracted slides are filed under, and
+  // their metadata. Asked when an extraction starts (player or task) and when
+  // a task is added; writes nothing.
+  ipcMain.handle('yanhe2:prepareExtraction', async (_event, account: string, query: unknown): Promise<Yanhe2ExtractionPrepared> => {
+    const twin = await yanhe2TwinResolver.find(str(account), query);
+    if (twin.kind === 'signed_out') broadcast();
+    if (twin.kind !== 'ok') return { kind: twin.kind };
+    return { kind: 'ok', target: twin.data.target, source: twinMetadataSource(twin.data) };
   });
 
   // One session's transcript, for the player's captions.

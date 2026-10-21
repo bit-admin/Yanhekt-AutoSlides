@@ -1,7 +1,7 @@
 import { reactive, computed } from 'vue'
 import { PostProcessingService, type PostProcessJob } from './postProcessingService'
 import { configStore } from './configStore'
-import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
+import { TaskCoordinator, type TaskContext, type Yanhe2TaskSource } from '@shared/orchestration/taskCoordinator'
 import { reduceTask, type TaskEvent } from '@shared/orchestration/taskMachine'
 import { overrides } from '../overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
@@ -35,6 +35,8 @@ export interface TaskItem {
   extractedSlideFiles?: string[]
   /** Run by its caller, not by this queue (`addExternalTask`). */
   external?: boolean
+  /** Played from Yanhe 2.0 rather than Yanhekt. */
+  yanhe2?: Yanhe2TaskSource
 }
 
 export interface TaskQueueState {
@@ -113,7 +115,8 @@ class TaskQueueService {
       sessionId: task.sessionId,
       courseId: task.courseId,
       courseTitle: task.courseTitle,
-      sessionTitle: task.sessionTitle
+      sessionTitle: task.sessionTitle,
+      yanhe2: task.yanhe2
     }
   }
 
@@ -124,6 +127,7 @@ class TaskQueueService {
     sessionTitle: string
     sessionId: string
     courseId: string
+    yanhe2?: Yanhe2TaskSource
   }): TaskQueueAddResult {
     // Check if task already exists
     const existingTask = this.state.tasks.find(
@@ -144,7 +148,8 @@ class TaskQueueService {
       courseId: taskData.courseId,
       status: 'queued',
       progress: 0,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      ...(taskData.yanhe2 ? { yanhe2: taskData.yanhe2 } : {})
     }
 
     this.state.tasks.push(newTask)

@@ -31,7 +31,14 @@ export type Yanhe2DownloadRefusal =
   | 'failed';
 
 export type Yanhe2DownloadPrepared =
-  | { kind: 'ok'; target: Yanhe2DownloadTarget; /** What this recording has. */ streams: Yanhe2DownloadKind[] }
+  | {
+    kind: 'ok';
+    target: Yanhe2DownloadTarget;
+    /** The registrar's course number (`kcwybm`), for the metadata of slides extracted from the file; '' if none. */
+    courseNumber: string;
+    /** What this recording has. */
+    streams: Yanhe2DownloadKind[];
+  }
   | { kind: Yanhe2DownloadRefusal };
 
 export const YANHE2_DOWNLOAD_KINDS: readonly Yanhe2DownloadKind[] = ['camera', 'screen', 'audio'];

@@ -8,6 +8,7 @@ import {
 import { ssimThresholdService } from '@shared/services/ssimThresholdService'
 import { recordRecordedExtraction } from '@shared/services/slideMetadataClient'
 import { buildSlideFolderName, parseSessionTitle } from '@common/lectureNaming'
+import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('VideoSlideExtraction');
 
@@ -37,6 +38,21 @@ export interface UseSlideExtractionOptions {
   // ('auto' for tasks, 'watch' for manual playback). Lazily read at extraction
   // start so it can reference a sibling composable created after this one.
   isTaskExtraction?: () => boolean
+  // A lecture that is not a Yanhekt course/session pair (a Yanhe 2.0
+  // recording): asked at each start for the folder's identity and its
+  // metadata, in place of `course` / `session`. Null means it could not be
+  // had, and extraction does not start.
+  resolveLecture?: () => Promise<ExtractionLecture | null>
+}
+
+/** Where a resolved lecture's slides go and what its `metadata.json` says. */
+export interface ExtractionLecture {
+  courseTitle: string
+  sessionTitle: string
+  /** '' when there is none: the folder name then leaves it out. */
+  courseId: string
+  sessionId: string
+  source: SlideMetadataSource
 }
 
 export interface UseSlideExtractionReturn {
@@ -61,7 +77,7 @@ export interface UseSlideExtractionReturn {
 }
 
 export function useSlideExtraction(options: UseSlideExtractionOptions) {
-  const { mode, course, session, currentPlaybackRate, isTaskExtraction } = options
+  const { mode, course, session, currentPlaybackRate, isTaskExtraction, resolveLecture } = options
 
   // State
   const isSlideExtractionEnabled = ref(false)
@@ -115,6 +131,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   const buildExtractionInput = async (): Promise<SlideExtractionInput> => {
     const config = configStore
     const outputDir = config.outputDirectory || '~/Downloads/AutoSlides'
+    if (resolveLecture) return buildResolvedInput(outputDir)
 
     // Course titles are not unique, so the folder carries the course/session
     // ids — otherwise two same-titled lectures resolve to one path and this
@@ -201,6 +218,38 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
       },
       initialPlaybackRate: Number(currentPlaybackRate.value),
       classrooms: course.value?.classrooms ?? null,
+    }
+  }
+
+  // The same input for a lecture named by `resolveLecture`: the folder a
+  // Yanhekt extraction of it would use, and the metadata it was given.
+  const buildResolvedInput = async (outputDir: string): Promise<SlideExtractionInput> => {
+    const lecture = await resolveLecture!()
+    if (!lecture) throw new Error('The lecture could not be looked up')
+    const folderName = buildSlideFolderName(
+      { courseTitle: lecture.courseTitle, sessionTitle: lecture.sessionTitle },
+      { courseId: lecture.courseId, sessionId: lecture.sessionId },
+    )
+    const slideOutputPath = `${outputDir}/${folderName}`
+    await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
+    const classrooms = (lecture.source.classrooms ?? []).map(name => ({ name }))
+    void recordRecordedExtraction({
+      folderPath: slideOutputPath,
+      extractor: 'builtin',
+      kind: mode === 'live' ? 'live' : 'recorded',
+      trigger: isTaskExtraction?.() ? 'auto' : 'watch',
+      ssimThreshold: configStore.slideExtraction?.ssimThreshold,
+      source: lecture.source,
+    })
+    return {
+      mode,
+      instanceId: extractorInstanceId.value as string,
+      sourceMode: 'video',
+      videoElementProvider: videoElementProvider.value ?? undefined,
+      outputPath: slideOutputPath,
+      courseInfo: { courseName: lecture.courseTitle, sessionTitle: lecture.sessionTitle, mode },
+      initialPlaybackRate: Number(currentPlaybackRate.value),
+      classrooms: classrooms.length > 0 ? classrooms : null,
     }
   }
 

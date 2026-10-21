@@ -13,14 +13,21 @@
  *
  * Module state, not a composable: a save outlives the page it was started
  * from, and coming back shows where it stands.
+ *
+ * The Curriculum list's Add to Tasks goes through here too (`addYanhe2Task`):
+ * a recording with server slides is saved this way, one without becomes an
+ * extraction task played in the Yanhe 2.0 player (`yanhe2ExtractionTask.ts`).
  */
 import { reactive, ref } from 'vue'
 import { lectureLabel } from '@common/lectureNaming'
+import type { Yanhe2CalendarSession } from '@common/yanhe2Calendar'
+import type { Yanhe2ExtractionRefusal } from '@common/yanhe2Extraction'
 import type { Yanhe2SlideSaveRefusal } from '@common/yanhe2SlideSave'
 import { i18n } from '@shared/i18n'
 import { configStore } from '@shared/services/configStore'
 import { TaskQueue } from '@shared/services/taskQueueService'
 import { createLogger } from '@shared/utils/logger'
+import { askYanhe2ExtractionTask } from './yanhe2ExtractionTask'
 
 const log = createLogger('Yanhe2SlideSave')
 
@@ -37,6 +44,15 @@ type Asked =
   /** The task list already has this lecture, as a save or as an extraction. */
   | { kind: 'already_queued' }
   | { kind: Yanhe2SlideSaveRefusal }
+  /** Turned down while adding it as an extraction task instead. */
+  | { kind: Yanhe2ExtractionRefusal; extraction: true }
+
+/** The message box for a lecture that was not added. */
+function refusalText(asked: Exclude<Asked, { kind: 'added' | 'already_queued' }>): string {
+  return 'extraction' in asked
+    ? t(`yanhe2Playback.extractionRefused.${asked.kind}`)
+    : t(`yanhe2Playback.saveRefused.${asked.kind}`)
+}
 
 interface Job extends Yanhe2SlideSaveRequest {
   taskId: string
@@ -84,8 +100,12 @@ function listenForProgress(): void {
   })
 }
 
-/** Check one lecture and, if it can be saved, add its task row and line it up. Saves nothing itself. */
-async function ask(request: Yanhe2SlideSaveRequest): Promise<Asked> {
+/**
+ * Check one lecture and, if it can be saved, add its task row and line it up.
+ * Saves nothing itself. With `session`, a lecture with no server slides is
+ * added as an extraction task instead.
+ */
+async function ask(request: Yanhe2SlideSaveRequest, session?: Yanhe2CalendarSession): Promise<Asked> {
   const { account, courseId, subId } = request
   if (pending.has(subId)) return { kind: 'busy' }
   pending.add(subId)
@@ -93,6 +113,10 @@ async function ask(request: Yanhe2SlideSaveRequest): Promise<Asked> {
   try {
     // Plain strings only: nothing reactive crosses the bridge.
     const prepared = await window.electronAPI.yanhe2.prepareSlideSave(account, { courseId, subId })
+    if (prepared.kind === 'no_slides' && session) {
+      const asked = await askYanhe2ExtractionTask({ account, session })
+      return asked.kind === 'added' || asked.kind === 'already_queued' ? asked : { kind: asked.kind, extraction: true }
+    }
     if (prepared.kind !== 'ok') return { kind: prepared.kind }
 
     const { target } = prepared
@@ -161,29 +185,37 @@ export async function saveYanhe2Slides(request: Yanhe2SlideSaveRequest): Promise
   const asked = await ask(request)
   if (asked.kind === 'added') showTask(asked.taskId)
   else if (asked.kind === 'already_queued') notify(t('sessions.alreadyInTaskQueue'))
-  else if (asked.kind !== 'busy') notify(t(`yanhe2Playback.saveRefused.${asked.kind}`))
+  else if (asked.kind !== 'busy') notify(refusalText(asked))
 }
 
 /**
- * Every lecture of a list: each is checked in turn, the ones with slides
- * become task rows, and one message box says how many.
+ * The Curriculum list's Add to Tasks: the lecture's server slides when Yanhe
+ * 2.0 has some, otherwise an extraction task played in the Yanhe 2.0 player.
  */
-export async function saveAllYanhe2Slides(requests: Yanhe2SlideSaveRequest[]): Promise<void> {
-  if (addingAll.value || requests.length === 0) return
+export async function addYanhe2Task(request: Yanhe2SlideSaveRequest, session: Yanhe2CalendarSession): Promise<void> {
+  const asked = await ask(request, session)
+  if (asked.kind === 'added') showTask(asked.taskId)
+  else if (asked.kind === 'already_queued') notify(t('sessions.alreadyInTaskQueue'))
+  else if (asked.kind !== 'busy') notify(refusalText(asked))
+}
+
+/** Add to Tasks for every lecture of a list (`addYanhe2Task`, one after another), then one message box. */
+export async function addAllYanhe2Tasks(rows: { request: Yanhe2SlideSaveRequest; session: Yanhe2CalendarSession }[]): Promise<void> {
+  if (addingAll.value || rows.length === 0) return
   addingAll.value = true
   let added = 0
   let shown = false
-  let stopped: Yanhe2SlideSaveRefusal | null = null
+  let stopped: Exclude<Asked, { kind: 'added' | 'already_queued' }> | null = null
   try {
-    for (const request of requests) {
-      const asked = await ask(request)
+    for (const { request, session } of rows) {
+      const asked = await ask(request, session)
       if (asked.kind === 'added') {
         added++
         if (!shown) showTask()
         shown = true
       } else if (asked.kind === 'signed_out' || asked.kind === 'network') {
         // Not about this lecture: every later one would be turned down the same way.
-        stopped = asked.kind
+        stopped = asked
         break
       }
     }
@@ -192,9 +224,9 @@ export async function saveAllYanhe2Slides(requests: Yanhe2SlideSaveRequest[]): P
   }
 
   if (added === 0) {
-    notify(stopped ? t(`yanhe2Playback.saveRefused.${stopped}`) : t('yanhe2Curriculum.saveAllNone'))
-  } else if (added < requests.length) {
-    notify(t('yanhe2Curriculum.saveAllSome', { count: added, skipped: requests.length - added }))
+    notify(stopped ? refusalText(stopped) : t('yanhe2Curriculum.saveAllNone'))
+  } else if (added < rows.length) {
+    notify(t('yanhe2Curriculum.saveAllSome', { count: added, skipped: rows.length - added }))
   } else {
     notify(t('sessions.addedToTaskQueue', { count: added }))
   }

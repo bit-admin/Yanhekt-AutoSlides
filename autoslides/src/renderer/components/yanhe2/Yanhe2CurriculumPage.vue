@@ -95,18 +95,19 @@
           :hint="$t('yanhe2Curriculum.noSessionsHint')"
         />
         <div v-else class="sessions-container">
-          <!-- The Recorded sessions page's batch buttons and row chips: server slides
-               through Tasks and subtitles on the first row, the Recorded page's three
+          <!-- The Recorded sessions page's batch buttons and row chips: Add to Tasks
+               (server slides when Yanhe 2.0 has them, else extraction in the player)
+               and subtitles on the first row, the Recorded page's three
                downloads on the second. Always shown; whether a recording has slides,
                a transcript or a Yanhekt twin is found out on click. -->
           <div class="batch-rows">
             <div class="batch-actions">
-              <button type="button" class="btn batch-btn" :disabled="addingAll" @click="saveAllSlides">
+              <button type="button" class="btn batch-btn" :disabled="addingAll" @click="addAllToTasks">
                 <span v-if="addingAll" class="batch-lead spinning-ring" aria-hidden="true"></span>
                 <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 5v14M5 12h14"/>
                 </svg>
-                <span class="batch-label">{{ $t('yanhe2Curriculum.saveAllSlides') }}</span>
+                <span class="batch-label">{{ $t('sessions.addAllToTasks') }}</span>
                 <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 11l3 3 8-8"/>
                   <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
@@ -201,14 +202,14 @@
                 <span v-if="s.status !== 'unknown'" :class="['session-status', `status-${s.status}`]">
                   {{ $t(`yanhe2Calendar.status.${s.status}`) }}
                 </span>
-                <!-- [+] [Tasks] : save this recording's server slides through Tasks.
-                     Only a recording can have any, so the chip is inert on every other row. -->
+                <!-- [+] [Tasks] : this recording to Tasks — its server slides when Yanhe 2.0
+                     has some, otherwise extracted in the player. Inert on every other row. -->
                 <button
                   type="button"
                   class="action-btn action-pair"
-                  :title="$t('yanhe2Curriculum.saveSlides')"
+                  :title="$t('sessions.addToTask')"
                   :disabled="s.status !== 'playable' || isSavingYanhe2Slides(s.subId)"
-                  @click.stop="saveSlides(s)"
+                  @click.stop="addToTasks(s)"
                 >
                   <span v-if="isSavingYanhe2Slides(s.subId)" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
                   <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -360,7 +361,7 @@
 // Yanhe 2.0 → Curriculum. The account's enrolled courses (aita's 我的课程), then
 // one course's sessions in the same page, then the Yanhe 2.0 playback tab.
 // Of the Recorded sessions page's actions it has these, each a row chip and a
-// batch button: a session's server slides through Tasks, its transcript as
+// batch button: a session to Tasks (its server slides, or extraction in the player), its transcript as
 // subtitles, and its camera, screen and mic recordings through Download.
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -377,10 +378,10 @@ import {
 } from '@features/platform/yanhe2AccountUi'
 import { useYanhe2Curriculum } from '@features/yanhe2/useYanhe2Curriculum'
 import {
+  addAllYanhe2Tasks,
+  addYanhe2Task,
   isAddingAllYanhe2Slides,
   isSavingYanhe2Slides,
-  saveAllYanhe2Slides,
-  saveYanhe2Slides,
 } from '@features/yanhe2/yanhe2SlideSave'
 import {
   downloadAllYanhe2Recordings,
@@ -496,20 +497,23 @@ const sessionTitle = (s: Yanhe2CalendarSession) => {
   return [day, lessons].filter(Boolean).join(' · ')
 }
 
-// Saving server slides, recordings only. One without slides (or not on
-// Yanhekt) is answered with a message box.
+// Add to Tasks, recordings only: server slides when Yanhe 2.0 has them,
+// otherwise an extraction task that plays the recording in the Yanhe 2.0
+// player. A refusal is a message box.
 const addingAll = computed(() => isAddingAllYanhe2Slides())
 const saveRequest = (s: Yanhe2CalendarSession) => ({
   account: yanhe2ActiveBadge.value ?? '',
   courseId: s.courseId,
   subId: s.subId,
 })
-const saveSlides = (s: Yanhe2CalendarSession) => {
-  if (yanhe2ActiveBadge.value) void saveYanhe2Slides(saveRequest(s))
+const addToTasks = (s: Yanhe2CalendarSession) => {
+  if (yanhe2ActiveBadge.value) void addYanhe2Task(saveRequest(s), s)
 }
-const saveAllSlides = () => {
+const addAllToTasks = () => {
   if (!yanhe2ActiveBadge.value) return
-  void saveAllYanhe2Slides(sessions.value.filter((s) => s.status === 'playable').map(saveRequest))
+  void addAllYanhe2Tasks(
+    sessions.value.filter((s) => s.status === 'playable').map((s) => ({ request: saveRequest(s), session: s })),
+  )
 }
 
 // Subtitles from a recording's transcript, through Download. Nothing is open

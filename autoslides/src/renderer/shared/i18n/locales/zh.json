@@ -1888,8 +1888,8 @@
     "subtitlesAllNone": "没有添加任何字幕。这些课没有转写、无法测出时间偏差，或已在队列中。",
     "saveSlides": "添加服务端幻灯片到提取任务",
     "saveAllSlides": "添加全部服务端幻灯片到提取任务",
-    "saveAllNone": "没有添加任何幻灯片。这些课没有幻灯片，或已经保存过。",
-    "saveAllSome": "已添加 {count} 个课时到任务队列。跳过 {skipped} 个：没有幻灯片，或已经保存过。",
+    "saveAllNone": "没有添加任何课时。它们已在任务队列中，或幻灯片已经保存过。",
+    "saveAllSome": "已添加 {count} 个课时到任务队列。跳过 {skipped} 个：已在任务队列中，或幻灯片已经保存过。",
     "title": "我的课程",
     "loading": "正在加载课程…",
     "noCourses": "未找到课程",
@@ -1952,6 +1952,12 @@
       "network": "无法准备下载，请检查网络后重试。",
       "failed": "无法准备下载，请稍后再试。"
     },
-    "downloadRoomUnavailable": "教室全景录像不能下载"
+    "downloadRoomUnavailable": "教室全景录像不能下载",
+    "extractionNeedsScreen": "切换到屏幕录像才能提取幻灯片",
+    "extractionRefused": {
+      "signed_out": "延河 2.0 登录已失效，请重新登录后重试。",
+      "network": "无法查询这节课。请检查网络连接后重试。",
+      "failed": "无法为这节课开始提取幻灯片。请稍后再试。"
+    }
   }
 }

@@ -95,6 +95,7 @@ async function ask(request: Yanhe2DownloadRequest, kinds: Yanhe2DownloadKind[]):
         sessionTitle: target.sessionTitle,
         sessionId: target.sessionId,
         courseId: target.courseId,
+        courseNumber: prepared.courseNumber || undefined,
         videoType: kind,
         yanhe2: { account, courseId: request.courseId, subId },
       })

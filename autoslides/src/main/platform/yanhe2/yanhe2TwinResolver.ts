@@ -13,6 +13,7 @@
  */
 import axios from 'axios';
 import type { CourseData, SessionData } from '@common/apiTypes';
+import type { SlideMetadataSource } from '@common/sidecars/metadata';
 import type { Yanhe2CourseTwinResult, YanhektCourseTwinResult } from '@common/yanhe2CourseTwin';
 import type { Yanhe2SubtitleTarget } from '@common/yanhe2Subtitles';
 import type { ApiClient } from '../apiClient';
@@ -35,6 +36,40 @@ export interface Yanhe2Twin {
   session: SessionData | null;
   /** Ids are '' where Yanhekt had none. */
   target: Yanhe2SubtitleTarget;
+  /** The registrar's course number (Yanhe 2.0 `kcwybm`), known with or without Yanhekt; '' if aita has none. */
+  courseNumber: string;
+}
+
+/**
+ * The `metadata.json` source of slides filed under a twin: the same fields, in
+ * the same stored types, as a recorded extraction of that lecture on Yanhekt,
+ * plus the registrar's number, which Yanhe 2.0 has even when Yanhekt does not.
+ */
+export function twinMetadataSource({ course, session, target, courseNumber }: Yanhe2Twin): SlideMetadataSource {
+  const number = courseNumber || (course?.number != null && String(course.number) !== '' ? String(course.number) : undefined);
+  if (!course) {
+    return { courseTitle: target.courseTitle, courseNumber: number, sessionTitle: target.sessionTitle };
+  }
+  const professors = Array.isArray(course.professors) ? course.professors.filter((name) => typeof name === 'string') : [];
+  const classrooms = Array.isArray(course.classrooms) ? course.classrooms.map((room) => room.name).filter(Boolean) : [];
+  // Week and day are the Yanhekt session's; without it they are not known.
+  const weekNumber = session ? Number(session.week_number) : NaN;
+  const day = session ? Number(session.day) : NaN;
+  return {
+    courseId: target.courseId,
+    courseTitle: target.courseTitle,
+    courseNumber: number,
+    sessionId: target.sessionId || undefined,
+    sessionTitle: target.sessionTitle,
+    instructor: professors.length > 0 ? professors.join(', ') : undefined,
+    professors: professors.length > 0 ? professors : undefined,
+    semester: course.semester === undefined ? undefined : String(course.semester),
+    schoolYear: course.school_year === undefined ? undefined : String(course.school_year),
+    college: course.college_name || undefined,
+    classrooms: classrooms.length > 0 ? classrooms : undefined,
+    weekNumber: Number.isFinite(weekNumber) ? weekNumber : undefined,
+    day: Number.isFinite(day) ? day : undefined,
+  };
 }
 
 export type Yanhe2TwinFound =
@@ -90,6 +125,7 @@ export class Yanhe2TwinResolver {
           sessionId: course && session ? String(session.session_id) : '',
           sessionTitle: (course && session?.title) || key.data.sessionTitle,
         },
+        courseNumber: courseCode || '',
       },
     };
   }

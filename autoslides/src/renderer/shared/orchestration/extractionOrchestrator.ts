@@ -285,6 +285,7 @@ export class ExtractionOrchestrator {
       sessionId: item.sessionId,
       source: {
         courseId: item.courseId,
+        courseNumber: item.courseNumber,
         sessionId: item.sessionId,
         courseTitle: item.courseTitle,
         sessionTitle: item.sessionTitle,

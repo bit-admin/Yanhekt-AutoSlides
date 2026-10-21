@@ -88,4 +88,24 @@ describe('TaskCoordinator', () => {
     TaskCoordinator.pauseTask(task)
     expect(driver.pause).toHaveBeenCalledWith(task)
   })
+
+  it('routes a Yanhe 2.0 task by its aita session, never to a Yanhekt driver of the same lecture', async () => {
+    const yanhekt = makeDriver({ sessionId: '' })
+    const yanhe2 = makeDriver({ sessionId: undefined, yanhe2SubId: 'sub-2' })
+    const other = makeDriver({ sessionId: undefined, yanhe2SubId: 'sub-3' })
+    track(TaskCoordinator.registerDriver(yanhekt))
+    track(TaskCoordinator.registerDriver(other))
+    track(TaskCoordinator.registerDriver(yanhe2))
+    const session = { subId: 'sub-2' } as never
+    const task = ctx({ sessionId: '', yanhe2: { account: 'a', session } })
+    await TaskCoordinator.runTask(task, { driverTimeoutMs: 50 })
+    expect(yanhe2.start).toHaveBeenCalledWith(task)
+    expect(yanhekt.start).not.toHaveBeenCalled()
+    expect(other.start).not.toHaveBeenCalled()
+
+    // And a Yanhekt task never lands on a Yanhe 2.0 player.
+    const plain = ctx({ taskId: 't2', sessionId: '' })
+    await TaskCoordinator.runTask(plain, { driverTimeoutMs: 50 })
+    expect(yanhekt.start).toHaveBeenCalledWith(plain)
+  })
 })

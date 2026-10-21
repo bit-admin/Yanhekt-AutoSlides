@@ -176,7 +176,7 @@ import { DataStore } from '@shared/services/dataStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
 import { taskQueueState } from '@shared/services/taskQueueService'
 import { navigationStore } from '@features/course/navigationStore'
-import { tabStore, openPlaybackTab } from '@features/course/tabStore'
+import { tabStore, openPlaybackTab, yanhe2TabKey } from '@features/course/tabStore'
 import { configStore } from '@shared/services/configStore'
 
 type Page = 'courses' | 'sessions'
@@ -365,6 +365,27 @@ const handleSwitchToTask = (taskId?: string) => {
 // the Info tab) auto-activates.
 const handleTaskNavigation = (task: TaskContext) => {
   const { taskId, sessionId, courseId, courseTitle, sessionTitle } = task
+
+  // A Yanhe 2.0 recording plays in the Yanhe 2.0 player, which registers a
+  // driver for its aita session. The tab is the one a manual open would use.
+  if (task.yanhe2) {
+    const { account, session } = task.yanhe2
+    const key = yanhe2TabKey(session.subId)
+    openPlaybackTab(
+      {
+        mode: 'recorded',
+        course: { id: key, title: session.title, instructor: session.teacher, time: '' },
+        streamId: key,
+        sessionId: key,
+        title: sessionTitle || session.title || t('navigation.task'),
+        origin: 'task',
+        taskId,
+        yanhe2: { account, session: { ...session } },
+      },
+      { activate: tabStore.state.activeTabId === null }
+    )
+    return
+  }
 
   const sessionData = DataStore.getSessionData(sessionId)
   if (!sessionData) {

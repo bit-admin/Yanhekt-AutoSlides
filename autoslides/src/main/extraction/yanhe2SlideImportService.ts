@@ -21,7 +21,6 @@ import axios from 'axios';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { buildSlideFolderName } from '@common/lectureNaming';
-import type { SlideMetadataSource } from '@common/sidecars/metadata';
 import { createEmptyTimeline, recordCaptureConfirmed, type SlideTimeline } from '@common/sidecars/timeline';
 import type {
   Yanhe2SlideSavePrepared,
@@ -36,7 +35,7 @@ import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
 import { isYanhe2SlideImageUrl } from '@main/platform/yanhe2/yanhe2Slides';
-import type { Yanhe2Twin as Twin, Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
+import { twinMetadataSource, type Yanhe2Twin as Twin, type Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import type { SlideExtractionService } from './slideExtractionService';
 import type { SlideMetadataService } from './slideMetadataService';
 import type { SlideTimelineService } from './slideTimelineService';
@@ -120,7 +119,7 @@ export class Yanhe2SlideImportService {
       await slideExtractionService.ensureDirectory(expandTilde(target.folderPath));
       await slideMetadataService.writeExtraction(target.folderPath, {
         kind: 'recorded',
-        source: this.sourceOf(twin.data),
+        source: twinMetadataSource(twin.data),
         // The whole lecture, unattended: 'auto', like a task.
         extraction: { extractor: 'yanhe2', extractedAt: new Date().toISOString(), trigger: 'auto' },
       });
@@ -221,31 +220,5 @@ export class Yanhe2SlideImportService {
       { courseId: target.courseId, sessionId: target.sessionId },
     );
     return { ...target, folderPath: `${this.deps.configService.getConfig().outputDirectory}/${folderName}` };
-  }
-
-  /** The same fields, in the same stored types, as a recorded extraction of that lecture. */
-  private sourceOf({ course, session, target }: Twin): SlideMetadataSource {
-    if (!course) {
-      return { courseTitle: target.courseTitle, sessionTitle: target.sessionTitle };
-    }
-    const professors = Array.isArray(course.professors) ? course.professors.filter((name) => typeof name === 'string') : [];
-    const classrooms = Array.isArray(course.classrooms) ? course.classrooms.map((room) => room.name).filter(Boolean) : [];
-    // Week and day are the Yanhekt session's; without it they are not known.
-    const weekNumber = session ? Number(session.week_number) : NaN;
-    const day = session ? Number(session.day) : NaN;
-    return {
-      courseId: target.courseId,
-      courseTitle: target.courseTitle,
-      sessionId: target.sessionId || undefined,
-      sessionTitle: target.sessionTitle,
-      instructor: professors.length > 0 ? professors.join(', ') : undefined,
-      professors: professors.length > 0 ? professors : undefined,
-      semester: course.semester === undefined ? undefined : String(course.semester),
-      schoolYear: course.school_year === undefined ? undefined : String(course.school_year),
-      college: course.college_name || undefined,
-      classrooms: classrooms.length > 0 ? classrooms : undefined,
-      weekNumber: Number.isFinite(weekNumber) ? weekNumber : undefined,
-      day: Number.isFinite(day) ? day : undefined,
-    };
   }
 }
