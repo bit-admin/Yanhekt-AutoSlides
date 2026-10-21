@@ -1884,12 +1884,12 @@
     "downloadSubtitles": "下载字幕",
     "downloadAllSubtitles": "下载全部字幕",
     "subtitlesAllAdded": "已添加 {count} 个字幕到下载队列。",
-    "subtitlesAllSome": "已添加 {count} 个字幕到下载队列。跳过 {skipped} 个：没有转写、麦克风未录音、在延河课堂找不到，或已在队列中。",
-    "subtitlesAllNone": "没有添加任何字幕。这些课没有转写、麦克风未录音、在延河课堂找不到，或已在队列中。",
+    "subtitlesAllSome": "已添加 {count} 个字幕到下载队列。跳过 {skipped} 个：没有转写、无法测出时间偏差，或已在队列中。",
+    "subtitlesAllNone": "没有添加任何字幕。这些课没有转写、无法测出时间偏差，或已在队列中。",
     "saveSlides": "添加服务端幻灯片到提取任务",
     "saveAllSlides": "添加全部服务端幻灯片到提取任务",
-    "saveAllNone": "没有添加任何幻灯片。这些课没有幻灯片、在延河课堂找不到，或已经保存过。",
-    "saveAllSome": "已添加 {count} 个课时到任务队列。跳过 {skipped} 个：没有幻灯片、在延河课堂找不到，或已经保存过。",
+    "saveAllNone": "没有添加任何幻灯片。这些课没有幻灯片，或已经保存过。",
+    "saveAllSome": "已添加 {count} 个课时到任务队列。跳过 {skipped} 个：没有幻灯片，或已经保存过。",
     "title": "我的课程",
     "loading": "正在加载课程…",
     "noCourses": "未找到课程",
@@ -1902,8 +1902,8 @@
     "loadingSessions": "加载课时中…",
     "noSessions": "未找到课时",
     "noSessionsHint": "延河 2.0 还没有为这门课程安排课时。",
-    "downloadsAllSome": "已添加 {count} 个下载到下载队列。跳过 {skipped} 个：没有录像、在延河课堂找不到，或已在队列中。",
-    "downloadsAllNone": "没有添加任何下载。这些课没有录像、在延河课堂找不到，或已在队列中。"
+    "downloadsAllSome": "已添加 {count} 个下载到下载队列。跳过 {skipped} 个：没有录像，或已在队列中。",
+    "downloadsAllNone": "没有添加任何下载。这些课没有录像，或已在队列中。"
   },
   "yanhe2Playback": {
     "errorSignedOut": "延河 2.0 会话已结束。请在账号菜单中重新登录延河 2.0，然后重试。",

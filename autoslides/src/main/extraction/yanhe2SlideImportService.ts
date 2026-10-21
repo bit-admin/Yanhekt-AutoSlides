@@ -8,8 +8,9 @@
  * (indexed to 128 colors unless that setting is off) and writes
  * `metadata.json`. Post-processing is the renderer's, through the task queue.
  *
- * It declines rather than guesses: no Yanhekt sign-in, no matching course or
- * session, or a folder that already holds slides all save nothing.
+ * A course or session Yanhekt does not have drops out of the folder name and
+ * the metadata (Yanhe 2.0's titles fill in); the slides are saved anyway. A
+ * folder that already holds slides saves nothing.
  *
  * `timeline.json` is written too, one capture per slide at the time the
  * server gave it. Those times are on the Yanhe 2.0 screen recording's clock,
@@ -214,33 +215,29 @@ export class Yanhe2SlideImportService {
     return null;
   }
 
-  private targetOf({ course, session }: Twin): Yanhe2SlideSaveTarget {
-    const courseId = String(course.id);
-    const sessionId = String(session.session_id);
+  private targetOf({ target }: Twin): Yanhe2SlideSaveTarget {
     const folderName = buildSlideFolderName(
-      { courseTitle: course.name_zh, sessionTitle: session.title },
-      { courseId, sessionId },
+      { courseTitle: target.courseTitle, sessionTitle: target.sessionTitle },
+      { courseId: target.courseId, sessionId: target.sessionId },
     );
-    return {
-      courseId,
-      courseTitle: course.name_zh,
-      sessionId,
-      sessionTitle: session.title,
-      folderPath: `${this.deps.configService.getConfig().outputDirectory}/${folderName}`,
-    };
+    return { ...target, folderPath: `${this.deps.configService.getConfig().outputDirectory}/${folderName}` };
   }
 
   /** The same fields, in the same stored types, as a recorded extraction of that lecture. */
-  private sourceOf({ course, session }: Twin): SlideMetadataSource {
+  private sourceOf({ course, session, target }: Twin): SlideMetadataSource {
+    if (!course) {
+      return { courseTitle: target.courseTitle, sessionTitle: target.sessionTitle };
+    }
     const professors = Array.isArray(course.professors) ? course.professors.filter((name) => typeof name === 'string') : [];
     const classrooms = Array.isArray(course.classrooms) ? course.classrooms.map((room) => room.name).filter(Boolean) : [];
-    const weekNumber = Number(session.week_number);
-    const day = Number(session.day);
+    // Week and day are the Yanhekt session's; without it they are not known.
+    const weekNumber = session ? Number(session.week_number) : NaN;
+    const day = session ? Number(session.day) : NaN;
     return {
-      courseId: String(course.id),
-      courseTitle: course.name_zh,
-      sessionId: String(session.session_id),
-      sessionTitle: session.title,
+      courseId: target.courseId,
+      courseTitle: target.courseTitle,
+      sessionId: target.sessionId || undefined,
+      sessionTitle: target.sessionTitle,
       instructor: professors.length > 0 ? professors.join(', ') : undefined,
       professors: professors.length > 0 ? professors : undefined,
       semester: course.semester === undefined ? undefined : String(course.semester),

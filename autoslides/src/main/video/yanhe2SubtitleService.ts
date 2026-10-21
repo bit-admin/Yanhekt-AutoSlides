@@ -4,8 +4,9 @@
  * and with that download's stem: `screen_<course>_<session>__c<id>s<id>.srt`.
  * A player opening the `.mp4` of that name loads it without being told.
  *
- * Like saved slides, it is filed under the Yanhekt lecture or not at all: no
- * Yanhekt sign-in or no matching course and session writes nothing.
+ * Like saved slides, it is filed under the Yanhekt lecture as far as Yanhekt
+ * has it: a session or course it lacks drops out of the name (no `s<id>`, or
+ * no id block and Yanhe 2.0's titles), and the file is written anyway.
  *
  * The times are the transcript's own plus `shift`, the delay the player's
  * captions use for this lecture (measured, or the fixed one from Settings).
@@ -20,7 +21,7 @@ import { createLogger } from '@main/infra/logger';
 import { expandTilde } from '@main/infra/pathUtils';
 import type { ConfigService } from '@main/platform/configService';
 import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
-import { lectureTargetOf, type Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
+import type { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 
 const log = createLogger('Yanhe2Subtitles');
 
@@ -56,7 +57,7 @@ export class Yanhe2SubtitleService {
     if (transcript.kind !== 'ok') return { kind: transcript.kind };
     if (transcript.data.length === 0) return { kind: 'no_transcript' };
     const twin = await this.twinResolver.find(account, query);
-    return twin.kind === 'ok' ? { kind: 'ok', target: lectureTargetOf(twin.data) } : twin;
+    return twin.kind === 'ok' ? { kind: 'ok', target: twin.data.target } : twin;
   }
 
   async save(account: string, query: unknown, shift: unknown): Promise<Yanhe2SubtitleResult> {
@@ -71,7 +72,7 @@ export class Yanhe2SubtitleService {
     if (twin.kind !== 'ok') return twin;
 
     const outputDir = expandTilde(this.configService.getConfig().outputDirectory);
-    const filePath = path.join(outputDir, `${yanhe2SubtitleStem(lectureTargetOf(twin.data))}.srt`);
+    const filePath = path.join(outputDir, `${yanhe2SubtitleStem(twin.data.target)}.srt`);
     const partPath = `${filePath}.part`;
     try {
       await fs.mkdir(outputDir, { recursive: true });

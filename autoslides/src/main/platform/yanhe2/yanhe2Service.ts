@@ -33,7 +33,7 @@ import { fetchYanhe2SubInfo, type Yanhe2PlayIdentity, type Yanhe2SubInfo } from 
 import { fetchYanhe2CourseByCode, fetchYanhe2CourseSearch, fetchYanhe2Terms, type Yanhe2CourseKey } from './yanhe2Search';
 import { fetchYanhe2Slides } from './yanhe2Slides';
 import { fetchYanhe2Transcript } from './yanhe2Transcript';
-import type { Yanhe2TwinKey } from './yanhe2Twin';
+import { yanhe2SessionTitle, type Yanhe2TwinKey } from './yanhe2Twin';
 import { decodeYanhe2Claims, extractYanhe2Jwt } from './yanhe2Token';
 import { createLogger } from '@main/infra/logger';
 
@@ -258,13 +258,18 @@ export class Yanhe2Service {
     const detail = this.settle(account, await fetchYanhe2CourseDetail(stored.jwt, courseId));
     if (detail.kind !== 'ok') return detail;
     const courseCode = detail.data.courseCode;
-    let startAt = detail.data.sessions.find((row) => row.subId === subId)?.startAt ?? 0;
+    const row = detail.data.sessions.find((candidate) => candidate.subId === subId);
+    let startAt = row?.startAt ?? 0;
+    let subTitle = row?.subTitle ?? '';
+    let courseTitle = detail.data.title;
     if (!startAt) {
       const sub = this.settle(account, await fetchYanhe2SubInfo(stored.jwt, { courseId, subId }));
       if (sub.kind !== 'ok') return sub;
       startAt = sub.data.startAt;
+      subTitle = subTitle || sub.data.subTitle;
+      courseTitle = courseTitle || sub.data.title;
     }
-    return { kind: 'ok', data: { courseCode, startAt } };
+    return { kind: 'ok', data: { courseCode, startAt, courseTitle, sessionTitle: yanhe2SessionTitle(startAt, subTitle) } };
   }
 
   /** One session's speech-recognition transcript, in time order; empty when it has none. */

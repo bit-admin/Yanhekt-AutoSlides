@@ -32,6 +32,7 @@ const twin = {
   data: {
     course: { id: 80101, name_zh: '泛函分析' },
     session: { session_id: 900101, title: '第4周 星期一 第5大节' },
+    target: { courseId: '80101', courseTitle: '泛函分析', sessionId: '900101', sessionTitle: '第4周 星期一 第5大节' },
   },
 };
 
@@ -66,11 +67,9 @@ describe('Yanhe2DownloadService.prepare', () => {
     expect(twinResolver.find).not.toHaveBeenCalled();
   });
 
-  it('passes on a missing Yanhekt twin or sign-in', async () => {
-    expect(await service({ kind: 'ok', data: subInfo() }, { kind: 'no_match' }).created.prepare('1120000000', query))
-      .toEqual({ kind: 'no_match' });
-    expect(await service({ kind: 'ok', data: subInfo() }, { kind: 'yanhekt_signed_out' }).created.prepare('1120000000', query))
-      .toEqual({ kind: 'yanhekt_signed_out' });
+  it('passes on a failed lookup or an ended Yanhe 2.0 session', async () => {
+    expect(await service({ kind: 'ok', data: subInfo() }, { kind: 'network' }).created.prepare('1120000000', query))
+      .toEqual({ kind: 'network' });
     expect(await service({ kind: 'signed_out' }).created.prepare('1120000000', query)).toEqual({ kind: 'signed_out' });
   });
 });

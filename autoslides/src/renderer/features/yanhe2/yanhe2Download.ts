@@ -6,9 +6,9 @@
  * titles plus where the stream really comes from (`DownloadItem.yanhe2`). So
  * the file is the one a Yanhekt download of the lecture would write, a lecture
  * already queued from either site is not queued twice, and a screen download
- * is auto-extracted like any other. A lecture that cannot be found on Yanhekt
- * (or Yanhekt is signed out) adds no row: a message box says why, the same
- * ruling as saved slides and subtitles.
+ * is auto-extracted like any other. What Yanhekt does not have drops out of
+ * the name (no session id; no ids at all and Yanhe 2.0's titles when the
+ * course is missing too) and the download goes ahead (owner ruling 2026-10-21).
  */
 import { reactive, ref } from 'vue'
 import { lectureLabel } from '@common/lectureNaming'
@@ -139,7 +139,7 @@ export async function downloadAllYanhe2Recordings(requests: Yanhe2DownloadReques
         added++
       } else if (asked.kind === 'already_queued') {
         queued++
-      } else if (asked.kind === 'signed_out' || asked.kind === 'yanhekt_signed_out' || asked.kind === 'network') {
+      } else if (asked.kind === 'signed_out' || asked.kind === 'network') {
         // Not about this lecture: every later one would be turned down the same way.
         stopped = asked.kind
         break

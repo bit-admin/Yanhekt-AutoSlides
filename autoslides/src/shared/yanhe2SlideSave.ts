@@ -5,7 +5,8 @@
  * A Yanhe 2.0 session has ids of its own. The saved folder, its
  * `metadata.json` and the task row all carry the Yanhekt course and session
  * instead, found through the course number the two sites share and the
- * session's start time. Without that match nothing is saved.
+ * session's start time. What Yanhekt does not have is left out (Yanhe 2.0's
+ * titles stand in) and the slides are saved anyway.
  */
 
 export interface Yanhe2SlideSaveQuery {
@@ -17,11 +18,11 @@ export interface Yanhe2SlideSaveQuery {
 
 /** The Yanhekt lecture a Yanhe 2.0 session is, and where its slides go. */
 export interface Yanhe2SlideSaveTarget {
-  /** Yanhekt course id. */
+  /** Yanhekt course id; '' when Yanhekt has no such course. */
   courseId: string;
   /** The canonical Chinese course title. */
   courseTitle: string;
-  /** Yanhekt session id. */
+  /** Yanhekt session id; '' when Yanhekt has no such session. */
   sessionId: string;
   /** e.g. `第4周 星期一 第1大节`. */
   sessionTitle: string;
@@ -33,10 +34,6 @@ export interface Yanhe2SlideSaveTarget {
 export type Yanhe2SlideSaveRefusal =
   /** No live Yanhe 2.0 session for that account. */
   | 'signed_out'
-  /** Not signed in to Yanhekt, so its session list cannot be read. */
-  | 'yanhekt_signed_out'
-  /** Yanhekt has no course with that number, or no session at that time. */
-  | 'no_match'
   /** The lecture has no server slides. */
   | 'no_slides'
   /** The folder already holds slides of this lecture. */

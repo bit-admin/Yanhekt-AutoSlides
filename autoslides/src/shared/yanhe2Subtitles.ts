@@ -12,15 +12,15 @@ export interface Yanhe2SubtitleQuery {
   subId: string;
 }
 
-/** The Yanhekt lecture the subtitles are filed under. */
+/** The Yanhekt lecture the subtitles are filed under, as far as Yanhekt has it. */
 export interface Yanhe2SubtitleTarget {
-  /** Yanhekt course id. */
+  /** Yanhekt course id; '' when Yanhekt has no such course (the name then has no id block). */
   courseId: string;
   /** The canonical Chinese course title. */
   courseTitle: string;
-  /** Yanhekt session id. */
+  /** Yanhekt session id; '' when Yanhekt has no such session (the name then has no `s<id>`). */
   sessionId: string;
-  /** e.g. `第4周 星期一 第1大节`. */
+  /** e.g. `第4周 星期一 第1大节`; Yanhe 2.0's `2026-09-21 第8-10节` when Yanhekt has no such session. */
   sessionTitle: string;
 }
 
@@ -28,10 +28,6 @@ export interface Yanhe2SubtitleTarget {
 export type Yanhe2SubtitleRefusal =
   /** No live Yanhe 2.0 session for that account. */
   | 'signed_out'
-  /** Not signed in to Yanhekt, so its session list cannot be read. */
-  | 'yanhekt_signed_out'
-  /** Yanhekt has no course with that number, or no session at that time. */
-  | 'no_match'
   /** The lecture has no transcript. */
   | 'no_transcript'
   | 'network'

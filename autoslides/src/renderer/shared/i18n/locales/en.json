@@ -1884,12 +1884,12 @@
     "downloadSubtitles": "Download Subtitles",
     "downloadAllSubtitles": "Download All Subtitles",
     "subtitlesAllAdded": "Added {count} subtitle files to download queue",
-    "subtitlesAllSome": "Added {count} subtitle files to download queue. {skipped} skipped: no transcript, mic off, not found on Yanhekt, or already queued.",
-    "subtitlesAllNone": "No subtitles were added. These lectures have no transcript, had the classroom mic off, were not found on Yanhekt, or are already queued.",
+    "subtitlesAllSome": "Added {count} subtitle files to download queue. {skipped} skipped: no transcript, timing not measurable, or already queued.",
+    "subtitlesAllNone": "No subtitles were added. These lectures have no transcript, their timing could not be measured, or they are already queued.",
     "saveSlides": "Add Server Slides to Tasks",
     "saveAllSlides": "Add All Server Slides to Tasks",
-    "saveAllNone": "No slides were added. These lectures have no slides, were not found on Yanhekt, or are already saved.",
-    "saveAllSome": "Added {count} sessions to task queue. {skipped} skipped: no slides, not found on Yanhekt, or already saved.",
+    "saveAllNone": "No slides were added. These lectures have no slides or are already saved.",
+    "saveAllSome": "Added {count} sessions to task queue. {skipped} skipped: no slides or already saved.",
     "title": "My Courses",
     "loading": "Loading courses…",
     "noCourses": "No Courses Found",
@@ -1902,8 +1902,8 @@
     "loadingSessions": "Loading sessions…",
     "noSessions": "No Sessions Found",
     "noSessionsHint": "Yanhe 2.0 has no sessions attached to this course yet.",
-    "downloadsAllSome": "Added {count} downloads to the download queue. {skipped} skipped: no recording, not found on Yanhekt, or already queued.",
-    "downloadsAllNone": "No downloads were added. These lectures have no recording, were not found on Yanhekt, or are already queued."
+    "downloadsAllSome": "Added {count} downloads to the download queue. {skipped} skipped: no recording or already queued.",
+    "downloadsAllNone": "No downloads were added. These lectures have no recording or are already queued."
   },
   "yanhe2Playback": {
     "errorSignedOut": "Your Yanhe 2.0 session has ended. Sign in to Yanhe 2.0 again from the account menu, then retry.",

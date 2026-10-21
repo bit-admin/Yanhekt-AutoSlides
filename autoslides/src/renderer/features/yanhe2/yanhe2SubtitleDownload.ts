@@ -4,8 +4,8 @@
  *
  * Main finds the same lecture on Yanhekt and names the file for it; the work
  * is a download row, so it queues, shows its outcome and can be retried like
- * a video. A lecture without a transcript, or one that cannot be found on
- * Yanhekt (or Yanhekt is signed out), adds no row and writes nothing.
+ * a video. A lecture without a transcript adds no row and writes nothing; one
+ * Yanhekt does not have is named with Yanhe 2.0's titles and no ids.
  *
  * Subtitles get the captions' timing: the fixed delay in that mode, otherwise
  * the delay main measures for the lecture (`yanhe2:captionSync`, kept once
@@ -147,7 +147,7 @@ export async function downloadAllYanhe2Subtitles(requests: Yanhe2SubtitleRequest
       if (asked.kind === 'added') {
         if (added === 0) showDownload()
         added++
-      } else if (asked.kind === 'signed_out' || asked.kind === 'yanhekt_signed_out' || asked.kind === 'network') {
+      } else if (asked.kind === 'signed_out' || asked.kind === 'network') {
         // Not about this lecture: every later one would be turned down the same way.
         stopped = asked.kind
         break

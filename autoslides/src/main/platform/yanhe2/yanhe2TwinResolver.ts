@@ -1,11 +1,12 @@
 /**
  * Finds the Yanhekt lecture a Yanhe 2.0 session is, for anything that files
- * Yanhe 2.0 material under Yanhekt's ids and titles (saved slides, downloaded
- * subtitles). The rule and the pure pickers are in `yanhe2Twin.ts`; this is
+ * Yanhe 2.0 material under Yanhekt's ids and titles (saved slides, subtitles,
+ * recordings). The rule and the pure pickers are in `yanhe2Twin.ts`; this is
  * the part that asks the two sites.
  *
- * It declines rather than guesses: no Yanhekt sign-in, no course with that
- * number, or no session at that start time is an answer of its own.
+ * It never guesses, and never stops the work either (owner ruling
+ * 2026-10-21): what Yanhekt does not have is dropped from the name, and Yanhe
+ * 2.0's own titles fill in.
  *
  * It also finds a whole course on the other site, in either direction, for the
  * session pages' "find this course on …" button.
@@ -22,30 +23,25 @@ import { pickTwinCourse, pickTwinSession } from './yanhe2Twin';
 
 const log = createLogger('Yanhe2Twin');
 
-/** The Yanhekt course row and session a Yanhe 2.0 session matched. */
+/**
+ * The Yanhekt lecture a Yanhe 2.0 session is, as far as Yanhekt has it, and
+ * the names its files take. A course or session Yanhekt does not have (or
+ * cannot be asked about, signed out) is left out: no id for it, and Yanhe
+ * 2.0's own title in its place. So a course found without the session still
+ * files under the course id; nothing found files under Yanhe 2.0's titles alone.
+ */
 export interface Yanhe2Twin {
-  course: CourseData;
-  session: SessionData;
-}
-
-/** The ids and canonical titles that name files for that lecture (subtitles, recordings). */
-export function lectureTargetOf({ course, session }: Yanhe2Twin): Yanhe2SubtitleTarget {
-  return {
-    courseId: String(course.id),
-    courseTitle: course.name_zh,
-    sessionId: String(session.session_id),
-    sessionTitle: session.title,
-  };
+  course: CourseData | null;
+  session: SessionData | null;
+  /** Ids are '' where Yanhekt had none. */
+  target: Yanhe2SubtitleTarget;
 }
 
 export type Yanhe2TwinFound =
   | { kind: 'ok'; data: Yanhe2Twin }
   /** No live Yanhe 2.0 session for that account. */
   | { kind: 'signed_out' }
-  /** Not signed in to Yanhekt, so its session list cannot be read. */
-  | { kind: 'yanhekt_signed_out' }
-  /** Yanhekt has no course with that number, or no session at that time. */
-  | { kind: 'no_match' }
+  /** Yanhe 2.0 or Yanhekt did not answer. Not a reason to drop the ids: try again. */
   | { kind: 'network' }
   | { kind: 'failed' };
 
@@ -60,24 +56,42 @@ export class Yanhe2TwinResolver {
   async find(account: string, query: unknown): Promise<Yanhe2TwinFound> {
     const key = await this.yanhe2Service.getTwinKey(account, query);
     if (key.kind !== 'ok') return { kind: key.kind };
-    if (!key.data.courseCode || !key.data.startAt) return { kind: 'no_match' };
+    const { courseCode, startAt } = key.data;
 
-    // The session list is empty without a sign-in, which would read as "no match".
+    let course: CourseData | null = null;
+    let session: SessionData | null = null;
+    // Without a sign-in the session list is empty, so there is nothing to ask: Yanhe 2.0's names stand.
     const token = this.configService.getAuthToken();
-    if (!token) return { kind: 'yanhekt_signed_out' };
-
-    try {
-      const listed = await this.apiClient.getCourseList(token, { keyword: key.data.courseCode, page: 1, pageSize: 16 });
-      const course = pickTwinCourse(listed.data ?? [], key.data.courseCode);
-      if (!course) return { kind: 'no_match' };
-      const sessions = await this.apiClient.getCourseSessions(String(course.id), token);
-      const session = pickTwinSession(sessions, key.data.startAt);
-      return session ? { kind: 'ok', data: { course, session } } : { kind: 'no_match' };
-    } catch (error) {
-      if (axios.isAxiosError(error) && !error.response) return { kind: 'network' };
-      log.warn('Yanhekt lookup for a Yanhe 2.0 session failed:', error instanceof Error ? error.message : error);
-      return { kind: 'failed' };
+    if (token && courseCode) {
+      try {
+        const listed = await this.apiClient.getCourseList(token, { keyword: courseCode, page: 1, pageSize: 16 });
+        course = pickTwinCourse(listed.data ?? [], courseCode);
+        if (course && startAt) {
+          session = pickTwinSession(await this.apiClient.getCourseSessions(String(course.id), token), startAt);
+        }
+      } catch (error) {
+        if (axios.isAxiosError(error) && !error.response) return { kind: 'network' };
+        // An answer that is not a list is as good as no match: keep what was found.
+        log.warn('Yanhekt lookup for a Yanhe 2.0 session failed:', error instanceof Error ? error.message : error);
+      }
     }
+    if (!course) log.debug('No Yanhekt course for a Yanhe 2.0 session; filing under Yanhe 2.0 titles');
+    else if (!session) log.debug('No Yanhekt session for a Yanhe 2.0 session; filing under the course only');
+
+    return {
+      kind: 'ok',
+      data: {
+        course,
+        session,
+        target: {
+          courseId: course ? String(course.id) : '',
+          courseTitle: course?.name_zh || key.data.courseTitle,
+          // A session id means nothing without its course.
+          sessionId: course && session ? String(session.session_id) : '',
+          sessionTitle: (course && session?.title) || key.data.sessionTitle,
+        },
+      },
+    };
   }
 
   /**

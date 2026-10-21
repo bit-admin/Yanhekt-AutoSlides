@@ -11,9 +11,11 @@
  *      Beijing time, is the Yanhe 2.0 start.
  *
  * Step 2 needs the Yanhekt sign-in: an anonymous session list is empty.
- * Either step finding nothing is an answer, not an error. Nothing here guesses.
+ * Either step finding nothing is an answer, not an error. Nothing here guesses:
+ * what is not found is left out, and Yanhe 2.0's own titles stand in for it.
  */
 import type { CourseData, SessionData } from '@common/apiTypes';
+import { beijingDate, lessonRange } from '@common/yanhe2Calendar';
 
 /** What the join needs from Yanhe 2.0. */
 export interface Yanhe2TwinKey {
@@ -21,6 +23,24 @@ export interface Yanhe2TwinKey {
   courseCode: string;
   /** The session's scheduled start, epoch seconds. */
   startAt: number;
+  /** Yanhe 2.0's course title, for when Yanhekt has no such course. */
+  courseTitle: string;
+  /** Yanhe 2.0's wording of the session (`yanhe2SessionTitle`), for when Yanhekt has no such session. */
+  sessionTitle: string;
+}
+
+/**
+ * A session named the Yanhe 2.0 way, where Yanhekt's `第4周 星期一 第1大节`
+ * is not to be had: its Beijing date and its lessons, `2026-09-21 第8-10节`.
+ * aita's `sub_title` already reads `2026-09-21第8-10节`, so only the lessons
+ * are taken from it; one without lessons falls back to it as sent.
+ */
+export function yanhe2SessionTitle(startAt: number, subTitle: string): string {
+  const date = startAt > 0 ? beijingDate(startAt * 1000) : '';
+  const range = lessonRange(subTitle);
+  if (!range) return subTitle.trim() || date;
+  const lessons = range.from === range.to ? `第${range.from}节` : `第${range.from}-${range.to}节`;
+  return [date, lessons].filter(Boolean).join(' ');
 }
 
 /** `2026-09-21 08:00:00`, Beijing wall clock → epoch seconds. Null for any other shape. */

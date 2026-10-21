@@ -78,6 +78,15 @@ export interface Yanhe2DownloadSource {
   subId: string
 }
 
+/**
+ * Which lecture a row is, for dedupe: the Yanhekt session id, or for a Yanhe
+ * 2.0 lecture Yanhekt has no session for, aita's own session id.
+ */
+function lectureKeyOf(item: Pick<DownloadItem, 'sessionId' | 'yanhe2'>): string {
+  if (item.sessionId) return String(item.sessionId)
+  return item.yanhe2 ? `yanhe2-${item.yanhe2.subId}` : ''
+}
+
 /** The work of an item this service does not download itself. A throw is the item's error. */
 export type DownloadRunner = (item: DownloadItem) => Promise<void>
 
@@ -111,8 +120,9 @@ class DownloadServiceClass {
     run?: DownloadRunner,
   ): DownloadQueueAddResult {
     // Check for duplicates
+    const key = lectureKeyOf(item)
     const duplicate = this.items.find(existing =>
-      existing.sessionId === item.sessionId &&
+      lectureKeyOf(existing) === key &&
       existing.videoType === item.videoType &&
       existing.status !== 'error'
     )
@@ -123,7 +133,7 @@ class DownloadServiceClass {
 
     const downloadItem: DownloadItem = {
       ...item,
-      id: `${item.sessionId}_${item.videoType}_${Date.now()}`,
+      id: `${key}_${item.videoType}_${Date.now()}`,
       status: 'queued',
       progress: 0,
       addedAt: Date.now()

@@ -4,8 +4,8 @@
  * The slides are treated like a task's own extraction: main finds the same
  * lecture on Yanhekt and writes `Slide_*.png` into its `slides_*` folder, the
  * work is a task row, and the saved files go to post-processing exactly as a
- * finished task's do. A lecture with no slides, or one that cannot be found
- * on Yanhekt (or Yanhekt is signed out), adds no task and saves nothing.
+ * finished task's do. A lecture with no slides adds no task and saves nothing;
+ * one Yanhekt does not have is saved under Yanhe 2.0's titles without ids.
  *
  * Asking is quick (a few reads); saving is not, so accepted lectures wait as
  * task rows and are saved one at a time. That is what lets a whole course be
@@ -165,8 +165,8 @@ export async function saveYanhe2Slides(request: Yanhe2SlideSaveRequest): Promise
 }
 
 /**
- * Every lecture of a list: each is checked in turn, the ones with slides and
- * a Yanhekt match become task rows, and one message box says how many.
+ * Every lecture of a list: each is checked in turn, the ones with slides
+ * become task rows, and one message box says how many.
  */
 export async function saveAllYanhe2Slides(requests: Yanhe2SlideSaveRequest[]): Promise<void> {
   if (addingAll.value || requests.length === 0) return
@@ -181,7 +181,7 @@ export async function saveAllYanhe2Slides(requests: Yanhe2SlideSaveRequest[]): P
         added++
         if (!shown) showTask()
         shown = true
-      } else if (asked.kind === 'signed_out' || asked.kind === 'yanhekt_signed_out' || asked.kind === 'network') {
+      } else if (asked.kind === 'signed_out' || asked.kind === 'network') {
         // Not about this lecture: every later one would be turned down the same way.
         stopped = asked.kind
         break

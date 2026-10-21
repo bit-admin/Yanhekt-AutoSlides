@@ -25,10 +25,6 @@ export type Yanhe2DownloadTarget = Yanhe2SubtitleTarget;
 export type Yanhe2DownloadRefusal =
   /** No live Yanhe 2.0 session for that account. */
   | 'signed_out'
-  /** Not signed in to Yanhekt, so its session list cannot be read. */
-  | 'yanhekt_signed_out'
-  /** Yanhekt has no course with that number, or no session at that time. */
-  | 'no_match'
   /** Not a finished recording, or it has none of the streams asked for. */
   | 'no_recording'
   | 'network'

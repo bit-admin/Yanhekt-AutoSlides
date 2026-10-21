@@ -1884,12 +1884,12 @@
     "downloadSubtitles": "자막 다운로드",
     "downloadAllSubtitles": "모든 자막 다운로드",
     "subtitlesAllAdded": "{count}개의 자막을 다운로드 대기열에 추가했습니다",
-    "subtitlesAllSome": "{count}개의 자막을 다운로드 대기열에 추가했습니다. {skipped}개 건너뜀: 전사본 없음, 마이크 꺼짐, Yanhekt에서 찾을 수 없음, 또는 이미 대기열에 있음.",
-    "subtitlesAllNone": "추가된 자막이 없습니다. 이 강의들은 전사본이 없거나, 마이크가 꺼져 있었거나, Yanhekt에서 찾을 수 없거나, 이미 대기열에 있습니다.",
+    "subtitlesAllSome": "{count}개의 자막을 다운로드 대기열에 추가했습니다. {skipped}개 건너뜀: 전사본 없음, 시간 오차 측정 불가, 또는 이미 대기열에 있음.",
+    "subtitlesAllNone": "추가된 자막이 없습니다. 이 강의들은 전사본이 없거나, 시간 오차를 측정할 수 없거나, 이미 대기열에 있습니다.",
     "saveSlides": "서버 슬라이드를 작업에 추가",
     "saveAllSlides": "모든 서버 슬라이드를 작업에 추가",
-    "saveAllNone": "추가된 슬라이드가 없습니다. 이 강의들은 슬라이드가 없거나, Yanhekt에서 찾을 수 없거나, 이미 저장되었습니다.",
-    "saveAllSome": "{count}개의 세션을 작업 대기열에 추가했습니다. {skipped}개 건너뜀: 슬라이드 없음, Yanhekt에서 찾을 수 없음, 또는 이미 저장됨.",
+    "saveAllNone": "추가된 슬라이드가 없습니다. 이 강의들은 슬라이드가 없거나 이미 저장되었습니다.",
+    "saveAllSome": "{count}개의 세션을 작업 대기열에 추가했습니다. {skipped}개 건너뜀: 슬라이드 없음 또는 이미 저장됨.",
     "title": "내 강의",
     "loading": "강의를 불러오는 중…",
     "noCourses": "강의를 찾을 수 없습니다",
@@ -1902,8 +1902,8 @@
     "loadingSessions": "세션 불러오는 중…",
     "noSessions": "세션을 찾을 수 없습니다",
     "noSessionsHint": "연하 2.0에 이 강의의 세션이 아직 없습니다.",
-    "downloadsAllSome": "{count}개의 다운로드를 다운로드 대기열에 추가했습니다. {skipped}개 건너뜀: 녹화본 없음, Yanhekt에서 찾을 수 없음, 또는 이미 대기열에 있음.",
-    "downloadsAllNone": "추가된 다운로드가 없습니다. 이 강의들은 녹화본이 없거나, Yanhekt에서 찾을 수 없거나, 이미 대기열에 있습니다."
+    "downloadsAllSome": "{count}개의 다운로드를 다운로드 대기열에 추가했습니다. {skipped}개 건너뜀: 녹화본 없음 또는 이미 대기열에 있음.",
+    "downloadsAllNone": "추가된 다운로드가 없습니다. 이 강의들은 녹화본이 없거나 이미 대기열에 있습니다."
   },
   "yanhe2Playback": {
     "errorSignedOut": "연하 2.0 세션이 종료되었습니다. 계정 메뉴에서 연하 2.0에 다시 로그인한 후 다시 시도하세요.",

@@ -3,8 +3,8 @@
  * same lecture on Yanhekt: the renderer names the file the way a Yanhekt
  * download of that lecture is named, so both sites' downloads are one file and
  * everything downstream (auto extraction, Lectures, the subtitles' `.srt`)
- * works unchanged. Like saved slides and subtitles, a lecture with no Yanhekt
- * twin is not downloaded at all (`prepare` says so first).
+ * works unchanged. What Yanhekt does not have drops out of the name (see
+ * `Yanhe2TwinResolver.find`); the download goes ahead either way.
  *
  * The media itself comes from aita, along the intranet route:
  * - the camera is an HLS playlist, fetched by the Yanhekt downloader's own
@@ -30,7 +30,7 @@ import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { isYanhe2PlayUrl, signYanhe2PlayUrl, type Yanhe2PlayIdentity } from '@main/platform/yanhe2/yanhe2Playback';
 import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
-import { lectureTargetOf, type Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
+import type { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import { AUDIO_PART_SUFFIX } from './audioDownloadService';
 import type { DownloadProgress, HlsRequestSigner, M3u8DownloadService } from './m3u8DownloadService';
 import { YANHE2_PLAY_HEADERS } from './videoProxy/yanhe2Play';
@@ -103,7 +103,7 @@ export class Yanhe2DownloadService {
     if (streams.length === 0) return { kind: 'no_recording' };
 
     const twin = await this.twinResolver.find(account, query);
-    return twin.kind === 'ok' ? { kind: 'ok', target: lectureTargetOf(twin.data), streams } : twin;
+    return twin.kind === 'ok' ? { kind: 'ok', target: twin.data.target, streams } : twin;
   }
 
   /** True when this service owns the id, so the shared cancel channel can route to it. */
