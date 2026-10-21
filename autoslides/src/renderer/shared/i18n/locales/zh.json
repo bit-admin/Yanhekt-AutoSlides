@@ -1901,7 +1901,9 @@
     "errorDetailFailed": "延河 2.0 没有返回这门课程。请稍后重试。",
     "loadingSessions": "加载课时中…",
     "noSessions": "未找到课时",
-    "noSessionsHint": "延河 2.0 还没有为这门课程安排课时。"
+    "noSessionsHint": "延河 2.0 还没有为这门课程安排课时。",
+    "downloadsAllSome": "已添加 {count} 个下载到下载队列。跳过 {skipped} 个：没有录像、在延河课堂找不到，或已在队列中。",
+    "downloadsAllNone": "没有添加任何下载。这些课没有录像、在延河课堂找不到，或已在队列中。"
   },
   "yanhe2Playback": {
     "errorSignedOut": "延河 2.0 会话已结束。请在账号菜单中重新登录延河 2.0，然后重试。",
@@ -1941,6 +1943,15 @@
       "busy": "这些幻灯片正在保存。",
       "network": "幻灯片下载失败，请检查网络后重试。",
       "failed": "幻灯片保存失败，请稍后再试。"
-    }
+    },
+    "downloadRefused": {
+      "signed_out": "延河 2.0 登录已失效，请重新登录后重试。",
+      "yanhekt_signed_out": "请先登录延河课堂再下载，录像会按延河课堂的同一节课保存。",
+      "no_match": "在延河课堂没有找到这节课，未下载。",
+      "no_recording": "延河 2.0 没有这节课的这一路录像。",
+      "network": "无法准备下载，请检查网络后重试。",
+      "failed": "无法准备下载，请稍后再试。"
+    },
+    "downloadRoomUnavailable": "教室全景录像不能下载"
   }
 }

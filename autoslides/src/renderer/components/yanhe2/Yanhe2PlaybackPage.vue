@@ -18,6 +18,22 @@
             {{ $t('playback.playingInBackground') }}
           </div>
         </div>
+        <!-- The Recorded player's download button: the stream on screen, or both. Filed under
+             the same lecture on Yanhekt; one that is not there gets a message box. -->
+        <button
+          v-if="isRecording"
+          @click="downloadCurrent"
+          class="btn download-btn"
+          :disabled="loading || downloadKinds.length === 0 || preparingDownload"
+          :title="downloadTitle"
+        >
+          <span v-if="preparingDownload" class="download-spinner" aria-hidden="true"></span>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </button>
         <button @click="load" class="btn refresh-btn" :disabled="loading" :title="$t('playback.refresh')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -357,6 +373,7 @@
 import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
+import type { Yanhe2DownloadKind } from '@common/yanhe2Download'
 import type { Yanhe2StreamType } from '@common/yanhe2Playback'
 import { transcriptIndexAt } from '@common/yanhe2Transcript'
 import { useYanhe2Player, YANHE2_BOTH_STREAMS, type Yanhe2StreamChoice } from '@features/yanhe2/useYanhe2Player'
@@ -364,6 +381,7 @@ import { useYanhe2Captions, yanhe2TranscriptView as transcriptView } from '@feat
 import { useYanhe2Slides } from '@features/yanhe2/useYanhe2Slides'
 import { isSavingYanhe2Slides, saveYanhe2Slides } from '@features/yanhe2/yanhe2SlideSave'
 import { downloadYanhe2Subtitles, isPreparingYanhe2Subtitles } from '@features/yanhe2/yanhe2SubtitleDownload'
+import { downloadYanhe2Recording, isPreparingYanhe2Download } from '@features/yanhe2/yanhe2Download'
 import type { GallerySlide } from '@features/video/gallerySlide'
 import { audioModeLabelKey, isMutedByAudioMode } from '@features/video/audioMode'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
@@ -521,6 +539,29 @@ const slidesNote = computed(() => {
 const preparingSubtitles = computed(() => isPreparingYanhe2Subtitles(props.session.subId))
 const downloadSubtitles = () => {
   void downloadYanhe2Subtitles({ account: props.account, courseId: props.session.courseId, subId: props.session.subId })
+}
+
+// Downloading what is on screen, like the Recorded player: the stream shown,
+// or camera + screen under Both Streams. The room camera is not offered.
+const isRecording = computed(() => !problem.value && playback.value?.mode === 'recorded')
+const downloadKinds = computed<Yanhe2DownloadKind[]>(() => {
+  if (isDualSelected.value) return ['camera', 'screen']
+  const type = currentStream.value?.type
+  return type === 'camera' || type === 'screen' ? [type] : []
+})
+const downloadTitle = computed(() => {
+  if (isDualSelected.value) return t('playback.downloadBoth')
+  const type = currentStream.value?.type
+  if (type === 'screen') return t('sessions.downloadScreen')
+  if (type === 'camera') return t('sessions.downloadCamera')
+  return t('yanhe2Playback.downloadRoomUnavailable')
+})
+const preparingDownload = computed(() => isPreparingYanhe2Download(props.session.subId))
+const downloadCurrent = () => {
+  void downloadYanhe2Recording(
+    { account: props.account, courseId: props.session.courseId, subId: props.session.subId },
+    [...downloadKinds.value],
+  )
 }
 
 // Playback speed (recorded only; the bars hide it for live).
@@ -794,6 +835,21 @@ onUnmounted(() => {
 <style scoped src="../video/playbackPageChrome.css"></style>
 
 <style scoped>
+/* The download button's busy state: a hairline ring in place of the arrow. */
+.download-spinner {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--text-secondary);
+  border-radius: 50%;
+  animation: yanhe2-download-spin 0.8s linear infinite;
+}
+
+@keyframes yanhe2-download-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Captions sit over the picture, and step up out of the control bar's way. */
 .caption-layer {
   position: absolute;

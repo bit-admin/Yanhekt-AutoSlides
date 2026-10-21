@@ -54,6 +54,7 @@ import type {
 } from '../shared/yanhe2SlideSave';
 import type { Yanhe2CaptionSyncResult } from '../shared/yanhe2CaptionSync';
 import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleQuery, Yanhe2SubtitleResult } from '../shared/yanhe2Subtitles';
+import type { Yanhe2DownloadKind, Yanhe2DownloadPrepared, Yanhe2DownloadQuery } from '../shared/yanhe2Download';
 import type { Yanhe2TranscriptLine } from '../shared/yanhe2Transcript';
 import type {
   SlideMetadata,
@@ -454,6 +455,8 @@ export interface ElectronAPI {
     prepareSubtitles: (account: string, query: Yanhe2SubtitleQuery) => Promise<Yanhe2SubtitlePrepared>;
     /** Write the transcript as an `.srt` in the output folder, its times held back by `shift` seconds. */
     saveSubtitles: (account: string, query: Yanhe2SubtitleQuery, shift: number) => Promise<Yanhe2SubtitleResult>;
+    /** What a recording has to download, and the Yanhekt lecture it is filed under. Writes nothing. */
+    prepareDownload: (account: string, query: Yanhe2DownloadQuery) => Promise<Yanhe2DownloadPrepared>;
     /** One session's transcript lines, in time order. Empty when it has none. */
     transcript: (account: string, subId: string) => Promise<Yanhe2ReadResult<Yanhe2TranscriptLine[]>>;
     /**
@@ -724,6 +727,8 @@ export interface ElectronAPI {
     start: (downloadId: string, m3u8Url: string, outputName: string) => Promise<void>;
     /** Mic-audio sidecar: a plain unsigned `.aac`, so no login token. Reports on the same channels as `start`. */
     startAudio: (downloadId: string, audioUrl: string, outputName: string) => Promise<void>;
+    /** A Yanhe 2.0 recording's stream, signed and fetched in main. Reports on the same channels as `start`. */
+    startYanhe2: (downloadId: string, account: string, query: Yanhe2DownloadQuery, kind: Yanhe2DownloadKind, outputName: string) => Promise<void>;
     cancel: (downloadId: string) => Promise<void>;
     cleanupTempFiles: (outputName: string) => Promise<void>;
     onProgress: (callback: (downloadId: string, progress: DownloadProgress) => void) => () => void;

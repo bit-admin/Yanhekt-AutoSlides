@@ -45,6 +45,10 @@ export interface DownloadItem {
   // fetched by this service at all: whoever adds it passes the function that
   // does the work (`addToQueue`'s second argument), and the queue only runs it.
   videoType: 'camera' | 'screen' | 'audio' | 'subtitles'
+  // A Yanhe 2.0 recording: the stream comes from aita (main signs and fetches
+  // it), while every other field is the same lecture's on Yanhekt, so the file,
+  // dedupe and auto-extraction are exactly a Yanhekt download's.
+  yanhe2?: Yanhe2DownloadSource
   status: DownloadStatus
   progress: number
   error?: string
@@ -65,6 +69,13 @@ export interface DownloadItem {
   autoPostProcessAfter?: boolean
   extractorOutputDir?: string
   postProcessJobId?: string
+}
+
+/** Where a Yanhe 2.0 row's stream comes from: the account and aita's own ids. */
+export interface Yanhe2DownloadSource {
+  account: string
+  courseId: string
+  subId: string
 }
 
 /** The work of an item this service does not download itself. A throw is the item's error. */
@@ -264,6 +275,18 @@ class DownloadServiceClass {
         return
       }
 
+      const source = item.yanhe2
+      if (source) {
+        if (item.videoType === 'subtitles') throw new Error('Not a Yanhe 2.0 stream')
+        // Plain strings only: the item is reactive, and a proxy cannot cross the bridge.
+        const account = String(source.account)
+        const query = { courseId: String(source.courseId), subId: String(source.subId) }
+        const kind = item.videoType
+        await this.startRealDownload(item, (name) =>
+          window.electronAPI.download.startYanhe2(item.id, account, query, kind, name))
+        return
+      }
+
       // Get video stream URL from session data
       const sessionData = await this.getSessionVideoUrl(item.sessionId, item.videoType)
       if (!sessionData) {
@@ -271,7 +294,10 @@ class DownloadServiceClass {
       }
 
       // Start actual download using IPC
-      await this.startRealDownload(item, sessionData.url)
+      const url = sessionData.url
+      await this.startRealDownload(item, (name) => item.videoType === 'audio'
+        ? window.electronAPI.download.startAudio(item.id, url, name)
+        : window.electronAPI.download.start(item.id, url, name))
 
     } catch (error) {
       item.status = 'error'
@@ -320,7 +346,9 @@ class DownloadServiceClass {
     }
   }
 
-  private async startRealDownload(item: DownloadItem, m3u8Url: string): Promise<void> {
+  // `start` asks main for the download, given the file stem; main reports on
+  // the shared progress / completed / error channels.
+  private async startRealDownload(item: DownloadItem, start: (outputName: string) => Promise<void>): Promise<void> {
     return new Promise((resolve, reject) => {
       let completed = false
       let cleanupListeners = () => {}
@@ -408,14 +436,10 @@ class DownloadServiceClass {
         cleanupListeners = () => {}
       }
 
-      // Start the download with sanitized file name. Both channels broadcast on
-      // the same progress/completed/error events, so the listeners above serve
-      // either kind.
-      const sanitizedName = buildDownloadFileName(item)
-      const started = item.videoType === 'audio'
-        ? window.electronAPI.download.startAudio(item.id, m3u8Url, sanitizedName)
-        : window.electronAPI.download.start(item.id, m3u8Url, sanitizedName)
-      started
+      // Start the download with sanitized file name. Every channel broadcasts
+      // on the same progress/completed/error events, so the listeners above
+      // serve any kind.
+      start(buildDownloadFileName(item))
         .catch((error: Error) => {
           if (!completed) {
             completed = true

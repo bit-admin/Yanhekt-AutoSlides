@@ -1901,7 +1901,9 @@
     "errorDetailFailed": "Yanhe 2.0 did not return this course. Try again later.",
     "loadingSessions": "Loading sessions…",
     "noSessions": "No Sessions Found",
-    "noSessionsHint": "Yanhe 2.0 has no sessions attached to this course yet."
+    "noSessionsHint": "Yanhe 2.0 has no sessions attached to this course yet.",
+    "downloadsAllSome": "Added {count} downloads to the download queue. {skipped} skipped: no recording, not found on Yanhekt, or already queued.",
+    "downloadsAllNone": "No downloads were added. These lectures have no recording, were not found on Yanhekt, or are already queued."
   },
   "yanhe2Playback": {
     "errorSignedOut": "Your Yanhe 2.0 session has ended. Sign in to Yanhe 2.0 again from the account menu, then retry.",
@@ -1941,6 +1943,15 @@
       "busy": "These slides are already being saved.",
       "network": "Could not download the slides. Check your connection and try again.",
       "failed": "The slides could not be saved. Try again later."
-    }
+    },
+    "downloadRefused": {
+      "signed_out": "Your Yanhe 2.0 session has ended. Sign in again, then retry.",
+      "yanhekt_signed_out": "Sign in to Yanhekt to download this recording. It is saved under the same lecture there.",
+      "no_match": "This lecture was not found on Yanhekt, so it was not downloaded.",
+      "no_recording": "Yanhe 2.0 has no recording of this stream for this lecture.",
+      "network": "Could not prepare the download. Check your connection and try again.",
+      "failed": "The download could not be prepared. Try again later."
+    },
+    "downloadRoomUnavailable": "The room camera cannot be downloaded"
   }
 }

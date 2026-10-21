@@ -61,6 +61,94 @@ export interface DownloadOverrides {
   isIntranetMode?: boolean;
 }
 
+/**
+ * How one HLS download's requests are signed and what they carry. Yanhekt's
+ * CDN wants an encrypted path, a video token and a rolling signature
+ * (`YanhektHlsSigner`); Yanhe 2.0 signs each `/play/` path on its own. The
+ * downloader itself (segment pool, resume, FFmpeg remux, intranet route) is
+ * the same for both.
+ */
+export interface HlsRequestSigner {
+  /** Called once before the first request: fetch a token, start a refresh timer. */
+  prepare(): Promise<void>;
+  /** The playlist URL as it is first requested. */
+  playlistUrl(url: string): string;
+  /** The URL to request now. May throw for a URL it will not sign. */
+  sign(url: string): string;
+  /** Headers for every request. */
+  headers(): Record<string, string>;
+  /** Extra request options, e.g. `maxRedirects: 0` where a signature must not follow a redirect. */
+  readonly requestOptions?: { maxRedirects?: number };
+  /** Stop whatever `prepare` started. */
+  dispose(): void;
+}
+
+/** Yanhekt's CDN: path encryption, a video token, and a signature renewed every 10 s. */
+class YanhektHlsSigner implements HlsRequestSigner {
+  private token: string | null = null;
+  private timestamp = '';
+  private signature = '';
+  private timer: NodeJS.Timeout | null = null;
+  private readonly baseHeaders: Record<string, string> = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3",
+    "Origin": "https://www.yanhekt.cn",
+    "referer": "https://www.yanhekt.cn/",
+    "xdomain-client": "web_user",
+    "Xdomain-Client": "web_user",
+    "Xclient-Version": "v1",
+  };
+
+  constructor(
+    private readonly apiClient: ApiClient,
+    private readonly configService: ConfigService,
+    private readonly loginToken: string,
+  ) {}
+
+  async prepare(): Promise<void> {
+    if (!this.token) {
+      try {
+        this.token = await this.apiClient.getVideoToken(this.loginToken);
+      } catch (error) {
+        log.error("Error getting token:", error);
+        throw new Error("获取 Token 失败");
+      }
+      // No login token (the command line downloader) is anonymous too: an
+      // empty `Bearer ` header is not the same as no header.
+      if (this.loginToken && !this.configService.getPreferAnonymousApiRequests()) {
+        this.baseHeaders["Authorization"] = "Bearer " + this.loginToken;
+      }
+    }
+    this.renew();
+    if (!this.timer) this.timer = setInterval(() => this.renew(), 10000);
+  }
+
+  private renew(): void {
+    const sigData = getVideoSignature();
+    this.timestamp = sigData.timestamp;
+    this.signature = sigData.signature;
+  }
+
+  playlistUrl(url: string): string {
+    return encryptVideoUrl(url);
+  }
+
+  sign(url: string): string {
+    if (!this.token) throw new Error("获取 Token 失败");
+    return addSignatureToUrl(url, this.token, this.timestamp, this.signature);
+  }
+
+  headers(): Record<string, string> {
+    return this.baseHeaders;
+  }
+
+  dispose(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+}
+
 export class M3u8DownloadService {
   private ffmpegService: FFmpegService;
   private configService: ConfigService;
@@ -81,6 +169,23 @@ export class M3u8DownloadService {
     outputName: string,
     progressCallback: (progress: DownloadProgress) => void,
     loginToken: string,
+    overrides: DownloadOverrides = {}
+  ): Promise<void> {
+    const signer = new YanhektHlsSigner(this.apiClient, this.configService, loginToken);
+    await this.startSignedDownload(downloadId, m3u8Url, outputName, progressCallback, signer, overrides);
+  }
+
+  /**
+   * Download any HLS recording whose requests `signer` knows how to sign, into
+   * the output folder as `<outputName>.mp4`, with the same segment pool,
+   * resume, remux and intranet route as a Yanhekt download.
+   */
+  async startSignedDownload(
+    downloadId: string,
+    m3u8Url: string,
+    outputName: string,
+    progressCallback: (progress: DownloadProgress) => void,
+    signer: HlsRequestSigner,
     overrides: DownloadOverrides = {}
   ): Promise<void> {
     if (this.activeDownloads.has(downloadId)) {
@@ -106,9 +211,7 @@ export class M3u8DownloadService {
       route,
       this.ffmpegService,
       this.intranetMapping,
-      this.apiClient,
-      this.configService,
-      loginToken,
+      signer,
       this.configService.getConfig().downloadMaxWorkers,
       this.configService.getConfig().downloadNumRetries
     );
@@ -153,9 +256,7 @@ class M3u8Downloader {
   private route: IntranetRoute;
   private ffmpegService: FFmpegService;
   private intranetMapping: IntranetMappingService;
-  private apiClient: ApiClient;
-  private configService: ConfigService;
-  private loginToken: string;
+  private signer: HlsRequestSigner;
 
   private workDir: string;
   private filePath: string;
@@ -172,24 +273,8 @@ class M3u8Downloader {
   private axiosBundle: IntranetAxiosBundle | null = null;
   private abortController: AbortController | null = null;
 
-
-  private headers: Record<string, string> = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3",
-    "Origin": "https://www.yanhekt.cn",
-    "referer": "https://www.yanhekt.cn/",
-    "xdomain-client": "web_user",
-    "Xdomain-Client": "web_user",
-    "Xclient-Version": "v1",
-    "Authorization": ""
-  };
-
   // Agents are lazily constructed per axios instance so we can pick up the
   // current intranet-interface binding without restarting downloads.
-
-  private token: string | null = null;
-  private signature: string | null = null;
-  private timestamp: string | null = null;
-  private signatureInterval: NodeJS.Timeout | null = null;
 
   constructor(
     url: string,
@@ -199,9 +284,7 @@ class M3u8Downloader {
     route: IntranetRoute,
     ffmpegService: FFmpegService,
     intranetMapping: IntranetMappingService,
-    apiClient: ApiClient,
-    configService: ConfigService,
-    loginToken: string,
+    signer: HlsRequestSigner,
     maxWorkers: number,
     numRetries: number
   ) {
@@ -212,9 +295,7 @@ class M3u8Downloader {
     this.route = route;
     this.ffmpegService = ffmpegService;
     this.intranetMapping = intranetMapping;
-    this.apiClient = apiClient;
-    this.configService = configService;
-    this.loginToken = loginToken;
+    this.signer = signer;
     this.maxWorkers = maxWorkers;
     this.numRetries = numRetries;
 
@@ -233,15 +314,11 @@ class M3u8Downloader {
     this.shouldStop = false;
     this.abortController = new AbortController();
 
-
-    // Encrypt the URL
-    this.url = this.encryptURL(this.url);
+    this.url = this.signer.playlistUrl(this.url);
 
     try {
+      await this.signer.prepare();
       await this.getM3u8Info(this.url, this.numRetries);
-
-      // Start the signature update loop
-      this.startUpdateSignatureLoop();
 
       log.debug(`Downloading: ${this.name}`);
       log.debug(`Save path: ${this.filePath}`);
@@ -284,12 +361,7 @@ class M3u8Downloader {
     this.shouldStop = true;
     this.isRunning = false;
 
-    // Clear the signature update interval immediately
-    if (this.signatureInterval) {
-      clearInterval(this.signatureInterval);
-      this.signatureInterval = null;
-    }
-
+    this.signer.dispose();
     this.abortController?.abort();
     this.destroyNetworkResources();
 
@@ -303,54 +375,6 @@ class M3u8Downloader {
         log.error('Error killing FFmpeg process:', error);
       }
     }
-  }
-
-  private encryptURL(url: string): string {
-    return encryptVideoUrl(url);
-  }
-
-  private getSignature(): { timestamp: string; signature: string } {
-    return getVideoSignature();
-  }
-
-  private async getToken(): Promise<string> {
-    if (!this.token) {
-      try {
-        this.token = await this.apiClient.getVideoToken(this.loginToken);
-        // No login token (the command line downloader) is anonymous too: an
-        // empty `Bearer ` header is not the same as no header.
-        if (!this.loginToken || this.configService.getPreferAnonymousApiRequests()) {
-          delete this.headers["Authorization"];
-        } else {
-          this.headers["Authorization"] = "Bearer " + this.loginToken;
-        }
-      } catch (error) {
-        log.error("Error getting token:", error);
-        throw new Error("获取 Token 失败");
-      }
-    }
-    return this.token!; // Should never be null at this point due to the check above
-  }
-
-
-  private addSignatureForUrl(url: string, token: string, timestamp: string, signature: string): string {
-    return addSignatureToUrl(url, token, timestamp, signature);
-  }
-
-  private startUpdateSignatureLoop(): void {
-    this.signatureInterval = setInterval(() => {
-      if (this.shouldStop || this.successSum === this.tsSum) {
-        if (this.signatureInterval) {
-          clearInterval(this.signatureInterval);
-          this.signatureInterval = null;
-        }
-        return;
-      }
-
-      const sigData = this.getSignature();
-      this.timestamp = sigData.timestamp;
-      this.signature = sigData.signature;
-    }, 10000); // Update every 10 seconds
   }
 
   private getRequestSignal(): AbortSignal | undefined {
@@ -378,11 +402,7 @@ class M3u8Downloader {
   }
 
   private cleanup(): void {
-    if (this.signatureInterval) {
-      clearInterval(this.signatureInterval);
-      this.signatureInterval = null;
-    }
-
+    this.signer.dispose();
     this.destroyNetworkResources();
   }
 
@@ -395,26 +415,14 @@ class M3u8Downloader {
 
   private async getM3u8Info(m3u8Url: string, numRetries: number): Promise<void> {
     try {
-      if (!this.token) {
-        this.token = await this.getToken();
-      }
-
-      const sigData = this.getSignature();
-      this.timestamp = sigData.timestamp;
-      this.signature = sigData.signature;
-
-      const url = this.addSignatureForUrl(
-        m3u8Url,
-        this.token,
-        this.timestamp,
-        this.signature
-      );
+      const url = this.signer.sign(m3u8Url);
 
       const axiosInstance = this.getAxiosInstance();
       const response = await axiosInstance.get(url, {
+        ...this.signer.requestOptions,
         timeout: 30000,
         validateStatus: null,
-        headers: this.headers,
+        headers: this.signer.headers(),
         signal: this.getRequestSignal()
       });
 
@@ -573,17 +581,6 @@ class M3u8Downloader {
     if (this.shouldStop) return;
 
     try {
-      if (!this.token) {
-        this.token = await this.getToken();
-      }
-
-      const tsUrl = this.addSignatureForUrl(
-        tsUrlOriginal.split('\n')[0],
-        this.token,
-        this.timestamp || this.getSignature().timestamp,
-        this.signature || this.getSignature().signature
-      );
-
       // Check if file already exists (for resume functionality)
       if (fs.existsSync(outputPath)) {
         this.successSum++;
@@ -591,11 +588,13 @@ class M3u8Downloader {
         return;
       }
 
+      const tsUrl = this.signer.sign(tsUrlOriginal.split('\n')[0]);
       const axiosInstance = this.getAxiosInstance();
       const response = await axiosInstance.get(tsUrl, {
+        ...this.signer.requestOptions,
         responseType: 'stream',
         timeout: 60000,
-        headers: this.headers,
+        headers: this.signer.headers(),
         signal: this.getRequestSignal(),
         validateStatus: null
       });
@@ -682,22 +681,14 @@ class M3u8Downloader {
         trueKeyUrl = this.url.substring(0, this.url.lastIndexOf('/') + 1) + mayKeyUrl;
       }
 
-      if (!this.token) {
-        this.token = await this.getToken();
-      }
-
-      const signedUrl = this.addSignatureForUrl(
-        trueKeyUrl,
-        this.token,
-        this.timestamp || this.getSignature().timestamp,
-        this.signature || this.getSignature().signature
-      );
+      const signedUrl = this.signer.sign(trueKeyUrl);
 
       const axiosInstance = this.getAxiosInstance();
       const response = await axiosInstance.get(signedUrl, {
+        ...this.signer.requestOptions,
         responseType: 'arraybuffer',
         timeout: 30000,
-        headers: this.headers,
+        headers: this.signer.headers(),
         signal: this.getRequestSignal()
       });
 

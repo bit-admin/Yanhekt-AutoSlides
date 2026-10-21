@@ -13,6 +13,7 @@
 import axios from 'axios';
 import type { CourseData, SessionData } from '@common/apiTypes';
 import type { Yanhe2CourseTwinResult, YanhektCourseTwinResult } from '@common/yanhe2CourseTwin';
+import type { Yanhe2SubtitleTarget } from '@common/yanhe2Subtitles';
 import type { ApiClient } from '../apiClient';
 import type { ConfigService } from '../configService';
 import { createLogger } from '@main/infra/logger';
@@ -25,6 +26,16 @@ const log = createLogger('Yanhe2Twin');
 export interface Yanhe2Twin {
   course: CourseData;
   session: SessionData;
+}
+
+/** The ids and canonical titles that name files for that lecture (subtitles, recordings). */
+export function lectureTargetOf({ course, session }: Yanhe2Twin): Yanhe2SubtitleTarget {
+  return {
+    courseId: String(course.id),
+    courseTitle: course.name_zh,
+    sessionId: String(session.session_id),
+    sessionTitle: session.title,
+  };
 }
 
 export type Yanhe2TwinFound =

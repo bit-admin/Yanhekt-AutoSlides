@@ -6,6 +6,7 @@ import type { Yanhe2Playback, Yanhe2PlaybackResult, Yanhe2PlaybackStream } from 
 import type { Yanhe2Slide } from '@common/yanhe2Slides';
 import type { Yanhe2CaptionSyncResult } from '@common/yanhe2CaptionSync';
 import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleResult } from '@common/yanhe2Subtitles';
+import type { Yanhe2DownloadPrepared } from '@common/yanhe2Download';
 import type { Yanhe2SlideSavePrepared, Yanhe2SlideSaveProgress, Yanhe2SlideSaveResult } from '@common/yanhe2SlideSave';
 
 // Yanhe 2.0 (aita.yanhekt.cn) account. Every handler takes the signed-in
@@ -14,7 +15,7 @@ import type { Yanhe2SlideSavePrepared, Yanhe2SlideSaveProgress, Yanhe2SlideSaveR
 // Settings field — never inside the broadcast config. Handlers that may change
 // a stored session broadcast config so `yanhe2SessionExpiry` follows.
 export function registerYanhe2IpcHandlers(services: IpcServices): void {
-  const { authService, yanhe2Service, yanhe2TwinResolver, yanhe2SlideImportService, yanhe2SubtitleService, yanhe2CaptionSyncService, configService, videoProxyService } = services;
+  const { authService, yanhe2Service, yanhe2TwinResolver, yanhe2SlideImportService, yanhe2SubtitleService, yanhe2DownloadService, yanhe2CaptionSyncService, configService, videoProxyService } = services;
 
   const str = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
   const broadcast = () => broadcastConfig(configService);
@@ -182,6 +183,14 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('yanhe2:saveSubtitles', async (_event, account: string, query: unknown, shift: unknown): Promise<Yanhe2SubtitleResult> => {
     const result = await yanhe2SubtitleService.save(str(account), query, shift);
+    if (result.kind === 'signed_out') broadcast();
+    return result;
+  });
+
+  // A recording's streams and the Yanhekt lecture they are filed under, before
+  // any row is added. The download itself is `download:startYanhe2`.
+  ipcMain.handle('yanhe2:prepareDownload', async (_event, account: string, query: unknown): Promise<Yanhe2DownloadPrepared> => {
+    const result = await yanhe2DownloadService.prepare(str(account), query);
     if (result.kind === 'signed_out') broadcast();
     return result;
   });

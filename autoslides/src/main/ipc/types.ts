@@ -7,6 +7,7 @@ import type { IntranetMappingService } from '@main/platform/intranetMappingServi
 import type { VideoProxyService } from '@main/video/videoProxyService';
 import type { ThumbnailService } from '@main/video/thumbnailService';
 import type { Yanhe2SubtitleService } from '@main/video/yanhe2SubtitleService';
+import type { Yanhe2DownloadService } from '@main/video/yanhe2DownloadService';
 import type { Yanhe2CaptionSyncService } from '@main/video/yanhe2CaptionSyncService';
 import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
 import type { AudioDownloadService } from '@main/video/audioDownloadService';
@@ -68,6 +69,7 @@ export interface IpcServices {
   slideTimelineService: SlideTimelineService;
   yanhe2SlideImportService: Yanhe2SlideImportService;
   yanhe2SubtitleService: Yanhe2SubtitleService;
+  yanhe2DownloadService: Yanhe2DownloadService;
   yanhe2CaptionSyncService: Yanhe2CaptionSyncService;
   cacheManagementService: CacheManagementService;
   /** Developer-mode Yanhekt catalog file in the log folder. */

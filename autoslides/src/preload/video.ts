@@ -73,6 +73,8 @@ export const download: ElectronAPI['download'] = {
     ipcRenderer.invoke('download:start', downloadId, m3u8Url, outputName),
   startAudio: (downloadId: string, audioUrl: string, outputName: string) =>
     ipcRenderer.invoke('download:startAudio', downloadId, audioUrl, outputName),
+  startYanhe2: (downloadId, account, query, kind, outputName) =>
+    ipcRenderer.invoke('download:startYanhe2', downloadId, account, query, kind, outputName),
   cancel: (downloadId: string) => ipcRenderer.invoke('download:cancel', downloadId),
   cleanupTempFiles: (outputName: string) => ipcRenderer.invoke('download:cleanupTempFiles', outputName),
   onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) => {

@@ -95,35 +95,82 @@
           :hint="$t('yanhe2Curriculum.noSessionsHint')"
         />
         <div v-else class="sessions-container">
-          <!-- The Recorded sessions page's batch row and row chips, with the one
-               action a Yanhe 2.0 session has: [+] [Tasks], the Recorded page's own pair. Always shown;
-               whether a recording has slides is found out on click. -->
-          <div class="batch-actions">
-            <button type="button" class="btn batch-btn" :disabled="addingAll" @click="saveAllSlides">
-              <span v-if="addingAll" class="batch-lead spinning-ring" aria-hidden="true"></span>
-              <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <!-- The Recorded sessions page's batch buttons and row chips: server slides
+               through Tasks and subtitles on the first row, the Recorded page's three
+               downloads on the second. Always shown; whether a recording has slides,
+               a transcript or a Yanhekt twin is found out on click. -->
+          <div class="batch-rows">
+            <div class="batch-actions">
+              <button type="button" class="btn batch-btn" :disabled="addingAll" @click="saveAllSlides">
+                <span v-if="addingAll" class="batch-lead spinning-ring" aria-hidden="true"></span>
+                <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 5v14M5 12h14"/>
-              </svg>
-              <span class="batch-label">{{ $t('yanhe2Curriculum.saveAllSlides') }}</span>
-              <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                </svg>
+                <span class="batch-label">{{ $t('yanhe2Curriculum.saveAllSlides') }}</span>
+                <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 11l3 3 8-8"/>
                   <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
-              </svg>
-            </button>
-            <button type="button" class="btn batch-btn" :disabled="addingAllSubtitles" @click="downloadAllSubtitles">
-              <span v-if="addingAllSubtitles" class="batch-lead spinning-ring" aria-hidden="true"></span>
-              <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                </svg>
+              </button>
+              <button type="button" class="btn batch-btn" :disabled="addingAllSubtitles" @click="downloadAllSubtitles">
+                <span v-if="addingAllSubtitles" class="batch-lead spinning-ring" aria-hidden="true"></span>
+                <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7,10 12,15 17,10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              <span class="batch-label">{{ $t('yanhe2Curriculum.downloadAllSubtitles') }}</span>
-              <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                </svg>
+                <span class="batch-label">{{ $t('yanhe2Curriculum.downloadAllSubtitles') }}</span>
+                <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="2" y="5" width="20" height="14" rx="2"/>
                   <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6"/>
                   <path d="M17 10.2a2.2 2.2 0 1 0 0 3.6"/>
-              </svg>
-            </button>
+                </svg>
+              </button>
+            </div>
+            <!-- The Recorded page's three download buttons, from Yanhe 2.0. -->
+            <div class="batch-actions">
+              <button type="button" class="btn batch-btn" :disabled="downloadingAll !== null" @click="downloadAll('camera')">
+                <span v-if="downloadingAll === 'camera'" class="batch-lead spinning-ring" aria-hidden="true"></span>
+                <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span class="batch-label">{{ $t('sessions.downloadAllCamera') }}</span>
+                <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </button>
+              <button type="button" class="btn batch-btn" :disabled="downloadingAll !== null" @click="downloadAll('screen')">
+                <span v-if="downloadingAll === 'screen'" class="batch-lead spinning-ring" aria-hidden="true"></span>
+                <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span class="batch-label">{{ $t('sessions.downloadAllScreen') }}</span>
+                <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </button>
+              <button type="button" class="btn batch-btn" :disabled="downloadingAll !== null" @click="downloadAll('audio')">
+                <span v-if="downloadingAll === 'audio'" class="batch-lead spinning-ring" aria-hidden="true"></span>
+                <svg v-else class="batch-lead" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span class="batch-label">{{ $t('sessions.downloadAllAudio') }}</span>
+                <svg class="batch-trail" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="9" y="2" width="6" height="11" rx="3"/>
+                  <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                  <line x1="12" y1="18" x2="12" y2="22"/>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="sessions-list custom-scrollbar">
             <div
@@ -165,11 +212,70 @@
                 >
                   <span v-if="isSavingYanhe2Slides(s.subId)" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
                   <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 5v14M5 12h14"/>
+                    <path d="M12 5v14M5 12h14"/>
                   </svg>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M9 11l3 3 8-8"/>
-                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+                    <path d="M9 11l3 3 8-8"/>
+                    <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+                  </svg>
+                </button>
+                <!-- [⤓ 📷] : download this recording's camera through Download, filed under the Yanhekt lecture. -->
+                <button
+                  type="button"
+                  class="action-btn action-pair"
+                  :title="$t('sessions.downloadCamera')"
+                  :disabled="s.status !== 'playable' || isPreparingYanhe2Download(s.subId)"
+                  @click.stop="downloadRecording(s, 'camera')"
+                >
+                  <span v-if="isPreparingYanhe2Download(s.subId, 'camera')" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </button>
+                <!-- [⤓ 🖥] : download this recording's screen through Download, filed under the Yanhekt lecture. -->
+                <button
+                  type="button"
+                  class="action-btn action-pair"
+                  :title="$t('sessions.downloadScreen')"
+                  :disabled="s.status !== 'playable' || isPreparingYanhe2Download(s.subId)"
+                  @click.stop="downloadRecording(s, 'screen')"
+                >
+                  <span v-if="isPreparingYanhe2Download(s.subId, 'screen')" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                </button>
+                <!-- [⤓ 🎙] : download this recording's classroom mic through Download, filed under the Yanhekt lecture. -->
+                <button
+                  type="button"
+                  class="action-btn action-pair"
+                  :title="$t('sessions.downloadAudio')"
+                  :disabled="s.status !== 'playable' || isPreparingYanhe2Download(s.subId)"
+                  @click.stop="downloadRecording(s, 'audio')"
+                >
+                  <span v-if="isPreparingYanhe2Download(s.subId, 'audio')" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
+                  <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="9" y="2" width="6" height="11" rx="3"/>
+                    <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+                    <line x1="12" y1="18" x2="12" y2="22"/>
                   </svg>
                 </button>
                 <!-- [download] [CC] : this recording's transcript as subtitles, through Download.
@@ -183,14 +289,14 @@
                 >
                   <span v-if="isPreparingYanhe2Subtitles(s.subId)" class="spinning-ring spinning-ring--sm" aria-hidden="true"></span>
                   <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7,10 12,15 17,10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="2" y="5" width="20" height="14" rx="2"/>
-                  <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6"/>
-                  <path d="M17 10.2a2.2 2.2 0 1 0 0 3.6"/>
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <path d="M10.5 10.2a2.2 2.2 0 1 0 0 3.6"/>
+                    <path d="M17 10.2a2.2 2.2 0 1 0 0 3.6"/>
                   </svg>
                 </button>
               </span>
@@ -253,13 +359,14 @@
 <script setup lang="ts">
 // Yanhe 2.0 → Curriculum. The account's enrolled courses (aita's 我的课程), then
 // one course's sessions in the same page, then the Yanhe 2.0 playback tab.
-// Of the Recorded sessions page's actions it has two, each a row chip and a
-// batch button: a session's server slides through Tasks, and its transcript as
-// subtitles through Download.
+// Of the Recorded sessions page's actions it has these, each a row chip and a
+// batch button: a session's server slides through Tasks, its transcript as
+// subtitles, and its camera, screen and mic recordings through Download.
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { beijingClock, beijingDate, lessonRange, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Yanhe2Course } from '@common/yanhe2Curriculum'
+import type { Yanhe2DownloadKind } from '@common/yanhe2Download'
 import { isYanhe2Playable } from '@common/yanhe2Playback'
 import { navigationStore } from '@features/course/navigationStore'
 import {
@@ -275,6 +382,12 @@ import {
   saveAllYanhe2Slides,
   saveYanhe2Slides,
 } from '@features/yanhe2/yanhe2SlideSave'
+import {
+  downloadAllYanhe2Recordings,
+  downloadYanhe2Recording,
+  isPreparingYanhe2Download,
+  yanhe2DownloadAllKind,
+} from '@features/yanhe2/yanhe2Download'
 import {
   downloadAllYanhe2Subtitles,
   downloadYanhe2Subtitles,
@@ -408,6 +521,17 @@ const downloadSubtitles = (s: Yanhe2CalendarSession) => {
 const downloadAllSubtitles = () => {
   if (!yanhe2ActiveBadge.value) return
   void downloadAllYanhe2Subtitles(sessions.value.filter((s) => s.status === 'playable').map(saveRequest))
+}
+
+// Recordings, through Download, filed under the same lecture on Yanhekt (found
+// on click; one that is not there gets a message box).
+const downloadingAll = computed(() => yanhe2DownloadAllKind())
+const downloadRecording = (s: Yanhe2CalendarSession, kind: Yanhe2DownloadKind) => {
+  if (yanhe2ActiveBadge.value) void downloadYanhe2Recording(saveRequest(s), [kind])
+}
+const downloadAll = (kind: Yanhe2DownloadKind) => {
+  if (!yanhe2ActiveBadge.value) return
+  void downloadAllYanhe2Recordings(sessions.value.filter((s) => s.status === 'playable').map(saveRequest), kind)
 }
 
 const clockLine = (s: Yanhe2CalendarSession) => {
@@ -717,10 +841,16 @@ const clockLine = (s: Yanhe2CalendarSession) => {
   margin-top: 16px;
 }
 
+.batch-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
 .batch-actions {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
 }
 
 .batch-btn {
