@@ -7,28 +7,25 @@
   "main": "src/worker.ts",
   "compatibility_date": "2025-06-01",
 
-  // Static viewer (Vite build output, dist/index.html landing + dist/v1 app).
-  // The Worker only handles the KV shorten/resolve API and the short-link route.
+  // Static viewer (Vite build output: dist/v1 app + root favicons). The Worker
+  // handles the v1 KV shorten/resolve API, the short-link route and /api.
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS"
   },
 
-  // KV for v1 short links AND the v2 homepage aggregate (key "stats:home").
+  // KV for v1 short links.
   // Create with:  wrangler kv namespace create SHARE_KV
   "kv_namespaces": [
     { "binding": "SHARE_KV", "id": "<YOUR_KV_NAMESPACE_ID>" }
   ],
 
-  // D1 for the AutoSlides Index (v2). Create with:
-  //   wrangler d1 create autoslides-index-v2
-  // then apply migrations with:  wrangler d1 migrations apply autoslides-index-v2
+  // D1 `yanhekt-index`, filled by indexer/ (see indexer/README.md). The Worker
+  // only reads it. Create with:  wrangler d1 create yanhekt-index --location apac
   "d1_databases": [
-    { "binding": "INDEX_DB", "database_name": "autoslides-index-v2", "database_id": "<YOUR_D1_DATABASE_ID>" }
+    { "binding": "YANHEKT_DB", "database_name": "yanhekt-index", "database_id": "<YOUR_D1_DATABASE_ID>" }
   ],
 
-  // Cron: recompute the v2 homepage aggregates into KV (one KV write/run).
-  "triggers": { "crons": ["0 * * * *"] },
 
   // Region placement (dashboard: Region → AWS → ap-east-1): the isolate runs
   // in the Cloudflare data center closest to AWS Hong Kong.

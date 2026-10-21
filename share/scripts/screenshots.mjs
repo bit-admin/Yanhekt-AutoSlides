@@ -2,16 +2,14 @@
 //
 //   npm run screenshots                     # build the demo, capture, write share/docs/*.png
 //   npm run screenshots -- --no-build       # reuse the existing dist/demo
-//   npm run screenshots -- --only viewer    # one shot
 //
 // The demo serves deterministic data and Playwright pins locale, colour scheme
 // and clock, so the only post-step is a 2× → 1× downscale and the images land
 // straight in docs/ — no two-stage pipeline like the desktop app's.
 //
-// Unlike web/, the demo here spans TWO builds under one origin (/demo/ and
-// /demo/v1/), which `vite preview` cannot serve together — so this script runs
-// a small static server over dist/ instead, exactly as Cloudflare's asset layer
-// does in production.
+// The demo build lives at /demo/v1/ under dist/, so this script runs a small
+// static server over dist/, exactly as Cloudflare's asset layer does in
+// production.
 //
 // Every shot runs inside step(), which records a failure and carries on: one
 // broken view must never cost the whole run.
@@ -43,14 +41,9 @@ const only = onlyArg
 const captured = [];
 const skipped = [];
 
-/** Ids the demo fabricates — mirrors demo/demoData.ts. */
-const COURSE = '501';
-const WEEK = 9;
-const SESSION = `${COURSE}${String(WEEK).padStart(2, '0')}`;
-
 /**
  * Freeze the page clock. Upload dates are baked into the demo data, but the
- * index renders them with toLocaleDateString and the run must not depend on
+ * viewer renders dates with toLocaleDateString and the run must not depend on
  * when it happens to be executed.
  */
 const FIXED_TIME = new Date('2026-09-02T14:30:00+08:00');
@@ -133,7 +126,7 @@ async function main() {
     console.log('Building the demo…');
     execFileSync('npm', ['run', 'build:demo'], { cwd: projectRoot, stdio: 'inherit' });
   }
-  for (const shell of ['demo/index.html', 'demo/v1/index.html']) {
+  for (const shell of ['demo/v1/index.html']) {
     if (!existsSync(path.join(distDir, shell))) {
       throw new Error(`dist/${shell} is missing — run \`npm run build\` first`);
     }
@@ -160,7 +153,6 @@ async function main() {
     const page = await context.newPage();
     const shot = makeShooter(page);
 
-    await captureIndex(page, shot);
     await captureViewer(page, shot);
     await context.close();
   } finally {
@@ -170,44 +162,6 @@ async function main() {
 
   console.log(`\nDone. ${captured.length} image(s) → ${path.relative(projectRoot, outDir)}`);
   if (skipped.length) console.log(`${skipped.length} skipped: ${skipped.map((s) => s.name).join(', ')}`);
-}
-
-// ------------------------------------------------------------------- index ---
-
-async function captureIndex(page, shot) {
-  await step('index-home', async () => {
-    await open(page, '/demo/', '.feed .result-item', { settle: 900, height: 760 });
-    await shot('index-home', { fullPage: true });
-  });
-
-  await step('index-search', async () => {
-    await open(page, '/demo/?q=Analysis', '.result-groups', { settle: 900, height: 900 });
-    await shot('index-search');
-  });
-
-  // The master–detail course view only exists when a session is opened from
-  // loaded results (the app keeps the course's sessions in memory); a cold
-  // visit to the same URL renders the single-session page instead.
-  await step('index-course', async () => {
-    await open(page, '/demo/?q=Functional', '.result-groups', { settle: 900, height: 560 });
-    await page.locator('.result-group .result-item').first().click();
-    await page.waitForSelector('.course-split .version', { timeout: 15000 });
-    await page.waitForTimeout(500);
-    await shot('index-course');
-  });
-
-  await step('index-lecture', async () => {
-    await open(page, `/demo/?c=${COURSE}&s=${SESSION}`, '.course-detail-pane .version', { settle: 900, height: 420 });
-    await shot('index-lecture');
-  });
-
-  await step('index-paste', async () => {
-    await open(page, '/demo/', '.paste-toggle', { settle: 700, height: 620 });
-    await page.locator('.paste-toggle').click();
-    await page.waitForSelector('.search-input[placeholder^="Paste"]', { timeout: 5000 });
-    await page.waitForTimeout(300);
-    await shot('index-paste');
-  });
 }
 
 // ------------------------------------------------------------------ viewer ---

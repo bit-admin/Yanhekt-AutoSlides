@@ -1,10 +1,10 @@
 /**
- * Cloudflare Worker for the AutoSlides share viewer + AutoSlides Index.
+ * Cloudflare Worker for share.ruc.edu.kg: the slides share viewer (/v1) and the
+ * Index API (/api).
  *
- * The viewer and the apex site are emitted as real static assets (dist/v1/** and
- * dist/index.html) and served directly by Cloudflare's asset layer WITHOUT
- * invoking this Worker. So the Worker runs only for the genuinely dynamic paths,
- * to keep Worker usage near zero for ordinary viewing:
+ * The viewer is emitted as real static assets (dist/v1/**) and served directly
+ * by Cloudflare's asset layer WITHOUT invoking this Worker. The Worker runs only
+ * for the dynamic paths:
  *
  *   v1 (short links + Yanhekt meta):
  *     POST /v1/api/shorten { fragment }  -> { id, url }
@@ -12,16 +12,11 @@
  *     GET  /v1/api/meta?courseId&sessionId -> { meta }  (long-link SPA)
  *     GET  /v1/s/<id>                     -> the /v1 SPA shell
  *
- *   v2 (AutoSlides Index — see v2.ts):
- *     POST /v2/api/publish               -> verify token, upsert lecture+version
- *     GET  /v2/api/search?q=&semesterIds= -> lecture search (Cache-API wrapped)
- *     GET  /v2/api/lecture?courseId&...  -> lecture + its versions
- *     GET  /v2/api/stats                 -> homepage aggregates (KV, cron-built)
+ *   Index API (reads the `yanhekt-index` D1 database; see api/ and docs/api.md):
+ *     GET  /api/search?q=…
  *
- *   scheduled (cron): recompute /v2 homepage aggregates into KV.
- *
- * Long-link views (/v1/#<payload>), the apex site (/), and every static asset are
- * served by the asset layer with no Worker invocation at all.
+ *   Retired: the old AutoSlides Index. /v2/api/* answers 503, and / shows a
+ *   placeholder until the new Index site exists.
  */
 
 import { decodeSharePayload } from '../../autoslides/src/shared/shareLink';
@@ -35,7 +30,7 @@ import {
   type ExecutionContext,
 } from './lib/runtime';
 import { fetchLectureMeta } from './lib/yanhekt';
-import { refreshStats, routeV2 } from './v2';
+import { routeApi } from './api/router';
 
 async function handleShorten(req: Request, env: Env, origin: string): Promise<Response> {
   let body: { fragment?: unknown };
@@ -87,6 +82,27 @@ async function handleMeta(req: Request, url: URL, ctx: ExecutionContext): Promis
 
 const SHORT_LINK = /^\/v1\/s\/[A-Za-z0-9]+\/?$/;
 
+const RETIRED_V2 = {
+  error: 'retired',
+  message: 'The old AutoSlides Index has been retired. A new Index is being built at /api.',
+};
+
+const PLACEHOLDER = `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>AutoSlides Index</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+</head>
+<body style="font:16px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;max-width:32rem;margin:20vh auto;padding:0 16px">
+<p>公共索引正在重建，敬请期待。分享链接（/v1/）照常可用。</p>
+<p>The Index is being rebuilt. Shared slide links (/v1/) still work.</p>
+</body>
+</html>
+`;
+
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
@@ -96,9 +112,18 @@ export default {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
 
-    // v2 — AutoSlides Index API. Returns null for non-v2 paths.
-    const v2 = await routeV2(req, env, ctx, url, origin);
-    if (v2) return v2;
+    const api = await routeApi(req, env, ctx, url);
+    if (api) return api;
+
+    if (pathname.startsWith('/v2/')) {
+      return json(RETIRED_V2, 503);
+    }
+    if (pathname === '/' || pathname === '/index.html') {
+      return new Response(PLACEHOLDER, {
+        status: 503,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+      });
+    }
 
     if (pathname === '/v1/api/shorten' && req.method === 'POST') {
       return handleShorten(req, env, origin);
@@ -121,9 +146,5 @@ export default {
     // Any other non-asset path (the Worker is only invoked when no static asset
     // matched) — let the asset layer return its 404.
     return env.ASSETS.fetch(req);
-  },
-
-  async scheduled(_event: unknown, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(refreshStats(env));
   },
 };

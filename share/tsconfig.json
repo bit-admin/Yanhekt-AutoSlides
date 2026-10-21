@@ -18,10 +18,7 @@
   },
   "include": [
     "src",
-    "apex",
     "demo",
-    "vite.apex.config.ts",
-    "vite.demo.config.ts",
     "vite.demo-v1.config.ts",
     "../autoslides/src/shared/shareLink.ts",
     "../autoslides/src/shared/shareTimeline.ts",

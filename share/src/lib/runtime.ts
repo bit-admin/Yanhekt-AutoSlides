@@ -1,8 +1,7 @@
 /**
  * Cross-cutting Worker runtime: minimal Cloudflare type shims (we hand-roll the
  * few interfaces we use instead of pulling in @cloudflare/workers-types), plus
- * the shared HTTP + short-link + crypto helpers used by both the v1 and v2
- * handlers.
+ * the shared HTTP + short-link helpers.
  */
 
 // Cloudflare exposes a default edge cache at `caches.default`, which the DOM
@@ -28,6 +27,7 @@ export interface D1PreparedStatement {
 
 export interface D1Database {
   prepare(query: string): D1PreparedStatement;
+  batch<T = Record<string, unknown>>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
 }
 
 export interface ExecutionContext {
@@ -37,7 +37,8 @@ export interface ExecutionContext {
 export interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> };
   SHARE_KV: KVNamespace;
-  INDEX_DB: D1Database;
+  /** `yanhekt-index`, filled by indexer/; read-only here. */
+  YANHEKT_DB: D1Database;
 }
 
 export const MAX_FRAGMENT_BYTES = 8192;
@@ -68,11 +69,6 @@ function base62(bytes: Uint8Array): string {
   return s || '0';
 }
 
-export async function sha256Hex(input: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 /** Content-addressed short id: base62 of SHA-256 of the fragment, first 10 chars. */
 export async function shortId(fragment: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fragment));
@@ -94,7 +90,8 @@ export async function ensureShortLink(env: Env, fragment: string): Promise<strin
 
 /**
  * Edge-cache a GET response via the Cache API so repeat reads never re-run the
- * handler (and never re-hit D1). Keyed by the full request URL.
+ * handler (and never re-hit D1). Keyed by the request's URL; pass a normalized
+ * Request as `req` to share entries between equivalent URLs.
  */
 export async function cached(
   req: Request,

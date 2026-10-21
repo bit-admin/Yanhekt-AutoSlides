@@ -70,28 +70,6 @@ export interface YanhektSession {
   course?: YanhektCourse;
 }
 
-export interface YanhektCourseListRow extends YanhektCourse {
-  classrooms?: Array<{ name?: string }>;
-}
-
-export interface YanhektCourseListPage {
-  data?: YanhektCourseListRow[];
-  current_page?: number;
-  last_page?: number;
-  total?: number;
-}
-
-export interface YanhektTagChild {
-  id: number;
-  name: string;
-  sort?: number;
-}
-
-export interface YanhektTag {
-  param?: string;
-  children?: YanhektTagChild[];
-}
-
 export interface LectureMeta {
   courseId: string;
   sessionId?: string;
@@ -169,81 +147,6 @@ export async function fetchSession(sessionId: string): Promise<YanhektSession | 
   return getJson<YanhektSession>(
     `/v1/course/session?session_id=${encodeURIComponent(sessionId)}&with_video=true`,
   );
-}
-
-export async function fetchCourseList(opts: {
-  keyword?: string;
-  /** Legacy single-id alias; ignored when `semesterIds` is provided. */
-  semesterId?: string | number;
-  /** Empty / omitted = all semesters (Yanhekt `semesters[]` is left off). */
-  semesterIds?: Array<string | number>;
-  page?: number;
-  pageSize?: number;
-}): Promise<YanhektCourseListPage | null> {
-  const params = new URLSearchParams();
-  params.set('page', String(opts.page ?? 1));
-  params.set('page_size', String(opts.pageSize ?? 32));
-  if (opts.keyword?.trim()) params.set('keyword', opts.keyword.trim());
-  for (const id of collectSemesterIds(opts)) {
-    params.append('semesters[]', id);
-  }
-  // Yanhekt wraps list pages as { code, data: { data: [...], last_page } } OR
-  // { code, data: [...] } depending on version. Normalize below.
-  const raw = await getJson<YanhektCourseListPage | YanhektCourseListRow[]>(`/v2/course/list?${params}`);
-  if (!raw) return null;
-  if (Array.isArray(raw)) return { data: raw, current_page: 1, last_page: 1, total: raw.length };
-  return raw;
-}
-
-function collectSemesterIds(opts: {
-  semesterId?: string | number;
-  semesterIds?: Array<string | number>;
-}): string[] {
-  const raw = opts.semesterIds
-    ?? (opts.semesterId !== undefined && opts.semesterId !== '' ? [opts.semesterId] : []);
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const value of raw) {
-    const id = String(value).trim();
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    out.push(id);
-  }
-  return out;
-}
-
-export interface IndexSemester {
-  id: number;
-  /** Raw Yanhekt tag name, e.g. "2025-2026 第二学期". */
-  label: string;
-  /** Start year of the academic year, or 0 if unparseable. */
-  schoolYear: number;
-  /** 1 = Fall, 2 = Spring. */
-  semester: number;
-  /** English display, e.g. "Fall 2025" / "Spring 2026". */
-  labelEn: string;
-}
-
-function parseSemesterName(name: string): Pick<IndexSemester, 'schoolYear' | 'semester' | 'labelEn'> {
-  const match = name.match(/(\d{4})-(\d{4})\s+(第[一二]学期)/);
-  if (!match) return { schoolYear: 0, semester: 1, labelEn: name };
-  const startYear = parseInt(match[1], 10);
-  const endYear = parseInt(match[2], 10);
-  const semester = match[3] === '第一学期' ? 1 : 2;
-  return {
-    schoolYear: startYear,
-    semester,
-    labelEn: semester === 1 ? `Fall ${startYear}` : `Spring ${endYear}`,
-  };
-}
-
-export async function fetchSemesters(): Promise<IndexSemester[]> {
-  const tags = await getJson<YanhektTag[]>('/v1/tag/list?with_sub=true');
-  const semesterTag = tags?.find((t) => t.param === 'semesters');
-  const children = semesterTag?.children ?? [];
-  return [...children]
-    .sort((a, b) => (b.sort ?? 0) - (a.sort ?? 0))
-    .map((c) => ({ id: c.id, label: c.name, ...parseSemesterName(c.name) }));
 }
 
 /**

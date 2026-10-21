@@ -24,7 +24,7 @@ Each package has its own `package.json` / lockfile. Commands always run **inside
 4. [Deliberate copies and the drift checker](#4-deliberate-copies-and-the-drift-checker)
 5. [`autoslides/` — Electron desktop](#5-autoslides--electron-desktop)
 6. [`web/` — browser client](#6-web--browser-client)
-7. [`share/` — viewer and public index](#7-share--viewer-and-public-index)
+7. [`share/` — viewer and Index API](#7-share--viewer-and-index-api)
 8. [`relay/` — recorded HLS proxy](#8-relay--recorded-hls-proxy)
 9. [Yanhekt API](#9-yanhekt-api)
 10. [Cross-cutting protocols](#10-cross-cutting-protocols)
@@ -40,7 +40,7 @@ Each package has its own `package.json` / lockfile. Commands always run **inside
 .
 ├── autoslides/          Electron desktop app (no package-level README — the root README is it)
 ├── web/                 Browser client: Worker (`src/`) + Vue SPA (`frontend/`)
-├── share/               Share viewer (`src/` React) + Index (`apex/` React) + Worker
+├── share/               Share viewer (`src/` React) + Worker (v1 APIs, Index API over D1 `yanhekt-index`)
 ├── relay/               Recorded-HLS Worker (`src/`) + static test player (`public/`)
 ├── scripts/             Cross-package glue (drift checker only)
 │   ├── check-drift.mjs
@@ -126,7 +126,7 @@ Both clients speak campus CAS (`sso.bit.edu.cn`) and then hold a Yanhekt **32-he
 
 ### Share / Index
 
-Desktop Drive and web Notes can publish a compact v2/v3 fragment to `share/`. The Index stores **ids + image fingerprint only**; titles are hydrated from Yanhekt at read time. Slide images are resolved from the public COSS bucket `images` on `coss.yanhekt.cn`.
+Desktop Drive and web Notes can share a compact v2/v3 fragment through `share/`'s v1 viewer; titles are hydrated from Yanhekt at read time and slide images are resolved from the public COSS bucket `images` on `coss.yanhekt.cn`. The old public Index (`/v2/api/*`, D1 `autoslides-index-v2`) is retired: those routes answer 503, so the desktop's Public Index mode and publish button get errors until they are removed. Its replacement is the Index API (`/api/*`) over the course catalogue that `indexer/` crawls into D1 `yanhekt-index`.
 
 ---
 
@@ -144,7 +144,7 @@ Desktop Drive and web Notes can publish a compact v2/v3 fragment to `share/`. Th
 | Package | `name` in wrangler | `main` | Bindings (names) |
 |---|---|---|---|
 | `web/` | `autoslides-web` | `src/index.ts` | `ASSETS`, optional `RELAY`, `SHARE`; vars `SSO_RESUME_KEY`, `RELAY_PUBLIC_ORIGIN`, `ALLOW_OFFCAMPUS_RELAY`, `AI_ORIGIN` |
-| `share/` | `autoslides-share` | `src/worker.ts` | `ASSETS`, `SHARE_KV`, `INDEX_DB` (D1 `autoslides-index-v2`); cron `0 * * * *` |
+| `share/` | `autoslides-share` | `src/worker.ts` | `ASSETS`, `SHARE_KV`, `YANHEKT_DB` (D1 `yanhekt-index` in the indexer's slim layout, read-only) |
 | `relay/` | `yanhekt-proxy` | `src/index.ts` | static `public/`; **no** D1/KV. Smart Placement toward `cvideo.yanhekt.cn` |
 
 `web/` needs `compatibility_flags: ["nodejs_compat"]` — campus SSO phone-lookup uses RSA **PKCS#1 v1.5** via `node:crypto`. Web Crypto only does OAEP.
@@ -553,46 +553,39 @@ Worker tests (`npm test`): `resumeSeal` round-trip/expiry/tamper; Yanhekt golden
 
 ---
 
-## 7. `share/` — viewer and public index
+## 7. `share/` — viewer and Index API
 
 ```
 share/
 ├── src/                    v1 viewer (React) + Worker entry
-│   ├── worker.ts           routing, v1 APIs, short-link shell
-│   ├── v2.ts               Index APIs, fingerprintPayload, handlePublish
-│   ├── lib/yanhekt.ts      anonymous course/session/tag client
-│   ├── lib/searchQuery.ts  course-check page size 32 / 48 / 64
-│   ├── lib/runtime.ts      KV helpers, Cache-API wrapper
+│   ├── worker.ts           routing, v1 APIs, short-link shell, /v2 → 503, / placeholder
+│   ├── api/                Index API: router + data-version cache, search (D1), params, ranking
+│   ├── lib/yanhekt.ts      anonymous course/session client (v1 meta)
+│   ├── lib/runtime.ts      KV helpers, Cache-API wrapper, D1 type shims
 │   └── resolver.ts         COSS ListObjectsV2 → full image URLs
-├── apex/                   Index SPA (React), emitted at dist/
-├── migrations/             0001_init.sql, 0002_has_timeline.sql
+├── demo/                   viewer demo (/demo/v1/)
+├── docs/api.md             Index API contract
 ├── wrangler.example.jsonc
 └── README.md
 ```
 
-Two frontends, one Worker:
-
 | Surface | Vite config | Output | Role |
 |---|---|---|---|
 | v1 viewer | `vite.config.ts` (`base: '/v1/'`) | `dist/v1/` | Decode `#fragment` or `/v1/s/<id>`, render slides, ZIP/PDF/timeline download |
-| Index (apex) | `vite.apex.config.ts` (`base: '/'`) | `dist/` | Search, `/?c=&s=` lecture page, request-removal |
-| Demos | `vite.demo.config.ts`, `vite.demo-v1.config.ts` | `dist/demo/`, `dist/demo/v1/` | Screenshot / public demo |
+| Demo | `vite.demo-v1.config.ts` | `dist/demo/v1/` | Screenshot / public demo |
 
-Static assets are served by Cloudflare's asset layer **without invoking the Worker**. The Worker runs only for APIs, short-link shells, and cron.
+The build also copies `public/` to `dist/` so `/favicon.*` resolves at the root. Static assets are served by Cloudflare's asset layer **without invoking the Worker**. The Worker runs only for APIs and short-link shells. There is no root page yet: `/` answers a 503 placeholder until the new Index site exists.
 
 ### Commands
 
 ```bash
 cd share
-cp wrangler.example.jsonc wrangler.jsonc   # SHARE_KV id, D1 id, domain
-npm run db:migrate          # remote D1; db:migrate:local for local
-npm run build               # clean + viewer + apex + demos
+cp wrangler.example.jsonc wrangler.jsonc   # SHARE_KV id, yanhekt-index D1 id, domain
+npm run build               # clean + viewer + root favicons + demo
 npm run preview             # wrangler dev
 npm run typecheck && npm test
 npm run deploy
 ```
-
-Apply `migrations/0002_has_timeline.sql` before a deploy that expects `has_timeline`.
 
 ### v1 APIs (`src/worker.ts`)
 
@@ -605,57 +598,31 @@ Apply `migrations/0002_has_timeline.sql` before a deploy that expects `has_timel
 
 Long `/v1/#…` links decode **locally** then call `/v1/api/meta` once.
 
-### v2 APIs (`src/v2.ts`) — routed ahead of v1
+### Index API (`src/api/`)
+
+Contract: [`share/docs/api.md`](../share/docs/api.md). Read-only, no auth; the zone's WAF challenges off-campus clients.
 
 | Method | Path | Behaviour |
 |---|---|---|
-| `POST` | `/v2/api/publish` | Verify Yanhekt token, upsert lecture + version |
-| `POST` | `/v2/api/request-removal` | Publisher-only; uses stored `uploader_id` |
-| `GET` | `/v2/api/search?q=&semesterIds=&page=` | Yanhekt-first, then D1 join. Cache 120s |
-| `GET` | `/v2/api/lecture?courseId=&sessionId=` | Lecture + versions. Cache 120s |
-| `GET` | `/v2/api/stats` | Reads KV `stats:home`. Cache 300s |
+| `GET` | `/api/search?q=…&term=…` | Course search over D1 `yanhekt-index` in exactly one term (`2026-2027-1`; required, several refused). `q` required (2–64 chars, ≤ 6 words, AND). Returns ids, name, registrar `number`, teachers, session count; best 200, no paging. No college, level, category or English-name data (left out of D1 on purpose). |
+| `GET` | `/api/courses/{id}/sessions` | The course's session ids; clients read each session from Yanhekt. |
+| any | `/api/*` else | 404 JSON |
+| any | `/v2/api/*` | 503 `{ error: 'retired' }` |
 
-Cron `0 * * * *` → `refreshStats`: D1 counts, 12 recent rows (hydrated), Yanhekt semester list, college distribution → **one** KV write (`stats:home`).
-
-### D1 (`autoslides-index-v2`, binding `INDEX_DB`)
-
-Written **only on publish/removal**.
-
-`lectures` — `(course_id, session_id)` PK, `version_count`, timestamps. **No titles.**
-
-`versions` — `fingerprint` PK, `share_id`, `image_count`, `reviewed`, `edited`, `uploader_id`, `uploader_name`, `has_timeline`, `created_at`.
-
-`uploader_*` is for moderation / request-removal **only**. Public JSON (`/v2/api/lecture`, search, stats) must strip it.
-
-### Fingerprint and republish
-
-```ts
-sha256Hex(`${payload.p}|${payload.n}|${payload.h}|${canonO}`)
-```
-
-`c` / `s` / `l` / `t` are **excluded**. Republishing the same images with a timeline **updates** that row (`share_id`, `has_timeline`, publisher, review flags) and does **not** increment `version_count`. Fresh fingerprint → insert version + bump `version_count`.
-
-### Search
-
-Numeric `q` (`/^\d+$/`) is treated as a course id across all semesters. Otherwise Yanhekt `/v2/course/list` (+ `semesterIds`), then
-
-```sql
-SELECT … FROM lectures WHERE course_id IN (…) ORDER BY updated_at DESC LIMIT 30
-```
-
-Course-check page size (`courseCheckPageSize`): **32** (one semester), **48** (several), **64** (all semesters / numeric id).
+- **The D1 layout is the indexer's** (`indexer/src/d1model.ts`, version 3): a slim projection of the local crawl database, not a copy, sized for D1's free plan (500 MB, 100k rows written / 5M read per day). `courses` carries each course's `session_ids`; there is no sessions table. The Worker never writes it. `src/api/testDb.ts` seeds an in-memory `node:sqlite` through the indexer's own upload statements, so a layout change breaks share's tests.
+- **Search never scans a table, and reads one term.** `course_grams` (`term`, `gram`, `course_id`; primary key in that order, `WITHOUT ROWID`) holds CJK 2-character pieces of course and teacher names and `w:` + other words of them per term, plus `n:` + registrar code under the empty term. Both sides split text with `indexer/src/grams.ts` (share imports it); a search word is looked up by non-overlapping pieces (`大学物理` → `大学`, `物理`). Round 1: one batch reading at most 33 entries per key, plus the whole query as registrar code or course id. Round 2: the smallest complete key's courses by id; only if every key is common, an `INTERSECT` of all keys in D1.
+- **Verification mirrors the grams** (`searchRank.ts` `scoreWord`): CJK word → name/teacher contains; other word → a word of name/teacher starts with it; 1-character words and English filler words only narrow; word matches count only in the searched term. A query that is a course's whole registrar code (`number`, = Yanhe 2.0 `kcwybm`) or its id matches in any term; keep `number` in D1, it is how courses are matched between cbiz and aita for terms cbiz's own search no longer lists.
+- **Cache until the next upload.** Each upload writes `meta.data`; the router reads it at most once a minute per instance and puts it in every Cache API key (edge TTL a week), so cached answers stay valid until data changes. Browser `max-age=300`.
+- **D1 allows 100 bound parameters per query.** Id lists are passed as one JSON string and read with `json_each(?)`.
+- **Terms are ours**: `courses.term` (`2026-2027-1`) is computed by the indexer from `school_year` + `semester`, never Yanhekt semester tag ids. Teachers are names only in D1 (no titles, no staff numbers).
 
 ### Images
 
 Anonymous S3 ListObjectsV2 on `https://coss.yanhekt.cn/images?list-type=2&prefix=…`. `resolveShareImages` matches `payload.h` short hashes to full keys. Images are world-readable — the product discloses this.
 
-### Publisher verification gotcha
-
-`GET /v1/user` **403s** without Yanhekt's `Xclient-*` headers. Workers have no Node MD5, so Index hardcodes `Xclient-Signature: '72b77856f6df3f563ab6e658631cac3d'`.
-
 ### Tests
 
-`src/v2.test.ts` — `fingerprintPayload` canonical `o`, independence from key order, exclusion of ids/`t`; `handlePublish` insert vs in-place update; token rejection. Fake D1.
+`src/api/searchParams.test.ts` (validation, normalization, cache key), `src/api/search.test.ts` (matching, term scoping, ranking, result shape, rarest-key path vs intersection, rows read, session lists, against in-memory `node:sqlite` seeded through the indexer's upload statements), `src/worker.test.ts` (routing: `/v2` 503, `/` placeholder, `/api` errors, data-version cache).
 
 ---
 
@@ -854,7 +821,7 @@ Share payload v2/v3 stores `c` / `s` / `l` (course / session / live). `c` is den
 
 ### 9.5 Catalog, course, session, live
 
-Used by desktop `ApiClient`, web `/api/yanhekt/*`, share `lib/yanhekt.ts`. Query `semesters[]` is repeated for each tag id (empty = all terms). `keyword` on course list accepts a name **or** a numeric course id (`keyword=70101` returns one row).
+Used by desktop `ApiClient` and web `/api/yanhekt/*`. Query `semesters[]` is repeated for each tag id (empty = all terms). `keyword` on course list accepts a name **or** a numeric course id (`keyword=70101` returns one row).
 
 #### `GET /v2/course/list`
 
@@ -1105,7 +1072,7 @@ The payload is a live-list row **plus** more, so `transformLiveStreamToCourse` c
 
 #### `GET /v1/tag/list?with_sub=true`
 
-Always unauth in desktop (`getTagList` deletes Authorization). Four top-level tags: `degrees`, `semesters`, `colleges`, `attributes`. We only walk `param === "semesters"` → `children[]` `{ id, name, sort }`. Probe (newest first by `sort`): `110` = `2026-2027 第一学期`, `107` = `2025-2026 第二学期`, `100` = `2025-2026 第一学期`, … (13 children). `parseSemesterName` turns `2025-2026 第一学期` into `{ schoolYear: 2025, semester: 1, labelEn: "2025 Fall" }` (share’s `labelEn` is `Fall 2025` — same data, different word order).
+Always unauth in desktop (`getTagList` deletes Authorization). Four top-level tags: `degrees`, `semesters`, `colleges`, `attributes`. We only walk `param === "semesters"` → `children[]` `{ id, name, sort }`. Probe (newest first by `sort`): `110` = `2026-2027 第一学期`, `107` = `2025-2026 第二学期`, `100` = `2025-2026 第一学期`, … (13 children). `parseSemesterName` turns `2025-2026 第一学期` into `{ schoolYear: 2025, semester: 1, labelEn: "2025 Fall" }`.
 
 #### Personal course lists (auth)
 
@@ -1248,13 +1215,13 @@ Desktop parks the live CAS cookie jar in memory for 300s (dies on renderer reloa
 
 | Call | Desktop | Web SPA | `web/` Worker | `share/` | `relay/` |
 |---|---|---|---|---|---|
-| Course list / detail / tags | `ApiClient` | `/api/yanhekt/…` | proxy; Bearer stripped | anonymous `fetchCourse*` / `fetchSemesters` | — |
+| Course list / detail / tags | `ApiClient` | `/api/yanhekt/…` | proxy; Bearer stripped | anonymous `fetchCourse` | — |
 | Session list | `getCourseInfo` (auth) | same | proxy; Bearer kept | — | — |
 | Session by id | `getSessionDownloadInfo` (download-by-id; anonymous-ok) + `getSessionProgress` (auth, `user_progress`). `getSessionById` itself is unused | `getResumePosition` reads `user_progress` | allowlisted; **Bearer kept** (it carries `user_progress`) | `fetchSession` | — |
 | Watch progress PUT | `reportSessionProgress` (watch + Lectures, opt-in) | tail + native-HLS only; the rest rides `/segment` | exact-match `PUT` allowlist | — | piggybacked on `/segment?…&sid=&p=` |
 | Public live / search | anonymous-ok | proxy; stripped | stripped | — | — |
 | Personal live / private courses / subscribe | auth | proxy; kept | kept | — | — |
-| `/v1/user` | `verifyToken` | proxy | kept | `verifyUser` on publish | — |
+| `/v1/user` | `verifyToken` | proxy | kept | — | — |
 | Logout | `revokeToken` | proxy | kept | — | — |
 | Notes + MinIO | `notesService` | `/api/yanhekt/v1/note*` | kept | — | — |
 | Video token | `getVideoToken` (anonymous-ok) | — | not allowlisted | — | anonymous mint `id=0` |
@@ -1429,8 +1396,7 @@ cp wrangler.example.jsonc wrangler.jsonc
 # web: set domain, SSO_RESUME_KEY (openssl rand -base64 32), optional RELAY_PUBLIC_ORIGIN
 #      and service bindings RELAY=yanhekt-proxy, SHARE=autoslides-share
 # share: wrangler kv namespace create SHARE_KV
-#        wrangler d1 create autoslides-index-v2
-#        npm run db:migrate
+#        wrangler d1 create yanhekt-index --location apac   (filled by indexer/)
 # relay: set domain; keep observability off
 npm run build && npm run deploy    # web and share; relay has no frontend build
 ```
@@ -1459,4 +1425,4 @@ Leaving `SSO_RESUME_KEY` unset is valid. Leaving `AI_ORIGIN` unset 503s `/api/ai
 | Onboarding catalog | [`autoslides/src/shared/onboarding.ts`](../autoslides/src/shared/onboarding.ts) |
 | Desktop log file | [`autoslides/src/main/infra/logFile.ts`](../autoslides/src/main/infra/logFile.ts) |
 | Empty Yanhekt playlist | [`autoslides/src/shared/recordingProblems.ts`](../autoslides/src/shared/recordingProblems.ts) |
-| Index publish | [`share/src/v2.ts`](../share/src/v2.ts) |
+| Index API | [`share/src/api/`](../share/src/api/), contract [`share/docs/api.md`](../share/docs/api.md) |
