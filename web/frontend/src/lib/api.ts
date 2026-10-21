@@ -159,14 +159,13 @@ export interface SemesterOption {
   semester: number;
 }
 
-interface TagItem {
+/** A row of the Yanhekt tag tree; `/v1/tag/semester/default` returns one. */
+interface SemesterTag {
   id: number;
   parent_id: number;
   name: string;
-  show_type: number;
   param: string;
   sort: number;
-  children?: TagItem[];
 }
 
 interface BaseApiResponse {
@@ -234,11 +233,11 @@ function unwrapEnvelope<T>(data: BaseApiResponse & { data: T }): T {
  * this a nav ping-pong between two sidebar tabs re-fetches both lists each time.
  *
  * TTLs are deliberately short and per-endpoint rather than one global number —
- * a semester tree is stable for months, a live list is not. Paths with no entry
+ * the current term changes twice a year, a live list is not. Paths with no entry
  * (`/v1/user`, `/v1/video`) are never memoized; they still coalesce.
  */
 const GET_TTL_MS: ReadonlyArray<readonly [prefix: string, ttlMs: number]> = [
-  ["/v1/tag/list", 60 * 60 * 1000],
+  ["/v1/tag/semester/default", 60 * 60 * 1000],
   // Course detail is static within a session. This is what collapses the three
   // getCourseInfo runs a single lecture open used to make (session page, then
   // PlayerRoute, then PlaybackPage) into one.
@@ -655,43 +654,19 @@ function parseSemesterName(name: string): { schoolYear: number; semester: number
   return { schoolYear: startYear, semester, labelEn };
 }
 
+/**
+ * The terms the picker offers: only the current one. Yanhekt dropped the
+ * `semesters` row from `/v1/tag/list` (2026-10); `/v1/tag/semester/default`
+ * names the current term. The full list will come from the Index once it is
+ * live. Throws on failure (no hardcoded fallback), so the GET memo never keeps
+ * a miss and the next visit asks again.
+ */
 export async function getAvailableSemesters(token: string): Promise<SemesterOption[]> {
-  try {
-    // Worker still requires a 32-hex Bearer; it omits Authorization upstream.
-    const tags = await request<TagItem[]>("/v1/tag/list?with_sub=true", token);
-
-    const semesterTag = tags.find((tag) => tag.param === "semesters");
-    if (!semesterTag || !semesterTag.children) {
-      throw new Error("Semester information not found in tag list");
-    }
-
-    const semesters: SemesterOption[] = semesterTag.children.map((child) => {
-      const { schoolYear, semester, labelEn } = parseSemesterName(child.name);
-      return { id: child.id, label: child.name, labelEn, schoolYear, semester };
-    });
-
-    semesters.sort((a, b) => {
-      const aChild = semesterTag.children?.find((c) => c.id === a.id);
-      const bChild = semesterTag.children?.find((c) => c.id === b.id);
-      return (bChild?.sort || 0) - (aChild?.sort || 0);
-    });
-
-    return semesters;
-  } catch (error) {
-    console.error("Failed to get available semesters, falling back to hardcoded list:", error);
-    return getFallbackSemesters();
-  }
-}
-
-function getFallbackSemesters(): SemesterOption[] {
-  return [
-    { id: 107, label: "2025-2026 第二学期", labelEn: "2026 Spring", schoolYear: 2025, semester: 2 },
-    { id: 100, label: "2025-2026 第一学期", labelEn: "2025 Fall", schoolYear: 2025, semester: 1 },
-    { id: 96, label: "2024-2025 第二学期", labelEn: "2025 Spring", schoolYear: 2024, semester: 2 },
-    { id: 95, label: "2024-2025 第一学期", labelEn: "2024 Fall", schoolYear: 2024, semester: 1 },
-    { id: 94, label: "2023-2024 第二学期", labelEn: "2024 Spring", schoolYear: 2023, semester: 2 },
-    { id: 92, label: "2023-2024 第一学期", labelEn: "2023 Fall", schoolYear: 2023, semester: 1 },
-  ];
+  // Worker still requires a 32-hex Bearer; it omits Authorization upstream.
+  const tag = await request<SemesterTag | null>("/v1/tag/semester/default", token);
+  if (!tag?.id || !tag.name) throw new Error("Current semester not found");
+  const { schoolYear, semester, labelEn } = parseSemesterName(tag.name);
+  return [{ id: Number(tag.id), label: tag.name, labelEn, schoolYear, semester }];
 }
 
 /** Why a sign-in did not produce a token. Mirrors SignInReason in the Worker. */

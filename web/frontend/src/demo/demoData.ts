@@ -180,7 +180,7 @@ function toCourseData(c: DemoCourse): CourseData {
   };
 }
 
-/** Which term each semester tag id stands for (see demoTagList). */
+/** Which term each semester tag id stands for (see demoDefaultSemester). */
 const SEMESTER_BY_TAG: Record<number, number> = { 100: 1, 107: 2 };
 
 /**
@@ -411,24 +411,9 @@ export const DEMO_LIVE_ID = `${DEMO_COURSES[0].id}120`;
 
 // -------------------------------------------------------------- semesters ---
 
-/** Raw `/v1/tag/list` payload; the app parses the labels itself. */
-export function demoTagList() {
-  return [
-    {
-      id: 1,
-      parent_id: 0,
-      name: "学期",
-      show_type: 1,
-      param: "semesters",
-      sort: 1,
-      children: [
-        { id: 100, parent_id: 1, name: "2025-2026 第一学期", show_type: 1, param: "semester", sort: 7 },
-        { id: 107, parent_id: 1, name: "2025-2026 第二学期", show_type: 1, param: "semester", sort: 6 },
-        { id: 96, parent_id: 1, name: "2024-2025 第二学期", show_type: 1, param: "semester", sort: 5 },
-        { id: 95, parent_id: 1, name: "2024-2025 第一学期", show_type: 1, param: "semester", sort: 4 },
-      ],
-    },
-  ];
+/** Raw `/v1/tag/semester/default` payload; the app parses the label itself. */
+export function demoDefaultSemester() {
+  return { id: 100, parent_id: 4, name: "2025-2026 第一学期", show_type: 0, param: "semesters", sort: 7 };
 }
 
 export function demoSemesters(): SemesterOption[] {

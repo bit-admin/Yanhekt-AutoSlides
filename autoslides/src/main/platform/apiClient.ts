@@ -11,20 +11,19 @@ const log = createLogger('PlatformApiClient');
 import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
 
-export interface TagItem {
+/** A row of the Yanhekt tag tree; `/v1/tag/semester/default` returns one. */
+interface SemesterTag {
   id: number;
   parent_id: number;
   name: string;
-  show_type: number;
   param: string;
   sort: number;
-  children?: TagItem[];
 }
 
-export interface TagListResponse {
-  code: number;
+interface DefaultSemesterResponse {
+  code: number | string;
   message: string;
-  data: TagItem[];
+  data: SemesterTag | null;
 }
 
 // Base API response interface
@@ -881,122 +880,36 @@ export class ApiClient {
     return { schoolYear, semester, labelEn };
   }
 
-  // Get available semesters dynamically from API
+  /**
+   * The terms the picker offers: only the current one. Yanhekt dropped the
+   * `semesters` row from `/v1/tag/list` (2026-10), so there is no term list
+   * upstream any more; `/v1/tag/semester/default` names the current term. The
+   * full list will come from the Index once it is live. Throws on failure (no
+   * hardcoded fallback), so the renderer's read cache never keeps a miss.
+   */
   async getAvailableSemesters(): Promise<SemesterOption[]> {
-    try {
-      const tagResponse = await this.getTagList();
-
-      if (tagResponse.code !== 0) {
-        throw new Error(`Failed to get tag list: ${tagResponse.message}`);
-      }
-
-      // Find the semester tag (id: 4, param: "semesters")
-      const semesterTag = tagResponse.data.find(tag => tag.param === 'semesters');
-      if (!semesterTag || !semesterTag.children) {
-        throw new Error('Semester information not found in tag list');
-      }
-
-      // Convert semester children to SemesterOption format
-      const semesters: SemesterOption[] = semesterTag.children.map(child => {
-        const { schoolYear, semester, labelEn } = ApiClient.parseSemesterName(child.name);
-
-        return {
-          id: child.id,
-          label: child.name,
-          labelEn: labelEn,
-          schoolYear: schoolYear,
-          semester: semester
-        };
-      });
-
-      // Sort by sort field (descending) to show most recent first
-      semesters.sort((a, b) => {
-        const aChild = semesterTag.children?.find(c => c.id === a.id);
-        const bChild = semesterTag.children?.find(c => c.id === b.id);
-        return (bChild?.sort || 0) - (aChild?.sort || 0);
-      });
-
-      return semesters;
-    } catch (error: unknown) {
-      log.error('Failed to get available semesters:', error);
-
-      // Fallback to hardcoded list if API fails
-      log.warn('Falling back to hardcoded semester list');
-      return this.getFallbackSemesters();
-    }
+    const tag = await this.getDefaultSemesterTag();
+    const { schoolYear, semester, labelEn } = ApiClient.parseSemesterName(tag.name);
+    return [{ id: Number(tag.id), label: tag.name, labelEn, schoolYear, semester }];
   }
 
-  // Fallback hardcoded semester list
-  private getFallbackSemesters(): SemesterOption[] {
-    return [
-      {
-        id: 107,
-        label: `2025-2026 第二学期`,
-        labelEn: `2026 Spring`,
-        schoolYear: 2025,
-        semester: 2
-      },
-      {
-        id: 100,
-        label: `2025-2026 第一学期`,
-        labelEn: `2025 Fall`,
-        schoolYear: 2025,
-        semester: 1
-      },
-      {
-        id: 96,
-        label: `2024-2025 第二学期`,
-        labelEn: `2025 Spring`,
-        schoolYear: 2024,
-        semester: 2
-      },
-      {
-        id: 95,
-        label: `2024-2025 第一学期`,
-        labelEn: `2024 Fall`,
-        schoolYear: 2024,
-        semester: 1
-      },
-      {
-        id: 94,
-        label: `2023-2024 第二学期`,
-        labelEn: `2024 Spring`,
-        schoolYear: 2023,
-        semester: 2
-      },
-      {
-        id: 92,
-        label: `2023-2024 第一学期`,
-        labelEn: `2023 Fall`,
-        schoolYear: 2023,
-        semester: 1
-      }
-    ];
-  }
+  /** `GET /v1/tag/semester/default`: the current term's tag row. Always anonymous. */
+  private async getDefaultSemesterTag(): Promise<SemesterTag> {
+    const url = "https://cbiz.yanhekt.cn/v1/tag/semester/default";
+    const { headers } = this.createHeaders(''); // no token, so no Authorization
 
-  async getTagList(): Promise<TagListResponse> {
-    try {
-      const url = "https://cbiz.yanhekt.cn/v1/tag/list?with_sub=true";
-      const { headers } = this.createHeaders(''); // No token needed for tag list
-
-      // Remove Authorization header since it's not needed
-      delete headers["Authorization"];
-
-      const response = await this.send({
-        method: 'GET',
-        url,
-        headers,
-        timeout: 10000,
-        validateStatus: function (status) {
-          return status < 500;
-        }
-      });
-
-      return response.data;
-    } catch (error: unknown) {
-      log.error('Failed to get tag list:', error);
-      throw error;
+    const response = await this.send({
+      method: 'GET',
+      url,
+      headers,
+      timeout: 10000,
+      validateStatus: (status) => status < 500,
+    });
+    const body = response.data as DefaultSemesterResponse | undefined;
+    if (!body || (body.code !== 0 && body.code !== "0") || !body.data?.id || !body.data.name) {
+      throw new Error(`Failed to get the current semester: ${body?.message || `HTTP ${response.status}`}`);
     }
+    return body.data;
   }
 
   async getVideoToken(token: string): Promise<string> {

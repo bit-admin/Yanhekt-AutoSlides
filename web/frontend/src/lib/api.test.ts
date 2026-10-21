@@ -26,8 +26,8 @@ describe('ttlFor', () => {
     expect(ttlFor('/v2/course/session/list?course_id=9')).toBe(5 * 60 * 1000);
   });
 
-  it('keeps the semester tree long and the live list short', () => {
-    expect(ttlFor('/v1/tag/list?with_sub=true')).toBe(60 * 60 * 1000);
+  it('keeps the current term long and the live list short', () => {
+    expect(ttlFor('/v1/tag/semester/default')).toBe(60 * 60 * 1000);
     expect(ttlFor('/v2/live/list?page=1&page_size=16')).toBe(30 * 1000);
   });
 

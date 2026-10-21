@@ -72,7 +72,7 @@ export const appSessionCommand: AppCommand = {
 export const appTermsCommand: AppCommand = {
   summary: 'List the terms search --term accepts',
   args: '',
-  description: ['List the terms Yanhekt knows, newest first. Any column works as a --term value.'],
+  description: ['List the terms search --term accepts: for now only the current one. Any column works as a --term value.'],
   examples: ['terms'],
   options: [],
   positionals: { min: 0, max: 0 },

@@ -59,7 +59,7 @@ function aiCompletion(): Response {
 function yanhekt(path: string, params: URLSearchParams, method: string): Response | null {
   if (path === "/v1/user") return envelope(demo.demoUser());
   if (path === "/v1/cas/logout") return envelope(null);
-  if (path === "/v1/tag/list") return envelope(demo.demoTagList());
+  if (path === "/v1/tag/semester/default") return envelope(demo.demoDefaultSemester());
 
   if (path === "/v2/live/list") {
     const personal = params.get("user_relationship_type") === "1";

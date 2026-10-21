@@ -364,7 +364,7 @@ Pure TS, no Node/Electron IO:
 
 - **Dual-stream HLS.** `useVideoPlayer` + `useDualStreamPlayer`. Drift sync, one audible stream.
 - **Video proxy.** Per-login-token `Map` so two accounts do not clobber one signing session. `getRecordedWithResign` re-signs on a resolved 403. Always strip upstream cache validators and set `Cache-Control: no-store` on proxied m3u8/TS — otherwise Chromium `userData/Cache` fills with hundreds of MB per lecture (HLS.js already buffers in memory).
-- **Prefer anonymous Yanhekt requests** (`preferAnonymousApiRequests`, default false). When on **and** the method opted in, omit `Authorization`. Opted-in: course list/info first hop, public live list, search live, video token. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes. `getTagList` is always unauth. Full matrix: [§9.3](#93-auth-vs-anonymous).
+- **Prefer anonymous Yanhekt requests** (`preferAnonymousApiRequests`, default false). When on **and** the method opted in, omit `Authorization`. Opted-in: course list/info first hop, public live list, search live, video token. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes. `getAvailableSemesters` (`/v1/tag/semester/default`) is always unauth. Full matrix: [§9.3](#93-auth-vs-anonymous).
 - **Campus SSO SMS.** `main/platform/campusSso/`. Three outcomes from `loginAndGetToken`: token, failure (`reason`), or `smsChallenge`. Live CAS jar parked in `pendingVerifications.ts` (300s). Captcha is detected, never solved. Browser login is the escape hatch.
 - **Multi-account.** Active account = `StoredAccount` whose token matches the standalone `authToken` key. Switching changes `userId` but **not** `isLoggedIn` — surfaces that only watch `isLoggedIn` show stale data. In-flight downloads captured their token at start.
 - **Drive.** Yanhekt `/v1/note*` + MinIO. `cloudStorageStore` serializes provisioning of `ASnote` + `ASuser`. Server `/v1/note/list` **ignores** `groupId` — load the full catalog (`pageSize=500`) and filter client-side. Keyword search is **server-side** (`keyword=`). Ungroup = recreate the note. Batch import/export is ASnote-gated. Index mode is a toggle inside Drive, not a separate nav target.
@@ -487,7 +487,7 @@ Every SPA request to `/api/yanhekt/*` must send `Authorization: Bearer <32-hex>`
 
 When forwarding to cbiz:
 
-- **Omit** the user Bearer on anonymous-safe GETs: `/v2/course/list`, `/v1/course`, `/v1/live`, `/v1/course/session`, `/v1/tag/list`, `/v2/live/list` except `user_relationship_type=1`. `/v1/course` and `/v1/live` match **exactly**, not by prefix, so a subpath cannot inherit the omit.
+- **Omit** the user Bearer on anonymous-safe GETs: `/v2/course/list`, `/v1/course`, `/v1/live`, `/v1/course/session`, `/v1/tag/semester/default`, `/v2/live/list` except `user_relationship_type=1`. `/v1/course` and `/v1/live` match **exactly**, not by prefix, so a subpath cannot inherit the omit.
 - **Keep** it for session list, personal lists, subscriptions, notes, `/v1/user`, logout, MinIO.
 
 The SPA still sends a token on `getAvailableSemesters`; the Worker strips it upstream. Query strings are forwarded **verbatim** (PHP-style `semesters[]=`). Non-GET bodies stream as raw `ArrayBuffer` with the incoming `Content-Type` (MinIO multipart).
@@ -732,6 +732,7 @@ Almost every cbiz response is:
 
 - Laravel paginator: `{ current_page, data: [...], last_page, per_page, total, … }` (`/v2/course/list`, public `/v2/live/list`, `/v1/note/list`, …).
 - Bare array: authenticated `/v2/course/session/list`, `/v1/note/group/list`, `/v1/tag/list`.
+- Single tag row: `/v1/tag/semester/default`.
 - Silent empty array **and** `code: 0`: unauth session list, unauth personal live, unauth private course list.
 - Single object: `/v1/course`, `/v1/course/session`, `/v1/video`, `/v1/user`, `/v1/auth/video/token`.
 
@@ -776,7 +777,7 @@ Two failure modes when Bearer is missing:
 | `GET /v2/course/list` | Full catalog page | Same |
 | `GET /v1/course?id=` | Full course detail | Same + `user_mapping_type` may change (`0` → `2` on the probe) |
 | `GET /v1/course/session?session_id=` | Full session + nested `course` + historical `live` + `video_ids`. `user_progress: []` | Same public fields. Still **no** `videos[]`. `user_progress` is a **watch-history object** if this account has played the session, else still `[]`. Desktop reads it via `getSessionProgress`; the web Worker keeps the Bearer on this hop for the same reason — **never anonymous** |
-| `GET /v1/tag/list?with_sub=true` | Full tag tree | Same |
+| `GET /v1/tag/semester/default` | Current term's tag row | Same |
 | `GET /v2/live/list` (no `user_relationship_type`, or `=0`) | Public catalog | Same |
 | `GET /v2/live/list?keyword=` | Public search | Same |
 | `GET /v1/live?id=&with_session=true&with_course=true` | Full broadcast detail | Same |
@@ -792,9 +793,9 @@ Two failure modes when Bearer is missing:
 | `PUT /v1/course/session/user/progress` | (not probed unauth) | Official SPA heartbeat. Desktop sends it while a *watched* recording plays (`reportSessionProgress`), gated on the resume settings |
 | `POST/PUT/DELETE` notes, subscribe, MinIO | Auth required (from our clients) | — |
 
-**Desktop** (`preferAnonymousApiRequests`, default **false**): when the flag is on **and** the method opted in, omit `Authorization`. Opted-in: course list, `/v1/course` first hop, public live list, live search, video token. Always unauth: `getTagList`. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes.
+**Desktop** (`preferAnonymousApiRequests`, default **false**): when the flag is on **and** the method opted in, omit `Authorization`. Opted-in: course list, `/v1/course` first hop, public live list, live search, video token. Always unauth: `getAvailableSemesters`. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes.
 
-**Web Worker** strips Bearer upstream for: `GET /v1/tag/list`, `GET /v2/course/list`, exact `GET /v1/course`, exact `GET /v1/live`, `GET /v1/course/session`, `GET /v2/live/list` when `user_relationship_type !== "1"`. Prefix matching on GET would otherwise treat `/v1/course/subscription/list` as anonymous — the omit list uses **exact** `/v1/course` so subscription stays authenticated.
+**Web Worker** strips Bearer upstream for: `GET /v1/tag/semester/default`, `GET /v2/course/list`, exact `GET /v1/course`, exact `GET /v1/live`, `GET /v1/course/session`, `GET /v2/live/list` when `user_relationship_type !== "1"`. Prefix matching on GET would otherwise treat `/v1/course/subscription/list` as anonymous — the omit list uses **exact** `/v1/course` so subscription stays authenticated.
 
 **Share** never sends a user Bearer except `GET /v1/user` on publish / removal. **Relay** never sends one; it mints the anonymous video token.
 
@@ -1070,9 +1071,9 @@ The payload is a live-list row **plus** more, so `transformLiveStreamToCourse` c
 
 `course.name_en` arrives HTML-escaped on some courses (`Theory &#97;nd Practice of Numerical Methods`) — the dirty-`name_en` case: render through `usableEnglishTitle()`, which decodes entities before its CJK check.
 
-#### `GET /v1/tag/list?with_sub=true`
+#### `GET /v1/tag/semester/default`
 
-Always unauth in desktop (`getTagList` deletes Authorization). Four top-level tags: `degrees`, `semesters`, `colleges`, `attributes`. We only walk `param === "semesters"` → `children[]` `{ id, name, sort }`. Probe (newest first by `sort`): `110` = `2026-2027 第一学期`, `107` = `2025-2026 第二学期`, `100` = `2025-2026 第一学期`, … (13 children). `parseSemesterName` turns `2025-2026 第一学期` into `{ schoolYear: 2025, semester: 1, labelEn: "2025 Fall" }`.
+The term picker's only source (2026-10-22). Yanhekt dropped the `semesters` row from `/v1/tag/list?with_sub=true` (now only `degrees`, `colleges`, `attributes`), so there is no term list upstream. This one anonymous call returns the current term's row: `{ id: 110, parent_id: 4, name: "2026-2027 第一学期", param: "semesters", sort: 17, … }`. `getAvailableSemesters` (desktop main and `web/frontend/src/lib/api.ts`) returns it as the picker's single, preselected option; `parseSemesterName` turns `2025-2026 第一学期` into `{ schoolYear: 2025, semester: 1, labelEn: "2025 Fall" }`. No hardcoded fallback: a failure throws, the picker stays empty and search runs unfiltered. The full term list will come from the Index once it is live. Probe the same day: `/v2/course/list` now **ignores** `semesters[]` (`92`, `110`, `107+110` and no filter all answer the same 2955 current-term courses), so the picker is cosmetic until the Index backs it.
 
 #### Personal course lists (auth)
 

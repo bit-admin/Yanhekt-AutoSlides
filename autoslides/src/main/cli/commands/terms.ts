@@ -1,4 +1,5 @@
-// `yhdl terms`: the terms Yanhekt filters by, for `search --term`. Anonymous.
+// `yhdl terms`: the terms `search --term` accepts. Anonymous. Only the current
+// term since Yanhekt stopped publishing its term list (2026-10).
 import type { ApiClient } from '@main/platform/apiClient';
 import { table } from '../format';
 import { semesterTermKey } from '../terms';
@@ -25,7 +26,7 @@ export const TERMS_DATA = '{ terms: [{ id, term, label, label_en }] }';
 export const termsCommand: CliCommand = {
   summary: 'List the terms search --term accepts',
   args: '',
-  description: ['List the terms Yanhekt knows, newest first. Any column works as a --term value.'],
+  description: ['List the terms search --term accepts: for now only the current one. Any column works as a --term value.'],
   examples: ['terms'],
   options: [],
   positionals: { min: 0, max: 0 },

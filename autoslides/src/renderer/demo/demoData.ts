@@ -110,11 +110,10 @@ export function demoPinnedCourses(): Array<{ id: string; title: string }> {
   ]
 }
 
+/** Only the current term, as in production (Yanhekt publishes no term list). */
 export function demoSemesters(): SemesterOption[] {
   return [
     { id: 1, label: '2024-2025 Fall', labelEn: '2024-2025 Fall', schoolYear: 2024, semester: 1 },
-    { id: 2, label: '2024-2025 Spring', labelEn: '2024-2025 Spring', schoolYear: 2024, semester: 2 },
-    { id: 3, label: '2023-2024 Fall', labelEn: '2023-2024 Fall', schoolYear: 2023, semester: 1 },
   ]
 }
 

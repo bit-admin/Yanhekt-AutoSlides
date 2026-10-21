@@ -38,7 +38,7 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     "/v2/course/private/list",
     "/v1/course",
     "/v2/course/session/list",
-    "/v1/tag/list",
+    "/v1/tag/semester/default",
     "/v1/video",
     "/v1/note",
     "/v1/note/list",
@@ -75,7 +75,8 @@ function parseLoginToken(authHeader: string | undefined): string | null {
  *   anonymous-ok : getCourseList (/v2/course/list), getCourseInfo first hop
  *                  (/v1/course), public getLiveList / searchLiveList
  *                  (/v2/live/list, user_relationship_type !== 1),
- *                  getTagList (/v1/tag/list, always), getVideoAssets
+ *                  getAvailableSemesters (/v1/tag/semester/default,
+ *                  always), getVideoAssets
  *                  (/v1/video), getVideoToken
  *   never        : session list, personal live/course, subscriptions,
  *                  /v1/user, logout, notes, MinIO
@@ -90,7 +91,7 @@ function parseLoginToken(authHeader: string | undefined): string | null {
  */
 function isAnonymousUpstream(method: string, path: string, search: URLSearchParams): boolean {
   if (method !== "GET") return false;
-  if (path === "/v1/tag/list" || path.startsWith("/v1/tag/list/")) return true;
+  if (path === "/v1/tag/semester/default") return true;
   if (path === "/v2/course/list" || path.startsWith("/v2/course/list/")) return true;
   if (path === "/v1/course") return true;
   if (path === "/v1/video") return true;
