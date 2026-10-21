@@ -726,6 +726,7 @@ Almost every cbiz response is:
 | `61101113` | `用户未登录` — no/invalid Bearer on a strict-auth endpoint |
 | `61101114` | `系统繁忙` — observed from a **non-existent** route, e.g. any `/v3/*` twin of these endpoints. Treat as "route does not exist" |
 | `12131112` | `service runtime exception` — `/v1/live/list?user_relationship_type=1` with no/invalid Bearer (the v2 twin is silent-empty instead) |
+| `12131113` | `/v1/live/list?status=0` (ended filter) — rejected; the public lists hold no ended rows anyway ([§9.5.1](#9x-v1-twins-of-the-v2-endpoints)) |
 | `12111010` | Course not found (`GET /v1/course`) |
 | `13001001` | Auth failed (desktop error map) |
 | `99151011` | Upstream down (desktop error map) |
@@ -1251,6 +1252,13 @@ Ids and personal fields below are fictional / redacted; field **names and types*
 - **v1-only**: top-level `session_id` (a **string**), and a **fully populated** nested `course` (with `id`, `name_en`, `classrooms[]`) and `session` (with `professor`) — the v2 public row has a thin `course` (`id: null`, `name_en` absent) and adds instead `started_at`, `ended_at`, `code_required`.
 - Because the v1 row already has `session.course_id` and a rich `course`, the per-course title lookup `/v1/course?id=` ([§9.5](#95-catalog-course-session-live)) is unnecessary when paging the v1 live list — though we still call v2 for the public list, so that lookup stays.
 - `status`: same `0=ended, 1=live, 2=upcoming` as the v2 row; prefer the schedule timestamps.
+
+**Probe, 2026-10-22 (anonymous, public list, ~02:00 so nothing live):**
+
+- **`session_id` is correct.** For rows sampled across the list, `GET /v1/course/session?session_id=<session_id>&with_video=true` matched the live row on course id (`session.course_id` = `course.id` = `source_id` = session `course_id`), course title, `section_group_title`, `location`, schedule start/end, and the session's nested `live.id` pointed back to the live id. It is the only way to learn a live's session id **before** the class: `/v2` rows carry none.
+- **Both public lists hold only upcoming rows.** Every row was `status: 2`, scheduled from today to ~10 days out (`2026-10-22 08:00` … `2026-11-01 18:30`). Ended lectures are not listed. `status=1` filter → empty (nothing live); **`status=0` filter on `/v1` → `12131113`** (rejected).
+- **v1 lists fewer rows than v2: 6,027 vs 6,395.** Every v1 id is in v2; the 368 v2-only rows look the same (`visibility: 3`, `type: 0`, `source_type: 1`), so the reason is unknown. For a v2-only row, `GET /v1/live?id=` still returns `session_id` and `session.id`. **Switching the list wholesale to v1 drops lectures;** keep v2 for the list and resolve the session id from v1 (match by live id, or the per-id detail).
+- An upcoming session already exists by id, with `video_ids: []`. The recording attaches after the class (the sample video's `created_at` is about a minute after `ended_at`), so re-read the session later for `video_ids`. Not yet observed: a live-now or just-ended row, and `video_ids` filling in.
 
 **`GET /v1/course/graph/list`** (unused by us) — bare array, anonymous, grouped by college. Each element is `{ college: { code, name }, list: [ course… ] }` where each `list[]` course is a graph-flavoured row (`class_number`, `credit`, `duration`, `comment`, `graph: { graph_gid }`, `professors` as **strings**). v1 returned one more college group than v2 (16 vs 15) on the probe; we read neither.
 
