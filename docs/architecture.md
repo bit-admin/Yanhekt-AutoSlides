@@ -724,6 +724,8 @@ Almost every cbiz response is:
 |---|---|
 | `0` | OK. Some gated GETs still return this with `data: []` (see [§9.3](#93-auth-vs-anonymous)) |
 | `61101113` | `用户未登录` — no/invalid Bearer on a strict-auth endpoint |
+| `61101114` | `系统繁忙` — observed from a **non-existent** route, e.g. any `/v3/*` twin of these endpoints. Treat as "route does not exist" |
+| `12131112` | `service runtime exception` — `/v1/live/list?user_relationship_type=1` with no/invalid Bearer (the v2 twin is silent-empty instead) |
 | `12111010` | Course not found (`GET /v1/course`) |
 | `13001001` | Auth failed (desktop error map) |
 | `99151011` | Upstream down (desktop error map) |
@@ -731,7 +733,7 @@ Almost every cbiz response is:
 `data` is **not** always an object:
 
 - Laravel paginator: `{ current_page, data: [...], last_page, per_page, total, … }` (`/v2/course/list`, public `/v2/live/list`, `/v1/note/list`, …).
-- Bare array: authenticated `/v2/course/session/list`, `/v1/note/group/list`, `/v1/tag/list`.
+- Bare array: authenticated session list (`/v1/course/session/list`; the `/v2` twin is currently empty — [§9.5.1](#9x-v1-twins-of-the-v2-endpoints)), `/v1/note/group/list`, `/v1/tag/list`.
 - Single tag row: `/v1/tag/semester/default`.
 - Silent empty array **and** `code: 0`: unauth session list, unauth personal live, unauth private course list.
 - Single object: `/v1/course`, `/v1/course/session`, `/v1/video`, `/v1/user`, `/v1/auth/video/token`.
@@ -783,9 +785,9 @@ Two failure modes when Bearer is missing:
 | `GET /v1/live?id=&with_session=true&with_course=true` | Full broadcast detail | Same |
 | `GET /v1/video?id=` | VOD URLs + duration | Same |
 | `GET /v1/auth/video/token?id=0` | 16-char token, TTL **600s** | Same |
-| `GET /v2/course/session/list?course_id=` | `code: 0`, `data: []` | Bare array of sessions **with** `videos[]` |
-| `GET /v2/live/list?user_relationship_type=1` | `code: 0`, `data: []` (bare array) | Paginated personal lives |
-| `GET /v2/course/private/list?…` | `code: 0`, `data: []` (bare array) | Paginated enrolled courses |
+| `GET /v2/course/session/list?course_id=` | `code: 0`, `data: []` | **Currently `data: []` even authed** — a platform regression, see [v1 twins](#9x-v1-twins-of-the-v2-endpoints). Use the `/v1` twin, which returns the sessions **with** `videos[]` |
+| `GET /v2/live/list?user_relationship_type=1` | `code: 0`, `data: []` (bare array) | Paginated personal lives. `/v1` twin: unauth is `12131112`, not silent-empty |
+| `GET /v2/course/private/list?…` | `code: 0`, `data: []` (bare array) | Paginated enrolled courses (v2 currently returns a **subset**). `/v1` twin is richer and complete, but unauth is strict `61101113`, not silent-empty |
 | `GET /v1/user` | `61101113` | Profile |
 | `GET /v1/course/subscription/list` | `61101113` | Paginated subscriptions |
 | `GET /v1/note/list`, `GET /v1/note`, `GET /v1/note/group/list` | `61101113` | Account notes |
@@ -898,6 +900,8 @@ Desktop `getCourseInfo` uses this hop (anonymous-ok) then the session **list** (
 
 **Auth required** (`data: []` if not). Bare array (not a paginator). This is how desktop/web hydrate playback: `videos[].main` / `videos[].vga` are the unsigned VOD URLs we later sign.
 
+> **Regression (2026-10-22):** `/v2` now returns `data: []` **even with a valid token**, for every course. Fetch the `/v1` twin (`GET /v1/course/session/list?course_id=`) instead — same bare-array shape, and the v1 rows are richer. See [§9.5.1](#9x-v1-twins-of-the-v2-endpoints). The shape below is the v1 twin's (and what v2 returned before the regression).
+
 Probe: **29** sessions; first row is `850101`:
 
 ```json
@@ -930,7 +934,7 @@ Probe: **29** sessions; first row is `850101`:
 }
 ```
 
-`day` is a string here, a number on session-by-id. Other keys we do not require: `badge`, `section_start` / `section_end`, `is_live`, `is_record`, `week_type`.
+`day` is a string here, a number on session-by-id. The block above is the subset common to both versions; for the **full v1-twin row** (which adds `user_progress`, `parent_id`, `section_group`, `weight`, and audio sidecar fields on `videos[]`) and the v2-only keys (`is_live`, `is_record`, `section_big_*`, `week_type`) see [§9.5.1](#9x-v1-twins-of-the-v2-endpoints).
 
 #### `GET /v1/course/session?session_id=850101&with_video=true`
 
@@ -1080,6 +1084,173 @@ The term picker's only source (2026-10-22). Yanhekt dropped the `semesters` row 
 - `GET /v2/course/private/list?page=&page_size=&user_relationship_type=1&with_introduction=true` — enrolled courses. Unauth: empty array. Shape of a row matches course list (string professors, `classrooms[]`).
 - `GET /v1/course/subscription/list?page=&page_size=` — **strict** auth (`61101113`). Default upstream `page_size` is **4** if omitted; always pass an explicit size. Rows are richer (`professor_names`, object `professors`, `college`, `professor_badges`, …). Desktop pins vs web subscriptions: [product names](#product-names-are-per-surface-owner-rulings).
 - `POST /v1/course/subscription` body `{ "course_id": "<id>" }`; `DELETE` same URL + same JSON body. `Content-Type: application/json` is required on DELETE-with-body. Success `{ code: 0 }`. (Not live-tested.)
+
+<a id="9x-v1-twins-of-the-v2-endpoints"></a>
+
+#### 9.5.1 v1 twins of the v2 endpoints
+
+**Every cbiz `/v2` endpoint the official SPA calls also answers under `/v1`, and as of 2026-10-22 the `/v1` twin is equal-or-better on all five.** There is no `/v3` twin — those answer `61101114 系统繁忙` (route does not exist). The SPA itself calls only the `/v2` form; the `/v1` twins are undocumented upstream but live. Probe matrix (token / no token / bogus token) saved reasoning below.
+
+This matters because a platform-side change broke `/v2/course/session/list` for all users: it returns `code: 0, data: []` **even with a valid token**, for every course. A playback page already open keeps working, but session enumeration via `/v2` is dead until upstream fixes it. The `/v1` twin is unaffected. **Prefer the `/v1` twin for session enumeration; the others are safe to switch too but watch the unauth failure mode (below).**
+
+| Endpoint | `/v1` vs `/v2` today | Unauth (`/v1` → `/v2`) |
+|---|---|---|
+| `course/session/list?course_id=` | **v2 returns `[]` even authed (regression); v1 returns the sessions.** v1 rows also carry `user_progress`, `parent_id`, `section_group`/`section_group_title`, `weight`, and `videos[]` with `audio`/`audio_origin` + `session_id`. v2 rows have `is_live`/`is_record`/`section_big_*`/`week_type` but **no `user_progress` and no audio sidecar** | both silent-empty; a real token is required, bogus does not unlock |
+| `course/private/list` (enrolled) | v2 returns a **subset** of enrolled courses with fewer fields; v1 returns **all**, with `college`, `session_count`, `professor_names`, `introduction`, … | **v1 strict `61101113`** → v2 silent-empty |
+| `course/list` (catalog) | v1 is a **superset**: more rows, same ids where they overlap, plus 12 fields per row v2 drops (`college`/`college_id`, `session_count`, `session_ongoing`, `type`/`type_name`, `video_status`, `visibility`, `professor_names`, `professor_badges`, `is_record_room`, `lx_state`). v2 has no field v1 lacks | both anonymous |
+| `live/list` | **different list**: v1 rows carry `session_id` (v2 drops it); v2 adds `started_at`/`ended_at`/`code_required`. Different order (v1 ascending id, v2 descending) and totals | public: both anonymous. `user_relationship_type=1`: **v1 `12131112`** → v2 silent-empty |
+| `course/graph/list` (college-grouped catalog; **unused by us**) | college-bucketed `{ college, list[] }`; v1 returns one more college group than v2 | both anonymous |
+
+**The trap when switching:** the `/v1` twins of the *personal* lists fail **loudly** (`61101113` / `12131112`) where the `/v2` forms fail **silently** (`code: 0, data: []`). Code that moves to a `/v1` twin must treat those codes as "not logged in / retry auth", not as "no results".
+
+##### Response structures (v1 twins)
+
+Ids and personal fields below are fictional / redacted; field **names and types** are as observed. Each twin returns the same `{ code, message, data }` envelope; only `data` is shown.
+
+**`GET /v1/course/session/list?course_id=70101`** — bare array, **auth required** (silent `[]` otherwise). The v2 twin is the same shape minus the v1-only keys. Full row (compare the trimmed common subset in [§9.5](#95-catalog-course-session-live)):
+
+```json
+{
+  "id": 850101,
+  "course_id": 70101,
+  "parent_id": 0,
+  "title": "第1周 星期三 第2大节",
+  "chapter": "",
+  "number": "2",
+  "week_number": 4,
+  "day": 3,
+  "section_group": 1,
+  "section_group_title": "第2大节",
+  "section_start": 3,
+  "section_end": 4,
+  "weight": 0,
+  "state": 2,
+  "professor_id": 4001,
+  "badge": "6100000002",
+  "university_id": 100,
+  "started_at": "2025-09-17 09:55:00",
+  "ended_at": "2025-09-17 11:30:00",
+  "location": "9901A3002X",
+  "video_ids": [450101],
+  "videos": [
+    {
+      "id": 450101,
+      "course_id": 0,
+      "session_id": 0,
+      "type": 2,
+      "format": "m3u8",
+      "path": "2025/09/17/41234567/0",
+      "main": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/Video1/Video1.m3u8",
+      "main_origin": "",
+      "vga": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/VGA/VGA.m3u8",
+      "vga_origin": "",
+      "room": "",
+      "room_origin": "",
+      "audio": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/SubAudio/09_53_19_21.aac",
+      "audio_origin": "https://cvideo.yanhekt.cn/vod/2025/09/17/41234567/0/SubAudio/09_53_19_21.aac",
+      "duration": "5936",
+      "start_main": "0",
+      "start_vga": "21",
+      "start_room": "",
+      "created_at": "2025-09-17 11:31:00",
+      "updated_at": "2025-09-17 11:31:00"
+    }
+  ],
+  "user_progress": {
+    "id": 11,
+    "badge": "6100000002",
+    "session_id": 850101,
+    "progress_overall": "5936",
+    "progress_current": "2300",
+    "status": 0,
+    "created_at": "2025-09-18 20:00:00",
+    "updated_at": "2025-09-18 20:40:00"
+  }
+}
+```
+
+- **v1-only** vs the v2 twin: `parent_id`, `section_group`, `section_group_title`, `weight`, `user_progress`, and on each `videos[]` entry `session_id`, `room`/`room_origin`, **`audio`/`audio_origin`** (the classroom mic sidecar, [§9.6](#96-recorded-vod-and-the-cdn)). **v2-only**: `is_live`, `is_record`, `section_big_start`/`section_big_end`, `week_type`.
+- `user_progress` is the same per-account watch-history object as on session-by-id ([§9.5](#95-catalog-course-session-live)): an **object** after this account has played the session, `[]` otherwise. The decimal-string seconds parse through `@common/watchProgress`. So the v1 list hop carries resume state the v2 list never did.
+- `videos[].session_id` / `course_id` are `0` here, same as `/v1/video` — do not read ids back off a video.
+
+**`GET /v1/course/list`** / **`GET /v1/course/private/list`** — Laravel paginator (`{ current_page, last_page, per_page, total, data: [...] }`). `course/list` is anonymous; `private/list` is **auth, strict `61101113`** unauth (the v2 twin is silent-empty). A row is a **superset** of the v2 course-list row:
+
+```json
+{
+  "id": 70101,
+  "name_zh": "泛函分析",
+  "name_en": "Functional Analysis",
+  "code": "100990101",
+  "number": "20252026110099010101",
+  "school_year": "2025-2026",
+  "semester": 1,
+  "type": 1,
+  "type_name": "专业课",
+  "state": 2,
+  "visibility": 1,
+  "video_status": 1,
+  "lx_state": 0,
+  "lx_url": "",
+  "is_record_room": 1,
+  "orientation": 0,
+  "participant_count": 61,
+  "views": 1200,
+  "session_count": 29,
+  "session_ongoing": 0,
+  "image_url": "https://coss.yanhekt.cn/images/colleges/shuxue.png",
+  "university_id": 100,
+  "university_code": 10007,
+  "college_id": 36,
+  "college_code": "217",
+  "college_name": "数学与统计学院",
+  "college": { "id": 36, "university_id": 100, "code": "217", "name": "数学与统计学院", "name_en": "School of Mathematics and Statistics", "image_url": "https://coss.yanhekt.cn/images/colleges/shuxue.png", "parent_code": "" },
+  "professor_names": ["沈墨白"],
+  "professor_badges": ["6100000002"],
+  "professors": [
+    { "id": 4001, "name": "沈墨白", "title": "副教授", "badge": "6100000002", "university_id": 100, "college_id": 36, "college_code": "217", "profile": "", "personal_page": "" }
+  ],
+  "classrooms": [ { "id": 201, "name": "明理楼A302", "number": "9901A3002X" } ],
+  "introduction": "本课程…"
+}
+```
+
+- `semester` is a **number** here (the v2 course-list row stringifies it to `"1"`).
+- vs the v2 course-list row, v1 adds: `college` (object) + `college_id`, `type`/`type_name`, `visibility`, `video_status`, `lx_state`, `is_record_room`, `session_count`, `session_ongoing`, `professor_names`, `professor_badges` (v2 keeps only the `professors[]` objects). No v2 field is missing from v1.
+- `introduction` appears only on `private/list` with `with_introduction=true`. On `course/list`, `classrooms[]` is populated; on `private/list` the probe's `classrooms` was `[]`.
+
+**`GET /v1/live/list`** — paginator. Public (no `user_relationship_type`, or `0`) is anonymous; `user_relationship_type=1` is **auth, `12131112`** unauth (the v2 twin is silent-empty). The v1 row carries the full nested `course` and `session`, and — unlike v2 — a top-level **`session_id`**:
+
+```json
+{
+  "id": 760101,
+  "title": "概率论实验",
+  "subtitle": "博学楼403",
+  "status": 1,
+  "state": 2,
+  "type": 1,
+  "visibility": 1,
+  "views": 300,
+  "participant_count": 126,
+  "location": "9901B4003X",
+  "schedule_started_at": "2026-03-11 15:15:00",
+  "schedule_ended_at": "2026-03-11 17:40:00",
+  "img": "https://coss.yanhekt.cn/images/colleges/shuxue.png",
+  "source_id": 73001,
+  "source_type": 1,
+  "session_id": "850901",
+  "target": "https://clive10.yanhekt.cn/live/10001_Video1.m3u8",
+  "target_vga": "https://clive10.yanhekt.cn/live/10001_VGA.m3u8",
+  "target_room": "https://clive10.yanhekt.cn/live/10001_Video2.m3u8",
+  "course": { "id": 73001, "name_zh": "概率论实验", "name_en": "Probability Lab", "college_name": "数学与统计学院", "school_year": "2025-2026", "semester": 1, "image_url": "", "classrooms": [ { "id": 301, "name": "博学楼403", "number": "9901B4003X" } ] },
+  "session": { "id": 850901, "course_id": 73001, "section_group_title": "第2周 星期三 第4大节", "professor": { "id": 4002, "name": "周子衿", "title": "讲师", "badge": "6100000003" } }
+}
+```
+
+- **v1-only**: top-level `session_id` (a **string**), and a **fully populated** nested `course` (with `id`, `name_en`, `classrooms[]`) and `session` (with `professor`) — the v2 public row has a thin `course` (`id: null`, `name_en` absent) and adds instead `started_at`, `ended_at`, `code_required`.
+- Because the v1 row already has `session.course_id` and a rich `course`, the per-course title lookup `/v1/course?id=` ([§9.5](#95-catalog-course-session-live)) is unnecessary when paging the v1 live list — though we still call v2 for the public list, so that lookup stays.
+- `status`: same `0=ended, 1=live, 2=upcoming` as the v2 row; prefer the schedule timestamps.
+
+**`GET /v1/course/graph/list`** (unused by us) — bare array, anonymous, grouped by college. Each element is `{ college: { code, name }, list: [ course… ] }` where each `list[]` course is a graph-flavoured row (`class_number`, `credit`, `duration`, `comment`, `graph: { graph_gid }`, `professors` as **strings**). v1 returned one more college group than v2 (16 vs 15) on the probe; we read neither.
 
 ### 9.6 Recorded VOD and the CDN
 
