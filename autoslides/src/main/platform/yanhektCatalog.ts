@@ -499,7 +499,8 @@ export function observeYanhektResponse(state: CatalogState, url: string, body: u
       const courseId = asId(parsed.searchParams.get('id'));
       return courseId && isRow(data) ? applyCourse(state, courseId, data) : false;
     }
-    case '/v2/course/session/list': {
+    case '/v2/course/session/list':
+    case '/v1/course/session/list': {
       let changed = false;
       const courseId = asId(parsed.searchParams.get('course_id'));
       for (const row of rowsOf(data)) changed = applySession(state, courseId, row) || changed;

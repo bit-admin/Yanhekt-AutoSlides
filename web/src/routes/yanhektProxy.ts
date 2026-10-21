@@ -38,6 +38,9 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     "/v2/course/private/list",
     "/v1/course",
     "/v2/course/session/list",
+    // v1 twin, the fallback when v2 is empty (the /v1/course prefix already
+    // covers it; listed so the intent is explicit).
+    "/v1/course/session/list",
     "/v1/tag/semester/default",
     "/v1/video",
     "/v1/note",

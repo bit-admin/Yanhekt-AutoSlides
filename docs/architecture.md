@@ -1101,6 +1101,8 @@ This matters because a platform-side change broke `/v2/course/session/list` for 
 | `live/list` | **different list**: v1 rows carry `session_id` (v2 drops it); v2 adds `started_at`/`ended_at`/`code_required`. Different order (v1 ascending id, v2 descending) and totals | public: both anonymous. `user_relationship_type=1`: **v1 `12131112`** → v2 silent-empty |
 | `course/graph/list` (college-grouped catalog; **unused by us**) | college-bucketed `{ college, list[] }`; v1 returns one more college group than v2 | both anonymous |
 
+**What we do (23.70):** desktop `ApiClient.getCourseSessions` and web `getCourseInfo` ask `/v2/course/session/list` first and, when it answers an empty list, the `/v1` twin. A non-zero `code` from either still throws. The other twins are not switched yet.
+
 **The trap when switching:** the `/v1` twins of the *personal* lists fail **loudly** (`61101113` / `12131112`) where the `/v2` forms fail **silently** (`code: 0, data: []`). Code that moves to a `/v1` twin must treat those codes as "not logged in / retry auth", not as "no results".
 
 ##### Response structures (v1 twins)

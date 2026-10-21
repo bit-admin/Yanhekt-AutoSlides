@@ -589,22 +589,34 @@ export class ApiClient {
     }
   }
 
+  /** One raw session-list hop (`/v2` or its `/v1` twin). Throws on a non-zero `code`. */
+  private async fetchSessionRows(
+    version: 'v1' | 'v2',
+    courseId: string,
+    token: string,
+  ): Promise<SessionListApiResponse['data']> {
+    const url = `https://cbiz.yanhekt.cn/${version}/course/session/list?course_id=${courseId}`;
+    const response = (await this.makeRequest('GET', url, token)) as SessionListApiResponse;
+    if (response.code !== 0 && response.code !== "0") {
+      throw new Error(`Failed to get course sessions: ${response.message}`);
+    }
+    return response.data ?? [];
+  }
+
   /**
    * One course's sessions, oldest first as the server lists them. Needs the
    * login token: an anonymous request answers `code: 0` with an empty list, so
    * an empty result is either "no sessions" or "not signed in".
+   *
+   * `/v2` first; when it is empty, the `/v1` twin (same bare-array shape). Since
+   * 2026-10-22 `/v2` answers `[]` even signed in (docs/architecture.md §9.5.1).
    */
   async getCourseSessions(courseId: string, token: string): Promise<SessionData[]> {
     // Session *detail by id* is a different endpoint — see getSessionById.
-    const sessionApiUrl = `https://cbiz.yanhekt.cn/v2/course/session/list?course_id=${courseId}`;
-    const sessionResponse = await this.makeRequest('GET', sessionApiUrl, token);
-    const sessionData = sessionResponse as SessionListApiResponse;
+    let rows = await this.fetchSessionRows('v2', courseId, token);
+    if (rows.length === 0) rows = await this.fetchSessionRows('v1', courseId, token);
 
-    if (sessionData.code !== 0 && sessionData.code !== "0") {
-      throw new Error(`Failed to get course sessions: ${sessionData.message}`);
-    }
-
-    return (sessionData.data ?? []).map((video) => {
+    return rows.map((video) => {
       const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : '';
       const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
       const mainUrl = videoData ? videoData.main : '';
@@ -698,7 +710,7 @@ export class ApiClient {
    * Unused by the Electron app. Documented so the two session endpoints stay distinct.
    *
    * Playback / course pages enumerate via `GET /v2/course/session/list?course_id=`
-   * inside {@link getCourseInfo} (auth-required; anonymous response is `data: []`).
+   * (falling back to its `/v1` twin when empty) inside {@link getCourseInfo} (auth-required; anonymous response is `data: []`).
    *
    * This method is `GET /v1/course/session?session_id=&with_video=true` — session
    * detail *by id*. Proved anonymous-ok (2026-08-13): title, schedule, location,

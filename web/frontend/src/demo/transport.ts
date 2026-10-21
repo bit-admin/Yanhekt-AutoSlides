@@ -86,7 +86,7 @@ function yanhekt(path: string, params: URLSearchParams, method: string): Respons
   if (path === "/v1/course/subscription") return envelope(null);
 
   if (path === "/v1/course") return envelope(demo.demoCourseDetail(params.get("id") ?? ""));
-  if (path === "/v2/course/session/list") {
+  if (path === "/v2/course/session/list" || path === "/v1/course/session/list") {
     return envelope(demo.demoSessionRows(params.get("course_id") ?? ""));
   }
   // Classroom mic sidecar. Demo lectures have none — returning "" keeps

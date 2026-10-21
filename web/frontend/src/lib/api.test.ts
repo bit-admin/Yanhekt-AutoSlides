@@ -24,6 +24,7 @@ describe('ttlFor', () => {
 
   it('separates the v2 session list from the v1 progress hop', () => {
     expect(ttlFor('/v2/course/session/list?course_id=9')).toBe(5 * 60 * 1000);
+    expect(ttlFor('/v1/course/session/list?course_id=9')).toBe(5 * 60 * 1000);
   });
 
   it('keeps the current term long and the live list short', () => {

@@ -242,6 +242,8 @@ const GET_TTL_MS: ReadonlyArray<readonly [prefix: string, ttlMs: number]> = [
   // getCourseInfo runs a single lecture open used to make (session page, then
   // PlayerRoute, then PlaybackPage) into one.
   ["/v2/course/session/list", 5 * 60 * 1000],
+  // The v1 twin (fallback when v2 is empty). Must stay above /v1/course/session.
+  ["/v1/course/session/list", 5 * 60 * 1000],
   ["/v1/course/subscription/list", 60 * 1000],
   ["/v2/course/private/list", 60 * 1000],
   ["/v2/course/list", 60 * 1000],
@@ -504,10 +506,18 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
     `/v1/course?id=${courseId}&with_professor_badges=true`,
     token,
   );
-  const videoList = await request<SessionListApiResponse["data"]>(
+  // `/v2` first; when it is empty, the `/v1` twin (same bare-array shape).
+  // Since 2026-10-22 `/v2` answers `[]` even signed in.
+  let videoList = await request<SessionListApiResponse["data"]>(
     `/v2/course/session/list?course_id=${courseId}`,
     token,
   );
+  if (!videoList || videoList.length === 0) {
+    videoList = await request<SessionListApiResponse["data"]>(
+      `/v1/course/session/list?course_id=${courseId}`,
+      token,
+    );
+  }
 
   // An empty list is an answer, not an error. Yanhekt sends `{code:0, data:[]}`
   // both for a course with no recordings and for one this account may not

@@ -117,6 +117,15 @@ describe("/api/yanhekt proxy", () => {
     expect(upstreamCall().headers.Authorization).toBe(`Bearer ${TOKEN}`);
   });
 
+  it("keeps the Bearer for the v1 session list twin", async () => {
+    await app.request(
+      "/api/yanhekt/v1/course/session/list?course_id=1",
+      { headers: { Authorization: `Bearer ${TOKEN}` } },
+      env(),
+    );
+    expect(upstreamCall().headers.Authorization).toBe(`Bearer ${TOKEN}`);
+  });
+
   it("keeps the Bearer for the session list, /v1/user and note writes", async () => {
     await app.request(
       "/api/yanhekt/v2/course/session/list?course_id=1",
