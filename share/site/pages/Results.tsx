@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ApiError, search, yanhektCourseUrl, type CourseResult, type SearchResponse } from '../api';
+import { ApiError, search, webCourseUrl, yanhektCourseUrl, type CourseResult, type SearchResponse } from '../api';
 import { CopyButton, Footer, Header, useTerms } from '../components/Chrome';
 import { Highlight } from '../components/Highlight';
 import { termLabel, useNumber, useT, type Strings } from '../i18n';
@@ -204,6 +204,9 @@ function Result({ r, words, t }: { r: CourseResult; words: string[]; t: Strings 
         </a>
         <a href={yanhektCourseUrl(r.id)} target="_blank" rel="noreferrer">
           {t.openOnYanhekt} ↗
+        </a>
+        <a href={webCourseUrl(r.id)} target="_blank" rel="noreferrer">
+          {t.openOnWeb} ↗
         </a>
       </div>
     </li>

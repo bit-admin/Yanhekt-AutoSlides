@@ -87,3 +87,8 @@ export function terms(): Promise<TermsResponse> {
 
 export const yanhektCourseUrl = (id: number) => `https://www.yanhekt.cn/course/${id}`;
 export const yanhektSessionUrl = (id: number) => `https://www.yanhekt.cn/session/${id}`;
+
+/** AutoSlides Web (web/frontend router: /recorded/:courseId, /player/recorded/:courseId/:sessionId). */
+const WEB = 'https://learn.ruc.edu.kg';
+export const webCourseUrl = (id: number) => `${WEB}/recorded/${id}`;
+export const webSessionUrl = (courseId: number, sessionId: number) => `${WEB}/player/recorded/${courseId}/${sessionId}`;

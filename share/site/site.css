@@ -641,6 +641,10 @@ button {
 .sessions__open {
   margin-left: auto;
   font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px 16px;
 }
 
 /* Footer ------------------------------------------------------------ */

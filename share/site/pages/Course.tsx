@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ApiError, courseSessions, search, yanhektCourseUrl, yanhektSessionUrl, type CourseResult } from '../api';
+import { ApiError, courseSessions, search, webCourseUrl, webSessionUrl, yanhektCourseUrl, yanhektSessionUrl, type CourseResult } from '../api';
 import { CopyButton, Footer, Header, useTerms } from '../components/Chrome';
 import { termLabel, useNumber, useT } from '../i18n';
 import { isIdentifier } from '../query';
@@ -58,6 +58,9 @@ export function Course({ id }: { id: number }) {
               <a className="pill pill--primary" href={yanhektCourseUrl(id)} target="_blank" rel="noreferrer">
                 {t.openOnYanhekt} ↗
               </a>
+              <a className="pill" href={webCourseUrl(id)} target="_blank" rel="noreferrer">
+                {t.openOnWeb} ↗
+              </a>
               {state.sessions.length > 0 && <CopyButton text={state.sessions.join('\n')} label={t.copyAllSessions} />}
             </div>
 
@@ -98,9 +101,14 @@ export function Course({ id }: { id: number }) {
                       <span className="sessions__no">{t.sessionNo(i + 1)}</span>
                       <code className="sessions__id">{s}</code>
                       <CopyButton text={String(s)} />
-                      <a href={yanhektSessionUrl(s)} target="_blank" rel="noreferrer" className="sessions__open">
-                        {t.openOnYanhekt} ↗
-                      </a>
+                      <span className="sessions__open">
+                        <a href={yanhektSessionUrl(s)} target="_blank" rel="noreferrer">
+                          {t.openOnYanhekt} ↗
+                        </a>
+                        <a href={webSessionUrl(id, s)} target="_blank" rel="noreferrer">
+                          {t.openOnWeb} ↗
+                        </a>
+                      </span>
                     </li>
                   ))}
                 </ol>
