@@ -357,6 +357,20 @@
     <div class="advanced-setting-subsection">
       <h5>{{ $t('advanced.workarounds') }}</h5>
       <div class="setting-item">
+        <div class="setting-description">{{ $t('advanced.yanhektCourseSnapshotDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="tempYanhektCourseSnapshotSearch" />
+            {{ $t('advanced.yanhektCourseSnapshot') }}
+          </label>
+        </div>
+        <CourseSnapshotTable
+          v-model:picker-terms="tempCourseSnapshotPickerTerms"
+          :enabled="tempYanhektCourseSnapshotSearch"
+        />
+      </div>
+      <div class="workaround-separator" role="separator" />
+      <div class="setting-item">
         <div class="setting-description">{{ $t('advanced.yanhektLiveWorkaroundDescription') }}</div>
         <div class="prevent-sleep-control">
           <label class="checkbox-label">
@@ -397,6 +411,7 @@ import {
   type YanhektLiveStreamKind,
 } from '@common/yanhektLiveWorkaround'
 import { useSettingsContext } from '@features/settings/settingsContext'
+import CourseSnapshotTable from '../CourseSnapshotTable.vue'
 import {
   onYanhe2CookiesInput,
   verifyYanhe2Cookies,
@@ -446,6 +461,8 @@ const {
   tempDeveloperMode,
   tempLogYanhektCatalog,
   tempYanhektLiveWorkaround,
+  tempYanhektCourseSnapshotSearch,
+  tempCourseSnapshotPickerTerms,
   tempRememberPassword,
   tempAutoSignIn,
   tempYanhe2SignInWithMain,
@@ -522,6 +539,12 @@ function onWorkaroundSource(shown: YanhektLiveStreamKind, event: Event): void {
   background: none;
   font: inherit;
   font-size: 12px;
+}
+
+.workaround-separator {
+  /* The row above leaves 16px; the last row below adds 6px of its own. */
+  margin: 0 0 10px;
+  border-top: 1px solid var(--border-color);
 }
 
 .workaround-map {

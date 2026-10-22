@@ -20,6 +20,12 @@ export const api: ElectronAPI['api'] = {
     ipcRenderer.invoke('api:getCourseNames', courseId, token),
   getLiveSessionId: (liveId: string, token: string) =>
     ipcRenderer.invoke('api:getLiveSessionId', liveId, token),
+  getCourseDetail: (courseId: string, token: string) =>
+    ipcRenderer.invoke('api:getCourseDetail', courseId, token),
+  searchCourseSnapshot: (term: string, keyword: string, page?: number, pageSize?: number) =>
+    ipcRenderer.invoke('api:searchCourseSnapshot', term, keyword, page, pageSize),
+  listCourseSnapshotTerms: () => ipcRenderer.invoke('api:listCourseSnapshotTerms'),
+  importCourseSnapshot: () => ipcRenderer.invoke('api:importCourseSnapshot'),
   getCourseInfo: (courseId: string, token: string) =>
     ipcRenderer.invoke('api:getCourseInfo', courseId, token),
   getVideoAssets: (videoId: string, token: string) =>

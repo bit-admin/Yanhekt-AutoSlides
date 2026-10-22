@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { createLogger } from '@shared/utils/logger';
+import { refreshSnapshotTerms } from '@shared/services/courseSnapshotTerms'
 const log = createLogger('PlatformCacheManagement');
 
 export interface CacheStats {
@@ -96,6 +97,8 @@ export function useCacheManagement(): UseCacheManagementReturn {
 
     try {
       const result = await window.electronAPI.cache?.clear?.()
+      // Clear Cache also removes imported course snapshot terms.
+      void refreshSnapshotTerms()
       if (result?.success) {
         cacheOperationStatus.value = {
           type: 'success',
@@ -153,6 +156,7 @@ export function useCacheManagement(): UseCacheManagementReturn {
 
     try {
       const result = await window.electronAPI.cache?.resetAllData?.()
+      void refreshSnapshotTerms()
       if (result?.success) {
         cacheOperationStatus.value = {
           type: 'success',

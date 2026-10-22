@@ -129,9 +129,9 @@
       </div>
 
       <EmptySetState
-        v-else-if="!errorMessage && pastTermPicked"
+        v-else-if="!errorMessage && earlierTermBlocked"
         :title="$t('searchPage.earlierTermTitle')"
-        :hint="$t('searchPage.earlierTermHint')"
+        :hint="$t(earlierTermBlocked === 'off' ? 'searchPage.earlierTermHint' : 'searchPage.earlierTermMissingHint')"
       />
 
       <EmptySetState v-else-if="!errorMessage && hasSearched && results.length === 0" :title="$t('courses.noResults')" />
@@ -223,7 +223,7 @@ const {
   mode,
   availableSemesters,
   selectedSemesterIds,
-  pastTermPicked,
+  earlierTermBlocked,
   results,
   currentPage,
   totalPages,

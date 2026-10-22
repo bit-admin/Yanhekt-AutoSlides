@@ -1,8 +1,8 @@
-import { ipcMain } from 'electron';
+import { BrowserWindow, dialog, ipcMain } from 'electron';
 import type { IpcServices } from './types';
 
 export function registerApiIpcHandlers(services: IpcServices): void {
-  const { apiClient } = services;
+  const { apiClient, courseSnapshotService } = services;
 
   ipcMain.handle('api:getPersonalLiveList', async (_event, token: string, page?: number, pageSize?: number) => {
     return await apiClient.getPersonalLiveList(token, page, pageSize);
@@ -38,6 +38,31 @@ export function registerApiIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('api:getLiveSessionId', async (_event, liveId: string, token: string) => {
     return await apiClient.getLiveSessionId(liveId, token);
+  });
+
+  ipcMain.handle('api:getCourseDetail', async (_event, courseId: string, token: string) => {
+    return await apiClient.getCourseDetail(String(courseId), token);
+  });
+
+  ipcMain.handle('api:searchCourseSnapshot', async (_event, term: string, keyword: string, page?: number, pageSize?: number) => {
+    return await courseSnapshotService.search(String(term), String(keyword ?? ''), Number(page) || 1, Number(pageSize) || 16);
+  });
+
+  ipcMain.handle('api:listCourseSnapshotTerms', async () => {
+    return await courseSnapshotService.list();
+  });
+
+  // Opens the file picker here, so the renderer never hands main a path.
+  ipcMain.handle('api:importCourseSnapshot', async (event) => {
+    const owner = BrowserWindow.fromWebContents(event.sender);
+    const options: Electron.OpenDialogOptions = {
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Course snapshot', extensions: ['gz', 'json'] }],
+      title: 'Import Course Snapshot',
+    };
+    const picked = owner ? await dialog.showOpenDialog(owner, options) : await dialog.showOpenDialog(options);
+    if (picked.canceled || picked.filePaths.length === 0) return null;
+    return await courseSnapshotService.importFiles(picked.filePaths);
   });
 
   ipcMain.handle('api:getCourseInfo', async (_event, courseId: string, token: string) => {

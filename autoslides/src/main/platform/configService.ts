@@ -25,6 +25,7 @@ import {
 } from './savedLogins';
 import { YANHE2_CAPTION_OFFSET_DEFAULT, YANHE2_CAPTION_OFFSET_LIMIT, type ConnectionMode } from '@common/types';
 import { normalizeYanhektLiveWorkaround, type YanhektLiveWorkaroundConfig } from '@common/yanhektLiveWorkaround';
+import { normalizeTermKeys } from '@common/courseSnapshotTerm';
 import type {
   AIClassifierMode,
   AIFilteringConfig,
@@ -275,6 +276,8 @@ export class ConfigService {
       developerMode: this.store.get('developerMode') ?? false,
       logYanhektCatalog: this.getLogYanhektCatalog(),
       yanhektLiveWorkaround: this.getYanhektLiveWorkaround(),
+      yanhektCourseSnapshotSearch: this.store.get('yanhektCourseSnapshotSearch') ?? true,
+      courseSnapshotPickerTerms: normalizeTermKeys(this.store.get('courseSnapshotPickerTerms')),
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
       localRelayPort: this.store.get('localRelayPort') ?? 8787,
       localRelayWhitelistEnabled: this.store.get('localRelayWhitelistEnabled') ?? true,
@@ -593,6 +596,14 @@ export class ConfigService {
   setYanhektLiveWorkaround(value: unknown): void {
     const stored = normalizeYanhektLiveWorkaround(value);
     this.store.set('yanhektLiveWorkaround', stored);
+  }
+
+  setYanhektCourseSnapshotSearch(enabled: boolean): void {
+    this.store.set('yanhektCourseSnapshotSearch', enabled);
+  }
+
+  setCourseSnapshotPickerTerms(terms: unknown): void {
+    this.store.set('courseSnapshotPickerTerms', normalizeTermKeys(terms));
   }
 
   getRememberPassword(): boolean {

@@ -52,6 +52,8 @@ export interface UseAdvancedSettingsOptions {
   developerMode: Ref<boolean>
   logYanhektCatalog: Ref<boolean>
   yanhektLiveWorkaround: Ref<YanhektLiveWorkaroundConfig>
+  yanhektCourseSnapshotSearch: Ref<boolean>
+  courseSnapshotPickerTerms: Ref<string[]>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>

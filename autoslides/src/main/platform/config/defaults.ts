@@ -220,6 +220,8 @@ export const defaultConfig: AppConfig = {
   developerMode: false,
   logYanhektCatalog: false,
   yanhektLiveWorkaround: defaultYanhektLiveWorkaround(),
+  yanhektCourseSnapshotSearch: true,
+  courseSnapshotPickerTerms: [],
   localRelayEnabled: false,
   localRelayPort: 8787,
   localRelayWhitelistEnabled: true,

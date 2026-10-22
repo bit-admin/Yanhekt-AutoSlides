@@ -159,6 +159,8 @@ const advancedSettings = useAdvancedSettings(
     developerMode: settings.developerMode,
     logYanhektCatalog: settings.logYanhektCatalog,
     yanhektLiveWorkaround: settings.yanhektLiveWorkaround,
+    yanhektCourseSnapshotSearch: settings.yanhektCourseSnapshotSearch,
+    courseSnapshotPickerTerms: settings.courseSnapshotPickerTerms,
     rememberPassword: settings.rememberPassword,
     autoSignIn: settings.autoSignIn,
     yanhe2SignInWithMain: settings.yanhe2SignInWithMain,

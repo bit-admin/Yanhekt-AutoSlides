@@ -199,6 +199,18 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setYanhektCourseSnapshotSearch', async (_event, enabled: boolean) => {
+    configService.setYanhektCourseSnapshotSearch(enabled === true);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setCourseSnapshotPickerTerms', async (_event, terms: unknown) => {
+    configService.setCourseSnapshotPickerTerms(terms);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setDeveloperMode', async (_event, enabled: boolean) => {
     configService.setDeveloperMode(enabled);
     // Developer mode also turns on debug/info in the log file, no restart.

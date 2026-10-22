@@ -21,6 +21,8 @@ import {
   demoRecordedCourses,
   demoLiveCourses,
   demoCourseInfo,
+  demoCourseDetail,
+  demoCourseSnapshot,
   demoSavedSearchesLive,
   demoSavedSearchesRecorded,
   demoPinnedCourses,
@@ -67,6 +69,9 @@ const demoApiTransport: ApiTransport = {
   subscribeCourse: async () => undefined,
   unsubscribeCourse: async () => undefined,
   getCourseInfo: async (courseId: string) => demoCourseInfo(courseId),
+  getCourseDetail: async (courseId: string) => demoCourseDetail(courseId),
+  searchCourseSnapshot: async (term: string, keyword: string, page = 1, pageSize = 16) =>
+    demoCourseSnapshot(term, keyword, page, pageSize),
   // Demo lives keep their live-id names.
   getLiveSessionId: async () => null,
   // Demo ships no media, so no lecture has a mic track.

@@ -34,6 +34,8 @@ export const APP_CACHE_DIR_NAMES = [
   'lecture-posters',
   'caption-sync',
   'updates',
+  // Temporary: imported course snapshot terms (platform/courseSnapshot.ts).
+  'course-snapshot',
 ] as const;
 
 export function collectCacheRoots(

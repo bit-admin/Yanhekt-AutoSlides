@@ -4,8 +4,8 @@ import { parseUserProgress, progressBucket, resumePositionFor, type SessionWatch
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesApiClient');
 
-import type { TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
-export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
+import type { TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, CourseDetailResponse, CourseSnapshotPage, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
+export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, CourseDetailResponse, CourseSnapshotPage, CourseSnapshotRow, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
 export type { SessionWatchProgress };
 
 // The data source ApiClient delegates to. Default = the real preload bridge;
@@ -21,6 +21,9 @@ export interface ApiTransport {
   subscribeCourse(token: string, courseId: string): Promise<void>;
   unsubscribeCourse(token: string, courseId: string): Promise<void>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
+  getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse>;
+  /** Temporary: the bundled earlier-term course list. Null when the term is not in it. */
+  searchCourseSnapshot(term: string, keyword: string, page?: number, pageSize?: number): Promise<CourseSnapshotPage | null>;
   getLiveSessionId(liveId: string, token: string): Promise<string | null>;
   getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }>;
   getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo>;
@@ -39,6 +42,9 @@ const realApiTransport: ApiTransport = {
   subscribeCourse: (token, courseId) => window.electronAPI.api.subscribeCourse(token, courseId),
   unsubscribeCourse: (token, courseId) => window.electronAPI.api.unsubscribeCourse(token, courseId),
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
+  getCourseDetail: (courseId, token) => window.electronAPI.api.getCourseDetail(courseId, token),
+  searchCourseSnapshot: (term, keyword, page = 1, pageSize = 16) =>
+    window.electronAPI.api.searchCourseSnapshot(term, keyword, page, pageSize),
   getLiveSessionId: (liveId, token) => window.electronAPI.api.getLiveSessionId(liveId, token),
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
   getVideoAssets: (videoId, token) => window.electronAPI.api.getVideoAssets(videoId, token),
@@ -61,6 +67,9 @@ const realApiTransport: ApiTransport = {
 const READ_TTL_MS: Partial<Record<keyof ApiTransport, number>> = {
   getAvailableSemesters: 60 * 60 * 1000,
   getCourseInfo: 5 * 60 * 1000,
+  getCourseDetail: 5 * 60 * 1000,
+  // Local and immutable: only the paging round-trip is saved.
+  searchCourseSnapshot: 10 * 60 * 1000,
   getCourseList: 60 * 1000,
   getPersonalCourseList: 60 * 1000,
   getSubscriptionList: 60 * 1000,
@@ -326,6 +335,24 @@ export class ApiClient {
       await this.transport.reportSessionProgress(sessionId, progressBucket(seconds), token);
     } catch (error) {
       log.warn('Failed to report watch progress:', error);
+    }
+  }
+
+  async getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse> {
+    try {
+      return await this.transport.getCourseDetail(courseId, token);
+    } catch (error) {
+      log.error('Failed to get course detail:', error);
+      throw error;
+    }
+  }
+
+  async searchCourseSnapshot(term: string, keyword: string, page = 1, pageSize = 16): Promise<CourseSnapshotPage | null> {
+    try {
+      return await this.transport.searchCourseSnapshot(term, keyword, page, pageSize);
+    } catch (error) {
+      log.error('Failed to search the course snapshot:', error);
+      throw error;
     }
   }
 

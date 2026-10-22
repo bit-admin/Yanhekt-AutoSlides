@@ -8,7 +8,7 @@ import type { ConfigService } from '@main/platform/configService';
 import type { YanhektCatalogSink } from '@main/platform/yanhektCatalog';
 const log = createLogger('PlatformApiClient');
 
-import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
+import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo, CourseDetailResponse } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
 
 /** A row of the Yanhekt tag tree; `/v1/tag/semester/default` returns one. */
@@ -668,7 +668,7 @@ export class ApiClient {
    * ({@link getCourseSessions}), so a caller that has no token can still show
    * the course.
    */
-  async getCourseDetail(courseId: string, token: string): Promise<Omit<CourseInfoResponse, 'videos'>> {
+  async getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse> {
     const courseApiUrl = `https://cbiz.yanhekt.cn/v1/course?id=${courseId}&with_professor_badges=true`;
     const courseResponse = await this.makeRequest('GET', courseApiUrl, token, undefined, { allowAnonymous: true });
     const courseData = courseResponse as CourseInfoApiResponse;

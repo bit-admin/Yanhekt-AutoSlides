@@ -27,6 +27,8 @@ export interface UseSettingsReturn {
   developerMode: Ref<boolean>
   logYanhektCatalog: Ref<boolean>
   yanhektLiveWorkaround: Ref<YanhektLiveWorkaroundConfig>
+  yanhektCourseSnapshotSearch: Ref<boolean>
+  courseSnapshotPickerTerms: Ref<string[]>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
@@ -89,6 +91,8 @@ export function useSettings(): UseSettingsReturn {
   const developerMode = ref(false)
   const logYanhektCatalog = ref(false)
   const yanhektLiveWorkaround = ref<YanhektLiveWorkaroundConfig>(normalizeYanhektLiveWorkaround(undefined))
+  const yanhektCourseSnapshotSearch = ref(true)
+  const courseSnapshotPickerTerms = ref<string[]>([])
   const rememberPassword = ref(true)
   const autoSignIn = ref(true)
   const yanhe2SignInWithMain = ref(true)
@@ -137,6 +141,8 @@ export function useSettings(): UseSettingsReturn {
       developerMode.value = config.developerMode ?? false
       logYanhektCatalog.value = config.logYanhektCatalog ?? false
       yanhektLiveWorkaround.value = normalizeYanhektLiveWorkaround(config.yanhektLiveWorkaround)
+      yanhektCourseSnapshotSearch.value = config.yanhektCourseSnapshotSearch ?? true
+      courseSnapshotPickerTerms.value = [...(config.courseSnapshotPickerTerms ?? [])]
       rememberPassword.value = config.rememberPassword ?? true
       autoSignIn.value = config.autoSignIn ?? true
       yanhe2SignInWithMain.value = config.yanhe2SignInWithMain ?? true
@@ -241,6 +247,8 @@ export function useSettings(): UseSettingsReturn {
     developerMode,
     logYanhektCatalog,
     yanhektLiveWorkaround,
+    yanhektCourseSnapshotSearch,
+    courseSnapshotPickerTerms,
     rememberPassword,
     autoSignIn,
     yanhe2SignInWithMain,
