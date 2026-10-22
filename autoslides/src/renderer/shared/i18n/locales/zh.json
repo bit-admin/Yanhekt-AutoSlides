@@ -1066,7 +1066,7 @@
     "toggleRightPanel": "隐藏/显示任务面板",
     "aboutTitle": "关于 AutoSlides",
     "aboutMessage": "AutoSlides",
-    "aboutDetail": "版本 5.1.0 (5.1.0)\n\n© 2025 bit-admin. 保留所有权利。\n\n需要帮助吗？请在 GitHub 上提交 issue 或发送电子邮件至 info{'@'}ruc.edu.kg。",
+    "aboutDetail": "版本 {version} ({version})\n\n© 2025 bit-admin. 保留所有权利。\n\n需要帮助吗？请在 GitHub 上提交 issue 或发送电子邮件至 info{'@'}ruc.edu.kg。",
     "ok": "确定",
     "checkForUpdates": "检查更新…",
     "noUpdateAvailable": "没有可用更新",

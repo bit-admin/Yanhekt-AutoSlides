@@ -822,11 +822,12 @@ const openTermsAndConditions = async () => {
 const showAbout = async () => {
   closeAllMenus();
   try {
+    const version = (await window.electronAPI.app?.getVersion()) ?? '';
     await window.electronAPI.dialog?.showMessageBox?.({
       type: 'info',
       title: $t('titlebar.aboutTitle'),
       message: $t('titlebar.aboutMessage'),
-      detail: $t('titlebar.aboutDetail'),
+      detail: $t('titlebar.aboutDetail', { version }),
       buttons: [$t('titlebar.ok')]
     });
   } catch (error) {
