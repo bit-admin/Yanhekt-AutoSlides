@@ -24,8 +24,8 @@ export const NOTE_METADATA_KEY = 'autoslides';
 export const NOTE_METADATA_VERSION = 1;
 
 /**
- * Short, English-only copyright notice seeded into watch-mode (ASuser) notes.
- * ASnote imports use a compact metadata line instead (`cloudNotes.noteMeta`).
+ * Short, English-only copyright notice seeded into watch-mode (ASuser) notes
+ * and into every ASnote import, under its `cloudNotes.noteMeta` line.
  */
 export const NOTE_COPYRIGHT =
   'This file may contain copyrighted material, extracted from a recorded lecture solely for ' +

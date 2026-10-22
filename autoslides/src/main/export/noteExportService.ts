@@ -15,6 +15,12 @@ import JSZip from 'jszip';
 import { sanitizeFileName } from '@common/sanitizeFileName';
 import { resolveSystemCjkFont } from './coverFontService';
 import { createLogger } from '@main/infra/logger';
+import {
+  COPYRIGHT_KEYWORDS,
+  COPYRIGHT_LONG,
+  COPYRIGHT_SHORT,
+  COPYRIGHT_TXT,
+} from '@common/copyrightNotice';
 
 const log = createLogger('NoteExport');
 
@@ -127,7 +133,12 @@ const imageBlockUrl = (b: EJBlock): string | null => {
 
 // ── PDF ──────────────────────────────────────────────────────────────────────
 async function renderPdf(title: string, blocks: EJBlock[], outPath: string): Promise<void> {
-  const doc = new PDFDocument({ size: 'A4', margin: 50, autoFirstPage: true });
+  const doc = new PDFDocument({
+    size: 'A4',
+    margin: 50,
+    autoFirstPage: true,
+    info: { Title: title, Subject: COPYRIGHT_SHORT, Keywords: COPYRIGHT_KEYWORDS, Creator: 'AutoSlides' },
+  });
   const stream = fs.createWriteStream(outPath);
   const done = new Promise<void>((resolve, reject) => {
     stream.on('finish', () => resolve());
@@ -316,7 +327,14 @@ async function renderDocx(title: string, blocks: EJBlock[], outPath: string): Pr
     }
   }
 
-  const doc = new Document({ sections: [{ children }] });
+  const doc = new Document({
+    title,
+    subject: COPYRIGHT_SHORT,
+    keywords: COPYRIGHT_KEYWORDS,
+    description: COPYRIGHT_LONG,
+    creator: 'AutoSlides',
+    sections: [{ children }],
+  });
   const buffer = await Packer.toBuffer(doc);
   await fs.promises.writeFile(outPath, buffer);
 }
@@ -385,6 +403,7 @@ async function renderMarkdownZip(title: string, blocks: EJBlock[], outPath: stri
   }
 
   zip.file('note.md', lines.join('\n'));
+  zip.file('COPYRIGHT.txt', COPYRIGHT_TXT);
   const buffer = await zip.generateAsync({ type: 'nodebuffer' });
   await fs.promises.writeFile(outPath, buffer);
 }
@@ -395,10 +414,24 @@ const EXT: Record<NoteExportFormat, { ext: string; name: string }> = {
   markdown: { ext: 'zip', name: 'Markdown Archive' },
 };
 
+/**
+ * A note with images most likely holds lecture slides. Close it with the
+ * copyright reminder unless the note already carries one (watch-mode notes
+ * open with `NOTE_COPYRIGHT`), so the printed or shared file shows it too.
+ */
+function withCopyrightFooter(blocks: EJBlock[]): EJBlock[] {
+  if (!blocks.some((b) => imageBlockUrl(b))) return blocks;
+  const already = blocks.some(
+    (b) => b.type === 'paragraph' && /may contain copyrighted material/i.test(htmlToText(b.data?.text)),
+  );
+  if (already) return blocks;
+  return [...blocks, { type: 'delimiter', data: {} }, { type: 'paragraph', data: { text: COPYRIGHT_SHORT } }];
+}
+
 export class NoteExportService {
   /** Prompt for a destination, render the note in the chosen format, write it. */
   async export(payload: NoteExportPayload): Promise<NoteExportResult> {
-    const blocks = parseBlocks(payload.content);
+    const blocks = withCopyrightFooter(parseBlocks(payload.content));
     const cfg = EXT[payload.format];
     const safeTitle = sanitizeFileName(payload.title || 'note') || 'note';
 

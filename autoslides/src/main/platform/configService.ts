@@ -45,6 +45,7 @@ import type {
   StoredAccount
 } from './config/types';
 import { createLogger } from '@main/infra/logger';
+import { ensureCopyrightNoticeSync } from '@main/infra/copyrightNoticeFile';
 import { ensureOutputDirSync } from '@main/infra/outputDir';
 import { expandTilde } from '@main/infra/pathUtils';
 const log = createLogger('Config');
@@ -1364,6 +1365,7 @@ export class ConfigService {
     const result = ensureOutputDirSync(outputDir);
     if (result === 'unreachable') log.warn('Output directory unreachable (parent missing), not creating:', outputDir);
     else if (result === 'failed') log.error('Failed to create output directory:', outputDir);
+    else ensureCopyrightNoticeSync(outputDir);
   }
 
   private initializeTheme(): void {

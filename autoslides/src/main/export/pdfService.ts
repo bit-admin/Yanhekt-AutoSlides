@@ -16,6 +16,7 @@ import {
   type SystemCjkFont,
 } from './coverFontService';
 import { createLogger } from '@main/infra/logger';
+import { COPYRIGHT_KEYWORDS, COPYRIGHT_SHORT } from '@common/copyrightNotice';
 const log = createLogger('Pdf');
 
 export type AspectRatio = '16:9' | '4:3';
@@ -479,6 +480,10 @@ export class PdfService {
         bufferPages: false,
         info: {
           Title: 'Slides',
+          // Copyright reminder in the document properties, with or without
+          // the cover page (Copyright Notice §5.2(e)).
+          Subject: COPYRIGHT_SHORT,
+          Keywords: COPYRIGHT_KEYWORDS,
           Author: appName,
           Creator: `${appName} ${appVersion}`,
           Producer: `${appName} ${appVersion}`,
@@ -582,7 +587,7 @@ export class PdfService {
 
       pptx.author = appName;
       pptx.company = appName;
-      pptx.subject = 'Slides';
+      pptx.subject = COPYRIGHT_SHORT;
       pptx.title = 'Slides';
       pptx.defineLayout({
         name: layoutName,

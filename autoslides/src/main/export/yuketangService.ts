@@ -7,6 +7,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pdfService } from './pdfService';
 import type { FolderEntry, PdfMakeOptions } from './pdfService';
+import { withPngCopyright } from '@main/infra/pngCopyright';
+import { ensureCopyrightNotice } from '@main/infra/copyrightNoticeFile';
 
 const LESSON_API = 'https://www.yuketang.cn/api/v3/lesson-summary/student';
 const CLASS_PRESENTATION_API = 'https://www.yuketang.cn/api/v3/lesson/presentation/fetch';
@@ -105,6 +107,7 @@ export async function exportLessonSummary({
   const folderName = `slides_${lessonTitle}`;
   const lessonDir = path.join(outputDir, folderName);
   await fs.mkdir(lessonDir, { recursive: true });
+  void ensureCopyrightNotice(outputDir);
 
   // Download all presentations as images into flat folder
   for (let i = 0; i < presentations.length; i += 1) {
@@ -130,7 +133,7 @@ export async function exportLessonSummary({
       const buffer = await fetchImage(slide.cover, headers);
       const slideIndex = String(j + 1).padStart(3, '0');
       const output = path.join(lessonDir, `Slide_${presIndex}_${slideIndex}.png`);
-      await fs.writeFile(output, buffer);
+      await fs.writeFile(output, withPngCopyright(buffer));
     }
   }
 
@@ -204,6 +207,7 @@ export async function exportClassPresentation({
   const folderName = `slides_${presentationTitle}`;
   const lessonDir = path.join(outputDir, folderName);
   await fs.mkdir(lessonDir, { recursive: true });
+  void ensureCopyrightNotice(outputDir);
 
   // Download slides as images (single presentation: PP = 01)
   for (let i = 0; i < slides.length; i += 1) {
@@ -211,7 +215,7 @@ export async function exportClassPresentation({
     onProgress(`Class presentation: downloading slide ${i + 1}/${slides.length}...`);
     const buffer = await fetchImage(slide.cover, headers);
     const slideIndex = String(i + 1).padStart(3, '0');
-    await fs.writeFile(path.join(lessonDir, `Slide_01_${slideIndex}.png`), buffer);
+    await fs.writeFile(path.join(lessonDir, `Slide_01_${slideIndex}.png`), withPngCopyright(buffer));
   }
 
   // If PDF format, generate PDF from images using pdfService

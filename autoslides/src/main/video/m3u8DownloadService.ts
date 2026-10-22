@@ -11,6 +11,12 @@ import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '@common/c
 import { formatEmptyRecording, formatSegmentsMissing, isEmptyMediaPlaylist, parseRecordingProblem } from '@common/recordingProblems';
 import { createIntranetAxios, type IntranetAxiosBundle } from '@main/infra/intranetTransport';
 import { createLogger } from '@main/infra/logger';
+import { COPYRIGHT_LONG, COPYRIGHT_SHORT } from '@common/copyrightNotice';
+import { ensureCopyrightNotice } from '@main/infra/copyrightNoticeFile';
+
+/** Copyright reminder written into the MP4's copyright and comment tags on remux. */
+const COPYRIGHT_MP4_TAGS = ['-metadata', `copyright=${COPYRIGHT_SHORT}`, '-metadata', `comment=${COPYRIGHT_LONG}`];
+
 const log = createLogger('M3u8Download');
 
 export interface DownloadProgress {
@@ -305,6 +311,7 @@ class M3u8Downloader {
     // Create directory if it doesn't exist
     if (!fs.existsSync(path.dirname(this.filePath))) {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
+      void ensureCopyrightNotice(path.dirname(this.filePath));
     }
   }
 
@@ -736,6 +743,7 @@ class M3u8Downloader {
         '-i', concatFilePath,
         '-c', 'copy',
         '-bsf:a', 'aac_adtstoasc',
+        ...COPYRIGHT_MP4_TAGS,
         '-movflags', '+faststart',
         mp4FilePath
       ]);
@@ -823,6 +831,7 @@ class M3u8Downloader {
       '-allowed_extensions', 'ALL',
       '-i', m3u8FilePath,
       '-c', 'copy',
+      ...COPYRIGHT_MP4_TAGS,
       '-movflags', '+faststart',
       mp4FilePath
     ]);

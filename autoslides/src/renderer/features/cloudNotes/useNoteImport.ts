@@ -2,7 +2,7 @@ import { computed } from 'vue'
 import type { EditorJsBlock } from '@common/notesTypes'
 import { EDITORJS_DOC_VERSION, buildManagedNoteTitle } from '@common/notesTypes'
 import { parseLectureIds, type LectureIdentity } from '@common/lectureNaming'
-import { buildNoteMetadataBlock, NOTE_METADATA_VERSION } from '@common/notesContent'
+import { buildNoteMetadataBlock, NOTE_COPYRIGHT, NOTE_METADATA_VERSION } from '@common/notesContent'
 import type { NoteCloudMetadata } from '@common/notesContent'
 import type { SlideTimeline } from '@common/sidecars'
 import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
@@ -133,6 +133,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     const blocks: EditorJsBlock[] = [
       { type: 'header', data: { text: heading, level: 2 } },
       { type: 'paragraph', data: { text: texts.meta(urls.length, new Date().toLocaleDateString()) } },
+      { type: 'paragraph', data: { text: NOTE_COPYRIGHT } },
       ...urls.map((url, idx): EditorJsBlock => ({
         type: 'image',
         data: {

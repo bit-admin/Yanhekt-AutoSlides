@@ -17,6 +17,8 @@ import {
   pathExists as pathExistsHelper
 } from './slideExtraction/pathHelpers';
 import { createLogger } from '@main/infra/logger';
+import { withPngCopyright } from '@main/infra/pngCopyright';
+import { ensureCopyrightNotice } from '@main/infra/copyrightNoticeFile';
 const log = createLogger('SlideExtraction');
 
 export type { TrashEntry, TrashMetadata, CropEntry, CropRect };
@@ -65,8 +67,12 @@ export class SlideExtractionService {
         ? await this.reducePngColors(imageBuffer)
         : imageBuffer;
 
-      // Write image buffer to file
-      await fs.writeFile(filePath, finalBuffer);
+      // Write image buffer to file, with the copyright reminder as PNG text chunks.
+      await fs.writeFile(filePath, withPngCopyright(finalBuffer));
+      // Slide folders sit in the output folder; keep its COPYRIGHT.txt there.
+      if (path.basename(expandedPath).startsWith('slides_')) {
+        void ensureCopyrightNotice(path.dirname(expandedPath));
+      }
 
       log.debug(`Slide saved successfully: ${filePath}`);
     } catch (error) {
@@ -586,7 +592,7 @@ export class SlideExtractionService {
         throw new Error('Failed to crop image');
       }
 
-      await fs.writeFile(resolvedImagePath, croppedBuffer);
+      await fs.writeFile(resolvedImagePath, withPngCopyright(croppedBuffer));
 
       const updatedEntry: CropEntry = {
         filename,

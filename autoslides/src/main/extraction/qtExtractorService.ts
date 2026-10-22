@@ -7,6 +7,7 @@ import { ConfigService } from '@main/platform/configService';
 import { sharpService } from '@main/infra/sharpService';
 import { qtSupportsWriteTimeline } from '@common/qtExtractorFeatures';
 import { createLogger } from '@main/infra/logger';
+import { withPngCopyright } from '@main/infra/pngCopyright';
 const log = createLogger('QtExtractor');
 
 export interface QtExtractorStatus {
@@ -454,7 +455,7 @@ export class QtExtractorService {
         const buffer = fs.readFileSync(filePath);
         const reduced = await sharpService.reducePngColors(new Uint8Array(buffer));
         if (reduced) {
-          fs.writeFileSync(filePath, reduced);
+          fs.writeFileSync(filePath, withPngCopyright(reduced));
           processed++;
         }
       } catch (err) {

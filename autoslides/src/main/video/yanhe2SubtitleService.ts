@@ -18,6 +18,7 @@ import { lectureLabel } from '@common/lectureNaming';
 import { transcriptToSrt } from '@common/yanhe2Transcript';
 import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleResult, Yanhe2SubtitleTarget } from '@common/yanhe2Subtitles';
 import { createLogger } from '@main/infra/logger';
+import { ensureCopyrightNotice } from '@main/infra/copyrightNoticeFile';
 import { expandTilde } from '@main/infra/pathUtils';
 import type { ConfigService } from '@main/platform/configService';
 import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
@@ -76,6 +77,7 @@ export class Yanhe2SubtitleService {
     const partPath = `${filePath}.part`;
     try {
       await fs.mkdir(outputDir, { recursive: true });
+      void ensureCopyrightNotice(outputDir);
       // Whole or not at all, like the other downloads.
       await fs.writeFile(partPath, UTF8_BOM + srt, 'utf8');
       await fs.rename(partPath, filePath);

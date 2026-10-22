@@ -14,6 +14,7 @@ import path from 'node:path';
 import { dialog, shell, type BrowserWindow } from 'electron';
 import type { ConfigService } from '@main/platform/configService';
 import { createLogger } from '@main/infra/logger';
+import { withPngCopyright } from '@main/infra/pngCopyright';
 import type {
   ObsidianResult,
   ObsidianTargetInfo,
@@ -172,7 +173,7 @@ export class ObsidianNotesService {
       const notePath = target.info.notePath;
       try {
         await fs.promises.mkdir(target.slidesDir, { recursive: true });
-        await fs.promises.writeFile(imagePath, bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+        await fs.promises.writeFile(imagePath, withPngCopyright(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)));
         let size = 0;
         let tail = '';
         try {

@@ -30,13 +30,13 @@
 ---
 
 > [!CAUTION]
-> **Disclaimer**: This tool is intended strictly for personal study; users assume full legal responsibility for ensuring their usage complies with all applicable copyright laws and platform regulations. Terms and Conditions apply.
-> <br> **免责声明**：本工具严格仅供个人学习之用；用户须自行承担全部法律责任，确保其使用符合所有适用的版权法及平台规例。受条款及细则约束。
+> **Disclaimer**: AutoSlides is for personal, non-commercial study of materials you are entitled to access. Lecture recordings, slides, and other course materials remain the property of their authors, Beijing Institute of Technology, or other rights holders. **Do not redistribute, post, or sell them without permission**; doing so may infringe copyright and lead to legal liability, which you bear alone. The developer has taken reasonable efforts to remind users of this, including copyright notices in exported files. The software is provided "as is", without warranty. Use of AutoSlides is subject to the Terms and Conditions.
+> <br> **免责声明**：AutoSlides 仅供用户就其有权访问的材料作个人、非商业的学习之用。课堂录像、幻灯片及其他课程资料仍属其作者、北京理工大学或其他权利人所有。**未经许可，请勿再分发、公开发布或出售**；此等行为可能侵犯版权并引致法律责任，概由用户自行承担。开发者已采取合理措施作出提醒，包括在导出文件中加入版权提示。本软件按「现状」提供，不附带任何保证。使用 AutoSlides 须受条款及细则约束。
 >
-> <p align="center"><a href="https://learn.ruc.edu.kg/terms">Read full Terms and Conditions / 按此查阅完整条款及细则</a></p>
+> <p align="center"><a href="https://learn.ruc.edu.kg/terms">Terms and Conditions / 条款及细则</a> · <a href="https://learn.ruc.edu.kg/copyright">Copyright Notice / 版权声明</a></p>
 >
-> This tool is NOT an official application of, and is NOT affiliated with, associated with, endorsed by, or in any way connected to Beijing Institute of Technology (BIT), or any of their subsidiaries or affiliates. All product and company names are trademarks™ or registered® trademarks of their respective holders.
-> <br> 本工具**并非**北京理工大学（BIT）的官方应用程式，亦与其或其任何附属机构或关联方无任何关联、联系、获其认可或以任何方式相关。所有产品及公司名称均为其各自持有人的商标™或注册®商标。
+> This tool is NOT an official application of, and is NOT affiliated with, endorsed by, or in any way connected to Beijing Institute of Technology (BIT) or Yanhe Classroom. All product and company names are trademarks™ or registered® trademarks of their respective holders.
+> <br> 本工具**并非**北京理工大学（BIT）或延河课堂的官方应用程式，亦与其无任何关联、获其认可或以任何方式相关。所有产品及公司名称均为其各自持有人的商标™或注册®商标。
 
 ## ✨ 功能特性
 

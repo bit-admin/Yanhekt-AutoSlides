@@ -25,6 +25,7 @@ import axios from 'axios';
 import type { Yanhe2DownloadKind, Yanhe2DownloadPrepared } from '@common/yanhe2Download';
 import { createIntranetAxios } from '@main/infra/intranetTransport';
 import { createLogger } from '@main/infra/logger';
+import { ensureCopyrightNotice } from '@main/infra/copyrightNoticeFile';
 import { expandTilde } from '@main/infra/pathUtils';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
@@ -194,6 +195,7 @@ export class Yanhe2DownloadService {
   ): Promise<void> {
     const outputDir = expandTilde(this.configService.getConfig().outputDirectory);
     await fs.promises.mkdir(outputDir, { recursive: true });
+    void ensureCopyrightNotice(outputDir);
     const finalPath = path.join(outputDir, `${outputName}${extension}`);
     const partPath = path.join(outputDir, `${outputName}${partSuffix}`);
     await fs.promises.rm(partPath, { force: true });

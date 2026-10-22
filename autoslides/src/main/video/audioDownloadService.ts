@@ -21,6 +21,7 @@ import { createIntranetAxios } from '@main/infra/intranetTransport';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { createLogger } from '@main/infra/logger';
+import { ensureCopyrightNotice } from '@main/infra/copyrightNoticeFile';
 import type { DownloadProgress } from './m3u8DownloadService';
 
 const log = createLogger('AudioDownload');
@@ -71,6 +72,7 @@ export class AudioDownloadService {
     const route = this.intranetMapping.route();
 
     await fs.promises.mkdir(outputDir, { recursive: true });
+    void ensureCopyrightNotice(outputDir);
 
     const finalPath = path.join(outputDir, `${outputName}.aac`);
     const partPath = path.join(outputDir, `${outputName}${AUDIO_PART_SUFFIX}`);
