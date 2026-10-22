@@ -27,6 +27,10 @@ const config: ForgeConfig = {
     executableName: process.platform === 'linux' ? 'autoslides' : 'AutoSlides',
     appBundleId: 'com.bitadmin.autoslides',
     appCategoryType: 'public.app-category.education',
+    // `autoslides://course/<id>` and `autoslides://session/<id>` (@common/deepLink):
+    // CFBundleURLTypes in Info.plist, before the postPackage re-sign. Windows and
+    // Linux register the same scheme in electron-builder.yml.
+    protocols: [{ name: 'AutoSlides Link', schemes: ['autoslides'] }],
     extendInfo: {
       NSDownloadsFolderUsageDescription: FOLDER_USAGE,
       NSDocumentsFolderUsageDescription: FOLDER_USAGE,

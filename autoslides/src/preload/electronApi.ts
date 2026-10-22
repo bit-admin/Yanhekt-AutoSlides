@@ -33,6 +33,7 @@ import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/n
 import type { LogLevel, LogSource } from '../shared/logFormat';
 import type { CliInstallResult, CliInstallStatus } from '../shared/cliCommands';
 import type { CliControlRequest, CliControlResponse, CliDownloadUpdate } from '../shared/cliControl';
+import type { DeepLink } from '../shared/deepLink';
 import type { Yanhe2ProfileSummary, Yanhe2SessionState, Yanhe2SignInResult } from '../shared/yanhe2';
 import type {
   Yanhe2CalendarDay,
@@ -698,6 +699,13 @@ export interface ElectronAPI {
     controlReady: () => void;
     controlRespond: (response: CliControlResponse) => void;
     controlDownloadUpdate: (update: CliDownloadUpdate) => void;
+  };
+
+  /** `autoslides://` links (`@common/deepLink`), checked in main. */
+  deepLink: {
+    /** Subscribe to links; returns an unsubscribe. Then call `ready`. */
+    onOpen: (callback: (link: DeepLink) => void) => () => void;
+    ready: () => void;
   };
 
   video: {

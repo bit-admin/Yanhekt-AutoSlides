@@ -1994,5 +1994,8 @@
       "network": "Could not look up this lecture. Check your connection and try again.",
       "failed": "Slide extraction could not be started for this lecture. Try again later."
     }
+  },
+  "deepLink": {
+    "signInRequired": "Sign in to open this link. It opens a Yanhekt course or lecture, which needs your account."
   }
 }

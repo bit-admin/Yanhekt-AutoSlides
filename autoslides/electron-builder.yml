@@ -17,6 +17,15 @@ asarUnpack:
 # Native module rebuild
 npmRebuild: true
 
+# autoslides://course/<id> and autoslides://session/<id> (src/shared/deepLink.ts).
+# NSIS writes the Windows registry keys (removed on uninstall); Linux gets
+# MimeType=x-scheme-handler/autoslides in the .desktop file. macOS registers the
+# same scheme in forge.config.ts.
+protocols:
+  - name: AutoSlides Link
+    schemes:
+      - autoslides
+
 # Windows configuration
 win:
   target:

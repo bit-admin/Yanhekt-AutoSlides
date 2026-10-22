@@ -33,6 +33,7 @@ import { registerQtExtractorIpcHandlers } from './qtExtractorIpc';
 import { registerExtractorInstallerIpcHandlers } from './extractorInstallerIpc';
 import { registerLocalRelayIpcHandlers } from './localRelayIpc';
 import { registerCliIpcHandlers } from './cliIpc';
+import { registerDeepLinkIpcHandlers } from './deepLinkIpc';
 import type { IpcServices } from './types';
 
 export function registerAllIpcHandlers(services: IpcServices): void {
@@ -71,6 +72,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerQtExtractorIpcHandlers(services);
   registerExtractorInstallerIpcHandlers(services);
   registerCliIpcHandlers(services);
+  registerDeepLinkIpcHandlers(services);
 }
 
 export type { IpcServices } from './types';

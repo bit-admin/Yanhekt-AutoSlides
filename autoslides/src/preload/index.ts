@@ -11,6 +11,7 @@ import { tools, webCapture } from './tools';
 import { intranet } from './intranet';
 import { localRelay } from './localRelay';
 import { cli } from './cli';
+import { deepLink } from './deepLink';
 import { cloudNotes, notionNotes, obsidianNotes } from './notes';
 import { lectures } from './lectures';
 
@@ -26,6 +27,7 @@ const electronAPI: ElectronAPI = {
   intranet,
   localRelay,
   cli,
+  deepLink,
   video,
   compressLecture,
   download,

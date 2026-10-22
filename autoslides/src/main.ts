@@ -56,6 +56,8 @@ import { initLogFile, setLogVerbose, flushLogFile, getLogDir } from '@main/infra
 import { YanhektCatalogStore } from '@main/platform/yanhektCatalog';
 import { createLogger, setLoggerConsoleMode } from '@main/infra/logger';
 import { CliInstallService } from '@main/platform/cliInstall/cliInstallService';
+import { DeepLinkRouter } from '@main/platform/deepLinkRouter';
+import { findDeepLinkArg } from '@common/deepLink';
 import {
   APP_COMMANDS,
   CLI_EXIT,
@@ -74,7 +76,11 @@ import {
 // exits with its code. Everything GUI-only in this file is behind `!cliRun`.
 // An `autoslides` command only passes through such a process: it is sent to the
 // running app's control socket and runs there (`@main/cli/control`).
-const cliRun = parseCliInvocation(process.argv);
+//
+// A launch from an `autoslides://` link (Windows and Linux pass it in argv) is
+// never a command line run, whatever else the argv holds.
+const launchDeepLink = findDeepLinkArg(process.argv);
+const cliRun = launchDeepLink ? null : parseCliInvocation(process.argv);
 // Chromium's own session data (caches, GPU state) goes to a throwaway folder,
 // so a command can run while the app itself is open on the real one.
 let cliSessionDir: string | null = null;
@@ -266,7 +272,9 @@ app.on('ready', () => {
   createWindow();
 });
 
-app.on('second-instance', () => {
+// Restore and focus the main window, or create one. Before `ready` there is
+// nothing to show: the `ready` handler creates the window.
+const showMainWindow = (): void => {
   if (!app.isReady()) return;
   const win = mainWindowRef;
   if (!win) {
@@ -276,7 +284,28 @@ app.on('second-instance', () => {
   if (win.isMinimized()) win.restore();
   win.show();
   win.focus();
+};
+
+// `autoslides://course/<id>` and `autoslides://session/<id>` (`@common/deepLink`).
+const deepLinkRouter = new DeepLinkRouter(showMainWindow);
+
+app.on('second-instance', (_event, argv) => {
+  showMainWindow();
+  // Windows and Linux: a link clicked while the app runs starts a second
+  // instance, which quits on the lock and hands its argv over.
+  const link = findDeepLinkArg(argv);
+  if (link) deepLinkRouter.receive(link);
 });
+
+if (!cliRun) {
+  // macOS: on a cold launch this fires before `ready`, so it is registered here,
+  // at load, and the router keeps the link until the renderer is ready.
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    deepLinkRouter.receive(url);
+  });
+  if (launchDeepLink) deepLinkRouter.receive(launchDeepLink);
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -467,4 +496,5 @@ if (!cliRun) registerAllIpcHandlers({
   cliInstallService,
   cliControlServer,
   cliControlBridge,
+  deepLinkRouter,
 });

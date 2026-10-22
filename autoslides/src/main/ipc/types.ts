@@ -38,6 +38,7 @@ import type { NotionNotesService } from '@main/export/notionNotesService';
 import type { LocalRelayService } from '@main/video/localRelayService';
 import type { CliInstallService } from '@main/platform/cliInstall/cliInstallService';
 import type { CliControlServer, RendererBridge } from '@main/cli';
+import type { DeepLinkRouter } from '@main/platform/deepLinkRouter';
 import type { LocalLecturePosterService } from '@main/video/localLecturePosterService';
 
 export interface IpcServices {
@@ -86,4 +87,6 @@ export interface IpcServices {
   /** `autoslides` commands: the socket, and the renderer's side of them. */
   cliControlServer: CliControlServer;
   cliControlBridge: RendererBridge;
+  /** `autoslides://` links waiting for the renderer. */
+  deepLinkRouter: DeepLinkRouter;
 }

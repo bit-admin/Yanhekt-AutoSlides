@@ -79,6 +79,7 @@ import { rightPanelStore } from '@shared/services/rightPanelStore'
 import { TaskQueue } from '@shared/services/taskQueueService'
 import { DownloadService } from '@shared/services/downloadService'
 import { installCliControlHandler } from '@features/download/cliControlHandler'
+import { installDeepLinkHandler } from '@features/course/deepLinkHandler'
 import { PostProcessingService } from '@shared/services/postProcessingService'
 
 // Whether any long-running work is active. Drives the main-process warning shown
@@ -460,10 +461,13 @@ onMounted(() => {
 
   // `autoslides` commands: answer main once the app (and its queue) is up.
   const uninstallCliControl = installCliControlHandler()
+  // `autoslides://` links: main holds one until this says it is ready.
+  const uninstallDeepLink = installDeepLinkHandler()
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
     uninstallCliControl()
+    uninstallDeepLink()
   })
 })
 </script>
