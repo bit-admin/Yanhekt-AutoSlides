@@ -1,7 +1,7 @@
 // Temporary relabel for a Yanhekt live-server mix-up (2026-10-19).
 //
-// Each label plays whichever server response the setting points at. The
-// default is the rotation the server was doing that day:
+// Each label plays whichever server response the setting points at. Off by
+// default since 2026-10-22; its order is the rotation the server was doing that day:
 //
 //   label we show    server response
 //   Screen           Camera
@@ -12,7 +12,10 @@
 // old saved order. Recordings and Yanhe 2.0 never go through here. An identity
 // order (each label plays the server's own response) does nothing.
 
-export const YANHEKT_LIVE_WORKAROUND_VERSION = 1
+// 2 (2026-10-22): the default went off. electron-store had already written the
+// old default (on) into every install's config, so the bump is what turns those
+// off: a stored version-1 order is no longer understood and falls back to the default.
+export const YANHEKT_LIVE_WORKAROUND_VERSION = 2
 
 export type YanhektLiveStreamKind = 'camera' | 'screen' | 'room'
 
@@ -42,9 +45,9 @@ export function isLiveStreamKind(value: unknown): value is YanhektLiveStreamKind
   return typeof value === 'string' && KIND_SET.has(value)
 }
 
-/** The rotation the server was serving on 2026-10-19. On. */
+/** The rotation the server was serving on 2026-10-19. Off since 2026-10-22: turning it on applies this order. */
 export function defaultYanhektLiveWorkaround(): YanhektLiveWorkaroundConfig {
-  return { version: YANHEKT_LIVE_WORKAROUND_VERSION, enabled: true, screen: 'camera', camera: 'room', room: 'screen' }
+  return { version: YANHEKT_LIVE_WORKAROUND_VERSION, enabled: false, screen: 'camera', camera: 'room', room: 'screen' }
 }
 
 /** Each label plays the response the server gave it. */
@@ -59,12 +62,13 @@ function isPermutation(screen: unknown, camera: unknown, room: unknown): boolean
 
 /**
  * A usable order for this build. A legacy `1` is the default rotation, on, and
- * a legacy `0` is that same order switched off. Anything this build does not
- * understand becomes the default rotation, so a broken value cannot drop a stream.
+ * a legacy `0` is that same order switched off. Nothing stored, or anything this
+ * build does not understand, becomes the default: the rotation, off.
  */
 export function normalizeYanhektLiveWorkaround(value: unknown): YanhektLiveWorkaroundConfig {
   if (value === 0) return { ...defaultYanhektLiveWorkaround(), enabled: false }
-  if (value === 1 || value == null) return defaultYanhektLiveWorkaround()
+  if (value === 1) return { ...defaultYanhektLiveWorkaround(), enabled: true }
+  if (value == null) return defaultYanhektLiveWorkaround()
   if (typeof value === 'object') {
     const stored = value as Partial<YanhektLiveWorkaroundConfig>
     const { screen, camera, room } = stored

@@ -16,14 +16,14 @@ const streams = {
 
 describe('relabelYanhektLiveStreams', () => {
   it('plays each label from the server response the setting names', () => {
-    const out = relabelYanhektLiveStreams(streams, defaultYanhektLiveWorkaround())
+    const out = relabelYanhektLiveStreams(streams, { ...defaultYanhektLiveWorkaround(), enabled: true })
     expect(out.screen).toMatchObject({ type: 'screen', name: '屏幕录制', url: 'main' })
     expect(out.camera).toMatchObject({ type: 'camera', name: '课堂摄像头', url: 'room' })
     expect(out.room).toMatchObject({ type: 'room', name: '教室摄像头', url: 'vga' })
   })
 
   it('follows a custom order', () => {
-    const swapped = { version: 1, enabled: true, screen: 'room' as const, camera: 'screen' as const, room: 'camera' as const }
+    const swapped = { version: 2, enabled: true, screen: 'room' as const, camera: 'screen' as const, room: 'camera' as const }
     const out = relabelYanhektLiveStreams(streams, swapped)
     expect(out.screen?.url).toBe('room')
     expect(out.camera?.url).toBe('vga')
@@ -32,7 +32,7 @@ describe('relabelYanhektLiveStreams', () => {
 
   it('leaves a missing response missing', () => {
     const { room: _room, ...withoutRoom } = streams
-    const out = relabelYanhektLiveStreams(withoutRoom, defaultYanhektLiveWorkaround())
+    const out = relabelYanhektLiveStreams(withoutRoom, { ...defaultYanhektLiveWorkaround(), enabled: true })
     expect(out.camera).toBeUndefined()
     expect(out.screen?.url).toBe('main')
     expect(out.room?.url).toBe('vga')
@@ -65,17 +65,22 @@ describe('yanhektLiveUrlsMatchContract', () => {
 
 describe('normalizeYanhektLiveWorkaround', () => {
   it('reads the legacy number and a saved order', () => {
-    expect(normalizeYanhektLiveWorkaround(1)).toEqual(defaultYanhektLiveWorkaround())
+    expect(normalizeYanhektLiveWorkaround(1)).toEqual({ ...defaultYanhektLiveWorkaround(), enabled: true })
     expect(normalizeYanhektLiveWorkaround(0)).toEqual({ ...defaultYanhektLiveWorkaround(), enabled: false })
     expect(normalizeYanhektLiveWorkaround(undefined)).toEqual(defaultYanhektLiveWorkaround())
-    const custom = { version: 1, enabled: false, screen: 'screen' as const, camera: 'room' as const, room: 'camera' as const }
+    const custom = { version: 2, enabled: false, screen: 'screen' as const, camera: 'room' as const, room: 'camera' as const }
     expect(normalizeYanhektLiveWorkaround(custom)).toEqual(custom)
     expect(normalizeYanhektLiveWorkaround({ ...custom, enabled: undefined })).toEqual({ ...custom, enabled: true })
   })
 
   it('rejects a duplicate or a version this build does not know', () => {
-    expect(normalizeYanhektLiveWorkaround({ version: 1, screen: 'camera', camera: 'camera', room: 'room' })).toEqual(defaultYanhektLiveWorkaround())
-    expect(normalizeYanhektLiveWorkaround({ version: 2, screen: 'room', camera: 'screen', room: 'camera' })).toEqual(defaultYanhektLiveWorkaround())
+    expect(normalizeYanhektLiveWorkaround({ version: 2, screen: 'camera', camera: 'camera', room: 'room' })).toEqual(defaultYanhektLiveWorkaround())
+    expect(normalizeYanhektLiveWorkaround({ version: 3, screen: 'room', camera: 'screen', room: 'camera' })).toEqual(defaultYanhektLiveWorkaround())
+  })
+
+  it('turns off the version-1 order that electron-store wrote as the old default (on)', () => {
+    const oldDefault = { version: 1, enabled: true, screen: 'camera', camera: 'room', room: 'screen' }
+    expect(normalizeYanhektLiveWorkaround(oldDefault)).toMatchObject({ version: 2, enabled: false })
   })
 })
 
