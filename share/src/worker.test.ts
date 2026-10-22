@@ -43,6 +43,13 @@ describe('worker routing', () => {
     expect((await call('/api/search?q=x')).status).toBe(400);
     expect((await call('/api/search?q=数学', { method: 'POST' })).status).toBe(405);
     expect(await (await call('/api/search?q=数学')).json()).toMatchObject({ error: 'term-required', param: 'term' });
+    // A term outside INDEX_TERMS (here: none set at all) is refused without D1.
+    const unindexed = await call('/api/search?q=数学&term=2024-2025-1');
+    expect(unindexed.status).toBe(400);
+    expect(await unindexed.json()).toMatchObject({ error: 'term-not-indexed', param: 'term' });
+    const listed = { ...env, INDEX_TERMS: '2026-2027-1' } as Env;
+    const other = await worker.fetch(new Request('https://share.test/api/search?q=数学&term=2025-2026-1'), listed, ctx);
+    expect(await other.json()).toMatchObject({ error: 'term-not-indexed' });
     expect((await call('/api/courses/abc/sessions')).status).toBe(400);
     expect((await call('/api/courses/1/sessions', { method: 'POST' })).status).toBe(405);
     const missing = await call('/api/courses/1');

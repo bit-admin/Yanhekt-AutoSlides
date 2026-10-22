@@ -36,7 +36,7 @@ GET /api/search?q=202620271MTH1000112
 | Name | | |
 |---|---|---|
 | `q` | **required** | 2–64 characters, at most 6 words, and at least one word of 2+ characters. Empty searches are refused. |
-| `term` | **required**, except for an identifier | exactly one term key, e.g. `2026-2027-1`. Leave it out when `q` is a course id, a course link or a registrar code (8+ characters, no spaces, with a digit); only that identifier is then looked up. |
+| `term` | **required**, except for an identifier | exactly one term key, e.g. `2026-2027-1`, and one of the terms [`/api/terms`](#get-apiterms) lists. Leave it out when `q` is a course id, a course link or a registrar code (8+ characters, no spaces, with a digit); only that identifier is then looked up. |
 
 Other parameters are ignored. There is no paging: one response holds the best 200 matches, and `total` says how many there are.
 
@@ -114,6 +114,7 @@ Errors are JSON with a stable `error` code and a human `message`; parameter erro
 | 400 | `query-too-short` | fewer than 2 characters, or no word of 2+ characters |
 | 400 | `query-too-long` | over 64 characters or 6 words |
 | 400 | `term-required` | `term` missing and `q` is not a course id or registrar code |
+| 400 | `term-not-indexed` | `term` is not one of the terms `/api/terms` lists (answered without reading the database) |
 | 400 | `bad-param` | any other invalid parameter (see `param`): several terms, a malformed term, a session link, a non-numeric course id |
 | 404 | `not-found` | unknown `/api/` path, or unknown course |
 | 405 | `method-not-allowed` | not `GET` |

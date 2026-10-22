@@ -63,7 +63,6 @@ async function answer(
 
 const SESSIONS_PATH = /^\/api\/courses\/([^/]+)\/sessions$/;
 
-/** Null for paths outside `/api/`. */
 /** `GET /api/terms`: the `INDEX_TERMS` variable (newest first) and the last upload time (the data version). No D1 query of its own. */
 export function termList(env: Pick<Env, 'INDEX_TERMS'>, version: string): { updatedAt: number | null; terms: string[] } {
   const terms = [...new Set((env.INDEX_TERMS ?? '').split(',').map((t) => t.trim()))]
@@ -74,6 +73,7 @@ export function termList(env: Pick<Env, 'INDEX_TERMS'>, version: string): { upda
   return { updatedAt: Number.isFinite(updated) && updated > 0 ? updated : null, terms };
 }
 
+/** Null for paths outside `/api/`. */
 export async function routeApi(req: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response | null> {
   const { pathname } = url;
   if (pathname !== '/api' && !pathname.startsWith('/api/')) return null;
@@ -111,5 +111,9 @@ export async function routeApi(req: Request, env: Env, ctx: ExecutionContext, ur
 
   const parsed = parseSearchParams(url.searchParams);
   if (isParamError(parsed)) return json(parsed, 400);
+  // A term outside INDEX_TERMS is refused before D1 (not even the data version is read).
+  if (parsed.term !== null && !termList(env, '0').terms.includes(parsed.term)) {
+    return json({ error: 'term-not-indexed', message: `term ${parsed.term} is not in the index; see /api/terms`, param: 'term' }, 400);
+  }
   return answer(env, ctx, (v) => cacheKey(url.origin, parsed, v), async () => json(await search(env.YANHEKT_DB, parsed)));
 }

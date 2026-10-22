@@ -22,6 +22,8 @@ export function Results({ q, term, p }: { q: string; term: string | null; p: num
   const identifier = isIdentifier(q);
   // A word search needs a term; an old or hand-typed link without one gets the default.
   const needsTerm = !identifier && !term;
+  // A term the index does not hold is answered here, without asking the API (which would refuse it too).
+  const unindexed = !identifier && !!term && !!info && !info.terms.includes(term);
 
   useEffect(() => {
     document.title = t.title(q);
@@ -32,7 +34,7 @@ export function Results({ q, term, p }: { q: string; term: string | null; p: num
   }, [needsTerm, info, q]);
 
   useEffect(() => {
-    if (needsTerm) return;
+    if (needsTerm || unindexed) return;
     const ac = new AbortController();
     const started = performance.now();
     setState({ kind: 'loading' });
@@ -43,7 +45,7 @@ export function Results({ q, term, p }: { q: string; term: string | null; p: num
         setState({ kind: 'error', code: err instanceof ApiError ? err.code : 'network' });
       });
     return () => ac.abort();
-  }, [q, term, identifier, needsTerm]);
+  }, [q, term, identifier, needsTerm, unindexed]);
 
   const onSearch = (value: string) => navigate(searchHref(value, isIdentifier(value) ? null : (term ?? (info ? defaultTerm(info.terms) : null))));
 
@@ -69,13 +71,46 @@ export function Results({ q, term, p }: { q: string; term: string | null; p: num
         </nav>
       </Header>
       <main className="main">
-        {state.kind === 'loading' && <p className="stats">{t.loading}</p>}
-        {state.kind === 'error' && <p className="notice">{t.errors[state.code] ?? t.errors.internal}</p>}
-        {state.kind === 'done' && (
+        {unindexed || (state.kind === 'error' && state.code === 'term-not-indexed') ? (
+          <TermNotIndexed q={q} term={term ?? ''} terms={info?.terms ?? []} t={t} />
+        ) : (
+          <>
+            {state.kind === 'loading' && <p className="stats">{t.loading}</p>}
+            {state.kind === 'error' && <p className="notice">{t.errors[state.code] ?? t.errors.internal}</p>}
+          </>
+        )}
+        {!unindexed && state.kind === 'done' && (
           <ResultList data={state.data} ms={state.ms} q={q} term={term} identifier={identifier} p={p} tabs={tabs} t={t} num={num} />
         )}
       </main>
       <Footer info={info} />
+    </div>
+  );
+}
+
+function TermNotIndexed({ q, term, terms, t }: { q: string; term: string; terms: string[]; t: Strings }) {
+  return (
+    <div className="empty">
+      <p>{t.termNotIndexed(termLabel(t, term))}</p>
+      {terms.length > 0 && (
+        <>
+          <p>{t.suggestions}</p>
+          <ul>
+            <li>
+              {t.indexedTerms}
+              {terms.map((x, i) => (
+                <span key={x}>
+                  {i > 0 && ' · '}
+                  <a href={searchHref(q, x)} onClick={linkClick}>
+                    {termLabel(t, x)}
+                  </a>
+                </span>
+              ))}
+            </li>
+            <li>{t.suggestCoverage}</li>
+          </ul>
+        </>
+      )}
     </div>
   );
 }
