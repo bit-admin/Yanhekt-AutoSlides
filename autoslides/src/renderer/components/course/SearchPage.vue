@@ -11,6 +11,36 @@
       {{ $t(yanhe2Problem === 'network' ? 'yanhe2Calendar.errorNetwork' : 'searchPage.yanhe2ErrorFailed') }}
     </PageBanner>
     <div class="search-header">
+      <!-- Yanhekt recorded: open one course or session straight from its id or link. -->
+      <form
+        v-if="mode === 'recorded' && isLoggedIn"
+        class="open-by-id"
+        @submit.prevent="submitOpenById"
+      >
+        <select
+          v-model="openByIdKind"
+          class="select-field open-by-id-kind"
+          :aria-label="$t('searchPage.openById.kind')"
+        >
+          <option value="course">{{ $t('searchPage.openById.course') }}</option>
+          <option value="session">{{ $t('searchPage.openById.session') }}</option>
+        </select>
+        <input
+          v-model="openByIdInput"
+          class="text-input open-by-id-input"
+          type="text"
+          spellcheck="false"
+          :placeholder="$t(openByIdKind === 'course' ? 'searchPage.openById.coursePlaceholder' : 'searchPage.openById.sessionPlaceholder')"
+          :aria-label="$t(openByIdKind === 'course' ? 'searchPage.openById.coursePlaceholder' : 'searchPage.openById.sessionPlaceholder')"
+        />
+        <button
+          type="submit"
+          class="btn open-by-id-btn"
+          :disabled="openByIdBusy || !openByIdInput.trim()"
+        >
+          {{ openByIdBusy ? $t('searchPage.openById.opening') : $t('searchPage.openById.open') }}
+        </button>
+      </form>
       <!-- Yanhekt: one term at a time, the current one or an earlier one, no "All". -->
       <SemesterSelect
         v-if="mode === 'recorded'"
@@ -197,6 +227,7 @@ import { useI18n } from 'vue-i18n'
 import type { Yanhe2Course } from '@common/yanhe2Curriculum'
 import { navigationStore } from '@features/course/navigationStore'
 import { useSearchPage } from '@features/course/useSearchPage'
+import { useOpenById } from '@features/course/useOpenById'
 import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
 import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@shared/i18n/displayNames'
 import type { SemesterOption } from '@shared/services/apiClient'
@@ -235,6 +266,13 @@ const {
   setSemesters,
   selectResult
 } = useSearchPage()
+
+const {
+  kind: openByIdKind,
+  input: openByIdInput,
+  busy: openByIdBusy,
+  submit: submitOpenById,
+} = useOpenById()
 
 // Yanhe 2.0: the same sidebar keyword, searched on aita while that source is
 // the one showing.
@@ -298,6 +336,30 @@ const openYanhe2Course = (course: Yanhe2Course) => {
   background-color: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 36px;
+}
+
+/* Left of the band; the term picker and mode switch stay on the right. */
+.open-by-id {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.open-by-id-kind {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.open-by-id-input {
+  width: 180px;
+  min-width: 0;
+}
+
+.open-by-id-btn {
+  flex-shrink: 0;
+  min-height: var(--control-height);
 }
 
 /* macOS-style segmented control: gray grouped track, the active segment is a

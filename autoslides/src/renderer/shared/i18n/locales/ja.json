@@ -1636,7 +1636,18 @@
     "signInToSearch": "サインインして検索",
     "yanhe2ConnectTitle": "延河 2.0 にサインインしてコースを検索",
     "yanhe2ConnectHint": "この検索は延河 2.0 で行います。延河 2.0 は独自の 24 時間セッションを持ち、AutoSlides と同じ学内アカウントを使います。",
-    "yanhe2ErrorFailed": "延河 2.0 から検索結果を取得できませんでした。しばらくしてからお試しください。"
+    "yanhe2ErrorFailed": "延河 2.0 から検索結果を取得できませんでした。しばらくしてからお試しください。",
+    "openById": {
+      "kind": "ID の種類",
+      "course": "コース ID",
+      "session": "セッション ID",
+      "coursePlaceholder": "コース ID または URL",
+      "sessionPlaceholder": "セッション ID または URL",
+      "open": "開く",
+      "opening": "開いています…",
+      "invalid": "数字、または https://www.yanhekt.cn/session/901560 のような延河課堂のコースまたはセッションのリンクを入力してください。",
+      "sessionFailed": "セッション {id} を開けませんでした。ID と接続を確認してください。録画がまだないセッションは開けません。"
+    }
   },
   "tabs": {
     "info": "情報",

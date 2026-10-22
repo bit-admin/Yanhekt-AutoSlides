@@ -1636,7 +1636,18 @@
     "signInToSearch": "Sign In to Search",
     "yanhe2ConnectTitle": "Sign in to Yanhe 2.0 to search its courses",
     "yanhe2ConnectHint": "This search runs on Yanhe 2.0, which keeps its own 24-hour session. It uses the same campus account as AutoSlides.",
-    "yanhe2ErrorFailed": "Yanhe 2.0 did not return search results. Try again later."
+    "yanhe2ErrorFailed": "Yanhe 2.0 did not return search results. Try again later.",
+    "openById": {
+      "kind": "ID Type",
+      "course": "Course ID",
+      "session": "Session ID",
+      "coursePlaceholder": "Course ID or URL",
+      "sessionPlaceholder": "Session ID or URL",
+      "open": "Open",
+      "opening": "Opening…",
+      "invalid": "Enter a number, or a Yanhekt course or session link such as https://www.yanhekt.cn/session/901560.",
+      "sessionFailed": "Could not open session {id}. Check the ID and your connection. A session with no recording yet cannot be opened."
+    }
   },
   "tabs": {
     "info": "Info",

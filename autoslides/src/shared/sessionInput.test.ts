@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseSessionInput } from './sessionInput'
+import { parseSessionInput, parseYanhektIdInput } from './sessionInput'
 
 describe('parseSessionInput', () => {
   it('accepts a bare session id', () => {
@@ -23,5 +23,22 @@ describe('parseSessionInput', () => {
     expect(parseSessionInput('https://www.yanhekt.cn/session/90x')).toEqual({ kind: 'invalid' })
     expect(parseSessionInput('abc')).toEqual({ kind: 'invalid' })
     expect(parseSessionInput('   ')).toEqual({ kind: 'empty' })
+  })
+})
+
+describe('parseYanhektIdInput', () => {
+  it('reads a bare number as the kind the menu shows', () => {
+    expect(parseYanhektIdInput(' 0042 ', 'course')).toEqual({ kind: 'course', courseId: '42' })
+    expect(parseYanhektIdInput('42', 'session')).toEqual({ kind: 'session', sessionId: '42' })
+  })
+
+  it('lets a link say what it is, whatever the menu shows', () => {
+    expect(parseYanhektIdInput('https://www.yanhekt.cn/session/7', 'course')).toEqual({ kind: 'session', sessionId: '7' })
+    expect(parseYanhektIdInput('www.yanhekt.cn/course/9', 'session')).toEqual({ kind: 'course', courseId: '9' })
+  })
+
+  it('reports empty and invalid input', () => {
+    expect(parseYanhektIdInput('  ', 'course')).toEqual({ kind: 'empty' })
+    expect(parseYanhektIdInput('abc', 'session')).toEqual({ kind: 'invalid' })
   })
 })

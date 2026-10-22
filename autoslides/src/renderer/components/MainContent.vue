@@ -177,6 +177,7 @@ import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoo
 import { taskQueueState } from '@shared/services/taskQueueService'
 import { navigationStore } from '@features/course/navigationStore'
 import { tabStore, openPlaybackTab, yanhe2TabKey } from '@features/course/tabStore'
+import type { SessionCourse } from '@features/course/useSessionPage'
 import { configStore } from '@shared/services/configStore'
 
 type Page = 'courses' | 'sessions'
@@ -315,8 +316,10 @@ watch(
   { deep: true }
 )
 
-const handleSessionSelected = (session: any) => {
-  const course = recordedState.value.selectedCourse
+// The sessions page's merged course wins: a course opened by id alone arrives
+// as a bare stub, and the player's course title becomes folder names.
+const handleSessionSelected = (session: any, merged: SessionCourse | null) => {
+  const course = merged ?? recordedState.value.selectedCourse
   const result = openPlaybackTab({
     mode: 'recorded',
     course,

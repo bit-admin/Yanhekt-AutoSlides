@@ -35,3 +35,20 @@ export function parseSessionInput(raw: string): SessionInput {
   const id = String(Number(match[2]))
   return match[1] === 'session' ? { kind: 'session', sessionId: id } : { kind: 'course', courseId: id }
 }
+
+/** Which kind of id a bare number in the Search page's "open by id" box means. */
+export type YanhektIdKind = 'course' | 'session'
+
+/**
+ * What the user typed into the Search page's "open by id" box. A bare number
+ * is read as `preferred` (the box's Course ID / Session ID menu); a Yanhekt
+ * course or session link says what it is, whatever the menu shows.
+ */
+export function parseYanhektIdInput(raw: string, preferred: YanhektIdKind): SessionInput {
+  const text = raw.trim()
+  if (/^\d+$/.test(text)) {
+    const id = String(Number(text))
+    return preferred === 'course' ? { kind: 'course', courseId: id } : { kind: 'session', sessionId: id }
+  }
+  return parseSessionInput(text)
+}

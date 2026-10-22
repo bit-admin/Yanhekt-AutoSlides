@@ -1636,7 +1636,18 @@
     "signInToSearch": "登录后搜索",
     "yanhe2ConnectTitle": "登录延河 2.0 后搜索课程",
     "yanhe2ConnectHint": "这里搜索的是延河 2.0 的课程，它有自己的 24 小时会话，使用与 AutoSlides 相同的校园账号。",
-    "yanhe2ErrorFailed": "延河 2.0 没有返回搜索结果。请稍后重试。"
+    "yanhe2ErrorFailed": "延河 2.0 没有返回搜索结果。请稍后重试。",
+    "openById": {
+      "kind": "ID 类型",
+      "course": "课程 ID",
+      "session": "课时 ID",
+      "coursePlaceholder": "课程 ID 或链接",
+      "sessionPlaceholder": "课时 ID 或链接",
+      "open": "打开",
+      "opening": "正在打开…",
+      "invalid": "请输入数字，或延河课堂的课程、课时链接，例如 https://www.yanhekt.cn/session/901560。",
+      "sessionFailed": "无法打开课时 {id}。请检查 ID 和网络连接。尚无录像的课时无法打开。"
+    }
   },
   "tabs": {
     "info": "课程信息",

@@ -9,7 +9,9 @@
           </svg>
           {{ $t('sessions.backToCourses') }}
         </button>
-        <h2>{{ courseDisplayTitle(course) }}</h2>
+        <!-- The merged course: an id-only open (Search page id box) has no title
+             until the course detail fills it in. -->
+        <h2>{{ courseDetails ? courseDisplayTitle(courseDetails) : '' }}</h2>
         <!-- The same course's sessions on Yanhe 2.0. -->
         <button
           @click="findOnYanhe2"
@@ -257,7 +259,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  sessionSelected: [session: Session]
+  /** The session, with the merged course (a bare id until the detail fills it in). */
+  sessionSelected: [session: Session, course: SessionCourse | null]
   backToCourses: []
   switchToDownload: [downloadItemId?: string]
   switchToTask: [taskId?: string]
@@ -290,7 +293,7 @@ const {
 } = useSessionPage({
   course: toRef(() => props.course),
   t,
-  onSessionSelected: (session: Session) => emit('sessionSelected', session),
+  onSessionSelected: (session: Session) => emit('sessionSelected', session, courseDetails.value),
   onBackToCourses: () => emit('backToCourses'),
   onSwitchToDownload: (downloadItemId?: string) => emit('switchToDownload', downloadItemId),
   onSwitchToTask: (taskId?: string) => emit('switchToTask', taskId)
