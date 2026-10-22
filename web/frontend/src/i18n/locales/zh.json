@@ -246,6 +246,8 @@
     "selectOneStreamToCopy": "请先选择单一视频流再复制地址",
     "selectStream": "选择视频源",
     "sessionNotFound": "该课程中未找到此课时",
+    "sessionNoRecording": "该课时暂无录像",
+    "otherSessionsUnavailable": "未能找到该课程的其他课时",
     "signInToWatch": "登录后即可观看此课时",
     "slideExtraction": "幻灯片提取",
     "slides": "张幻灯片",

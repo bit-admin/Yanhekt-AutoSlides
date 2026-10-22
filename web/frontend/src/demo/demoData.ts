@@ -339,6 +339,29 @@ export function demoSessionRows(courseId: string) {
   return rows;
 }
 
+/** Raw payload for `/v1/course/session?session_id=` (a cold player link), or null. */
+export function demoSessionDetail(sessionId: string) {
+  for (const c of DEMO_COURSES) {
+    const row = demoSessionRows(c.id).find((r) => String(r.id) === String(sessionId));
+    if (row) {
+      const { videos, ...rest } = row;
+      return { ...rest, course_id: c.id, video_ids: videos.map((v) => v.id), user_progress: [] };
+    }
+  }
+  return null;
+}
+
+/** Raw payload for `/v1/video?id=`. Demo lectures have no mic sidecar (`audio: ""`). */
+export function demoVideo(videoId: string) {
+  for (const c of DEMO_COURSES) {
+    for (const row of demoSessionRows(c.id)) {
+      const v = row.videos.find((x) => x.id === String(videoId));
+      if (v) return { ...v, audio: "" };
+    }
+  }
+  return { id: videoId, audio: "" };
+}
+
 /** Raw payload for `/v1/course?id=` (course detail, no session list). */
 export function demoCourseDetail(courseId: string) {
   const course = findCourse(courseId) ?? DEMO_COURSES[0];

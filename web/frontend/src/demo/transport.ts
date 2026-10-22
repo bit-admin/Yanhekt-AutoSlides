@@ -89,16 +89,19 @@ function yanhekt(path: string, params: URLSearchParams, method: string): Respons
   if (path === "/v2/course/session/list" || path === "/v1/course/session/list") {
     return envelope(demo.demoSessionRows(params.get("course_id") ?? ""));
   }
-  // Classroom mic sidecar. Demo lectures have none — returning "" keeps
+  // Video detail: stream URLs for a cold player link, and the classroom mic
+  // sidecar. Demo lectures have no mic — `audio: ""` keeps
   // `hasMicAudio` false so the player never mounts an <audio> element.
-  if (path === "/v1/video") {
-    return envelope({ id: params.get("id") ?? "", audio: "" });
-  }
+  if (path === "/v1/video") return envelope(demo.demoVideo(params.get("id") ?? ""));
 
   // Watch progress. The demo has no server-side history and must not pretend
   // to write any — `[]` is exactly what Yanhekt returns for a never-watched
   // session, so the player starts at 0 whether or not the toggle is on.
-  if (path === "/v1/course/session") return envelope({ user_progress: [] });
+  // A cold player link also reads the session itself from here.
+  if (path === "/v1/course/session") {
+    const detail = demo.demoSessionDetail(params.get("session_id") ?? "");
+    return detail ? envelope(detail) : json({ code: 12121010, message: "service runtime exception", data: [] });
+  }
   if (path === "/v1/course/session/user/progress") return envelope({ success: true });
 
   if (path === "/v1/note/group/list") return envelope(demo.demoNoteGroups());

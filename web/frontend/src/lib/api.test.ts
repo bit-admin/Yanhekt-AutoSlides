@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { ttlFor } from './api';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { getSessionById, ttlFor } from './api';
 
 /**
  * GET_TTL_MS is scanned in order and the first matching prefix wins, so the
@@ -35,5 +35,63 @@ describe('ttlFor', () => {
   it('falls back to coalesce-only for unlisted paths', () => {
     expect(ttlFor('/v1/user')).toBe(0);
     expect(ttlFor('/v1/video?id=7')).toBe(0);
+  });
+});
+
+/** Answers each upstream path with a canned envelope; unknown paths fail the test. */
+function stubYanhekt(routes: Record<string, unknown>) {
+  vi.stubGlobal('fetch', async (url: string) => {
+    const path = url.replace('/api/yanhekt', '').split('?')[0] + '?' + (url.split('?')[1] ?? '');
+    const hit = Object.entries(routes).find(([prefix]) => path.startsWith(prefix));
+    if (!hit) throw new Error(`unexpected request ${url}`);
+    return new Response(JSON.stringify(hit[1]), { status: 200 });
+  });
+}
+
+describe('getSessionById', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const session = {
+    id: 801,
+    course_id: 701,
+    title: 'Week 1',
+    week_number: 1,
+    day: 3,
+    started_at: '2025-09-17 09:55:00',
+    ended_at: '2025-09-17 11:30:00',
+  };
+
+  it('builds a playable session from the session and video hops, no list', async () => {
+    stubYanhekt({
+      '/v1/course/session?session_id=801': { code: 0, data: { ...session, video_ids: [901] } },
+      '/v1/video?id=901': { code: 0, data: { id: 901, main: 'https://v/main.m3u8', vga: 'https://v/vga.m3u8', duration: '5936' } },
+    });
+    const r = await getSessionById('801', 'a'.repeat(32));
+    expect(r).toEqual({
+      kind: 'found',
+      courseId: '701',
+      session: expect.objectContaining({
+        session_id: '801',
+        video_id: '901',
+        id: '901',
+        duration: 5936,
+        main_url: 'https://v/main.m3u8',
+        vga_url: 'https://v/vga.m3u8',
+      }),
+    });
+  });
+
+  it('reports a session that does not exist as missing', async () => {
+    stubYanhekt({
+      '/v1/course/session?session_id=802': { code: 12121010, message: 'service runtime exception', data: [] },
+    });
+    expect(await getSessionById('802', 'a'.repeat(32))).toEqual({ kind: 'missing' });
+  });
+
+  it('reports a session without a video as no-recording', async () => {
+    stubYanhekt({
+      '/v1/course/session?session_id=803': { code: 0, data: { ...session, id: 803, video_ids: [] } },
+    });
+    expect(await getSessionById('803', 'a'.repeat(32))).toEqual({ kind: 'no-recording', courseId: '701' });
   });
 });

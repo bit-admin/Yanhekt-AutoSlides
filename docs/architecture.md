@@ -1276,7 +1276,7 @@ Anonymous. `id=0` is what we send (the official site sometimes sends a badge; `0
 
 #### `GET /v1/video?id=450101`
 
-Anonymous. Not on the web allowlist. Desktop calls it for the mic URL (`getVideoAssets`) and for download by session id (`getSessionDownloadInfo`, session-by-id → `video_ids[0]` → here), since session-by-id only returns `video_ids`:
+Anonymous. Desktop calls it for the mic URL (`getVideoAssets`) and for download by session id (`getSessionDownloadInfo`, session-by-id → `video_ids[0]` → here), since session-by-id only returns `video_ids`. The web calls it for the mic URL and for a cold player link (`getSessionById`, same two hops):
 
 ```json
 {
@@ -1297,7 +1297,7 @@ Anonymous. Not on the web allowlist. Desktop calls it for the mic URL (`getVideo
 }
 ```
 
-`main` = camera, `vga` = screen. Those two `.m3u8` URLs are **not** playable raw (CDN **403** until path-encrypt + query signature). Course pages take `main` / `vga` from the authenticated session **list** instead; only download-by-session-id reads them from here.
+`main` = camera, `vga` = screen. Those two `.m3u8` URLs are **not** playable raw (CDN **403** until path-encrypt + query signature). Course pages take `main` / `vga` from the authenticated session **list**; download-by-session-id and the web's cold player link (`/player/recorded/{course}/{session}` opened directly) read them from here, so such a link plays even for a course the account's list does not show. The list then only fills the player's playlist.
 
 **`audio` / `audio_origin` — classroom SubAudio sidecar.** Among the cbiz hops this repo uses, **only** `GET /v1/video` returns them. They are absent from:
 

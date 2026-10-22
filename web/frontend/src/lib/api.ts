@@ -503,11 +503,108 @@ export async function unsubscribeCourse(token: string, courseId: string): Promis
   });
 }
 
-export async function getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
+export type CourseDetail = Omit<CourseInfoResponse, "videos">;
+
+/** Course facts from `/v1/course` alone (anonymous upstream), without the session list. */
+export async function getCourseDetail(courseId: string, token: string): Promise<CourseDetail> {
   const courseData = await request<CourseInfoApiResponse["data"]>(
     `/v1/course?id=${courseId}&with_professor_badges=true`,
     token,
   );
+  const professorNames = (courseData.professors || [])
+    .map((p) => p.name?.trim())
+    .filter((n): n is string => !!n);
+  return {
+    course_id: String(courseId),
+    title: courseData.name_zh.trim(),
+    title_en: courseData.name_en?.trim() || undefined,
+    professor: professorNames[0] || "Unknown Teacher",
+    professors: professorNames,
+    college_name: courseData.college_name || courseData.college?.name,
+    school_year: courseData.school_year,
+    semester: courseData.semester,
+    image_url: courseData.image_url || courseData.college?.image_url || undefined,
+  };
+}
+
+interface SessionDetailData {
+  id: number | string;
+  course_id: number | string;
+  title: string;
+  week_number: number;
+  day: number;
+  started_at: string;
+  ended_at: string;
+  video_ids?: Array<number | string>;
+}
+
+interface VideoPlaybackData {
+  id: number | string;
+  main?: string;
+  vga?: string;
+  duration?: string;
+}
+
+/** Upstream codes for an id that does not exist: session (12121010), video (13121010). */
+const MISSING_ID = /\(code: (12121010|13121010)\)/;
+
+export type SessionLookup =
+  | { kind: "found"; courseId: string; session: SessionData }
+  | { kind: "missing" }
+  | { kind: "no-recording"; courseId: string };
+
+/**
+ * One recorded session by id, playable without the course's session list:
+ * `/v1/course/session` gives the session and its `video_ids`, `/v1/video` the
+ * stream URLs. Both are anonymous upstream, so this works for any course, not
+ * only ones the account can list. A wrong id is `missing`, not an error.
+ */
+export async function getSessionById(sessionId: string, token: string): Promise<SessionLookup> {
+  let detail: SessionDetailData;
+  try {
+    detail = await request<SessionDetailData>(
+      `/v1/course/session?session_id=${encodeURIComponent(sessionId)}&with_video=true`,
+      token,
+    );
+  } catch (error) {
+    if (error instanceof Error && MISSING_ID.test(error.message)) return { kind: "missing" };
+    throw error;
+  }
+  const courseId = String(detail.course_id);
+  const videoId = detail.video_ids?.[0];
+  if (videoId == null || videoId === "") return { kind: "no-recording", courseId };
+
+  let video: VideoPlaybackData;
+  try {
+    video = await request<VideoPlaybackData>(`/v1/video?id=${encodeURIComponent(String(videoId))}`, token);
+  } catch (error) {
+    if (error instanceof Error && MISSING_ID.test(error.message)) return { kind: "no-recording", courseId };
+    throw error;
+  }
+  if (!video?.main && !video?.vga) return { kind: "no-recording", courseId };
+
+  const realVideoId = String(video.id ?? videoId);
+  return {
+    kind: "found",
+    courseId,
+    session: {
+      session_id: String(detail.id),
+      video_id: realVideoId,
+      title: detail.title,
+      duration: video.duration ? parseInt(video.duration) : 0,
+      week_number: detail.week_number,
+      day: detail.day,
+      started_at: detail.started_at,
+      ended_at: detail.ended_at,
+      main_url: video.main || "",
+      vga_url: video.vga || "",
+      id: realVideoId,
+    },
+  };
+}
+
+export async function getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
+  const detail = await getCourseDetail(courseId, token);
   // `/v2` first; when it is empty, the `/v1` twin (same bare-array shape).
   // Since 2026-10-22 `/v2` answers `[]` even signed in.
   let videoList = await request<SessionListApiResponse["data"]>(
@@ -526,13 +623,6 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
   // watch (its own site says 暂无当前课程权限): the list carries no permission
   // code, so the two cannot be told apart here. A wrong id or a bad token is
   // a non-zero `code`, which `request` throws.
-
-  const name = courseData.name_zh.trim();
-  const nameEn = courseData.name_en?.trim() || undefined;
-  const professorNames = (courseData.professors || [])
-    .map((p) => p.name?.trim())
-    .filter((n): n is string => !!n);
-  const professor = professorNames[0] || "Unknown Teacher";
 
   const formattedVideos: SessionData[] = (videoList ?? []).map((video) => {
     const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
@@ -556,18 +646,7 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
     };
   });
 
-  return {
-    course_id: String(courseId),
-    title: name,
-    title_en: nameEn,
-    professor,
-    professors: professorNames,
-    college_name: courseData.college_name || courseData.college?.name,
-    school_year: courseData.school_year,
-    semester: courseData.semester,
-    image_url: courseData.image_url || courseData.college?.image_url || undefined,
-    videos: formattedVideos,
-  };
+  return { ...detail, videos: formattedVideos };
 }
 
 interface VideoDetailData {

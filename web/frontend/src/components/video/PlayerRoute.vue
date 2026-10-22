@@ -17,7 +17,7 @@
     </template>
 
     <template v-else-if="state === 'not-found'">
-      <p>{{ mode === 'live' ? $t('playback.streamNotFound') : $t('playback.sessionNotFound') }}</p>
+      <p>{{ mode === 'live' ? $t('playback.streamNotFound') : $t(notFoundKey) }}</p>
       <button class="btn btn--primary" @click="goToBrowse">
         {{ mode === 'live' ? $t('playback.goToLive') : $t('playback.goToCourse') }}
       </button>
@@ -39,7 +39,7 @@ import { authStore } from '../../stores/authStore'
 import { playbackStore } from '../../stores/playbackStore'
 import { takeCourse, takeSession } from '../../stores/courseTransfer'
 import { getSubscribedCourse, upgradeSubscribedCourse } from '../../composables/subscribedCourses'
-import { getCourseInfo, getLiveById, type LiveStream, type SessionData } from '../../lib/api'
+import { getCourseDetail, getLiveById, getSessionById, type LiveStream, type SessionData } from '../../lib/api'
 import { transformLiveStreamToCourse, type Course } from '../../composables/useCourseList'
 import { lookupCourseById, needsListHydration } from '../../composables/lookupCourseById'
 import { courseDisplayTitle } from '../../i18n/displayNames'
@@ -70,6 +70,7 @@ const state = ref<PlayerState>('verifying')
 const course = ref<Course | null>(null)
 const session = ref<SessionData | null>(null)
 const errorMessage = ref('')
+const notFoundKey = ref('playback.sessionNotFound')
 
 /**
  * Merge list-only fields onto a course without overwriting a live broadcast
@@ -115,12 +116,28 @@ const fillListFields = async (
 }
 
 const hydrateRecorded = async (token: string): Promise<void> => {
-  // Sessions from getCourseInfo; classrooms from list search when missing.
-  const infoPromise = getCourseInfo(courseId, token)
+  // Course facts from /v1/course and, on a cold link, the session from its own
+  // id (/v1/course/session + /v1/video). Both are anonymous upstream, so a link
+  // to any course plays, not only courses this account's session list shows.
+  // The list only fills the player's playlist (PlaybackPage), never this page.
+  const detailPromise = getCourseDetail(courseId, token)
+  const sessionPromise = !session.value && sessionId ? getSessionById(sessionId, token) : Promise.resolve(null)
   const listPromise = needsListHydration(course.value)
     ? lookupCourseById(token, courseId)
     : Promise.resolve(null)
-  const [info, listCourse] = await Promise.all([infoPromise, listPromise])
+  const [info, lookup, listCourse] = await Promise.all([detailPromise, sessionPromise, listPromise])
+
+  if (lookup) {
+    if (lookup.kind === 'missing' || lookup.courseId !== courseId) {
+      state.value = 'not-found'
+      return
+    }
+    if (lookup.kind === 'no-recording') {
+      notFoundKey.value = 'playback.sessionNoRecording'
+      state.value = 'not-found'
+      return
+    }
+  }
 
   // Mirror useSessionPage's normalization: semester arrives as a number here
   // (vs a string from the course list) and the display term derives from
@@ -170,14 +187,7 @@ const hydrateRecorded = async (token: string): Promise<void> => {
     })
   }
   course.value = merged
-  if (!session.value) {
-    const found = info.videos.find((v) => v.session_id === sessionId) ?? null
-    if (!found) {
-      state.value = 'not-found'
-      return
-    }
-    session.value = found
-  }
+  if (lookup?.kind === 'found') session.value = lookup.session
 }
 
 /**

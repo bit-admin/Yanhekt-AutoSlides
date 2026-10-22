@@ -246,6 +246,8 @@
     "selectOneStreamToCopy": "Select one stream to copy its URL",
     "selectStream": "Select Stream",
     "sessionNotFound": "Session not found in this course",
+    "sessionNoRecording": "This session has no recording yet",
+    "otherSessionsUnavailable": "Other sessions of this course could not be found",
     "signInToWatch": "Sign in to watch this lecture",
     "slideExtraction": "Slide Extraction",
     "slides": "Slides",

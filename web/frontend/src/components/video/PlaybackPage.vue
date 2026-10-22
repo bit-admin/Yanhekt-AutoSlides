@@ -645,12 +645,14 @@
         <template v-if="activeSidebarView === 'sessions'">
           <div class="playlist-header">
             <h3 class="playlist-title">{{ courseDisplayTitle(course) }}</h3>
-            <span class="playlist-subtitle">{{ $t('playback.sessionsCount', { count: siblingSessions.length }) }}</span>
+            <span v-if="siblingSessions.length > 0" class="playlist-subtitle">{{ $t('playback.sessionsCount', { count: siblingSessions.length }) }}</span>
           </div>
 
           <div v-if="isLoadingSiblings" class="playlist-loading">
             <div class="spinner spinner--sm"></div>
           </div>
+
+          <p v-else-if="siblingSessions.length === 0" class="playlist-empty">{{ $t('playback.otherSessionsUnavailable') }}</p>
 
           <div v-else class="playlist-items custom-scrollbar">
             <div
@@ -1221,7 +1223,9 @@ const playSession = (targetSession: SessionData) => {
   })
 }
 
-// Sibling fetching
+// Sibling fetching. Only the playlist needs the course's session list; playback
+// never waits on it. The list is empty for a course this account cannot list
+// (or on failure), and the playlist then says so instead of showing nothing.
 const loadSiblingSessions = async () => {
   if (props.mode !== 'recorded' || !props.course?.id) return
   const token = authStore.token.value
@@ -2298,6 +2302,14 @@ onUnmounted(async () => {
   color: var(--text-secondary);
   margin-top: 0.25rem;
   display: block;
+}
+
+.playlist-empty {
+  margin: 0;
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
 }
 
 .playlist-loading {
