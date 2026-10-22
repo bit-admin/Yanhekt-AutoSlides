@@ -1601,6 +1601,8 @@
     }
   },
   "searchPage": {
+    "earlierTermTitle": "Earlier terms are not searchable here yet",
+    "earlierTermHint": "Searching earlier terms in the desktop app is coming. Pick the current term, or search earlier terms in AutoSlides Web.",
     "semesterFall": "Fall {year}",
     "semesterSpring": "Spring {year}",
     "termRangeFall": "{range} Fall",

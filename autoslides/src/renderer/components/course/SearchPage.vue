@@ -11,8 +11,11 @@
       {{ $t(yanhe2Problem === 'network' ? 'yanhe2Calendar.errorNetwork' : 'searchPage.yanhe2ErrorFailed') }}
     </PageBanner>
     <div class="search-header">
+      <!-- Yanhekt: one term at a time, the current one or an earlier one, no "All". -->
       <SemesterSelect
         v-if="mode === 'recorded'"
+        single
+        :allow-all="false"
         :semesters="availableSemesters"
         :model-value="selectedSemesterIds"
         @update:model-value="setSemesters"
@@ -125,6 +128,12 @@
         <p>{{ $t('courses.loading') }}</p>
       </div>
 
+      <EmptySetState
+        v-else-if="!errorMessage && pastTermPicked"
+        :title="$t('searchPage.earlierTermTitle')"
+        :hint="$t('searchPage.earlierTermHint')"
+      />
+
       <EmptySetState v-else-if="!errorMessage && hasSearched && results.length === 0" :title="$t('courses.noResults')" />
 
       <div v-else-if="!errorMessage" class="courses-grid custom-scrollbar">
@@ -214,6 +223,7 @@ const {
   mode,
   availableSemesters,
   selectedSemesterIds,
+  pastTermPicked,
   results,
   currentPage,
   totalPages,

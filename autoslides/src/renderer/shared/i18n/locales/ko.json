@@ -1601,6 +1601,8 @@
     }
   },
   "searchPage": {
+    "earlierTermTitle": "이전 학기는 아직 여기에서 검색할 수 없습니다",
+    "earlierTermHint": "데스크톱 앱에서 이전 학기 검색은 준비 중입니다. 현재 학기를 선택하거나 AutoSlides Web에서 이전 학기를 검색하세요.",
     "semesterFall": "{year}년 가을학기",
     "semesterSpring": "{year}년 봄학기",
     "termRangeFall": "{range} 가을학기",

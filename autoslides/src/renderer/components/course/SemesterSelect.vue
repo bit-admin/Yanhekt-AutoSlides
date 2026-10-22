@@ -14,7 +14,7 @@
     </button>
 
     <div v-if="isOpen" class="semester-menu custom-scrollbar">
-      <div class="semester-group">
+      <div v-if="allowAll" class="semester-group">
         <button
           class="semester-option semester-option--all"
           :class="{ active: isAllSelected }"
@@ -50,14 +50,15 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { SemesterOption } from '@shared/services/apiClient'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   semesters: SemesterOption[]
   // Selected semester ids; an empty array means "all semesters".
   modelValue: number[]
-  // One semester at a time (Yanhe 2.0 filters by a single term): a pick
-  // replaces the selection and closes the menu.
+  // One semester at a time: a pick replaces the selection and closes the menu.
   single?: boolean
-}>()
+  // Offer "All semesters" (Yanhe 2.0 does; Yanhekt searches one term at a time).
+  allowAll?: boolean
+}>(), { single: false, allowAll: true })
 
 const emit = defineEmits<{
   (e: 'update:modelValue', ids: number[]): void

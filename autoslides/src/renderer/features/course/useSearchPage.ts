@@ -27,12 +27,49 @@ const keyword = ref('')
 export type SearchMode = 'live' | 'recorded' | 'yanhe2'
 const mode = ref<SearchMode>('recorded')
 const availableSemesters = ref<SemesterOption[]>([])
-// Selected semester ids; an empty array means "all semesters" (no filter — the
-// backend's `semesters[]` param is simply omitted). `semesterInitialized`
-// distinguishes the not-yet-defaulted startup state from a deliberate
-// empty/"all" selection so we only auto-pick the latest semester once.
+// The one term searched, as a one-element array (the picker's shape). There is
+// no "all semesters" search on Yanhekt any more (Yanhe 2.0 keeps its own).
+// `semesterInitialized` keeps the auto-pick of the current term to the first time.
 const selectedSemesterIds = ref<number[]>([])
 const semesterInitialized = ref(false)
+/** True while an earlier term is picked: those are not searchable here yet. */
+const pastTermPicked = ref(false)
+
+/**
+ * The oldest term the picker offers: autumn 2023, when this year's
+ * fourth-year students started. The course index does not go further back.
+ */
+const FIRST_TERM = { schoolYear: 2023, semester: 1 } as const
+
+/**
+ * Earlier terms have no Yanhekt tag id (Yanhekt only names the current one), so
+ * they get a negative picker id, `-(schoolYear * 10 + semester)`. A positive id
+ * is the current term's Yanhekt tag id.
+ */
+const isEarlierTerm = (id: number): boolean => id < 0
+
+/** The current term, then every earlier term back to FIRST_TERM, newest first. */
+const termsThrough = (current: SemesterOption): SemesterOption[] => {
+  const out = [current]
+  let { schoolYear, semester } = current
+  if (!schoolYear) return out
+  for (;;) {
+    if (semester === 2) semester = 1
+    else {
+      schoolYear -= 1
+      semester = 2
+    }
+    if (schoolYear < FIRST_TERM.schoolYear || (schoolYear === FIRST_TERM.schoolYear && semester < FIRST_TERM.semester)) break
+    out.push({
+      id: -(schoolYear * 10 + semester),
+      label: `${schoolYear}-${schoolYear + 1} ${semester === 1 ? '第一学期' : '第二学期'}`,
+      labelEn: semester === 1 ? `${schoolYear} Fall` : `${schoolYear + 1} Spring`,
+      schoolYear,
+      semester,
+    })
+  }
+  return out
+}
 const results = ref<Course[]>([])
 
 // Results persist across navigation, so a language switch has to fill in the
@@ -60,7 +97,9 @@ const cancelPendingSearch = () => {
 const ensureSemesters = async () => {
   if (availableSemesters.value.length > 0) return
   try {
-    availableSemesters.value = await apiClient.getAvailableSemesters()
+    // Yanhekt names only the current term; earlier ones are listed from it.
+    const [current] = await apiClient.getAvailableSemesters()
+    availableSemesters.value = current ? termsThrough(current) : []
   } catch (error) {
     log.error('Failed to load available semesters:', error)
   }
@@ -94,9 +133,24 @@ const executeSearch = async (resetPage = true) => {
   }
 
   const seq = ++requestSeq
-  isLoading.value = true
   errorMessage.value = ''
   hasSearched.value = true
+  pastTermPicked.value = false
+
+  // TODO(index): search an earlier term on the course index (share `/api/search`,
+  // as the web app does through its Worker). Until then an earlier term only
+  // says it cannot be searched here yet.
+  if (mode.value === 'recorded' && selectedSemesterIds.value.some(isEarlierTerm)) {
+    // `seq` above already made any in-flight search stale.
+    results.value = []
+    totalPages.value = 1
+    currentPage.value = 1
+    isLoading.value = false
+    pastTermPicked.value = true
+    return
+  }
+
+  isLoading.value = true
 
   try {
     if (mode.value === 'live') {
@@ -158,16 +212,14 @@ const setMode = async (m: SearchMode) => {
 }
 
 /**
- * Semester checkboxes emit one change per click, so firing a search per toggle
- * put one course-list request on the wire for every box the user touched — the
- * `requestSeq` guard dropped the stale *results*, but the requests had already
- * been sent. Debounce so picking four semesters costs one search.
+ * One term at a time. Debounced so flicking through terms costs one search.
  *
  * Reuses `debounceTimer` (and so `cancelPendingSearch`) rather than adding a
- * second timer, so a keystroke and a semester toggle cannot both be pending.
+ * second timer, so a keystroke and a term change cannot both be pending.
  */
 const setSemesters = (ids: number[]) => {
-  selectedSemesterIds.value = ids
+  if (ids.length === 0) return
+  selectedSemesterIds.value = ids.slice(0, 1)
   semesterInitialized.value = true
   cancelPendingSearch()
   debounceTimer = setTimeout(() => {
@@ -217,6 +269,7 @@ export function useSearchPage() {
     mode,
     availableSemesters,
     selectedSemesterIds,
+    pastTermPicked,
     results,
     currentPage,
     totalPages,

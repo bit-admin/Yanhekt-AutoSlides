@@ -1601,6 +1601,8 @@
     }
   },
   "searchPage": {
+    "earlierTermTitle": "過去の学期はまだここで検索できません",
+    "earlierTermHint": "デスクトップ版での過去の学期の検索は準備中です。現在の学期を選ぶか、AutoSlides Web で過去の学期を検索してください。",
     "semesterFall": "{year}年秋学期",
     "semesterSpring": "{year}年春学期",
     "termRangeFall": "{range} 秋学期",

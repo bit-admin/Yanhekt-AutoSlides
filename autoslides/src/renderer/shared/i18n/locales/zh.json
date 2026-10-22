@@ -1601,6 +1601,8 @@
     }
   },
   "searchPage": {
+    "earlierTermTitle": "暂不能在这里搜索往期学期",
+    "earlierTermHint": "桌面端搜索往期学期的功能即将推出。请选择当前学期，或在 AutoSlides Web 中搜索往期学期。",
     "semesterFall": "{year}年秋季学期",
     "semesterSpring": "{year}年春季学期",
     "termRangeFall": "{range} 秋季学期",
