@@ -37,8 +37,6 @@ const totalPages = ref(1);
 const isLoading = ref(false);
 const errorMessage = ref("");
 const hasSearched = ref(false);
-/** True when the latest recorded page carried `served_from_cache`. Search UI only. */
-const servedFromCache = ref(false);
 
 /** Settle time for semester checkbox runs — shorter than typing, still enough
  *  to absorb a burst of clicks. */
@@ -109,7 +107,6 @@ const executeSearch = async (resetPage = true) => {
 
   if (resetPage) {
     currentPage.value = 1;
-    servedFromCache.value = false;
   }
 
   lastExecutedKey = searchKey(mode.value, keyword.value);
@@ -133,8 +130,7 @@ const executeSearch = async (resetPage = true) => {
       }
       totalPages.value = response.last_page;
       currentPage.value = response.current_page;
-      servedFromCache.value = false;
-    } else if (isIndexTerm()) {
+      } else if (isIndexTerm()) {
       // The Index answers every match at once; pages of RESULTS_PER_PAGE are cut
       // here so each card's Yanhekt reads happen only once it is shown.
       if (resetPage) {
@@ -147,8 +143,7 @@ const executeSearch = async (resetPage = true) => {
       const start = (currentPage.value - 1) * RESULTS_PER_PAGE;
       const page = indexMatches.slice(start, start + RESULTS_PER_PAGE).map(indexCourseToCourse);
       results.value = resetPage ? page : [...results.value, ...page];
-      servedFromCache.value = false;
-      void fillIndexCourses(page.map((c) => c.id), token, indexGeneration);
+        void fillIndexCourses(page.map((c) => c.id), token, indexGeneration);
     } else {
       const tagId = availableSemesters.value.find((s) => s.key === selectedTerm.value)?.tagId;
       const response = await getCourseList(token, {
@@ -166,7 +161,6 @@ const executeSearch = async (resetPage = true) => {
       }
       totalPages.value = response.last_page;
       currentPage.value = response.current_page;
-      servedFromCache.value = response.served_from_cache === true;
     }
   } catch (error: unknown) {
     if (seq !== requestSeq) return;
@@ -415,7 +409,6 @@ export function useSearchPage() {
     isLoading,
     errorMessage,
     hasSearched,
-    servedFromCache,
     executeSearch,
     loadMore,
     setMode,
