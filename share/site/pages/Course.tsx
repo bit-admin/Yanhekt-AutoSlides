@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ApiError, courseSessions, search, webCourseUrl, webSessionUrl, yanhektCourseUrl, yanhektSessionUrl, type CourseResult } from '../api';
+import { ApiError, appCourseUrl, appSessionUrl, courseSessions, search, webCourseUrl, webSessionUrl, yanhektCourseUrl, yanhektSessionUrl, type CourseResult } from '../api';
+import { AppLink, AppMissingHint, useAppLaunch } from '../components/AppLink';
 import { CopyButton, Footer, Header, useTerms } from '../components/Chrome';
 import { termLabel, useNumber, useT } from '../i18n';
 import { isIdentifier } from '../query';
@@ -17,6 +18,7 @@ export function Course({ id }: { id: number }) {
   const num = useNumber();
   const info = useTerms();
   const [state, setState] = useState<State>({ kind: 'loading' });
+  const app = useAppLaunch();
 
   useEffect(() => {
     const ac = new AbortController();
@@ -61,8 +63,9 @@ export function Course({ id }: { id: number }) {
               <a className="pill" href={webCourseUrl(id)} target="_blank" rel="noreferrer">
                 {t.openOnWeb} ↗
               </a>
-              {state.sessions.length > 0 && <CopyButton text={state.sessions.join('\n')} label={t.copyAllSessions} />}
+              <AppLink className="pill" href={appCourseUrl(id)} onLaunch={() => app.watch('course')} />
             </div>
+            {app.missing === 'course' && <AppMissingHint />}
 
             <dl className="facts">
               <dt>{t.courseId}</dt>
@@ -97,18 +100,21 @@ export function Course({ id }: { id: number }) {
               ) : (
                 <ol className="sessions__list">
                   {state.sessions.map((s, i) => (
-                    <li key={s}>
+                    <li key={s} className={app.missing === `session:${s}` ? 'has-hint' : undefined}>
                       <span className="sessions__no">{t.sessionNo(i + 1)}</span>
                       <code className="sessions__id">{s}</code>
                       <CopyButton text={String(s)} />
                       <span className="sessions__open">
-                        <a href={yanhektSessionUrl(s)} target="_blank" rel="noreferrer">
-                          {t.openOnYanhekt} ↗
+                        {/* Short labels so the three fit on one line; the header pills spell them out. */}
+                        <a href={yanhektSessionUrl(s)} target="_blank" rel="noreferrer" title={t.openOnYanhekt}>
+                          {t.rowYanhekt} ↗
                         </a>
-                        <a href={webSessionUrl(id, s)} target="_blank" rel="noreferrer">
-                          {t.openOnWeb} ↗
+                        <a href={webSessionUrl(id, s)} target="_blank" rel="noreferrer" title={t.openOnWeb}>
+                          {t.rowWeb} ↗
                         </a>
+                        <AppLink short href={appSessionUrl(s)} onLaunch={() => app.watch(`session:${s}`)} />
                       </span>
+                      {app.missing === `session:${s}` && <AppMissingHint className="sessions__hint" />}
                     </li>
                   ))}
                 </ol>

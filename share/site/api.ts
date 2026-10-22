@@ -92,3 +92,9 @@ export const yanhektSessionUrl = (id: number) => `https://www.yanhekt.cn/session
 const WEB = 'https://learn.ruc.edu.kg';
 export const webCourseUrl = (id: number) => `${WEB}/recorded/${id}`;
 export const webSessionUrl = (courseId: number, sessionId: number) => `${WEB}/player/recorded/${courseId}/${sessionId}`;
+/** Where to get the desktop app. */
+export const APPS_URL = `${WEB}/apps`;
+
+/** AutoSlides Desktop links (autoslides/src/shared/deepLink.ts), from 5.2.0. */
+export const appCourseUrl = (id: number) => `autoslides://course/${id}`;
+export const appSessionUrl = (id: number) => `autoslides://session/${id}`;

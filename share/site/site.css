@@ -642,9 +642,23 @@ button {
   margin-left: auto;
   font-size: 13px;
   display: flex;
-  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 2px 16px;
+  white-space: nowrap;
+}
+/* "Nothing opened?" under an Open in AutoSlides Desktop link (components/AppLink.tsx). */
+.app-hint {
+  margin: 4px 0 8px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+.sessions__list li.has-hint {
+  flex-wrap: wrap;
+}
+.sessions__hint {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: right;
 }
 
 /* Footer ------------------------------------------------------------ */
@@ -718,5 +732,8 @@ button {
   .sessions__list li {
     flex-wrap: wrap;
     gap: 6px 10px;
+  }
+  .sessions__open {
+    flex-wrap: wrap;
   }
 }
