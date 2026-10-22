@@ -6,8 +6,9 @@
   "description": "AutoSlides share viewer (v1) + Index API over the yanhekt-index D1 database — Cloudflare Worker.",
   "scripts": {
     "dev": "vite",
+    "dev:site": "vite -c vite.site.config.ts",
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && vite build && node -e \"require('node:fs').cpSync('public', 'dist', { recursive: true })\" && npm run build:demo",
+    "build": "npm run clean && vite build && vite build -c vite.site.config.ts && node -e \"require('node:fs').cpSync('public', 'dist', { recursive: true })\" && npm run build:demo",
     "build:demo": "vite build -c vite.demo-v1.config.ts",
     "demo": "vite -c vite.demo-v1.config.ts",
     "screenshots": "node scripts/screenshots.mjs",

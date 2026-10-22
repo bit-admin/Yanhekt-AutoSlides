@@ -18,7 +18,9 @@
   },
   "include": [
     "src",
+    "site",
     "demo",
+    "vite.site.config.ts",
     "vite.demo-v1.config.ts",
     "../autoslides/src/shared/shareLink.ts",
     "../autoslides/src/shared/shareTimeline.ts",

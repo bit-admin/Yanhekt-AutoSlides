@@ -10,7 +10,7 @@
 
 import { cached, json, type D1Database, type Env, type ExecutionContext } from '../lib/runtime';
 import { courseSessions, search } from './search';
-import { cacheKey, isParamError, parseSearchParams } from './searchParams';
+import { cacheKey, isParamError, parseSearchParams, TERM_KEY } from './searchParams';
 
 /** Edge: until the next upload (keys change then); a week bounds orphaned entries. */
 const EDGE_TTL = 7 * 24 * 3600;
@@ -64,16 +64,38 @@ async function answer(
 const SESSIONS_PATH = /^\/api\/courses\/([^/]+)\/sessions$/;
 
 /** Null for paths outside `/api/`. */
+/** `GET /api/terms`: the `INDEX_TERMS` variable (newest first) and the last upload time (the data version). No D1 query of its own. */
+export function termList(env: Pick<Env, 'INDEX_TERMS'>, version: string): { updatedAt: number | null; terms: string[] } {
+  const terms = [...new Set((env.INDEX_TERMS ?? '').split(',').map((t) => t.trim()))]
+    .filter((t) => TERM_KEY.test(t))
+    .sort()
+    .reverse();
+  const updated = Number(version);
+  return { updatedAt: Number.isFinite(updated) && updated > 0 ? updated : null, terms };
+}
+
 export async function routeApi(req: Request, env: Env, ctx: ExecutionContext, url: URL): Promise<Response | null> {
   const { pathname } = url;
   if (pathname !== '/api' && !pathname.startsWith('/api/')) return null;
 
   const sessions = SESSIONS_PATH.exec(pathname);
-  if (pathname !== '/api/search' && !sessions) {
+  if (pathname !== '/api/search' && pathname !== '/api/terms' && !sessions) {
     return json({ error: 'not-found', message: `no such endpoint: ${pathname}` }, 404);
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     return json({ error: 'method-not-allowed', message: 'use GET' }, 405);
+  }
+
+  if (pathname === '/api/terms') {
+    let v: string;
+    try {
+      v = await dataVersion(env.YANHEKT_DB);
+    } catch {
+      v = '0';
+    }
+    const res = json(termList(env, v));
+    res.headers.set('Cache-Control', `public, max-age=${BROWSER_TTL}`);
+    return res;
   }
 
   if (sessions) {

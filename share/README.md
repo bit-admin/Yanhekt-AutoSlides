@@ -109,13 +109,14 @@
 
 ## 🛠 开发
 
-本目录是一个 Cloudflare Worker，外加 v1 幻灯片分享页（React + Vite）。Worker 负责 v1 的 KV 短链接与延河课堂元数据代理，以及读取 D1 `yanhekt-index` 的课程索引接口（`src/api/`，见 [`docs/api.md`](docs/api.md)）。
+本目录是一个 Cloudflare Worker，外加两个 React + Vite 静态前端：根路径 `/` 的课程索引站（`site/`），和 v1 幻灯片分享页。Worker 负责 v1 的 KV 短链接与延河课堂元数据代理，以及读取 D1 `yanhekt-index` 的课程索引接口（`src/api/`，见 [`docs/api.md`](docs/api.md)）。索引站只读这个接口，不向延河课堂请求数据；`/` 与 `/assets/*` 由静态资源层直接返回，`/search`、`/course/{id}` 由 Worker 返回同一个页面。
 
 ```sh
 npm install
 cp wrangler.example.jsonc wrangler.jsonc   # 填入你自己的 KV / D1 id 与自定义域名
-npm run build        # 构建 dist/v1（分享页）与 dist/demo/v1（演示站）
+npm run build        # 构建 dist/（索引站）、dist/v1（分享页）与 dist/demo/v1（演示站）
 npm run dev          # vite dev，只跑分享页
+npm run dev:site     # vite dev，只跑索引站；/api 转发到本地 wrangler dev（8787），或 INDEX_API=…
 npm run demo         # vite dev，只跑分享页演示站
 npm run preview      # wrangler dev：Worker + 静态资源 + 本地 KV/D1
 npm run screenshots  # Playwright 驱动演示站重新生成 docs/viewer.png（需要 magick）

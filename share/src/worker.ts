@@ -13,10 +13,12 @@
  *     GET  /v1/s/<id>                     -> the /v1 SPA shell
  *
  *   Index API (reads the `yanhekt-index` D1 database; see api/ and docs/api.md):
- *     GET  /api/search?q=…
+ *     GET  /api/search?q=…, /api/terms, /api/courses/{id}/sessions
  *
- *   Retired: the old AutoSlides Index. /v2/api/* answers 503, and / shows a
- *   placeholder until the new Index site exists.
+ *   Index site (site/, a static React app at /): /search and /course/{id}
+ *   get its shell; `/` and /assets/* are plain assets.
+ *
+ *   Retired: the old AutoSlides Index. /v2/api/* answers 503.
  */
 
 import { decodeSharePayload } from '../../autoslides/src/shared/shareLink';
@@ -87,21 +89,8 @@ const RETIRED_V2 = {
   message: 'The old AutoSlides Index has been retired. A new Index is being built at /api.',
 };
 
-const PLACEHOLDER = `<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex">
-<title>AutoSlides Index</title>
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-</head>
-<body style="font:16px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;max-width:32rem;margin:20vh auto;padding:0 16px">
-<p>公共索引正在重建，敬请期待。分享链接（/v1/）照常可用。</p>
-<p>The Index is being rebuilt. Shared slide links (/v1/) still work.</p>
-</body>
-</html>
-`;
+/** Index site pages (client-routed): served the site's shell, a static asset. */
+const SITE_PAGE = /^\/(search|course\/\d{1,12})\/?$/;
 
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -118,11 +107,10 @@ export default {
     if (pathname.startsWith('/v2/')) {
       return json(RETIRED_V2, 503);
     }
-    if (pathname === '/' || pathname === '/index.html') {
-      return new Response(PLACEHOLDER, {
-        status: 503,
-        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
-      });
+    // The Index site: `/` itself is a static asset (dist/index.html) and never
+    // reaches the Worker; its other pages get the same shell.
+    if (SITE_PAGE.test(pathname) && (req.method === 'GET' || req.method === 'HEAD')) {
+      return env.ASSETS.fetch(new Request(`${origin}/`, req));
     }
 
     if (pathname === '/v1/api/shorten' && req.method === 'POST') {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import worker from './worker';
 import type { Env, ExecutionContext } from './lib/runtime';
-import { dataVersion, forgetDataVersion } from './api/router';
+import { dataVersion, forgetDataVersion, termList } from './api/router';
 import { setDataVersion, testDb } from './api/testDb';
 
 const env = {
@@ -27,12 +27,15 @@ describe('worker routing', () => {
     expect((await call('/v2/api/publish', { method: 'POST', body: '{}' })).status).toBe(503);
   });
 
-  it('shows a placeholder at / until the new Index site exists', async () => {
-    for (const path of ['/', '/?c=1&s=2']) {
-      const res = await call(path);
-      expect(res.status).toBe(503);
-      expect(res.headers.get('Content-Type')).toContain('text/html');
+  it('serves the Index site shell for its client-routed pages', async () => {
+    const seen: string[] = [];
+    const siteEnv = { ...env, ASSETS: { fetch: async (r: Request) => (seen.push(new URL(r.url).pathname), new Response('shell')) } } as Env;
+    for (const path of ['/search?q=x&term=2026-2027-1', '/course/12345', '/course/12345/']) {
+      const res = await worker.fetch(new Request(`https://share.test${path}`), siteEnv, ctx);
+      expect(await res.text()).toBe('shell');
     }
+    expect(seen).toEqual(['/', '/', '/']);
+    expect(await (await call('/course/abc')).text()).toBe('asset');
   });
 
   it('rejects bad /api requests before touching D1', async () => {
@@ -61,6 +64,23 @@ describe('data version', () => {
     setDataVersion(db, 8);
     expect(await dataVersion(db, 59_000)).toBe('7');
     expect(await dataVersion(db, 61_000)).toBe('8');
+    forgetDataVersion();
+  });
+});
+
+describe('term list', () => {
+  it('comes from INDEX_TERMS, newest first, with the data version as the update time', () => {
+    expect(termList({ INDEX_TERMS: ' 2025-2026-1, 2026-2027-1,bogus,,2025-2026-2,2026-2027-1' }, '1760000000000')).toEqual({
+      updatedAt: 1_760_000_000_000,
+      terms: ['2026-2027-1', '2025-2026-2', '2025-2026-1'],
+    });
+    expect(termList({}, '0')).toEqual({ updatedAt: null, terms: [] });
+  });
+
+  it('is answered without D1 when the data version cannot be read', async () => {
+    forgetDataVersion();
+    const res = await worker.fetch(new Request('https://share.test/api/terms'), { ...env, INDEX_TERMS: '2026-2027-1' } as Env, ctx);
+    expect(await res.json()).toEqual({ updatedAt: null, terms: ['2026-2027-1'] });
     forgetDataVersion();
   });
 });

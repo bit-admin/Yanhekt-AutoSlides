@@ -1,37 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AutoSlides Index">
-  <!--
-    The Index wordmark mark (U+25A6 ▦) at its true 4×4 orthogonal-crosshatch
-    proportions, centred on a blank field — the way the AutoSlides web favicon
-    pads its play mark rather than reshaping it. The waffle spans 81% of the
-    canvas: enough white to still read as a framed card, without the margin
-    swallowing the 16 cells at favicon sizes.
-
-    Corners are rounded and the area outside them is transparent, so flattening
-    this file onto white yields the square, opaque canvas iOS wants for
-    apple-touch-icon; 32/48/180/192/512 render straight from it. The 16px ICO
-    layer is a pixel-hinted sibling (full-bleed tile, 1px holes) so all 16
-    cells survive a tab favicon.
-  -->
-  <rect width="64" height="64" rx="14" fill="#FFFFFF"/>
-  <g transform="translate(6 6)">
-    <rect width="52" height="52" fill="#3B6FE0"/>
-    <g fill="#FFFFFF">
-      <rect x="4" y="4" width="8" height="8"/>
-      <rect x="16" y="4" width="8" height="8"/>
-      <rect x="28" y="4" width="8" height="8"/>
-      <rect x="40" y="4" width="8" height="8"/>
-      <rect x="4" y="16" width="8" height="8"/>
-      <rect x="16" y="16" width="8" height="8"/>
-      <rect x="28" y="16" width="8" height="8"/>
-      <rect x="40" y="16" width="8" height="8"/>
-      <rect x="4" y="28" width="8" height="8"/>
-      <rect x="16" y="28" width="8" height="8"/>
-      <rect x="28" y="28" width="8" height="8"/>
-      <rect x="40" y="28" width="8" height="8"/>
-      <rect x="4" y="40" width="8" height="8"/>
-      <rect x="16" y="40" width="8" height="8"/>
-      <rect x="28" y="40" width="8" height="8"/>
-      <rect x="40" y="40" width="8" height="8"/>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Index">
+  <!-- Index: a magnifier whose ring carries the wordmark's four colours. The
+       handle leaves the middle of the blue arc. Transparent background.
+       Used by the Index site and the /v1 viewer. favicon.ico (16/32/48; the
+       16px layer with heavier strokes), apple-touch-icon.png (180) and
+       icon-192/512.png (white, 14% padding) are rendered from this file with
+       Chromium and packed with ImageMagick. -->
+  <g fill="none" stroke-width="8">
+    <path d="M26 11A15 15 0 0 1 41 26" stroke="#EA4335"/>
+    <path d="M41 26A15 15 0 0 1 26 41" stroke="#4285F4"/>
+    <path d="M26 41A15 15 0 0 1 11 26" stroke="#34A853"/>
+    <path d="M11 26A15 15 0 0 1 26 11" stroke="#FBBC05"/>
   </g>
+  <path d="M37.5 37.5 54 54" stroke="#4285F4" stroke-width="9" stroke-linecap="round"/>
 </svg>

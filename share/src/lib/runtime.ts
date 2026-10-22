@@ -39,6 +39,8 @@ export interface Env {
   SHARE_KV: KVNamespace;
   /** `yanhekt-index`, filled by indexer/; read-only here. */
   YANHEKT_DB: D1Database;
+  /** Terms the Index offers, newest first, comma-separated (`2026-2027-1,2025-2026-2`). A Worker variable: edit and redeploy when a term starts. */
+  INDEX_TERMS?: string;
 }
 
 export const MAX_FRAGMENT_BYTES = 8192;

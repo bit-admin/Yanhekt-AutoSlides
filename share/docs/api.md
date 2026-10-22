@@ -14,10 +14,11 @@ It is deliberately small: it returns course ids and the few fields needed to sho
 |---|---|
 | `GET /api/search` | search courses in one term |
 | `GET /api/courses/{id}/sessions` | a course's session ids |
+| `GET /api/terms` | the terms the index holds, and when it was last updated |
 | `/api/*` (anything else) | `404` |
 | `/v1/…` | slides share viewer and its API, unchanged |
 | `/v2/api/*` | the retired AutoSlides Index; always `503` |
-| `/` | placeholder (`503`) until the new Index site is built |
+| `/`, `/search`, `/course/{id}` | the Index site, a static page that reads this API |
 
 The API is not versioned in the path. Changes will be additive (new fields, new parameters); a breaking change would move to new paths.
 
@@ -94,6 +95,15 @@ GET /api/courses/12345/sessions
 
 The ids of the course's sessions, ascending. Fetch each session from Yanhekt (`/v1/course/session?session_id=`, no login) for its times, title and recordings. The list can lag behind Yanhekt for the newest days, and a session Yanhekt deleted may stay listed until the indexer notices. `404 not-found` for a course the index does not have.
 
+## `GET /api/terms`
+
+```
+GET /api/terms
+→ { "updatedAt": 1792662506680, "terms": ["2026-2027-1", "2025-2026-2", "2025-2026-1"] }
+```
+
+The terms to offer for searching, newest first, and when the index was last uploaded (ms, or `null`). The list is a Worker setting (`INDEX_TERMS`), updated when a term starts; a search may name any term, listed or not.
+
 ## Errors
 
 Errors are JSON with a stable `error` code and a human `message`; parameter errors also name the `param`.
@@ -126,6 +136,6 @@ The `yanhekt-index` D1 database, in the layout the indexer writes (`indexer/src/
 |---|---|
 | `course_grams` | finding candidates: search keys by primary key `(term, gram, course_id)`, so a search reads only its term's entries |
 | `courses` | what results show, and each course's `session_ids` |
-| `meta` | the data version (`data`) that cache keys carry; read at most once a minute per Worker instance |
+| `meta` | the data version (`data`) that cache keys carry and `/api/terms` reports; read at most once a minute per Worker instance |
 
 A search never scans a table. It reads at most 33 entries per search key, then fetches the candidate courses of the rarest key. Only when every key is common in that term does it intersect all of their entries. On this term's data that is about 100–500 rows read for a typical search and about 1,200 at most, well within D1's free plan of 5M rows read per day.
