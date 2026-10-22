@@ -125,7 +125,7 @@ function yanhekt(path: string, params: URLSearchParams, method: string): Respons
 }
 
 /** Everything outside the Yanhekt proxy. Returns null when unhandled. */
-function siteRoutes(path: string): Response | null {
+function siteRoutes(path: string, params: URLSearchParams): Response | null {
   if (path === "/api/config") {
     return json({ relay: { mode: "binding" }, network: { asn: 4538, onAllowlist: true } });
   }
@@ -153,6 +153,17 @@ function siteRoutes(path: string): Response | null {
 
   if (path.startsWith("/api/ai/")) return aiCompletion();
   if (path === "/api/share/get") return json({ error: "not found" }, 404);
+  // The course index (earlier-term search, session-id fallback).
+  if (path === "/api/index/search") {
+    const q = params.get("q") ?? "";
+    if ([...q.trim()].length < 2) return json({ error: "query-too-short", message: "too short", param: "q" }, 400);
+    return json(demo.demoIndexSearch(q, params.get("term") ?? ""));
+  }
+  const indexSessions = /^\/api\/index\/courses\/(\d+)\/sessions$/.exec(path);
+  if (indexSessions) {
+    const found = demo.demoIndexSessions(indexSessions[1]);
+    return found ? json(found) : json({ error: "not-found", message: "not in the demo index" }, 404);
+  }
 
   return null;
 }
@@ -197,7 +208,7 @@ export function installTransport(): void {
         const answer = yanhekt(url.pathname.replace("/api/yanhekt", ""), url.searchParams, method);
         if (answer) return delay(answer);
       }
-      const answer = siteRoutes(url.pathname);
+      const answer = siteRoutes(url.pathname, url.searchParams);
       if (answer) return delay(answer);
       // Not an API path — a real asset of the demo build itself.
       return real(input, init);

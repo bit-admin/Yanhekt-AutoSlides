@@ -72,9 +72,9 @@
   },
 
   // Optional same-account service bindings. Uncomment if you deploy ../relay
-  // (recorded HLS), ../share (short-link KV) and/or a GitHub Copilot
+  // (recorded HLS), ../share (short links and the Index API) and/or a GitHub Copilot
   // OpenAI-compatible proxy Worker. Unbound, GET /playlist|/segment,
-  // GET /api/share/* and /api/copilot/* return 503.
+  // GET /api/share/*, /api/index/* and /api/copilot/* return 503.
   // "services": [
   //   { "binding": "RELAY", "service": "yanhekt-proxy", "remote": true },
   //   { "binding": "SHARE", "service": "autoslides-share", "remote": true },

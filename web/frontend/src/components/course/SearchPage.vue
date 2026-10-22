@@ -6,8 +6,8 @@
         <SemesterSelect
           v-if="mode === 'recorded'"
           :semesters="availableSemesters"
-          :model-value="selectedSemesterIds"
-          @update:model-value="setSemesters"
+          :model-value="selectedTerm"
+          @update:model-value="setTerm"
         />
 
         <!-- Live/Recorded toggle chips -->
@@ -51,6 +51,8 @@
         <div class="spinner"></div>
         <p>{{ $t('courses.loading') }}</p>
       </div>
+
+      <p v-else-if="!errorMessage && notice && results.length === 0" class="index-notice" role="status">{{ $t(notice) }}</p>
 
       <NoCoursesEmpty v-else-if="!errorMessage && hasSearched && results.length === 0" />
 
@@ -139,7 +141,8 @@ const { t } = useI18n()
 const {
   mode,
   availableSemesters,
-  selectedSemesterIds,
+  selectedTerm,
+  notice,
   results,
   isLoading,
   errorMessage,
@@ -147,7 +150,7 @@ const {
   servedFromCache,
   loadMore,
   setMode,
-  setSemesters,
+  setTerm,
   syncFromRoute,
   selectResult
 } = useSearchPage()
@@ -259,6 +262,14 @@ const getLiveBadgeClass = (status?: number) => {
   min-height: 0;
   padding: 1rem 3rem 2rem;
   overflow-y: auto;
+}
+
+.index-notice {
+  margin: 3rem auto 0;
+  max-width: 28rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
 .error-message {

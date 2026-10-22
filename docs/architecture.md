@@ -477,6 +477,7 @@ npm run deploy              # build + wrangler deploy
 | `POST /api/login/sms` | `routes/login.ts` | Sealed resume + code |
 | `/api/ai/*` | `routes/aiProxy.ts` | Proxies to `AI_ORIGIN`; `User-Agent: AutoSlides/web`. Unset → 503 |
 | `GET /api/share/get?id=` | `routes/shareProxy.ts` | `SHARE` service binding. Unset → 503 |
+| `GET /api/index/search`, `/api/index/courses/{id}/sessions`, `/api/index/terms` | `routes/indexProxy.ts` | The Index API (`share/docs/api.md`) over the same `SHARE` binding; query passed through. Unset → 503 |
 | `GET /playlist`, `GET /segment` | `routes/relayProxy.ts` | Same pathnames as `relay/`, so rewritten m3u8 stays coherent |
 
 Login routes sit **outside** the Yanhekt Bearer gate.
@@ -1104,7 +1105,7 @@ This matters because a platform-side change broke `/v2/course/session/list` for 
 | `live/list` | **different list**: v1 rows carry `session_id` (v2 drops it); v2 adds `started_at`/`ended_at`/`code_required`. Different order (v1 ascending id, v2 descending) and totals | public: both anonymous. `user_relationship_type=1`: **v1 `12131112`** → v2 silent-empty |
 | `course/graph/list` (college-grouped catalog; **unused by us**) | college-bucketed `{ college, list[] }`; v1 returns one more college group than v2 | both anonymous |
 
-**What we do (23.70):** desktop `ApiClient.getCourseSessions` and web `getCourseInfo` ask `/v2/course/session/list` first and, when it answers an empty list, the `/v1` twin. A non-zero `code` from either still throws. The other twins are not switched yet.
+**What we do (23.70):** desktop `ApiClient.getCourseSessions` and web `getCourseInfo` ask `/v2/course/session/list` first and, when it answers an empty list, the `/v1` twin. A non-zero `code` from either still throws. The other twins are not switched yet. The web then asks the Index for the course's session ids and reads each by id (`/v1/course/session`, anonymous upstream), so a course the account may not list still shows its sessions; those rows carry no stream URLs and the player resolves them by session id.
 
 **The trap when switching:** the `/v1` twins of the *personal* lists fail **loudly** (`61101113` / `12131112`) where the `/v2` forms fail **silently** (`code: 0, data: []`). Code that moves to a `/v1` twin must treat those codes as "not logged in / retry auth", not as "no results".
 

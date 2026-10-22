@@ -19,7 +19,6 @@ import type {
   CourseListResponse,
   LiveStream,
   LiveListResponse,
-  SemesterOption,
   SubscriptionListResponse,
   UserData,
 } from "../lib/api";
@@ -345,7 +344,13 @@ export function demoSessionDetail(sessionId: string) {
     const row = demoSessionRows(c.id).find((r) => String(r.id) === String(sessionId));
     if (row) {
       const { videos, ...rest } = row;
-      return { ...rest, course_id: c.id, video_ids: videos.map((v) => v.id), user_progress: [] };
+      return {
+        ...rest,
+        course_id: c.id,
+        video_ids: videos.map((v) => v.id),
+        live: { subtitle: c.room },
+        user_progress: [],
+      };
     }
   }
   return null;
@@ -360,6 +365,40 @@ export function demoVideo(videoId: string) {
     }
   }
   return { id: videoId, audio: "" };
+}
+
+/**
+ * The course index (`/api/index/search`). The demo's index holds its own courses
+ * under every term asked for, so an earlier-term search has something to show.
+ */
+export function demoIndexSearch(q: string, term: string) {
+  const kw = q.trim().toLowerCase();
+  const hits = DEMO_COURSES.filter(
+    (c) => c.title.toLowerCase().includes(kw) || c.professor.toLowerCase().includes(kw) || c.id === kw,
+  );
+  return {
+    query: { q, term },
+    total: hits.length,
+    truncated: false,
+    results: hits.map((c) => ({
+      id: Number(c.id),
+      name: c.title,
+      number: null,
+      term,
+      teachers: [c.professor],
+      sessionCount: 12,
+      match: { fields: ["name"] },
+    })),
+  };
+}
+
+/** The course index's session ids for a course (`/api/index/courses/{id}/sessions`), or null. */
+export function demoIndexSessions(courseId: string) {
+  if (!findCourse(courseId)) return null;
+  return {
+    course: Number(courseId),
+    sessions: demoSessionRows(courseId).map((r) => Number(r.id)).sort((a, b) => a - b),
+  };
 }
 
 /** Raw payload for `/v1/course?id=` (course detail, no session list). */
@@ -437,13 +476,6 @@ export const DEMO_LIVE_ID = `${DEMO_COURSES[0].id}120`;
 /** Raw `/v1/tag/semester/default` payload; the app parses the label itself. */
 export function demoDefaultSemester() {
   return { id: 100, parent_id: 4, name: "2025-2026 第一学期", show_type: 0, param: "semesters", sort: 7 };
-}
-
-export function demoSemesters(): SemesterOption[] {
-  return [
-    { id: 100, label: "2025-2026 第一学期", labelEn: "2025 Fall", schoolYear: 2025, semester: 1 },
-    { id: 107, label: "2025-2026 第二学期", labelEn: "2026 Spring", schoolYear: 2025, semester: 2 },
-  ];
 }
 
 // ------------------------------------------------------------------ notes ---

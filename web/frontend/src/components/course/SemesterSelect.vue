@@ -14,29 +14,17 @@
     </button>
 
     <div v-if="isOpen" class="semester-menu custom-scrollbar">
-      <div class="semester-group">
-        <button
-          class="semester-option semester-option--all"
-          :class="{ active: isAllSelected }"
-          @click="chooseAll"
-        >
-          <span class="semester-option-label">{{ t('searchPage.allSemesters') }}</span>
-          <svg v-if="isAllSelected" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20,6 9,17 4,12"/>
-          </svg>
-        </button>
-      </div>
       <div v-for="group in groupedSemesters" :key="group.key" class="semester-group">
         <div v-if="group.label" class="semester-group-label">{{ group.label }}</div>
         <button
           v-for="option in group.options"
-          :key="option.id"
+          :key="option.key"
           class="semester-option"
-          :class="{ active: isSelected(option.id) }"
-          @click="toggle(option.id)"
+          :class="{ active: option.key === modelValue }"
+          @click="choose(option.key)"
         >
           <span class="semester-option-label">{{ option.label }}</span>
-          <svg v-if="isSelected(option.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg v-if="option.key === modelValue" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20,6 9,17 4,12"/>
           </svg>
         </button>
@@ -50,13 +38,14 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { SemesterOption } from '../../lib/api'
 
+// One term at a time (the Index searches exactly one); no "all terms" choice.
 const props = defineProps<{
   semesters: SemesterOption[]
-  modelValue: number[]
+  modelValue: string | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', ids: number[]): void
+  (e: 'update:modelValue', key: string): void
 }>()
 
 const { t, locale } = useI18n()
@@ -76,7 +65,7 @@ const semesterLabel = (s: SemesterOption): string => {
 interface SemesterGroup {
   key: string
   label: string
-  options: { id: number; label: string }[]
+  options: { key: string; label: string }[]
 }
 
 const groupedSemesters = computed<SemesterGroup[]>(() => {
@@ -97,35 +86,18 @@ const groupedSemesters = computed<SemesterGroup[]>(() => {
       options: options
           .slice()
           .sort((a, b) => b.semester - a.semester)
-          .map(o => ({ id: o.id, label: semesterLabel(o) }))
+          .map(o => ({ key: o.key, label: semesterLabel(o) }))
     }))
 })
 
-const isAllSelected = computed(() => props.modelValue.length === 0)
-const isSelected = (id: number) => props.modelValue.includes(id)
-
 const selectedLabel = computed(() => {
-  if (props.modelValue.length === 0) {
-    return t('searchPage.allSemesters')
-  }
-  if (props.modelValue.length === 1) {
-    const selected = props.semesters.find(s => s.id === props.modelValue[0])
-    return selected ? semesterLabel(selected) : t('searchPage.semesterPlaceholder')
-  }
-  return t('searchPage.semestersSelected', { count: props.modelValue.length })
+  const selected = props.semesters.find(s => s.key === props.modelValue)
+  return selected ? semesterLabel(selected) : t('searchPage.semesterPlaceholder')
 })
 
-const chooseAll = () => {
-  if (props.modelValue.length > 0) {
-    emit('update:modelValue', [])
-  }
-}
-
-const toggle = (id: number) => {
-  const next = props.modelValue.includes(id)
-    ? props.modelValue.filter(x => x !== id)
-    : [...props.modelValue, id]
-  emit('update:modelValue', next)
+const choose = (key: string) => {
+  isOpen.value = false
+  if (key !== props.modelValue) emit('update:modelValue', key)
 }
 
 const onDocumentMouseDown = (event: MouseEvent) => {

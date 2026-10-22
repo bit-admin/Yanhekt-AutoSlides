@@ -14,8 +14,8 @@
  *   lib/relayPolicy.ts). Off-campus relaying through this Worker is opt-in;
  *   without it the browser is sent to the public relay origin instead and the
  *   same-origin routes are closed.
- * - SHARE: optional service binding to the sibling share Worker.
- *   Unset → `/api/share/*` 503.
+ * - SHARE: optional service binding to the sibling share Worker (short links
+ *   and the Index API). Unset → `/api/share/*` and `/api/index/*` 503.
  * - AI_ORIGIN: origin this Worker fetches for `/api/ai/*`. Unset → 503.
  * - COPILOT: optional service binding to the sibling copilot-proxy Worker.
  *   Unset → `/api/copilot/*` 503.
@@ -40,7 +40,7 @@ export interface Env {
    * binding stays in use.
    */
   RELAY_PUBLIC_ORIGIN?: string;
-  /** Sibling share Worker. Unset → `/api/share/*` 503. */
+  /** Sibling share Worker (short links, Index API). Unset → `/api/share/*` and `/api/index/*` 503. */
   SHARE?: Fetcher;
   /** Builtin AI origin (`https://…`, no trailing path). Unset → `/api/ai/*` 503. */
   AI_ORIGIN?: string;

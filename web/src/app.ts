@@ -17,6 +17,7 @@ import { configRouter } from "./routes/config";
 import { shareProxyRouter } from "./routes/shareProxy";
 import { aiProxyRouter } from "./routes/aiProxy";
 import { copilotProxyRouter } from "./routes/copilotProxy";
+import { indexProxyRouter } from "./routes/indexProxy";
 
 export function createApp<TEnv extends Env = Env>() {
   const app = new Hono<{ Bindings: TEnv }>();
@@ -31,6 +32,7 @@ export function createApp<TEnv extends Env = Env>() {
   app.route("/api/ai", aiProxyRouter);
   app.route("/api/copilot", copilotProxyRouter);
   app.route("/api/share", shareProxyRouter);
+  app.route("/api/index", indexProxyRouter);
   app.route("/api", loginRouter);
   // Root `/playlist` + `/segment` — must match the relay Worker's exact
   // pathnames so rewritten m3u8 segment URLs stay on this origin. Register

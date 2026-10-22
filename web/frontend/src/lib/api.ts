@@ -6,6 +6,7 @@
  */
 import { parseUserProgress, progressBucket, resumePositionFor } from "./watchProgress";
 import { cached, invalidate } from "./requestCache";
+import { indexSessionIds } from "./indexApi";
 
 
 export interface UserData {
@@ -154,11 +155,54 @@ export interface CourseInfoResponse {
 }
 
 export interface SemesterOption {
-  id: number;
+  /** Our term key, e.g. `2025-2026-1` (school year start-end, semester 1 = autumn). */
+  key: string;
+  /**
+   * Yanhekt's semester tag id. Only the current term has one: it is searched on
+   * Yanhekt, every earlier term on the Index.
+   */
+  tagId: number | null;
   label: string;
   labelEn: string;
   schoolYear: number;
   semester: number;
+}
+
+/**
+ * The oldest term the picker offers: autumn 2023, when this year's
+ * fourth-year students started. The Index does not go further back.
+ */
+export const FIRST_TERM = { schoolYear: 2023, semester: 1 } as const;
+
+export function termKey(schoolYear: number, semester: number): string {
+  return `${schoolYear}-${schoolYear + 1}-${semester}`;
+}
+
+function termOption(schoolYear: number, semester: number, tagId: number | null): SemesterOption {
+  return {
+    key: termKey(schoolYear, semester),
+    tagId,
+    label: `${schoolYear}-${schoolYear + 1} ${semester === 1 ? "第一学期" : "第二学期"}`,
+    labelEn: semester === 1 ? `${schoolYear} Fall` : `${schoolYear + 1} Spring`,
+    schoolYear,
+    semester,
+  };
+}
+
+/** The current term (with its Yanhekt tag id) followed by every earlier one back to FIRST_TERM, newest first. */
+export function termsThrough(current: { schoolYear: number; semester: number }, tagId: number): SemesterOption[] {
+  const out = [termOption(current.schoolYear, current.semester, tagId)];
+  let { schoolYear, semester } = current;
+  for (;;) {
+    if (semester === 2) semester = 1;
+    else {
+      schoolYear -= 1;
+      semester = 2;
+    }
+    if (schoolYear < FIRST_TERM.schoolYear || (schoolYear === FIRST_TERM.schoolYear && semester < FIRST_TERM.semester)) break;
+    out.push(termOption(schoolYear, semester, null));
+  }
+  return out;
 }
 
 /** A row of the Yanhekt tag tree; `/v1/tag/semester/default` returns one. */
@@ -536,6 +580,8 @@ interface SessionDetailData {
   started_at: string;
   ended_at: string;
   video_ids?: Array<number | string>;
+  /** The broadcast this session had; `subtitle` is the classroom name (e.g. 明理楼A302). */
+  live?: { subtitle?: string } | null;
 }
 
 interface VideoPlaybackData {
@@ -603,6 +649,83 @@ export async function getSessionById(sessionId: string, token: string): Promise<
   };
 }
 
+/** Parallel session reads when the list comes from the Index. */
+const INDEX_SESSION_CONCURRENCY = 6;
+
+/**
+ * A course's sessions from the Index's session ids, each read from
+ * `/v1/course/session` (anonymous upstream). These rows carry no stream URLs
+ * (that hop has none); the player resolves them by session id. A failed read
+ * drops that one session; an Index failure gives `[]` (not memoized). Memoized as a whole,
+ * because the per-session hop itself is never memoized (it carries
+ * `user_progress`).
+ */
+async function sessionsFromIndex(courseId: string, token: string): Promise<SessionData[]> {
+  try {
+    return await readSessionsFromIndex(courseId, token);
+  } catch (error) {
+    // Not memoized (a rejection never is), so the next open asks again.
+    console.warn("Index session list unavailable:", error);
+    return [];
+  }
+}
+
+function readSessionsFromIndex(courseId: string, token: string): Promise<SessionData[]> {
+  return cached(`INDEX sessions ${courseId}|${token.slice(0, 8)}`, 5 * 60 * 1000, async () => {
+    const ids = await indexSessionIds(courseId);
+    const rows: Array<SessionData | null> = new Array(ids.length).fill(null);
+    let next = 0;
+    const worker = async () => {
+      while (next < ids.length) {
+        const i = next++;
+        try {
+          const d = await request<SessionDetailData>(
+            `/v1/course/session?session_id=${encodeURIComponent(ids[i])}&with_video=true`,
+            token,
+          );
+          if (String(d.course_id) !== courseId) continue;
+          const videoId = d.video_ids?.[0] != null ? String(d.video_ids[0]) : "";
+          rows[i] = {
+            session_id: String(d.id),
+            video_id: videoId,
+            title: d.title,
+            duration: 0,
+            week_number: d.week_number,
+            day: d.day,
+            started_at: d.started_at,
+            ended_at: d.ended_at,
+            main_url: "",
+            vga_url: "",
+            id: videoId,
+          };
+        } catch (error) {
+          console.warn(`Session ${ids[i]} unavailable:`, error);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(INDEX_SESSION_CONCURRENCY, ids.length) }, worker));
+    return rows.filter((r): r is SessionData => r !== null);
+  });
+}
+
+/**
+ * The classroom a session was held in, from its broadcast record
+ * (`/v1/course/session` → `live.subtitle`), or undefined. Course detail has no
+ * classrooms, so this is how a course found by id alone gets one. Never throws.
+ */
+export async function getSessionRoom(sessionId: string, token: string): Promise<string | undefined> {
+  try {
+    const d = await request<SessionDetailData>(
+      `/v1/course/session?session_id=${encodeURIComponent(sessionId)}&with_video=true`,
+      token,
+    );
+    return d.live?.subtitle?.trim() || undefined;
+  } catch (error) {
+    console.warn(`Session ${sessionId} room unavailable:`, error);
+    return undefined;
+  }
+}
+
 export async function getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
   const detail = await getCourseDetail(courseId, token);
   // `/v2` first; when it is empty, the `/v1` twin (same bare-array shape).
@@ -616,6 +739,12 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
       `/v1/course/session/list?course_id=${courseId}`,
       token,
     );
+  }
+  // Last: the Index's session ids, each read by id. Both lists are empty for a
+  // course this account may not list, but its sessions still play by id.
+  if (!videoList || videoList.length === 0) {
+    const fromIndex = await sessionsFromIndex(String(courseId), token);
+    if (fromIndex.length > 0) return { ...detail, videos: fromIndex };
   }
 
   // An empty list is an answer, not an error. Yanhekt sends `{code:0, data:[]}`
@@ -730,34 +859,27 @@ export async function reportWatchProgress(sessionId: string, seconds: number, to
   }
 }
 
-function parseSemesterName(name: string): { schoolYear: number; semester: number; labelEn: string } {
+function parseSemesterName(name: string): { schoolYear: number; semester: number } {
   // Parse format like "2025-2026 第一学期" or "2024-2025 第二学期"
   const match = name.match(/(\d{4})-(\d{4})\s+(第[一二]学期)/);
-  if (!match) {
-    return { schoolYear: 0, semester: 1, labelEn: name };
-  }
-
-  const startYear = parseInt(match[1]);
-  const endYear = parseInt(match[2]);
-  const semester = match[3] === "第一学期" ? 1 : 2;
-  const labelEn = semester === 1 ? `${startYear} Fall` : `${endYear} Spring`;
-
-  return { schoolYear: startYear, semester, labelEn };
+  if (!match) return { schoolYear: 0, semester: 1 };
+  return { schoolYear: parseInt(match[1]), semester: match[3] === "第一学期" ? 1 : 2 };
 }
 
 /**
- * The terms the picker offers: only the current one. Yanhekt dropped the
- * `semesters` row from `/v1/tag/list` (2026-10); `/v1/tag/semester/default`
- * names the current term. The full list will come from the Index once it is
- * live. Throws on failure (no hardcoded fallback), so the GET memo never keeps
- * a miss and the next visit asks again.
+ * The terms the picker offers, newest first: the current one, which
+ * `/v1/tag/semester/default` names (Yanhekt dropped the `semesters` row from
+ * `/v1/tag/list` in 2026-10), then every earlier term back to FIRST_TERM, which
+ * are searched on the Index. Throws on failure (no hardcoded fallback), so the
+ * GET memo never keeps a miss and the next visit asks again.
  */
 export async function getAvailableSemesters(token: string): Promise<SemesterOption[]> {
   // Worker still requires a 32-hex Bearer; it omits Authorization upstream.
   const tag = await request<SemesterTag | null>("/v1/tag/semester/default", token);
   if (!tag?.id || !tag.name) throw new Error("Current semester not found");
-  const { schoolYear, semester, labelEn } = parseSemesterName(tag.name);
-  return [{ id: Number(tag.id), label: tag.name, labelEn, schoolYear, semester }];
+  const { schoolYear, semester } = parseSemesterName(tag.name);
+  if (!schoolYear) throw new Error(`Unrecognized current semester: ${tag.name}`);
+  return termsThrough({ schoolYear, semester }, Number(tag.id));
 }
 
 /** Why a sign-in did not produce a token. Mirrors SignInReason in the Worker. */

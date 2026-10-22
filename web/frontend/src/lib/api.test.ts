@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getSessionById, ttlFor } from './api';
+import { getCourseInfo, getSessionById, termsThrough, ttlFor } from './api';
 
 /**
  * GET_TTL_MS is scanned in order and the first matching prefix wins, so the
@@ -93,5 +93,47 @@ describe('getSessionById', () => {
       '/v1/course/session?session_id=803': { code: 0, data: { ...session, id: 803, video_ids: [] } },
     });
     expect(await getSessionById('803', 'a'.repeat(32))).toEqual({ kind: 'no-recording', courseId: '701' });
+  });
+});
+
+describe('termsThrough', () => {
+  it('lists the current term with its tag id, then every earlier term back to 2023 Fall', () => {
+    const terms = termsThrough({ schoolYear: 2025, semester: 2 }, 107);
+    expect(terms.map((t) => t.key)).toEqual(['2025-2026-2', '2025-2026-1', '2024-2025-2', '2024-2025-1', '2023-2024-2', '2023-2024-1']);
+    expect(terms.map((t) => t.tagId)).toEqual([107, null, null, null, null, null]);
+    expect(terms[1]).toMatchObject({ label: '2025-2026 第一学期', labelEn: '2025 Fall', schoolYear: 2025, semester: 1 });
+  });
+
+  it('is just the current term when that is 2023 Fall', () => {
+    expect(termsThrough({ schoolYear: 2023, semester: 1 }, 1).map((t) => t.key)).toEqual(['2023-2024-1']);
+  });
+});
+
+describe('getCourseInfo session list fallback', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('falls back to the Index session ids when both Yanhekt lists are empty, reading each session by id', async () => {
+    const detail = (id: number) => ({
+      code: 0,
+      data: { id, course_id: 702, title: `S${id}`, week_number: 1, day: 1, started_at: 'a', ended_at: 'b', video_ids: [id * 10] },
+    });
+    stubYanhekt({
+      '/v1/course?id=702': { code: 0, data: { name_zh: '课', professors: [] } },
+      '/v2/course/session/list?course_id=702': { code: 0, data: [] },
+      '/v1/course/session/list?course_id=702': { code: 0, data: [] },
+      '/v1/course/session?session_id=811': detail(811),
+      '/v1/course/session?session_id=812': detail(812),
+    });
+    const real = globalThis.fetch;
+    vi.stubGlobal('fetch', async (url: string) =>
+      url === '/api/index/courses/702/sessions'
+        ? new Response(JSON.stringify({ course: 702, sessions: [811, 812] }), { status: 200 })
+        : real(url),
+    );
+    const info = await getCourseInfo('702', 'b'.repeat(32));
+    expect(info.videos.map((v) => [v.session_id, v.video_id, v.main_url])).toEqual([
+      ['811', '8110', ''],
+      ['812', '8120', ''],
+    ]);
   });
 });

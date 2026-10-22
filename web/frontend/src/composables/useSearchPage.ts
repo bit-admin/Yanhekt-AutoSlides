@@ -4,8 +4,11 @@ import {
   searchLiveList,
   getCourseList,
   getAvailableSemesters,
+  getCourseDetail,
+  getSessionRoom,
   type SemesterOption,
 } from "../lib/api";
+import { IndexError, indexSessionIds, searchIndex, type IndexCourse } from "../lib/indexApi";
 import { authStore } from "../stores/authStore";
 import { router } from "../router";
 import { openCourse } from "./courseSelection";
@@ -21,11 +24,13 @@ const RESULTS_PER_PAGE = 16;
 const keyword = ref("");
 const mode = ref<"live" | "recorded">("recorded");
 const availableSemesters = ref<SemesterOption[]>([]);
-// Selected semester ids; an empty array means "all semesters" (no filter).
-// `semesterInitialized` distinguishes the not-yet-defaulted startup state from
-// a deliberate empty/"all" selection so we only auto-pick the latest once.
-const selectedSemesterIds = ref<number[]>([]);
+// The one term searched (`SemesterOption.key`). The current term is searched on
+// Yanhekt, every earlier one on the Index. There is no "all terms" search.
+// `semesterInitialized` keeps the auto-pick of the current term to the first time.
+const selectedTerm = ref<string | null>(null);
 const semesterInitialized = ref(false);
+/** An i18n key explaining an empty Index search (too short, term not indexed, Index down). */
+const notice = ref("");
 const results = ref<Course[]>([]);
 const currentPage = ref(1);
 const totalPages = ref(1);
@@ -86,7 +91,7 @@ const ensureSemesters = async () => {
 const selectLatestSemester = async () => {
   await ensureSemesters();
   if (availableSemesters.value.length > 0) {
-    selectedSemesterIds.value = [availableSemesters.value[0].id];
+    selectedTerm.value = availableSemesters.value[0].key;
   }
   semesterInitialized.value = true;
 };
@@ -113,6 +118,7 @@ const executeSearch = async (resetPage = true) => {
   const seq = ++requestSeq;
   isLoading.value = true;
   errorMessage.value = "";
+  notice.value = "";
   hasSearched.value = true;
 
   try {
@@ -128,10 +134,26 @@ const executeSearch = async (resetPage = true) => {
       totalPages.value = response.last_page;
       currentPage.value = response.current_page;
       servedFromCache.value = false;
+    } else if (isIndexTerm()) {
+      // The Index answers every match at once; pages of RESULTS_PER_PAGE are cut
+      // here so each card's Yanhekt reads happen only once it is shown.
+      if (resetPage) {
+        indexGeneration++;
+        const found = await searchPastTerm(keyword.value.trim(), selectedTerm.value!);
+        if (seq !== requestSeq) return;
+        indexMatches = found;
+        totalPages.value = Math.max(1, Math.ceil(found.length / RESULTS_PER_PAGE));
+      }
+      const start = (currentPage.value - 1) * RESULTS_PER_PAGE;
+      const page = indexMatches.slice(start, start + RESULTS_PER_PAGE).map(indexCourseToCourse);
+      results.value = resetPage ? page : [...results.value, ...page];
+      servedFromCache.value = false;
+      void fillIndexCourses(page.map((c) => c.id), token, indexGeneration);
     } else {
+      const tagId = availableSemesters.value.find((s) => s.key === selectedTerm.value)?.tagId;
       const response = await getCourseList(token, {
         keyword: keyword.value.trim(),
-        semesters: [...selectedSemesterIds.value],
+        semesters: tagId != null ? [tagId] : [],
         page: currentPage.value,
         pageSize: RESULTS_PER_PAGE,
       });
@@ -157,6 +179,108 @@ const executeSearch = async (resetPage = true) => {
     if (seq === requestSeq) {
       isLoading.value = false;
     }
+  }
+};
+
+/** A term without a Yanhekt tag id is an earlier term: the Index searches it. */
+const isIndexTerm = (): boolean => {
+  const term = availableSemesters.value.find((s) => s.key === selectedTerm.value);
+  return !!term && term.tagId === null;
+};
+
+/** An Index result as a course card, before `fillIndexCourses` adds what Yanhekt knows. */
+const indexCourseToCourse = (c: IndexCourse): Course => {
+  const m = c.term ? /^(\d{4}-\d{4})-([12])$/.exec(c.term) : null;
+  return {
+    id: String(c.id),
+    title: c.name,
+    instructor: c.teachers.join(", "),
+    time: "",
+    professors: c.teachers,
+    school_year: m?.[1],
+    semester: m?.[2],
+  };
+};
+
+/** Every match of the current Index search; `results` shows the pages scrolled to so far. */
+let indexMatches: IndexCourse[] = [];
+/** Bumped by each new Index search, so late card fills from an older one are dropped. */
+let indexGeneration = 0;
+
+/** What a card gains from Yanhekt, per course id. Kept for the session: course facts do not change. */
+const courseFills = new Map<string, Promise<Partial<Course>>>();
+const FILL_CONCURRENCY = 4;
+
+/**
+ * Card fields for a course the Index found: `/v1/course?id=` (cover, English
+ * name, college, teachers, term) and the classroom of its newest session
+ * (`/v1/course/session` → broadcast `live.subtitle`; course detail has none).
+ */
+const courseFill = (id: string, token: string): Promise<Partial<Course>> => {
+  let fill = courseFills.get(id);
+  if (!fill) {
+    fill = (async () => {
+      const [detail, room] = await Promise.all([
+        getCourseDetail(id, token).catch(() => null),
+        indexSessionIds(id)
+          .then((ids) => (ids.length > 0 ? getSessionRoom(ids[ids.length - 1], token) : undefined))
+          .catch(() => undefined),
+      ]);
+      const patch: Partial<Course> = {};
+      if (detail) {
+        patch.titleEn = detail.title_en;
+        patch.imageUrl = detail.image_url?.trim() || undefined;
+        patch.college_name = detail.college_name;
+        if (detail.professors?.length) {
+          patch.professors = detail.professors;
+          patch.instructor = detail.professors.join(", ");
+        }
+      }
+      if (room) patch.classrooms = [{ name: room }];
+      return patch;
+    })();
+    // Only a fill that learned something is kept; an empty one is retried next time.
+    void fill.then((p) => {
+      if (Object.keys(p).length === 0) courseFills.delete(id);
+    });
+    courseFills.set(id, fill);
+  }
+  return fill;
+};
+
+/** Fill in the shown Index cards from Yanhekt, a few at a time, card by card. */
+const fillIndexCourses = async (ids: string[], token: string, generation: number) => {
+  let next = 0;
+  const worker = async () => {
+    while (next < ids.length) {
+      const id = ids[next++];
+      const patch = await courseFill(id, token);
+      if (generation !== indexGeneration || Object.keys(patch).length === 0) continue;
+      results.value = results.value.map((c) => (c.id === id ? { ...c, ...patch } : c));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(FILL_CONCURRENCY, ids.length) }, worker));
+};
+
+/** Index search of one earlier term. Its refusals become a notice instead of an error. */
+const searchPastTerm = async (q: string, term: string): Promise<IndexCourse[]> => {
+  if ([...q].length < 2) {
+    notice.value = "searchPage.indexTooShort";
+    return [];
+  }
+  try {
+    const data = await searchIndex(q, term);
+    return data.results;
+  } catch (error) {
+    const code = error instanceof IndexError ? error.code : "network";
+    if (code === "term-not-indexed") notice.value = "searchPage.indexTermMissing";
+    else if (code === "query-too-short" || code === "query-required") notice.value = "searchPage.indexTooShort";
+    else if (code === "query-too-long") notice.value = "searchPage.indexTooLong";
+    else {
+      console.error("Index search failed:", error);
+      notice.value = "searchPage.indexUnavailable";
+    }
+    return [];
   }
 };
 
@@ -211,17 +335,15 @@ const setMode = async (m: "live" | "recorded") => {
 };
 
 /**
- * Semester checkboxes emit one change per click, so firing a search per toggle
- * put one `/v2/course/list` on the wire for every box the user touched — the
- * `requestSeq` guard dropped the stale *results*, but the requests had already
- * been sent. Debounce so picking four semesters costs one search.
+ * Debounced like typing, so flicking through terms costs one search.
  *
  * Reuses `debounceTimer` (and therefore `cancelPendingSearch`) rather than
- * adding a second timer, so a keyword keystroke and a semester toggle cannot
- * both be pending at once.
+ * adding a second timer, so a keyword keystroke and a term change cannot both
+ * be pending at once.
  */
-const setSemesters = (ids: number[]) => {
-  selectedSemesterIds.value = ids;
+const setTerm = (key: string) => {
+  if (selectedTerm.value === key && semesterInitialized.value) return;
+  selectedTerm.value = key;
   semesterInitialized.value = true;
   cancelPendingSearch();
   debounceTimer = setTimeout(() => {
@@ -285,7 +407,8 @@ export function useSearchPage() {
     keyword,
     mode,
     availableSemesters,
-    selectedSemesterIds,
+    selectedTerm,
+    notice,
     results,
     currentPage,
     totalPages,
@@ -296,7 +419,7 @@ export function useSearchPage() {
     executeSearch,
     loadMore,
     setMode,
-    setSemesters,
+    setTerm,
     syncFromRoute,
     handleSidebarFocus,
     handleSidebarEnter,

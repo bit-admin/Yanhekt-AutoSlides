@@ -288,6 +288,10 @@
     "emptyStream": "{stream}在延河课堂服务器上没有视频内容，可前往延河课堂网页确认能否播放。"
   },
   "searchPage": {
+    "indexTooShort": "搜索往期学期时请至少输入 2 个字。",
+    "indexTooLong": "搜索词太长了（最多 64 个字符、6 个词）。",
+    "indexTermMissing": "课程索引中还没有这个学期。",
+    "indexUnavailable": "课程索引暂时不可用，请稍后再试。",
     "academicYear": "{start}–{end} 学年",
     "allSemesters": "全部学期",
     "semesterFall": "{year}年秋季学期",

@@ -264,7 +264,9 @@ const hydrate = async (): Promise<void> => {
       takeCourse(courseId) ?? (mode === 'recorded' ? getSubscribedCourse(courseId) : null)
   }
   if (mode === 'recorded' && !session.value && sessionId) {
-    session.value = takeSession(courseId, sessionId) ?? null
+    const handed = takeSession(courseId, sessionId)
+    // A row listed from the Index has no stream URLs; resolve it by id below.
+    session.value = handed && (handed.main_url || handed.vga_url) ? handed : null
   }
 
   const token = authStore.token.value
