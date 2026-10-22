@@ -13,7 +13,8 @@ import { cnClock, inWindow, nextWindowStartMs, windowEndMs } from './time.ts';
 import { Budget, Pacer, YanhektClient, sleep } from './yanhekt.ts';
 import { laneLines, printStatus } from './status.ts';
 import { dumpForD1 } from './dump.ts';
-import { D1Http, d1FromEnv, printRemoteStatus, upload } from './remote.ts';
+import { D1Http, d1FromEnv, printRemoteStatus, upload, type D1Exec } from './remote.ts';
+import { WranglerD1 } from './wranglerD1.ts';
 
 const DEFAULT_UA = 'AutoSlides-Indexer/0.2 (+https://github.com/bit-admin/Yanhekt-AutoSlides)';
 
@@ -52,6 +53,13 @@ Upload (needs CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN, e.g. in .env)
   --remote              status: show D1 instead of the local database
   --reset               upload/dump: drop every D1 table first and send everything
                         (needed once after the D1 layout changes)
+  --wrangler            upload / status --remote: go through 'wrangler d1 execute --remote'
+                        (wrangler's login) instead of CF_API_TOKEN; slower
+  --wrangler-db NAME    database name for --wrangler (default yanhekt-index)
+  --wrangler-cwd DIR    where 'npx wrangler' runs for --wrangler (default ../share)
+  --max-writes N        upload: stop before writing more than N D1 rows, newest courses
+                        first; 0 = no limit (default 90000, under the free plan's
+                        100k a day; the next upload sends the rest)
 
 Other
   --db PATH             SQLite file (default ./data/yanhekt-index.db)
@@ -87,6 +95,10 @@ const { values: opts, positionals } = parseArgs({
     device: { type: 'string' },
     remote: { type: 'boolean', default: false },
     reset: { type: 'boolean', default: false },
+    'max-writes': { type: 'string', default: '90000' },
+    wrangler: { type: 'boolean', default: false },
+    'wrangler-db': { type: 'string', default: 'yanhekt-index' },
+    'wrangler-cwd': { type: 'string', default: '../share' },
     'user-agent': { type: 'string', default: DEFAULT_UA },
     out: { type: 'string', default: './d1-dump' },
     'max-mb': { type: 'string', default: '50' },
@@ -181,6 +193,17 @@ function pidAlive(pid: number): boolean {
   }
 }
 
+/** The D1 client and its id (the key of `d1_sent`): wrangler's login with --wrangler, else the API token. */
+function d1Client(): { d1: D1Exec; databaseId: string; done: () => void } {
+  if (opts.wrangler) {
+    const name = opts['wrangler-db'];
+    const w = new WranglerD1(name, resolve(opts['wrangler-cwd']));
+    return { d1: w, databaseId: process.env.CF_D1_DATABASE_ID?.trim() || name, done: () => w.close() };
+  }
+  const t = d1Target();
+  return { d1: new D1Http(t), databaseId: t.databaseId, done: () => {} };
+}
+
 function d1Target() {
   const t = d1FromEnv(process.env);
   if (!t) die('set CF_ACCOUNT_ID, CF_D1_DATABASE_ID and CF_API_TOKEN (see .env.example)');
@@ -188,16 +211,23 @@ function d1Target() {
 }
 
 async function doUpload(store: SqliteStore, signal: AbortSignal, reset = false): Promise<void> {
-  const t = d1Target();
-  const sent = await upload(store, new D1Http(t), t.databaseId, {
-    device: opts.device?.trim() || hostname(),
-    reset,
-    maxRequestBytes: 800_000,
-    maxStatements: 200,
-    log,
-    signal,
-  });
-  log(`upload done: ${Object.entries(sent).map(([k, v]) => `${v} ${k}`).join(', ')}`);
+  const { d1, databaseId, done } = d1Client();
+  let sent;
+  try {
+    sent = await upload(store, d1, databaseId, {
+      device: opts.device?.trim() || hostname(),
+      reset,
+      // A wrangler call costs a process start; send bigger files.
+      maxRequestBytes: opts.wrangler ? 4_000_000 : 800_000,
+      maxStatements: opts.wrangler ? 1000 : 200,
+      maxWrites: num('max-writes', 0, 1e9),
+      log,
+      signal,
+    });
+  } finally {
+    done();
+  }
+  log(`upload done: ${sent.courses} courses, ${sent.grams} with new grams, ~${sent.writes} rows written${sent.left ? `, ${sent.left} left for the next upload` : ''}`);
 }
 
 interface CrawlResult {
@@ -324,7 +354,9 @@ async function main(): Promise<void> {
 
   if (cmd === 'status') {
     if (opts.remote) {
-      await printRemoteStatus(new D1Http(d1Target()));
+      const c = d1Client();
+      await printRemoteStatus(c.d1);
+      c.done();
       return;
     }
     const store = new SqliteStore(dbPath);
@@ -340,7 +372,7 @@ async function main(): Promise<void> {
     return;
   }
   if (cmd !== 'run' && cmd !== 'now' && cmd !== 'upload' && cmd !== 'merge') die(`unknown command "${cmd}" (try --help)`);
-  if (opts.upload || cmd === 'upload') d1Target(); // fail fast on missing credentials
+  if ((opts.upload || cmd === 'upload') && !opts.wrangler) d1Target(); // fail fast on missing credentials
 
   const release = acquireLock(dbPath);
   const store = new SqliteStore(dbPath);

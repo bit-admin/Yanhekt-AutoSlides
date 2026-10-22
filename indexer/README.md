@@ -98,6 +98,8 @@ npm start -- --from 742999 --to 605000 --upload --device server
 
 `--device` is the name shown in `status --remote` (default: the computer's hostname). The first upload of a big database takes a while (≤ 200 statements / 800 KB per request). If it's interrupted, or D1 refuses because the daily write limit is reached, the next `upload` continues where it stopped.
 
+Each upload stops before writing more than `--max-writes` rows (default 90,000, under the free plan's 100k a day), sending the newest courses first, so the current term goes in on the first day and older terms follow on the next uploads. `--max-writes 0` removes the limit (paid plan). No API token? `npm run upload -- --wrangler` sends the same batches through `wrangler d1 execute --remote` with your `wrangler login`, slower but otherwise the same.
+
 Prefer wrangler? `npm run dump -- --out ./d1-dump` writes the same statements as SQL files: `for f in d1-dump/*.sql; do npx wrangler d1 execute yanhekt-index --remote --file="$f"; done`. With `--local` instead of `--remote` it fills wrangler's local D1, for trying the Index locally (`wrangler dev` in `share/`). Add `--reset` to the dump to drop the old tables first.
 
 **Free plan budget** (500 MB, 100k rows written and 5M rows read per day; every index entry counts as a written row). Measured on 2026-27 term 1 (39k sessions, 4.4k courses; 1.9 MB in D1):
@@ -216,6 +218,8 @@ The window is always Beijing time, whatever the computer's time zone. Use `--win
 | `--device NAME` | hostname | name in the D1 progress table |
 | `--remote` | off | `status`: show D1 |
 | `--reset` | off | `upload` / `dump`: drop D1's tables first and send everything |
+| `--wrangler` | off | `upload` / `status --remote`: go through `wrangler d1 execute --remote` (your `wrangler login`) instead of `CF_API_TOKEN`; `--wrangler-db` (default `yanhekt-index`) and `--wrangler-cwd` (default `../share`) |
+| `--max-writes N` | 90000 | `upload`: stop before writing more than N D1 rows, newest courses first; 0 = no limit |
 | `merge FILE…` | — | command: merge other index files (e.g. Actions artifacts) into this one |
 | `--db PATH` | ./data/yanhekt-index.db | |
 | `--gap-threshold`, `--probe-step`, `--probe-count` | 150, 500, 20 | hole skipping (see below) |

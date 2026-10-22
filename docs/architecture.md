@@ -126,7 +126,7 @@ Both clients speak campus CAS (`sso.bit.edu.cn`) and then hold a Yanhekt **32-he
 
 ### Share / Index
 
-Desktop Drive and web Notes can share a compact v2/v3 fragment through `share/`'s v1 viewer; titles are hydrated from Yanhekt at read time and slide images are resolved from the public COSS bucket `images` on `coss.yanhekt.cn`. The old public Index (`/v2/api/*`, D1 `autoslides-index-v2`) is retired: those routes answer 503, so the desktop's Public Index mode and publish button get errors until they are removed. Its replacement is the Index API (`/api/*`) over the course catalogue that `indexer/` crawls into D1 `yanhekt-index`.
+Desktop Drive and web Notes can share a compact v2/v3 fragment through `share/`'s v1 viewer; titles are hydrated from Yanhekt at read time and slide images are resolved from the public COSS bucket `images` on `coss.yanhekt.cn`. The old public Index (`/v2/api/*`; its D1 database was deleted 2026-10-22) is retired: those routes answer 503, so the desktop's Public Index mode and publish button get errors until they are removed. Its replacement is the Index API (`/api/*`) over the course catalogue that `indexer/` crawls into D1 `yanhekt-index`.
 
 ---
 

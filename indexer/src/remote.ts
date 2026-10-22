@@ -113,6 +113,12 @@ export interface UploadOptions {
   maxRequestBytes: number;
   /** Max statements per request. */
   maxStatements: number;
+  /**
+   * Stop before more than this many D1 rows would be written (one per course
+   * row, one per new search key); 0 = no limit. The free plan allows 100k a
+   * day; the rest goes on the next run, which continues where this one stopped.
+   */
+  maxWrites?: number;
   log: (msg: string) => void;
   signal?: AbortSignal;
 }
@@ -137,6 +143,10 @@ export interface UploadResult {
   courses: number;
   /** Courses whose search grams were sent. */
   grams: number;
+  /** Rows written, as estimated for `maxWrites`. */
+  writes: number;
+  /** Courses still to send because `maxWrites` was reached. */
+  left: number;
 }
 
 const hash = (text: string) => createHash('sha1').update(text).digest('hex').slice(0, 16);
@@ -162,7 +172,8 @@ export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string,
   await d1.exec(statements(D1_SCHEMA_SQL));
 
   const sessionsOf = localSessionsReader(db);
-  const page = db.prepare(`SELECT * FROM courses WHERE id > ? ORDER BY id LIMIT ${PAGE}`);
+  // Newest first: when the write budget runs out, the current term is in.
+  const page = db.prepare(`SELECT * FROM courses WHERE id < ? ORDER BY id DESC LIMIT ${PAGE}`);
   const sentSig = db.prepare('SELECT row_sig, grams_sig FROM d1_sent WHERE target = ? AND course_id = ?');
   const saveSig = db.prepare(
     'INSERT INTO d1_sent (target, course_id, row_sig, grams_sig) VALUES (?, ?, ?, ?) ' +
@@ -171,7 +182,8 @@ export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string,
   const total = Number(Object.values(db.prepare('SELECT COUNT(*) FROM courses').get() as object)[0]);
   opts.log(`upload: checking ${total} courses`);
 
-  const result: UploadResult = { courses: 0, grams: 0 };
+  const result: UploadResult = { courses: 0, grams: 0, writes: 0, left: 0 };
+  const budget = opts.maxWrites && opts.maxWrites > 0 ? opts.maxWrites : Infinity;
   let batch: string[] = [];
   let bytes = 0;
   let sigs: Array<[number, string, string, boolean, boolean]> = [];
@@ -196,7 +208,7 @@ export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string,
     }
   };
 
-  let after = 0;
+  let after = Number.MAX_SAFE_INTEGER;
   for (;;) {
     if (opts.signal?.aborted) break;
     const rows = page.all(after) as Array<Record<string, unknown>>;
@@ -213,6 +225,13 @@ export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string,
       const gramsStmt = prev?.grams_sig !== gramsSig ? courseGramsStatement(row, grams) : null;
       if (gramsStmt) stmts.push(gramsStmt);
       if (stmts.length === 0) continue;
+      const writes = (sendRow ? 1 : 0) + (gramsStmt ? grams.length : 0);
+      // Once one course does not fit, send nothing older, so what D1 holds is the newest part.
+      if (result.left > 0 || result.writes + writes > budget) {
+        result.left += 1;
+        continue;
+      }
+      result.writes += writes;
       const size = stmts.reduce((n, x) => n + Buffer.byteLength(x), 0);
       if (batch.length > 0 && (bytes + size > opts.maxRequestBytes || batch.length + stmts.length > opts.maxStatements)) {
         await flush();
@@ -224,7 +243,10 @@ export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string,
   }
   await flush();
   if (result.courses + result.grams > 0) await d1.exec([dataVersionStatement(Date.now())]);
-  opts.log(`upload: sent ${result.courses} courses (${result.grams} with new search grams)`);
+  opts.log(`upload: sent ${result.courses} courses (${result.grams} with new search grams), about ${result.writes} rows written`);
+  if (result.left > 0) {
+    opts.log(`upload: stopped at the write budget (${budget}); ${result.left} courses left. Run upload again tomorrow to send them.`);
+  }
 
   // One progress row per device, so every device's position is visible remotely.
   const lanes = store.allLanes();

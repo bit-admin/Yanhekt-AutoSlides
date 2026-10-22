@@ -28,6 +28,12 @@ class FakeD1 implements D1Exec {
 
 const opts = { device: 'test', maxRequestBytes: 50_000, maxStatements: 40, log: () => {} };
 
+/** The sent counts of an upload result (writes and left are checked separately). */
+const sent = async (r: Promise<{ courses: number; grams: number }>) => {
+  const { courses, grams } = await r;
+  return { courses, grams };
+};
+
 const sessionTotal = (d1: FakeD1) => d1.n('SELECT COALESCE(SUM(json_array_length(session_ids)), 0) FROM courses');
 
 test('upload sends only courses that changed', async () => {
@@ -37,17 +43,17 @@ test('upload sends only courses that changed', async () => {
 
   const d1 = new FakeD1();
   const first = await upload(store, d1, 'db1', opts);
-  assert.deepEqual(first, { courses: 7, grams: 7 });
+  assert.deepEqual({ courses: first.courses, grams: first.grams }, { courses: 7, grams: 7 });
   assert.equal(sessionTotal(d1), 50);
   const version = d1.n("SELECT value FROM meta WHERE key = 'data'");
   assert.ok(version > 0);
 
   // Nothing changed: nothing re-sent, and the data version stays.
-  assert.deepEqual(await upload(store, d1, 'db1', opts), { courses: 0, grams: 0 });
+  assert.deepEqual(await sent(upload(store, d1, 'db1', opts)), { courses: 0, grams: 0 });
 
   // More sessions of the same courses: the course rows go again, their grams do not.
   await drain(make(api, [rangeLane(1050, 1099)], store).crawler);
-  assert.deepEqual(await upload(store, d1, 'db1', opts), { courses: 7, grams: 0 });
+  assert.deepEqual(await sent(upload(store, d1, 'db1', opts)), { courses: 7, grams: 0 });
   assert.equal(sessionTotal(d1), 100);
   assert.deepEqual(
     JSON.parse(String((d1.db.prepare('SELECT session_ids FROM courses WHERE id = 506').get() as { session_ids: string }).session_ids)).slice(0, 3),
@@ -59,7 +65,7 @@ test('upload sends only courses that changed', async () => {
   assert.equal(JSON.parse(prog.totals).sessions, 100);
 
   // A different D1 database starts from scratch.
-  assert.deepEqual(await upload(store, new FakeD1(), 'db2', opts), { courses: 7, grams: 7 });
+  assert.deepEqual(await sent(upload(store, new FakeD1(), 'db2', opts)), { courses: 7, grams: 7 });
 });
 
 test('two devices merge: full course detail wins over the thin copy, whatever the order', async () => {
@@ -116,9 +122,9 @@ test('D1 layout: no sessions or videos tables, an old layout needs --reset', asy
   const legacy = new FakeD1();
   legacy.db.exec('CREATE TABLE courses (id INTEGER PRIMARY KEY, name_zh TEXT)');
   await assert.rejects(upload(store, legacy, 'db2', opts), /--reset/);
-  assert.deepEqual(await upload(store, legacy, 'db2', { ...opts, reset: true }), { courses: 1, grams: 1 });
+  assert.deepEqual(await sent(upload(store, legacy, 'db2', { ...opts, reset: true })), { courses: 1, grams: 1 });
   // --reset also forgets what this device sent there, so everything goes again.
-  assert.deepEqual(await upload(store, legacy, 'db2', { ...opts, reset: true }), { courses: 1, grams: 1 });
+  assert.deepEqual(await sent(upload(store, legacy, 'db2', { ...opts, reset: true })), { courses: 1, grams: 1 });
 });
 
 test('an interrupted upload continues where it stopped', async () => {
@@ -137,6 +143,26 @@ test('an interrupted upload continues where it stopped', async () => {
   await assert.rejects(upload(store, d1, 'db1', small), /daily limit/);
   assert.equal(d1.n('SELECT COUNT(*) FROM courses'), 2);
 
-  assert.deepEqual(await upload(store, d1, 'db1', small), { courses: 5, grams: 5 });
+  assert.deepEqual(await sent(upload(store, d1, 'db1', small)), { courses: 5, grams: 5 });
+  assert.equal(sessionTotal(d1), 21);
+});
+
+test('a write budget sends the newest courses and leaves the rest for the next upload', async () => {
+  const store = new SqliteStore(':memory:');
+  await drain(make(new FakeApi([...Array(21).keys()].map((i) => 1000 + i)), [rangeLane(1000, 1020)], store).crawler);
+  const d1 = new FakeD1();
+  const all = await upload(store, new FakeD1(), 'probe', opts);
+  const perCourse = all.writes / all.courses;
+
+  const first = await upload(store, d1, 'db1', { ...opts, maxWrites: Math.floor(perCourse * 2.5) });
+  assert.equal(first.courses, 2);
+  assert.equal(first.left, all.courses - 2);
+  const ids = (d1.db.prepare('SELECT id FROM courses ORDER BY id').all() as Array<{ id: number }>).map((r) => r.id);
+  const newest = (store.db.prepare('SELECT id FROM courses ORDER BY id DESC LIMIT 2').all() as Array<{ id: number }>).map((r) => r.id);
+  assert.deepEqual(ids, newest.sort((a, b) => a - b));
+
+  const rest = await upload(store, d1, 'db1', opts);
+  assert.equal(rest.courses, all.courses - 2);
+  assert.equal(rest.left, 0);
   assert.equal(sessionTotal(d1), 21);
 });
