@@ -2,7 +2,7 @@
 
 The Index API answers questions about Yanhekt courses from our own copy of the catalogue: the `yanhekt-index` D1 database, which [`indexer/`](../../indexer/) fills by walking session ids without logging in. It is served by the share Worker on `share.ruc.edu.kg` under `/api/`.
 
-It is deliberately small: it returns course ids and the few fields needed to show a match, plus each course's session ids. Everything else about a course or a session (times, titles, recordings) a client reads from Yanhekt itself, which serves it by id without login. Only the list of a course's sessions needs our crawl.
+It is deliberately small: it returns course ids and the few fields needed to show a match, plus each course's session ids. Everything else about a course or a session (times, titles, recordings) comes from Yanhekt, which serves it by id without login. A client can read it there itself, or, for a course the index holds, through [`/api/courses/{id}/yanhekt`](#get-apicoursesidyanhekt), which reads Yanhekt live. Only the list of a course's sessions needs our crawl.
 
 - **Read-only, no auth.** Access is limited at the edge: the zone's WAF challenges requests from outside the campus network, so a browser on campus (or one that has passed the challenge) can call it; a script off campus will get a challenge page, not JSON.
 - **Our model, not Yanhekt's.** Terms are named by academic year and semester (`2026-2027-1`), never by Yanhekt's semester tag ids.
@@ -14,6 +14,8 @@ It is deliberately small: it returns course ids and the few fields needed to sho
 |---|---|
 | `GET /api/search` | search courses in one term |
 | `GET /api/courses/{id}/sessions` | a course's session ids |
+| `GET /api/courses/{id}/yanhekt` | Yanhekt's details for the course, read live |
+| `GET /api/courses/{id}/yanhekt/sessions` | Yanhekt's details for its sessions, 30 at a time |
 | `GET /api/terms` | the terms the index holds, and when it was last updated |
 | `/api/*` (anything else) | `404` |
 | `/v1/…` | slides share viewer and its API, unchanged |
@@ -95,6 +97,63 @@ GET /api/courses/12345/sessions
 
 The ids of the course's sessions, ascending. Fetch each session from Yanhekt (`/v1/course/session?session_id=`, no login) for its times, title and recordings. The list can lag behind Yanhekt for the newest days, and a session Yanhekt deleted may stay listed until the indexer notices. `404 not-found` for a course the index does not have.
 
+## `GET /api/courses/{id}/yanhekt`
+
+Yanhekt's own details for a course the index holds, read live from Yanhekt (no login involved) and trimmed to these fields.
+
+```jsonc
+GET /api/courses/12345/yanhekt
+→ {
+  "course": {
+    "id": 12345,
+    "nameZh": "电路分析基础",
+    "nameEn": null,                                  // often missing on Yanhekt
+    "code": "1000001",                               // the subject's course code, shared by every class of it; not the registrar code
+    "level": "研究生",                                 // Yanhekt's level tag: 本科 or 研究生; or null
+    "college": "信息与电子学院",                       // or null
+    "collegeEn": "School of Information and Electronics",
+    "image": "https://coss.yanhekt.cn/images/colleges/xinxi.png",  // course or college picture, or null
+    "teachers": []                                   // names Yanhekt lists; often empty (the index's teachers are better)
+  }
+}
+```
+
+`404 not-found` for a course the index does not have (Yanhekt is not asked) or Yanhekt does not have. Cached for 6 hours.
+
+## `GET /api/courses/{id}/yanhekt/sessions`
+
+Yanhekt's details for the course's sessions, in the order of [`/sessions`](#get-apicoursesidsessions), at most 30 per call. Ask again with `from` = `next` until `next` is `null`.
+
+```jsonc
+GET /api/courses/12345/yanhekt/sessions?from=0
+→ {
+  "course": 12345,
+  "total": 6,                          // session ids the index holds
+  "from": 0,
+  "next": null,                        // `from` for the next call, or null after the last
+  "sessions": [
+    {
+      "id": 100101,
+      "title": "第1周 星期一 第1大节",
+      "week": 1,
+      "day": 1,                          // 1 = Monday … 7 = Sunday
+      "startedAt": "2026-09-07 08:00:00", // China time (UTC+8), as Yanhekt gives it
+      "endedAt": "2026-09-07 09:35:00",
+      "room": "综教A101",                // or null
+      "recorded": true                   // Yanhekt lists a recording (it may still be processing)
+    },
+    { "id": 100102, "error": "gone" },        // Yanhekt no longer has it (or it moved to another course)
+    { "id": 100103, "error": "unavailable" }  // could not be read this time; ask again later
+  ]
+}
+```
+
+| Parameter | |
+|---|---|
+| `from` | optional, default `0`: the position in the session list to start at |
+
+Every field but `id` may be `null`. Only the index's own session ids for that course are read. A page is cached for 30 minutes, except one with an `unavailable` session, which is not cached.
+
 ## `GET /api/terms`
 
 ```
@@ -117,6 +176,8 @@ Errors are JSON with a stable `error` code and a human `message`; parameter erro
 | 400 | `term-not-indexed` | `term` is not one of the terms `/api/terms` lists (answered without reading the database) |
 | 400 | `bad-param` | any other invalid parameter (see `param`): several terms, a malformed term, a session link, a non-numeric course id |
 | 404 | `not-found` | unknown `/api/` path, or unknown course |
+| 502 | `yanhekt-unavailable` | `/yanhekt` endpoints: Yanhekt did not answer; retry later |
+| 503 | `yanhekt-not-configured` | `/yanhekt` endpoints: this deployment has no route to Yanhekt |
 | 405 | `method-not-allowed` | not `GET` |
 | 500 | `internal` | the database failed; retry later |
 | 503 | `retired` | `/v2/api/*` (the old Index) |
@@ -127,7 +188,7 @@ Errors are JSON with a stable `error` code and a human `message`; parameter erro
 
 ## Caching
 
-Every upload to the index sets a new data version. Answers are cached at the edge under the normalized request plus that version, so a repeated request is served from cache until the next upload, then answered fresh. Browsers may reuse a response for 5 minutes (`Cache-Control: public, max-age=300`). CORS is open (`Access-Control-Allow-Origin: *`).
+The `/yanhekt` endpoints are cached for a fixed time (above), since Yanhekt changes on its own schedule. For the rest: every upload to the index sets a new data version. Answers are cached at the edge under the normalized request plus that version, so a repeated request is served from cache until the next upload, then answered fresh. Browsers may reuse a response for 5 minutes (`Cache-Control: public, max-age=300`). CORS is open (`Access-Control-Allow-Origin: *`).
 
 ## Data source
 
@@ -138,5 +199,7 @@ The `yanhekt-index` D1 database, in the layout the indexer writes (`indexer/src/
 | `course_grams` | finding candidates: search keys by primary key `(term, gram, course_id)`, so a search reads only its term's entries |
 | `courses` | what results show, and each course's `session_ids` |
 | `meta` | the data version (`data`) that cache keys carry and `/api/terms` reports; read at most once a minute per Worker instance |
+
+The `/yanhekt` endpoints read one `courses` row, then Yanhekt through the web Worker (the `WEB` service binding to [`web/`](../../web/), its `/api/yanhekt` proxy): `/v1/course?id=` for the course and `/v1/course/session?session_id=` for each session.
 
 A search never scans a table. It reads at most 33 entries per search key, then fetches the candidate courses of the rarest key. Only when every key is common in that term does it intersect all of their entries. On this term's data that is about 100–500 rows read for a typical search and about 1,200 at most, well within D1's free plan of 5M rows read per day.

@@ -41,6 +41,8 @@ export interface Env {
   YANHEKT_DB: D1Database;
   /** Terms the Index offers, newest first, comma-separated (`2026-2027-1,2025-2026-2`). A Worker variable: edit and redeploy when a term starts. */
   INDEX_TERMS?: string;
+  /** The web Worker (service binding); its `/api/yanhekt/*` proxy is how the course page's Yanhekt details are read. Unset → those endpoints 503. */
+  WEB?: { fetch(req: Request): Promise<Response> };
 }
 
 export const MAX_FRAGMENT_BYTES = 8192;

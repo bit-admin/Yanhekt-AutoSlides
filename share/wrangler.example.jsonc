@@ -33,6 +33,12 @@
   ],
 
 
+  // The web Worker (../web), whose /api/yanhekt proxy reads Yanhekt for the
+  // course page (/api/courses/{id}/yanhekt…). Unbound → those endpoints 503.
+  "services": [
+    { "binding": "WEB", "service": "autoslides-web" }
+  ],
+
   // Region placement (dashboard: Region → AWS → ap-east-1): the isolate runs
   // in the Cloudflare data center closest to AWS Hong Kong.
   "placement": {

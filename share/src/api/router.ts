@@ -11,6 +11,7 @@
 import { cached, json, type D1Database, type Env, type ExecutionContext } from '../lib/runtime';
 import { courseSessions, search } from './search';
 import { cacheKey, isParamError, parseSearchParams, TERM_KEY } from './searchParams';
+import { courseDetails, failureStatus, hasUnavailable, isFailure, sessionDetails } from './yanhekt';
 
 /** Edge: until the next upload (keys change then); a week bounds orphaned entries. */
 const EDGE_TTL = 7 * 24 * 3600;
@@ -62,6 +63,67 @@ async function answer(
 }
 
 const SESSIONS_PATH = /^\/api\/courses\/([^/]+)\/sessions$/;
+/** `/api/courses/{id}/yanhekt` and `/api/courses/{id}/yanhekt/sessions`: live Yanhekt details (api/yanhekt.ts). */
+const YANHEKT_PATH = /^\/api\/courses\/([^/]+)\/yanhekt(\/sessions)?$/;
+
+/** Yanhekt details: the course for 6 hours, sessions for 30 minutes (a recording appears some hours after a lecture). */
+const COURSE_EDGE_TTL = 6 * 3600;
+const SESSIONS_EDGE_TTL = 30 * 60;
+
+declare const caches: { default: Cache };
+
+/** Edge cache for answers that are not keyed by data version alone. `store: false` answers without caching (a partial page). */
+async function edge(
+  key: string,
+  ctx: ExecutionContext,
+  ttl: number,
+  produce: () => Promise<{ res: Response; store: boolean }>,
+): Promise<Response> {
+  const req = new Request(key, { method: 'GET' });
+  const hit = await caches.default.match(req);
+  if (hit) return hit;
+  const { res, store } = await produce();
+  if (!res.ok || !store) return res;
+  const out = new Response(res.body, res);
+  out.headers.set('Cache-Control', `public, max-age=${ttl}`);
+  ctx.waitUntil(caches.default.put(req, out.clone()));
+  return out;
+}
+
+async function yanhektRoute(env: Env, ctx: ExecutionContext, url: URL, rawId: string, sessions: boolean): Promise<Response> {
+  if (!/^\d{1,12}$/.test(rawId)) {
+    return json({ error: 'bad-param', message: 'the course id must be a number', param: 'id' }, 400);
+  }
+  const id = Number(rawId);
+  let res: Response;
+  try {
+    if (!sessions) {
+      res = await edge(`${url.origin}/api/courses/${id}/yanhekt`, ctx, COURSE_EDGE_TTL, async () => {
+        const r = await courseDetails(env, id);
+        return isFailure(r) ? { res: json(r, failureStatus(r)), store: false } : { res: json({ course: r }), store: true };
+      });
+    } else {
+      const fromRaw = url.searchParams.get('from') ?? '0';
+      if (!/^\d{1,4}$/.test(fromRaw)) {
+        return json({ error: 'bad-param', message: 'from must be a whole number', param: 'from' }, 400);
+      }
+      const from = Number(fromRaw);
+      const v = await dataVersion(env.YANHEKT_DB);
+      const key = `${url.origin}/api/courses/${id}/yanhekt/sessions?from=${from}&v=${encodeURIComponent(v)}`;
+      res = await edge(key, ctx, SESSIONS_EDGE_TTL, async () => {
+        const r = await sessionDetails(env, id, from);
+        return isFailure(r) ? { res: json(r, failureStatus(r)), store: false } : { res: json(r), store: !hasUnavailable(r) };
+      });
+    }
+  } catch (err) {
+    console.error('[api] yanhekt', err instanceof Error ? err.message : err);
+    return internal();
+  }
+  if (!res.ok) return res;
+  const out = new Response(res.body, res);
+  out.headers.set('Cache-Control', `public, max-age=${BROWSER_TTL}`);
+  return out;
+}
 
 /** `GET /api/terms`: the `INDEX_TERMS` variable (newest first) and the last upload time (the data version). No D1 query of its own. */
 export function termList(env: Pick<Env, 'INDEX_TERMS'>, version: string): { updatedAt: number | null; terms: string[] } {
@@ -79,7 +141,8 @@ export async function routeApi(req: Request, env: Env, ctx: ExecutionContext, ur
   if (pathname !== '/api' && !pathname.startsWith('/api/')) return null;
 
   const sessions = SESSIONS_PATH.exec(pathname);
-  if (pathname !== '/api/search' && pathname !== '/api/terms' && !sessions) {
+  const yanhekt = YANHEKT_PATH.exec(pathname);
+  if (pathname !== '/api/search' && pathname !== '/api/terms' && !sessions && !yanhekt) {
     return json({ error: 'not-found', message: `no such endpoint: ${pathname}` }, 404);
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -97,6 +160,8 @@ export async function routeApi(req: Request, env: Env, ctx: ExecutionContext, ur
     res.headers.set('Cache-Control', `public, max-age=${BROWSER_TTL}`);
     return res;
   }
+
+  if (yanhekt) return yanhektRoute(env, ctx, url, yanhekt[1], !!yanhekt[2]);
 
   if (sessions) {
     if (!/^\d{1,12}$/.test(sessions[1])) {

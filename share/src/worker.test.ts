@@ -52,6 +52,9 @@ describe('worker routing', () => {
     expect(await other.json()).toMatchObject({ error: 'term-not-indexed' });
     expect((await call('/api/courses/abc/sessions')).status).toBe(400);
     expect((await call('/api/courses/1/sessions', { method: 'POST' })).status).toBe(405);
+    expect((await call('/api/courses/abc/yanhekt')).status).toBe(400);
+    expect(await (await call('/api/courses/1/yanhekt/sessions?from=x')).json()).toMatchObject({ error: 'bad-param', param: 'from' });
+    expect((await call('/api/courses/1/yanhekt/other')).status).toBe(404);
     const missing = await call('/api/courses/1');
     expect(missing.status).toBe(404);
     expect(await missing.json()).toMatchObject({ error: 'not-found' });

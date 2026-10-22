@@ -573,11 +573,24 @@ button {
   font-weight: 700;
 }
 
-/* Course page ------------------------------------------------------------ */
+/* Course page: the course on the left, a fact panel on the right (stacked on
+   narrow screens), sessions laid out like search results. --------------- */
 
+.main--wide {
+  max-width: calc(146px + 652px + 56px + 400px + 24px);
+}
 .course {
-  max-width: 652px;
+  display: grid;
+  grid-template-columns: minmax(0, 652px) 400px;
+  grid-template-areas:
+    'head panel'
+    'sessions panel';
+  column-gap: 56px;
+  align-items: start;
   padding-top: 24px;
+}
+.course__head {
+  grid-area: head;
 }
 .course__name {
   margin: 0;
@@ -596,14 +609,38 @@ button {
   gap: 8px;
   margin: 18px 0 8px;
 }
+
+.panel {
+  grid-area: panel;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px 18px;
+  margin-top: 6px;
+}
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.panel__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 400;
+}
+.panel__image {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 8px;
+  flex: none;
+}
 .facts {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 10px 24px;
-  margin: 18px 0 0;
-  padding: 16px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  gap: 10px 20px;
+  margin: 0;
 }
 .facts dt {
   color: var(--text-3);
@@ -613,38 +650,73 @@ button {
   overflow-wrap: anywhere;
 }
 
+.sessions {
+  grid-area: sessions;
+}
 .sessions h2 {
   font-size: 20px;
   font-weight: 400;
-  margin: 26px 0 4px;
+  margin: 26px 0 18px;
 }
 .sessions__note {
   color: var(--text-3);
-  margin: 0 0 12px;
+  margin: -8px 0 18px;
 }
-.sessions__list {
+
+.lectures {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.sessions__list li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
+.lecture {
+  margin-bottom: 26px;
 }
-.sessions__no {
-  color: var(--text-3);
-  min-width: 4.5em;
-}
-.sessions__open {
-  margin-left: auto;
+.lecture__where {
   font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+.lecture__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+.lecture__title a {
+  display: inline-block;
+  padding: 2px 0 3px;
+}
+.lecture__title a:visited {
+  color: var(--link-visited);
+}
+.lecture.is-loading .lecture__title a,
+.lecture.is-gone .lecture__title a {
+  color: var(--text-3);
+}
+.lecture__snippet {
+  color: var(--text-2);
+}
+.lecture__state.is-recorded {
+  color: var(--success);
+}
+.lecture__state.is-live {
+  color: var(--logo-red);
+  font-weight: 700;
+}
+.lecture__state.is-upcoming,
+.lecture__state.is-none {
+  color: var(--text-3);
+}
+.lecture__links {
   display: flex;
-  justify-content: flex-end;
-  gap: 2px 16px;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+.lecture__id {
+  color: var(--text-3);
 }
 /* "Nothing opened?" under an Open in AutoSlides Desktop link (components/AppLink.tsx). */
 .app-hint {
@@ -652,13 +724,18 @@ button {
   color: var(--text-2);
   font-size: 13px;
 }
-.sessions__list li.has-hint {
-  flex-wrap: wrap;
-}
-.sessions__hint {
-  flex-basis: 100%;
-  margin: 0;
-  text-align: right;
+
+@media (max-width: 1180px) {
+  .course {
+    grid-template-columns: minmax(0, 652px);
+    grid-template-areas:
+      'head'
+      'panel'
+      'sessions';
+  }
+  .panel {
+    margin-top: 16px;
+  }
 }
 
 /* Footer ------------------------------------------------------------ */
@@ -729,11 +806,7 @@ button {
   .result__links {
     gap: 4px 10px;
   }
-  .sessions__list li {
-    flex-wrap: wrap;
-    gap: 6px 10px;
-  }
-  .sessions__open {
-    flex-wrap: wrap;
+  .panel {
+    padding: 14px 16px;
   }
 }

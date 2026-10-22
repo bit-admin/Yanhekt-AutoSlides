@@ -1,6 +1,7 @@
 /**
  * The Index API as the site uses it (contract: docs/api.md). Same origin, so
- * relative URLs. Only our own index is read; nothing is fetched from Yanhekt.
+ * relative URLs. Yanhekt's own details for a course page come through the same
+ * API (`/api/courses/{id}/yanhekt…`); the browser never calls Yanhekt.
  */
 
 export interface CourseResult {
@@ -30,6 +31,42 @@ export interface TermsResponse {
 export interface SessionsResponse {
   course: number;
   sessions: number[];
+}
+
+/** Yanhekt's details for a course (`GET /api/courses/{id}/yanhekt`). */
+export interface YanhektCourse {
+  id: number;
+  nameZh: string;
+  nameEn: string | null;
+  code: string | null;
+  /** `本科` / `研究生` as Yanhekt names it, or null. */
+  level: string | null;
+  college: string | null;
+  collegeEn: string | null;
+  image: string | null;
+  teachers: string[];
+}
+
+/** One session as Yanhekt lists it. Times are China time, `YYYY-MM-DD HH:MM:SS`. */
+export interface YanhektSession {
+  id: number;
+  title: string | null;
+  week: number | null;
+  day: number | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  room: string | null;
+  recorded: boolean;
+}
+
+export type YanhektSessionRow = YanhektSession | { id: number; error: 'gone' | 'unavailable' };
+
+export interface YanhektSessionsPage {
+  course: number;
+  total: number;
+  from: number;
+  next: number | null;
+  sessions: YanhektSessionRow[];
 }
 
 /** An API error code (docs/api.md), or `network` when no JSON came back (offline, or the campus WAF challenge page). */
@@ -72,6 +109,14 @@ export function search(q: string, term: string | null, signal?: AbortSignal): Pr
 
 export function courseSessions(id: number, signal?: AbortSignal): Promise<SessionsResponse> {
   return get(`/api/courses/${id}/sessions`, signal);
+}
+
+export function yanhektCourse(id: number, signal?: AbortSignal): Promise<{ course: YanhektCourse }> {
+  return get(`/api/courses/${id}/yanhekt`, signal);
+}
+
+export function yanhektSessions(id: number, from: number, signal?: AbortSignal): Promise<YanhektSessionsPage> {
+  return get(`/api/courses/${id}/yanhekt/sessions?from=${from}`, signal);
 }
 
 let termsPromise: Promise<TermsResponse> | null = null;

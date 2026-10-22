@@ -37,7 +37,7 @@
 [share.ruc.edu.kg](https://share.ruc.edu.kg) 👈 是 [AutoSlides](../README.md) 的分享端：
 
 - **幻灯片分享页**（`/v1/…`）——把一条链接里的整套课件排成一页长文档，可以整包下载、存成 PDF，也可以下载幻灯片时间轴。打开不需要登录。
-- **课程索引**（重建中）——旧的公共索引已经停用。新的索引按课程名、老师、课程号查找延河课堂的历年课程，数据来自 [`indexer/`](../indexer/) 爬取的课程目录。目前只有接口：[`docs/api.md`](docs/api.md)。
+- **课程索引**（重建中）——旧的公共索引已经停用。新的索引按课程名、教师、课程唯一编码查找延河课堂的历年课程，数据来自 [`indexer/`](../indexer/) 爬取的课程目录。目前只有接口：[`docs/api.md`](docs/api.md)。
 
 静态演示：[share.ruc.edu.kg/demo/v1/](https://share.ruc.edu.kg/demo/v1/) 👈
 
@@ -109,7 +109,7 @@
 
 ## 🛠 开发
 
-本目录是一个 Cloudflare Worker，外加两个 React + Vite 静态前端：根路径 `/` 的课程索引站（`site/`），和 v1 幻灯片分享页。Worker 负责 v1 的 KV 短链接与延河课堂元数据代理，以及读取 D1 `yanhekt-index` 的课程索引接口（`src/api/`，见 [`docs/api.md`](docs/api.md)）。索引站只读这个接口，不向延河课堂请求数据；`/` 与 `/assets/*` 由静态资源层直接返回，`/search`、`/course/{id}` 由 Worker 返回同一个页面。
+本目录是一个 Cloudflare Worker，外加两个 React + Vite 静态前端：根路径 `/` 的课程索引站（`site/`），和 v1 幻灯片分享页。Worker 负责 v1 的 KV 短链接与延河课堂元数据代理，以及读取 D1 `yanhekt-index` 的课程索引接口（`src/api/`，见 [`docs/api.md`](docs/api.md)）。索引站只读这个接口，浏览器不直接请求延河课堂；课程页的上课时间、教室与录像信息由 Worker 经服务绑定 `WEB`（`../web` 的 `/api/yanhekt` 代理）实时读取；`/` 与 `/assets/*` 由静态资源层直接返回，`/search`、`/course/{id}` 由 Worker 返回同一个页面。
 
 ```sh
 npm install
