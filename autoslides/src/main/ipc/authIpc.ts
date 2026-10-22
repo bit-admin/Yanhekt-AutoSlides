@@ -113,8 +113,7 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
         }
       }
       await ses.clearStorageData({
-        storages: ['localstorage', 'cookies', 'cachestorage'],
-        quotas: ['temporary']
+        storages: ['localstorage', 'cookies', 'cachestorage']
       });
       return { success: true };
     } catch (error) {
