@@ -18,7 +18,8 @@
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "gen:config-schema": "node scripts/gen-config-schema.mjs"
   },
   "keywords": [],
   "author": {
@@ -46,6 +47,7 @@
     "extract-zip": "file:vendor/extract-zip",
     "playwright": "^1.61.0",
     "terser": "^5.44.1",
+    "ts-json-schema-generator": "^2.9.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1",
     "vite": "^7.3.7",
@@ -73,6 +75,7 @@
     "@ffprobe-installer/ffprobe": "^2.1.2",
     "@techstark/opencv-js": "^4.12.0-release.1",
     "@types/pdfkit": "^0.17.4",
+    "ajv": "^8.20.0",
     "axios": "^1.20.0",
     "bottleneck": "^2.19.5",
     "crypto-js": "^4.2.0",

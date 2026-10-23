@@ -1,4 +1,5 @@
 import ElectronStore from 'electron-store';
+import * as path from 'path';
 import { app, dialog } from 'electron';
 import { ThemeService, ThemeMode } from './themeService';
 import {
@@ -19,6 +20,8 @@ import {
   defaultSlideExtractionConfig,
   detectCustomProviderFromUrl
 } from './config/defaults';
+import { repairStoredConfig } from './config/repair';
+import { installConfigSchema } from './config/schemaFile';
 import {
   sanitizeSavedLogins,
   type SavedLoginRecord,
@@ -147,6 +150,30 @@ export class ConfigService {
     this.migrateAccounts();
     this.migrateWatchNotes();
     this.dropRetiredKeys();
+    this.repairInvalidValues();
+    this.installSchemaFile();
+  }
+
+  // Schema beside the config file, for hand edits (config/schemaFile.ts).
+  private installSchemaFile(): void {
+    try {
+      installConfigSchema(this.store, path.dirname(this.store.path));
+    } catch (error) {
+      log.warn('Could not write the config schema file', error);
+    }
+  }
+
+  // Puts back the default for any stored AppConfig value of the wrong type
+  // (config/repair.ts). Runs after the migrations, which read legacy shapes.
+  // A failure here must never stop the app from starting.
+  private repairInvalidValues(): void {
+    try {
+      const repairs = repairStoredConfig(this.store, defaultConfig);
+      // Paths only: a value could be a token.
+      for (const r of repairs) log.warn(`Repaired invalid config value at ${r.path} (${r.action})`);
+    } catch (error) {
+      log.warn('Config repair failed; continuing with the stored values', error);
+    }
   }
 
   // Keys of removed features (the old Public Index's auto-publish toggles).

@@ -1,0 +1,772 @@
+{
+  "$comment": "Generated from AppConfig by scripts/gen-config-schema.mjs. Do not edit.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "outputDirectory": {
+      "type": "string"
+    },
+    "connectionMode": {
+      "$ref": "#/definitions/ConnectionMode"
+    },
+    "intranetInterfaceIp": {
+      "type": "string"
+    },
+    "campusPortalHost": {
+      "type": "string"
+    },
+    "campusPortalUseHttps": {
+      "type": "boolean"
+    },
+    "maxConcurrentDownloads": {
+      "type": "number"
+    },
+    "downloadMaxWorkers": {
+      "type": "number"
+    },
+    "downloadNumRetries": {
+      "type": "number"
+    },
+    "muteMode": {
+      "$ref": "#/definitions/MuteMode"
+    },
+    "videoRetryCount": {
+      "type": "number"
+    },
+    "videoTokenRefreshSeconds": {
+      "type": "number"
+    },
+    "previewFromVideo": {
+      "type": "boolean"
+    },
+    "previewSeekSeconds": {
+      "type": "number"
+    },
+    "taskSpeed": {
+      "type": "number"
+    },
+    "parallelTasks": {
+      "type": "number"
+    },
+    "maxManualTabs": {
+      "type": "number"
+    },
+    "showMorePlaybackSpeed": {
+      "type": "boolean"
+    },
+    "preferMicAudioByDefault": {
+      "type": "boolean"
+    },
+    "checkMicAudioBeforeOffering": {
+      "type": "boolean"
+    },
+    "yanhe2CaptionMode": {
+      "$ref": "#/definitions/Yanhe2CaptionMode"
+    },
+    "yanhe2CaptionOffsetSeconds": {
+      "type": "number"
+    },
+    "resumeFromServerProgress": {
+      "type": "boolean"
+    },
+    "resumeFromServerProgressLectures": {
+      "type": "boolean"
+    },
+    "autoPostProcessing": {
+      "type": "boolean"
+    },
+    "autoPostProcessingLive": {
+      "type": "boolean"
+    },
+    "enableAIFiltering": {
+      "type": "boolean"
+    },
+    "distinguishMaybeSlide": {
+      "type": "boolean"
+    },
+    "enableAutoCropAIFilteredEdit": {
+      "type": "boolean",
+      "description": "When true (default), phase-3 may_be_slide_edit frames are auto-cropped in place before trash."
+    },
+    "enableDedupAfterAutoCropAIFilteredEdit": {
+      "type": "boolean",
+      "description": "When true (default), after a successful may_be_slide_edit auto-crop, re-run pHash against kept slides and trash visual duplicates (Results-style)."
+    },
+    "themeMode": {
+      "$ref": "#/definitions/ThemeMode"
+    },
+    "languageMode": {
+      "$ref": "#/definitions/LanguageMode"
+    },
+    "preventSystemSleep": {
+      "type": "boolean"
+    },
+    "slideExtraction": {
+      "$ref": "#/definitions/SlideExtractionConfig"
+    },
+    "aiFiltering": {
+      "$ref": "#/definitions/AIFilteringConfig"
+    },
+    "qtExtractor": {
+      "$ref": "#/definitions/QtExtractorConfig"
+    },
+    "skipUpdateCheckUntil": {
+      "type": "number"
+    },
+    "userOriginalNickname": {
+      "type": "string"
+    },
+    "userDisplayName": {
+      "type": "string"
+    },
+    "lastGreetingId": {
+      "type": "string"
+    },
+    "savedSearchesLive": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "savedSearchesRecorded": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pinnedRecordedCourses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PinnedCourse"
+      }
+    },
+    "onboardingCompleted": {
+      "type": "boolean"
+    },
+    "lastOnboardingVersion": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "App version last acknowledged by finishing or skipping onboarding / What's New. null = never stamped (fresh install, or a v4 upgrade that only has onboardingCompleted). Do not default this to the current app version — absence is how we detect \"updated from before 5.0.0\"."
+    },
+    "cloudStorageInitializedUsers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cloudAutoSyncMode": {
+      "type": "string",
+      "enum": [
+        "disabled",
+        "edited",
+        "reviewed"
+      ]
+    },
+    "cloudAutoResyncMode": {
+      "type": "string",
+      "enum": [
+        "disabled",
+        "edited"
+      ]
+    },
+    "watchNotesEnabled": {
+      "type": "boolean"
+    },
+    "watchNotesProvider": {
+      "$ref": "#/definitions/WatchNotesProviderId"
+    },
+    "obsidianVaultPath": {
+      "type": "string"
+    },
+    "obsidianSubfolder": {
+      "type": "string"
+    },
+    "obsidianAutoCreateNote": {
+      "type": "boolean"
+    },
+    "notionConnected": {
+      "type": "boolean"
+    },
+    "notionWorkspaceName": {
+      "type": "string"
+    },
+    "cloudShareEmbedTimeline": {
+      "type": "boolean"
+    },
+    "showToolsButton": {
+      "type": "boolean"
+    },
+    "allowCliControl": {
+      "type": "boolean"
+    },
+    "preferAnonymousApiRequests": {
+      "type": "boolean"
+    },
+    "developerMode": {
+      "type": "boolean"
+    },
+    "logYanhektCatalog": {
+      "type": "boolean"
+    },
+    "yanhektLiveWorkaround": {
+      "$ref": "#/definitions/YanhektLiveWorkaroundConfig"
+    },
+    "yanhektCourseSnapshotSearch": {
+      "type": "boolean"
+    },
+    "courseSnapshotPickerTerms": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "localRelayEnabled": {
+      "type": "boolean"
+    },
+    "localRelayPort": {
+      "type": "number"
+    },
+    "localRelayWhitelistEnabled": {
+      "type": "boolean"
+    },
+    "localRelayIncludeCurrentToken": {
+      "type": "boolean"
+    },
+    "localRelayTokenWhitelist": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "accounts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/StoredAccount"
+      }
+    },
+    "rememberPassword": {
+      "type": "boolean"
+    },
+    "autoSignIn": {
+      "type": "boolean"
+    },
+    "yanhe2SignInWithMain": {
+      "type": "boolean"
+    },
+    "yanhe2SessionExpiry": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      }
+    }
+  },
+  "definitions": {
+    "ConnectionMode": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "internal",
+        "external"
+      ],
+      "description": "`auto` uses the campus intranet while it can be reached and the public network otherwise; the other two force one route."
+    },
+    "MuteMode": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "mute_all",
+        "mute_live",
+        "mute_recorded"
+      ]
+    },
+    "Yanhe2CaptionMode": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "offset"
+      ]
+    },
+    "ThemeMode": {
+      "type": "string",
+      "enum": [
+        "system",
+        "light",
+        "dark"
+      ]
+    },
+    "LanguageMode": {
+      "type": "string",
+      "enum": [
+        "system",
+        "en",
+        "zh",
+        "ja",
+        "ko"
+      ]
+    },
+    "SlideExtractionConfig": {
+      "type": "object",
+      "properties": {
+        "checkInterval": {
+          "type": "number"
+        },
+        "enableDoubleVerification": {
+          "type": "boolean"
+        },
+        "verificationCount": {
+          "type": "number"
+        },
+        "ssimThreshold": {
+          "type": "number"
+        },
+        "ssimPresetMode": {
+          "$ref": "#/definitions/SSIMPresetMode"
+        },
+        "isAdaptiveMode": {
+          "type": "boolean"
+        },
+        "enableDownsampling": {
+          "type": "boolean"
+        },
+        "downsampleWidth": {
+          "type": "number"
+        },
+        "downsampleHeight": {
+          "type": "number"
+        },
+        "pHashThreshold": {
+          "type": "number"
+        },
+        "pHashExclusionList": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PHashExclusionItem"
+          }
+        },
+        "enableDuplicateRemoval": {
+          "type": "boolean"
+        },
+        "enableExclusionList": {
+          "type": "boolean"
+        },
+        "enablePngColorReduction": {
+          "type": "boolean"
+        },
+        "autoCrop": {
+          "$ref": "#/definitions/AutoCropConfig"
+        },
+        "autoCropDetectorMode": {
+          "$ref": "#/definitions/AutoCropDetectorMode"
+        },
+        "autoCropYolo": {
+          "$ref": "#/definitions/AutoCropYoloConfig"
+        },
+        "autoCropActiveModel": {
+          "$ref": "#/definitions/AutoCropActiveModel"
+        },
+        "autoCropCustomModelName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "SSIMPresetMode": {
+      "type": "string",
+      "enum": [
+        "adaptive",
+        "strict",
+        "normal",
+        "loose",
+        "custom"
+      ]
+    },
+    "PHashExclusionItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "pHash": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "number"
+        },
+        "isPreset": {
+          "type": "boolean"
+        },
+        "isEnabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "AutoCropConfig": {
+      "type": "object",
+      "properties": {
+        "aspectTolerance": {
+          "type": "number"
+        },
+        "blackThreshold": {
+          "type": "number"
+        },
+        "maxBorderFrac": {
+          "type": "number"
+        },
+        "cannyLowThreshold": {
+          "type": "number"
+        },
+        "cannyHighThreshold": {
+          "type": "number"
+        },
+        "areaRatioMin": {
+          "type": "number"
+        },
+        "areaRatioMax": {
+          "type": "number"
+        },
+        "marginFrac": {
+          "type": "number"
+        },
+        "fillRatioMin": {
+          "type": "number"
+        }
+      }
+    },
+    "AutoCropDetectorMode": {
+      "type": "string",
+      "enum": [
+        "canny_then_yolo",
+        "canny_only",
+        "yolo_only"
+      ]
+    },
+    "AutoCropYoloConfig": {
+      "type": "object",
+      "properties": {
+        "confidenceThreshold": {
+          "type": "number"
+        },
+        "iouThreshold": {
+          "type": "number"
+        },
+        "inputSize": {
+          "type": "number"
+        }
+      }
+    },
+    "AutoCropActiveModel": {
+      "type": "string",
+      "enum": [
+        "builtin",
+        "custom"
+      ]
+    },
+    "AIFilteringConfig": {
+      "type": "object",
+      "properties": {
+        "classifierMode": {
+          "$ref": "#/definitions/AIClassifierMode"
+        },
+        "serviceType": {
+          "$ref": "#/definitions/AIServiceType"
+        },
+        "customApiBaseUrl": {
+          "type": "string"
+        },
+        "customApiKey": {
+          "type": "string"
+        },
+        "customModelName": {
+          "type": "string"
+        },
+        "customModelChain": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "customProviderId": {
+          "$ref": "#/definitions/CustomProviderId"
+        },
+        "copilotGhoToken": {
+          "type": "string"
+        },
+        "copilotModelName": {
+          "type": "string"
+        },
+        "copilotUsername": {
+          "type": "string"
+        },
+        "copilotAvatarUrl": {
+          "type": "string"
+        },
+        "rateLimit": {
+          "type": "number"
+        },
+        "batchSize": {
+          "type": "number"
+        },
+        "imageResizeWidth": {
+          "type": "number"
+        },
+        "imageResizeHeight": {
+          "type": "number"
+        },
+        "maxConcurrent": {
+          "type": "number"
+        },
+        "minTime": {
+          "type": "number"
+        },
+        "requestBody": {
+          "$ref": "#/definitions/AIRequestBodySettings",
+          "description": "Optional chat-completion body parameters (omit when null)."
+        },
+        "mlThresholds": {
+          "$ref": "#/definitions/MlClassifierThresholds"
+        },
+        "mlClassifierActiveModel": {
+          "type": "string",
+          "enum": [
+            "builtin",
+            "custom"
+          ]
+        },
+        "mlClassifierCustomModelName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "AIClassifierMode": {
+      "type": "string",
+      "enum": [
+        "llm",
+        "ml"
+      ]
+    },
+    "AIServiceType": {
+      "type": "string",
+      "enum": [
+        "builtin",
+        "custom",
+        "copilot"
+      ]
+    },
+    "CustomProviderId": {
+      "type": "string",
+      "enum": [
+        "modelscope",
+        "other"
+      ]
+    },
+    "AIRequestBodySettings": {
+      "type": "object",
+      "properties": {
+        "maxTokens": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "OpenAI `max_tokens`. Default 100 (sent)."
+        },
+        "temperature": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "OpenAI `temperature`. Default 0 (sent)."
+        },
+        "topP": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "OpenAI `top_p`. Default null (omit)."
+        },
+        "stream": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "OpenAI `stream`. Default false (sent). Classification does not consume SSE — true is coerced to false at the transport layer."
+        },
+        "enableThinking": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Thinking on/off value for `chat_template_kwargs[thinkingKey]`. Default false (send thinking off). `null` omits `chat_template_kwargs`. Copilot transport always omits kwargs regardless of this field."
+        },
+        "thinkingKey": {
+          "$ref": "#/definitions/ThinkingParamKey",
+          "description": "Key name inside `chat_template_kwargs`. Default `'enable_thinking'`. Always stored (not null-omit); only applied when `enableThinking != null`."
+        }
+      },
+      "description": "LLM chat-completion body knobs. `null` = omit that key from the request JSON (presence vs absence matters for some providers, e.g. Agnes + max_tokens)."
+    },
+    "ThinkingParamKey": {
+      "type": "string",
+      "enum": [
+        "enable_thinking",
+        "thinking"
+      ],
+      "description": "Which key name to put inside `chat_template_kwargs`. Models disagree: Agnes-style uses `enable_thinking`; some others use `thinking`."
+    },
+    "MlClassifierThresholds": {
+      "type": "object",
+      "properties": {
+        "trustLow": {
+          "type": "number"
+        },
+        "trustHigh": {
+          "type": "number"
+        },
+        "slideCheckLow": {
+          "type": "number"
+        }
+      }
+    },
+    "QtExtractorConfig": {
+      "type": "object",
+      "properties": {
+        "binaryPath": {
+          "type": "string"
+        },
+        "autoRunAfterDownload": {
+          "type": "boolean"
+        },
+        "autoPostProcessAfter": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PinnedCourse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string",
+          "description": "Chinese course name — canonical, feeds filenames once the pin is opened."
+        },
+        "titleEn": {
+          "type": "string",
+          "description": "English course name, when the API had one. Display only; absent on legacy pins."
+        },
+        "instructor": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "classrooms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "participant_count": {
+          "type": "number"
+        },
+        "college_name": {
+          "type": "string"
+        },
+        "professors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "school_year": {
+          "type": "string"
+        },
+        "semester": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Cover URL from Yanhekt list/detail; optional on legacy pins."
+        }
+      }
+    },
+    "WatchNotesProviderId": {
+      "type": "string",
+      "enum": [
+        "yanhekt",
+        "obsidian",
+        "notion"
+      ]
+    },
+    "YanhektLiveWorkaroundConfig": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "number"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Off leaves every live response on the label the server gave it."
+        },
+        "screen": {
+          "$ref": "#/definitions/YanhektLiveStreamKind",
+          "description": "Which server response the Screen label plays."
+        },
+        "camera": {
+          "$ref": "#/definitions/YanhektLiveStreamKind",
+          "description": "Which server response the Camera label plays."
+        },
+        "room": {
+          "$ref": "#/definitions/YanhektLiveStreamKind",
+          "description": "Which server response the Room Camera label plays."
+        }
+      }
+    },
+    "YanhektLiveStreamKind": {
+      "type": "string",
+      "enum": [
+        "camera",
+        "screen",
+        "room"
+      ]
+    },
+    "StoredAccount": {
+      "type": "object",
+      "properties": {
+        "badge": {
+          "type": "string"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "addedAt": {
+          "type": "number"
+        },
+        "lastUsedAt": {
+          "type": "number"
+        }
+      }
+    }
+  }
+}
