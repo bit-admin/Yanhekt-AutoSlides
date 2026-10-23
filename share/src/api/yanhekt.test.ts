@@ -14,10 +14,13 @@ const web = {
     seen.push({ path: u.pathname + u.search, auth: req.headers.get('Authorization') });
     const a = answers[u.pathname.replace(/^\/api\/yanhekt/, '') + u.search];
     if (typeof a === 'number') return new Response('upstream', { status: a });
+    if (a === OUTAGE) return Response.json(OUTAGE);
     if (a === undefined) return Response.json({ code: 12111010, message: '课程信息不存在', data: null });
     return Response.json({ code: 0, message: '', data: a });
   },
 };
+/** Yanhekt's gateway failure, verbatim: an HTTP 200 envelope, not a missing record. */
+const OUTAGE = { code: 99151011, message: 'failed to invoke service', displayable: false, data: [], module: 'frame_client_request' };
 const env = (bound = true) => ({ YANHEKT_DB: db, WEB: bound ? web : undefined }) as unknown as Env;
 const sessionPath = (id: number) => `/v1/course/session?session_id=${id}&with_video=true`;
 
@@ -66,6 +69,11 @@ describe('course details', () => {
     answers['/v1/course?id=12345'] = 502;
     expect(await courseDetails(env(), 12345)).toMatchObject({ error: 'yanhekt-unavailable' });
     expect(await courseDetails(env(false), 12345)).toMatchObject({ error: 'yanhekt-not-configured' });
+  });
+
+  it('treats the gateway failure envelope as an outage, not a missing course', async () => {
+    answers['/v1/course?id=12345'] = OUTAGE;
+    expect(await courseDetails(env(), 12345)).toMatchObject({ error: 'yanhekt-unavailable' });
   });
 });
 
@@ -124,6 +132,17 @@ describe('session details', () => {
   it('answers an outage when no session could be read', async () => {
     for (const id of [100101, 100102, 100103]) answers[sessionPath(id)] = 503;
     expect(await sessionDetails(env(), 12345, 0)).toMatchObject({ error: 'yanhekt-unavailable' });
+  });
+
+  it('treats the gateway failure envelope as an outage, not as gone sessions', async () => {
+    for (const id of [100101, 100102, 100103]) answers[sessionPath(id)] = OUTAGE;
+    expect(await sessionDetails(env(), 12345, 0)).toMatchObject({ error: 'yanhekt-unavailable' });
+    answers[sessionPath(100101)] = { id: 100101, course_id: 12345 };
+    const page = await sessionDetails(env(), 12345, 0);
+    expect('sessions' in page && page.sessions.slice(1)).toEqual([
+      { id: 100102, error: 'unavailable' },
+      { id: 100103, error: 'unavailable' },
+    ]);
   });
 
   it('keeps only well-formed fields', () => {

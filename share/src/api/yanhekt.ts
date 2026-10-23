@@ -78,7 +78,14 @@ export type Failure = { error: 'not-found' | 'yanhekt-unavailable' | 'yanhekt-no
 
 type Read<T> = { ok: true; data: T } | { ok: false; gone: boolean };
 
-/** One GET through the web Worker's Yanhekt proxy. `gone`: Yanhekt answered with a non-zero code. */
+/**
+ * Envelope codes that mean Yanhekt failed, not that the record is missing. `99151011` is its gateway's
+ * "failed to invoke service" (`displayable: false`, `module: "frame_client_request"`): the backend
+ * behind it is down, so every read answers with it until it comes back (docs/architecture.md §9.1).
+ */
+const OUTAGE_CODES = new Set(['99151011']);
+
+/** One GET through the web Worker's Yanhekt proxy. `gone`: Yanhekt answered with a non-zero code other than an outage. */
 async function readYanhekt<T>(web: NonNullable<Env['WEB']>, pathAndQuery: string): Promise<Read<T>> {
   try {
     // A service binding ignores the host; only path and query reach the callee.
@@ -89,6 +96,7 @@ async function readYanhekt<T>(web: NonNullable<Env['WEB']>, pathAndQuery: string
     );
     if (!res.ok) return { ok: false, gone: false };
     const body = (await res.json()) as { code?: unknown; data?: T };
+    if (OUTAGE_CODES.has(String(body.code))) return { ok: false, gone: false };
     if (String(body.code) !== '0') return { ok: false, gone: true };
     return body.data == null ? { ok: false, gone: true } : { ok: true, data: body.data };
   } catch {

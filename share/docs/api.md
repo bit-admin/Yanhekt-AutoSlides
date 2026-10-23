@@ -143,7 +143,7 @@ GET /api/courses/12345/yanhekt/sessions?from=0
       "recorded": true                   // Yanhekt lists a recording (it may still be processing)
     },
     { "id": 100102, "error": "gone" },        // Yanhekt no longer has it (or it moved to another course)
-    { "id": 100103, "error": "unavailable" }  // could not be read this time; ask again later
+    { "id": 100103, "error": "unavailable" }  // could not be read this time (Yanhekt down, including its gateway's "failed to invoke service"); ask again later
   ]
 }
 ```
