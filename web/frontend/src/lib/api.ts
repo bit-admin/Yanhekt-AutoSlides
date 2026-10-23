@@ -650,8 +650,8 @@ const INDEX_SESSION_CONCURRENCY = 6;
 /**
  * A course's sessions from the Index's session ids, each read from
  * `/v1/course/session` (anonymous upstream). These rows carry no stream URLs
- * (that hop has none); the player resolves them by session id. A failed read
- * drops that one session; an Index failure gives `[]` (not memoized). Memoized as a whole,
+ * (that hop has none); the player resolves them by session id. A session with
+ * no `video_ids` (future, or not recorded) is dropped, and so is a failed read; an Index failure gives `[]` (not memoized). Memoized as a whole,
  * because the per-session hop itself is never memoized (it carries
  * `user_progress`).
  */
@@ -679,7 +679,10 @@ function readSessionsFromIndex(courseId: string, token: string): Promise<Session
             token,
           );
           if (String(d.course_id) !== courseId) continue;
-          const videoId = d.video_ids?.[0] != null ? String(d.video_ids[0]) : "";
+          // Only recorded sessions, as the Yanhekt lists give: the Index also
+          // holds future ones, and the next step on a session page is to play.
+          if (d.video_ids?.[0] == null) continue;
+          const videoId = String(d.video_ids[0]);
           rows[i] = {
             session_id: String(d.id),
             video_id: videoId,

@@ -123,11 +123,13 @@ describe('getCourseInfo session list fallback', () => {
       '/v1/course/session/list?course_id=702': { code: 0, data: [] },
       '/v1/course/session?session_id=811': detail(811),
       '/v1/course/session?session_id=812': detail(812),
+      // A future session: listed by the Index, not recorded yet.
+      '/v1/course/session?session_id=813': { code: 0, data: { ...detail(813).data, video_ids: [] } },
     });
     const real = globalThis.fetch;
     vi.stubGlobal('fetch', async (url: string) =>
       url === '/api/index/courses/702/sessions'
-        ? new Response(JSON.stringify({ course: 702, sessions: [811, 812] }), { status: 200 })
+        ? new Response(JSON.stringify({ course: 702, sessions: [811, 812, 813] }), { status: 200 })
         : real(url),
     );
     const info = await getCourseInfo('702', 'b'.repeat(32));
