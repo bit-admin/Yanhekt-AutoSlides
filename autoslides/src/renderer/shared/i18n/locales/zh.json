@@ -1045,7 +1045,7 @@
       "openDownloadFolder": "打开文件夹",
       "installUpdate": "安装更新",
       "restartToUpdate": "重启以更新",
-      "installsOnQuit": "也可以继续使用：退出 AutoSlides 时会自动安装更新。",
+      "installsOnQuit": "重启以应用更新；或继续使用，退出 AutoSlides 时会自动安装更新。",
       "confirmRestart": "重启以更新",
       "confirmRestartMessage": "AutoSlides 将关闭、安装更新，然后重新打开。",
       "restartNow": "立即重启",

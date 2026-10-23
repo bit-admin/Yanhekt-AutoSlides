@@ -1045,7 +1045,7 @@
       "openDownloadFolder": "フォルダを開く",
       "installUpdate": "アップデートをインストール",
       "restartToUpdate": "再起動して更新",
-      "installsOnQuit": "このまま作業を続けることもできます。AutoSlides を終了するとアップデートがインストールされます。",
+      "installsOnQuit": "再起動するとアップデートが適用されます。このまま作業を続けても、AutoSlides を終了するとインストールされます。",
       "confirmRestart": "再起動して更新",
       "confirmRestartMessage": "AutoSlides を終了してアップデートをインストールし、再度起動します。",
       "restartNow": "今すぐ再起動",

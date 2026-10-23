@@ -1045,7 +1045,7 @@
       "openDownloadFolder": "폴더 열기",
       "installUpdate": "업데이트 설치",
       "restartToUpdate": "재시작하여 업데이트",
-      "installsOnQuit": "계속 사용해도 됩니다. AutoSlides를 종료하면 업데이트가 설치됩니다.",
+      "installsOnQuit": "재시작하면 업데이트가 적용됩니다. 계속 사용해도 AutoSlides를 종료하면 설치됩니다.",
       "confirmRestart": "재시작하여 업데이트",
       "confirmRestartMessage": "AutoSlides가 종료된 뒤 업데이트를 설치하고 다시 열립니다.",
       "restartNow": "지금 재시작",

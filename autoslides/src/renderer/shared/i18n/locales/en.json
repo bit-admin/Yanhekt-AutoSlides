@@ -1045,7 +1045,7 @@
       "openDownloadFolder": "Open Folder",
       "installUpdate": "Install Update",
       "restartToUpdate": "Restart to Update",
-      "installsOnQuit": "Or keep working: the update installs when you quit AutoSlides.",
+      "installsOnQuit": "Restart to apply the update, or keep working: it installs when you quit AutoSlides.",
       "confirmRestart": "Restart to Update",
       "confirmRestartMessage": "AutoSlides will close, install the update and open again.",
       "restartNow": "Restart Now",
