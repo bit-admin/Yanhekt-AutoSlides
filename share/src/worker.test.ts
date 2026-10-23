@@ -18,13 +18,13 @@ const ctx: ExecutionContext = { waitUntil: () => {} };
 const call = (path: string, init?: RequestInit) => worker.fetch(new Request(`https://share.test${path}`, init), env, ctx);
 
 describe('worker routing', () => {
-  it('answers the retired v2 Index API with 503', async () => {
+  it('answers the retired v2 Index API with 410 Gone', async () => {
     for (const path of ['/v2/api/search?q=x', '/v2/api/stats', '/v2/api/lecture?courseId=1']) {
       const res = await call(path);
-      expect(res.status).toBe(503);
+      expect(res.status).toBe(410);
       expect(await res.json()).toMatchObject({ error: 'retired' });
     }
-    expect((await call('/v2/api/publish', { method: 'POST', body: '{}' })).status).toBe(503);
+    expect((await call('/v2/api/publish', { method: 'POST', body: '{}' })).status).toBe(410);
   });
 
   it('serves the Index site shell for its client-routed pages', async () => {

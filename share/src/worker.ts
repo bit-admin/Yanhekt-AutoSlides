@@ -18,7 +18,7 @@
  *   Index site (site/, a static React app at /): /search and /course/{id}
  *   get its shell; `/` and /assets/* are plain assets.
  *
- *   Retired: the old AutoSlides Index. /v2/api/* answers 503.
+ *   Retired: the old AutoSlides Index. /v2/api/* answers 410 Gone.
  */
 
 import { decodeSharePayload } from '../../autoslides/src/shared/shareLink';
@@ -86,7 +86,7 @@ const SHORT_LINK = /^\/v1\/s\/[A-Za-z0-9]+\/?$/;
 
 const RETIRED_V2 = {
   error: 'retired',
-  message: 'The old AutoSlides Index has been retired. A new Index is being built at /api.',
+  message: 'The old AutoSlides Index has been retired for good. The Index API is at /api.',
 };
 
 /** Index site pages (client-routed): served the site's shell, a static asset. */
@@ -105,7 +105,7 @@ export default {
     if (api) return api;
 
     if (pathname.startsWith('/v2/')) {
-      return json(RETIRED_V2, 503);
+      return json(RETIRED_V2, 410);
     }
     // The Index site: `/` itself is a static asset (dist/index.html) and never
     // reaches the Worker; its other pages get the same shell.

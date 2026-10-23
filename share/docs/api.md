@@ -19,7 +19,7 @@ It is deliberately small: it returns course ids and the few fields needed to sho
 | `GET /api/terms` | the terms the index holds, and when it was last updated |
 | `/api/*` (anything else) | `404` |
 | `/v1/…` | slides share viewer and its API, unchanged |
-| `/v2/api/*` | the retired AutoSlides Index; always `503` |
+| `/v2/api/*` | the retired AutoSlides Index; always `410` |
 | `/`, `/search`, `/course/{id}` | the Index site, a static page that reads this API |
 
 The API is not versioned in the path. Changes will be additive (new fields, new parameters); a breaking change would move to new paths.
@@ -179,8 +179,8 @@ Errors are JSON with a stable `error` code and a human `message`; parameter erro
 | 502 | `yanhekt-unavailable` | `/yanhekt` endpoints: Yanhekt did not answer; retry later |
 | 503 | `yanhekt-not-configured` | `/yanhekt` endpoints: this deployment has no route to Yanhekt |
 | 405 | `method-not-allowed` | not `GET` |
+| 410 | `retired` | `/v2/api/*` (the old Index) |
 | 500 | `internal` | the database failed; retry later |
-| 503 | `retired` | `/v2/api/*` (the old Index) |
 
 ```json
 { "error": "term-required", "message": "term is required, e.g. term=2026-2027-1", "param": "term" }
