@@ -20,8 +20,13 @@ export const MISSING_CODE = {
   course: '12111010',
 } as const;
 
-/** 系统繁忙 — overload, retry later. */
-const BUSY_CODE = '61101114';
+/**
+ * Codes that mean "Yanhekt is not answering right now", not "this id is bad":
+ * back off and retry the same id. 61101114 系统繁忙 is overload; 99151011
+ * "failed to invoke service" is what every call answers during maintenance,
+ * so logging it as a failure would skip ids that exist.
+ */
+const TRANSIENT_CODES: ReadonlySet<string> = new Set(['61101114', '99151011']);
 
 export type Json = Record<string, unknown>;
 
@@ -181,6 +186,6 @@ export function classify<T>(body: unknown, missingCode: string, arrayData = fals
     return { kind: 'missing' };
   }
   if (code === missingCode) return { kind: 'missing' };
-  if (code === BUSY_CODE) return { kind: 'transient', reason: `busy ${code}` };
+  if (TRANSIENT_CODES.has(code)) return { kind: 'transient', reason: `unavailable (code ${code})` };
   return { kind: 'unexpected', code, message };
 }

@@ -18,6 +18,7 @@ test('classify: per-resource missing codes', () => {
 
 test('classify: busy is transient, unknown is unexpected', () => {
   assert.equal(classify({ code: 61101114, data: [] }, MISSING_CODE.session).kind, 'transient');
+  assert.equal(classify({ code: 99151011, message: 'failed to invoke service', data: [] }, MISSING_CODE.session).kind, 'transient');
   assert.deepEqual(classify({ code: 61101113, message: '用户未登录', data: [] }, MISSING_CODE.session), {
     kind: 'unexpected',
     code: '61101113',

@@ -245,7 +245,7 @@ The window is always Beijing time, whatever the computer's time zone. Use `--win
 
 **Errors:**
 
-- A network error, timeout, HTTP error or 系统繁忙 keeps the work done so far and backs off (30 s, 1, 2 … 15 min). After 6 failures in a row the run stops for the night.
+- A network error, timeout, HTTP error, 系统繁忙 or the maintenance answer (code 99151011) keeps the work done so far and backs off (30 s, 1, 2 … 15 min). After 6 failures in a row the run stops for the night.
 - An unknown response code is written to `failures` and skipped; 5 in a row count as one error.
 - Only one process can use a database file at a time (`<db>.lock`), and that includes `upload`.
 
