@@ -49,7 +49,26 @@ export interface CloudNotesProvider {
 interface ApiEnvelope<T> {
   code: number | string;
   message?: string;
+  /** false when `message` is an internal server message, not text for users. */
+  displayable?: boolean;
   data: T;
+}
+
+/**
+ * The error for a non-zero envelope code. Yanhekt marks internal failures
+ * `displayable: false` (e.g. 12101114 "service runtime exception", which its own
+ * site shows as 保存失败：错误码(12101114)); those become the machine code
+ * `yanhekt-error:<code>` for the UI to word (`noteErrorText`).
+ */
+function envelopeError(
+  payload: { code: number | string; message?: string; displayable?: boolean },
+  fallback: string,
+): Error {
+  if (payload.displayable === false || !payload.message) {
+    log.warn('Yanhekt note API error', { code: payload.code, message: payload.message });
+    return new Error(`yanhekt-error:${payload.code}`);
+  }
+  return new Error(payload.message || fallback);
 }
 
 class NotesAuthError extends Error {
@@ -83,7 +102,7 @@ async function send<T>(method: string, path: string, body?: Record<string, unkno
   }
   const payload = (await res.json()) as ApiEnvelope<T>;
   if (payload.code !== 0 && payload.code !== '0') {
-    throw new Error(payload.message || `Note API error code ${payload.code}`);
+    throw envelopeError(payload, `Note API error code ${payload.code}`);
   }
   return payload.data;
 }
@@ -263,7 +282,7 @@ export const notesClient: CloudNotesProvider = {
       }
       const payload = (await res.json()) as ApiEnvelope<{ host: string; path: string }>;
       if (payload.code !== 0 && payload.code !== '0') {
-        throw new Error(payload.message || `Image upload error code ${payload.code}`);
+        throw envelopeError(payload, `Image upload error code ${payload.code}`);
       }
       return { url: `${payload.data.host}${payload.data.path}` };
     });

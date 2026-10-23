@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import type { NoteSummary, NoteDetail, NoteGroup, NotesResult } from '../../lib/notes/notesTypes';
 import { isAutoSlidesGroupName, isManagedGroupName } from '../../lib/notes/notesTypes';
 import { notesClient } from '../../lib/notes/notesClient';
+import { noteErrorText } from '../../lib/notes/noteErrors';
 import { cloudStorageStore } from '../../stores/cloudStorageStore';
 
 const PAGE_SIZE = 20;
@@ -85,7 +86,7 @@ export function useCloudNotes() {
     if (res.error === 'not-signed-in') {
       notSignedIn.value = true;
     } else {
-      error.value = res.error;
+      error.value = noteErrorText(res.error);
     }
     return null;
   }

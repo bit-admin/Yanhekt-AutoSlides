@@ -9,6 +9,7 @@ import {
 } from '../lib/notes/notesTypes';
 import { buildReadmeContent } from '../lib/notes/readmeContent';
 import { notesClient } from '../lib/notes/notesClient';
+import { noteErrorText } from '../lib/notes/noteErrors';
 import { authStore } from './authStore';
 import {
   isCloudStorageInitialized,
@@ -147,7 +148,7 @@ async function readmeExists(): Promise<boolean | null> {
   do {
     const res = await notesClient.list({ page: p, pageSize: FETCH_PAGE_SIZE });
     if (!res.ok) {
-      lastError.value = res.error;
+      lastError.value = noteErrorText(res.error);
       return null;
     }
     if (res.data.data.some((n) => n.title === README_NOTE_TITLE)) return true;
@@ -163,18 +164,16 @@ async function ensureReadme(): Promise<boolean> {
   if (exists) return true;
   const createRes = await notesClient.create();
   if (!createRes.ok) {
-    lastError.value = createRes.error;
+    lastError.value = noteErrorText(createRes.error);
     return false;
   }
   const id = createRes.data;
   const titleRes = await notesClient.updateTitle(id, README_NOTE_TITLE);
-  if (!titleRes.ok) {
-    lastError.value = titleRes.error;
-    return false;
-  }
-  const contentRes = await notesClient.updateContent(id, buildReadmeContent());
+  const contentRes = titleRes.ok ? await notesClient.updateContent(id, buildReadmeContent()) : titleRes;
   if (!contentRes.ok) {
-    lastError.value = contentRes.error;
+    // Do not leave a blank note behind; the next check retries the README.
+    await notesClient.delete(id);
+    lastError.value = noteErrorText(contentRes.error);
     return false;
   }
   return true;
@@ -188,7 +187,7 @@ async function ensureReadme(): Promise<boolean> {
 async function provision(): Promise<boolean> {
   const listRes = await notesClient.groupList();
   if (!listRes.ok) {
-    lastError.value = listRes.error;
+    lastError.value = noteErrorText(listRes.error);
     return false;
   }
   let groups = listRes.data;
@@ -200,13 +199,13 @@ async function provision(): Promise<boolean> {
     for (const name of missing) {
       const createRes = await notesClient.groupCreate(name);
       if (!createRes.ok) {
-        lastError.value = createRes.error;
+        lastError.value = noteErrorText(createRes.error);
         return false;
       }
     }
     const relist = await notesClient.groupList();
     if (!relist.ok) {
-      lastError.value = relist.error;
+      lastError.value = noteErrorText(relist.error);
       return false;
     }
     groups = relist.data;
@@ -228,7 +227,7 @@ async function doRefresh(): Promise<CloudStorageStatus> {
   const res = await notesClient.groupList();
   if (!res.ok) {
     // Transient failures never provision or reclassify to 'uninitialized'.
-    lastError.value = res.error;
+    lastError.value = noteErrorText(res.error);
     status.value = failureStatus();
     lastCheckedAt.value = Date.now();
     return status.value;

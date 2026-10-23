@@ -9,6 +9,7 @@ import Quote from '@editorjs/quote';
 import CodeTool from '@editorjs/code';
 import Table from '@editorjs/table';
 import { notesClient } from '../../lib/notes/notesClient';
+import { noteErrorText } from '../../lib/notes/noteErrors';
 import { syncEditorJsSelectionStyles } from '../../lib/notes/editorSelection';
 import type { useCloudNotes } from './useCloudNotes';
 
@@ -132,7 +133,7 @@ export function useNoteEditor(
                 const buf = await file.arrayBuffer();
                 const res = await notesClient.uploadImage(buf, file.name, file.type);
                 if (res.ok) return { success: 1, file: { url: res.data.url } };
-                cn.error.value = res.error === 'not-signed-in' ? t('cloudNotes.notSignedIn') : res.error;
+                cn.error.value = res.error === 'not-signed-in' ? t('cloudNotes.notSignedIn') : noteErrorText(res.error);
                 return { success: 0 };
               },
             },
