@@ -5,6 +5,7 @@ import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
 import { IntranetApiTransport } from '@main/platform/intranetApiTransport';
 import { indexSessionIds } from '@main/platform/indexClient';
+import { cbizEnvelopeError, isCbizOk } from '@main/platform/cbizEnvelope';
 import type { ConfigService } from '@main/platform/configService';
 import type { YanhektCatalogSink } from '@main/platform/yanhektCatalog';
 const log = createLogger('PlatformApiClient');
@@ -317,20 +318,7 @@ export class ApiClient {
       });
       const data = response as LiveListApiResponse;
 
-      if (data.code !== 0 && data.code !== "0") {
-        let errorMessage = data.message;
-        switch (data.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${data.message} (code: ${data.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(data)) throw cbizEnvelopeError(data);
 
       return data.data;
     } catch (error: unknown) {
@@ -350,20 +338,7 @@ export class ApiClient {
       const response = await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
       const data = response as LiveListApiResponse;
 
-      if (data.code !== 0 && data.code !== "0") {
-        let errorMessage = data.message;
-        switch (data.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${data.message} (code: ${data.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(data)) throw cbizEnvelopeError(data);
 
       return data.data;
     } catch (error: unknown) {
@@ -404,20 +379,7 @@ export class ApiClient {
       const response = await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
       const data = response as CourseListApiResponse;
 
-      if (data.code !== 0 && data.code !== "0") {
-        let errorMessage = data.message;
-        switch (data.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${data.message} (code: ${data.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(data)) throw cbizEnvelopeError(data);
 
       return data.data;
     } catch (error: unknown) {
@@ -446,20 +408,7 @@ export class ApiClient {
       const response = await this.makeRequest('GET', url, token);
       const data = response as CourseListApiResponse;
 
-      if (data.code !== 0 && data.code !== "0") {
-        let errorMessage = data.message;
-        switch (data.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${data.message} (code: ${data.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(data)) throw cbizEnvelopeError(data);
 
       return data.data;
     } catch (error: unknown) {
@@ -488,20 +437,7 @@ export class ApiClient {
         data: SubscriptionListResponse;
       };
 
-      if (response.code !== 0 && response.code !== "0") {
-        let errorMessage = response.message;
-        switch (response.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${response.message} (code: ${response.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(response)) throw cbizEnvelopeError(response);
 
       return response.data;
     } catch (error: unknown) {
@@ -517,20 +453,7 @@ export class ApiClient {
         course_id: String(courseId),
       }) as BaseApiResponse;
 
-      if (response.code !== 0 && response.code !== "0") {
-        let errorMessage = response.message;
-        switch (response.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${response.message} (code: ${response.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(response)) throw cbizEnvelopeError(response);
     } catch (error: unknown) {
       log.error('Failed to subscribe course:', error);
       throw error;
@@ -544,20 +467,7 @@ export class ApiClient {
         course_id: String(courseId),
       }) as BaseApiResponse;
 
-      if (response.code !== 0 && response.code !== "0") {
-        let errorMessage = response.message;
-        switch (response.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${response.message} (code: ${response.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(response)) throw cbizEnvelopeError(response);
     } catch (error: unknown) {
       log.error('Failed to unsubscribe course:', error);
       throw error;
@@ -757,9 +667,8 @@ export class ApiClient {
         case 12111010:
           throw new YanhektLookupError("Course not found, please check if course ID is correct", 'not_found');
         case 13001001:
-          throw new Error("Authentication failed, please check if token is valid");
         case 99151011:
-          throw new Error("Remote server error or is temporarily down, please try again later");
+          throw cbizEnvelopeError(courseData);
         default:
           throw new Error(`Course ID: ${courseId}, ${courseData.message}`);
       }
@@ -924,20 +833,7 @@ export class ApiClient {
         seconds,
       }) as BaseApiResponse;
 
-      if (response.code !== 0 && response.code !== "0") {
-        let errorMessage = response.message;
-        switch (response.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${response.message} (code: ${response.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(response)) throw cbizEnvelopeError(response);
     } catch (error: unknown) {
       log.error('Failed to report session progress:', error);
       throw error;
@@ -1033,20 +929,7 @@ export class ApiClient {
       const response = await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
       const data = response as VideoTokenApiResponse;
 
-      if (data.code !== 0 && data.code !== "0") {
-        let errorMessage = data.message;
-        switch (data.code) {
-          case 13001001:
-            errorMessage = "Authentication failed, please check if token is valid";
-            break;
-          case 99151011:
-            errorMessage = "Remote server error or is temporarily down, please try again later";
-            break;
-          default:
-            errorMessage = `API error: ${data.message} (code: ${data.code})`;
-        }
-        throw new Error(errorMessage);
-      }
+      if (!isCbizOk(data)) throw cbizEnvelopeError(data);
 
       return data.data.token;
     } catch (error: unknown) {

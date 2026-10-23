@@ -719,7 +719,7 @@ Almost every cbiz response is:
 { "code": 0, "message": "", "data": {} }
 ```
 
-`code` is a number **or** a numeric string (`0` / `"0"`). Success is `code === 0 || String(code) === "0"`. HTTP status is **200 even on auth failure** — do not key off status. Strict-auth failures may also set `displayable` and `module` (e.g. `/v1/user` after logout: `"displayable": true, "module": "user_regular_runtime", "data": []`).
+`code` is a number **or** a numeric string (`0` / `"0"`). Success is `code === 0 || String(code) === "0"`. HTTP status is **200 even on auth failure** — do not key off status. Strict-auth failures may also set `displayable` and `module` (e.g. `/v1/user` after logout: `"displayable": true, "module": "user_regular_runtime", "data": []`). `displayable: false` means `message` is not meant for end users. The desktop maps failed envelopes in one place, `autoslides/src/main/platform/cbizEnvelope.ts`: it words `13001001` and `99151011` itself, and any other code shows as `API error: <message> (code: <code>)`.
 
 | `code` | Meaning (observed / handled) |
 |---|---|
@@ -730,7 +730,7 @@ Almost every cbiz response is:
 | `12131113` | `/v1/live/list?status=0` (ended filter) — rejected; the public lists hold no ended rows anyway ([§9.5.1](#9x-v1-twins-of-the-v2-endpoints)) |
 | `12111010` | Course not found (`GET /v1/course`) |
 | `13001001` | Auth failed (desktop error map) |
-| `99151011` | Upstream down (desktop error map) |
+| `99151011` | `failed to invoke service` — Yanhekt's gateway could not reach the backend (`displayable: false`, `module: "frame_client_request"`, `data: []`). Transient, not tied to one route; seen on `/v2/course/private/list`. Shown as "Remote server error or is temporarily down, please try again later" |
 
 `data` is **not** always an object:
 
