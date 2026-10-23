@@ -60,7 +60,11 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: release-windows
-        path: autoslides/out/make/*.exe
+        # latest.yml + .blockmap feed the in-place updater (windowsAutoUpdater.ts).
+        path: |
+          autoslides/out/make/*.exe
+          autoslides/out/make/*.exe.blockmap
+          autoslides/out/make/latest.yml
         retention-days: 7
 
   build-linux:
@@ -162,6 +166,8 @@ jobs:
         files: |
           artifacts/release-windows/*.exe
           artifacts/release-windows/*.exe.sig
+          artifacts/release-windows/*.exe.blockmap
+          artifacts/release-windows/latest.yml
           artifacts/release-linux/*.AppImage
           artifacts/release-linux/*.AppImage.sig
           artifacts/release-linux/*.deb

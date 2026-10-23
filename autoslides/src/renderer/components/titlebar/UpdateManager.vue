@@ -87,8 +87,11 @@
               </svg>
               <span>{{ $t('titlebar.updateModal.downloadComplete') }}</span>
             </div>
+            <p v-if="releaseInfo?.inPlaceUpdate" class="install-on-quit-hint">
+              {{ $t('titlebar.updateModal.installsOnQuit') }}
+            </p>
             <div class="complete-actions">
-              <button class="btn action-btn" @click="openDownloadFolder">
+              <button v-if="!releaseInfo?.inPlaceUpdate" class="btn action-btn" @click="openDownloadFolder">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
@@ -100,7 +103,7 @@
                   <polyline points="7,10 12,15 17,10"/>
                   <line x1="12" y1="15" x2="12" y2="3"/>
                 </svg>
-                {{ $t('titlebar.updateModal.installUpdate') }}
+                {{ releaseInfo?.inPlaceUpdate ? $t('titlebar.updateModal.restartToUpdate') : $t('titlebar.updateModal.installUpdate') }}
               </button>
             </div>
 
@@ -148,6 +151,7 @@ interface ReleaseInfo {
   releaseUrl: string
   releaseBody: string
   publishedAt: string
+  inPlaceUpdate: boolean
   assets: ReleaseAsset[]
 }
 
@@ -305,6 +309,19 @@ const openDownloadFolder = async () => {
 const installUpdate = async () => {
   if (!downloadedFile.value) return
 
+  // Windows in-place update: main quits, installs silently and reopens the app.
+  if (releaseInfo.value?.inPlaceUpdate) {
+    const response = await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'question',
+      title: $t('titlebar.updateModal.confirmRestart'),
+      message: $t('titlebar.updateModal.confirmRestartMessage'),
+      buttons: [$t('titlebar.updateModal.restartNow'), $t('titlebar.updateModal.later')],
+      defaultId: 0,
+      cancelId: 1
+    })
+    if (response?.response !== 0) return
+  }
+
   try {
     const result = await window.electronAPI.update.installUpdate(downloadedFile.value)
     if (!result.success && result.error && isSignatureError(result.error)) {
@@ -444,6 +461,12 @@ defineExpose({
 <style scoped>
 /* Shared installer/update chrome lives in shared/styles/installerModal.css
    (namespaced under .installer-modal). Only update-specific extras here. */
+.install-on-quit-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .current-version {
   font-size: 12px;
   color: var(--text-secondary);

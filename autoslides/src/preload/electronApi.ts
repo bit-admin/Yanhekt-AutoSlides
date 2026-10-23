@@ -800,6 +800,8 @@ export interface ElectronAPI {
           releaseUrl: string;
           releaseBody: string;
           publishedAt: string;
+          /** Windows only: the download installs in place on quit (electron-updater). */
+          inPlaceUpdate: boolean;
           assets: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
         }
       | { success: false; error: string }

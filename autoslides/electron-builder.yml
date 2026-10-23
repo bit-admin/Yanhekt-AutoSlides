@@ -128,5 +128,12 @@ deb:
 # Compression settings
 compression: maximum
 
-# Disable auto-updating publishing
-publish: null
+# Update metadata only. With a publish target electron-builder writes
+# latest.yml and the installer's .blockmap next to the .exe, which the Windows
+# in-place updater reads (src/main/download/windowsAutoUpdater.ts). The URL is
+# a placeholder: the app points the updater at the release it offers, on
+# GitHub or through the proxy. make:win / make:linux pass `--publish never`,
+# so nothing is uploaded from here; the release workflow uploads the files.
+publish:
+  provider: generic
+  url: https://github.com/bit-admin/Yanhekt-AutoSlides/releases/latest/download

@@ -30,6 +30,7 @@ import { AIPromptsService } from '@main/ai/aiPromptsService';
 import { AIFilteringService } from '@main/ai/aiFilteringService';
 import { LLMApiService } from '@main/ai/llmApiService';
 import { updateDownloadService } from '@main/download/updateDownloadService';
+import { windowsAutoUpdater } from '@main/download/windowsAutoUpdater';
 import { QtExtractorService } from '@main/extraction/qtExtractorService';
 import { extractorInstallerService } from '@main/download/extractorInstallerService';
 import { AutoCropModelService } from '@main/ai/autoCropModelService';
@@ -472,6 +473,7 @@ if (!cliRun) registerAllIpcHandlers({
   aiFilteringService,
   llmApiService,
   updateDownloadService,
+  windowsAutoUpdater,
   qtExtractorService,
   extractorInstallerService,
   autoCropModelService,

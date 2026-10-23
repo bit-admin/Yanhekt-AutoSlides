@@ -18,6 +18,7 @@ import type { AIPromptsService } from '@main/ai/aiPromptsService';
 import type { AIFilteringService } from '@main/ai/aiFilteringService';
 import type { LLMApiService } from '@main/ai/llmApiService';
 import type { UpdateDownloadService } from '@main/download/updateDownloadService';
+import type { WindowsAutoUpdater } from '@main/download/windowsAutoUpdater';
 import type { QtExtractorService } from '@main/extraction/qtExtractorService';
 import type { ExtractorInstallerService } from '@main/download/extractorInstallerService';
 import type { AutoCropModelService } from '@main/ai/autoCropModelService';
@@ -62,6 +63,7 @@ export interface IpcServices {
   aiFilteringService: AIFilteringService;
   llmApiService: LLMApiService;
   updateDownloadService: UpdateDownloadService;
+  windowsAutoUpdater: WindowsAutoUpdater;
   qtExtractorService: QtExtractorService;
   extractorInstallerService: ExtractorInstallerService;
   autoCropModelService: AutoCropModelService;
