@@ -29,7 +29,8 @@
 // @common/outputDirAccess) gets a problem line plus a what-to-do line with
 // inline actions; any other error shows its message without the IPC wrapper.
 import { computed, ref, watch } from 'vue'
-import { parseOutputDirProblem, userFacingIpcError } from '@common/outputDirAccess'
+import { parseOutputDirProblem } from '@common/outputDirAccess'
+import { userFacingIpcError } from '@common/ipcError'
 import { configStore } from '@shared/services/configStore'
 import { createLogger } from '@shared/utils/logger'
 import PageBanner from './PageBanner.vue'

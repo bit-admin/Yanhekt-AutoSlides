@@ -40,10 +40,5 @@ export function parseOutputDirProblem(error: unknown): { kind: OutputDirProblemK
   return { kind, dir: rest.slice(sep + 1).trim() }
 }
 
-const IPC_WRAPPER = /^Error invoking remote method '[^']*': (?:[A-Za-z]*Error: )?/
-
-/** Error text without Electron's IPC wrapper, for display. */
-export function userFacingIpcError(error: unknown): string {
-  const message = messageOf(error) || String(error)
-  return message.replace(IPC_WRAPPER, '')
-}
+// The preload already strips the IPC wrapper; kept here for older callers.
+export { userFacingIpcError } from './ipcError'

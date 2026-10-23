@@ -1,40 +1,40 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI, CourseListOptions, PersonalCourseListOptions } from './electronApi';
 
 export const api: ElectronAPI['api'] = {
   getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>
-    ipcRenderer.invoke('api:getPersonalLiveList', token, page, pageSize),
+    invoke('api:getPersonalLiveList', token, page, pageSize),
   searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) =>
-    ipcRenderer.invoke('api:searchLiveList', token, keyword, page, pageSize),
+    invoke('api:searchLiveList', token, keyword, page, pageSize),
   getCourseList: (token: string, options: CourseListOptions) =>
-    ipcRenderer.invoke('api:getCourseList', token, options),
+    invoke('api:getCourseList', token, options),
   getPersonalCourseList: (token: string, options: PersonalCourseListOptions) =>
-    ipcRenderer.invoke('api:getPersonalCourseList', token, options),
+    invoke('api:getPersonalCourseList', token, options),
   getSubscriptionList: (token: string, options?: { page?: number; pageSize?: number }) =>
-    ipcRenderer.invoke('api:getSubscriptionList', token, options),
+    invoke('api:getSubscriptionList', token, options),
   subscribeCourse: (token: string, courseId: string) =>
-    ipcRenderer.invoke('api:subscribeCourse', token, courseId),
+    invoke('api:subscribeCourse', token, courseId),
   unsubscribeCourse: (token: string, courseId: string) =>
-    ipcRenderer.invoke('api:unsubscribeCourse', token, courseId),
+    invoke('api:unsubscribeCourse', token, courseId),
   getCourseNames: (courseId: string, token: string) =>
-    ipcRenderer.invoke('api:getCourseNames', courseId, token),
+    invoke('api:getCourseNames', courseId, token),
   getLiveSessionId: (liveId: string, token: string) =>
-    ipcRenderer.invoke('api:getLiveSessionId', liveId, token),
+    invoke('api:getLiveSessionId', liveId, token),
   getCourseDetail: (courseId: string, token: string) =>
-    ipcRenderer.invoke('api:getCourseDetail', courseId, token),
+    invoke('api:getCourseDetail', courseId, token),
   searchCourseSnapshot: (term: string, keyword: string, page?: number, pageSize?: number) =>
-    ipcRenderer.invoke('api:searchCourseSnapshot', term, keyword, page, pageSize),
-  listCourseSnapshotTerms: () => ipcRenderer.invoke('api:listCourseSnapshotTerms'),
-  importCourseSnapshot: () => ipcRenderer.invoke('api:importCourseSnapshot'),
+    invoke('api:searchCourseSnapshot', term, keyword, page, pageSize),
+  listCourseSnapshotTerms: () => invoke('api:listCourseSnapshotTerms'),
+  importCourseSnapshot: () => invoke('api:importCourseSnapshot'),
   getCourseInfo: (courseId: string, token: string) =>
-    ipcRenderer.invoke('api:getCourseInfo', courseId, token),
+    invoke('api:getCourseInfo', courseId, token),
   getVideoAssets: (videoId: string, token: string) =>
-    ipcRenderer.invoke('api:getVideoAssets', videoId, token),
+    invoke('api:getVideoAssets', videoId, token),
   getSessionDownloadInfo: (sessionId: string, token: string) =>
-    ipcRenderer.invoke('api:getSessionDownloadInfo', sessionId, token),
+    invoke('api:getSessionDownloadInfo', sessionId, token),
   getSessionProgress: (sessionId: string, token: string) =>
-    ipcRenderer.invoke('api:getSessionProgress', sessionId, token),
+    invoke('api:getSessionProgress', sessionId, token),
   reportSessionProgress: (sessionId: string, seconds: number, token: string) =>
-    ipcRenderer.invoke('api:reportSessionProgress', sessionId, seconds, token),
-  getAvailableSemesters: () => ipcRenderer.invoke('api:getAvailableSemesters'),
+    invoke('api:reportSessionProgress', sessionId, seconds, token),
+  getAvailableSemesters: () => invoke('api:getAvailableSemesters'),
 };

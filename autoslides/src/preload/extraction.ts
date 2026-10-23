@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI } from './electronApi';
 import type {
   SlideMetadata,
@@ -10,10 +11,10 @@ import type {
 
 export const slideExtraction: ElectronAPI['slideExtraction'] = {
   saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) =>
-    ipcRenderer.invoke('slideExtraction:saveSlide', outputPath, filename, imageBuffer),
-  ensureDirectory: (path: string) => ipcRenderer.invoke('slideExtraction:ensureDirectory', path),
+    invoke('slideExtraction:saveSlide', outputPath, filename, imageBuffer),
+  ensureDirectory: (path: string) => invoke('slideExtraction:ensureDirectory', path),
   deleteSlide: (outputPath: string, filename: string) =>
-    ipcRenderer.invoke('slideExtraction:deleteSlide', outputPath, filename),
+    invoke('slideExtraction:deleteSlide', outputPath, filename),
   moveToInAppTrash: (
     outputPath: string,
     filename: string,
@@ -23,49 +24,49 @@ export const slideExtraction: ElectronAPI['slideExtraction'] = {
       /** Structured target when reason === 'duplicate' (filename of first-kept slide). */
       duplicateOf?: string;
     }
-  ) => ipcRenderer.invoke('slideExtraction:moveToInAppTrash', outputPath, filename, metadata),
+  ) => invoke('slideExtraction:moveToInAppTrash', outputPath, filename, metadata),
   readSlideAsBase64: (outputPath: string, filename: string) =>
-    ipcRenderer.invoke('slideExtraction:readSlideAsBase64', outputPath, filename),
+    invoke('slideExtraction:readSlideAsBase64', outputPath, filename),
   readSlideForAI: (outputPath: string, filename: string, targetWidth: number, targetHeight: number) =>
-    ipcRenderer.invoke('slideExtraction:readSlideForAI', outputPath, filename, targetWidth, targetHeight),
-  listSlides: (outputPath: string) => ipcRenderer.invoke('slideExtraction:listSlides', outputPath),
-  readImageBuffer: (filePath: string) => ipcRenderer.invoke('slideExtraction:readImageBuffer', filePath),
+    invoke('slideExtraction:readSlideForAI', outputPath, filename, targetWidth, targetHeight),
+  listSlides: (outputPath: string) => invoke('slideExtraction:listSlides', outputPath),
+  readImageBuffer: (filePath: string) => invoke('slideExtraction:readImageBuffer', filePath),
 };
 
 export const trash: ElectronAPI['trash'] = {
-  getEntries: () => ipcRenderer.invoke('trash:getEntries'),
-  restore: (ids: string[]) => ipcRenderer.invoke('trash:restore', ids),
-  clear: () => ipcRenderer.invoke('trash:clear'),
-  clearEntries: (ids: string[]) => ipcRenderer.invoke('trash:clearEntries', ids),
-  removeFolders: (folderNames: string[]) => ipcRenderer.invoke('trash:removeFolders', folderNames),
-  getImageAsBase64: (trashPath: string) => ipcRenderer.invoke('trash:getImageAsBase64', trashPath),
+  getEntries: () => invoke('trash:getEntries'),
+  restore: (ids: string[]) => invoke('trash:restore', ids),
+  clear: () => invoke('trash:clear'),
+  clearEntries: (ids: string[]) => invoke('trash:clearEntries', ids),
+  removeFolders: (folderNames: string[]) => invoke('trash:removeFolders', folderNames),
+  getImageAsBase64: (trashPath: string) => invoke('trash:getImageAsBase64', trashPath),
 };
 
 export const crop: ElectronAPI['crop'] = {
-  getEntries: () => ipcRenderer.invoke('crop:getEntries'),
-  getImageAsBase64: (cropPath: string) => ipcRenderer.invoke('crop:getImageAsBase64', cropPath),
+  getEntries: () => invoke('crop:getEntries'),
+  getImageAsBase64: (cropPath: string) => invoke('crop:getImageAsBase64', cropPath),
   apply: (
     imagePath: string,
     rect: { x: number; y: number; width: number; height: number },
     autoCropped?: boolean,
     isAutomated?: boolean,
-  ) => ipcRenderer.invoke('crop:apply', imagePath, rect, autoCropped, isAutomated),
-  restore: (imagePath: string) => ipcRenderer.invoke('crop:restore', imagePath),
+  ) => invoke('crop:apply', imagePath, rect, autoCropped, isAutomated),
+  restore: (imagePath: string) => invoke('crop:restore', imagePath),
 };
 
 export const slideMetadata: ElectronAPI['slideMetadata'] = {
   get: (folderPath: string) =>
-    ipcRenderer.invoke('slideMetadata:get', folderPath) as Promise<SlideMetadata | null>,
+    invoke('slideMetadata:get', folderPath) as Promise<SlideMetadata | null>,
   writeExtraction: (folderPath: string, data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }) =>
-    ipcRenderer.invoke('slideMetadata:writeExtraction', folderPath, data),
+    invoke('slideMetadata:writeExtraction', folderPath, data),
   updatePostProcessing: (folderPath: string, pp: SlidePostProcessingMeta) =>
-    ipcRenderer.invoke('slideMetadata:updatePostProcessing', folderPath, pp),
+    invoke('slideMetadata:updatePostProcessing', folderPath, pp),
   write: (folderPath: string, metadata: SlideMetadata) =>
-    ipcRenderer.invoke('slideMetadata:write', folderPath, metadata),
+    invoke('slideMetadata:write', folderPath, metadata),
   markReviewed: (folderPath: string) =>
-    ipcRenderer.invoke('slideMetadata:markReviewed', folderPath),
+    invoke('slideMetadata:markReviewed', folderPath),
   commitEdited: (folderPath: string) =>
-    ipcRenderer.invoke('slideMetadata:commitEdited', folderPath) as Promise<{
+    invoke('slideMetadata:commitEdited', folderPath) as Promise<{
       success: boolean;
       result: { cropped?: boolean } | null;
     }>,
@@ -73,54 +74,54 @@ export const slideMetadata: ElectronAPI['slideMetadata'] = {
 
 export const slideTimeline: ElectronAPI['slideTimeline'] = {
   get: (folderPath: string) =>
-    ipcRenderer.invoke('slideTimeline:get', folderPath) as Promise<import('@common/sidecars').SlideTimeline | null>,
+    invoke('slideTimeline:get', folderPath) as Promise<import('@common/sidecars').SlideTimeline | null>,
   write: (folderPath: string, timeline: import('@common/sidecars').SlideTimeline) =>
-    ipcRenderer.invoke('slideTimeline:write', folderPath, timeline) as Promise<{ success: boolean }>,
+    invoke('slideTimeline:write', folderPath, timeline) as Promise<{ success: boolean }>,
   recordCaptureConfirmed: (
     folderPath: string,
     payload: import('@common/sidecars').RecordCaptureConfirmedPayload
-  ) => ipcRenderer.invoke('slideTimeline:recordCaptureConfirmed', folderPath, payload),
+  ) => invoke('slideTimeline:recordCaptureConfirmed', folderPath, payload),
   recordGapBoundary: (
     folderPath: string,
     payload: import('@common/sidecars').RecordGapBoundaryPayload
-  ) => ipcRenderer.invoke('slideTimeline:recordGapBoundary', folderPath, payload),
+  ) => invoke('slideTimeline:recordGapBoundary', folderPath, payload),
   relinkDuplicate: (
     folderPath: string,
     payload: import('@common/sidecars').RelinkDuplicatePayload
-  ) => ipcRenderer.invoke('slideTimeline:relinkDuplicate', folderPath, payload),
+  ) => invoke('slideTimeline:relinkDuplicate', folderPath, payload),
   unlinkToGap: (folderPath: string, payload: import('@common/sidecars').UnlinkToGapPayload) =>
-    ipcRenderer.invoke('slideTimeline:unlinkToGap', folderPath, payload),
+    invoke('slideTimeline:unlinkToGap', folderPath, payload),
   restoreCanonical: (
     folderPath: string,
     payload: import('@common/sidecars').RestoreCanonicalPayload
-  ) => ipcRenderer.invoke('slideTimeline:restoreCanonical', folderPath, payload),
-  clear: (folderPath: string) => ipcRenderer.invoke('slideTimeline:clear', folderPath),
+  ) => invoke('slideTimeline:restoreCanonical', folderPath, payload),
+  clear: (folderPath: string) => invoke('slideTimeline:clear', folderPath),
   ensureRecordedHostFields: (folderPath: string) =>
-    ipcRenderer.invoke('slideTimeline:ensureRecordedHostFields', folderPath),
+    invoke('slideTimeline:ensureRecordedHostFields', folderPath),
 };
 
 export const autoCrop: ElectronAPI['autoCrop'] = {
-  getModelInfo: () => ipcRenderer.invoke('autoCrop:getModelInfo'),
-  getModelBuffer: () => ipcRenderer.invoke('autoCrop:getModelBuffer') as Promise<ArrayBuffer>,
-  selectAndImportModel: () => ipcRenderer.invoke('autoCrop:selectAndImportModel'),
-  deleteCustomModel: () => ipcRenderer.invoke('autoCrop:deleteCustomModel'),
+  getModelInfo: () => invoke('autoCrop:getModelInfo'),
+  getModelBuffer: () => invoke('autoCrop:getModelBuffer') as Promise<ArrayBuffer>,
+  selectAndImportModel: () => invoke('autoCrop:selectAndImportModel'),
+  deleteCustomModel: () => invoke('autoCrop:deleteCustomModel'),
 };
 
 export const mlClassifier: ElectronAPI['mlClassifier'] = {
-  getModelInfo: () => ipcRenderer.invoke('mlClassifier:getModelInfo'),
-  getModelBuffer: () => ipcRenderer.invoke('mlClassifier:getModelBuffer') as Promise<ArrayBuffer>,
-  selectAndImportModel: () => ipcRenderer.invoke('mlClassifier:selectAndImportModel'),
-  deleteCustomModel: () => ipcRenderer.invoke('mlClassifier:deleteCustomModel'),
+  getModelInfo: () => invoke('mlClassifier:getModelInfo'),
+  getModelBuffer: () => invoke('mlClassifier:getModelBuffer') as Promise<ArrayBuffer>,
+  selectAndImportModel: () => invoke('mlClassifier:selectAndImportModel'),
+  deleteCustomModel: () => invoke('mlClassifier:deleteCustomModel'),
 };
 
 export const qtExtractor: ElectronAPI['qtExtractor'] = {
-  getStatus: () => ipcRenderer.invoke('qtExtractor:getStatus') as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
-  detect: () => ipcRenderer.invoke('qtExtractor:detect') as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
-  verify: (binaryPath?: string) => ipcRenderer.invoke('qtExtractor:verify', binaryPath) as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
-  selectBinary: () => ipcRenderer.invoke('qtExtractor:selectBinary') as Promise<string | null>,
-  setBinaryPath: (binaryPath: string) => ipcRenderer.invoke('qtExtractor:setBinaryPath', binaryPath),
-  setAutoRun: (enabled: boolean) => ipcRenderer.invoke('qtExtractor:setAutoRun', enabled),
-  setAutoPostProcess: (enabled: boolean) => ipcRenderer.invoke('qtExtractor:setAutoPostProcess', enabled),
+  getStatus: () => invoke('qtExtractor:getStatus') as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
+  detect: () => invoke('qtExtractor:detect') as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
+  verify: (binaryPath?: string) => invoke('qtExtractor:verify', binaryPath) as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
+  selectBinary: () => invoke('qtExtractor:selectBinary') as Promise<string | null>,
+  setBinaryPath: (binaryPath: string) => invoke('qtExtractor:setBinaryPath', binaryPath),
+  setAutoRun: (enabled: boolean) => invoke('qtExtractor:setAutoRun', enabled),
+  setAutoPostProcess: (enabled: boolean) => invoke('qtExtractor:setAutoPostProcess', enabled),
   runExtraction: (
     extractionId: string,
     videoPath: string,
@@ -132,9 +133,9 @@ export const qtExtractor: ElectronAPI['qtExtractor'] = {
       downsampleHeight: number;
       chunkSize?: number;
     }
-  ) => ipcRenderer.invoke('qtExtractor:runExtraction', extractionId, videoPath, outputDir, params),
-  cancelExtraction: (extractionId: string) => ipcRenderer.invoke('qtExtractor:cancelExtraction', extractionId),
-  applyColorReduction: (slidesDir: string) => ipcRenderer.invoke('qtExtractor:applyColorReduction', slidesDir),
+  ) => invoke('qtExtractor:runExtraction', extractionId, videoPath, outputDir, params),
+  cancelExtraction: (extractionId: string) => invoke('qtExtractor:cancelExtraction', extractionId),
+  applyColorReduction: (slidesDir: string) => invoke('qtExtractor:applyColorReduction', slidesDir),
   onProgress: (callback: (extractionId: string, percent: number) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, extractionId: string, percent: number) => callback(extractionId, percent);
     ipcRenderer.on('qtExtractor:progress', handler);

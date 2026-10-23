@@ -1,50 +1,51 @@
 import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI, DialogOptions } from './electronApi';
 import type { AppConfig, ConnectionMode, CustomProviderId, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 import type { Yanhe2SlideSaveProgress } from '@common/yanhe2SlideSave';
 
 export const auth: ElectronAPI['auth'] = {
-  login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
+  login: (username: string, password: string) => invoke('auth:login', username, password),
   submitSmsCode: (challengeId: string, code: string) =>
-    ipcRenderer.invoke('auth:submitSmsCode', challengeId, code),
+    invoke('auth:submitSmsCode', challengeId, code),
   cancelSmsChallenge: (challengeId: string) =>
-    ipcRenderer.invoke('auth:cancelSmsChallenge', challengeId),
-  verifyToken: (token: string) => ipcRenderer.invoke('auth:verifyToken', token),
-  revokeToken: (token: string) => ipcRenderer.invoke('auth:revokeToken', token),
-  clearBrowserData: () => ipcRenderer.invoke('auth:clearBrowserData'),
-  listSavedLogins: () => ipcRenderer.invoke('auth:listSavedLogins'),
-  getSavedLogin: (badge: string) => ipcRenderer.invoke('auth:getSavedLogin', badge),
+    invoke('auth:cancelSmsChallenge', challengeId),
+  verifyToken: (token: string) => invoke('auth:verifyToken', token),
+  revokeToken: (token: string) => invoke('auth:revokeToken', token),
+  clearBrowserData: () => invoke('auth:clearBrowserData'),
+  listSavedLogins: () => invoke('auth:listSavedLogins'),
+  getSavedLogin: (badge: string) => invoke('auth:getSavedLogin', badge),
   saveSavedLogin: (badge: string, username: string, password: string) =>
-    ipcRenderer.invoke('auth:saveSavedLogin', badge, username, password),
-  forgetSavedLogin: (badge: string) => ipcRenderer.invoke('auth:forgetSavedLogin', badge),
-  getBrowserLoginPreloadPath: () => ipcRenderer.invoke('auth:getBrowserLoginPreloadPath'),
+    invoke('auth:saveSavedLogin', badge, username, password),
+  forgetSavedLogin: (badge: string) => invoke('auth:forgetSavedLogin', badge),
+  getBrowserLoginPreloadPath: () => invoke('auth:getBrowserLoginPreloadPath'),
 };
 
 export const yanhe2: ElectronAPI['yanhe2'] = {
   login: (account: string, username: string, password: string) =>
-    ipcRenderer.invoke('yanhe2:login', account, username, password),
+    invoke('yanhe2:login', account, username, password),
   submitSmsCode: (account: string, challengeId: string, code: string) =>
-    ipcRenderer.invoke('yanhe2:submitSmsCode', account, challengeId, code),
-  cancelSmsChallenge: (challengeId: string) => ipcRenderer.invoke('yanhe2:cancelSmsChallenge', challengeId),
-  autoSignIn: (account: string) => ipcRenderer.invoke('yanhe2:autoSignIn', account),
-  check: (account: string) => ipcRenderer.invoke('yanhe2:check', account),
-  signOut: (account: string) => ipcRenderer.invoke('yanhe2:signOut', account),
-  getJwt: (account: string) => ipcRenderer.invoke('yanhe2:getJwt', account),
-  getProfile: (account: string) => ipcRenderer.invoke('yanhe2:getProfile', account),
-  adoptCookies: (account: string, text: string) => ipcRenderer.invoke('yanhe2:adoptCookies', account, text),
-  calendarDay: (account, query) => ipcRenderer.invoke('yanhe2:calendarDay', account, query),
-  calendarWeek: (account, query) => ipcRenderer.invoke('yanhe2:calendarWeek', account, query),
-  myCourses: (account) => ipcRenderer.invoke('yanhe2:myCourses', account),
-  courseDetail: (account, query) => ipcRenderer.invoke('yanhe2:courseDetail', account, query),
-  terms: (account) => ipcRenderer.invoke('yanhe2:terms', account),
-  searchCourses: (account, query) => ipcRenderer.invoke('yanhe2:searchCourses', account, query),
-  findYanhektCourse: (account, query) => ipcRenderer.invoke('yanhe2:findYanhektCourse', account, query),
-  findYanhe2Course: (account, query) => ipcRenderer.invoke('yanhe2:findYanhe2Course', account, query),
-  playback: (account, query) => ipcRenderer.invoke('yanhe2:playback', account, query),
-  slides: (account, query) => ipcRenderer.invoke('yanhe2:slides', account, query),
-  prepareSlideSave: (account, query) => ipcRenderer.invoke('yanhe2:prepareSlideSave', account, query),
-  saveSlides: (account, query) => ipcRenderer.invoke('yanhe2:saveSlides', account, query),
+    invoke('yanhe2:submitSmsCode', account, challengeId, code),
+  cancelSmsChallenge: (challengeId: string) => invoke('yanhe2:cancelSmsChallenge', challengeId),
+  autoSignIn: (account: string) => invoke('yanhe2:autoSignIn', account),
+  check: (account: string) => invoke('yanhe2:check', account),
+  signOut: (account: string) => invoke('yanhe2:signOut', account),
+  getJwt: (account: string) => invoke('yanhe2:getJwt', account),
+  getProfile: (account: string) => invoke('yanhe2:getProfile', account),
+  adoptCookies: (account: string, text: string) => invoke('yanhe2:adoptCookies', account, text),
+  calendarDay: (account, query) => invoke('yanhe2:calendarDay', account, query),
+  calendarWeek: (account, query) => invoke('yanhe2:calendarWeek', account, query),
+  myCourses: (account) => invoke('yanhe2:myCourses', account),
+  courseDetail: (account, query) => invoke('yanhe2:courseDetail', account, query),
+  terms: (account) => invoke('yanhe2:terms', account),
+  searchCourses: (account, query) => invoke('yanhe2:searchCourses', account, query),
+  findYanhektCourse: (account, query) => invoke('yanhe2:findYanhektCourse', account, query),
+  findYanhe2Course: (account, query) => invoke('yanhe2:findYanhe2Course', account, query),
+  playback: (account, query) => invoke('yanhe2:playback', account, query),
+  slides: (account, query) => invoke('yanhe2:slides', account, query),
+  prepareSlideSave: (account, query) => invoke('yanhe2:prepareSlideSave', account, query),
+  saveSlides: (account, query) => invoke('yanhe2:saveSlides', account, query),
   onSlideSaveProgress: (callback) => {
     const listener = (_event: Electron.IpcRendererEvent, progress: Yanhe2SlideSaveProgress) => callback(progress);
     ipcRenderer.on('yanhe2:slideSaveProgress', listener);
@@ -52,18 +53,18 @@ export const yanhe2: ElectronAPI['yanhe2'] = {
       ipcRenderer.removeListener('yanhe2:slideSaveProgress', listener);
     };
   },
-  prepareSubtitles: (account, query) => ipcRenderer.invoke('yanhe2:prepareSubtitles', account, query),
-  saveSubtitles: (account, query, shift) => ipcRenderer.invoke('yanhe2:saveSubtitles', account, query, shift),
-  prepareDownload: (account, query) => ipcRenderer.invoke('yanhe2:prepareDownload', account, query),
-  prepareExtraction: (account, query) => ipcRenderer.invoke('yanhe2:prepareExtraction', account, query),
-  transcript: (account, subId) => ipcRenderer.invoke('yanhe2:transcript', account, subId),
-  captionSync: (account, query) => ipcRenderer.invoke('yanhe2:captionSync', account, query),
-  prepareBrowserSignIn: () => ipcRenderer.invoke('yanhe2:prepareBrowserSignIn'),
-  adoptBrowserSession: (account: string) => ipcRenderer.invoke('yanhe2:adoptBrowserSession', account),
+  prepareSubtitles: (account, query) => invoke('yanhe2:prepareSubtitles', account, query),
+  saveSubtitles: (account, query, shift) => invoke('yanhe2:saveSubtitles', account, query, shift),
+  prepareDownload: (account, query) => invoke('yanhe2:prepareDownload', account, query),
+  prepareExtraction: (account, query) => invoke('yanhe2:prepareExtraction', account, query),
+  transcript: (account, subId) => invoke('yanhe2:transcript', account, subId),
+  captionSync: (account, query) => invoke('yanhe2:captionSync', account, query),
+  prepareBrowserSignIn: () => invoke('yanhe2:prepareBrowserSignIn'),
+  adoptBrowserSession: (account: string) => invoke('yanhe2:adoptBrowserSession', account),
 };
 
 export const config: ElectronAPI['config'] = {
-  get: () => ipcRenderer.invoke('config:get'),
+  get: () => invoke('config:get'),
   // Subscribe to push updates from the main process. Fires after every setter
   // so the renderer-side configStore can mirror the latest AppConfig snapshot.
   onUpdate: (callback: (cfg: AppConfig) => void) => {
@@ -73,47 +74,47 @@ export const config: ElectronAPI['config'] = {
       ipcRenderer.removeListener('config:onUpdate', listener);
     };
   },
-  setOutputDirectory: (directory: string) => ipcRenderer.invoke('config:setOutputDirectory', directory),
-  selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
-  probeOutputDirectory: () => ipcRenderer.invoke('config:probeOutputDirectory'),
-  recreateOutputDirectory: () => ipcRenderer.invoke('config:recreateOutputDirectory'),
-  setConnectionMode: (mode: ConnectionMode) => ipcRenderer.invoke('config:setConnectionMode', mode),
-  setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
-  setDownloadMaxWorkers: (count: number) => ipcRenderer.invoke('config:setDownloadMaxWorkers', count),
-  setDownloadNumRetries: (count: number) => ipcRenderer.invoke('config:setDownloadNumRetries', count),
-  setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
-  setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
-  setVideoTokenRefreshSeconds: (seconds: number) => ipcRenderer.invoke('config:setVideoTokenRefreshSeconds', seconds),
-  setTaskSpeed: (speed: number) => ipcRenderer.invoke('config:setTaskSpeed', speed),
-  setParallelTasks: (count: number) => ipcRenderer.invoke('config:setParallelTasks', count),
-  setMaxManualTabs: (count: number) => ipcRenderer.invoke('config:setMaxManualTabs', count),
-  setPreviewFromVideo: (enabled: boolean) => ipcRenderer.invoke('config:setPreviewFromVideo', enabled),
-  setPreviewSeekSeconds: (seconds: number) => ipcRenderer.invoke('config:setPreviewSeekSeconds', seconds),
-  setShowMorePlaybackSpeed: (enabled: boolean) => ipcRenderer.invoke('config:setShowMorePlaybackSpeed', enabled),
-  setPreferMicAudioByDefault: (enabled: boolean) => ipcRenderer.invoke('config:setPreferMicAudioByDefault', enabled),
-  setCheckMicAudioBeforeOffering: (enabled: boolean) => ipcRenderer.invoke('config:setCheckMicAudioBeforeOffering', enabled),
-  setYanhe2Captions: (mode, offsetSeconds) => ipcRenderer.invoke('config:setYanhe2Captions', mode, offsetSeconds),
-  setResumeFromServerProgress: (enabled: boolean) => ipcRenderer.invoke('config:setResumeFromServerProgress', enabled),
+  setOutputDirectory: (directory: string) => invoke('config:setOutputDirectory', directory),
+  selectOutputDirectory: () => invoke('config:selectOutputDirectory'),
+  probeOutputDirectory: () => invoke('config:probeOutputDirectory'),
+  recreateOutputDirectory: () => invoke('config:recreateOutputDirectory'),
+  setConnectionMode: (mode: ConnectionMode) => invoke('config:setConnectionMode', mode),
+  setMaxConcurrentDownloads: (count: number) => invoke('config:setMaxConcurrentDownloads', count),
+  setDownloadMaxWorkers: (count: number) => invoke('config:setDownloadMaxWorkers', count),
+  setDownloadNumRetries: (count: number) => invoke('config:setDownloadNumRetries', count),
+  setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => invoke('config:setMuteMode', mode),
+  setVideoRetryCount: (count: number) => invoke('config:setVideoRetryCount', count),
+  setVideoTokenRefreshSeconds: (seconds: number) => invoke('config:setVideoTokenRefreshSeconds', seconds),
+  setTaskSpeed: (speed: number) => invoke('config:setTaskSpeed', speed),
+  setParallelTasks: (count: number) => invoke('config:setParallelTasks', count),
+  setMaxManualTabs: (count: number) => invoke('config:setMaxManualTabs', count),
+  setPreviewFromVideo: (enabled: boolean) => invoke('config:setPreviewFromVideo', enabled),
+  setPreviewSeekSeconds: (seconds: number) => invoke('config:setPreviewSeekSeconds', seconds),
+  setShowMorePlaybackSpeed: (enabled: boolean) => invoke('config:setShowMorePlaybackSpeed', enabled),
+  setPreferMicAudioByDefault: (enabled: boolean) => invoke('config:setPreferMicAudioByDefault', enabled),
+  setCheckMicAudioBeforeOffering: (enabled: boolean) => invoke('config:setCheckMicAudioBeforeOffering', enabled),
+  setYanhe2Captions: (mode, offsetSeconds) => invoke('config:setYanhe2Captions', mode, offsetSeconds),
+  setResumeFromServerProgress: (enabled: boolean) => invoke('config:setResumeFromServerProgress', enabled),
   setResumeFromServerProgressLectures: (enabled: boolean) =>
-    ipcRenderer.invoke('config:setResumeFromServerProgressLectures', enabled),
-  setDeveloperMode: (enabled: boolean) => ipcRenderer.invoke('config:setDeveloperMode', enabled),
-  setLogYanhektCatalog: (enabled: boolean) => ipcRenderer.invoke('config:setLogYanhektCatalog', enabled),
-  setYanhektLiveWorkaround: (value) => ipcRenderer.invoke('config:setYanhektLiveWorkaround', value),
-  setYanhektCourseSnapshotSearch: (enabled: boolean) => ipcRenderer.invoke('config:setYanhektCourseSnapshotSearch', enabled),
-  setCourseSnapshotPickerTerms: (terms: string[]) => ipcRenderer.invoke('config:setCourseSnapshotPickerTerms', terms),
-  setAutoPostProcessing: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessing', enabled),
-  setAutoPostProcessingLive: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessingLive', enabled),
-  getAutoPostProcessingLive: () => ipcRenderer.invoke('config:getAutoPostProcessingLive'),
-  setEnableAIFiltering: (enabled: boolean) => ipcRenderer.invoke('config:setEnableAIFiltering', enabled),
-  getEnableAIFiltering: () => ipcRenderer.invoke('config:getEnableAIFiltering'),
-  setDistinguishMaybeSlide: (enabled: boolean) => ipcRenderer.invoke('config:setDistinguishMaybeSlide', enabled),
-  getDistinguishMaybeSlide: () => ipcRenderer.invoke('config:getDistinguishMaybeSlide'),
-  setAutoCropAIFilteredEdit: (enabled: boolean) => ipcRenderer.invoke('config:setAutoCropAIFilteredEdit', enabled),
-  getAutoCropAIFilteredEdit: () => ipcRenderer.invoke('config:getAutoCropAIFilteredEdit'),
+    invoke('config:setResumeFromServerProgressLectures', enabled),
+  setDeveloperMode: (enabled: boolean) => invoke('config:setDeveloperMode', enabled),
+  setLogYanhektCatalog: (enabled: boolean) => invoke('config:setLogYanhektCatalog', enabled),
+  setYanhektLiveWorkaround: (value) => invoke('config:setYanhektLiveWorkaround', value),
+  setYanhektCourseSnapshotSearch: (enabled: boolean) => invoke('config:setYanhektCourseSnapshotSearch', enabled),
+  setCourseSnapshotPickerTerms: (terms: string[]) => invoke('config:setCourseSnapshotPickerTerms', terms),
+  setAutoPostProcessing: (enabled: boolean) => invoke('config:setAutoPostProcessing', enabled),
+  setAutoPostProcessingLive: (enabled: boolean) => invoke('config:setAutoPostProcessingLive', enabled),
+  getAutoPostProcessingLive: () => invoke('config:getAutoPostProcessingLive'),
+  setEnableAIFiltering: (enabled: boolean) => invoke('config:setEnableAIFiltering', enabled),
+  getEnableAIFiltering: () => invoke('config:getEnableAIFiltering'),
+  setDistinguishMaybeSlide: (enabled: boolean) => invoke('config:setDistinguishMaybeSlide', enabled),
+  getDistinguishMaybeSlide: () => invoke('config:getDistinguishMaybeSlide'),
+  setAutoCropAIFilteredEdit: (enabled: boolean) => invoke('config:setAutoCropAIFilteredEdit', enabled),
+  getAutoCropAIFilteredEdit: () => invoke('config:getAutoCropAIFilteredEdit'),
   setDedupAfterAutoCropAIFilteredEdit: (enabled: boolean) =>
-    ipcRenderer.invoke('config:setDedupAfterAutoCropAIFilteredEdit', enabled),
+    invoke('config:setDedupAfterAutoCropAIFilteredEdit', enabled),
   getDedupAfterAutoCropAIFilteredEdit: () =>
-    ipcRenderer.invoke('config:getDedupAfterAutoCropAIFilteredEdit'),
+    invoke('config:getDedupAfterAutoCropAIFilteredEdit'),
   setAutoCropParams: (params: {
     aspectTolerance?: number;
     blackThreshold?: number;
@@ -124,57 +125,57 @@ export const config: ElectronAPI['config'] = {
     areaRatioMax?: number;
     marginFrac?: number;
     fillRatioMin?: number;
-  }) => ipcRenderer.invoke('config:setAutoCropParams', params),
-  resetAutoCropParams: () => ipcRenderer.invoke('config:resetAutoCropParams'),
+  }) => invoke('config:setAutoCropParams', params),
+  resetAutoCropParams: () => invoke('config:resetAutoCropParams'),
   setAutoCropDetectorMode: (mode: 'canny_then_yolo' | 'canny_only' | 'yolo_only') =>
-    ipcRenderer.invoke('config:setAutoCropDetectorMode', mode),
+    invoke('config:setAutoCropDetectorMode', mode),
   setAutoCropYoloParams: (params: {
     confidenceThreshold?: number;
     iouThreshold?: number;
     inputSize?: number;
-  }) => ipcRenderer.invoke('config:setAutoCropYoloParams', params),
-  resetAutoCropYoloParams: () => ipcRenderer.invoke('config:resetAutoCropYoloParams'),
-  setThemeMode: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('config:setThemeMode', theme),
-  isDarkMode: () => ipcRenderer.invoke('config:isDarkMode'),
-  setLanguageMode: (language: LanguageMode) => ipcRenderer.invoke('config:setLanguageMode', language),
-  getLanguageMode: () => ipcRenderer.invoke('config:getLanguageMode'),
-  setPreventSystemSleep: (prevent: boolean) => ipcRenderer.invoke('config:setPreventSystemSleep', prevent),
-  setAuthToken: (token: string | null) => ipcRenderer.invoke('config:setAuthToken', token),
-  getAuthToken: (): Promise<string | null> => ipcRenderer.invoke('config:getAuthToken'),
-  getSkipUpdateCheckUntil: () => ipcRenderer.invoke('config:getSkipUpdateCheckUntil'),
-  setSkipUpdateCheckUntil: (timestamp: number) => ipcRenderer.invoke('config:setSkipUpdateCheckUntil', timestamp),
-  setUserNames: (original: string, display: string) => ipcRenderer.invoke('config:setUserNames', original, display),
-  setLastGreetingId: (id: string) => ipcRenderer.invoke('config:setLastGreetingId', id),
-  setOnboardingCompleted: (completed: boolean) => ipcRenderer.invoke('config:setOnboardingCompleted', completed),
-  setCloudStorageInitialized: (badge: string, initialized: boolean) => ipcRenderer.invoke('config:setCloudStorageInitialized', badge, initialized),
-  setCloudAutoSyncMode: (mode: 'disabled' | 'edited' | 'reviewed') => ipcRenderer.invoke('config:setCloudAutoSyncMode', mode),
-  setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => ipcRenderer.invoke('config:setCloudAutoResyncMode', mode),
-  setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => ipcRenderer.invoke('config:setObsidian', patch),
-  setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => ipcRenderer.invoke('config:setWatchNotes', patch),
-  setCloudShareEmbedTimeline: (enabled: boolean) => ipcRenderer.invoke('config:setCloudShareEmbedTimeline', enabled),
-  setShowToolsButton: (enabled: boolean) => ipcRenderer.invoke('config:setShowToolsButton', enabled),
-  setAllowCliControl: (enabled: boolean) => ipcRenderer.invoke('config:setAllowCliControl', enabled),
-  setPreferAnonymousApiRequests: (enabled: boolean) => ipcRenderer.invoke('config:setPreferAnonymousApiRequests', enabled),
-  setRememberPassword: (enabled: boolean) => ipcRenderer.invoke('config:setRememberPassword', enabled),
-  setAutoSignIn: (enabled: boolean) => ipcRenderer.invoke('config:setAutoSignIn', enabled),
-  setYanhe2SignInWithMain: (enabled: boolean) => ipcRenderer.invoke('config:setYanhe2SignInWithMain', enabled),
+  }) => invoke('config:setAutoCropYoloParams', params),
+  resetAutoCropYoloParams: () => invoke('config:resetAutoCropYoloParams'),
+  setThemeMode: (theme: 'system' | 'light' | 'dark') => invoke('config:setThemeMode', theme),
+  isDarkMode: () => invoke('config:isDarkMode'),
+  setLanguageMode: (language: LanguageMode) => invoke('config:setLanguageMode', language),
+  getLanguageMode: () => invoke('config:getLanguageMode'),
+  setPreventSystemSleep: (prevent: boolean) => invoke('config:setPreventSystemSleep', prevent),
+  setAuthToken: (token: string | null) => invoke('config:setAuthToken', token),
+  getAuthToken: (): Promise<string | null> => invoke('config:getAuthToken'),
+  getSkipUpdateCheckUntil: () => invoke('config:getSkipUpdateCheckUntil'),
+  setSkipUpdateCheckUntil: (timestamp: number) => invoke('config:setSkipUpdateCheckUntil', timestamp),
+  setUserNames: (original: string, display: string) => invoke('config:setUserNames', original, display),
+  setLastGreetingId: (id: string) => invoke('config:setLastGreetingId', id),
+  setOnboardingCompleted: (completed: boolean) => invoke('config:setOnboardingCompleted', completed),
+  setCloudStorageInitialized: (badge: string, initialized: boolean) => invoke('config:setCloudStorageInitialized', badge, initialized),
+  setCloudAutoSyncMode: (mode: 'disabled' | 'edited' | 'reviewed') => invoke('config:setCloudAutoSyncMode', mode),
+  setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => invoke('config:setCloudAutoResyncMode', mode),
+  setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => invoke('config:setObsidian', patch),
+  setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => invoke('config:setWatchNotes', patch),
+  setCloudShareEmbedTimeline: (enabled: boolean) => invoke('config:setCloudShareEmbedTimeline', enabled),
+  setShowToolsButton: (enabled: boolean) => invoke('config:setShowToolsButton', enabled),
+  setAllowCliControl: (enabled: boolean) => invoke('config:setAllowCliControl', enabled),
+  setPreferAnonymousApiRequests: (enabled: boolean) => invoke('config:setPreferAnonymousApiRequests', enabled),
+  setRememberPassword: (enabled: boolean) => invoke('config:setRememberPassword', enabled),
+  setAutoSignIn: (enabled: boolean) => invoke('config:setAutoSignIn', enabled),
+  setYanhe2SignInWithMain: (enabled: boolean) => invoke('config:setYanhe2SignInWithMain', enabled),
   setLocalRelayConfig: (patch: {
     enabled?: boolean;
     port?: number;
     whitelistEnabled?: boolean;
     includeCurrentToken?: boolean;
     tokenWhitelist?: string[];
-  }) => ipcRenderer.invoke('config:setLocalRelayConfig', patch),
-  upsertAccount: (account: StoredAccount) => ipcRenderer.invoke('config:upsertAccount', account),
-  removeAccount: (badge: string) => ipcRenderer.invoke('config:removeAccount', badge),
-  setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => ipcRenderer.invoke('config:setSavedSearches', mode, searches),
-  setPinnedRecordedCourses: (courses: PinnedCourse[]) => ipcRenderer.invoke('config:setPinnedRecordedCourses', courses),
-  getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
+  }) => invoke('config:setLocalRelayConfig', patch),
+  upsertAccount: (account: StoredAccount) => invoke('config:upsertAccount', account),
+  removeAccount: (badge: string) => invoke('config:removeAccount', badge),
+  setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => invoke('config:setSavedSearches', mode, searches),
+  setPinnedRecordedCourses: (courses: PinnedCourse[]) => invoke('config:setPinnedRecordedCourses', courses),
+  getSlideExtractionConfig: () => invoke('config:getSlideExtractionConfig'),
   setSlideExtractionConfig: (cfg: { enableDuplicateRemoval?: boolean; enableExclusionList?: boolean }) =>
-    ipcRenderer.invoke('config:setSlideExtractionConfig', cfg),
-  setSlideCheckInterval: (interval: number) => ipcRenderer.invoke('config:setSlideCheckInterval', interval),
+    invoke('config:setSlideExtractionConfig', cfg),
+  setSlideCheckInterval: (interval: number) => invoke('config:setSlideCheckInterval', interval),
   setSlideDoubleVerification: (enabled: boolean, count?: number) =>
-    ipcRenderer.invoke('config:setSlideDoubleVerification', enabled, count),
+    invoke('config:setSlideDoubleVerification', enabled, count),
   setSlideImageProcessingParams: (params: {
     hammingThresholdLow?: number;
     hammingThresholdUp?: number;
@@ -185,15 +186,15 @@ export const config: ElectronAPI['config'] = {
     downsampleWidth?: number;
     downsampleHeight?: number;
     enablePngColorReduction?: boolean;
-  }) => ipcRenderer.invoke('config:setSlideImageProcessingParams', params),
-  getPHashExclusionList: () => ipcRenderer.invoke('config:getPHashExclusionList'),
-  addPHashExclusionItem: (name: string, pHash: string) => ipcRenderer.invoke('config:addPHashExclusionItem', name, pHash),
-  removePHashExclusionItem: (id: string) => ipcRenderer.invoke('config:removePHashExclusionItem', id),
+  }) => invoke('config:setSlideImageProcessingParams', params),
+  getPHashExclusionList: () => invoke('config:getPHashExclusionList'),
+  addPHashExclusionItem: (name: string, pHash: string) => invoke('config:addPHashExclusionItem', name, pHash),
+  removePHashExclusionItem: (id: string) => invoke('config:removePHashExclusionItem', id),
   updatePHashExclusionItemName: (id: string, newName: string) =>
-    ipcRenderer.invoke('config:updatePHashExclusionItemName', id, newName),
-  clearPHashExclusionList: () => ipcRenderer.invoke('config:clearPHashExclusionList'),
-  selectImageForExclusion: () => ipcRenderer.invoke('config:selectImageForExclusion'),
-  getAIFilteringConfig: () => ipcRenderer.invoke('config:getAIFilteringConfig'),
+    invoke('config:updatePHashExclusionItemName', id, newName),
+  clearPHashExclusionList: () => invoke('config:clearPHashExclusionList'),
+  selectImageForExclusion: () => invoke('config:selectImageForExclusion'),
+  getAIFilteringConfig: () => invoke('config:getAIFilteringConfig'),
   setAIFilteringConfig: (cfg: {
     serviceType?: 'builtin' | 'custom' | 'copilot';
     customApiBaseUrl?: string;
@@ -219,69 +220,69 @@ export const config: ElectronAPI['config'] = {
       enableThinking?: boolean | null;
       thinkingKey?: 'enable_thinking' | 'thinking';
     };
-  }) => ipcRenderer.invoke('config:setAIFilteringConfig', cfg),
-  setAIClassifierMode: (mode: 'llm' | 'ml') => ipcRenderer.invoke('config:setAIClassifierMode', mode),
+  }) => invoke('config:setAIFilteringConfig', cfg),
+  setAIClassifierMode: (mode: 'llm' | 'ml') => invoke('config:setAIClassifierMode', mode),
   setMlThresholds: (thresholds: { trustLow?: number; trustHigh?: number; slideCheckLow?: number }) =>
-    ipcRenderer.invoke('config:setMlThresholds', thresholds),
-  getAIPrompts: (variant?: 'simple' | 'distinguish') => ipcRenderer.invoke('config:getAIPrompts', variant),
+    invoke('config:setMlThresholds', thresholds),
+  getAIPrompts: (variant?: 'simple' | 'distinguish') => invoke('config:getAIPrompts', variant),
   setAIPrompt: (type: 'live' | 'recorded', prompt: string, variant?: 'simple' | 'distinguish') =>
-    ipcRenderer.invoke('config:setAIPrompt', type, prompt, variant),
+    invoke('config:setAIPrompt', type, prompt, variant),
   resetAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') =>
-    ipcRenderer.invoke('config:resetAIPrompt', type, variant),
+    invoke('config:resetAIPrompt', type, variant),
 };
 
 export const windowNs: ElectronAPI['window'] = {
-  minimize: () => ipcRenderer.invoke('window:minimize'),
-  maximize: () => ipcRenderer.invoke('window:maximize'),
-  close: () => ipcRenderer.invoke('window:close'),
-  isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+  minimize: () => invoke('window:minimize'),
+  maximize: () => invoke('window:maximize'),
+  close: () => invoke('window:close'),
+  isMaximized: () => invoke('window:isMaximized'),
   // Report whether tasks/downloads are running so the main process can warn
   // before the window is closed or the app quits.
-  setBusyState: (busy: boolean) => ipcRenderer.invoke('window:setBusyState', busy),
+  setBusyState: (busy: boolean) => invoke('window:setBusyState', busy),
 };
 
 export const shell: ElectronAPI['shell'] = {
-  openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
-  openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
-  openPrivacySettings: () => ipcRenderer.invoke('shell:openPrivacySettings'),
+  openExternal: (url: string) => invoke('shell:openExternal', url),
+  openPath: (filePath: string) => invoke('shell:openPath', filePath),
+  openPrivacySettings: () => invoke('shell:openPrivacySettings'),
 };
 
 export const menu: ElectronAPI['menu'] = {
-  openSettings: () => ipcRenderer.invoke('menu:requestOpenSettings'),
+  openSettings: () => invoke('menu:requestOpenSettings'),
   onOpenSettings: (callback: () => void) => {
     const handler = () => callback();
     ipcRenderer.on('menu:openSettings', handler);
     return () => ipcRenderer.removeListener('menu:openSettings', handler);
   },
-  openTermsAndConditions: () => ipcRenderer.invoke('menu:openTermsAndConditions'),
-  reload: () => ipcRenderer.invoke('menu:reload'),
-  forceReload: () => ipcRenderer.invoke('menu:forceReload'),
-  toggleDevTools: () => ipcRenderer.invoke('menu:toggleDevTools'),
-  resetZoom: () => ipcRenderer.invoke('menu:resetZoom'),
-  zoomIn: () => ipcRenderer.invoke('menu:zoomIn'),
-  zoomOut: () => ipcRenderer.invoke('menu:zoomOut'),
-  toggleFullscreen: () => ipcRenderer.invoke('menu:toggleFullscreen'),
+  openTermsAndConditions: () => invoke('menu:openTermsAndConditions'),
+  reload: () => invoke('menu:reload'),
+  forceReload: () => invoke('menu:forceReload'),
+  toggleDevTools: () => invoke('menu:toggleDevTools'),
+  resetZoom: () => invoke('menu:resetZoom'),
+  zoomIn: () => invoke('menu:zoomIn'),
+  zoomOut: () => invoke('menu:zoomOut'),
+  toggleFullscreen: () => invoke('menu:toggleFullscreen'),
 };
 
 export const powerManagement: ElectronAPI['powerManagement'] = {
   /** `holderId` names the consumer (tab, Web Capture, settings); the blocker stops when the last holder releases. */
-  preventSleep: (holderId: string) => ipcRenderer.invoke('powerManagement:preventSleep', holderId),
-  allowSleep: (holderId: string) => ipcRenderer.invoke('powerManagement:allowSleep', holderId),
-  isPreventingSleep: () => ipcRenderer.invoke('powerManagement:isPreventingSleep'),
+  preventSleep: (holderId: string) => invoke('powerManagement:preventSleep', holderId),
+  allowSleep: (holderId: string) => invoke('powerManagement:allowSleep', holderId),
+  isPreventingSleep: () => invoke('powerManagement:isPreventingSleep'),
 };
 
 export const cache: ElectronAPI['cache'] = {
-  getStats: () => ipcRenderer.invoke('cache:getStats'),
-  clear: () => ipcRenderer.invoke('cache:clear'),
-  resetAllData: () => ipcRenderer.invoke('cache:resetAllData'),
+  getStats: () => invoke('cache:getStats'),
+  clear: () => invoke('cache:clear'),
+  resetAllData: () => invoke('cache:resetAllData'),
 };
 
 export const app: ElectronAPI['app'] = {
-  restart: () => ipcRenderer.invoke('app:restart'),
-  quit: () => ipcRenderer.invoke('app:quit'),
-  getVersion: () => ipcRenderer.invoke('app:getVersion'),
-  getLogDir: () => ipcRenderer.invoke('app:getLogDir'),
-  openLogFolder: () => ipcRenderer.invoke('app:openLogFolder'),
+  restart: () => invoke('app:restart'),
+  quit: () => invoke('app:quit'),
+  getVersion: () => invoke('app:getVersion'),
+  getLogDir: () => invoke('app:getLogDir'),
+  openLogFolder: () => invoke('app:openLogFolder'),
 };
 
 export const log: ElectronAPI['log'] = {
@@ -289,8 +290,8 @@ export const log: ElectronAPI['log'] = {
 };
 
 export const dialog: ElectronAPI['dialog'] = {
-  showMessageBox: (options: DialogOptions) => ipcRenderer.invoke('dialog:showMessageBox', options),
-  showErrorBox: (title: string, content: string) => ipcRenderer.invoke('dialog:showErrorBox', title, content),
-  openImageFile: () => ipcRenderer.invoke('dialog:openImageFile') as Promise<string | null>,
-  openImageFiles: () => ipcRenderer.invoke('dialog:openImageFiles') as Promise<string[] | null>,
+  showMessageBox: (options: DialogOptions) => invoke('dialog:showMessageBox', options),
+  showErrorBox: (title: string, content: string) => invoke('dialog:showErrorBox', title, content),
+  openImageFile: () => invoke('dialog:openImageFile') as Promise<string | null>,
+  openImageFiles: () => invoke('dialog:openImageFiles') as Promise<string[] | null>,
 };

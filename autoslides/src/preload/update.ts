@@ -1,8 +1,9 @@
 import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI } from './electronApi';
 
 export const update: ElectronAPI['update'] = {
-  checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),
+  checkForUpdates: () => invoke('update:checkForUpdates'),
   onCheckForUpdates: (callback: () => void) => {
     const handler = () => callback();
     ipcRenderer.on('menu:checkForUpdates', handler);
@@ -13,10 +14,10 @@ export const update: ElectronAPI['update'] = {
     ipcRenderer.on('update:autoCheck', handler);
     return () => ipcRenderer.removeListener('update:autoCheck', handler);
   },
-  getReleaseInfo: () => ipcRenderer.invoke('update:getReleaseInfo'),
-  downloadUpdate: (url: string, filename: string) => ipcRenderer.invoke('update:downloadUpdate', url, filename),
-  cancelDownload: () => ipcRenderer.invoke('update:cancelDownload'),
-  isDownloading: () => ipcRenderer.invoke('update:isDownloading'),
+  getReleaseInfo: () => invoke('update:getReleaseInfo'),
+  downloadUpdate: (url: string, filename: string) => invoke('update:downloadUpdate', url, filename),
+  cancelDownload: () => invoke('update:cancelDownload'),
+  isDownloading: () => invoke('update:isDownloading'),
   onDownloadProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, progress: { downloaded: number; total: number; percent: number }) => callback(progress);
     ipcRenderer.on('update:downloadProgress', handler);
@@ -37,22 +38,22 @@ export const update: ElectronAPI['update'] = {
     ipcRenderer.on('update:promptQuit', handler);
     return () => ipcRenderer.removeListener('update:promptQuit', handler);
   },
-  openDownloadFolder: () => ipcRenderer.invoke('update:openDownloadFolder'),
-  getDownloadFolder: () => ipcRenderer.invoke('update:getDownloadFolder'),
-  installUpdate: (filename: string) => ipcRenderer.invoke('update:installUpdate', filename),
-  listDownloadedUpdates: () => ipcRenderer.invoke('update:listDownloadedUpdates'),
-  findOldUpdates: () => ipcRenderer.invoke('update:findOldUpdates'),
-  deleteOldUpdates: (filenames: string[]) => ipcRenderer.invoke('update:deleteOldUpdates', filenames),
+  openDownloadFolder: () => invoke('update:openDownloadFolder'),
+  getDownloadFolder: () => invoke('update:getDownloadFolder'),
+  installUpdate: (filename: string) => invoke('update:installUpdate', filename),
+  listDownloadedUpdates: () => invoke('update:listDownloadedUpdates'),
+  findOldUpdates: () => invoke('update:findOldUpdates'),
+  deleteOldUpdates: (filenames: string[]) => invoke('update:deleteOldUpdates', filenames),
 };
 
 export const extractorInstaller: ElectronAPI['extractorInstaller'] = {
-  checkLatest: () => ipcRenderer.invoke('extractorInstaller:checkLatest'),
-  download: (url: string, filename: string) => ipcRenderer.invoke('extractorInstaller:download', url, filename),
-  cancel: () => ipcRenderer.invoke('extractorInstaller:cancel'),
-  isDownloading: () => ipcRenderer.invoke('extractorInstaller:isDownloading'),
-  install: (filename: string) => ipcRenderer.invoke('extractorInstaller:install', filename),
-  openDownloadFolder: () => ipcRenderer.invoke('extractorInstaller:openDownloadFolder'),
-  openRepo: () => ipcRenderer.invoke('extractorInstaller:openRepo'),
+  checkLatest: () => invoke('extractorInstaller:checkLatest'),
+  download: (url: string, filename: string) => invoke('extractorInstaller:download', url, filename),
+  cancel: () => invoke('extractorInstaller:cancel'),
+  isDownloading: () => invoke('extractorInstaller:isDownloading'),
+  install: (filename: string) => invoke('extractorInstaller:install', filename),
+  openDownloadFolder: () => invoke('extractorInstaller:openDownloadFolder'),
+  openRepo: () => invoke('extractorInstaller:openRepo'),
   onProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, progress: { downloaded: number; total: number; percent: number }) => callback(progress);
     ipcRenderer.on('extractorInstaller:progress', handler);

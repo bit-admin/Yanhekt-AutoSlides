@@ -1,6 +1,6 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI } from './electronApi';
 
 export const localRelay: ElectronAPI['localRelay'] = {
-  getStatus: () => ipcRenderer.invoke('localRelay:getStatus'),
+  getStatus: () => invoke('localRelay:getStatus'),
 };

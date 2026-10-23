@@ -1,4 +1,4 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI } from './electronApi';
 
 export type LectureVideoFileInfo = {
@@ -10,22 +10,22 @@ export type LectureVideoFileInfo = {
 
 export const lectures: ElectronAPI['lectures'] = {
   listVideos: () =>
-    ipcRenderer.invoke('lectures:listVideos') as Promise<LectureVideoFileInfo[]>,
+    invoke('lectures:listVideos') as Promise<LectureVideoFileInfo[]>,
   rename: (fromPath: string, toName: string) =>
-    ipcRenderer.invoke('lectures:rename', { fromPath, toName }) as Promise<{
+    invoke('lectures:rename', { fromPath, toName }) as Promise<{
       path: string;
       name: string;
     }>,
   reveal: (filePath: string) =>
-    ipcRenderer.invoke('lectures:reveal', filePath) as Promise<void>,
+    invoke('lectures:reveal', filePath) as Promise<void>,
   openOutputDirectory: () =>
-    ipcRenderer.invoke('lectures:openOutputDirectory') as Promise<void>,
+    invoke('lectures:openOutputDirectory') as Promise<void>,
   openExternally: (filePath: string) =>
-    ipcRenderer.invoke('lectures:openExternally', filePath) as Promise<void>,
+    invoke('lectures:openExternally', filePath) as Promise<void>,
   readSubtitles: (filePath: string) =>
-    ipcRenderer.invoke('lectures:readSubtitles', filePath) as Promise<string | null>,
+    invoke('lectures:readSubtitles', filePath) as Promise<string | null>,
   getPoster: (filePath: string, seekSeconds?: number) =>
-    ipcRenderer.invoke('lectures:getPoster', {
+    invoke('lectures:getPoster', {
       path: filePath,
       seekSeconds,
     }) as Promise<string | null>,

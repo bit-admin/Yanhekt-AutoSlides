@@ -1,11 +1,12 @@
 import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI } from './electronApi';
 
 export const pdfmaker: ElectronAPI['pdfmaker'] = {
-  getFolders: () => ipcRenderer.invoke('pdfmaker:getFolders'),
-  getImages: (folderPath: string) => ipcRenderer.invoke('pdfmaker:getImages', folderPath),
-  getImageAsBase64: (imagePath: string) => ipcRenderer.invoke('pdfmaker:getImageAsBase64', imagePath),
-  deleteImage: (imagePath: string) => ipcRenderer.invoke('pdfmaker:deleteImage', imagePath),
+  getFolders: () => invoke('pdfmaker:getFolders'),
+  getImages: (folderPath: string) => invoke('pdfmaker:getImages', folderPath),
+  getImageAsBase64: (imagePath: string) => invoke('pdfmaker:getImageAsBase64', imagePath),
+  deleteImage: (imagePath: string) => invoke('pdfmaker:deleteImage', imagePath),
   makePdf: (folders: { name: string; path: string; images: string[] }[], options: {
     reduceEnabled: boolean;
     aspectRatio?: '16:9' | '4:3';
@@ -17,7 +18,7 @@ export const pdfmaker: ElectronAPI['pdfmaker'] = {
     outputFormat?: 'pdf' | 'pptx';
     includeCover?: boolean;
     copyrightText?: string;
-  }) => ipcRenderer.invoke('pdfmaker:makePdf', folders, options),
+  }) => invoke('pdfmaker:makePdf', folders, options),
   onProgress: (callback: (progress: { current: number; total: number }) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, progress: { current: number; total: number }) => callback(progress);
     ipcRenderer.on('pdfmaker:progress', handler);
@@ -27,7 +28,7 @@ export const pdfmaker: ElectronAPI['pdfmaker'] = {
 
 export const noteExport: ElectronAPI['noteExport'] = {
   export: (payload: { title: string; content: string; format: 'pdf' | 'markdown' | 'docx' }) =>
-    ipcRenderer.invoke('noteExport:export', payload) as Promise<{
+    invoke('noteExport:export', payload) as Promise<{
       ok: boolean;
       path?: string;
       canceled?: boolean;
@@ -37,9 +38,9 @@ export const noteExport: ElectronAPI['noteExport'] = {
 
 export const yuketang: ElectronAPI['yuketang'] = {
   exportLesson: (payload: { lessonId?: string; format: 'pdf' | 'images' }) =>
-    ipcRenderer.invoke('yuketang:export', payload),
-  getClassCapture: () => ipcRenderer.invoke('yuketang:getClassCapture'),
-  openFolder: (folderPath: string) => ipcRenderer.invoke('yuketang:openFolder', folderPath),
+    invoke('yuketang:export', payload),
+  getClassCapture: () => invoke('yuketang:getClassCapture'),
+  openFolder: (folderPath: string) => invoke('yuketang:openFolder', folderPath),
   onExportProgress: (callback: (message: string) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, message: string) => callback(message);
     ipcRenderer.on('yuketang:exportProgress', handler);

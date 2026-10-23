@@ -1,13 +1,13 @@
-import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI } from './electronApi';
 
 export const intranet: ElectronAPI['intranet'] = {
-  getStatus: () => ipcRenderer.invoke('intranet:getStatus'),
-  getMappings: () => ipcRenderer.invoke('intranet:getMappings'),
-  refresh: () => ipcRenderer.invoke('intranet:refresh'),
-  probeDomain: (domain: string) => ipcRenderer.invoke('intranet:probeDomain', domain),
-  getNetworkInterfaces: () => ipcRenderer.invoke('intranet:getNetworkInterfaces'),
-  getInterfaceIp: () => ipcRenderer.invoke('intranet:getInterfaceIp'),
-  setInterfaceIp: (ip: string | null) => ipcRenderer.invoke('intranet:setInterfaceIp', ip),
-  checkCampusConnection: () => ipcRenderer.invoke('intranet:checkCampusConnection'),
+  getStatus: () => invoke('intranet:getStatus'),
+  getMappings: () => invoke('intranet:getMappings'),
+  refresh: () => invoke('intranet:refresh'),
+  probeDomain: (domain: string) => invoke('intranet:probeDomain', domain),
+  getNetworkInterfaces: () => invoke('intranet:getNetworkInterfaces'),
+  getInterfaceIp: () => invoke('intranet:getInterfaceIp'),
+  setInterfaceIp: (ip: string | null) => invoke('intranet:setInterfaceIp', ip),
+  checkCampusConnection: () => invoke('intranet:checkCampusConnection'),
 };

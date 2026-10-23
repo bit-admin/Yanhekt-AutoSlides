@@ -1,11 +1,12 @@
 import { ipcRenderer } from 'electron';
+import { invoke } from './invoke';
 import type { ElectronAPI, LiveStreamInput, RecordedSessionInput } from './electronApi';
 
 export const video: ElectronAPI['video'] = {
   getLiveStreamUrls: (stream: LiveStreamInput, token: string) =>
-    ipcRenderer.invoke('video:getLiveStreamUrls', stream, token),
+    invoke('video:getLiveStreamUrls', stream, token),
   getVideoPlaybackUrls: (session: RecordedSessionInput, token: string) =>
-    ipcRenderer.invoke('video:getVideoPlaybackUrls', session, token),
+    invoke('video:getVideoPlaybackUrls', session, token),
   getScreenThumbnail: (req: {
     kind: 'live' | 'recorded';
     screenUrl: string;
@@ -14,10 +15,10 @@ export const video: ElectronAPI['video'] = {
     seekSeconds: number;
     cacheKey: string;
     token: string;
-  }) => ipcRenderer.invoke('video:getScreenThumbnail', req) as Promise<string | null>,
-  registerClient: () => ipcRenderer.invoke('video:registerClient'),
-  unregisterClient: (clientId: string) => ipcRenderer.invoke('video:unregisterClient', clientId),
-  stopSignatureLoop: () => ipcRenderer.invoke('video:stopSignatureLoop'),
+  }) => invoke('video:getScreenThumbnail', req) as Promise<string | null>,
+  registerClient: () => invoke('video:registerClient'),
+  unregisterClient: (clientId: string) => invoke('video:unregisterClient', clientId),
+  stopSignatureLoop: () => invoke('video:stopSignatureLoop'),
 };
 
 type CompressLectureOptions = {
@@ -45,12 +46,12 @@ type CompressLectureProgress = {
 };
 
 export const compressLecture: ElectronAPI['compressLecture'] = {
-  selectInput: () => ipcRenderer.invoke('compressLecture:selectInput') as Promise<string | null>,
-  selectOutput: (defaultPath?: string) => ipcRenderer.invoke('compressLecture:selectOutput', defaultPath) as Promise<string | null>,
-  preview: (options: CompressLectureOptions) => ipcRenderer.invoke('compressLecture:preview', options),
-  start: (options: CompressLectureOptions) => ipcRenderer.invoke('compressLecture:start', options) as Promise<{ outputPath: string }>,
-  cancel: () => ipcRenderer.invoke('compressLecture:cancel') as Promise<boolean>,
-  isActive: () => ipcRenderer.invoke('compressLecture:isActive') as Promise<boolean>,
+  selectInput: () => invoke('compressLecture:selectInput') as Promise<string | null>,
+  selectOutput: (defaultPath?: string) => invoke('compressLecture:selectOutput', defaultPath) as Promise<string | null>,
+  preview: (options: CompressLectureOptions) => invoke('compressLecture:preview', options),
+  start: (options: CompressLectureOptions) => invoke('compressLecture:start', options) as Promise<{ outputPath: string }>,
+  cancel: () => invoke('compressLecture:cancel') as Promise<boolean>,
+  isActive: () => invoke('compressLecture:isActive') as Promise<boolean>,
   onProgress: (callback: (progress: CompressLectureProgress) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, progress: CompressLectureProgress) => callback(progress);
     ipcRenderer.on('compressLecture:progress', handler);
@@ -70,13 +71,13 @@ export const compressLecture: ElectronAPI['compressLecture'] = {
 
 export const download: ElectronAPI['download'] = {
   start: (downloadId: string, m3u8Url: string, outputName: string) =>
-    ipcRenderer.invoke('download:start', downloadId, m3u8Url, outputName),
+    invoke('download:start', downloadId, m3u8Url, outputName),
   startAudio: (downloadId: string, audioUrl: string, outputName: string) =>
-    ipcRenderer.invoke('download:startAudio', downloadId, audioUrl, outputName),
+    invoke('download:startAudio', downloadId, audioUrl, outputName),
   startYanhe2: (downloadId, account, query, kind, outputName) =>
-    ipcRenderer.invoke('download:startYanhe2', downloadId, account, query, kind, outputName),
-  cancel: (downloadId: string) => ipcRenderer.invoke('download:cancel', downloadId),
-  cleanupTempFiles: (outputName: string) => ipcRenderer.invoke('download:cleanupTempFiles', outputName),
+    invoke('download:startYanhe2', downloadId, account, query, kind, outputName),
+  cancel: (downloadId: string) => invoke('download:cancel', downloadId),
+  cleanupTempFiles: (outputName: string) => invoke('download:cleanupTempFiles', outputName),
   onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, downloadId: string, progress: { current: number; total: number; phase: number }) => callback(downloadId, progress);
     ipcRenderer.on('download:progress', handler);
