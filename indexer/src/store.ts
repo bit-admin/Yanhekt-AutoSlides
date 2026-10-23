@@ -62,6 +62,9 @@ export interface Store {
   recordFailure(kind: string, id: number, code: string, message: string, nowMs: number): void;
   /** Highest stored session id, 0 when there are none. */
   maxSessionId(): number;
+  /** Session ids that failed with an error code, are still not stored, and were last tried at or before `triedBeforeMs`. */
+  failedSessions(triedBeforeMs: number, limit: number): number[];
+  clearFailure(kind: string, id: number): void;
   pendingCourses(limit: number): number[];
   pendingVideos(limit: number): PendingVideo[];
   /** Sessions that ended in (afterCn, beforeCn], still have no video, and were not re-checked since `refreshedBeforeMs`. */
@@ -70,6 +73,9 @@ export interface Store {
 
 /** Attempts after which a failing course/video is left alone. */
 export const MAX_ATTEMPTS = 3;
+
+/** Retry passes after which a session id that keeps failing is left alone. */
+export const MAX_SESSION_ATTEMPTS = 6;
 
 const q = (name: string) => `"${name}"`;
 
@@ -260,6 +266,19 @@ export class SqliteStore implements Store {
          message = excluded.message, last_at = excluded.last_at`,
       [kind, id, code, message, nowMs],
     );
+  }
+
+  failedSessions(triedBeforeMs: number, limit: number): number[] {
+    const rows = this.stmt(
+      `SELECT f.id FROM failures f LEFT JOIN sessions s ON s.id = f.id
+       WHERE f.kind = 'session' AND s.id IS NULL AND f.attempts < ${MAX_SESSION_ATTEMPTS} AND f.last_at <= ?
+       ORDER BY f.last_at LIMIT ?`,
+    ).all(triedBeforeMs, limit) as Array<{ id: number }>;
+    return rows.map((r) => r.id);
+  }
+
+  clearFailure(kind: string, id: number): void {
+    this.run('DELETE FROM failures WHERE kind = ? AND id = ?', [kind, id]);
   }
 
   pendingCourses(limit: number): number[] {

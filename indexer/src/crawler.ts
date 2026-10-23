@@ -48,6 +48,12 @@ export interface CrawlerConfig {
   refreshEveryRounds: number;
   refreshPerRound: number;
   maxUnexpectedInRow: number;
+  /** Times to ask for one session id that answers with an error code before recording a failure. */
+  sessionTries: number;
+  /** Failed session ids re-tried per retry pass (runs with the refresh pass). */
+  retryPerRound: number;
+  /** Wait at least this long before re-trying a failed session id. */
+  retryAfterMs: number;
 }
 
 /** Network/server trouble: work so far is committed, then the run backs off. */
@@ -169,11 +175,15 @@ export class Crawler {
     const scan = await this.tx(() => this.scanBatch());
     const enriched = await this.tx(() => this.enrich());
     let refreshed = 0;
-    if (n % this.d.config.refreshEveryRounds === 0) refreshed = await this.tx(() => this.refresh());
+    let retried = 0;
+    if (n % this.d.config.refreshEveryRounds === 0 || scan === 'idle') {
+      refreshed = await this.tx(() => this.refresh());
+      retried = await this.tx(() => this.retryFailed());
+    }
 
     if (this.stopped()) return 'aborted';
     if (scan === 'budget' || !this.d.budget.canAfford(1)) return 'budget';
-    if (scan === 'idle' && enriched === 0 && refreshed === 0) return 'idle';
+    if (scan === 'idle' && enriched === 0 && refreshed === 0 && retried === 0) return 'idle';
     return 'ok';
   }
 
@@ -206,6 +216,21 @@ export class Crawler {
     return o;
   }
 
+  /**
+   * Ask for one session id. Yanhekt sometimes answers with a server error
+   * (code 2002, "service runtime exception") when it is unstable, so ask up
+   * to `sessionTries` times before taking an error code as the answer.
+   */
+  private async fetchSession(id: number): Promise<{ o: Exclude<Outcome<Json>, { kind: 'transient' }>; used: number }> {
+    let o = await this.call(() => this.d.api.session(id));
+    let used = 1;
+    while (o.kind === 'unexpected' && used < this.d.config.sessionTries && this.d.budget.canAfford(1) && !this.stopped()) {
+      o = await this.call(() => this.d.api.session(id));
+      used += 1;
+    }
+    return { o, used };
+  }
+
   /** Scan up to `batchSize` ids (probes count too). */
   private async scanBatch(): Promise<'ok' | 'idle' | 'budget'> {
     const { config, budget } = this.d;
@@ -229,8 +254,8 @@ export class Crawler {
       }
 
       const id = lane.cursor;
-      const o = await this.call(() => this.d.api.session(id));
-      steps += 1;
+      const { o, used } = await this.fetchSession(id);
+      steps += used;
       if (o.kind === 'ok') {
         this.d.store.saveSession(o.data, this.d.now(), { refreshed: false, queueVideos: config.fetchVideos });
         this.stats.sessionsFound += 1;
@@ -242,10 +267,10 @@ export class Crawler {
         lane.missRun += 1;
       } else {
         this.unexpected('session', id, o);
-        // Yanhekt answers some ids that do not exist with an error code (2002)
-        // instead of "not found", about one in four above the newest id. Count
-        // them toward the miss run, or the lane never notices it has passed
-        // the newest id and walks on through empty ids for hours.
+        // The id is retried later (retryFailed). For the scan, count it toward
+        // the miss run: while Yanhekt is unstable it answers many ids that do
+        // not exist with an error code, and resetting here kept the lane from
+        // ever noticing it had passed the newest id.
         if (lane.missRun === 0) lane.missRunStart = id;
         lane.missRun += 1;
       }
@@ -317,6 +342,29 @@ export class Crawler {
       this.log(`${spec.key}: nothing found in ${lane.cursor}..${to}; skipping`);
       lane.cursor = to - 1;
       reset();
+    }
+    return used;
+  }
+
+  /** Re-try session ids that failed with an error code earlier (e.g. while Yanhekt was unstable). Returns requests used. */
+  private async retryFailed(): Promise<number> {
+    const { config, store, budget } = this.d;
+    if (config.retryPerRound <= 0) return 0;
+    let used = 0;
+    for (const id of store.failedSessions(this.d.now() - config.retryAfterMs, config.retryPerRound)) {
+      if (this.stopped() || !budget.canAfford(1)) return used;
+      const r = await this.fetchSession(id);
+      used += r.used;
+      if (r.o.kind === 'ok') {
+        store.saveSession(r.o.data, this.d.now(), { refreshed: false, queueVideos: config.fetchVideos });
+        store.clearFailure('session', id);
+        this.stats.sessionsFound += 1;
+        this.log(`retry: session ${id} found`);
+      } else if (r.o.kind === 'missing') {
+        store.clearFailure('session', id);
+      } else {
+        this.unexpected('session', id, r.o);
+      }
     }
     return used;
   }

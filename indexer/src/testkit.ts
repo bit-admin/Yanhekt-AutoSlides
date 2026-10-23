@@ -14,6 +14,9 @@ export const config: CrawlerConfig = {
   refreshEveryRounds: 10,
   refreshPerRound: 5,
   maxUnexpectedInRow: 5,
+  sessionTries: 3,
+  retryPerRound: 10,
+  retryAfterMs: 0,
 };
 
 export function session(id: number): Json {
@@ -41,13 +44,17 @@ export class FakeApi implements Api {
   failOn = new Set<number>();
   /** Ids answered with code 2002, as Yanhekt does for some ids that do not exist. */
   errorOn = new Set<number>();
+  /** Ids answered with code 2002 this many more times, then normally. */
+  errorTimes = new Map<number, number>();
   constructor(existing: Iterable<number>) {
     this.existing = new Set(existing);
   }
   async session(id: number): Promise<Outcome<Json>> {
     this.calls.push(`s${id}`);
     if (this.failOn.has(id)) return { kind: 'transient', reason: 'http 502' };
-    if (this.errorOn.has(id)) return { kind: 'unexpected', code: '2002', message: 'service runtime exception' };
+    const left = this.errorTimes.get(id) ?? 0;
+    if (left > 0) this.errorTimes.set(id, left - 1);
+    if (left > 0 || this.errorOn.has(id)) return { kind: 'unexpected', code: '2002', message: 'service runtime exception' };
     return this.existing.has(id) ? { kind: 'ok', data: session(id) } : { kind: 'missing' };
   }
   async video(id: number): Promise<Outcome<Json>> {

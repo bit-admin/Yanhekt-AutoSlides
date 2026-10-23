@@ -246,7 +246,7 @@ The window is always Beijing time, whatever the computer's time zone. Use `--win
 **Errors:**
 
 - A network error, timeout, HTTP error, 系统繁忙 or the maintenance answer (code 99151011) keeps the work done so far and backs off (30 s, 1, 2 … 15 min). After 6 failures in a row the run stops for the night.
-- An unknown response code is written to `failures` and skipped; 5 in a row count as one error.
+- Any other response code (for example 2002 "service runtime exception", which Yanhekt sends at random while unstable) is asked again up to 3 times. If it persists, the id goes to `failures` and the scan moves on; 5 such ids in a row count as one error. Failed session ids are tried again an hour or more later (about 1 in 25 requests goes to this), up to 6 times, and stored once they answer.
 - Only one process can use a database file at a time (`<db>.lock`), and that includes `upload`.
 
 ## Data

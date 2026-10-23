@@ -102,13 +102,13 @@ test('error codes on ids past the newest one do not hide the end', async () => {
   const ids = [...Array(100).keys()].map((i) => i + 1);
   const api = new FakeApi(ids);
   for (let id = 104; id <= 5000; id += 4) api.errorOn.add(id);
-  const { crawler } = make(api, [defaultLanes(50, 1)[0]]);
+  const { crawler } = make(api, [defaultLanes(50, 1)[0]], undefined, { ...config, retryPerRound: 0 });
 
   assert.equal(await drain(crawler), 'idle');
   const fwd = crawler.progress()[0].state;
   assert.equal(fwd.cursor, 101);
   assert.ok(fwd.parkedUntilMs);
-  assert.ok(api.calls.length < 200, `made ${api.calls.length} requests`);
+  assert.ok(api.calls.length < 400, `made ${api.calls.length} requests`);
 });
 
 test('a forward lane saved past the newest id comes back to it', async () => {
@@ -122,6 +122,28 @@ test('a forward lane saved past the newest id comes back to it', async () => {
   const { crawler } = make(api, [fwd], store);
   assert.equal(await drain(crawler), 'idle');
   assert.equal(crawler.progress()[0].state.cursor, 101);
+});
+
+test('a server error on an existing id is asked again, not skipped', async () => {
+  const ids = [...Array(60).keys()].map((i) => i + 1);
+  const api = new FakeApi(ids);
+  api.errorTimes.set(20, 2); // two 2002 answers, then the session
+  const { crawler, store } = make(api, [rangeLane(1, 60)]);
+  assert.equal(await drain(crawler), 'idle');
+  assert.equal(count(store, 'SELECT COUNT(*) FROM sessions WHERE id = 20'), 1);
+  assert.equal(count(store, 'SELECT COUNT(*) FROM failures'), 0);
+});
+
+test('ids that kept failing are re-tried later and stored once they answer', async () => {
+  const ids = [...Array(60).keys()].map((i) => i + 1);
+  const api = new FakeApi(ids);
+  api.errorTimes.set(30, 3); // fails all three asks during the scan
+  api.errorTimes.set(70, 3); // does not exist: fails, then "not found"
+  const { crawler, store } = make(api, [rangeLane(1, 80)]);
+  assert.equal(await drain(crawler), 'idle');
+  assert.equal(count(store, 'SELECT COUNT(*) FROM sessions WHERE id = 30'), 1);
+  assert.equal(count(store, 'SELECT COUNT(*) FROM sessions WHERE id = 70'), 0);
+  assert.equal(count(store, 'SELECT COUNT(*) FROM failures'), 0);
 });
 
 test('a transient error keeps finished work and retries the same id', async () => {

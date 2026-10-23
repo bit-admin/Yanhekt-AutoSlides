@@ -428,6 +428,9 @@ async function main(): Promise<void> {
       refreshEveryRounds: 10,
       refreshPerRound: 5,
       maxUnexpectedInRow: 5,
+      sessionTries: 3,
+      retryPerRound: 10,
+      retryAfterMs: 3600_000,
     };
 
     let lanes: LaneSpec[];
