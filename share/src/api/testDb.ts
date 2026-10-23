@@ -6,7 +6,7 @@
  */
 
 import { DatabaseSync } from 'node:sqlite';
-import { courseStatements, D1_SCHEMA_SQL, dataVersionStatement } from '../../../indexer/src/d1model.ts';
+import { courseStatements, D1_SCHEMA_SQL, dataVersionStatement } from '../indexer/d1model.ts';
 import type { D1Database, D1PreparedStatement, D1Result } from '../lib/runtime';
 
 export interface TestDb extends D1Database {

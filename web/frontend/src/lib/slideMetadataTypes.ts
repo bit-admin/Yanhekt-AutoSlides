@@ -23,6 +23,10 @@ export interface SlideMetadataSource {
   // must never reach consumers that key on courseId.
   liveId?: string;
   courseTitle?: string;
+  // The registrar's course number, an opaque string compared whole: Yanhekt's
+  // `number`, which Yanhe 2.0 calls `kcwybm`. It is what matches a course
+  // across the two sites, so it is kept whichever site the slides came from.
+  courseNumber?: string;
   sessionId?: string;
   sessionTitle?: string;
   instructor?: string;

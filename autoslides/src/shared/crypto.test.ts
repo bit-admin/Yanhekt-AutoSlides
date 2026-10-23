@@ -4,13 +4,15 @@ import { addSignatureToUrl, encryptVideoUrl, getClientSignature, getVideoSignatu
 /**
  * Golden vectors for the Yanhekt anti-hotlink scheme.
  *
- * The same formulas are re-implemented in three other runtimes that cannot
- * import this module:
- *   - web/src/lib/yanhekt.ts        (crypto-js MD5)         → web/src/lib/yanhekt.test.ts
- *   - relay/src/yanhekt.ts          (bundled pure-JS md5)   → relay/src/yanhekt.test.ts
- *   - share/src/lib/yanhekt.ts      (hardcoded hex)         → share/src/v2.ts XCLIENT_SIGNATURE
- * All four pin the values below. Changing VIDEO_MAGIC or the suffixes here
- * without updating the siblings desyncs Index publish auth and relay signing.
+ * The same formulas are re-implemented in two other runtimes that cannot
+ * import this module (drift group `yanhektCrypto`, scripts/check-drift.mjs):
+ *   - web/src/lib/yanhektSignature.ts (crypto-js MD5)       → web/src/lib/yanhekt.test.ts
+ *   - relay/src/yanhekt.ts            (bundled pure-JS md5) → relay/src/yanhekt.test.ts
+ * Two more send only the finished client signature, as hardcoded hex:
+ *   - share/src/lib/yanhekt.ts   → share/src/lib/copies.test.ts
+ *   - indexer/src/yanhekt.ts     → indexer/src/yanhekt.test.ts
+ * All of them pin the values below. Changing VIDEO_MAGIC or the suffixes here
+ * without updating the siblings breaks relay signing and every Yanhekt request.
  */
 export const CLIENT_SIGNATURE_HEX = '72b77856f6df3f563ab6e658631cac3d';
 export const PATH_HASH_HEX = 'c3d47d7b3aa8caf2983b313cb6cd142f';

@@ -16,7 +16,7 @@
  * does it read every key's entries in that term.
  */
 
-import { numberKey, prefixEnd, wordLookup } from '../../../indexer/src/grams.ts';
+import { numberKey, prefixEnd, wordLookup } from '../indexer/grams.ts';
 import type { D1Database, D1PreparedStatement } from '../lib/runtime';
 import type { SearchParams } from './searchParams';
 import { compareRanked, COURSE_COLUMNS, rank, type CourseRow, type MatchField } from './searchRank';

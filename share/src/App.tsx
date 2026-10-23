@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { decodeSharePayload, type SharePayload } from '../../autoslides/src/shared/shareLink';
+import { decodeSharePayload, type SharePayload } from './lib/shareLink';
 import { resolveImages, type ResolvedImage } from './resolver';
 import { ShareDocument, type ViewerMeta } from './components/ShareDocument';
 

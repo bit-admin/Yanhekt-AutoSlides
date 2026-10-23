@@ -1,13 +1,11 @@
 /**
  * yanhekt.cn API helpers: request-header construction + token verification.
  *
- * The request signature is sent to yanhekt, so the header construction must
- * stay byte-identical to the AutoSlides desktop implementation it was ported
- * from (autoslides/src/main/platform/apiClient.ts + src/shared/crypto.ts).
+ * The signature itself lives in yanhektSignature.ts (kept byte-compatible with
+ * the desktop app); the header set here follows
+ * autoslides/src/main/platform/apiClient.ts.
  */
-import CryptoJS from "crypto-js";
-
-const MAGIC = "1138b69dfef641d9d7ba49137d2d4875";
+import { getClientSignature } from "./yanhektSignature";
 
 const BASE_HEADERS: Record<string, string> = {
   Origin: "https://www.yanhekt.cn",
@@ -18,8 +16,6 @@ const BASE_HEADERS: Record<string, string> = {
   "Xdomain-Client": "web_user",
   "Xclient-Version": "v1",
 };
-
-const md5 = (s: string): string => CryptoJS.MD5(s).toString();
 
 export interface YanhektUserData {
   badge: string;
@@ -35,8 +31,7 @@ export interface YanhektUserData {
 export function upstreamHeaders(token: string | null): Record<string, string> {
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const headers = { ...BASE_HEADERS };
-  // Matches the legacy implementation exactly (literal "undefined").
-  headers["Xclient-Signature"] = md5(MAGIC + "_v1_undefined");
+  headers["Xclient-Signature"] = getClientSignature();
   headers["Xclient-Timestamp"] = timestamp;
   if (token !== null) {
     headers["Authorization"] = `Bearer ${token}`;

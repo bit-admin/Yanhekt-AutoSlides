@@ -3,7 +3,7 @@
  * key. Pure; see docs/api.md for the contract.
  */
 
-import { numberKey, searchWords, wordLookup } from '../../../indexer/src/grams.ts';
+import { numberKey, searchWords, wordLookup } from '../indexer/grams.ts';
 
 export interface SearchParams {
   /** Normalized query: trimmed, inner whitespace collapsed. */

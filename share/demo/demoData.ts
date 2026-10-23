@@ -11,14 +11,14 @@
  *
  * Ids follow the real conventions: a session id is the course id followed by a
  * zero-padded week (`50109`), and a share fragment is built with the REAL codec
- * (`autoslides/src/shared/shareLink`), as a v3 payload carrying a timeline, so
+ * (`src/lib/shareLink`, the viewer's copy of the desktop one), as a v3 payload carrying a timeline, so
  * the viewer's `Download timeline` button is genuinely live.
  */
 
 import {
   encodeSharePayload,
   type SharePayload,
-} from '../../autoslides/src/shared/shareLink';
+} from '../src/lib/shareLink';
 
 export interface DemoLecture {
   courseId: string;

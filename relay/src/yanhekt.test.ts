@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { VIDEO_MAGIC, addSignatureToUrl, encryptVideoUrl, getClientSignature, signMediaUrl } from './yanhekt';
 
 // Golden vectors shared with autoslides/src/shared/crypto.test.ts,
-// web/src/lib/yanhekt.test.ts and share/src/lib/yanhekt.ts (hardcoded hex).
+// web/src/lib/yanhekt.test.ts, share/src/lib/copies.test.ts and
+// indexer/src/yanhekt.test.ts (the last two hardcode the hex).
 const CLIENT_SIGNATURE_HEX = '72b77856f6df3f563ab6e658631cac3d';
 const PATH_HASH_HEX = 'c3d47d7b3aa8caf2983b313cb6cd142f';
 

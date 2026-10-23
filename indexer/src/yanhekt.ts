@@ -11,7 +11,7 @@
 
 const CBIZ = 'https://cbiz.yanhekt.cn';
 /** md5("<VIDEO_MAGIC>_v1_undefined") — the constant the official SPA sends. */
-const XCLIENT_SIGNATURE = '72b77856f6df3f563ab6e658631cac3d';
+export const XCLIENT_SIGNATURE = '72b77856f6df3f563ab6e658631cac3d';
 
 /** "Not found" codes, one per resource (observed live, 2026-10). */
 export const MISSING_CODE = {

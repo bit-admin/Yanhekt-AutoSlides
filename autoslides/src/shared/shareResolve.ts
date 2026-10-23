@@ -2,9 +2,10 @@
  * Share-link image resolver — the single source of truth for turning a share
  * payload's short md5 hashes back into full public CDN URLs.
  *
- * CANONICAL FILE. Imported by both the Cloudflare Worker viewer (`share/`) and
- * the AutoSlides app (main process, for "Paste from a share link" import), so the
- * matching rule (and the bucket-prefix URL fix) lives in exactly one place. The
+ * CANONICAL FILE. Used by the AutoSlides app (main process, for "Paste from a
+ * share link" import); `share/src/lib/shareResolve.ts` and the web's
+ * `lib/notes/shareResolve.ts` are copies in the `shareResolve` drift group
+ * (scripts/check-drift.mjs), so port the matching rule with every change. The
  * S3 XML listing differs per platform — DOMParser in the browser/Worker, a small
  * regex in Node — so the lister is injected via `FolderLister`; everything else
  * (which folders to list, how to match, how to build the URL) is shared here.

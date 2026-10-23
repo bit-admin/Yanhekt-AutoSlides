@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Budget, MISSING_CODE, classify } from './yanhekt.ts';
+import { createHash } from 'node:crypto';
+import { Budget, MISSING_CODE, XCLIENT_SIGNATURE, classify } from './yanhekt.ts';
+
+test('client signature: md5(VIDEO_MAGIC + "_v1_undefined"), the golden vector', () => {
+  // Same vector as autoslides/src/shared/crypto.test.ts, web, relay and share.
+  const computed = createHash('md5').update('1138b69dfef641d9d7ba49137d2d4875_v1_undefined').digest('hex');
+  assert.equal(computed, '72b77856f6df3f563ab6e658631cac3d');
+  assert.equal(XCLIENT_SIGNATURE, computed);
+});
 
 test('classify: ok object', () => {
   assert.deepEqual(classify({ code: 0, data: { id: 1 } }, MISSING_CODE.session), { kind: 'ok', data: { id: 1 } });

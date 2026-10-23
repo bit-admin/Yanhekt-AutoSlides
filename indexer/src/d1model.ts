@@ -2,7 +2,10 @@
  * The D1 data model: a slim projection of the local database, holding only
  * what the Index API (share/src/api) serves. The local SQLite keeps every
  * field the crawler fetched (schema.ts); upload and dump convert rows with the
- * functions below. Read by the share Worker; shared there through its tests.
+ * functions below. Read by the share Worker, whose tests seed D1 through
+ * share/src/indexer/d1model.ts, a byte-identical copy of this file (drift
+ * group `indexerD1Model`, scripts/check-drift.mjs). Edit here, then copy it
+ * over, with grams.ts and sql.ts.
  *
  * Why slim: the free D1 plan allows 500 MB, 100k rows written and 5M rows read
  * per day, and every index entry counts as a written row.

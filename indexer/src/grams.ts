@@ -1,8 +1,10 @@
 /**
  * Search keys ("grams") for the D1 `course_grams` table. Pure and
  * dependency-free: the indexer writes grams with `courseGrams`, and the share
- * Worker (share/src/api) imports `searchWords` / `wordLookup` from this file,
- * so both sides always split text the same way.
+ * Worker (share/src/api) reads them with `searchWords` / `wordLookup` from
+ * share/src/indexer/grams.ts, a byte-identical copy of this file (drift group
+ * `indexerGrams`, scripts/check-drift.mjs), so both sides split text the same
+ * way. Edit here, then copy the file over.
  *
  * Indexed text: the Chinese course name and the teacher names (the English
  * name is not indexed), plus the registrar code. Text is lowercased and split

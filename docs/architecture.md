@@ -190,51 +190,50 @@ List/detail payloads return `course_id` / `session_id` / live ids as **numbers**
 
 ## 4. Deliberate copies and the drift checker
 
-`web/frontend` is a **clone story**: a third party should be able to deploy `web/` without the Electron tree, so the SPA **never** imports `autoslides/src`. Algorithms that must stay behaviour-identical are copied and adapted per runtime.
-
-`share/` is the opposite exception: the Worker **imports the canonical module**
-
-```ts
-import { decodeSharePayload } from '../../autoslides/src/shared/shareLink';
-```
-
-so encode (desktop) and decode (viewer/Index) cannot drift. `shareLink.ts` is documented as dependency-free on purpose (`TextEncoder` / `btoa` only).
+**No package imports another package's source.** Each one deploys on its own, and a third party should be able to clone `web/` or `share/` without the Electron tree. Code that must behave the same in two places is copied instead: adapted per runtime where needed, byte for byte where it must match exactly.
 
 The cost of copies is silent rot. Root script:
 
 ```bash
-node scripts/check-drift.mjs            # CI — fail if only some members of a group changed
+node scripts/check-drift.mjs            # CI: fail if a group's sides changed unevenly, or an identical copy differs
 node scripts/check-drift.mjs --update   # re-stamp AFTER porting (or a conscious decision not to)
 ```
 
-A group is “in sync” when **no** member changed or **every** member changed. Groups are defined in `scripts/check-drift.mjs` (`GROUPS`); hashes live in `scripts/drift-manifest.json`.
+**Groups** (adapted copies): each group lists its sides, one per package, and a side lists only the files that hold the copied logic. A group is "in sync" when **no** side changed or **every** side changed since the manifest was stamped; a side counts as changed when any of its files did. Hashes live in `scripts/drift-manifest.json`.
 
-| Group | Members |
+| Group | Sides |
 |---|---|
-| `shareLink` | `autoslides/src/shared/shareLink.ts` ↔ `web/frontend/src/lib/notes/shareLink.ts` |
+| `shareLink` | `autoslides/src/shared/shareLink.ts` ↔ `web/frontend/src/lib/notes/shareLink.ts` ↔ `share/src/lib/shareLink.ts` (share's copy is the desktop file unchanged) |
+| `shareTimeline` | desktop `shareTimeline.ts` + `sidecars/timeline/types.ts` ↔ web `lib/notes/shareLink.ts` (its encode side) ↔ `share/src/lib/shareTimeline.ts` (decode only) |
+| `shareResolve` | `autoslides/src/shared/shareResolve.ts` ↔ `web/frontend/src/lib/notes/shareResolve.ts` ↔ `share/src/lib/shareResolve.ts` |
+| `academicTerm` | `autoslides/src/shared/academicTerm.ts` ↔ `share/src/lib/term.ts` |
 | `notesContent` | `autoslides/src/shared/notesContent.ts` ↔ `web/frontend/src/lib/notes/notesContent.ts` |
 | `notesTypes` | `autoslides/src/shared/notesTypes.ts` ↔ `web/frontend/src/lib/notes/notesTypes.ts` |
 | `sanitizeFileName` | `autoslides/src/shared/sanitizeFileName.ts` ↔ `web/frontend/src/lib/sanitizeFileName.ts` |
-| `slideMetadataTypes` | `autoslides/src/shared/slideMetadataTypes.ts` ↔ `web/frontend/src/lib/slideMetadataTypes.ts` |
+| `slideMetadataTypes` | `autoslides/src/shared/sidecars/metadata/types.ts` ↔ `web/frontend/src/lib/slideMetadataTypes.ts` (the desktop `slideMetadataTypes.ts` is only a re-export) |
 | `changeDetection` | SSIM change detector (renderer processing ↔ web `lib/processing`) |
+| `intervalTable` | processing interval lookup (renderer processing ↔ web `lib/processing`) |
 | `phase1Duplicates` | pHash near-duplicate filter |
 | `phase2Exclusion` | pHash exclusion list |
 | `phase3AI` | LLM/ML classification + thresholds |
 | `postCropDedup` | phase 3b after in-place auto-crop |
+| `postProcessorWorker` | post-processing worker entry (renderer `shared/workers` ↔ web `workers`) |
 | `watchProgress` | `autoslides/src/shared/watchProgress.ts` ↔ `web/frontend/src/lib/watchProgress.ts` |
 | `displayNames` | `autoslides/src/renderer/shared/i18n/displayNames.ts` ↔ `web/frontend/src/i18n/displayNames.ts` |
 | `requestCache` | `autoslides/src/renderer/shared/services/requestCache.ts` ↔ `web/frontend/src/lib/requestCache.ts` |
 | `videoErrorRecovery` | HLS fatal/backoff skeleton, including manifest `loadSource` retry and the empty-recording guard |
-| `yanhektCrypto` | **all four packages**: `autoslides/src/shared/crypto.ts`, `web/src/lib/yanhekt.ts`, `relay/src/yanhekt.ts`, `share/src/lib/yanhekt.ts` |
+| `yanhektCrypto` | the signing code only: `autoslides/src/shared/crypto.ts` ↔ `web/src/lib/yanhektSignature.ts` ↔ `relay/src/yanhekt.ts` |
 
-Golden MD5 vectors (asserted in `crypto.test.ts` / `yanhekt.test.ts`):
+**Identical copies** (no manifest; edit the source, then copy it over): `indexer/src/grams.ts`, `d1model.ts` and `sql.ts` → `share/src/indexer/`. The share Worker's search must split text exactly as the indexer wrote it, and share's tests seed D1 through the indexer's own upload statements.
+
+Golden MD5 vectors (asserted in desktop `crypto.test.ts`, web and relay `yanhekt.test.ts`; `share/src/lib/copies.test.ts` and `indexer/src/yanhekt.test.ts` pin the hardcoded client signature that `share/src/lib/yanhekt.ts` and `indexer/src/yanhekt.ts` send):
 
 - Client signature `md5(VIDEO_MAGIC + "_v1_undefined")` → `72b77856f6df3f563ab6e658631cac3d`
 - Path hash `md5(VIDEO_MAGIC + "_100")` → `c3d47d7b3aa8caf2983b313cb6cd142f`
 
 `VIDEO_MAGIC` is `1138b69dfef641d9d7ba49137d2d4875`. The literal suffix `"undefined"` on the client signature is mandatory — it is not a missing value.
 
-Workers have no Node/WebCrypto MD5. `relay/` ships a pure-JS MD5 (`relay/src/md5.ts`). `web/` and `share/` use CryptoJS or a hardcoded client signature where only the constant is needed (Index `verifyUser`).
+Workers have no Node/WebCrypto MD5. `relay/` ships a pure-JS MD5 (`relay/src/md5.ts`); `web/` uses CryptoJS. `share/` and `indexer/` need only the constant client signature and hardcode it.
 
 ---
 
@@ -611,8 +610,8 @@ Contract: [`share/docs/api.md`](../share/docs/api.md). Read-only, no auth; the z
 | any | `/api/*` else | 404 JSON |
 | any | `/v2/api/*` | 410 `{ error: 'retired' }` |
 
-- **The D1 layout is the indexer's** (`indexer/src/d1model.ts`, version 3): a slim projection of the local crawl database, not a copy, sized for D1's free plan (500 MB, 100k rows written / 5M read per day). `courses` carries each course's `session_ids`; there is no sessions table. The Worker never writes it. `src/api/testDb.ts` seeds an in-memory `node:sqlite` through the indexer's own upload statements, so a layout change breaks share's tests.
-- **Search never scans a table, and reads one term.** `course_grams` (`term`, `gram`, `course_id`; primary key in that order, `WITHOUT ROWID`) holds CJK 2-character pieces of course and teacher names and `w:` + other words of them per term, plus `n:` + registrar code under the empty term. Both sides split text with `indexer/src/grams.ts` (share imports it); a search word is looked up by non-overlapping pieces (`大学物理` → `大学`, `物理`). Round 1: one batch reading at most 33 entries per key, plus the whole query as registrar code or course id. Round 2: the smallest complete key's courses by id; only if every key is common, an `INTERSECT` of all keys in D1.
+- **The D1 layout is the indexer's** (`indexer/src/d1model.ts`, version 3): a slim projection of the local crawl database, not a copy, sized for D1's free plan (500 MB, 100k rows written / 5M read per day). `courses` carries each course's `session_ids`; there is no sessions table. The Worker never writes it. `src/api/testDb.ts` seeds an in-memory `node:sqlite` through the indexer's own upload statements (byte-identical copy in `share/src/indexer/`), so a layout change breaks share's tests.
+- **Search never scans a table, and reads one term.** `course_grams` (`term`, `gram`, `course_id`; primary key in that order, `WITHOUT ROWID`) holds CJK 2-character pieces of course and teacher names and `w:` + other words of them per term, plus `n:` + registrar code under the empty term. Both sides split text with `indexer/src/grams.ts` (share keeps a byte-identical copy in `src/indexer/`, enforced by the drift check); a search word is looked up by non-overlapping pieces (`大学物理` → `大学`, `物理`). Round 1: one batch reading at most 33 entries per key, plus the whole query as registrar code or course id. Round 2: the smallest complete key's courses by id; only if every key is common, an `INTERSECT` of all keys in D1.
 - **Verification mirrors the grams** (`searchRank.ts` `scoreWord`): CJK word → name/teacher contains; other word → a word of name/teacher starts with it; 1-character words and English filler words only narrow; word matches count only in the searched term. A query that is a course's whole registrar code (`number`, = Yanhe 2.0 `kcwybm`) or its id matches in any term; keep `number` in D1, it is how courses are matched between cbiz and aita for terms cbiz's own search no longer lists.
 - **Cache until the next upload.** Each upload writes `meta.data`; the router reads it at most once a minute per instance and puts it in every Cache API key (edge TTL a week), so cached answers stay valid until data changes. Browser `max-age=300`.
 - **D1 allows 100 bound parameters per query.** Id lists are passed as one JSON string and read with `json_each(?)`.
@@ -1426,7 +1425,7 @@ Full contract (headers, anonymous vs auth, VOD path encrypt, live unsigned CDN):
 
 ### 10.2 Share payload
 
-Canonical: `autoslides/src/shared/shareLink.ts`.
+Canonical: `autoslides/src/shared/shareLink.ts` (copies in `web/` and `share/`, drift group `shareLink`).
 
 | Version | Contents | Status |
 |---|---|---|

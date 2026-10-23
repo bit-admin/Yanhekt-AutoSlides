@@ -11,7 +11,7 @@
  * whole registrar code (`number`) or its id matches it in any term.
  */
 
-import { isCjkWord, numberKey, splitWords } from '../../../indexer/src/grams.ts';
+import { isCjkWord, numberKey, splitWords } from '../indexer/grams.ts';
 import type { SearchParams } from './searchParams';
 
 /** One D1 `courses` row (indexer/src/d1model.ts), as search.ts selects it. */

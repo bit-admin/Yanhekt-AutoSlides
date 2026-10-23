@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { payloadHasTimeline, type SharePayload } from '../../../autoslides/src/shared/shareLink';
-import { timelineFromSharePayload } from '../../../autoslides/src/shared/shareTimeline';
+import { payloadHasTimeline, type SharePayload } from '../lib/shareLink';
+import { timelineFromSharePayload } from '../lib/shareTimeline';
 import type { ResolvedImage } from '../resolver';
 import { formatAcademicTerm } from '../lib/term';
 import { triggerDownload } from '../lib/files';

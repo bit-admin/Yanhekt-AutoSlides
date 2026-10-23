@@ -1,10 +1,10 @@
 /**
  * Share-link codec — the single source of truth for AutoSlides note sharing.
  *
- * CANONICAL FILE. The Cloudflare Worker site under `share/` imports this exact
- * module (relative path) for decoding, so the encode (app) and decode (web
- * viewer) halves can never drift. Keep it dependency-free and runnable in any
- * modern JS runtime (Electron renderer, browser, Cloudflare Worker, Node ≥18) —
+ * CANONICAL FILE. `share/src/lib/shareLink.ts` (the viewer's decoder) and
+ * `web/frontend/src/lib/notes/shareLink.ts` are copies in the `shareLink` drift
+ * group (scripts/check-drift.mjs): port every change. Keep it dependency-free
+ * and runnable in any modern JS runtime (Electron renderer, browser, Cloudflare Worker, Node ≥18) —
  * it relies only on `TextEncoder`/`TextDecoder` and `btoa`/`atob`, which all of
  * those provide.
  *

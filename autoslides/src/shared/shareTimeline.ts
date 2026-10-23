@@ -3,7 +3,8 @@
  * string, and rebuild a player-compatible SlideTimeline from that string.
  *
  * Lives next to (not inside) `shareLink.ts` so the URL codec stays
- * dependency-free. The share viewer and Electron both import this module.
+ * dependency-free. The share viewer keeps a decode-only copy
+ * (`share/src/lib/shareTimeline.ts`, drift group `shareTimeline`).
  */
 
 import { exportSlideFilenames } from './notesContent';

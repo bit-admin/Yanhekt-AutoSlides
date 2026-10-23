@@ -1,7 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-// Worker + lib unit tests. `include` is explicit so the autoslides shared
-// files pulled in by tsconfig (and their tests) are never collected here.
+// Worker + lib unit tests.
 export default defineConfig({
   test: {
     environment: 'node',

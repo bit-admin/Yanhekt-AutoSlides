@@ -13,7 +13,8 @@
 const CBIZ = 'https://cbiz.yanhekt.cn';
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3';
-const XCLIENT_SIGNATURE = '72b77856f6df3f563ab6e658631cac3d';
+/** md5("<VIDEO_MAGIC>_v1_undefined"), the constant the official site sends. */
+export const XCLIENT_SIGNATURE = '72b77856f6df3f563ab6e658631cac3d';
 
 function headers(): Record<string, string> {
   return {

@@ -8,8 +8,8 @@
  */
 
 import { demoHooks } from '../src/lib/demoRegistry';
-import { shareImageRefs, type SharePayload } from '../../autoslides/src/shared/shareLink';
-import type { ResolvedShareImage } from '../../autoslides/src/shared/shareResolve';
+import { shareImageRefs, type SharePayload } from '../src/lib/shareLink';
+import type { ResolvedShareImage } from '../src/lib/shareResolve';
 import { slideImages } from './slides';
 import { installTransport } from './transport';
 

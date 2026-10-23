@@ -14,8 +14,8 @@
  * drops the branches and none of `demo/` reaches a real build.
  */
 
-import type { SharePayload } from '../../../autoslides/src/shared/shareLink';
-import type { ResolvedShareImage } from '../../../autoslides/src/shared/shareResolve';
+import type { SharePayload } from './shareLink';
+import type { ResolvedShareImage } from './shareResolve';
 
 export interface DemoHooks {
   /** Resolve a payload's images without listing the public coss bucket. */

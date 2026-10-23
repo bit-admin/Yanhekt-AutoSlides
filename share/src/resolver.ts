@@ -1,10 +1,10 @@
-import type { SharePayload } from '../../autoslides/src/shared/shareLink';
+import type { SharePayload } from './lib/shareLink';
 import { demoHooks } from './lib/demoRegistry';
 import {
   buildCossListUrl,
   resolveShareImages,
   type ResolvedShareImage,
-} from '../../autoslides/src/shared/shareResolve';
+} from './lib/shareResolve';
 
 /** Re-export under the viewer's historical name. */
 export type ResolvedImage = ResolvedShareImage;

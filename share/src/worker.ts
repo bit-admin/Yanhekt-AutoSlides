@@ -21,7 +21,7 @@
  *   Retired: the old AutoSlides Index. /v2/api/* answers 410 Gone.
  */
 
-import { decodeSharePayload } from '../../autoslides/src/shared/shareLink';
+import { decodeSharePayload } from './lib/shareLink';
 import {
   CORS_HEADERS,
   MAX_FRAGMENT_BYTES,
