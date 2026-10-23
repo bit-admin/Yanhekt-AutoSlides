@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { noteErrorText } from './noteErrors'
 import type {
   NoteSummary,
   NoteDetail,
@@ -100,7 +101,7 @@ export function useCloudNotes() {
     if (res.error === 'not-signed-in') {
       notSignedIn.value = true
     } else {
-      error.value = res.error
+      error.value = noteErrorText(res.error)
     }
     return null
   }
@@ -410,13 +411,12 @@ export function useCloudNotes() {
     const createRes = await cloudNotesApi.create()
     const id = unwrap(createRes)
     if (id == null) return
+    // A failed title/content write would leave a blank "Untitled" note behind on
+    // every Drive open; drop the replacement and keep the old README instead.
     const titleRes = await cloudNotesApi.updateTitle(id, README_NOTE_TITLE)
-    if (!titleRes.ok) {
-      unwrap(titleRes)
-      return
-    }
-    const contentRes = await cloudNotesApi.updateContent(id, content)
+    const contentRes = titleRes.ok ? await cloudNotesApi.updateContent(id, content) : titleRes
     if (!contentRes.ok) {
+      await cloudNotesApi.delete(id)
       unwrap(contentRes)
       return
     }

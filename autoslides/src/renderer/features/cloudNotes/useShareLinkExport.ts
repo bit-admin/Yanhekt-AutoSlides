@@ -1,7 +1,6 @@
 import { computed, ref } from 'vue'
 import { shareImportDisplayName } from '@common/notesTypes'
 import type { ShareImportResult } from '@common/notesTypes'
-import type { SlideMetadata } from '@common/slideMetadataTypes'
 import type { LectureIdentity } from '@common/lectureNaming'
 import type { SlideTimeline } from '@common/sidecars'
 
@@ -23,8 +22,6 @@ export interface ShareExportItem {
   dir?: string
   /** Basename of the existing/destination folder (used for replace cleanup). */
   folderName?: string
-  /** Slide metadata from AutoSlides Index, written as metadata.json (null if un-indexed). */
-  metadata?: SlideMetadata | null
   /** Reconstructed timeline.json from a v3 share payload. */
   timeline?: SlideTimeline | null
   error?: string
@@ -33,19 +30,15 @@ export interface ShareExportItem {
 /**
  * Export a resolved share link (already-fetched title + public image URLs, from
  * `cloudNotes.resolveShareLink`) into a local `slides_<title>/Slide_NNN.png`
- * folder — the Cloud Index native detail view's single-item analogue of
- * `useNoteExport`. When the link is indexed on AutoSlides Index, the resolve
- * result also carries reconstructed `metadata`, which is written as the
- * folder's `metadata.json` (best-effort) so the export re-enters the pipeline
- * with its origin identity + review flags; an un-indexed link exports images
- * only.
+ * folder — the single-item analogue of `useNoteExport`. A v3 link's timeline
+ * is written as `timeline.json` (best-effort).
  *
  * Re-export is a *conflict*, not a silent overwrite: if the folder already
  * exists, the row is flagged `conflict` and the caller decides — replace (a
  * full Results-View folder delete via trash.removeFolders), create alongside,
  * or skip. Only one export can be in flight at a time.
  */
-export function useShareIndexExport() {
+export function useShareLinkExport() {
   const item = ref<ShareExportItem | null>(null)
   const cancelRequested = ref(false)
   const running = ref(false)
@@ -63,19 +56,15 @@ export function useShareIndexExport() {
   }
 
   /**
-   * The lecture identity from the Index metadata, rebuilt as a PLAIN object.
-   * `row` lives inside a ref, so handing `row.metadata.source` straight to
-   * ipcRenderer.invoke would send a Vue proxy and throw an opaque
-   * DataCloneError (see CLAUDE.md).
+   * The lecture identity, rebuilt as a PLAIN object. `row` lives inside a ref,
+   * so handing `row.identity` straight to ipcRenderer.invoke would send a Vue
+   * proxy and throw an opaque DataCloneError (see CLAUDE.md).
    */
   function identityOf(row: ShareExportItem): LectureIdentity {
-    // Always a fresh plain object — `row` is inside a ref, so returning a nested
-    // reactive identity would throw DataCloneError on the IPC hop (CLAUDE.md).
-    const source = row.metadata?.source
     return {
-      courseId: row.identity.courseId ?? source?.courseId,
-      sessionId: row.identity.sessionId ?? source?.sessionId,
-      liveId: row.identity.liveId ?? source?.liveId,
+      courseId: row.identity.courseId,
+      sessionId: row.identity.sessionId,
+      liveId: row.identity.liveId,
     }
   }
 
@@ -96,19 +85,7 @@ export function useShareIndexExport() {
       if (!dl.ok) { row.status = 'error'; row.error = dl.error; return }
       row.downloaded += 1
     }
-    // Best-effort: write the index-sourced metadata.json so the folder carries
-    // its origin identity/review state (matches useNoteExport's restore step).
-    // JSON-clone — `result.metadata` comes off the viewer ref, so it is a Vue
-    // proxy; ipcRenderer.invoke's structured clone throws DataCloneError
-    // (CLAUDE.md). Timeline below already cloned; metadata was missed.
-    if (row.metadata) {
-      try {
-        await window.electronAPI.slideMetadata.write(
-          prep.data.dir,
-          JSON.parse(JSON.stringify(row.metadata)),
-        )
-      } catch { /* best-effort */ }
-    }
+    // JSON-clone: `row` is inside a ref (DataCloneError otherwise, CLAUDE.md).
     if (row.timeline) {
       try {
         await window.electronAPI.slideTimeline.write(prep.data.dir, JSON.parse(JSON.stringify(row.timeline)))
@@ -127,9 +104,9 @@ export function useShareIndexExport() {
     running.value = true
     try {
       const identity: LectureIdentity = {
-        courseId: result.identity?.courseId ?? result.metadata?.source?.courseId,
-        sessionId: result.identity?.sessionId ?? result.metadata?.source?.sessionId,
-        liveId: result.identity?.liveId ?? result.metadata?.source?.liveId,
+        courseId: result.identity?.courseId,
+        sessionId: result.identity?.sessionId,
+        liveId: result.identity?.liveId,
       }
       const row: ShareExportItem = {
         title: result.title,
@@ -139,7 +116,6 @@ export function useShareIndexExport() {
         status: 'pending',
         downloaded: 0,
         total: result.urls.length,
-        metadata: result.metadata ?? null,
         timeline: result.timeline ?? null,
       }
       item.value = row

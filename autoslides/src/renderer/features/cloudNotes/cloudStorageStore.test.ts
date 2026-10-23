@@ -55,7 +55,6 @@ function makeServer(opts: { groups?: NoteGroup[]; notes?: NoteSummary[]; groupLi
     }),
     get: async () => ({ ok: false, error: 'unused' }),
     shortenShareUrl: async () => ({ ok: false, error: 'unused' }),
-    publishToIndex: async () => ({ ok: false, error: 'unused' }),
     create: noteCreate,
     updateTitle: async (id, title) => {
       const n = notes.find((x) => x.id === id)

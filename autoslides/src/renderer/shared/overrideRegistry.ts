@@ -18,13 +18,7 @@ import type {
   NoteDetail,
   NoteGroup,
   UploadedImage,
-  IndexStats,
-  IndexLecture,
-  IndexLectureDetail,
-  IndexRemovalResult,
-  ShareImportResult,
 } from '@common/notesTypes'
-import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 
 export interface ResultImageItem {
   reason?: string
@@ -68,23 +62,6 @@ export interface CloudNotesProvider {
   groupDelete(id: number): Promise<NotesResult<void>>
   uploadImage(bytes: ArrayBuffer, filename: string, mime: string): Promise<NotesResult<UploadedImage>>
   shortenShareUrl(fragment: string): Promise<NotesResult<{ url: string }>>
-  publishToIndex(
-    fragment: string,
-    source: SlideMetadataSource,
-    review: { reviewed: boolean; edited: boolean },
-  ): Promise<NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>>
-}
-
-// Drop-in for the subset of window.electronAPI.cloudNotes that the Cloud Index
-// browse layer (useCloudIndexBrowse) calls. In demo mode this serves a
-// fabricated index (stats/search/lecture/share resolution) so the Drive page's
-// index mode renders offline; production reads `overrides.cloudIndexProvider ?? real`.
-export interface CloudIndexProvider {
-  indexStats(): Promise<NotesResult<IndexStats>>
-  indexSearch(term: string, semesterIds?: number[]): Promise<NotesResult<IndexLecture[]>>
-  indexLecture(courseId: string, sessionId: string): Promise<NotesResult<IndexLectureDetail>>
-  resolveShareLink(link: string): Promise<NotesResult<ShareImportResult>>
-  requestIndexRemoval(courseId: string, sessionId: string): Promise<NotesResult<IndexRemovalResult>>
 }
 
 export interface PlaybackDemo {
@@ -147,8 +124,6 @@ export interface RuntimeOverrides {
    * that fabricates its images has no shareable slides without this.
    */
   noteImageUrls?: (urls: string[]) => string[]
-  /** Backing data source for the Drive page's Cloud Index mode (browse + viewer). */
-  cloudIndexProvider?: CloudIndexProvider
   /** Backing reads for the Lectures workspace (library / list / posters / rename). */
   lecturesProvider?: LecturesProvider
   /** Folder sidecar reads (metadata.json + timeline.json). */

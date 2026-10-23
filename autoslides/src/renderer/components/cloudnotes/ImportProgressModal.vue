@@ -3,8 +3,7 @@
     <div class="dialog-box cn-import-box">
       <h3 class="dialog-title">{{ title }}</h3>
 
-      <!-- Folder-batch imports only — a share-link import is always a single item. -->
-      <div v-if="imp.queue.value.some(i => i.kind === 'folder')" class="cn-import-overall">{{ $t('cloudNotes.importOverall', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</div>
+      <div class="cn-import-overall">{{ $t('cloudNotes.importOverall', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</div>
       <div class="cn-import-list custom-scrollbar">
         <div v-for="item in imp.queue.value" :key="item.folderName" class="cn-imp-row">
           <div class="cn-imp-row-top">
@@ -37,6 +36,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import type { useNoteImport, ImportItem } from '@features/cloudNotes/useNoteImport'
+import { noteErrorText } from '@features/cloudNotes/noteErrors'
 
 defineProps<{
   /** Whether the modal is shown. */
@@ -57,15 +57,9 @@ const { t } = useI18n()
 
 function statusText(item: ImportItem): string {
   switch (item.status) {
-    case 'resolving': return t('cloudNotes.importResolving')
     case 'uploading': return t('cloudNotes.importUploading', { done: item.uploaded, total: item.total })
     case 'building': return t('cloudNotes.importBuilding')
-    case 'publishing': return t('cloudNotes.importPublishing')
-    // A share import *downloads from* the index — its indexUrl is provenance,
-    // not a publish result, so it reads "Imported", never "Published".
-    case 'done':
-      if (item.kind === 'share') return t('cloudNotes.importImported')
-      return item.indexUrl ? t('cloudNotes.importPublished') : t('cloudNotes.importDone')
+    case 'done': return t('cloudNotes.importDone')
     case 'conflict': return t('cloudNotes.importConflict')
     case 'error': return errorText(item.error)
     default: return t('cloudNotes.importPending')
@@ -75,17 +69,14 @@ function statusText(item: ImportItem): string {
 /** Map known machine error codes to friendly text; fall through to raw/server message. */
 function errorText(error?: string): string {
   switch (error) {
-    case 'empty':
-    case 'no-images': return t('cloudNotes.importEmpty')
+    case 'empty': return t('cloudNotes.importEmpty')
     case 'not-signed-in': return t('cloudNotes.importNotSignedIn')
-    case 'not-indexable': return t('cloudNotes.importNotIndexable')
-    case 'publish-failed': return t('cloudNotes.shareIndexError')
-    default: return error || t('cloudNotes.importError')
+    default: return error ? noteErrorText(error) : t('cloudNotes.importError')
   }
 }
 
 function barWidth(item: ImportItem): number {
-  if (item.status === 'done' || item.status === 'building' || item.status === 'publishing') return 100
+  if (item.status === 'done' || item.status === 'building') return 100
   if (item.status === 'uploading' && item.total > 0) return Math.round((item.uploaded / item.total) * 100)
   return 0
 }
@@ -152,8 +143,6 @@ function barWidth(item: ImportItem): number {
 .cn-imp-status.s-error { color: var(--danger); }
 .cn-imp-status.s-conflict { color: var(--warning); }
 .cn-imp-status.s-uploading,
-.cn-imp-status.s-publishing,
-.cn-imp-status.s-resolving,
 .cn-imp-status.s-building { color: var(--accent); }
 
 .cn-imp-bar {

@@ -146,6 +146,14 @@ export class ConfigService {
     this.migrateOnboardingFlag();
     this.migrateAccounts();
     this.migrateWatchNotes();
+    this.dropRetiredKeys();
+  }
+
+  // Keys of removed features (the old Public Index's auto-publish toggles).
+  private dropRetiredKeys(): void {
+    for (const key of ['cloudAutoPublishAfterSync', 'cloudAutoRepublishAfterResync']) {
+      if (this.store.has(key)) this.store.delete(key);
+    }
   }
 
   // One-time migration: existing installs (which have already shown a greeting)
@@ -260,9 +268,7 @@ export class ConfigService {
       lastOnboardingVersion: this.store.get('lastOnboardingVersion') ?? null,
       cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? [],
       cloudAutoSyncMode: this.store.get('cloudAutoSyncMode') ?? 'disabled',
-      cloudAutoPublishAfterSync: this.store.get('cloudAutoPublishAfterSync') ?? false,
       cloudAutoResyncMode: this.store.get('cloudAutoResyncMode') ?? 'disabled',
-      cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
       watchNotesEnabled: this.store.get('watchNotesEnabled') ?? false,
       watchNotesProvider: normalizeWatchNotesProvider(this.store.get('watchNotesProvider')),
       obsidianVaultPath: this.store.get('obsidianVaultPath') ?? '',
@@ -323,16 +329,8 @@ export class ConfigService {
     this.store.set('cloudAutoSyncMode', mode);
   }
 
-  setCloudAutoPublishAfterSync(enabled: boolean): void {
-    this.store.set('cloudAutoPublishAfterSync', enabled);
-  }
-
   setCloudAutoResyncMode(mode: 'disabled' | 'edited'): void {
     this.store.set('cloudAutoResyncMode', mode);
-  }
-
-  setCloudAutoRepublishAfterResync(enabled: boolean): void {
-    this.store.set('cloudAutoRepublishAfterResync', enabled);
   }
 
   setObsidian(patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }): void {

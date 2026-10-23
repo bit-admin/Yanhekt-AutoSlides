@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { noteErrorText } from './noteErrors'
 import type { NoteGroup } from '@common/notesTypes'
 import {
   isManagedGroupName,
@@ -123,7 +124,7 @@ async function readmeExists(): Promise<boolean | null> {
   do {
     const res = await api().list({ page: p, pageSize: FETCH_PAGE_SIZE })
     if (!res.ok) {
-      lastError.value = res.error
+      lastError.value = noteErrorText(res.error)
       return null
     }
     if (res.data.data.some((n) => n.title === README_NOTE_TITLE)) return true
@@ -139,18 +140,16 @@ async function ensureReadme(): Promise<boolean> {
   if (exists) return true
   const createRes = await api().create()
   if (!createRes.ok) {
-    lastError.value = createRes.error
+    lastError.value = noteErrorText(createRes.error)
     return false
   }
   const id = createRes.data
   const titleRes = await api().updateTitle(id, README_NOTE_TITLE)
-  if (!titleRes.ok) {
-    lastError.value = titleRes.error
-    return false
-  }
-  const contentRes = await api().updateContent(id, buildReadmeContent())
+  const contentRes = titleRes.ok ? await api().updateContent(id, buildReadmeContent()) : titleRes
   if (!contentRes.ok) {
-    lastError.value = contentRes.error
+    // Do not leave a blank note behind; the next check retries the README.
+    await api().delete(id)
+    lastError.value = noteErrorText(contentRes.error)
     return false
   }
   return true
@@ -165,7 +164,7 @@ async function ensureReadme(): Promise<boolean> {
 async function provision(): Promise<boolean> {
   const listRes = await api().groupList()
   if (!listRes.ok) {
-    lastError.value = listRes.error
+    lastError.value = noteErrorText(listRes.error)
     return false
   }
   let groups = listRes.data
@@ -176,13 +175,13 @@ async function provision(): Promise<boolean> {
     for (const name of missing) {
       const createRes = await api().groupCreate(name)
       if (!createRes.ok) {
-        lastError.value = createRes.error
+        lastError.value = noteErrorText(createRes.error)
         return false
       }
     }
     const relist = await api().groupList()
     if (!relist.ok) {
-      lastError.value = relist.error
+      lastError.value = noteErrorText(relist.error)
       return false
     }
     groups = relist.data
@@ -201,7 +200,7 @@ async function doRefresh(): Promise<CloudStorageStatus> {
   const res = await api().groupList()
   if (!res.ok) {
     // Transient failures never provision or reclassify to 'uninitialized'.
-    lastError.value = res.error
+    lastError.value = noteErrorText(res.error)
     status.value = failureStatus()
     lastCheckedAt.value = Date.now()
     return status.value

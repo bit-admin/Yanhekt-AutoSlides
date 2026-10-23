@@ -2,7 +2,6 @@ import { ipcMain } from 'electron';
 import { NotesAuthError } from '@main/platform/notesService';
 import type { IpcServices } from './types';
 import type { NotesResult, NoteListParams } from '@common/notesTypes';
-import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 import type { LectureIdentity } from '@common/lectureNaming';
 import { createLogger } from '@main/infra/logger';
 
@@ -81,26 +80,8 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
     run(() => notesService.shortenShareUrl(fragment)));
 
   ipcMain.handle(
-    'cloudNotes:publishToIndex',
-    (_e, fragment: string, source: SlideMetadataSource, review: { reviewed: boolean; edited: boolean }) =>
-      run(() => notesService.publishToIndex(fragment, source, review)),
-  );
-
-  ipcMain.handle(
     'cloudNotes:resolveShareLink',
     (_e, link: string, opts?: { requireTimeline?: boolean }) =>
       run(() => notesService.resolveShareLink(link, opts)),
   );
-
-  ipcMain.handle('cloudNotes:indexStats', () =>
-    run(() => notesService.indexStats()));
-
-  ipcMain.handle('cloudNotes:indexSearch', (_e, q: string, semesterIds?: number[]) =>
-    run(() => notesService.indexSearch(q, semesterIds)));
-
-  ipcMain.handle('cloudNotes:indexLecture', (_e, courseId: string, sessionId: string) =>
-    run(() => notesService.indexLecture(courseId, sessionId)));
-
-  ipcMain.handle('cloudNotes:requestIndexRemoval', (_e, courseId: string, sessionId: string) =>
-    run(() => notesService.requestIndexRemoval(courseId, sessionId)));
 }

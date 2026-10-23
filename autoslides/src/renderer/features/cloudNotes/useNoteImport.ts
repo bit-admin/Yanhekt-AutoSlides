@@ -1,60 +1,36 @@
 import { computed } from 'vue'
 import type { EditorJsBlock } from '@common/notesTypes'
 import { EDITORJS_DOC_VERSION, buildManagedNoteTitle } from '@common/notesTypes'
-import { parseLectureIds, type LectureIdentity } from '@common/lectureNaming'
+import { parseLectureIds } from '@common/lectureNaming'
 import { buildNoteMetadataBlock, NOTE_COPYRIGHT, NOTE_METADATA_VERSION } from '@common/notesContent'
-import type { NoteCloudMetadata } from '@common/notesContent'
 import type { SlideTimeline } from '@common/sidecars'
-import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 import { isWatchExtraction } from '@common/slideMetadataTypes'
 import { formatToolFolderName, compareToolImages } from '@shared/utils/toolWindowFolders'
 import type { useCloudNotes } from './useCloudNotes'
 import { cloudStorageStore } from './cloudStorageStore'
 import { useBackgroundQueue } from './useBackgroundQueue'
-import { useNotesPublish } from './useNotesPublish'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
 
 export type ImportStatus =
-  | 'pending' | 'resolving' | 'uploading' | 'building' | 'publishing' | 'done' | 'conflict' | 'error'
+  | 'pending' | 'uploading' | 'building' | 'done' | 'conflict' | 'error'
 
-/** One queued import row — either a local slide folder or a resolved share link. */
+/** One queued import row: a local slide folder. */
 export interface ImportItem {
-  /** 'folder' = local slides (uploaded); 'share' = share link (URLs already public). */
-  kind: 'folder' | 'share'
-  /** Unique row key: the slide folder name, or a synthetic key for share rows. */
+  /** Unique row key: the slide folder name. */
   folderName: string
   displayName: string
   path: string
   status: ImportStatus
-  /** Images uploaded so far (folder) / total carried (share). */
+  /** Images uploaded so far. */
   uploaded: number
-  /** Total images in the folder / share. */
+  /** Total images in the folder. */
   total: number
-  /** Public image URLs to embed directly (share imports only — no upload). */
-  urls?: string[]
-  /** Referenced images the server couldn't resolve (share imports only). */
-  missing?: number
-  /** Slide metadata from AutoSlides Index (share imports only; null if un-indexed). */
-  metadata?: SlideMetadata | null
-  /** Ids from the share payload (share imports). */
-  identity?: LectureIdentity
-  /** The share (short) link imported (share imports only) — recorded on the note. */
-  shareUrl?: string
-  /** AutoSlides Index lecture URL, if the share was indexed (share imports only). */
-  indexUrl?: string
-  /** Reconstructed timeline from a v3 share payload (share imports only). */
-  timeline?: SlideTimeline | null
   /** Note created for this row (on success). */
   noteId?: number
   /** Existing managed note(s) with the same title (on conflict). */
   conflictNoteIds?: number[]
-  /**
-   * Publish-only row (publish mode + a managed note already exists): skip the
-   * upload/create and publish the existing note (`noteId`) to the index instead.
-   */
-  publishOnly?: boolean
   error?: string
 }
 
@@ -82,16 +58,15 @@ interface PdfImage { name: string; path: string }
 export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   const { queue, cancelRequested, running, overall, reset, cancel, removeItem } =
     useBackgroundQueue<ImportItem>()
-  const publisher = useNotesPublish(cn)
 
   const importing = computed(() => running.value)
   /**
    * Image-level progress across the whole queue (for a continuous progress bar,
    * as opposed to `overall`'s per-folder done/total used for the modal's row
    * count). Each item contributes its `uploaded` count while actively uploading,
-   * and its full `total` once past the upload phase (building/publishing/done/
-   * error) so the bar keeps advancing through those near-instant steps instead
-   * of stalling. Pending/resolving/conflict items contribute 0 until processed.
+   * and its full `total` once past the upload phase (building/done/error) so the
+   * bar keeps advancing through those near-instant steps instead of stalling.
+   * Pending/conflict items contribute 0 until processed.
    */
   const imageProgress = computed(() => {
     let done = 0
@@ -103,7 +78,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
           done += item.uploaded
           break
         case 'building':
-        case 'publishing':
         case 'done':
         case 'error':
           done += item.total
@@ -116,16 +90,14 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   })
 
   /**
-   * Build the stringified Editor.js document for a note's slides (uploaded or
-   * shared). Appends a managed metadata code block at the end carrying the
-   * originating folder's metadata.json (`slides`, null for share imports) plus
-   * cloud-note metadata (`note`).
+   * Build the stringified Editor.js document for a note's uploaded slides.
+   * Appends a managed metadata code block at the end carrying the originating
+   * folder's metadata.json (`slides`) plus cloud-note metadata (`note`).
    */
   function buildContent(
     heading: string,
     urls: string[],
     slides: SlideMetadata | null,
-    noteExtra?: Partial<NoteCloudMetadata>,
     timeline?: SlideTimeline | null,
   ): string {
     // `heading` is the full display name (course + session, e.g.
@@ -152,8 +124,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
           displayName: heading,
           imageCount: urls.length,
           importedAt: new Date().toISOString(),
-          // `shareUrl` (the short link) + `indexUrl` for share-link imports.
-          ...noteExtra,
         },
       }),
     ]
@@ -176,7 +146,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     const noteId = createRes.data
     item.noteId = noteId
 
-    const title = buildManagedNoteTitle(item.displayName, lectureIdentityOf(item))
+    const title = buildManagedNoteTitle(item.displayName, parseLectureIds(item.folderName))
     const groupId = cloudStorageStore.managedGroupId.value ?? cn.managedGroups.value[0]?.id
     const titleRes = await window.electronAPI.cloudNotes.updateTitle(noteId, title, groupId)
     if (!titleRes.ok) { item.status = 'error'; item.error = titleRes.error; return }
@@ -199,150 +169,18 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     ])
     const contentRes = await window.electronAPI.cloudNotes.updateContent(
       noteId,
-      buildContent(item.displayName, urls, slidesMeta, undefined, timeline),
+      buildContent(item.displayName, urls, slidesMeta, timeline),
     )
     if (!contentRes.ok) { item.status = 'error'; item.error = contentRes.error; return }
     item.status = 'done'
-  }
-
-  /**
-   * Import a single share row: the images are already public coss URLs (resolved
-   * from the share link), so there's no upload step — just create the note, set
-   * the managed title, and embed the URLs in slide order.
-   */
-  async function processShareItem(item: ImportItem): Promise<void> {
-    const urls = item.urls ?? []
-    if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
-
-    const createRes = await window.electronAPI.cloudNotes.create()
-    if (!createRes.ok) { item.status = 'error'; item.error = createRes.error; return }
-    const noteId = createRes.data
-    item.noteId = noteId
-
-    const title = buildManagedNoteTitle(item.displayName, lectureIdentityOf(item))
-    const groupId = cloudStorageStore.managedGroupId.value ?? cn.managedGroups.value[0]?.id
-    const titleRes = await window.electronAPI.cloudNotes.updateTitle(noteId, title, groupId)
-    if (!titleRes.ok) { item.status = 'error'; item.error = titleRes.error; return }
-
-    item.status = 'building'
-    item.uploaded = urls.length
-    // Embed the share's AutoSlides Index metadata as the `slides` group (null
-    // when the link isn't indexed), so the note carries its origin identity +
-    // review flags — same as a folder import carries its local metadata.json.
-    // Also record the share (short) link + index URL on the note's `note` group.
-    const contentRes = await window.electronAPI.cloudNotes.updateContent(
-      noteId,
-      buildContent(item.displayName, urls, item.metadata ?? null, {
-        shareUrl: item.shareUrl,
-        indexUrl: item.indexUrl,
-      }, item.timeline ?? null),
-    )
-    if (!contentRes.ok) { item.status = 'error'; item.error = contentRes.error; return }
-    item.status = 'done'
-  }
-
-  /**
-   * Import a managed note from a share link (already resolved to a title/URLs by
-   * the caller — e.g. the Cloud Index webview interception). Runs the same
-   * conflict/create flow as folder imports — a same-titled managed note flags a
-   * conflict for the user to resolve. The row is pushed immediately (status
-   * `resolving`) for live feedback while the link is resolved server-side.
-   * `metadata` (the index-sourced `slides` group the caller captured client-side)
-   * is embedded in the note; null when the share isn't indexed.
-   */
-  async function importShareLink(
-    link: string,
-    resolvingLabel: string,
-    metadata: SlideMetadata | null = null,
-  ): Promise<void> {
-    if (running.value) return
-    const trimmed = link.trim()
-    if (!trimmed) return
-    running.value = true
-
-    // Record ONLY a canonical short link as the note's shareUrl — a long-form
-    // `/v1#<fragment>` link isn't a stable share URL and must not be recorded.
-    const shortId = parseShareLink(trimmed)?.shortId
-    const shareUrl = shortId ? `${SHARE_ORIGIN}${SHARE_PATH}/s/${shortId}` : undefined
-
-    // The index lecture URL is derivable from the captured metadata's course/
-    // session ids (omitted when the share isn't indexed).
-    const src = metadata?.source
-    const indexUrl = src?.courseId && src?.sessionId
-      ? `${SHARE_ORIGIN}/?c=${encodeURIComponent(src.courseId)}&s=${encodeURIComponent(src.sessionId)}`
-      : undefined
-
-    const item: ImportItem = {
-      kind: 'share',
-      folderName: `share:${Date.now()}`,
-      displayName: resolvingLabel,
-      path: '',
-      status: 'resolving',
-      uploaded: 0,
-      total: 0,
-      metadata,
-      shareUrl,
-      indexUrl,
-    }
-    queue.value.push(item)
-
-    try {
-      await cn.loadAll()
-      const res = await window.electronAPI.cloudNotes.resolveShareLink(trimmed)
-      if (!res.ok) { item.status = 'error'; item.error = res.error; return }
-
-      const { title, urls, missing, identity } = res.data
-      item.displayName = title
-      item.identity = identity
-      item.urls = urls
-      item.total = urls.length
-      item.missing = missing
-      item.timeline = res.data.timeline ?? null
-      if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
-
-      const ids = sameLectureNoteIds(item)
-      if (ids.length > 0) {
-        item.status = 'conflict'
-        item.conflictNoteIds = ids
-      } else {
-        await processShareItem(item)
-      }
-      await Promise.all([cn.loadAll(), cn.refreshGroups()])
-    } finally {
-      running.value = false
-    }
-  }
-
-  /**
-   * Publish an item's note to the AutoSlides Index (delegates to useNotesPublish).
-   * Fetches the note's current content, publishes, and records the index URL on the
-   * row. `already` (the note carried an index URL) counts as success.
-   */
-  async function publishItem(item: ImportItem): Promise<void> {
-    if (item.noteId == null) { item.status = 'error'; item.error = 'publish-failed'; return }
-    item.status = 'publishing'
-    const got = await window.electronAPI.cloudNotes.get(item.noteId)
-    if (!got.ok) { item.status = 'error'; item.error = got.error; return }
-    const res = await publisher.publishNote(item.noteId, got.data.content)
-    if (res.ok) { item.indexUrl = res.indexUrl; item.status = 'done'; return }
-    if ('reason' in res) {
-      if (res.reason === 'already') { item.indexUrl = res.indexUrl; item.status = 'done'; return }
-      item.status = 'error'; item.error = res.reason // 'not-indexable' | 'no-images'
-      return
-    }
-    item.status = 'error'; item.error = res.error
   }
 
   /**
    * Start importing the given folders. Refreshes the full note set for an
    * accurate conflict check, pre-flags conflicting folders, then processes the
    * rest sequentially. Reloads notes + groups afterwards so new notes appear.
-   *
-   * With `{ publish: true }` each folder is also published to the AutoSlides Index
-   * after import ("Publish to Index does both"). A folder that's *already* imported
-   * is not a conflict in publish mode — its existing note is published directly.
    */
-  async function startImport(folderNames: string[], opts?: { publish?: boolean }): Promise<void> {
+  async function startImport(folderNames: string[]): Promise<void> {
     if (running.value) return
     cancelRequested.value = false
     running.value = true
@@ -354,7 +192,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       queue.value = folderNames.map((folderName) => {
         const f = byName.get(folderName)
         return {
-          kind: 'folder' as const,
           folderName,
           displayName: formatToolFolderName(folderName),
           path: f?.path ?? '',
@@ -364,32 +201,19 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
         }
       })
 
-      // Pre-flag folders that already have a managed note. In import mode these
-      // await a user decision (replace / create / skip). In publish mode there's
-      // no conflict — publish the existing note directly (publishOnly).
+      // Pre-flag folders that already have a managed note; these await a user
+      // decision (replace / create / skip).
       for (const item of queue.value) {
         const ids = sameLectureNoteIds(item)
         if (ids.length === 0) continue
-        if (opts?.publish) {
-          item.noteId = ids[0]
-          item.publishOnly = true
-        } else {
-          item.status = 'conflict'
-          item.conflictNoteIds = ids
-        }
+        item.status = 'conflict'
+        item.conflictNoteIds = ids
       }
 
       for (const item of queue.value) {
         if (cancelRequested.value) break
         if (item.status !== 'pending') continue
-        if (item.publishOnly) {
-          await publishItem(item)
-        } else {
-          await processItem(item)
-          // processItem mutates item.status; the `!== 'pending'` guard above
-          // narrowed it, so read through a call to re-widen for the comparison.
-          if (opts?.publish && statusOf(item) === 'done') await publishItem(item)
-        }
+        await processItem(item)
       }
 
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
@@ -398,33 +222,14 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     }
   }
 
-  /** Read an item's status widened to ImportStatus (defeats loop-guard narrowing). */
-  function statusOf(item: ImportItem): ImportStatus {
-    return item.status
-  }
-
-  /**
-   * The lecture identity behind an import row: the ids embedded in the slide
-   * folder's name for a local import, else the ids carried by an indexed
-   * share's metadata. Empty for folders that never had a lecture (web capture,
-   * offline) and for pre-v4.4.1 folders.
-   */
-  function lectureIdentityOf(item: Pick<ImportItem, 'folderName' | 'metadata' | 'identity'>): LectureIdentity {
-    const fromName = parseLectureIds(item.folderName)
-    if (fromName.courseId) return fromName
-    const source = item.metadata?.source
-    if (source?.courseId) return { courseId: source.courseId, sessionId: source.sessionId, liveId: source.liveId }
-    return item.identity ?? {}
-  }
-
   /**
    * Current ids of all managed notes for this lecture. Matching on the full
    * built title (which carries the id block) is what keeps two same-titled
    * courses from being treated as one note — and it stays a single request,
    * since the note list returns titles but not content.
    */
-  function sameLectureNoteIds(item: Pick<ImportItem, 'folderName' | 'metadata' | 'displayName'>): number[] {
-    const title = buildManagedNoteTitle(item.displayName, lectureIdentityOf(item))
+  function sameLectureNoteIds(item: Pick<ImportItem, 'folderName' | 'displayName'>): number[] {
+    const title = buildManagedNoteTitle(item.displayName, parseLectureIds(item.folderName))
     return cn.allNotes.value.filter((n) => n.title === title).map((n) => n.id)
   }
 
@@ -447,8 +252,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       item.status = 'pending'
       item.uploaded = 0
       item.conflictNoteIds = undefined
-      if (item.kind === 'share') await processShareItem(item)
-      else await processItem(item)
+      await processItem(item)
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
     } finally {
       running.value = false
@@ -464,10 +268,9 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
    * reviewed/edited). Unlike startImport, this never touches the visible `queue`
    * (no modal/progress-bar surface) and never prompts: a folder that already has a
    * managed note is *skipped* (the user's chosen policy), not flagged as a conflict.
-   * With `{ publish: true }` a freshly-imported folder is also published to the
-   * AutoSlides Index. Returns the outcome so the caller can log/ignore.
+   * Returns the outcome so the caller can log/ignore.
    */
-  async function syncFolder(folderName: string, opts: { publish: boolean }): Promise<'synced' | 'skipped' | 'error'> {
+  async function syncFolder(folderName: string): Promise<'synced' | 'skipped' | 'error'> {
     if (running.value) return 'skipped'
     cancelRequested.value = false
     running.value = true
@@ -486,7 +289,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       if (isWatchExtraction(await window.electronAPI.slideMetadata.get(folder.path))) return 'skipped'
 
       const item: ImportItem = {
-        kind: 'folder',
         folderName,
         displayName,
         path: folder.path,
@@ -495,7 +297,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
         total: folder.imageCount,
       }
       await processItem(item)
-      if (item.status === 'done' && opts.publish) await publishItem(item)
 
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
       return item.status === 'done' ? 'synced' : 'error'
@@ -510,10 +311,9 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
    * existing note by delete-then-create (matching the manual "Import Slides to
    * Notes" replace-on-conflict path), so the note reflects the freshly-edited
    * slides. A folder with no managed note is a no-op (`'skipped'`) — first import
-   * is `syncFolder`'s job. With `{ republish: true }` the Cloud Index entry is
-   * removed and re-published (remove-then-publish, since the Index is versioned).
+   * is `syncFolder`'s job.
    */
-  async function resyncFolder(folderName: string, opts: { republish: boolean }): Promise<'resynced' | 'skipped' | 'error'> {
+  async function resyncFolder(folderName: string): Promise<'resynced' | 'skipped' | 'error'> {
     if (running.value) return 'skipped'
     cancelRequested.value = false
     running.value = true
@@ -532,16 +332,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       // note to resync (guarded here too in case one is created out-of-band).
       if (isWatchExtraction(await window.electronAPI.slideMetadata.get(folder.path))) return 'skipped'
 
-      // Republish = clear the old Index entry first. The Index is versioned, so
-      // publishing changed content without removal would stack a new version.
-      if (opts.republish) {
-        const meta = await window.electronAPI.slideMetadata.get(folder.path)
-        const src = meta?.source
-        if (src?.courseId && src?.sessionId) {
-          await window.electronAPI.cloudNotes.requestIndexRemoval(src.courseId, src.sessionId)
-        }
-      }
-
       // Replace = delete existing managed note(s), then import fresh.
       for (const id of ids) {
         const del = await window.electronAPI.cloudNotes.delete(id)
@@ -549,7 +339,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       }
 
       const item: ImportItem = {
-        kind: 'folder',
         folderName,
         displayName,
         path: folder.path,
@@ -558,7 +347,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
         total: folder.imageCount,
       }
       await processItem(item)
-      if (item.status === 'done' && opts.republish) await publishItem(item)
 
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
       return item.status === 'done' ? 'resynced' : 'error'
@@ -569,6 +357,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
 
   return {
     queue, importing, overall, imageProgress, cancelRequested,
-    startImport, importShareLink, cancel, reset, resolveConflict, skipConflict, syncFolder, resyncFolder,
+    startImport, cancel, reset, resolveConflict, skipConflict, syncFolder, resyncFolder,
   }
 }

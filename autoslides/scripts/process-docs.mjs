@@ -88,8 +88,6 @@ const COPY = {
   'cloud-notes': 'cloud-notes',
   'cloud-notes-editor': 'cloud-notes-editor',
   'cloud-notes-share': 'cloud-notes-share',
-  'cloud-index-recent': 'cloud-index-recent',
-  'cloud-index-browse': 'cloud-index-browse',
   'tools-webcapture': 'tools-webcapture',
   'tools-yuketang': 'tools-yuketang',
   'advanced-general': 'settings-general',

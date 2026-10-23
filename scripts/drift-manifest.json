@@ -4,7 +4,7 @@
     "web/frontend/src/lib/notes/shareLink.ts": "33278a7b3d81c4df3ea2c2203b0119f6713c7da52e3495de29a8324fe4ad895f",
     "autoslides/src/shared/notesContent.ts": "6dc289058992c21ae56fd3fce2b41694e8f52fb2a47b281a3785765372a8b815",
     "web/frontend/src/lib/notes/notesContent.ts": "b315133cf9ad11be5cf58d82be69c648458d7115f16f1841e1fbf11af69b24a2",
-    "autoslides/src/shared/notesTypes.ts": "374c3f264544b4355077543b2e4c8d005879df8dfabebc77dff5c0ca7a924185",
+    "autoslides/src/shared/notesTypes.ts": "001637ae842ca4d1b6aa685363c380fca5608ec00380123ca94d47e0710d376a",
     "web/frontend/src/lib/notes/notesTypes.ts": "419c10dff2207befef9f7dd2e77c6005bf5c718e6290c4394980478faf7e8173",
     "autoslides/src/shared/sanitizeFileName.ts": "f80b77c24fd45f1c26ac1d170b47a8026aa276dbd3fa1124931268cd94eef9ca",
     "web/frontend/src/lib/sanitizeFileName.ts": "109eab0819d187eaaad4f14cd099881d4149aede960a040ba64b89b36ed0c484",

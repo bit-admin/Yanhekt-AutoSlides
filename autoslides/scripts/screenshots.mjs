@@ -622,38 +622,6 @@ async function main() {
     await win.locator('.cn-share-box .dialog-btn').click()
   })
 
-  // Cloud Index (the Drive page's index mode): recently-added feed, then a
-  // search → course list + sessions + the right-panel slide viewer. Backed by
-  // the demo cloudIndexProvider override (fabricated index, no network).
-  await step('cloud-index', async () => {
-    await gotoWorkspace('cloud-notes', '.cloud-notes-tab')
-    await win.locator('.cn-index-nav').click()
-    await win.waitForSelector('.cn-index-file', { timeout: 8000 })
-    await win.waitForTimeout(600)
-    await shot('cloud-index-recent')
-
-    // Search → grouped course list on the left, first course's sessions in the middle.
-    const search = win.locator('.cn-search')
-    await search.click()
-    await search.fill('Analysis')
-    await search.press('Enter')
-    await win.waitForSelector('.cn-index-course', { timeout: 8000 })
-    await win.waitForSelector('.semester-select', { timeout: 4000 }).catch(() => {})
-    await win.waitForTimeout(600)
-
-    // Pick Functional Analysis (its lectures match the slide SVGs' headers, and
-    // its first session carries two versions → shows the Edited/reviewed marks),
-    // then expand the first session and open its first slide set → viewer fills
-    // the right panel, so one capture shows all three panes populated.
-    await win.locator('.cn-index-course', { hasText: 'Functional Analysis' }).click()
-    await win.locator('.cn-index-session').first().click()
-    await win.waitForSelector('.cn-index-version', { timeout: 8000 })
-    await win.locator('.cn-index-version').first().click()
-    await win.waitForSelector('.ci-viewer-stack img', { timeout: 8000 })
-    await win.waitForTimeout(900)
-    await shot('cloud-index-browse')
-  })
-
   // Lectures Workspace: library poster wall → course hero → local dual player
   // with the Emby-style slide strip (timeline cues from demo sidecars).
   await step('lectures', async () => {
@@ -826,8 +794,6 @@ ${list}
 | pdfmaker.png | pdfmaker.png | H. 导出（幻灯片页面选择模式 + PDF / PPTX 导出栏） |
 | cloud-notes.png | cloud-notes.png | 云盘（笔记）— 三栏视图（分组 / 笔记列表 / 编辑器） |
 | cloud-notes-editor.png | cloud-notes-editor.png | 云盘（笔记）— 打开托管笔记（嵌入幻灯片图片） |
-| cloud-index-recent.png | cloud-index-recent.png | 云盘（云索引）— 最近添加 |
-| cloud-index-browse.png | cloud-index-browse.png | 云盘（云索引）— 搜索浏览 + 幻灯片查看器 |
 | lectures-library.png | lectures-library.png | 讲座库 — 课程海报墙 |
 | lectures-list.png | lectures-list.png | 讲座库 — 列表视图 |
 | lectures-course.png | lectures-course.png | 讲座库 — 课程详情 / 分集 |
@@ -875,9 +841,6 @@ gallery in \`playback-screen.png\` is seeded with fabricated slides.
   not_slide, the PowerPoint-edit frame, and the seeded crop box are all synthetic).
 - **Cloud Notes** (\`cloud-notes*.png\`) use **fabricated** groups/notes — no network.
   The managed "AS ·" notes embed the same synthetic slide SVGs as the Slides page.
-- **Cloud Index** (\`cloud-index-*.png\`) uses a **fabricated** public index over the
-  same demo courses (stats / search / lecture / share resolution — no network); the
-  viewer slides are the same synthetic SVGs.
 `
   writeFileSync(path.join(outDir, 'NOTES.md'), notes)
   console.log(`  ✓ NOTES.md`)

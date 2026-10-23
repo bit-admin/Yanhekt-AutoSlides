@@ -67,22 +67,11 @@
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.cloudStorage.syncMode') }}</label>
       <div class="setting-description">{{ $t('advanced.cloudStorage.syncDescription') }}</div>
-      <div class="auto-post-processing-control">
-        <select v-model="tempCloudAutoSyncMode" class="select-field sync-mode-select">
-          <option value="disabled">{{ $t('advanced.cloudStorage.syncModeDisabled') }}</option>
-          <option value="edited">{{ $t('advanced.cloudStorage.syncModeEdited') }}</option>
-          <option value="reviewed">{{ $t('advanced.cloudStorage.syncModeReviewed') }}</option>
-        </select>
-        <label class="checkbox-label" :class="{ 'checkbox-label-disabled': tempCloudAutoSyncMode === 'disabled' }">
-          <input
-            type="checkbox"
-            v-model="tempCloudAutoPublishAfterSync"
-            :disabled="tempCloudAutoSyncMode === 'disabled'"
-          />
-          {{ $t('advanced.cloudStorage.autoPublish') }}
-        </label>
-      </div>
-      <div class="setting-description">{{ $t('advanced.cloudStorage.autoPublishDescription') }}</div>
+      <select v-model="tempCloudAutoSyncMode" class="select-field">
+        <option value="disabled">{{ $t('advanced.cloudStorage.syncModeDisabled') }}</option>
+        <option value="edited">{{ $t('advanced.cloudStorage.syncModeEdited') }}</option>
+        <option value="reviewed">{{ $t('advanced.cloudStorage.syncModeReviewed') }}</option>
+      </select>
     </div>
 
     <div class="setting-item" :class="{ 'resync-locked': syncDisabled }">
@@ -90,21 +79,10 @@
       <div class="setting-description">
         {{ syncDisabled ? $t('advanced.cloudStorage.resyncRequiresSync') : $t('advanced.cloudStorage.resyncDescription') }}
       </div>
-      <div class="auto-post-processing-control">
-        <select v-model="tempCloudAutoResyncMode" class="select-field sync-mode-select" :disabled="syncDisabled">
-          <option value="disabled">{{ $t('advanced.cloudStorage.resyncModeDisabled') }}</option>
-          <option value="edited">{{ $t('advanced.cloudStorage.resyncModeEdited') }}</option>
-        </select>
-        <label class="checkbox-label" :class="{ 'checkbox-label-disabled': tempCloudAutoResyncMode === 'disabled' }">
-          <input
-            type="checkbox"
-            v-model="tempCloudAutoRepublishAfterResync"
-            :disabled="tempCloudAutoResyncMode === 'disabled'"
-          />
-          {{ $t('advanced.cloudStorage.autoRepublish') }}
-        </label>
-      </div>
-      <div class="setting-description">{{ $t('advanced.cloudStorage.autoRepublishDescription') }}</div>
+      <select v-model="tempCloudAutoResyncMode" class="select-field" :disabled="syncDisabled">
+        <option value="disabled">{{ $t('advanced.cloudStorage.resyncModeDisabled') }}</option>
+        <option value="edited">{{ $t('advanced.cloudStorage.resyncModeEdited') }}</option>
+      </select>
     </div>
 
     <div class="setting-item">
@@ -137,20 +115,16 @@ const store = cloudStorageStore
 const { advanced } = useSettingsContext()
 const {
   tempCloudAutoSyncMode,
-  tempCloudAutoPublishAfterSync,
   tempCloudAutoResyncMode,
-  tempCloudAutoRepublishAfterResync,
   tempCloudShareEmbedTimeline,
 } = advanced.cloud
 
 // Resync replaces a note that auto-sync created, so it's meaningless without
-// auto-sync. Whenever auto-sync is turned off, force resync (and its republish)
-// off too — the resync controls are also disabled in the template below.
+// auto-sync. Whenever auto-sync is turned off, force resync off too — the resync controls are also disabled in the template below.
 const syncDisabled = computed(() => tempCloudAutoSyncMode.value === 'disabled')
 watch(tempCloudAutoSyncMode, (mode) => {
   if (mode === 'disabled') {
     tempCloudAutoResyncMode.value = 'disabled'
-    tempCloudAutoRepublishAfterResync.value = false
   }
 })
 // Friendly title plus the reserved server name, even before the groups exist,
@@ -285,28 +259,6 @@ onMounted(() => {
   margin: 6px 0 0;
   font-size: 11px;
   color: var(--danger);
-}
-
-.auto-post-processing-control .sync-mode-select {
-  border: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border-input);
-  background-color: transparent;
-  min-height: unset;
-  padding: 8px 12px;
-}
-
-.auto-post-processing-control .sync-mode-select:focus {
-  box-shadow: none;
-}
-
-.checkbox-label-disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.checkbox-label-disabled input[type="checkbox"] {
-  cursor: not-allowed;
 }
 
 /* Resync requires auto-sync: dim the label/hint when auto-sync is off (the

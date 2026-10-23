@@ -534,9 +534,7 @@ export interface ElectronAPI {
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
     setCloudStorageInitialized: (badge: string, initialized: boolean) => Promise<void>;
     setCloudAutoSyncMode: (mode: 'disabled' | 'edited' | 'reviewed') => Promise<AppConfig>;
-    setCloudAutoPublishAfterSync: (enabled: boolean) => Promise<AppConfig>;
     setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => Promise<AppConfig>;
-    setCloudAutoRepublishAfterResync: (enabled: boolean) => Promise<AppConfig>;
     setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => Promise<AppConfig>;
     setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => Promise<AppConfig>;
     setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
@@ -1177,15 +1175,6 @@ export interface ElectronAPI {
     prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     downloadImageToFolder: (url: string, dir: string, filename: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     shortenShareUrl: (fragment: string) => Promise<import('@common/notesTypes').NotesResult<{ url: string }>>;
-    publishToIndex: (
-      fragment: string,
-      source: import('@common/slideMetadataTypes').SlideMetadataSource,
-      review: { reviewed: boolean; edited: boolean },
-    ) => Promise<import('@common/notesTypes').NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>>;
     resolveShareLink: (link: string, opts?: { requireTimeline?: boolean }) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ShareImportResult>>;
-    indexStats: () => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexStats>>;
-    indexSearch: (q: string, semesterIds?: number[]) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexLecture[]>>;
-    indexLecture: (courseId: string, sessionId: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexLectureDetail>>;
-    requestIndexRemoval: (courseId: string, sessionId: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').IndexRemovalResult>>;
   };
 }

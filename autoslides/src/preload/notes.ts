@@ -10,12 +10,7 @@ import type {
   UploadedImage,
   ExportFolderInfo,
   ShareImportResult,
-  IndexStats,
-  IndexLecture,
-  IndexLectureDetail,
-  IndexRemovalResult,
 } from '@common/notesTypes';
-import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 
 /**
  * Yanhekt cloud-notes bridge. All calls round-trip to the main process, which
@@ -63,25 +58,11 @@ export const cloudNotes: ElectronAPI['cloudNotes'] = {
     ipcRenderer.invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
   shortenShareUrl: (fragment: string): Promise<NotesResult<{ url: string }>> =>
     ipcRenderer.invoke('cloudNotes:shortenShareUrl', fragment),
-  publishToIndex: (
-    fragment: string,
-    source: SlideMetadataSource,
-    review: { reviewed: boolean; edited: boolean },
-  ): Promise<NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>> =>
-    ipcRenderer.invoke('cloudNotes:publishToIndex', fragment, source, review),
   resolveShareLink: (
     link: string,
     opts?: { requireTimeline?: boolean },
   ): Promise<NotesResult<ShareImportResult>> =>
     ipcRenderer.invoke('cloudNotes:resolveShareLink', link, opts),
-  indexStats: (): Promise<NotesResult<IndexStats>> =>
-    ipcRenderer.invoke('cloudNotes:indexStats'),
-  indexSearch: (q: string, semesterIds?: number[]): Promise<NotesResult<IndexLecture[]>> =>
-    ipcRenderer.invoke('cloudNotes:indexSearch', q, semesterIds),
-  indexLecture: (courseId: string, sessionId: string): Promise<NotesResult<IndexLectureDetail>> =>
-    ipcRenderer.invoke('cloudNotes:indexLecture', courseId, sessionId),
-  requestIndexRemoval: (courseId: string, sessionId: string): Promise<NotesResult<IndexRemovalResult>> =>
-    ipcRenderer.invoke('cloudNotes:requestIndexRemoval', courseId, sessionId),
 };
 
 /**

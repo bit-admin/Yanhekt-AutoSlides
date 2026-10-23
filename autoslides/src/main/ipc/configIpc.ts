@@ -390,20 +390,8 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
-  ipcMain.handle('config:setCloudAutoPublishAfterSync', async (_, enabled: boolean) => {
-    configService.setCloudAutoPublishAfterSync(enabled);
-    broadcastConfig();
-    return configService.getConfig();
-  });
-
   ipcMain.handle('config:setCloudAutoResyncMode', async (_, mode: 'disabled' | 'edited') => {
     configService.setCloudAutoResyncMode(mode);
-    broadcastConfig();
-    return configService.getConfig();
-  });
-
-  ipcMain.handle('config:setCloudAutoRepublishAfterResync', async (_, enabled: boolean) => {
-    configService.setCloudAutoRepublishAfterResync(enabled);
     broadcastConfig();
     return configService.getConfig();
   });

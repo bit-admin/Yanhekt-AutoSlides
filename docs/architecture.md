@@ -76,7 +76,7 @@ cp wrangler.example.jsonc wrangler.jsonc   # then fill in your zone / ids
                     │  Electron: UI + local HLS proxy +    │
                     │  disk slides_* + Drive.              │
                     └──────────┬─────────────┬─────────────┘
-                               │             │ publish fragment
+                               │             │ share fragment  
                                │ local       │
                                │ 127.0.0.1   ▼
                                │        ┌────────────┐
@@ -126,7 +126,7 @@ Both clients speak campus CAS (`sso.bit.edu.cn`) and then hold a Yanhekt **32-he
 
 ### Share / Index
 
-Desktop Drive and web Notes can share a compact v2/v3 fragment through `share/`'s v1 viewer; titles are hydrated from Yanhekt at read time and slide images are resolved from the public COSS bucket `images` on `coss.yanhekt.cn`. The old public Index (`/v2/api/*`; its D1 database was deleted 2026-10-22) is retired: those routes answer 503, so the desktop's Public Index mode and publish button get errors until they are removed. Its replacement is the Index API (`/api/*`) over the course catalogue that `indexer/` crawls into D1 `yanhekt-index`, and a lookup site at `/` (`share/site/`, React, static assets) that reads only that API.
+Desktop Drive and web Notes can share a compact v2/v3 fragment through `share/`'s v1 viewer; titles are hydrated from Yanhekt at read time and slide images are resolved from the public COSS bucket `images` on `coss.yanhekt.cn`. The old public Index (`/v2/api/*`; its D1 database was deleted 2026-10-22) is retired: those routes answer 410 Gone, and the desktop's Public Index mode, publish and removal requests were removed (2026-10-23). Its replacement is the Index API (`/api/*`) over the course catalogue that `indexer/` crawls into D1 `yanhekt-index`, and a lookup site at `/` (`share/site/`, React, static assets) that reads only that API.
 
 ---
 
@@ -160,7 +160,7 @@ Do not unify these. Code ids stay frozen.
 | Cloud notes workspace | **Drive** / 云存储 | **Notes** / 笔记 | `cloud-notes`, `/notes` |
 | Course pin | **Pinned** / 置顶 | **Subscribed** | desktop local pins vs Yanhekt subscriptions |
 | Slide review | **Slides** / 课程幻灯片 | **Slides** | `slides-review` |
-| Public catalog | **Public Index** / 公共索引 | (share site) | `cloudIndex` internally |
+| Public catalog | **Public Index** / 公共索引 (menu link to the share site) | (share site) | — |
 
 Retired user-visible names: “Results View”, “Cloud Notes”, “Cloud Index”. Do not put them in new copy.
 
@@ -367,7 +367,7 @@ Pure TS, no Node/Electron IO:
 - **Prefer anonymous Yanhekt requests** (`preferAnonymousApiRequests`, default false). When on **and** the method opted in, omit `Authorization`. Opted-in: course list/info first hop, public live list, search live, video token. Never anonymous: session **list**, personal lists, subscriptions, `/v1/user`, logout, notes. `getAvailableSemesters` (`/v1/tag/semester/default`) is always unauth. Full matrix: [§9.3](#93-auth-vs-anonymous).
 - **Campus SSO SMS.** `main/platform/campusSso/`. Three outcomes from `loginAndGetToken`: token, failure (`reason`), or `smsChallenge`. Live CAS jar parked in `pendingVerifications.ts` (300s). Captcha is detected, never solved. Browser login is the escape hatch.
 - **Multi-account.** Active account = `StoredAccount` whose token matches the standalone `authToken` key. Switching changes `userId` but **not** `isLoggedIn` — surfaces that only watch `isLoggedIn` show stale data. In-flight downloads captured their token at start.
-- **Drive.** Yanhekt `/v1/note*` + MinIO. `cloudStorageStore` serializes provisioning of `ASnote` + `ASuser`. Server `/v1/note/list` **ignores** `groupId` — load the full catalog (`pageSize=500`) and filter client-side. Keyword search is **server-side** (`keyword=`). Ungroup = recreate the note. Batch import/export is ASnote-gated. Index mode is a toggle inside Drive, not a separate nav target.
+- **Drive.** Yanhekt `/v1/note*` + MinIO. `cloudStorageStore` serializes provisioning of `ASnote` + `ASuser`. Server `/v1/note/list` **ignores** `groupId` — load the full catalog (`pageSize=500`) and filter client-side. Keyword search is **server-side** (`keyword=`). Ungroup = recreate the note. Batch import/export is ASnote-gated.
 - **Watch-mode notes.** Settings → Add-ons: `watchNotesEnabled` + `watchNotesProvider` (`yanhekt` | `obsidian` | `notion`). `migrateWatchNotes` copies a present `cloudWatchSyncEnabled` into those keys (provider `yanhekt`) and deletes the legacy key. Keyed by playback tab. `watchNotesStore` is the provider-neutral stream: kept slides wait in a non-reactive `pendingSlides` map until post-processing reports them kept; pending is **dropped** on stop/clear/tab close. Yanhekt find-or-creates an ASuser note. Obsidian and Notion only append images, through `externalQueueSink` (one write at a time; a failure re-queues and pauses). Notion is pick-mode only — every lecture starts without a page. Mutate through the reactive proxy (`state.entries[tabId]`), never a raw local ref.
 - **Lectures.** List view = local `.mp4`/`.mkv` only. Library also seeds sessions from `slides_*` folders that parse to courseId+sessionId **and** have `timeline.json`. Offline episode order parses week/day/section out of the title (`parseSessionTitle`), not a string compare. Course page: horizontal episode rail, an About block, and a browser link to the Yanhekt course. Player uses `asmedia://` (HTTP 206 Range). Slides strip: `deriveCues` → seek; the strip's height is a drag handle. Compress queue shares FFmpeg with Tools-era compress.
 - **Qt extractor.** Optional C++ CLI. Requires `qtExtractor.autoRunAfterDownload` **and** a verified binary. SSIM threshold is frozen on the `DownloadItem` at queue time. Flags: `--json --compatible [--write-timeline if ≥ 2.0.0] --video --output --ssim-threshold --enable-downsampling … --chunk-size 100`. Never `--phash-*` / `--ml-classify` / `--jpeg-quality` (post-processing is ours). `--compatible` emits `Slide_*.png`. Host stamps `kind: "recorded"` after success.
@@ -608,7 +608,7 @@ Contract: [`share/docs/api.md`](../share/docs/api.md). Read-only, no auth; the z
 | `GET` | `/api/search?q=…&term=…` | Course search over D1 `yanhekt-index` in exactly one term (`2026-2027-1`; several refused). `term` may be left out only when `q` is a course id, course link or registrar code; then only that identifier is looked up. `q` required (2–64 chars, ≤ 6 words, AND). Returns ids, name, registrar `number`, teachers, session count; best 200, no paging. No college, level, category or English-name data (left out of D1 on purpose). |
 | `GET` | `/api/courses/{id}/sessions` | The course's session ids; clients read each session from Yanhekt. |
 | any | `/api/*` else | 404 JSON |
-| any | `/v2/api/*` | 503 `{ error: 'retired' }` |
+| any | `/v2/api/*` | 410 `{ error: 'retired' }` |
 
 - **The D1 layout is the indexer's** (`indexer/src/d1model.ts`, version 3): a slim projection of the local crawl database, not a copy, sized for D1's free plan (500 MB, 100k rows written / 5M read per day). `courses` carries each course's `session_ids`; there is no sessions table. The Worker never writes it. `src/api/testDb.ts` seeds an in-memory `node:sqlite` through the indexer's own upload statements, so a layout change breaks share's tests.
 - **Search never scans a table, and reads one term.** `course_grams` (`term`, `gram`, `course_id`; primary key in that order, `WITHOUT ROWID`) holds CJK 2-character pieces of course and teacher names and `w:` + other words of them per term, plus `n:` + registrar code under the empty term. Both sides split text with `indexer/src/grams.ts` (share imports it); a search word is looked up by non-overlapping pieces (`大学物理` → `大学`, `物理`). Round 1: one batch reading at most 33 entries per key, plus the whole query as registrar code or course id. Round 2: the smallest complete key's courses by id; only if every key is common, an `INTERSECT` of all keys in D1.
@@ -801,7 +801,7 @@ Two failure modes when Bearer is missing:
 
 **Web Worker** strips Bearer upstream for: `GET /v1/tag/semester/default`, `GET /v2/course/list`, exact `GET /v1/course`, exact `GET /v1/live`, `GET /v1/course/session`, `GET /v2/live/list` when `user_relationship_type !== "1"`. Prefix matching on GET would otherwise treat `/v1/course/subscription/list` as anonymous — the omit list uses **exact** `/v1/course` so subscription stays authenticated.
 
-**Share** never sends a user Bearer except `GET /v1/user` on publish / removal. **Relay** never sends one; it mints the anonymous video token.
+**Share** never sends a user Bearer. **Relay** never sends one; it mints the anonymous video token.
 
 Auth protects **discovery** (enumerate sessions of a course, personal catalogs, notes) and account APIs. It does **not** protect VOD once `session_id` or `video_id` is known ([§9.6](#96-recorded-vod-and-the-cdn)).
 
@@ -1343,7 +1343,7 @@ Live `clive*.yanhekt.cn` URLs play **unsigned**. Desktop may rewrite the host to
 
 #### `GET /v1/user`
 
-Strict auth. Share `verifyUser` reads `data.badge` (publisher id) and `data.nickname`. Desktop/web also read `gender`, `phone`. Probe keys (values redacted): `id`, `badge`, `nickname`, `gender`, `phone`, `avatar`, `email`, `university_id`, `type`, `supervisor`, `password_first`. Unauth: `61101113`.
+Strict auth. Desktop/web read `badge`, `nickname`, `gender`, `phone`. Probe keys (values redacted): `id`, `badge`, `nickname`, `gender`, `phone`, `avatar`, `email`, `university_id`, `type`, `supervisor`, `password_first`. Unauth: `61101113`.
 
 #### `GET /v1/cas/logout`
 
@@ -1437,7 +1437,7 @@ Canonical: `autoslides/src/shared/shareLink.ts`.
 
 ### 10.3 Slide sidecars (desktop disk; web mirrors the schema)
 
-**`metadata.json`** (`SLIDE_METADATA_VERSION = 1`): `kind` (`recorded`/`live`) + `trigger` (`auto`/`watch`) drive `isWatchExtraction()`. `edited` is latched only by **human** crop/trash/delete, never by automated post-processing. `reviewed` sets on a ~2s dwell in Slides. Index publish must use `indexReviewFlags` (`@common/sidecars/metadata/review`): `cropped` from an automated crop is **not** `edited`. All updaters no-op when the file is absent (no backfill). Single writer: `slideMetadataService`; renderer goes through `slideMetadataClient` (JSON-clone first).
+**`metadata.json`** (`SLIDE_METADATA_VERSION = 1`): `kind` (`recorded`/`live`) + `trigger` (`auto`/`watch`) drive `isWatchExtraction()`. `edited` is latched only by **human** crop/trash/delete, never by automated post-processing. `reviewed` sets on a ~2s dwell in Slides. All updaters no-op when the file is absent (no backfill). Single writer: `slideMetadataService`; renderer goes through `slideMetadataClient` (JSON-clone first).
 
 **`timeline.json`** (`SLIDE_TIMELINE_VERSION = 1`): append-mostly `events` + `resolutions` map. Builtin recorded uses `video.currentTime`; Qt uses media PTS (`extractor: "qt"`), host stamps `kind: "recorded"` after extract. Live / web-capture / offline leave the file absent. Gaps are first-class (`unstable`, `ai_filtered`, `exclusion`, `manual_trash`). Phase-1/3b duplicates pass `TrashMetadata.duplicateOf` and **relink** the later event to the first-kept file. Missing file = no timeline (no backfill from filenames).
 
@@ -1478,7 +1478,7 @@ AI dispatch in watch mode is **arity-based**: 1 image → single-image endpoint 
 
 ### Vue proxies cannot cross structured clone
 
-Passing a Vue `reactive` / `ref` (or a nested field taken off one) across `ipcRenderer.invoke`, `Worker.postMessage`, or IndexedDB `put` throws `DataCloneError` **with no main-process log**. A surrounding `try/catch { /* best-effort */ }` makes the write look like a successful no-op — missing `metadata.json`, skipped Index publish, Export-to-local images-only.
+Passing a Vue `reactive` / `ref` (or a nested field taken off one) across `ipcRenderer.invoke`, `Worker.postMessage`, or IndexedDB `put` throws `DataCloneError` **with no main-process log**. A surrounding `try/catch { /* best-effort */ }` makes the write look like a successful no-op — missing `metadata.json`, Export-to-local images-only.
 
 `structuredClone` also throws on a Proxy. Canonical:
 
@@ -1507,14 +1507,6 @@ hls.js reports a challenged relay as a generic network error with no status. `re
 ### `direct` relay is a closed gate, not a convenience URL
 
 If `RELAY_PUBLIC_ORIGIN` is set, the web Worker's own `/playlist`+`/segment` must 403. Otherwise anyone can bypass campus-ASN protection with a same-origin URL. `ALLOW_OFFCAMPUS_RELAY: "true"` is an explicit product decision (Worker-to-Worker, relay edge never sees the viewer).
-
-### Share fingerprint ignores timeline
-
-Adding `t` to an already-published image set updates the row in place. That is intentional (same slides, richer link) and surprising if you expected `version_count` to bump.
-
-### Titles are not in D1
-
-Index search/lecture pages will show empty names if Yanhekt is unreachable, not stale publisher-supplied titles. Do not “fix” this by storing titles.
 
 ### Anonymous vs authenticated Yanhekt
 

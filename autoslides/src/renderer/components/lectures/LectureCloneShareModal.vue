@@ -4,7 +4,7 @@
       <h3 class="dialog-title">{{ $t('lectures.cloneModalTitle') }}</h3>
       <p class="dialog-help">{{ $t('lectures.cloneModalHint') }}</p>
 
-      <template v-if="!idxExp.item.value">
+      <template v-if="!shareExp.item.value">
         <input
           ref="inputEl"
           v-model="link"
@@ -35,40 +35,40 @@
       <template v-else>
         <div class="lec-clone-row">
           <div class="lec-clone-row-top">
-            <span class="lec-clone-name" :title="idxExp.item.value.title">{{ idxExp.item.value.title }}</span>
-            <span class="lec-clone-status" :class="`s-${idxExp.item.value.status}`">{{ statusText(idxExp.item.value) }}</span>
+            <span class="lec-clone-name" :title="shareExp.item.value.title">{{ shareExp.item.value.title }}</span>
+            <span class="lec-clone-status" :class="`s-${shareExp.item.value.status}`">{{ statusText(shareExp.item.value) }}</span>
           </div>
           <div class="lec-clone-bar">
             <div
               class="lec-clone-fill"
-              :class="`s-${idxExp.item.value.status}`"
-              :style="{ width: barWidth(idxExp.item.value) + '%' }"
+              :class="`s-${shareExp.item.value.status}`"
+              :style="{ width: barWidth(shareExp.item.value) + '%' }"
             ></div>
           </div>
-          <div v-if="idxExp.item.value.status === 'conflict'" class="lec-clone-conflict-actions">
-            <button class="btn btn--sm btn--ghost" :disabled="idxExp.exporting.value" @click="idxExp.openFolder()">
+          <div v-if="shareExp.item.value.status === 'conflict'" class="lec-clone-conflict-actions">
+            <button class="btn btn--sm btn--ghost" :disabled="shareExp.exporting.value" @click="shareExp.openFolder()">
               {{ $t('cloudNotes.exportOpenFolder') }}
             </button>
-            <button class="btn btn--sm" :disabled="idxExp.exporting.value" @click="idxExp.resolveConflict('create')">
+            <button class="btn btn--sm" :disabled="shareExp.exporting.value" @click="shareExp.resolveConflict('create')">
               {{ $t('cloudNotes.exportCreateNew') }}
             </button>
-            <button class="btn btn--sm lec-clone-replace" :disabled="idxExp.exporting.value" @click="idxExp.resolveConflict('replace')">
+            <button class="btn btn--sm lec-clone-replace" :disabled="shareExp.exporting.value" @click="shareExp.resolveConflict('replace')">
               {{ $t('cloudNotes.exportReplace') }}
             </button>
-            <button class="btn btn--sm btn--ghost" :disabled="idxExp.exporting.value" @click="finish(false)">
+            <button class="btn btn--sm btn--ghost" :disabled="shareExp.exporting.value" @click="finish(false)">
               {{ $t('cloudNotes.exportSkip') }}
             </button>
           </div>
         </div>
-        <p v-if="idxExp.item.value.status === 'conflict'" class="lec-clone-hint">
+        <p v-if="shareExp.item.value.status === 'conflict'" class="lec-clone-hint">
           {{ $t('cloudNotes.exportConflictHint') }}
         </p>
         <div class="dialog-actions">
           <button
-            v-if="idxExp.exporting.value"
+            v-if="shareExp.exporting.value"
             type="button"
             class="btn dialog-btn"
-            @click="idxExp.cancel()"
+            @click="shareExp.cancel()"
           >
             {{ $t('cloudNotes.exportCancel') }}
           </button>
@@ -76,7 +76,7 @@
             v-else
             type="button"
             class="btn btn--primary dialog-btn"
-            @click="finish(idxExp.item.value.status === 'done')"
+            @click="finish(shareExp.item.value.status === 'done')"
           >
             {{ $t('cloudNotes.exportDone') }}
           </button>
@@ -90,7 +90,7 @@
 import { nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { precheckShareLinkTimeline } from '@common/shareLink'
-import { useShareIndexExport, type ShareExportItem } from '@features/cloudNotes/useShareIndexExport'
+import { useShareLinkExport, type ShareExportItem } from '@features/cloudNotes/useShareLinkExport'
 
 const emit = defineEmits<{
   (e: 'close'): void
@@ -98,7 +98,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const idxExp = useShareIndexExport()
+const shareExp = useShareLinkExport()
 const link = ref('')
 const error = ref('')
 const resolving = ref(false)
@@ -138,7 +138,7 @@ function errorForResolve(code: string | undefined): string {
 }
 
 async function onClone(): Promise<void> {
-  if (resolving.value || idxExp.exporting.value) return
+  if (resolving.value || shareExp.exporting.value) return
   const raw = link.value.trim()
   const pre = precheckShareLinkTimeline(raw)
   if (pre !== 'ok') {
@@ -163,26 +163,26 @@ async function onClone(): Promise<void> {
       error.value = t('lectures.cloneEmpty')
       return
     }
-    await idxExp.startExport(res.data)
+    await shareExp.startExport(res.data)
   } finally {
     resolving.value = false
   }
 }
 
 function busy(): boolean {
-  return resolving.value || idxExp.exporting.value
+  return resolving.value || shareExp.exporting.value
 }
 
 function onOverlay(): void {
   if (busy()) return
-  if (idxExp.item.value?.status === 'conflict') return
-  finish(idxExp.item.value?.status === 'done')
+  if (shareExp.item.value?.status === 'conflict') return
+  finish(shareExp.item.value?.status === 'done')
 }
 
 function finish(cloned: boolean): void {
   if (busy()) return
-  idxExp.skipConflict()
-  idxExp.reset()
+  shareExp.skipConflict()
+  shareExp.reset()
   if (cloned) emit('cloned')
   else emit('close')
 }

@@ -4,7 +4,6 @@
  * renderer (useCloudNotes / CloudNotesTab). Imported via `@common/notesTypes`.
  */
 
-import type { SlideMetadata } from './slideMetadataTypes';
 import type { SlideTimeline } from './sidecars/timeline';
 
 import {
@@ -114,99 +113,10 @@ export interface ShareImportResult {
   urls: string[];
   /** How many referenced images couldn't be resolved on the server. */
   missing: number;
-  /**
-   * Best-effort slide metadata (identity + review flags) reconstructed from the
-   * AutoSlides Index lecture data the Cloud Index webview already fetched while
-   * browsing — captured client-side, no extra request. Null when the share isn't
-   * indexed (e.g. a long `#fragment` paste). Threaded into the imported note's
-   * `slides` group and the exported folder's metadata.json.
-   */
-  metadata?: SlideMetadata | null;
-  /** Course/session titles + byline fields from Yanhekt (or the Index lecture). */
+  /** Course/session titles + byline fields from Yanhekt. */
   lectureMeta?: ShareLectureMeta | null;
   /** Reconstructed timeline.json from a v3 share payload, if present. */
   timeline?: SlideTimeline | null;
-}
-
-// ── AutoSlides Index (v2 read + removal) ───────────────────────────────────
-// Shapes returned by the public Index Worker's /v2/api/{stats,search,lecture,
-// request-removal} endpoints. Ported from share/apex/App.tsx (the website UI
-// this native page replaces). Descriptive fields are optional — the index
-// records identity best-effort.
-
-/** A lecture summary from /v2/api/{search,lecture,stats}. */
-export interface IndexLecture {
-  courseId: string;
-  sessionId: string;
-  courseTitle?: string;
-  sessionTitle?: string;
-  instructor?: string;
-  professors?: string[];
-  semester?: string;
-  schoolYear?: string;
-  college?: string;
-  weekNumber?: number;
-  day?: number;
-  versionCount?: number;
-  updatedAt?: string;
-}
-
-/** One uploaded slide set of a lecture (from /v2/api/lecture). */
-export interface IndexVersion {
-  shareId: string;
-  title?: string;
-  imageCount?: number;
-  reviewed: boolean;
-  edited: boolean;
-  /** True when this version's share payload embeds a v3 slide timeline. */
-  hasTimeline?: boolean;
-  createdAt?: string;
-}
-
-/** A recently-added FILE (version) from /v2/api/stats — opens at /v1/s/<shareId>. */
-export interface IndexRecentFile {
-  shareId: string;
-  courseId: string;
-  sessionId: string;
-  courseTitle?: string;
-  sessionTitle?: string;
-  instructor?: string;
-  professors?: string[];
-  semester?: string;
-  schoolYear?: string;
-  college?: string;
-  imageCount?: number;
-  createdAt?: string;
-}
-
-/** Homepage aggregates from /v2/api/stats. */
-export interface IndexStats {
-  courseCount: number;
-  lectureCount: number;
-  versionCount: number;
-  recent: IndexRecentFile[];
-  colleges: { college: string; count: number }[];
-  /** Yanhekt semester tags, cron-copied from /v1/tag/list into stats:home. */
-  semesters?: Array<{
-    id: number;
-    label: string;
-    schoolYear?: number;
-    semester?: number;
-    labelEn?: string;
-  }>;
-  updatedAt?: string;
-}
-
-/** /v2/api/lecture response body (lecture + its versions). */
-export interface IndexLectureDetail {
-  lecture: IndexLecture;
-  versions: IndexVersion[];
-}
-
-/** /v2/api/request-removal response body. */
-export interface IndexRemovalResult {
-  removed: number;
-  lectureRemoved: boolean;
 }
 
 export interface NoteListParams {
@@ -236,7 +146,7 @@ export const MANAGED_GROUP_NAME = 'ASnote';
  * Name of the second AutoSlides-managed group, holding personal "watch mode"
  * captures (slides grabbed while watching a live stream or a recorded session).
  * Exactly 6 chars (the server limit), same identification rules as ASnote.
- * Notes here are exported (PDF/Markdown/DOCX), never published to the Index.
+ * Notes here are exported (PDF/Markdown/DOCX).
  */
 export const USER_GROUP_NAME = 'ASuser';
 

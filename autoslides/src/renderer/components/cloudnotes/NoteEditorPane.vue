@@ -4,7 +4,7 @@
        the parent — openNote must work while this pane is unmounted in index
        mode); this component only renders the pane and binds the holder. -->
   <section class="cn-editor">
-    <!-- Mirrors CloudIndexViewer's empty state (icon + caption) for consistency. -->
+    <!-- Empty state: icon + caption. -->
     <div v-if="!cn.selectedNote.value" class="cn-editor-empty">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -185,8 +185,7 @@ async function onMoveGroup(e: Event): Promise<void> {
   box-sizing: border-box;
 }
 
-/* Empty state — same icon+caption composition as CloudIndexViewer's
-   .ci-viewer-empty so the two right-pane placeholders read as one design. */
+/* Empty state — icon + caption. */
 .cn-editor-empty {
   display: flex;
   flex-direction: column;

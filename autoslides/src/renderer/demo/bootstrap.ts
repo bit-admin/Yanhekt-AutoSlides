@@ -39,10 +39,6 @@ import {
   demoNoteImageUrls,
   demoShortShareUrl,
   demoNextNoteIdValue,
-  demoIndexStats,
-  demoIndexSearch,
-  demoIndexLecture,
-  demoResolveIndexShare,
   demoLectureVideos,
   demoMetadata,
   demoTimeline,
@@ -148,36 +144,10 @@ export function installDemo(): void {
       ok: true,
       data: { url: demoShortShareUrl(fragment) },
     }),
-    publishToIndex: async (fragment, source) => ({
-      ok: true,
-      data: {
-        shareId: demoShortShareUrl(fragment).split('/').pop() ?? 'demo',
-        indexUrl: `https://share.ruc.edu.kg/?c=${source.courseId}&s=${source.sessionId}`,
-        duplicate: false,
-      },
-    }),
   }
   // Note images are data URIs so they render offline; sharing needs the
   // public-storage URLs their uploaded counterparts would have had.
   overrides.noteImageUrls = demoNoteImageUrls
-  // Fake Cloud Index: the Drive page's index mode browses a fabricated public
-  // index over the same demo courses; share links resolve to the slide SVGs.
-  overrides.cloudIndexProvider = {
-    indexStats: async () => ({ ok: true, data: demoIndexStats() }),
-    indexSearch: async (term: string, semesterIds?: number[]) => ({
-      ok: true,
-      data: demoIndexSearch(term, semesterIds),
-    }),
-    indexLecture: async (courseId: string, sessionId: string) => {
-      const detail = demoIndexLecture(courseId, sessionId)
-      return detail ? { ok: true, data: detail } : { ok: false, error: 'not found' }
-    },
-    resolveShareLink: async (link: string) => {
-      const resolved = demoResolveIndexShare(link)
-      return resolved ? { ok: true, data: resolved } : { ok: false, error: 'not found' }
-    },
-    requestIndexRemoval: async () => ({ ok: true, data: { removed: 1, lectureRemoved: false } }),
-  }
   const lectureVideos = demoLectureVideos()
   overrides.lecturesProvider = {
     listVideos: async () => lectureVideos.map((row) => ({ ...row })),

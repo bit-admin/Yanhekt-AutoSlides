@@ -25,16 +25,6 @@
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
         </button>
-        <!-- A cloud, not a magnifier: the magnifier is the course search beside it. -->
-        <button
-          @click="searchInIndex"
-          class="btn index-search-btn"
-          :title="$t('sessions.searchInIndex')"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
-          </svg>
-        </button>
         <button
           @click="togglePin"
           class="btn pin-btn"
@@ -245,7 +235,6 @@ import { computed, onMounted, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
 import { isPinned, togglePinnedCourse } from '@features/course/pinnedCourses'
-import { navigationStore } from '@features/course/navigationStore'
 import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames'
 import { useAuth } from '@features/platform/useAuth'
 import { yanhe2ActiveBadge } from '@features/platform/yanhe2AccountUi'
@@ -307,12 +296,6 @@ const togglePin = () => {
   const c = courseDetails.value
   if (!c?.id) return
   togglePinnedCourse(c)
-}
-
-const searchInIndex = () => {
-  const courseId = String(courseDetails.value?.id || props.course?.id || '')
-  if (!courseId) return
-  navigationStore.requestCloudIndexSearch(courseId)
 }
 
 // Only the id is sent: main reads the course's number itself, so a course
@@ -389,7 +372,6 @@ onMounted(() => {
 
 /* Square 32×32 icon button, matching .expand-btn. Accent when pinned. */
 .pin-btn,
-.index-search-btn,
 .twin-search-btn {
   width: 32px;
   height: 32px;

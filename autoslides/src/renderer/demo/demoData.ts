@@ -25,12 +25,6 @@ import type {
   NoteSummary,
   NoteDetail,
   NoteListResult,
-  IndexStats,
-  IndexLecture,
-  IndexVersion,
-  IndexRecentFile,
-  IndexLectureDetail,
-  ShareImportResult,
 } from '@common/notesTypes'
 import {
   MANAGED_GROUP_NAME,
@@ -612,13 +606,11 @@ interface DemoNoteSpec {
   slides?: number
   /**
    * managed recorded notes: the lecture this note was imported from. A real
-   * imported note carries the source folder's sidecars in its metadata block,
-   * and that identity is what makes it publishable to the Public Index.
+   * imported note carries the source folder's sidecars in its metadata block.
    */
   source?: { courseId: string; week: number; title: string }
-  /** managed notes that have already been shared / published. */
+  /** managed notes that have already been shared. */
   shareUrl?: string
-  indexUrl?: string
   /** readme/plain: body paragraphs. */
   body?: string[]
 }
@@ -628,7 +620,7 @@ const DEMO_NOTES: DemoNoteSpec[] = [
   { id: 101, title: README_NOTE_TITLE, groupId: 0, kind: 'readme' },
   { id: 102, title: buildManagedNoteTitle('Functional Analysis - Lecture 9', { courseId: '501', sessionId: demoSessionId('501', 9) }), groupId: 1, kind: 'managed', slides: 4, source: { courseId: '501', week: 9, title: 'Functional Analysis' } },
   { id: 103, title: buildManagedNoteTitle('Real Analysis - Lecture 11', { courseId: '401', sessionId: demoSessionId('401', 11) }), groupId: 1, kind: 'managed', slides: 3, source: { courseId: '401', week: 11, title: 'Real Analysis' } },
-  // Already shared and already published — so Share opens on the finished state.
+  // Already shared — so Share opens on the finished state.
   {
     id: 104,
     title: buildManagedNoteTitle('Complex Analysis - Lecture 9', { courseId: '410', sessionId: demoSessionId('410', 9) }),
@@ -637,7 +629,6 @@ const DEMO_NOTES: DemoNoteSpec[] = [
     slides: 3,
     source: { courseId: '410', week: 9, title: 'Complex Analysis' },
     shareUrl: 'https://share.ruc.edu.kg/v1/s/7fQ2mXbA9d',
-    indexUrl: `https://share.ruc.edu.kg/?c=410&s=${demoSessionId('410', 9)}`,
   },
   { id: 108, title: buildManagedNoteTitle('Functional Analysis - Lecture 12', { courseId: '501', liveId: '50112' }), groupId: 3, kind: 'managed', slides: 3 },
   {
@@ -717,9 +708,7 @@ export function demoNoteImageUrls(urls: string[]): string[] {
 
 /**
  * The managed metadata block a real imported note ends with: the source folder's
- * `metadata.json` and `timeline.json` plus the note's own cloud fields. Sharing
- * reads the course/session identity out of here — a note without it can be
- * link-shared but not published to the Public Index.
+ * `metadata.json` and `timeline.json` plus the note's own cloud fields.
  */
 function demoNoteMetadataBlock(spec: DemoNoteSpec): EditorJsBlock | null {
   if (!spec.source) return null
@@ -733,7 +722,6 @@ function demoNoteMetadataBlock(spec: DemoNoteSpec): EditorJsBlock | null {
       imageCount: spec.slides ?? 3,
       importedAt: isoAt(-2, 9, 0),
       ...(spec.shareUrl ? { shareUrl: spec.shareUrl } : {}),
-      ...(spec.indexUrl ? { indexUrl: spec.indexUrl } : {}),
     },
   })
 }
@@ -823,133 +811,6 @@ export function demoNoteDetail(id: number): NoteDetail {
 let demoNextNoteId = 1000
 export function demoNextNoteIdValue(): number {
   return ++demoNextNoteId
-}
-
-// ── Cloud Index (Drive page index mode) ─────────────────────────────────────
-// A fabricated public index over the same demo courses, so index mode renders
-// offline: stats/recently-added, search → course/session browse, and share
-// resolution into the right-panel slide viewer (the same slide SVGs as
-// everywhere else). All instructors share one college, so only the term and
-// instructor filter dropdowns appear — matching a typical small search result.
-
-interface DemoIndexSession {
-  courseId: string
-  week: number
-  versions: Array<{ imageCount: number; reviewed: boolean; edited?: boolean; hasTimeline?: boolean }>
-}
-
-const DEMO_INDEX_SESSIONS: DemoIndexSession[] = [
-  { courseId: '501', week: 9, versions: [{ imageCount: 6, reviewed: true, hasTimeline: true }, { imageCount: 5, reviewed: false, edited: true, hasTimeline: true }] },
-  { courseId: '501', week: 10, versions: [{ imageCount: 5, reviewed: true, hasTimeline: true }] },
-  { courseId: '501', week: 11, versions: [{ imageCount: 4, reviewed: false }] },
-  { courseId: '501', week: 12, versions: [{ imageCount: 6, reviewed: true, hasTimeline: true }] },
-  { courseId: '401', week: 7, versions: [{ imageCount: 5, reviewed: true }] },
-  { courseId: '401', week: 8, versions: [{ imageCount: 4, reviewed: false }] },
-  { courseId: '401', week: 11, versions: [{ imageCount: 6, reviewed: true, hasTimeline: true }] },
-  { courseId: '410', week: 9, versions: [{ imageCount: 4, reviewed: false, hasTimeline: true }] },
-  { courseId: '410', week: 10, versions: [{ imageCount: 5, reviewed: true }] },
-]
-
-const indexShareId = (s: DemoIndexSession, i: number): string =>
-  `demo-${s.courseId}-w${s.week}-v${i + 1}`
-
-function indexCourseOf(s: DemoIndexSession): { title: string; professor: string; semester: string } {
-  const c = DEMO_COURSES.find((x) => x.id === s.courseId)
-  return c ?? { title: 'Functional Analysis', professor: 'Dr. Helena Whitcombe', semester: '1' }
-}
-
-function indexTopicOf(s: DemoIndexSession): string {
-  const topics = SESSION_TOPICS[s.courseId] ?? GENERIC_TOPICS
-  return topics[(s.week - 1) % topics.length]
-}
-
-function indexLectureOf(s: DemoIndexSession): IndexLecture {
-  const c = indexCourseOf(s)
-  return {
-    courseId: s.courseId,
-    sessionId: demoSessionId(s.courseId, s.week),
-    courseTitle: c.title,
-    sessionTitle: `Lecture ${s.week}: ${indexTopicOf(s)}`,
-    instructor: c.professor,
-    semester: c.semester,
-    schoolYear: '2024-2025',
-    college: COLLEGE,
-    weekNumber: s.week,
-    day: 2,
-    versionCount: s.versions.length,
-    updatedAt: isoAt(-(16 - s.week), 12, 0),
-  }
-}
-
-function indexVersionsOf(s: DemoIndexSession): IndexVersion[] {
-  const c = indexCourseOf(s)
-  return s.versions.map((v, i) => ({
-    shareId: indexShareId(s, i),
-    title: `${c.title} - Lecture ${s.week}`,
-    imageCount: v.imageCount,
-    reviewed: v.reviewed,
-    edited: v.edited ?? false,
-    hasTimeline: v.hasTimeline ?? false,
-    createdAt: isoAt(-(16 - s.week) + i, 15, 30),
-  }))
-}
-
-export function demoIndexStats(): IndexStats {
-  const recent: IndexRecentFile[] = DEMO_INDEX_SESSIONS.flatMap((s) => {
-    const lec = indexLectureOf(s)
-    return indexVersionsOf(s).map((v): IndexRecentFile => ({
-      shareId: v.shareId,
-      courseId: lec.courseId,
-      sessionId: lec.sessionId,
-      courseTitle: lec.courseTitle,
-      sessionTitle: lec.sessionTitle,
-      instructor: lec.instructor,
-      semester: lec.semester,
-      schoolYear: lec.schoolYear,
-      college: lec.college,
-      imageCount: v.imageCount,
-      createdAt: v.createdAt,
-    }))
-  })
-    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
-    .slice(0, 8)
-  const versionCount = DEMO_INDEX_SESSIONS.reduce((n, s) => n + s.versions.length, 0)
-  return {
-    courseCount: new Set(DEMO_INDEX_SESSIONS.map((s) => s.courseId)).size,
-    lectureCount: DEMO_INDEX_SESSIONS.length,
-    versionCount,
-    recent,
-    colleges: [{ college: COLLEGE, count: versionCount }],
-    updatedAt: isoAt(0, 8, 0),
-  }
-}
-
-export function demoIndexSearch(term: string, semesterIds?: number[]): IndexLecture[] {
-  const q = term.trim().toLowerCase()
-  let lectures = DEMO_INDEX_SESSIONS.map(indexLectureOf).filter(
-    (l) =>
-      !q ||
-      [l.courseTitle, l.sessionTitle, l.instructor, l.college].some((f) =>
-        f?.toLowerCase().includes(q),
-      ),
-  )
-  // Numeric q is a course id — match the worker and ignore the semester filter.
-  if (semesterIds && semesterIds.length > 0 && !/^\d+$/.test(q)) {
-    const allowed = new Set(
-      demoSemesters()
-        .filter((s) => semesterIds.includes(s.id))
-        .map((s) => `${s.schoolYear}-${s.schoolYear + 1}||${s.semester}`),
-    )
-    lectures = lectures.filter((l) => allowed.has(`${l.schoolYear}||${l.semester}`))
-  }
-  return lectures
-}
-
-export function demoIndexLecture(courseId: string, sessionId: string): IndexLectureDetail | null {
-  const s = DEMO_INDEX_SESSIONS.find(
-    (x) => x.courseId === courseId && demoSessionId(x.courseId, x.week) === sessionId,
-  )
-  return s ? { lecture: indexLectureOf(s), versions: indexVersionsOf(s) } : null
 }
 
 function folderSpecByPath(folderPath: string) {
@@ -1099,56 +960,3 @@ export function demoLectureVideos(): Array<{ name: string; path: string; size: n
   ]
 }
 
-/** Resolve a `/v1/s/<shareId>` link minted from the demo index into slide URLs. */
-export function demoResolveIndexShare(link: string): ShareImportResult | null {
-  const shareId = link.match(/\/v1\/s\/([^/?#]+)/)?.[1] ?? link.trim()
-  for (const s of DEMO_INDEX_SESSIONS) {
-    const i = s.versions.findIndex((_, vi) => indexShareId(s, vi) === shareId)
-    if (i < 0) continue
-    const c = indexCourseOf(s)
-    const count = Math.min(s.versions[i].imageCount, SLIDE_TITLES.length)
-    const sessionId = demoSessionId(s.courseId, s.week)
-    const folderName = demoFolderName(c.title, s.week, s.courseId)
-    const folderPath = `${DEMO_OUTPUT_ROOT}/${folderName}`
-    const metadata = demoMetadata(folderPath) ?? {
-      version: SLIDE_METADATA_VERSION,
-      kind: 'recorded' as const,
-      source: {
-        courseId: s.courseId,
-        courseTitle: c.title,
-        sessionId,
-        sessionTitle: `Lecture ${s.week}`,
-        instructor: c.professor,
-        semester: c.semester,
-        schoolYear: '2024-2025',
-        college: COLLEGE,
-        weekNumber: s.week,
-        day: 2,
-      },
-      extraction: {
-        extractor: 'builtin' as const,
-        extractedAt: isoAt(-(16 - s.week), 12, 0),
-        trigger: 'auto' as const,
-      },
-      review: {
-        reviewed: s.versions[i].reviewed,
-        reviewedAt: s.versions[i].reviewed ? isoAt(-(16 - s.week) + 1, 9, 0) : null,
-        edited: s.versions[i].edited ?? false,
-        editedAt: s.versions[i].edited ? isoAt(-(16 - s.week) + 1, 9, 12) : null,
-        cropped: false,
-      },
-      createdAt: isoAt(-(16 - s.week), 12, 0),
-      updatedAt: isoAt(-(16 - s.week), 12, 0),
-    }
-    return {
-      title: buildManagedNoteTitle(`${c.title} - Lecture ${s.week}`, { courseId: s.courseId, sessionId }),
-      identity: { courseId: s.courseId, sessionId },
-      urls: SLIDE_TITLES.slice(0, count).map(([title, page]) => slideDataUri(title, page)),
-      missing: 0,
-      metadata,
-      timeline: s.versions[i].hasTimeline ? demoTimelineForCount(count, isoAt(-(16 - s.week), 12, 0)) : null,
-      lectureMeta: { courseTitle: c.title, sessionTitle: `Lecture ${s.week}` },
-    }
-  }
-  return null
-}

@@ -1,4 +1,5 @@
 import { ref, watch, onScopeDispose } from 'vue'
+import { noteErrorText } from './noteErrors'
 import EditorJS from '@editorjs/editorjs'
 import type { OutputData } from '@editorjs/editorjs'
 import Header from '@editorjs/header'
@@ -20,9 +21,9 @@ type CloudNotesApi = ReturnType<typeof useCloudNotes>
  *
  * Constructed in the PARENT (CloudNotesTab), not inside the editor pane
  * component: `openNote` is invoked by the cross-page note-open watch and the
- * import-conflict handler while the pane may be unmounted (index mode) —
- * `mountEditor` no-ops on a null holder and the selection still updates, which
- * must keep working.
+ * import-conflict handler while the pane may not be mounted yet — `mountEditor`
+ * no-ops on a null holder and the selection still updates, which must keep
+ * working.
  */
 export function useNoteEditor(
   cn: CloudNotesApi,
@@ -131,7 +132,7 @@ export function useNoteEditor(
                 const buf = await file.arrayBuffer()
                 const res = await window.electronAPI.cloudNotes.uploadImage(buf, file.name, file.type)
                 if (res.ok) return { success: 1, file: { url: res.data.url } }
-                cn.error.value = res.error === 'not-signed-in' ? t('cloudNotes.notSignedIn') : res.error
+                cn.error.value = res.error === 'not-signed-in' ? t('cloudNotes.notSignedIn') : noteErrorText(res.error)
                 return { success: 0 }
               },
             },

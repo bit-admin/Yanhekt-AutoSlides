@@ -18,11 +18,6 @@ export interface CourseOpenRequest {
   requestId: number
 }
 
-export interface CloudIndexSearchRequest {
-  term: string
-  requestId: number
-}
-
 // Module-singleton navigation state shared by the left-panel navigator and
 // MainContent (same pattern as useAuth's shared refs).
 const activeNav = ref<NavTarget>('home')
@@ -34,9 +29,6 @@ const recordedOnSessions = ref(false)
 // sessions). Set by that page.
 const yanhe2OnSessions = ref(false)
 const courseOpenRequest = ref<CourseOpenRequest | null>(null)
-// A Yanhekt course id to pre-search in Drive index mode (all semesters).
-// Consumed by CloudNotesTab (immediate watch).
-const cloudIndexSearchRequest = ref<CloudIndexSearchRequest | null>(null)
 // When a course is opened directly from a sidebar pinned item, that item takes
 // the active highlight instead of the "Recorded" navigator entry. Cleared the
 // moment the user navigates anywhere else or opens a course from another surface.
@@ -89,24 +81,16 @@ const setActivePinned = (id: string | null) => {
   activePinnedId.value = id
 }
 
-// Jump to Drive index mode and search this course id across all semesters.
-const requestCloudIndexSearch = (term: string) => {
-  cloudIndexSearchRequest.value = { term, requestId: nextRequestId++ }
-  navigate('cloud-notes')
-}
-
 export const navigationStore = {
   activeNav,
   recordedOnSessions,
   yanhe2OnSessions,
   isWorkspacePage,
   courseOpenRequest,
-  cloudIndexSearchRequest,
   activePinnedId,
   recordedGridResetTick,
   navigate,
   openSettings,
   requestCourseOpen,
-  requestCloudIndexSearch,
   setActivePinned
 }

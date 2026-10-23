@@ -199,19 +199,6 @@
           {{ $t('trash.importToNotes') }}
         </button>
 
-        <button
-          v-if="currentView === 'folders'"
-          class="btn notes-btn"
-          :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value || cloudStorage.blocked.value"
-          :title="cloudStorageBlockedTip"
-          @click="onPublishToIndex"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-          {{ $t('trash.publishToIndex') }}
-        </button>
-
         <div v-if="currentView === 'folders'" class="actions-divider"></div>
 
         <button
@@ -298,10 +285,10 @@
       <div class="progress-bar" :style="{ width: `${busyProgressPercent}%` }"></div>
     </div>
 
-    <!-- Import / Publish progress + conflict resolution (shared with Cloud Notes) -->
+    <!-- Import progress + conflict resolution (shared with Cloud Notes) -->
     <ImportProgressModal
       :open="showNotesModal"
-      :title="$t(notesModalMode === 'publish' ? 'trash.publishToIndex' : 'trash.importToNotes')"
+      :title="$t('trash.importToNotes')"
       :imp="imp"
       @close="showNotesModal = false"
       @done="onDoneNotesModal"
@@ -570,22 +557,20 @@ const {
   resetSortOrder,
 } = pdf
 
-// ── Cloud Notes: import + publish-to-index (second entry point) ─────────────
-// Reuses the exact composables the Cloud Notes page uses. "Publish to Index"
-// imports any not-yet-imported folder first, then publishes ("does both").
+// ── Cloud Notes: import (second entry point) ──────────────────────────────
+// Reuses the exact composables the Cloud Notes page uses.
 const cn = useCloudNotes()
 const imp = useNoteImport(cn, {
   meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
   slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
 })
 const showNotesModal = ref(false)
-const notesModalMode = ref<'import' | 'publish'>('import')
 // An unresolved conflict from the last run — reopening the button should show
 // the modal again instead of silently dropping it.
 const hasNotesConflict = computed(() => imp.queue.value.some((i) => i.status === 'conflict'))
 
 // The shared progress strip is driven by whichever run is active (PDF export or
-// the notes import/publish queue). The notes queue uses image-level progress
+// the notes import queue). The notes queue uses image-level progress
 // (imageProgress, matching generateProgress's granularity) so the bar advances
 // continuously as each slide uploads, not just once per folder.
 const busyProgressPercent = computed(() => {
@@ -633,24 +618,22 @@ async function ensureManagedStorage(): Promise<boolean> {
   return false
 }
 
-async function startNotesRun(mode: 'import' | 'publish'): Promise<void> {
+async function onImportToNotes(): Promise<void> {
   if (imp.importing.value) return
 
   // Resume: a previous run left unresolved conflicts — reopen the modal on them
   // rather than dropping them by starting a fresh run.
   if (hasNotesConflict.value) {
-    notesModalMode.value = mode
     showNotesModal.value = true
     return
   }
 
   if (selectedFolderNames.value.length === 0) return
   if (!(await ensureManagedStorage())) return
-  notesModalMode.value = mode
   imp.reset()
   // The bottom progress bar (shared with PDF export) already conveys live
   // progress, so await to completion here rather than opening a modal.
-  await imp.startImport([...selectedFolderNames.value], { publish: mode === 'publish' })
+  await imp.startImport([...selectedFolderNames.value])
 
   if (hasNotesConflict.value) {
     showNotesModal.value = true
@@ -664,15 +647,13 @@ async function startNotesRun(mode: 'import' | 'publish'): Promise<void> {
   await window.electronAPI.dialog?.showMessageBox?.({
     type: failed > 0 ? 'warning' : 'info',
     buttons: ['OK'],
-    title: t(mode === 'publish' ? 'trash.publishToIndex' : 'trash.importToNotes'),
+    title: t('trash.importToNotes'),
     message: t('trash.notesRunSummary', { done, failed }),
   })
   imp.reset()
   notesRefreshStore.requestNotesRefresh()
 }
 
-const onImportToNotes = () => startNotesRun('import')
-const onPublishToIndex = () => startNotesRun('publish')
 
 /**
  * Auto-sync/resync a folder to Cloud Notes when it transitions to reviewed/edited,
@@ -705,7 +686,7 @@ async function maybeAutoSync(folder: ResultsFolder, kind: 'reviewed' | 'edited')
   await cn.init()
   if (syncOn) {
     // Creates if absent; returns 'skipped' when a managed note already exists.
-    const r = await imp.syncFolder(folder.name, { publish: configStore.cloudAutoPublishAfterSync })
+    const r = await imp.syncFolder(folder.name)
     if (r !== 'skipped') {
       // A note was created (or errored) — refresh the (separate-instance) Cloud
       // Notes page so it surfaces the new note, same signal manual import uses.
@@ -714,7 +695,7 @@ async function maybeAutoSync(folder: ResultsFolder, kind: 'reviewed' | 'edited')
     }
   }
   if (resyncOn) {
-    const r = await imp.resyncFolder(folder.name, { republish: configStore.cloudAutoRepublishAfterResync })
+    const r = await imp.resyncFolder(folder.name)
     if (r === 'resynced') notesRefreshStore.requestNotesRefresh()
   }
 }

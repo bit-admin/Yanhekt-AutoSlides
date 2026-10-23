@@ -27,14 +27,8 @@ import type {
   ExportFolderInfo,
   ShareImportResult,
   ShareLectureMeta,
-  IndexStats,
-  IndexLecture,
-  IndexVersion,
-  IndexLectureDetail,
-  IndexRemovalResult,
 } from '@common/notesTypes';
 import { NOTE_GROUP_NAME_MAX, buildShareImportTitle, splitNoteDisplayName } from '@common/notesTypes';
-import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink, payloadHasTimeline } from '@common/shareLink';
 import { timelineFromSharePayload } from '@common/shareTimeline';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
@@ -60,7 +54,23 @@ export class NotesAuthError extends Error {
 interface ApiEnvelope<T> {
   code: number;
   message?: string;
+  /** false when `message` is an internal server message, not text for users. */
+  displayable?: boolean;
   data: T;
+}
+
+/**
+ * The error for a non-zero envelope code. Yanhekt marks internal failures
+ * `displayable: false` (e.g. 12101114 "service runtime exception", which its own
+ * site shows as 保存失败：错误码(12101114)); those become the machine code
+ * `yanhekt-error:<code>` for the renderer to word (`noteErrorText`).
+ */
+function envelopeError(payload: { code: number; message?: string; displayable?: boolean }, fallback: string): Error {
+  if (payload.displayable === false || !payload.message) {
+    log.warn('Yanhekt note API error', { code: payload.code, message: payload.message });
+    return new Error(`yanhekt-error:${payload.code}`);
+  }
+  return new Error(payload.message || fallback);
 }
 
 export class NotesService {
@@ -119,7 +129,7 @@ export class NotesService {
       throw new Error(`Note API returned no data: ${method} ${path}`);
     }
     if (payload.code !== 0) {
-      throw new Error(payload.message || `Note API error code ${payload.code}`);
+      throw envelopeError(payload, `Note API error code ${payload.code}`);
     }
     return payload.data;
   }
@@ -294,7 +304,7 @@ export class NotesService {
       throw new Error('Image upload returned no data');
     }
     if (payload.code !== 0) {
-      throw new Error(payload.message || `Image upload error code ${payload.code}`);
+      throw envelopeError(payload, `Image upload error code ${payload.code}`);
     }
     const url = `${payload.data.host}${payload.data.path}`;
     log.info('uploaded image', url);
@@ -415,124 +425,7 @@ export class NotesService {
     return { url: data.url };
   }
 
-  /**
-   * Publish a lecture to AutoSlides Index (v2). Sends the v1 share fragment plus
-   * the folder metadata `source` and the derived review flags to the Worker,
-   * which verifies the auth token against Yanhekt before recording it. Returns
-   * the canonical index URL and whether this was a duplicate of an existing
-   * version (same images, same order).
-   */
-  async publishToIndex(
-    fragment: string,
-    source: SlideMetadataSource,
-    review: { reviewed: boolean; edited: boolean },
-  ): Promise<{ shareId: string; indexUrl: string; duplicate: boolean }> {
-    const token = this.configService.getAuthToken();
-    if (!token) throw new NotesAuthError();
-    const res = await fetch(`${SHARE_ORIGIN}/v2/api/publish`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'User-Agent': appUserAgent(),
-      },
-      body: JSON.stringify({ fragment, source, review }),
-    });
-    if (res.status === 401) throw new NotesAuthError('AutoSlides Index rejected the sign-in token');
-    if (!res.ok) throw new Error(`Publish failed (${res.status})`);
-    const data = (await res.json()) as {
-      ok?: boolean;
-      shareId?: string;
-      indexUrl?: string;
-      duplicate?: boolean;
-    };
-    if (!data.ok || !data.indexUrl || !data.shareId) {
-      throw new Error('Publish response malformed');
-    }
-    return { shareId: data.shareId, indexUrl: data.indexUrl, duplicate: !!data.duplicate };
-  }
-
-  // ── AutoSlides Index (v2 read + removal) ─────────────────────────────────
-  // Public JSON endpoints of the Index Worker. Routed through the main process
-  // (like the other share calls) for consistency and — for removal — token
-  // access. The read endpoints need no auth.
-
-  /** Fetch the Index homepage aggregates (course/lecture/file counts + recent files). */
-  async indexStats(): Promise<IndexStats> {
-    const res = await fetch(`${SHARE_ORIGIN}/v2/api/stats`, {
-      headers: { 'User-Agent': appUserAgent() },
-    });
-    if (!res.ok) throw new Error(`Index stats failed (${res.status})`);
-    const data = (await res.json()) as { ok?: boolean; stats?: IndexStats };
-    if (!data.ok || !data.stats) throw new Error('Index stats response malformed');
-    return data.stats;
-  }
-
-  /**
-   * Search the Index by course/session/instructor/college.
-   * Empty q and no semesterIds → latest lectures. A numeric q is a course id
-   * (worker searches all semesters). `semesterIds` is forwarded as the share
-   * worker's comma-separated `semesterIds` param.
-   */
-  async indexSearch(q: string, semesterIds: number[] = []): Promise<IndexLecture[]> {
-    const params = new URLSearchParams();
-    const term = q.trim();
-    if (term) params.set('q', term);
-    const ids = semesterIds.map(Number).filter((id) => Number.isFinite(id));
-    if (ids.length > 0 && !/^\d+$/.test(term)) {
-      params.set('semesterIds', ids.join(','));
-    }
-    const qs = params.toString();
-    const url = qs ? `${SHARE_ORIGIN}/v2/api/search?${qs}` : `${SHARE_ORIGIN}/v2/api/search`;
-    const res = await fetch(url, {
-      headers: { 'User-Agent': appUserAgent() },
-    });
-    if (!res.ok) throw new Error(`Index search failed (${res.status})`);
-    const data = (await res.json()) as { ok?: boolean; results?: IndexLecture[] };
-    return Array.isArray(data.results) ? data.results : [];
-  }
-
-  /** Fetch one lecture's metadata + its uploaded versions. Throws 'not-found' if absent. */
-  async indexLecture(courseId: string, sessionId: string): Promise<IndexLectureDetail> {
-    const url =
-      `${SHARE_ORIGIN}/v2/api/lecture?courseId=${encodeURIComponent(courseId)}` +
-      `&sessionId=${encodeURIComponent(sessionId)}`;
-    const res = await fetch(url, { headers: { 'User-Agent': appUserAgent() } });
-    if (!res.ok) throw new Error(`Index lecture failed (${res.status})`);
-    const data = (await res.json()) as {
-      ok?: boolean;
-      lecture?: IndexLecture;
-      versions?: IndexVersion[];
-    };
-    if (!data.ok || !data.lecture) throw new Error('not-found');
-    return { lecture: data.lecture, versions: data.versions ?? [] };
-  }
-
-  /**
-   * Request removal of the signed-in user's own uploaded versions of a lecture.
-   * The Worker verifies the token against Yanhekt and deletes only the
-   * requester's versions. Requires a token (throws NotesAuthError otherwise).
-   */
-  async requestIndexRemoval(courseId: string, sessionId: string): Promise<IndexRemovalResult> {
-    const token = this.configService.getAuthToken();
-    if (!token) throw new NotesAuthError();
-    const res = await fetch(`${SHARE_ORIGIN}/v2/api/request-removal`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'User-Agent': appUserAgent(),
-      },
-      body: JSON.stringify({ courseId, sessionId }),
-    });
-    if (res.status === 401) throw new NotesAuthError('AutoSlides Index rejected the sign-in token');
-    if (!res.ok) throw new Error(`Removal failed (${res.status})`);
-    const data = (await res.json()) as { ok?: boolean; removed?: number; lectureRemoved?: boolean };
-    if (!data.ok) throw new Error('Removal response malformed');
-    return { removed: data.removed ?? 0, lectureRemoved: !!data.lectureRemoved };
-  }
-
-  // ── Share-link import ("Cloud Index" webview interception) ───────────────
+  // ── Share-link resolve ──────────────────────────────────────────────────
 
   /**
    * Resolve a share link (long `#fragment` or short `/v1/s/<id>`) into the note

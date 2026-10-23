@@ -267,16 +267,10 @@ export interface AppConfig {
   // page, auto-import it to Cloud Notes (skipping folders already imported).
   // 'disabled' (default) turns it off. Only meaningful once cloud storage is ready.
   cloudAutoSyncMode: 'disabled' | 'edited' | 'reviewed';
-  // When auto-sync imports a folder, also publish it to the Cloud Index. Applies
-  // to auto-sync only (never the manual Slides-page buttons). Default off.
-  cloudAutoPublishAfterSync: boolean;
   // Auto-resync: when an already-imported folder is edited again, re-import
   // (replace) its managed note with the freshly-edited slides. Only 'edited'
   // (re-review is meaningless). 'disabled' (default) turns it off.
   cloudAutoResyncMode: 'disabled' | 'edited';
-  // When auto-resync replaces a note, also re-publish it to the Cloud Index
-  // (remove-then-publish). Applies to auto-resync only. Default off.
-  cloudAutoRepublishAfterResync: boolean;
   // Notes add-ons (Settings → Add-ons → Watch Notes): when watching a live stream
   // or a recorded session (manual playback) and slide extraction starts,
   // auto-create a watch note with the chosen provider and append each captured
