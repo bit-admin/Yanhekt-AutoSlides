@@ -161,7 +161,7 @@ GET /api/terms
 → { "updatedAt": 1792662506680, "terms": ["2026-2027-1", "2025-2026-2", "2025-2026-1"] }
 ```
 
-The terms to offer for searching, newest first, and when the index was last uploaded (ms, or `null`). The list is a Worker setting (`INDEX_TERMS`), updated when a term starts; a search may name any term, listed or not.
+The terms to offer for searching, newest first, and when the index was last uploaded (ms, or `null`). The list is a Worker setting (`INDEX_TERMS`), extended when a term's data reaches the index. A word search must name one of these terms; any other term is refused with `term-not-indexed`. A course id or registrar code lookup needs no term.
 
 ## Errors
 
