@@ -81,6 +81,20 @@ export function defaultLanes(initialId: number, floorId: number): LaneSpec[] {
   ];
 }
 
+/**
+ * An upward lane's cursor never belongs above the newest stored session + 1.
+ * A saved forward position past that (left by an older version that walked
+ * on through empty ids) is moved back, with no request. Returns the move.
+ */
+export function clampForward(store: Store, initialId: number): { from: number; to: number } | null {
+  const lane = store.loadLane('forward');
+  const newest = store.maxSessionId();
+  if (!lane || newest + 1 < initialId || lane.cursor <= newest + 1) return null;
+  const from = lane.cursor;
+  store.saveLane('forward', { ...lane, cursor: newest + 1, missRun: 0, missRunStart: null, parkedUntilMs: null });
+  return { from, to: newest + 1 };
+}
+
 /** `--from A [--to B]`: exactly A→B, or A upward until the newest id. */
 export function rangeLane(from: number, to: number | null): LaneSpec {
   return {

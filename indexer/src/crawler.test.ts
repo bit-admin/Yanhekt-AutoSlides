@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Crawler, TransientError, defaultLanes, rangeLane } from './crawler.ts';
+import { Crawler, TransientError, clampForward, defaultLanes, rangeLane } from './crawler.ts';
 import { SqliteStore } from './store.ts';
 import { Budget } from './yanhekt.ts';
 import { config, drain, FakeApi, make } from './testkit.ts';
@@ -144,6 +144,19 @@ test('ids that kept failing are re-tried later and stored once they answer', asy
   assert.equal(count(store, 'SELECT COUNT(*) FROM sessions WHERE id = 30'), 1);
   assert.equal(count(store, 'SELECT COUNT(*) FROM sessions WHERE id = 70'), 0);
   assert.equal(count(store, 'SELECT COUNT(*) FROM failures'), 0);
+});
+
+test('clampForward moves a saved forward position back without a request', async () => {
+  const api = new FakeApi([...Array(100).keys()].map((i) => i + 1));
+  const store = new SqliteStore(':memory:');
+  await drain(make(api, [rangeLane(1, 100)], store).crawler);
+  assert.equal(clampForward(store, 50), null, 'no saved forward lane');
+
+  store.saveLane('forward', { cursor: 900, missRun: 3, missRunStart: 897, parkedUntilMs: 5, done: false });
+  assert.deepEqual(clampForward(store, 50), { from: 900, to: 101 });
+  assert.equal(store.loadLane('forward')!.cursor, 101);
+  assert.equal(clampForward(store, 50), null, 'already in place');
+  assert.equal(clampForward(store, 500), null, 'fresh start point above the stored ids');
 });
 
 test('a transient error keeps finished work and retries the same id', async () => {

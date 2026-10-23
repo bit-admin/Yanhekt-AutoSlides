@@ -7,7 +7,7 @@ import { parseArgs } from 'node:util';
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { dirname, resolve } from 'node:path';
-import { Crawler, TransientError, defaultLanes, rangeLane, type CrawlerConfig, type LaneSpec } from './crawler.ts';
+import { Crawler, TransientError, clampForward, defaultLanes, rangeLane, type CrawlerConfig, type LaneSpec } from './crawler.ts';
 import { SqliteStore } from './store.ts';
 import { cnClock, inWindow, nextWindowStartMs, windowEndMs } from './time.ts';
 import { Budget, Pacer, YanhektClient, sleep } from './yanhekt.ts';
@@ -445,6 +445,10 @@ async function main(): Promise<void> {
     }
     if (opts['backfill-only'] && (onlyVideos || opts.from !== undefined)) die('--backfill-only goes with the default lanes, not --from or --only-videos');
 
+    if (!onlyVideos && opts.from === undefined) {
+      const moved = clampForward(store, num('initial-id', 2, 1e12));
+      if (moved) log(`forward: saved position ${moved.from} was past the newest stored session; moved back to ${moved.to}`);
+    }
     if (opts.restart) {
       for (const l of lanes) store.deleteState(`lane:${l.key}`);
       log(`restart: cleared saved position of ${lanes.map((l) => l.key).join(', ') || '(no lanes)'}`);
