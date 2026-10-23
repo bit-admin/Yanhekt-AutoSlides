@@ -15,6 +15,10 @@ on:
         description: 'End session id, inclusive. Empty = up to the newest id. Needs "from".'
         required: false
         default: ''
+      backfill_only:
+        description: 'Default lanes only: skip the forward lane (new sessions) and spend the run on older terms.'
+        type: boolean
+        default: false
       minutes:
         description: 'How long to crawl, 1-340.'
         required: true
@@ -121,9 +125,11 @@ jobs:
           MINUTES: ${{ inputs.minutes }}
           INTERVAL: ${{ inputs.interval_ms }}
           MODE: ${{ inputs.mode }}
+          BACKFILL_ONLY: ${{ inputs.backfill_only }}
         run: |
           args=(now --db "$DB" --minutes "$MINUTES" --interval-ms "$INTERVAL" -q)
           [ -n "$FROM" ] && args+=(--from "$FROM")
+          [ -z "$FROM" ] && [ "$BACKFILL_ONLY" = "true" ] && args+=(--backfill-only)
           [ -n "$TO" ] && args+=(--to "$TO")
           case "$MODE" in
             sessions-and-videos) args+=(--videos) ;;

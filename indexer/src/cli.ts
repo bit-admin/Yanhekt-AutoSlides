@@ -30,6 +30,7 @@ Commands
 
 What to crawl
   (default)             forward from --initial-id to the newest id, and backfill down to --floor-id
+  --backfill-only       only the backfill lane (older terms first); forward stays where it is
   --from A [--to B]     only ids A→B (either direction), or A upward to the newest id.
                         Re-running the same command continues where it stopped.
   --restart             forget the saved position of the selected lane(s) and start over
@@ -84,6 +85,7 @@ const { values: opts, positionals } = parseArgs({
     from: { type: 'string' },
     to: { type: 'string' },
     restart: { type: 'boolean', default: false },
+    'backfill-only': { type: 'boolean', default: false },
     videos: { type: 'boolean', default: false },
     'only-videos': { type: 'boolean', default: false },
     'no-course-detail': { type: 'boolean', default: false },
@@ -437,7 +439,11 @@ async function main(): Promise<void> {
     if (onlyVideos) lanes = [];
     else if (opts.from !== undefined) lanes = [rangeLane(num('from', 1, 1e12), opts.to !== undefined ? num('to', 1, 1e12) : null)];
     else if (opts.to !== undefined) die('--to needs --from');
-    else lanes = defaultLanes(num('initial-id', 2, 1e12), num('floor-id', 1, 1e12));
+    else {
+      lanes = defaultLanes(num('initial-id', 2, 1e12), num('floor-id', 1, 1e12));
+      if (opts['backfill-only']) lanes = lanes.filter((l) => l.key === 'backfill');
+    }
+    if (opts['backfill-only'] && (onlyVideos || opts.from !== undefined)) die('--backfill-only goes with the default lanes, not --from or --only-videos');
 
     if (opts.restart) {
       for (const l of lanes) store.deleteState(`lane:${l.key}`);

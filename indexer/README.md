@@ -39,6 +39,8 @@ Data goes to `./data/yanhekt-index.db` (`--db` to change). Ctrl-C is always safe
 - **forward** starts at `--initial-id` (932000, the newest id on 2026-10-20) and moves up, following new sessions as Yanhekt creates them. Once it reaches the newest id, it waits until the next night.
 - **backfill** moves down from just below the same point to `--floor-id` (1), newest term first.
 
+`--backfill-only` runs only the backfill lane, so the whole run goes to older terms; the forward lane keeps its position for a later run without the flag. On Actions, tick **backfill_only**.
+
 **A specific range:** `--from A --to B` crawls exactly A→B, in either direction, and nothing else. `--from A` alone goes upward until the newest id. Running the same command again continues from the saved position, and once the range is finished `run` exits. `--restart` throws away the saved position for the selected lane(s) and starts over.
 
 Approximate first session id of each term (useful for `--from` / `--to`):
@@ -137,6 +139,7 @@ gh workflow run indexer.yml -f from=822999 -f to=743000 -f minutes=330
 | `minutes` | 330 | crawl time, max 340 (leaves room for setup and upload within GitHub's 6-hour limit) |
 | `mode` | sessions | `sessions`, `sessions-and-videos` or `videos-only` |
 | `interval_ms` | 1000 | time between requests |
+| `backfill_only` | off | default lanes only: skip the forward lane, spend the run on older terms |
 | `continue_from_run` | empty | run id of an earlier Indexer run: download its database and keep going |
 | `upload_to_d1` | off | also upload to D1 at the end (needs the `CF_*` secrets) |
 
