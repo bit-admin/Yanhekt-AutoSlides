@@ -242,8 +242,12 @@ export class Crawler {
         lane.missRun += 1;
       } else {
         this.unexpected('session', id, o);
-        lane.missRun = 0;
-        lane.missRunStart = null;
+        // Yanhekt answers some ids that do not exist with an error code (2002)
+        // instead of "not found", about one in four above the newest id. Count
+        // them toward the miss run, or the lane never notices it has passed
+        // the newest id and walks on through empty ids for hours.
+        if (lane.missRun === 0) lane.missRunStart = id;
+        lane.missRun += 1;
       }
       lane.cursor += spec.dir;
     }
@@ -293,8 +297,11 @@ export class Crawler {
       reset();
     } else if (dir > 0) {
       // Nothing ahead: this is the newest id. Rewind to the start of the run
-      // so ids created there later are not skipped.
+      // so ids created there later are not skipped, and never stay above the
+      // newest stored session (a lane that overran the end comes back).
+      const newest = store.maxSessionId();
       lane.cursor = lane.missRunStart ?? lane.cursor;
+      if (newest + 1 >= spec.start) lane.cursor = Math.min(lane.cursor, newest + 1);
       reset();
       if (spec.atFrontier === 'park') {
         lane.parkedUntilMs = this.d.parkUntil(this.d.now());

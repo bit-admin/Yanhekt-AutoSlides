@@ -60,6 +60,8 @@ export interface Store {
   bumpVideoAttempt(id: number, error: string): void;
   recordGap(lane: string, fromId: number, toId: number, reason: string, nowMs: number): void;
   recordFailure(kind: string, id: number, code: string, message: string, nowMs: number): void;
+  /** Highest stored session id, 0 when there are none. */
+  maxSessionId(): number;
   pendingCourses(limit: number): number[];
   pendingVideos(limit: number): PendingVideo[];
   /** Sessions that ended in (afterCn, beforeCn], still have no video, and were not re-checked since `refreshedBeforeMs`. */
@@ -288,6 +290,10 @@ export class SqliteStore implements Store {
   }
 
   /** Small summary used by `status`, end-of-run reports and the D1 progress row. */
+  maxSessionId(): number {
+    return Number((this.stmt('SELECT COALESCE(MAX(id), 0) AS n FROM sessions').get() as { n: number }).n);
+  }
+
   totals(): Record<string, number> {
     const n = (sql: string) => Number(Object.values(this.stmt(sql).get() as object)[0] ?? 0);
     return {

@@ -39,12 +39,15 @@ export class FakeApi implements Api {
   calls: string[] = [];
   existing: Set<number>;
   failOn = new Set<number>();
+  /** Ids answered with code 2002, as Yanhekt does for some ids that do not exist. */
+  errorOn = new Set<number>();
   constructor(existing: Iterable<number>) {
     this.existing = new Set(existing);
   }
   async session(id: number): Promise<Outcome<Json>> {
     this.calls.push(`s${id}`);
     if (this.failOn.has(id)) return { kind: 'transient', reason: 'http 502' };
+    if (this.errorOn.has(id)) return { kind: 'unexpected', code: '2002', message: 'service runtime exception' };
     return this.existing.has(id) ? { kind: 'ok', data: session(id) } : { kind: 'missing' };
   }
   async video(id: number): Promise<Outcome<Json>> {

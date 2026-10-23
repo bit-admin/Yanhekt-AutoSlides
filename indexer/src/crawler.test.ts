@@ -97,6 +97,33 @@ test('--videos later: stored video ids are queued and filled without rescanning'
   assert.equal(count(store, 'SELECT COUNT(*) FROM pending_videos'), 0);
 });
 
+test('error codes on ids past the newest one do not hide the end', async () => {
+  // ids 1..100 exist; above that, every 4th id answers 2002 instead of "not found".
+  const ids = [...Array(100).keys()].map((i) => i + 1);
+  const api = new FakeApi(ids);
+  for (let id = 104; id <= 5000; id += 4) api.errorOn.add(id);
+  const { crawler } = make(api, [defaultLanes(50, 1)[0]]);
+
+  assert.equal(await drain(crawler), 'idle');
+  const fwd = crawler.progress()[0].state;
+  assert.equal(fwd.cursor, 101);
+  assert.ok(fwd.parkedUntilMs);
+  assert.ok(api.calls.length < 200, `made ${api.calls.length} requests`);
+});
+
+test('a forward lane saved past the newest id comes back to it', async () => {
+  const ids = [...Array(100).keys()].map((i) => i + 1);
+  const api = new FakeApi(ids);
+  const store = new SqliteStore(':memory:');
+  const fwd = defaultLanes(50, 1)[0];
+  await drain(make(api, [fwd], store).crawler); // stores 50..100
+
+  store.saveLane('forward', { cursor: 900, missRun: 0, missRunStart: null, parkedUntilMs: null, done: false });
+  const { crawler } = make(api, [fwd], store);
+  assert.equal(await drain(crawler), 'idle');
+  assert.equal(crawler.progress()[0].state.cursor, 101);
+});
+
 test('a transient error keeps finished work and retries the same id', async () => {
   const api = new FakeApi([...Array(60).keys()].map((i) => 1000 + i));
   api.failOn.add(1010);
