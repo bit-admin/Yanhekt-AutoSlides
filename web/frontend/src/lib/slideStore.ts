@@ -693,6 +693,19 @@ export async function recordWatchExtraction(params: WatchExtractionRecord): Prom
   );
 }
 
+/**
+ * Add the registrar's course number to a folder recorded without one, once it
+ * has been looked up. No-op if the folder has no metadata, already has a
+ * number, or has since been recorded for another course.
+ */
+export async function setFolderCourseNumber(folder: string, courseId: string, courseNumber: string): Promise<void> {
+  await updateFolderRecord(folder, (record) => {
+    const source = record.metadata?.source;
+    if (!source || source.courseNumber || source.courseId !== courseId) return;
+    source.courseNumber = courseNumber;
+  });
+}
+
 export async function setFolderPostProcessing(folder: string, meta: SlidePostProcessingMeta): Promise<void> {
   await updateFolderRecord(folder, (record) => {
     if (record.metadata) record.metadata.postProcessing = meta;

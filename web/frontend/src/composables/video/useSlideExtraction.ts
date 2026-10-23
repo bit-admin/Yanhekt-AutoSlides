@@ -15,7 +15,9 @@ import {
   type ExtractedSlide,
 } from '../../lib/processing'
 import { resolveSsimThreshold } from '../../lib/extractionDefaults'
-import { getSlideBlob, recordWatchExtraction, slideId } from '../../lib/slideStore'
+import { getSlideBlob, recordWatchExtraction, setFolderCourseNumber, slideId } from '../../lib/slideStore'
+import { courseNumberOf } from '../../lib/courseNumberLookup'
+import { authStore } from '../../stores/authStore'
 import type { TrashReason } from '../../lib/slideStore'
 import { sanitizeFileName } from '../../lib/sanitizeFileName'
 import { buildLectureIdSuffix, parseSessionTitle } from '../../lib/toolFolders'
@@ -116,6 +118,16 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     )}`
   }
 
+  // The player holds the course id but not its registrar number, which every
+  // folder keeps. Written after the metadata, so a slow or failed lookup never
+  // holds it up. Same rule as the desktop's slideMetadataIpc.
+  const addCourseNumber = async (folder: string, courseId: unknown): Promise<void> => {
+    const id = courseId === undefined || courseId === null ? '' : String(courseId)
+    if (!id) return
+    const courseNumber = await courseNumberOf(id, authStore.token.value)
+    if (courseNumber) await setFolderCourseNumber(folder, id, courseNumber)
+  }
+
   // Build the SlideExtractionInput payload from current course/session state.
   const buildExtractionInput = async (): Promise<SlideExtractionInput> => {
     let liveSessionId: string | undefined
@@ -137,6 +149,8 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     const liveSessionTitle =
       mode === 'live' ? course.value?.session?.section_group_title : undefined
     const liveSessionParts = parseSessionTitle(liveSessionTitle)
+    // Live folders get no number, as on the desktop (it skips a source with a liveId).
+    const numberCourseId = mode === 'live' ? undefined : course.value?.id
     void recordWatchExtraction({
       folder: folderName,
       kind: mode === 'live' ? 'live' : 'recorded',
@@ -158,9 +172,11 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
         weekNumber: session.value?.week_number ?? liveSessionParts?.weekNumber,
         day: session.value?.day ?? liveSessionParts?.day,
       },
-    }).catch((error) => {
-      log.error('Failed to record extraction metadata:', error)
     })
+      .then(() => addCourseNumber(folderName, numberCourseId))
+      .catch((error) => {
+        log.error('Failed to record extraction metadata:', error)
+      })
 
     return {
       mode,

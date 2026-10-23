@@ -82,6 +82,8 @@ export interface CourseData {
   participant_count: number;
   /** Course cover from Yanhekt (college banner or custom). Empty string = missing. */
   image_url?: string;
+  /** Registrar's course number (Yanhe 2.0 `kcwybm`); kept in slide metadata. */
+  number?: string | number | null;
 }
 
 export interface CourseListResponse {
