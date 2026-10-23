@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('electron', () => ({ app: { getVersion: () => '0.0.0', isPackaged: false } }));
+vi.mock('electron', () => ({ app: { getName: () => 'AutoSlides', getVersion: () => '0.0.0', isPackaged: false } }));
 vi.mock('@main/infra/logger', () => ({ createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }));
 
 import { ApiClient } from './apiClient';
+import { clearIndexMemo } from './indexClient';
 
 const ROW = {
   id: 850101,
@@ -41,10 +42,13 @@ describe('getCourseSessions', () => {
     expect(sessions[0]).toMatchObject({ session_id: 850101, video_id: 450101, duration: 5936, main_url: 'm.m3u8' });
   });
 
-  it('returns [] when both are empty', async () => {
+  it('returns [] when both are empty and the Index has no sessions', async () => {
+    clearIndexMemo();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ course: 70101, sessions: [] }))));
     const { client, calls } = clientAnswering({ v2: { code: 0, data: [] }, v1: { code: 0, data: [] } });
     expect(await client.getCourseSessions('70101', 'tok')).toEqual([]);
     expect(calls).toHaveLength(2);
+    vi.unstubAllGlobals();
   });
 
   it('throws on a non-zero code from the fallback', async () => {
@@ -71,5 +75,90 @@ describe('getLiveSessionId', () => {
   it('returns null on an error code or a missing session', async () => {
     expect(await answering({ code: 12131011, message: '直播不存在' }).client.getLiveSessionId('1', 'tok')).toBeNull();
     expect(await answering({ code: 0, data: { session: null } }).client.getLiveSessionId('1', 'tok')).toBeNull();
+  });
+});
+
+describe('getCourseSessions → Index fallback', () => {
+  const DETAIL = {
+    id: 850102, course_id: 70101, title: '第2周', week_number: 2, day: '3',
+    started_at: '2025-09-24 09:55:00', ended_at: '2025-09-24 11:30:00', video_ids: [450102],
+  };
+
+  function setup(indexAnswer: () => Promise<Response>, cbiz: (url: string) => unknown) {
+    clearIndexMemo();
+    const fetchMock = vi.fn(indexAnswer);
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ApiClient();
+    const calls: Array<{ url: string; opts?: { allowAnonymous?: boolean } }> = [];
+    (client as unknown as { makeRequest: unknown }).makeRequest = async (
+      _m: string, url: string, _t: string, _d: unknown, opts?: { allowAnonymous?: boolean },
+    ) => { calls.push({ url, opts }); return cbiz(url); };
+    return { client, calls, fetchMock };
+  }
+
+  const json = (body: unknown, status = 200) =>
+    async () => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('reads the Index ids with the app User-Agent, then each session and its video', async () => {
+    const { client, calls, fetchMock } = setup(json({ course: 70101, sessions: [850102] }), (url) => {
+      if (url.includes('/session/list')) return { code: 0, data: [] };
+      if (url.includes('session_id=850102')) return { code: 0, data: DETAIL };
+      if (url.includes('/v1/video?id=450102')) return { code: 0, data: { id: 450102, main: 'm.m3u8', vga: 'v.m3u8', duration: '5936' } };
+      throw new Error(`unexpected ${url}`);
+    });
+
+    const sessions = await client.getCourseSessions('70101', 'tok');
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://share.ruc.edu.kg/api/courses/70101/sessions');
+    expect((init.headers as Record<string, string>)['User-Agent']).toBe(`AutoSlides/0.0.0 (${({ win32: 'Windows', darwin: 'macOS', linux: 'Linux' } as Record<string, string>)[process.platform] ?? process.platform}; ${process.arch})`);
+    expect(calls.filter((c) => !c.url.includes('/list')).every((c) => c.opts?.allowAnonymous)).toBe(true);
+    expect(sessions).toEqual([
+      expect.objectContaining({ session_id: '850102', video_id: '450102', duration: 5936, main_url: 'm.m3u8', vga_url: 'v.m3u8', day: 3 }),
+    ]);
+  });
+
+  it('keeps only sessions with a stream (the Index also lists future sessions)', async () => {
+    const { client, calls } = setup(json({ sessions: [1, 2, 3, 4] }), (url) => {
+      if (url.includes('/session/list')) return { code: 0, data: [] };
+      const sid = /session_id=(\d+)/.exec(url)?.[1];
+      if (sid === '1') return { code: 0, data: { ...DETAIL, id: 1, video_ids: [10] } };
+      if (sid === '2') return { code: 0, data: { ...DETAIL, id: 2, video_ids: [] } }; // future
+      if (sid === '3') return { code: 0, data: { ...DETAIL, id: 3, video_ids: [30] } };
+      if (sid === '4') return { code: 0, data: { ...DETAIL, id: 4, video_ids: [40] } };
+      if (url.endsWith('id=10')) return { code: 0, data: { id: 10, vga: 'v.m3u8' } };
+      if (url.endsWith('id=30')) return { code: 0, data: { id: 30, main: ' ', vga: '' } }; // no stream yet
+      if (url.endsWith('id=40')) throw new Error('timeout');
+      throw new Error(`unexpected ${url}`);
+    });
+    expect((await client.getCourseSessions('70101', 'tok')).map((s) => s.session_id)).toEqual(['1']);
+    expect(calls.some((c) => c.url.includes('/v1/video?id=') && c.url.endsWith('=2'))).toBe(false);
+  });
+
+  it('drops sessions of another course and ones that fail to read', async () => {
+    const { client } = setup(json({ sessions: [1, 2, 3] }), (url) => {
+      if (url.includes('/session/list')) return { code: 0, data: [] };
+      if (url.includes('session_id=1')) return { code: 0, data: { ...DETAIL, id: 1, video_ids: [10] } };
+      if (url.includes('session_id=2')) return { code: 0, data: { ...DETAIL, id: 2, course_id: 99, video_ids: [20] } };
+      if (url.includes('/v1/video?id=')) return { code: 0, data: { id: 1, main: 'm.m3u8' } };
+      return { code: 12111010, message: 'gone' };
+    });
+    expect((await client.getCourseSessions('70101', 'tok')).map((s) => s.session_id)).toEqual(['1']);
+  });
+
+  it('answers [] when the Index fails (not JSON, 404, offline)', async () => {
+    const list = () => ({ code: 0, data: [] });
+    expect(await setup(async () => new Response('<html></html>', { status: 403 }), list).client.getCourseSessions('70101', 'tok')).toEqual([]);
+    expect(await setup(json({ error: 'not-found' }, 404), list).client.getCourseSessions('70101', 'tok')).toEqual([]);
+    expect(await setup(async () => { throw new TypeError('fetch failed'); }, list).client.getCourseSessions('70101', 'tok')).toEqual([]);
+  });
+
+  it('never asks the Index when a list has rows', async () => {
+    const { client, fetchMock } = setup(json({ sessions: [] }), (url) =>
+      url.includes('/v1/') ? { code: 0, data: [ROW] } : { code: 0, data: [] });
+    expect(await client.getCourseSessions('70101', 'tok')).toHaveLength(1);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

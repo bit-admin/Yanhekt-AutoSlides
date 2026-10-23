@@ -4,9 +4,13 @@ import { getClientSignature } from '@common/crypto';
 import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
 import { IntranetApiTransport } from '@main/platform/intranetApiTransport';
+import { indexSessionIds } from '@main/platform/indexClient';
 import type { ConfigService } from '@main/platform/configService';
 import type { YanhektCatalogSink } from '@main/platform/yanhektCatalog';
 const log = createLogger('PlatformApiClient');
+
+/** Parallel session reads when the list comes from the Index. */
+const INDEX_SESSION_CONCURRENCY = 6;
 
 import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo, CourseDetailResponse } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
@@ -610,11 +614,15 @@ export class ApiClient {
    *
    * `/v2` first; when it is empty, the `/v1` twin (same bare-array shape). Since
    * 2026-10-22 `/v2` answers `[]` even signed in (docs/architecture.md §9.5.1).
+   * Last, the Index's session ids, each read by id ({@link sessionsFromIndex}):
+   * both lists are empty for a course this account may not list, but its
+   * sessions still play by id.
    */
   async getCourseSessions(courseId: string, token: string): Promise<SessionData[]> {
     // Session *detail by id* is a different endpoint — see getSessionById.
     let rows = await this.fetchSessionRows('v2', courseId, token);
     if (rows.length === 0) rows = await this.fetchSessionRows('v1', courseId, token);
+    if (rows.length === 0) return this.sessionsFromIndex(String(courseId), token);
 
     return rows.map((video) => {
       const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : '';
@@ -636,6 +644,77 @@ export class ApiClient {
         id: realVideoId
       };
     });
+  }
+
+  /**
+   * A course's sessions from the Index's session ids. Each id costs two
+   * anonymous-ok Yanhekt hops, the same pair {@link getSessionDownloadInfo}
+   * uses: session detail by id, then `/v1/video` for the stream URLs (the
+   * detail has none, and desktop playback reads them off the row). Only
+   * sessions with a stream are kept, as the Yanhekt lists give: the Index also
+   * holds future and unrecorded sessions, and the next step on a session page
+   * is to play one. A session that fails to read, or belongs to another
+   * course, is dropped too. An
+   * Index failure (offline, an error page, course not indexed) gives `[]`:
+   * the lists already answered empty, so that is still a truthful answer.
+   */
+  private async sessionsFromIndex(courseId: string, token: string): Promise<SessionData[]> {
+    let ids: string[];
+    try {
+      ids = await indexSessionIds(courseId);
+    } catch (error: unknown) {
+      log.warn('Index session list unavailable for course', courseId, error);
+      return [];
+    }
+    const rows: Array<SessionData | null> = new Array(ids.length).fill(null);
+    let next = 0;
+    const worker = async () => {
+      while (next < ids.length) {
+        const i = next++;
+        try {
+          rows[i] = await this.sessionRowById(ids[i], courseId, token);
+        } catch (error: unknown) {
+          log.warn('Index session unavailable:', ids[i], error);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(INDEX_SESSION_CONCURRENCY, ids.length) }, worker));
+    return rows.filter((r): r is SessionData => r !== null);
+  }
+
+  /** One session-list row rebuilt from session detail + `/v1/video`; null when it is not this course's or has no stream. */
+  private async sessionRowById(sessionId: string, courseId: string, token: string): Promise<SessionData | null> {
+    const detail = await this.makeRequest('GET', this.sessionDetailUrl(sessionId), token, undefined, {
+      allowAnonymous: true,
+    }) as SessionDetailApiResponse;
+    if ((detail.code !== 0 && detail.code !== '0') || !detail.data || Array.isArray(detail.data) || !detail.data.id) {
+      throw new Error(`Session ${sessionId}: ${detail.message || 'not found'}`);
+    }
+    const s = detail.data;
+    if (String(s.course?.id ?? s.course_id) !== courseId) return null;
+
+    // Future and unrecorded sessions have no video yet.
+    const videoId = s.video_ids && s.video_ids.length > 0 ? String(s.video_ids[0]) : '';
+    if (!videoId) return null;
+    const res = await this.makeRequest('GET', `https://cbiz.yanhekt.cn/v1/video?id=${encodeURIComponent(videoId)}`, token, undefined, {
+      allowAnonymous: true,
+    }) as VideoDetailApiResponse;
+    const video = res.code === 0 || res.code === '0' ? res.data : null;
+    if (!video?.main?.trim() && !video?.vga?.trim()) return null;
+    const realVideoId = video.id != null ? String(video.id) : videoId;
+    return {
+      session_id: String(s.id),
+      video_id: realVideoId,
+      title: s.title,
+      duration: parseInt(String(video.duration ?? 0)) || 0,
+      week_number: s.week_number,
+      day: Number(s.day),
+      started_at: s.started_at,
+      ended_at: s.ended_at,
+      main_url: video.main?.trim() || '',
+      vga_url: video.vga?.trim() || '',
+      id: realVideoId,
+    };
   }
 
   /**

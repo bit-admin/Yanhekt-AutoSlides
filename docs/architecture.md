@@ -902,7 +902,7 @@ Desktop `getCourseInfo` uses this hop (anonymous-ok) then the session **list** (
 
 **Auth required** (`data: []` if not). Bare array (not a paginator). This is how desktop/web hydrate playback: `videos[].main` / `videos[].vga` are the unsigned VOD URLs we later sign.
 
-> **Regression (2026-10-22):** `/v2` now returns `data: []` **even with a valid token**, for every course. Fetch the `/v1` twin (`GET /v1/course/session/list?course_id=`) instead — same bare-array shape, and the v1 rows are richer. See [§9.5.1](#9x-v1-twins-of-the-v2-endpoints). The shape below is the v1 twin's (and what v2 returned before the regression).
+> **Regression (2026-10-22):** `/v2` now returns `data: []` **even with a valid token**, for every course. Fetch the `/v1` twin (`GET /v1/course/session/list?course_id=`) instead — same bare-array shape, and the v1 rows are richer. See [§9.5.1](#9x-v1-twins-of-the-v2-endpoints). When both are empty, the desktop app and the web app fall back to the Index's session ids (`share.ruc.edu.kg/api/courses/{id}/sessions`, share/docs/api.md) and read each session by id. The shape below is the v1 twin's (and what v2 returned before the regression).
 
 Probe: **29** sessions; first row is `850101`:
 
