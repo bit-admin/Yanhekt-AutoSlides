@@ -190,7 +190,9 @@ export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string,
   let lastLog = Date.now();
   const flush = async () => {
     if (batch.length === 0) return;
-    await d1.exec(batch);
+    // The data version goes with every batch, so a failure later in the
+    // upload still leaves D1 marked as changed (the next upload may send nothing).
+    await d1.exec([...batch, dataVersionStatement(Date.now())]);
     // Saved only after D1 accepted the request, so nothing is skipped after a failure.
     db.exec('BEGIN');
     for (const [id, rowSig, gramsSig, row, grams] of sigs) {
@@ -242,7 +244,6 @@ export async function upload(store: SqliteStore, d1: D1Exec, databaseId: string,
     }
   }
   await flush();
-  if (result.courses + result.grams > 0) await d1.exec([dataVersionStatement(Date.now())]);
   opts.log(`upload: sent ${result.courses} courses (${result.grams} with new search grams), about ${result.writes} rows written`);
   if (result.left > 0) {
     opts.log(`upload: stopped at the write budget (${budget}); ${result.left} courses left. Run upload again tomorrow to send them.`);
