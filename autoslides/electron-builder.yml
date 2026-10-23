@@ -49,6 +49,11 @@ nsis:
   # Allow elevation for installation
   allowElevation: true
 
+  # Ship elevate.exe and mark latest.yml `isAdminRightsRequired`, so the
+  # in-place updater starts the per-machine installer elevated. The default
+  # is already true, but electron-builder writes the flag only when it is set.
+  packElevateHelper: true
+
   # Create desktop shortcut
   createDesktopShortcut: true
 
