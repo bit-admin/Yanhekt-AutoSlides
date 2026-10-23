@@ -199,6 +199,10 @@ onMounted(() => {
   cleanupDownloadError = window.electronAPI.update.onDownloadError((error: string) => {
     isDownloading.value = false
     log.error('Download error:', error)
+    if (isSignatureError(error)) {
+      void showSignatureError(error)
+      return
+    }
     void window.electronAPI.dialog?.showMessageBox?.({
       type: 'error',
       title: $t('titlebar.updateModal.downloadFailed'),
@@ -302,9 +306,35 @@ const installUpdate = async () => {
   if (!downloadedFile.value) return
 
   try {
-    await window.electronAPI.update.installUpdate(downloadedFile.value)
+    const result = await window.electronAPI.update.installUpdate(downloadedFile.value)
+    if (!result.success && result.error && isSignatureError(result.error)) {
+      downloadedFile.value = null
+      await showSignatureError(result.error)
+    }
   } catch (error) {
     log.error('Failed to install update:', error)
+  }
+}
+
+// Main reports a failed signature check as `update-signature:<reason>`
+// (updateDownloadService.ts) and has already deleted the file.
+const isSignatureError = (error: string) => error.startsWith('update-signature:')
+
+const showSignatureError = async (error: string) => {
+  const reason = error.slice('update-signature:'.length)
+  const response = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'error',
+    title: $t('titlebar.updateModal.verifyFailed'),
+    message: reason === 'missing'
+      ? $t('titlebar.updateModal.signatureMissingMessage')
+      : $t('titlebar.updateModal.verifyFailedMessage'),
+    detail: error,
+    buttons: [$t('titlebar.updateModal.openReleasePage'), $t('titlebar.ok')],
+    defaultId: 0,
+    cancelId: 1
+  })
+  if (response?.response === 0 && releaseInfo.value?.releaseUrl) {
+    window.electronAPI.shell.openExternal(releaseInfo.value.releaseUrl)
   }
 }
 

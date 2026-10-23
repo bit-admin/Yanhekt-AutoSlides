@@ -1,6 +1,7 @@
 import { ipcMain, app } from 'electron';
 import { UpdateDownloadService } from '@main/download/updateDownloadService';
 import { fetchGithubRelease, buildGithubReleaseOptions } from '@common/githubRelease';
+import { compareVersions } from '@main/download/updateVersion';
 import type { IpcServices } from './types';
 
 export function registerUpdateIpcHandlers(services: IpcServices): void {
@@ -12,19 +13,6 @@ export function registerUpdateIpcHandlers(services: IpcServices): void {
       const latestTag = release.tag_name;
       const latestVersion = latestTag.replace(/^v/, '');
       const currentVersion = app.getVersion();
-
-      const compareVersions = (v1: string, v2: string): number => {
-        const parts1 = v1.split('.').map(Number);
-        const parts2 = v2.split('.').map(Number);
-
-        for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-          const p1 = parts1[i] || 0;
-          const p2 = parts2[i] || 0;
-          if (p1 > p2) return 1;
-          if (p1 < p2) return -1;
-        }
-        return 0;
-      };
 
       const hasUpdate = compareVersions(latestVersion, currentVersion) > 0;
       const platformAssets = updateDownloadService.getAssetsForPlatform(release.assets || []);

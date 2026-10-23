@@ -1,7 +1,12 @@
-import { shell } from 'electron';
+import { app, shell } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FileDownloadService, DownloadProgress } from '@main/infra/fileDownloadService';
+import { createLogger } from '@main/infra/logger';
+import { verifyUpdateFile, type SignatureFailure } from './updateSignature';
+import { compareVersions } from './updateVersion';
+
+const log = createLogger('UpdateDownload');
 
 export interface UpdateAsset {
   name: string;
@@ -31,6 +36,23 @@ const ASSET_PATTERNS = {
 // Pattern to extract version from filename
 const VERSION_PATTERN = /[\d]+\.[\d]+\.[\d]+/;
 
+const SIGNATURE_SUFFIX = '.sig';
+
+function isUpdateAssetName(name: string): boolean {
+  return Object.values(ASSET_PATTERNS).some((pattern) => pattern.test(name));
+}
+
+/**
+ * Thrown when a downloaded update fails its signature check. The message is
+ * a stable code (`update-signature:<reason>`) the renderer maps to copy.
+ */
+export class UpdateSignatureError extends Error {
+  constructor(readonly reason: SignatureFailure | 'not-newer' | 'bad-name') {
+    super(`update-signature:${reason}`);
+    this.name = 'UpdateSignatureError';
+  }
+}
+
 export class UpdateDownloadService extends FileDownloadService {
   constructor() {
     super({ userAgent: 'AutoSlides-Updater' });
@@ -55,12 +77,61 @@ export class UpdateDownloadService extends FileDownloadService {
     return result;
   }
 
+  /**
+   * Downloads the installer and its `.sig` from the same place (GitHub or the
+   * proxy) and keeps them only if the signature checks out.
+   */
   async downloadUpdate(
     url: string,
     filename: string,
     progressCallback: (progress: DownloadProgress) => void
   ): Promise<string> {
-    return this.downloadFile(url, filename, progressCallback);
+    this.assertInstallableName(filename);
+    const sigName = filename + SIGNATURE_SUFFIX;
+    this.removeQuietly(sigName);
+    const filePath = await this.downloadFile(url, filename, progressCallback);
+    try {
+      await this.downloadFile(url + SIGNATURE_SUFFIX, sigName, () => { /* small file */ });
+    } catch (error) {
+      // A 404 is a release without a .sig; anything else is a failed download.
+      const missing = error instanceof Error && /HTTP error: 404/.test(error.message);
+      this.removeQuietly(filename);
+      this.removeQuietly(sigName);
+      if (missing) throw new UpdateSignatureError('missing');
+      throw error;
+    }
+    await this.verifyOnDisk(filename);
+    return filePath;
+  }
+
+  /** Rejects names that are not a release asset or not newer than this build. */
+  private assertInstallableName(filename: string): void {
+    if (path.basename(filename) !== filename || !isUpdateAssetName(filename)) {
+      throw new UpdateSignatureError('bad-name');
+    }
+    const version = filename.match(VERSION_PATTERN)?.[0];
+    if (!version || compareVersions(version, app.getVersion()) <= 0) {
+      throw new UpdateSignatureError('not-newer');
+    }
+  }
+
+  /** Verifies a downloaded file against its .sig; deletes both on failure. */
+  private async verifyOnDisk(filename: string): Promise<void> {
+    const filePath = path.join(this.updatesPath, filename);
+    const sigPath = filePath + SIGNATURE_SUFFIX;
+    const sigText = fs.existsSync(sigPath) ? fs.readFileSync(sigPath, 'utf8') : null;
+    const result = await verifyUpdateFile(filePath, filename, sigText);
+    if (!result.ok) {
+      log.warn(`Update ${filename} failed its signature check: ${result.reason}`);
+      this.removeQuietly(filename);
+      this.removeQuietly(filename + SIGNATURE_SUFFIX);
+      throw new UpdateSignatureError(result.reason);
+    }
+    log.info(`Update ${filename} verified with key ${result.keyId}`);
+  }
+
+  private removeQuietly(filename: string): void {
+    try { fs.rmSync(path.join(this.updatesPath, filename), { force: true }); } catch { /* noop */ }
   }
 
   listDownloadedUpdates(): { filename: string; size: number; version: string | null }[] {
@@ -69,13 +140,7 @@ export class UpdateDownloadService extends FileDownloadService {
     const updates: { filename: string; size: number; version: string | null }[] = [];
 
     for (const file of files) {
-      const isUpdateFile =
-        ASSET_PATTERNS.win32.test(file) ||
-        ASSET_PATTERNS.darwin.test(file) ||
-        ASSET_PATTERNS.linux_appimage.test(file) ||
-        ASSET_PATTERNS.linux_deb.test(file);
-
-      if (isUpdateFile) {
+      if (isUpdateAssetName(file)) {
         const filePath = path.join(this.updatesPath, file);
         const stats = fs.statSync(filePath);
         const versionMatch = file.match(VERSION_PATTERN);
@@ -101,6 +166,10 @@ export class UpdateDownloadService extends FileDownloadService {
     const errors: string[] = [];
 
     for (const filename of filenames) {
+      if (path.basename(filename) !== filename || !isUpdateAssetName(filename)) {
+        errors.push(`Not an update file: ${filename}`);
+        continue;
+      }
       const filePath = path.join(this.updatesPath, filename);
       if (fs.existsSync(filePath)) {
         try {
@@ -109,6 +178,7 @@ export class UpdateDownloadService extends FileDownloadService {
           errors.push(`Failed to delete ${filename}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
+      this.removeQuietly(filename + SIGNATURE_SUFFIX);
     }
 
     return {
@@ -117,7 +187,10 @@ export class UpdateDownloadService extends FileDownloadService {
     };
   }
 
+  /** Opens the installer, after checking its signature again from disk. */
   async installUpdate(filename: string): Promise<string> {
+    this.assertInstallableName(filename);
+    await this.verifyOnDisk(filename);
     return this.installFile(filename, 'Update file');
   }
 }

@@ -121,10 +121,31 @@ jobs:
       contents: write
 
     steps:
+    # Only for the signing script and the app's key list.
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         path: artifacts
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    # Writes <file>.sig next to each installer; the app refuses an update
+    # whose signature does not check out. The macOS DMG is signed by
+    # `npm run make:mac` on the release Mac and uploaded by hand.
+    - name: Sign release files
+      env:
+        AUTOSLIDES_UPDATE_SIGNING_KEY: ${{ secrets.AUTOSLIDES_UPDATE_SIGNING_KEY }}
+      run: |
+        node autoslides/scripts/update-signing.mjs sign \
+          artifacts/release-windows/*.exe \
+          artifacts/release-linux/*.AppImage \
+          artifacts/release-linux/*.deb
 
     - name: Create draft release
       uses: softprops/action-gh-release@v2
@@ -140,5 +161,8 @@ jobs:
         fail_on_unmatched_files: true
         files: |
           artifacts/release-windows/*.exe
+          artifacts/release-windows/*.exe.sig
           artifacts/release-linux/*.AppImage
+          artifacts/release-linux/*.AppImage.sig
           artifacts/release-linux/*.deb
+          artifacts/release-linux/*.deb.sig
