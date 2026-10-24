@@ -747,23 +747,57 @@ button {
 }
 .footer__row {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  justify-content: space-between;
   gap: 8px 24px;
   padding: 14px 30px;
 }
 .footer__row + .footer__row {
   border-top: 1px solid var(--border);
 }
-.footer__row--note {
+.footer__row--place {
+  color: var(--text-2);
+  font-size: 15px;
+}
+.footer__row--bottom {
+  justify-content: space-between;
+}
+.footer__side {
+  flex: 1 1 0;
+  white-space: nowrap;
+}
+.footer__note {
+  flex: 0 1 auto;
+  max-width: 720px;
+  text-align: center;
   font-size: 13px;
 }
 .footer__links {
   display: flex;
+  justify-content: flex-end;
   gap: 24px;
 }
 .footer a {
   color: var(--text-3);
+}
+
+/* Narrow screens: one item per line, left-aligned. */
+@media (max-width: 1100px) {
+  .footer__row--bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .footer__side {
+    flex: none;
+    white-space: normal;
+  }
+  .footer__note {
+    order: 3;
+    text-align: left;
+  }
+  .footer__links {
+    justify-content: flex-start;
+  }
 }
 
 /* Phones ------------------------------------------------------------ */

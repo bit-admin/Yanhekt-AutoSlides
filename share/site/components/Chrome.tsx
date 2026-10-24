@@ -162,9 +162,43 @@ export function useTerms(): TermsResponse | null {
   return data;
 }
 
+/** Two-letter codes the trace can report that are not a place. */
+const NOT_A_PLACE = new Set(['XX', 'T1']);
+let tracePromise: Promise<string | null> | null = null;
+
+/** The visitor's country code from Cloudflare's trace (same source as the relay page), read once per page load. */
+function fetchCountryCode(): Promise<string | null> {
+  tracePromise ??= fetch('/cdn-cgi/trace', { cache: 'no-store' })
+    .then((r) => (r.ok ? r.text() : ''))
+    .then((text) => {
+      const loc = /^loc=([A-Za-z]{2})\s*$/m.exec(text)?.[1]?.toUpperCase() ?? null;
+      return loc && !NOT_A_PLACE.has(loc) ? loc : null;
+    })
+    .catch(() => null);
+  return tracePromise;
+}
+
+function useCountryName(lang: string): string | null {
+  const [code, setCode] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetchCountryCode().then((c) => live && setCode(c));
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!code) return null;
+  try {
+    return new Intl.DisplayNames([lang === 'zh' ? 'zh-CN' : 'en'], { type: 'region' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export function Footer({ info }: { info: TermsResponse | null }) {
   const t = useT();
   const lang = useLang();
+  const country = useCountryName(lang);
   const when =
     info?.updatedAt != null
       ? new Intl.DateTimeFormat(lang === 'zh' ? 'zh-CN' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -173,13 +207,15 @@ export function Footer({ info }: { info: TermsResponse | null }) {
       : null;
   return (
     <footer className="footer">
-      <div className="footer__row">
-        <span>
+      {country && <div className="footer__row footer__row--place">{country}</div>}
+      <div className="footer__row footer__row--bottom">
+        <span className="footer__side">
           {when && t.footerUpdated(when)}
           {when && info && info.terms.length > 0 && ' · '}
           {info && info.terms.length > 0 && t.footerTotals(info.terms.length)}
         </span>
-        <span className="footer__links">
+        <span className="footer__note">{t.footerAbout}</span>
+        <span className="footer__side footer__links">
           <a href="https://github.com/bit-admin/Yanhekt-AutoSlides/blob/main/share/docs/api.md" target="_blank" rel="noreferrer">
             {t.api}
           </a>
@@ -188,7 +224,6 @@ export function Footer({ info }: { info: TermsResponse | null }) {
           </a>
         </span>
       </div>
-      <div className="footer__row footer__row--note">{t.footerAbout}</div>
     </footer>
   );
 }
