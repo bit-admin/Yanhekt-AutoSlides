@@ -1,11 +1,11 @@
-// Process demo-mode screenshots into the repo's docs/ images for the README.
+// Process demo-mode screenshots into the repo's docs/images/ files for the README.
 //
 //   npm run screenshots:build   # (re)capture into autoslides/out/screenshots
-//   npm run docs:images         # this script: rename/split/copy → ../docs
+//   npm run docs:images         # this script: rename/split/copy → ../docs/images
 //   node scripts/process-docs.mjs --only cloud-notes-share   # just that capture
 //
 // What it does:
-//   - COPY: rename each non-split capture 1:1 into docs/ (native window shots
+//   - COPY: rename each non-split capture 1:1 into docs/images/ (native window shots
 //     already carry shadow + rounded corners; modal shots already have
 //     transparent rounded corners — no pixel processing needed).
 //   - SPLIT: the two over-long settings tabs are cropped into per-README-step
@@ -22,7 +22,7 @@
 //     in sections.json; falls back to fractions of the PNG.
 //   - Appends an "## Image processing applied" log to out/screenshots/NOTES.md.
 //
-// No manual images: every docs/*.png comes from a capture. (docs/login.png is the
+// No manual images: every docs/images/*.png comes from a capture. (docs/images/login.png is the
 // browser-login view with the live SSO page loaded — needs network but the
 // screenshot script captures it automatically.)
 
@@ -35,7 +35,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')                 // autoslides/
 const repoRoot = path.resolve(projectRoot, '..')                  // repo root
 const srcDir = path.join(projectRoot, 'out', 'screenshots')
-const docsDir = path.join(repoRoot, 'docs')
+const docsDir = path.join(repoRoot, 'docs', 'images')
 
 // --only <capture,…> limits processing to those CAPTURE names (the left-hand
 // side of the maps below), so refreshing one image cannot rewrite the other
@@ -52,7 +52,7 @@ const only = onlyArg
 /** True when this capture is excluded by --only. */
 const skipSrc = (src) => !!only && !only.has(src)
 
-// capture name (without .png) → docs/ name (without .png). 1:1 verbatim copy.
+// capture name (without .png) → docs/images/ name (without .png). 1:1 verbatim copy.
 const COPY = {
   login: 'login',
   'onboarding-welcome': 'onboarding-welcome',
@@ -110,7 +110,7 @@ const COPY = {
 // the cover survives DPR. Applied to the COPY dest of `src`.
 const COVER = {
   // Measured on the live Yuketang login page, 2026-09-26 (the page moves now and then;
-  // re-check docs/tools-yuketang.png after every recapture).
+  // re-check docs/images/tools-yuketang.png after every recapture).
   'tools-yuketang': { x0: 0.4116, y0: 0.4276, x1: 0.5884, y1: 0.6798, rxFrac: 0.012 },
 }
 
@@ -171,7 +171,7 @@ const BAND = [
   },
 ]
 
-// Window-capture corner crops. `out` is a docs/ basename. If sections.json has
+// Window-capture corner crops. `out` is a docs/images/ basename. If sections.json has
 // `{ contentWidth, contentHeight, crop: { x, y, width, height } }` in CSS px
 // (screenshots.mjs records this for user-menu), that box is mapped onto the
 // PNG (native shots include drop-shadow margins). Otherwise x0/y0/x1/y1 are
@@ -206,7 +206,7 @@ function main() {
   const metaPath = path.join(srcDir, 'meta.json')
   const meta = existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, 'utf8')) : {}
   const dpr = meta.dpr > 1 ? meta.dpr : 1
-  const outputs = [] // docs/*.png paths written this run (for the downscale pass)
+  const outputs = [] // docs/images/*.png paths written this run (for the downscale pass)
 
   // --- COPY -----------------------------------------------------------------
   let copied = 0
@@ -219,8 +219,8 @@ function main() {
     copyFileSync(from, to)
     outputs.push(to)
     copied++
-    console.log(`  ✓ ${src}.png → docs/${dst}.png`)
-    log.push(`- copy \`${src}.png\` → \`docs/${dst}.png\``)
+    console.log(`  ✓ ${src}.png → docs/images/${dst}.png`)
+    log.push(`- copy \`${src}.png\` → \`docs/images/${dst}.png\``)
     if (COVER[src]) coverFiles.push({ file: to, spec: COVER[src], src })
   }
 
@@ -281,8 +281,8 @@ function main() {
       execFileSync('magick', [from, '-crop', `${pngW}x${h}+0+${y}`, '+repage', to])
       outputs.push(to)
       split++
-      console.log(`  ✓ ${src}.png [${y}..${y + h}] → docs/${cfg.parts[i]}.png`)
-      log.push(`- split \`${src}.png\` rows ${y}–${y + h} (CSS top ${Math.round(y / scale)}px) → \`docs/${cfg.parts[i]}.png\``)
+      console.log(`  ✓ ${src}.png [${y}..${y + h}] → docs/images/${cfg.parts[i]}.png`)
+      log.push(`- split \`${src}.png\` rows ${y}–${y + h} (CSS top ${Math.round(y / scale)}px) → \`docs/images/${cfg.parts[i]}.png\``)
     }
   }
 
@@ -304,8 +304,8 @@ function main() {
     execFileSync('magick', [from, '-crop', `${pngW}x${h}+0+0`, '+repage', to])
     outputs.push(to)
     cropped++
-    console.log(`  ✓ ${src}.png [0..${h}] → docs/${cfg.out}.png`)
-    log.push(`- crop \`${src}.png\` rows 0–${h} (down to "${cfg.to}" section) → \`docs/${cfg.out}.png\``)
+    console.log(`  ✓ ${src}.png [0..${h}] → docs/images/${cfg.out}.png`)
+    log.push(`- crop \`${src}.png\` rows 0–${h} (down to "${cfg.to}" section) → \`docs/images/${cfg.out}.png\``)
   }
 
   // --- BAND (walkthrough slices of a long tab) -----------------------------
@@ -337,8 +337,8 @@ function main() {
     execFileSync('magick', [from, '-crop', `${pngW}x${h}+0+${y0}`, '+repage', to])
     outputs.push(to)
     cropped++
-    console.log(`  ✓ ${cfg.src}.png [${y0}..${y1}] → docs/${cfg.out}.png`)
-    log.push(`- band \`${cfg.src}.png\` rows ${y0}–${y1} → \`docs/${cfg.out}.png\``)
+    console.log(`  ✓ ${cfg.src}.png [${y0}..${y1}] → docs/images/${cfg.out}.png`)
+    log.push(`- band \`${cfg.src}.png\` rows ${y0}–${y1} → \`docs/images/${cfg.out}.png\``)
   }
 
   // --- REGION_CROP (window-shot corners) -----------------------------------
@@ -375,8 +375,8 @@ function main() {
     outputs.push(to)
     cropped++
     const via = geom?.crop ? 'DOM box' : 'fractions'
-    console.log(`  ✓ ${src}.png [${x},${y} ${w}×${h}] (${via}) → docs/${cfg.out}.png`)
-    log.push(`- region-crop \`${src}.png\` ${w}×${h}+${x}+${y} (${via}) → \`docs/${cfg.out}.png\``)
+    console.log(`  ✓ ${src}.png [${x},${y} ${w}×${h}] (${via}) → docs/images/${cfg.out}.png`)
+    log.push(`- region-crop \`${src}.png\` ${w}×${h}+${x}+${y} (${via}) → \`docs/images/${cfg.out}.png\``)
   }
 
   // --- DPR NORMALIZE --------------------------------------------------------
@@ -401,13 +401,13 @@ function appendNotes() {
 
 ## Image processing applied (\`npm run docs:images\`, ${ts})
 
-\`scripts/process-docs.mjs\` wrote these \`docs/*.png\` from this run's captures:
+\`scripts/process-docs.mjs\` wrote these \`docs/images/*.png\` from this run's captures:
 
 ${log.join('\n')}
 
 Split/crop boundaries come from \`sections.json\` (live-DOM \`.advanced-setting-section\`
 geometry), scaled by \`pngHeight / modalCssHeight\`. No image is manual —
-\`docs/login.png\` is the browser-login view captured against the live SSO page.
+\`docs/images/login.png\` is the browser-login view captured against the live SSO page.
 `
   if (existsSync(notesPath)) appendFileSync(notesPath, block)
   console.log('  ✓ appended processing log to NOTES.md')

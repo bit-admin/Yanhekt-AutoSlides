@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="docs/icon.png" width="120" />
+  <img src="docs/images/icon.png" width="120" />
 
   # AutoSlides
   
@@ -55,8 +55,8 @@
 
 <table>
   <tr>
-    <td width="50%" align="center"><img src="docs/home.png" alt="AutoSlides 桌面版主页" /></td>
-    <td width="48%" align="center"><img src="docs/home-web.png" alt="AutoSlides 网页版主页" /></td>
+    <td width="50%" align="center"><img src="docs/images/home.png" alt="AutoSlides 桌面版主页" /></td>
+    <td width="48%" align="center"><img src="docs/images/home-web.png" alt="AutoSlides 网页版主页" /></td>
   </tr>
   <tr>
     <td align="center"><b>桌面版</b></td>
@@ -169,7 +169,7 @@
 2. 当检测到已安装 `AutoSlides Extractor` 后（界面右上角显示 `Ready` 及版本号），可勾选 `下载完成后自动使用 C++ 提取器提取幻灯片`；你也可以手动 `浏览` 指定 `AutoSlides Extractor` 可执行文件的安装位置。
 
 <p align="center">
-  <img src="docs/extractor-install.png" width="60%" alt="安装 AutoSlides Extractor" />
+  <img src="docs/images/extractor-install.png" width="60%" alt="安装 AutoSlides Extractor" />
 </p>
 
 > [!TIP]
@@ -182,21 +182,21 @@
 首次启动时，应用会先显示一页使用须知（版权提醒、与北京理工大学及延河课堂无关联等，底部可查看条款、版权与披露文件），点击 `同意并继续` 后进入简短的引导向导，带你快速完成几项基础配置；也可以点右下角 `跳过设置`。这些选项之后都可以在 `设置` 中随时修改。更新后若带来新的引导内容，会再次出现同一页须知，只是导语变为“AutoSlides 已更新”。
 
 <p align="center">
-  <img src="docs/onboarding-welcome.png" width="48%" alt="使用须知" />
-  <img src="docs/onboarding-whats-new.png" width="48%" alt="更新后的使用须知" />
+  <img src="docs/images/onboarding-welcome.png" width="48%" alt="使用须知" />
+  <img src="docs/images/onboarding-whats-new.png" width="48%" alt="更新后的使用须知" />
 </p>
 
 向导依次引导你设置：**输出目录**（幻灯片、下载与导出文件的保存位置）、**连接模式**（校园内网 / 外网）、**音频模式**（直播 / 录播是否静音），以及可选的 **GitHub Copilot AI 过滤**（使用 GitHub 登录以启用免费的 gpt-4.1 模型来过滤非幻灯片画面）。随后是 **登录延河课堂**（支持短信验证码）。
 
 <p align="center">
-  <img src="docs/onboarding-output.png" width="32%" alt="输出目录" />
-  <img src="docs/onboarding-connection.png" width="32%" alt="连接模式" />
-  <img src="docs/onboarding-audio.png" width="32%" alt="音频模式" />
+  <img src="docs/images/onboarding-output.png" width="32%" alt="输出目录" />
+  <img src="docs/images/onboarding-connection.png" width="32%" alt="连接模式" />
+  <img src="docs/images/onboarding-audio.png" width="32%" alt="音频模式" />
 </p>
 <p align="center">
-  <img src="docs/onboarding-ai.png" width="32%" alt="AI 过滤" />
-  <img src="docs/onboarding-signin.png" width="32%" alt="登录" />
-  <img src="docs/onboarding-notes-provider.png" width="32%" alt="随堂笔记：延河课堂笔记" />
+  <img src="docs/images/onboarding-ai.png" width="32%" alt="AI 过滤" />
+  <img src="docs/images/onboarding-signin.png" width="32%" alt="登录" />
+  <img src="docs/images/onboarding-notes-provider.png" width="32%" alt="随堂笔记：延河课堂笔记" />
 </p>
 
 最后一步选择 **随堂笔记** 保存到哪里：`延河课堂笔记`、`Obsidian` 或 `Notion`。选 `Obsidian` 时可在这一页选好仓库；选 `Notion` 时会给出连接步骤。下一页是所选服务自己的设置，例如延河课堂笔记的 `初始化云存储`，或 Notion 的访问令牌。
@@ -209,14 +209,14 @@
 2. 点击 `浏览器登录` 后，应用会在内置浏览器中打开官方登录界面。登录并跳转到延河课堂页面后，应用会自动获取延河课堂令牌。浏览器登录仍可作为验证码失败或需要图形验证码时的备选。
 
 <p align="center">
-  <img src="docs/onboarding-signin-sms.png" width="42%" alt="短信验证码" />
-  <img src="docs/login.png" width="52%" alt="浏览器登录" />
+  <img src="docs/images/onboarding-signin-sms.png" width="42%" alt="短信验证码" />
+  <img src="docs/images/login.png" width="52%" alt="浏览器登录" />
 </p>
 
 3. 侧栏底部的用户菜单支持 `切换账号` / `添加账号`，可保存多个学工号并一键切换。
 
 <p align="center">
-  <img src="docs/user-menu-switcher.png" width="48%" alt="切换账号" />
+  <img src="docs/images/user-menu-switcher.png" width="48%" alt="切换账号" />
 </p>
 
 <br>
@@ -235,7 +235,7 @@
 `直播课程` 和 `录播课程` 可以同时运行；切换页面时，正在播放的视频不会被中断。点击侧栏导航会回到浏览标签页，已打开的播放标签页继续在后台提取。
 
 <p align="center">
-  <img src="docs/home.png" width="70%" alt="主页与工作区" />
+  <img src="docs/images/home.png" width="70%" alt="主页与工作区" />
 </p>
 
 <br>
@@ -253,7 +253,7 @@
 5. `并行任务数` 控制任务队列同时处理的录播数量；`最大播放标签数` 控制可手动打开的播放标签页上限。
 
 <p align="center">
-  <img src="docs/settings-general-basics.png" width="42%" alt="一般设置（输出目录、连接与任务）" />
+  <img src="docs/images/settings-general-basics.png" width="42%" alt="一般设置（输出目录、连接与任务）" />
 </p>
 
 在 `设置 > 图像处理` 中可配置幻灯片提取的核心参数：
@@ -262,7 +262,7 @@
 - `幻灯片稳定性复核` 启用后需多次检测确认幻灯片稳定，排除动画、视频、轻微移动等内容。此设计基于“演讲者通常将停留在同一幻灯片一段时间进行讲解”的假设。
 
 <p align="center">
-  <img src="docs/settings-image-basics.png" width="55%" alt="图像处理：检测间隔与稳定性复核" />
+  <img src="docs/images/settings-image-basics.png" width="55%" alt="图像处理：检测间隔与稳定性复核" />
 </p>
 
 - `自动后处理` 控制是否在幻灯片提取后自动执行排除、过滤等后处理步骤：
@@ -273,7 +273,7 @@
   - `自动裁剪后重新检查重复`：裁剪完成后再次进行去重处理。
 
 <p align="center">
-  <img src="docs/settings-postprocess-basics.png" width="55%" alt="图像处理：自动后处理与编辑帧裁剪" />
+  <img src="docs/images/settings-postprocess-basics.png" width="55%" alt="图像处理：自动后处理与编辑帧裁剪" />
 </p>
 
 > [!TIP]
@@ -289,7 +289,7 @@
 2. `LLM` 模式 `内置服务` 在一定期限内提供 `免费模型`。`免费模型` 列表可能会不时进行调整，且**共享服务的可用性视实际负载而定**。你也可以使用 GitHub Copilot 登录，或填写自定义服务的 `API Base URL`、`API Key` 和 `模型名称`。了解更多：[AI 配置及 GitHub 教育优惠文档](https://it.ruc.edu.kg/zh/docs)。
 
 <p align="center">
-  <img src="docs/settings-ai-service.png" width="60%" alt="AI 服务设置" />
+  <img src="docs/images/settings-ai-service.png" width="60%" alt="AI 服务设置" />
 </p>
 
 > [!TIP]
@@ -308,8 +308,8 @@
 3. 在录播节次页可以把课程 `置顶` 到侧栏和主页，并与延河课堂的订阅同步。
 
 <p align="center">
-  <img src="docs/live.png" width="49%" alt="直播课程" />
-  <img src="docs/search.png" width="49%" alt="搜索课程" />
+  <img src="docs/images/live.png" width="49%" alt="直播课程" />
+  <img src="docs/images/search.png" width="49%" alt="搜索课程" />
 </p>
 
 <br>
@@ -323,8 +323,8 @@
 5. 已经知道要哪一节时，可以在 `下载队列` 底部直接粘贴课时 ID 或延河课堂课时链接（如 `https://www.yanhekt.cn/session/821074`），选择 `摄像头`、`屏幕` 或 `麦克风` 后点 `下载`。
 
 <p align="center">
-  <img src="docs/recorded.png" width="49%" alt="录播课程网格" />
-  <img src="docs/session.png" width="49%" alt="节次列表" />
+  <img src="docs/images/recorded.png" width="49%" alt="录播课程网格" />
+  <img src="docs/images/session.png" width="49%" alt="节次列表" />
 </p>
 
 <br>
@@ -334,7 +334,7 @@
 处于观看模式时，可以同时观看 `屏幕录制` 和 `课堂摄像头` 视频；每个播放标签页相互独立，可在后台继续播放与提取。播放器支持键盘快捷键：空格 / `K` 播放暂停，方向键 ±5 秒，`M` 静音，`F` 全屏。
 
 <p align="center">
-  <img src="docs/playback.png" width="70%" alt="双流播放" />
+  <img src="docs/images/playback.png" width="70%" alt="双流播放" />
 </p>
 
 <br>
@@ -347,11 +347,11 @@
 4. 录播提取会在幻灯片文件夹中输出时间轴（`timeline.json`），记录每一页出现的时间，供 `课程视频` 播放器跳转，以及分享链接使用。直播不会生成时间轴。
 
 <p align="center">
-  <img src="docs/tasklist.png" width="70%" alt="任务列表" />
+  <img src="docs/images/tasklist.png" width="70%" alt="任务列表" />
 </p>
 
 <p align="center">
-  <img src="docs/playback-screen.png" width="70%" alt="单流播放与幻灯片预览画廊" />
+  <img src="docs/images/playback-screen.png" width="70%" alt="单流播放与幻灯片预览画廊" />
 </p>
 
 <br>
@@ -361,13 +361,13 @@
 当 `下载完成后自动使用 C++ 提取器提取幻灯片` 功能启用时，下载屏幕录制视频会在下载完成后自动运行 `幻灯片提取` 和 `后处理`；`下载队列` 中每个项目下方会显示提取与三阶段后处理的进度。Extractor 2.0.0 及以上在兼容模式下也可以输出时间轴。
 
 <p align="center">
-  <img src="docs/downloads.png" width="70%" alt="下载队列与自动提取" />
+  <img src="docs/images/downloads.png" width="70%" alt="下载队列与自动提取" />
 </p>
 
 若在 `设置 > 扩展` 中开启 `自动创建并同步随堂笔记`，处于观看模式并开始提取时，右侧栏会多一个 `笔记` 页，后处理确认保留的幻灯片会记进你选的 `笔记服务`。默认是 `延河课堂笔记`：幻灯片追加到延河课堂的随堂笔记中，你可以在观看过程中自由编辑。
 
 <p align="center">
-  <img src="docs/watch-notes.png" width="70%" alt="随堂笔记（延河课堂笔记）" />
+  <img src="docs/images/watch-notes.png" width="70%" alt="随堂笔记（延河课堂笔记）" />
 </p>
 
 选择 `Obsidian` 或 `Notion` 时，`笔记` 页没有编辑器，而是这节课的去向和一列幻灯片队列：每张按截取顺序显示为 `排队中`、`正在追加…` 或 `已追加`。底部可 `暂停` / `继续`；写入失败时队列会自动暂停，点 `继续` 即从失败的那张重试。
@@ -376,8 +376,8 @@
 - `Notion`：每节课在 `笔记` 页点 `选择页面…`，幻灯片按顺序追加到那一页的末尾。
 
 <p align="center">
-  <img src="docs/watch-notes-obsidian.png" width="49%" alt="随堂笔记（Obsidian）" />
-  <img src="docs/watch-notes-notion.png" width="49%" alt="随堂笔记（Notion，已暂停）" />
+  <img src="docs/images/watch-notes-obsidian.png" width="49%" alt="随堂笔记（Obsidian）" />
+  <img src="docs/images/watch-notes-notion.png" width="49%" alt="随堂笔记（Notion，已暂停）" />
 </p>
 
 #### H. 工作区：课程幻灯片
@@ -389,11 +389,11 @@
 3. 同一 `选择` 模式也用于导出：勾选文件夹后可设置压缩、宽高比与格式，生成 PDF 或 PPTX（合并为一个文件，或按文件夹批量导出）。文件夹名称和顺序将决定 PDF 大纲标题与章节顺序。还可以 `导入到笔记`。
 
 <p align="center">
-  <img src="docs/results-folders.png" width="70%" alt="课程幻灯片 - 文件夹" />
+  <img src="docs/images/results-folders.png" width="70%" alt="课程幻灯片 - 文件夹" />
 </p>
 
 <p align="center">
-  <img src="docs/pdfmaker.png" width="70%" alt="课程幻灯片 - 选择与导出" />
+  <img src="docs/images/pdfmaker.png" width="70%" alt="课程幻灯片 - 选择与导出" />
 </p>
 
 <br>
@@ -410,7 +410,7 @@
 6. 若该文件夹有时间轴，预览元数据中会显示该页在录像中的出现时间。
 
 <p align="center">
-  <img src="docs/results-grid.png" width="70%" alt="课程幻灯片 - 图像网格" />
+  <img src="docs/images/results-grid.png" width="70%" alt="课程幻灯片 - 图像网格" />
 </p>
 
 <br>
@@ -426,7 +426,7 @@
 点击缩略图右上角的按钮即可放大查看图片，并在同一弹窗内进行裁剪等操作。
 
 <p align="center">
-  <img src="docs/results-preview.png" width="60%" alt="放大预览" />
+  <img src="docs/images/results-preview.png" width="60%" alt="放大预览" />
 </p>
 
 > [!TIP]
@@ -445,7 +445,7 @@
 在放大预览中进入 `裁剪` 模式后，拖动裁剪框选定区域，点击 `应用裁剪` 即可（裁剪 `AI 过滤 - 编辑模式` 图像时会自动将其恢复）。
 
 <p align="center">
-  <img src="docs/results-crop.png" width="70%" alt="裁剪模式" />
+  <img src="docs/images/results-crop.png" width="70%" alt="裁剪模式" />
 </p>
 
 <br>
@@ -457,7 +457,7 @@
 `资料库` 按课程做成海报墙，只显示已识别的内容：文件名或文件夹里带有课程/课时编号（`__c…s…` 或 Emby `[yhid=…]`）的录像，以及带同样编号且含 `timeline.json` 的幻灯片文件夹。未识别的视频文件将显示在 `列表`。
 
 <p align="center">
-  <img src="docs/lectures-library.png" width="70%" alt="课程视频资料库" />
+  <img src="docs/images/lectures-library.png" width="70%" alt="课程视频资料库" />
 </p>
 
 <br>
@@ -467,7 +467,7 @@
 点进一门课后，上方是课程海报、教师、教室和文件数，标题旁的 `延河课堂` 会在浏览器中打开这门课。下方是可横向滚动的 `课时` 卡片，按周次、星期、节次排序（离线时从课时标题里解析）。卡片上的 `双路` 表示屏幕和摄像头都在本地；`屏幕` / `课件/摄像头` 表示只下了一路；`在线` 表示这一路会从延河课堂补播；`已压缩` 表示屏幕录像已经用压缩预设处理过。最下方的 `关于` 汇总本地文件占用、周次范围，以及多少课时已有幻灯片。点 `播放` 或某一课时即可打开内置播放器。
 
 <p align="center">
-  <img src="docs/lectures-course.png" width="70%" alt="课程视频课时" />
+  <img src="docs/images/lectures-course.png" width="70%" alt="课程视频课时" />
 </p>
 
 <br>
@@ -479,7 +479,7 @@
 若该节有时间轴，进度条左侧会出现 `第 N 张` 章节按钮，点开是带缩略图的幻灯片条，当前页标为 `正在观看`；点击某一张即跳到录像里对应的时刻。拖动幻灯片条上方的分隔线可以调整缩略图大小，双击恢复默认。
 
 <p align="center">
-  <img src="docs/lectures-player.png" width="70%" alt="课程视频播放器与章节条" />
+  <img src="docs/images/lectures-player.png" width="70%" alt="课程视频播放器与章节条" />
 </p>
 
 <br>
@@ -494,7 +494,7 @@
 - `重命名` 按 Emby/Jellyfin 习惯写成 `S01E01` 这类名字，可选是否写入教师、学年、学院、教室；文件名里会留下 `[yhid=…]`，AutoSlides 之后仍能对上课程和节次。
 
 <p align="center">
-  <img src="docs/lectures-list.png" width="70%" alt="课程视频列表与压缩" />
+  <img src="docs/images/lectures-list.png" width="70%" alt="课程视频列表与压缩" />
 </p>
 
 <br>
@@ -509,7 +509,7 @@
 界面分三栏：左侧 `全部笔记` 以及分组（`自动管理的分组`、`其他分组`、`未分组`），中间笔记列表，右侧编辑器。顶部可按标题搜索。底部在选中 `AutoSlides 数据库` 时出现 `导入` / `导出`。
 
 <p align="center">
-  <img src="docs/cloud-notes.png" width="70%" alt="云存储三栏与分组" />
+  <img src="docs/images/cloud-notes.png" width="70%" alt="云存储三栏与分组" />
 </p>
 
 <br>
@@ -521,7 +521,7 @@
 `导入` 把本地 `slides_*` 文件夹做成数据库里的笔记（观看时随手截的文件夹不会进入导入，以免一套不完整的课件被公开）。`导出` 把数据库笔记还原成本地文件夹，包括时间轴。其它分组的单条笔记可导出为 PDF、Markdown（`note.md` + `images` 的 zip）或 Word（`.docx`）。
 
 <p align="center">
-  <img src="docs/cloud-notes-editor.png" width="70%" alt="云存储笔记编辑器" />
+  <img src="docs/images/cloud-notes-editor.png" width="70%" alt="云存储笔记编辑器" />
 </p>
 
 > [!WARNING]
@@ -543,7 +543,7 @@
 4. 应用会把错误写入本机的 `日志文件`；开启开发者模式后还会记录详细日志。点击日志文件夹路径即可打开，反馈问题时请附上。日志中的令牌、密码等会被隐去。
 
 <p align="center">
-  <img src="docs/settings-general.png" width="50%" alt="设置 - 一般" />
+  <img src="docs/images/settings-general.png" width="50%" alt="设置 - 一般" />
 </p>
 
 <br>
@@ -564,7 +564,7 @@
 > 建议仅在必要时调整 SSIM 阈值。即便 0.001 的微小变化也可能显著影响性能。
 
 <p align="center">
-  <img src="docs/settings-image-output.png" width="50%" alt="设置 - 图像输出与 SSIM" />
+  <img src="docs/images/settings-image-output.png" width="50%" alt="设置 - 图像输出与 SSIM" />
 </p>
 
 <br>
@@ -580,7 +580,7 @@
 > 应用使用 256 位 pHash。不建议调整 256 位 pHash 的汉明距离阈值以更好地与应用整体协同工作。
 
 <p align="center">
-  <img src="docs/settings-postprocess.png" width="50%" alt="设置 - 后处理与排除列表" />
+  <img src="docs/images/settings-postprocess.png" width="50%" alt="设置 - 后处理与排除列表" />
 </p>
 
 <br>
@@ -592,7 +592,7 @@
 3. 如有自训练的检测模型，可在 `模型` 中选择自定义模型替代内置模型。
 
 <p align="center">
-  <img src="docs/settings-autocrop.png" width="50%" alt="设置 - 自动裁剪" />
+  <img src="docs/images/settings-autocrop.png" width="50%" alt="设置 - 自动裁剪" />
 </p>
 
 <br>
@@ -606,7 +606,7 @@
 5. `从视频生成预览` 控制主页课程卡片的预览图：启用后从屏幕录制截取一帧作为预览，否则使用封面图。
 
 <p align="center">
-  <img src="docs/settings-playback.png" width="50%" alt="设置 - 下载与播放" />
+  <img src="docs/images/settings-playback.png" width="50%" alt="设置 - 下载与播放" />
 </p>
 
 <br>
@@ -616,7 +616,7 @@
 `内网网络接口` 可设置将内网模式流量绑定到指定的本地网络接口。此设置仅作用于经由内网模式的请求，其他流量仍然使用系统默认路由。`内网映射` 列出内网模式下使用的域名到 IP 的映射。`尽可能发送匿名请求` 会在公开的课程目录、课程详情和视频令牌请求上省略登录令牌；节次列表、个人数据和笔记仍会带上身份。
 
 <p align="center">
-  <img src="docs/settings-network.png" width="50%" alt="设置 - 网络" />
+  <img src="docs/images/settings-network.png" width="50%" alt="设置 - 网络" />
 </p>
 
 <br>
@@ -627,14 +627,14 @@
 2. `ML` 模式基于本地机器学习模型。面对训练数据覆盖不足的场景时，它的准确率可能下降，因此可使用更保守的置信度阈值：`主过滤器` 滑块设置“非幻灯片”的置信度区间（保留 / 复核 / 删除），处于“复核”区间的图像再由 `次过滤器` 的“是幻灯片”概率决定保留或删除。
 
 <p align="center">
-  <img src="docs/settings-ai-behaviour.png" width="49%" alt="设置 - AI 行为（LLM）" />
-  <img src="docs/settings-ai-ml.png" width="49%" alt="设置 - AI（ML 模式）" />
+  <img src="docs/images/settings-ai-behaviour.png" width="49%" alt="设置 - AI 行为（LLM）" />
+  <img src="docs/images/settings-ai-ml.png" width="49%" alt="设置 - AI（ML 模式）" />
 </p>
 
 3. 使用自定义 OpenAI 兼容接口时，可在补全参数表中选择是否发送 `max_tokens`、`temperature`、`top_p` 和思考相关字段。内置服务的这些参数由服务器管理。
 
 <p align="center">
-  <img src="docs/settings-ai-request.png" width="55%" alt="设置 - AI 请求与补全参数" />
+  <img src="docs/images/settings-ai-request.png" width="55%" alt="设置 - AI 请求与补全参数" />
 </p>
 
 <br>
@@ -646,7 +646,7 @@
 3. `分享时嵌入幻灯片时间轴` 默认开启，让分享链接带上每一页出现的时间。
 
 <p align="center">
-  <img src="docs/settings-cloud.png" width="50%" alt="设置 - 云端" />
+  <img src="docs/images/settings-cloud.png" width="50%" alt="设置 - 云端" />
 </p>
 
 <br>
@@ -659,8 +659,8 @@
 4. `工具`：勾选 `显示更多工具` 后，侧栏底部 `设置` 旁会出现 `工具` 按钮。
 
 <p align="center">
-  <img src="docs/settings-addons-obsidian.png" width="49%" alt="设置 - 扩展（Obsidian）" />
-  <img src="docs/settings-addons-notion.png" width="49%" alt="设置 - 扩展（Notion）" />
+  <img src="docs/images/settings-addons-obsidian.png" width="49%" alt="设置 - 扩展（Obsidian）" />
+  <img src="docs/images/settings-addons-notion.png" width="49%" alt="设置 - 扩展（Notion）" />
 </p>
 
 <br>
@@ -673,8 +673,8 @@
 2. 如果希望对任意网页视频运行幻灯片提取，可以使用 `网页捕获`。它支持手动输入网址、自动检测或手动选择页面视频元素，也支持绘制页面区域并持续监控画面变化。点击右上角的 `预设` 按钮可进入并自动登录延河官方网页。
 
 <p align="center">
-  <img src="docs/tools-yuketang.png" width="49%" alt="雨课堂" />
-  <img src="docs/tools-webcapture.png" width="49%" alt="网页捕获" />
+  <img src="docs/images/tools-yuketang.png" width="49%" alt="雨课堂" />
+  <img src="docs/images/tools-webcapture.png" width="49%" alt="网页捕获" />
 </p>
 
 ## 🏗️ 架构设计
@@ -734,11 +734,11 @@ npm run make:win       # 生成 Windows 安装包
 npm run make:linux     # 生成 Linux AppImage/deb
 ```
 
-文档截图通过演示模式 + Playwright 自动生成，再处理为 `docs/` 图像：
+文档截图通过演示模式 + Playwright 自动生成，再处理为 `docs/images/` 图像：
 
 ```bash
 npm run screenshots:build   # 演示模式下重新截图（重新打包 + 截图）
-npm run docs:images         # 重命名/拆分/复制到 ../docs（处理记录见 out/screenshots/NOTES.md）
+npm run docs:images         # 重命名/拆分/复制到 ../docs/images（处理记录见 out/screenshots/NOTES.md）
 ```
 
 **网页 / 索引 / 中继**（各自目录；先 `cp wrangler.example.jsonc wrangler.jsonc`）：

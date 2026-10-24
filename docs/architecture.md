@@ -1,6 +1,6 @@
 # AutoSlides architecture
 
-This is the developer map of this monorepo: five independently-installed packages, no root `package.json`, no npm workspaces. User-facing walkthroughs live in the root [`README.md`](../README.md) (desktop) and in each project's own README. Image-analysis maths (SSIM, pHash, ML, auto-crop) live in the [Image Analysis Technical Report](image-analysis-technical-report.pdf) — this document does not re-derive them. The second Yanhekt site, Yanhe 2.0 (`aita.yanhekt.cn`), has its own API reference in [`aita-yanhekt.md`](aita-yanhekt.md).
+This is the developer map of this monorepo: five independently-installed packages, no root `package.json`, no npm workspaces. User-facing walkthroughs live in the root [`README.md`](../README.md) (desktop) and in each project's own README. Image-analysis maths (SSIM, pHash, ML, auto-crop) live in the [Image Analysis Technical Report](image-analysis-technical-report.pdf) — this document does not re-derive them. The second Yanhekt site, Yanhe 2.0 (`aita.yanhekt.cn`), has its own API reference in [`aita-yanhekt.md`](aita-yanhekt.md). Every call the official `www.yanhekt.cn` web app makes, including the ones AutoSlides does not use, is catalogued in [`yanhekt-www-endpoints.md`](yanhekt-www-endpoints.md).
 
 Read this if you are about to change behaviour, port a fix across packages, add an IPC/API surface, or clone a Worker.
 
@@ -45,7 +45,8 @@ Each package has its own `package.json` / lockfile. Commands always run **inside
 ├── scripts/             Cross-package glue (drift checker only)
 │   ├── check-drift.mjs
 │   └── drift-manifest.json
-├── docs/                README screenshots, this guide, the Yanhe 2.0 API reference, the image-analysis report
+├── docs/                this guide, the Yanhe 2.0 API reference, the www.yanhekt.cn endpoint catalog, the image-analysis report
+│   └── images/          README screenshots (from `autoslides/scripts/process-docs.mjs`) and the app icon
 ├── .github/workflows/   ci.yml, build.yml, release.yml
 ├── README.md            Desktop user guide + (this) architecture pointer
 └── LICENSE              Apache-2.0
@@ -700,6 +701,8 @@ Yanhekt (`yanhekt.cn`) is the campus lecture platform every package talks to. Th
 This section covers `www.yanhekt.cn` / `cbiz.yanhekt.cn` only. Yanhe 2.0 (`aita.yanhekt.cn`) is a separate API with its own ids, sign-in, envelopes and media signing; its contract, including how its courses and sessions map onto the cbiz ids below, is in [Yanhe 2.0 (`aita.yanhekt.cn`)](aita-yanhekt.md).
 
 Writes were **not** live-tested; request bodies come from our clients.
+
+This section covers only what AutoSlides calls. The rest of what the official web app calls (about 50 more cbiz paths, its AI assistant API and its telemetry), read from its front-end bundle and not live-tested, is in [`yanhekt-www-endpoints.md`](yanhekt-www-endpoints.md).
 
 ### 9.1 Hosts and envelope
 
@@ -1590,6 +1593,7 @@ Leaving `SSO_RESUME_KEY` unset is valid. Leaving `AI_ORIGIN` unset 503s `/api/ai
 | Web user/clone guide | [`web/README.md`](../web/README.md) |
 | Share encoding + Index privacy | [`share/README.md`](../share/README.md) |
 | Yanhekt cbiz / CDN / CAS | this document [§9](#9-yanhekt-api) |
+| Yanhekt endpoints AutoSlides does not use yet (from the official web app's bundle) | [`docs/yanhekt-www-endpoints.md`](yanhekt-www-endpoints.md) |
 | Yanhe 2.0 (`aita.yanhekt.cn`) API, `/play/` signing, server slides, transcripts | [`docs/aita-yanhekt.md`](aita-yanhekt.md) |
 | Relay signing + cache | [`relay/README.md`](../relay/README.md) |
 | SSIM / pHash / ML / crop maths | [`docs/image-analysis-technical-report.pdf`](image-analysis-technical-report.pdf) |
