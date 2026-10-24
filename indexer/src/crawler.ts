@@ -275,7 +275,9 @@ export class Crawler {
         this.stats.sessionsFound += 1;
         lane.missRun = 0;
         lane.missRunStart = null;
+        this.d.store.clearFailure('session', id);
       } else if (o.kind === 'missing') {
+        this.d.store.clearFailure('session', id); // an earlier error is answered now
         this.stats.sessionsMissing += 1;
         if (lane.missRun === 0) lane.missRunStart = id;
         lane.missRun += 1;
@@ -365,7 +367,10 @@ export class Crawler {
     const { config, store, budget } = this.d;
     if (config.retryPerRound <= 0) return 0;
     let used = 0;
-    for (const id of store.failedSessions(this.d.now() - config.retryAfterMs, config.retryPerRound)) {
+    // Ids at or above the forward lane's position are left to that lane: it
+    // will ask for them anyway, and most of them do not exist yet.
+    const below = store.loadLane('forward')?.cursor ?? Number.MAX_SAFE_INTEGER;
+    for (const id of store.failedSessions(this.d.now() - config.retryAfterMs, below, config.retryPerRound)) {
       if (this.stopped() || !budget.canAfford(1)) return used;
       const r = await this.fetchSession(id);
       used += r.used;

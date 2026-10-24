@@ -62,8 +62,11 @@ export interface Store {
   recordFailure(kind: string, id: number, code: string, message: string, nowMs: number): void;
   /** Highest stored session id, 0 when there are none. */
   maxSessionId(): number;
-  /** Session ids that failed with an error code, are still not stored, and were last tried at or before `triedBeforeMs`. */
-  failedSessions(triedBeforeMs: number, limit: number): number[];
+  /**
+   * Session ids below `belowId` that failed with an error code, are still not
+   * stored, and were last tried at or before `triedBeforeMs`.
+   */
+  failedSessions(triedBeforeMs: number, belowId: number, limit: number): number[];
   clearFailure(kind: string, id: number): void;
   pendingCourses(limit: number): number[];
   pendingVideos(limit: number): PendingVideo[];
@@ -268,12 +271,12 @@ export class SqliteStore implements Store {
     );
   }
 
-  failedSessions(triedBeforeMs: number, limit: number): number[] {
+  failedSessions(triedBeforeMs: number, belowId: number, limit: number): number[] {
     const rows = this.stmt(
       `SELECT f.id FROM failures f LEFT JOIN sessions s ON s.id = f.id
-       WHERE f.kind = 'session' AND s.id IS NULL AND f.attempts < ${MAX_SESSION_ATTEMPTS} AND f.last_at <= ?
+       WHERE f.kind = 'session' AND s.id IS NULL AND f.attempts < ${MAX_SESSION_ATTEMPTS} AND f.last_at <= ? AND f.id < ?
        ORDER BY f.last_at LIMIT ?`,
-    ).all(triedBeforeMs, limit) as Array<{ id: number }>;
+    ).all(triedBeforeMs, belowId, limit) as Array<{ id: number }>;
     return rows.map((r) => r.id);
   }
 

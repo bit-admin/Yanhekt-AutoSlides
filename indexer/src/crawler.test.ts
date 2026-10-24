@@ -146,6 +146,22 @@ test('ids that kept failing are re-tried later and stored once they answer', asy
   assert.equal(count(store, 'SELECT COUNT(*) FROM failures'), 0);
 });
 
+test('failed ids at or above the forward position are left to the forward lane', async () => {
+  const api = new FakeApi([...Array(100).keys()].map((i) => i + 1));
+  const store = new SqliteStore(':memory:');
+  store.saveLane('forward', { cursor: 101, missRun: 0, missRunStart: null, parkedUntilMs: 2_000_000_000, done: false });
+  for (const id of [40, 150, 200]) store.recordFailure('session', id, '2002', 'service runtime exception', 0);
+
+  const { crawler } = make(api, defaultLanes(101, 1), store); // forward parked, backfill 100 → 1
+  assert.equal(await drain(crawler), 'idle');
+  const asked = (id: number) => api.calls.filter((c) => c === `s${id}`).length;
+  assert.equal(asked(150), 0);
+  assert.equal(asked(200), 0);
+  assert.equal(count(store, 'SELECT COUNT(*) FROM sessions WHERE id = 40'), 1);
+  assert.equal(count(store, "SELECT COUNT(*) FROM failures WHERE id = 40"), 0, 'answered by the scan: failure cleared');
+  assert.equal(count(store, 'SELECT COUNT(*) FROM failures WHERE id IN (150, 200)'), 2);
+});
+
 test('clampForward moves a saved forward position back without a request', async () => {
   const api = new FakeApi([...Array(100).keys()].map((i) => i + 1));
   const store = new SqliteStore(':memory:');

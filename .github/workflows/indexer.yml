@@ -107,16 +107,22 @@ jobs:
 
       - name: Check Yanhekt is reachable from this runner
         run: |
-          body=$(curl -sS --max-time 20 'https://cbiz.yanhekt.cn/v1/course/session?session_id=753801' \
-            -H 'Origin: https://www.yanhekt.cn' -H 'Referer: https://www.yanhekt.cn/' -H 'Xdomain-Client: web_user' \
-            -w '\n%{http_code}' || true)
-          code=$(echo "$body" | tail -n1)
-          if [ "$code" != "200" ] || ! echo "$body" | grep -q '"code":0'; then
-            echo "::error::cbiz.yanhekt.cn is not answering normally from GitHub's network (HTTP $code). Run the indexer locally instead."
-            echo "$body" | head -c 500
-            exit 1
-          fi
-          echo "Yanhekt reachable."
+          # Several tries: while Yanhekt is unstable it answers some requests
+          # with a server error (code 2002), and one of those must not end the run.
+          for try in 1 2 3 4 5; do
+            body=$(curl -sS --max-time 20 'https://cbiz.yanhekt.cn/v1/course/session?session_id=753801' \
+              -H 'Origin: https://www.yanhekt.cn' -H 'Referer: https://www.yanhekt.cn/' -H 'Xdomain-Client: web_user' \
+              -w '\n%{http_code}' || true)
+            code=$(echo "$body" | tail -n1)
+            if [ "$code" = "200" ] && echo "$body" | grep -q '"code":0'; then
+              echo "Yanhekt reachable."
+              exit 0
+            fi
+            echo "try $try: HTTP $code $(echo "$body" | head -n1 | head -c 200)"
+            sleep 5
+          done
+          echo "::error::cbiz.yanhekt.cn is not answering normally from GitHub's network (HTTP $code). Run the indexer locally instead."
+          exit 1
 
       - name: Crawl
         env:
