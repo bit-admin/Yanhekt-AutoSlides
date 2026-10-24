@@ -24,7 +24,7 @@
   // is refused (term-not-indexed), so add a term once its data is in D1, then
   // redeploy.
   "vars": {
-    "INDEX_TERMS": "2026-2027-1,2025-2026-2,2025-2026-1,2024-2025-2,2024-2025-1,2023-2024-2"
+    "INDEX_TERMS": "2026-2027-1,2025-2026-2,2025-2026-1,2024-2025-2,2024-2025-1,2023-2024-2,2023-2024-1"
   },
 
   // D1 `yanhekt-index`, filled by indexer/ (see indexer/README.md). The Worker
