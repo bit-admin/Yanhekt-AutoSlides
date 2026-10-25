@@ -210,18 +210,6 @@
     "logYanhektCatalog": {
       "type": "boolean"
     },
-    "yanhektLiveWorkaround": {
-      "$ref": "#/definitions/YanhektLiveWorkaroundConfig"
-    },
-    "yanhektCourseSnapshotSearch": {
-      "type": "boolean"
-    },
-    "courseSnapshotPickerTerms": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "localRelayEnabled": {
       "type": "boolean"
     },
@@ -711,38 +699,6 @@
         "yanhekt",
         "obsidian",
         "notion"
-      ]
-    },
-    "YanhektLiveWorkaroundConfig": {
-      "type": "object",
-      "properties": {
-        "version": {
-          "type": "number"
-        },
-        "enabled": {
-          "type": "boolean",
-          "description": "Off leaves every live response on the label the server gave it."
-        },
-        "screen": {
-          "$ref": "#/definitions/YanhektLiveStreamKind",
-          "description": "Which server response the Screen label plays."
-        },
-        "camera": {
-          "$ref": "#/definitions/YanhektLiveStreamKind",
-          "description": "Which server response the Camera label plays."
-        },
-        "room": {
-          "$ref": "#/definitions/YanhektLiveStreamKind",
-          "description": "Which server response the Room Camera label plays."
-        }
-      }
-    },
-    "YanhektLiveStreamKind": {
-      "type": "string",
-      "enum": [
-        "camera",
-        "screen",
-        "room"
       ]
     },
     "StoredAccount": {

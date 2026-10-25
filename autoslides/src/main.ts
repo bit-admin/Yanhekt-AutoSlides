@@ -43,7 +43,6 @@ import { slideExtractionService } from '@main/extraction/slideExtractionService'
 import { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import { CourseNumberLookup } from '@main/platform/courseNumberLookup';
-import { CourseSnapshotService } from '@main/platform/courseSnapshot';
 import { Yanhe2SubtitleService } from '@main/video/yanhe2SubtitleService';
 import { Yanhe2DownloadService } from '@main/video/yanhe2DownloadService';
 import { Yanhe2CaptionSyncService } from '@main/video/yanhe2CaptionSyncService';
@@ -359,7 +358,6 @@ const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService
 const audioDownloadService = new AudioDownloadService(configService, intranetMappingService);
 const yanhe2TwinResolver = new Yanhe2TwinResolver(yanhe2Service, apiClient, configService);
 const courseNumberLookup = new CourseNumberLookup(apiClient, configService);
-const courseSnapshotService = new CourseSnapshotService();
 const yanhe2SubtitleService = new Yanhe2SubtitleService(yanhe2Service, yanhe2TwinResolver, configService);
 const yanhe2DownloadService = new Yanhe2DownloadService(
   yanhe2Service,
@@ -461,7 +459,6 @@ if (!cliRun) registerAllIpcHandlers({
   yanhe2Service,
   apiClient,
   courseNumberLookup,
-  courseSnapshotService,
   configService,
   intranetMappingService,
   videoProxyService,

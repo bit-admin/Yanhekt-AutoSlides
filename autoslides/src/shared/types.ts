@@ -3,9 +3,6 @@
 //  - Trash and Crop manifest entries (consumed by main, renderer)
 
 import type { WatchNotesProviderId } from './watchNotesProviders';
-import type { YanhektLiveWorkaroundConfig } from './yanhektLiveWorkaround';
-
-export type { YanhektLiveWorkaroundConfig } from './yanhektLiveWorkaround';
 
 // Result of probing the campus authentication portal's online-status endpoint.
 export interface CampusProbeResult {
@@ -314,20 +311,6 @@ export interface AppConfig {
   // responses into `<userData>/logs/yanhekt-catalog.json`. A later response
   // replaces fields it carries. Default off. Turning Developer mode off clears it.
   logYanhektCatalog: boolean;
-  // Temporary. Which server response each Yanhekt live label plays, plus the
-  // workaround version that order belongs to. Recordings and Yanhe 2.0 are not
-  // affected. Default off (since 2026-10-22), with the 2026-10-19 rotation as its
-  // order. See @common/yanhektLiveWorkaround.
-  yanhektLiveWorkaround: YanhektLiveWorkaroundConfig;
-  // Temporary. When true, picking an earlier Yanhekt term on the Search page
-  // searches the course list bundled with the app (main platform/courseSnapshot)
-  // and loads each result's details from Yanhekt. Default on. Goes away with
-  // the snapshot once the course index replaces it.
-  yanhektCourseSnapshotSearch: boolean;
-  // Temporary. Snapshot terms (`2019-2020-1`, …) the Search page term picker
-  // also lists, beyond the current term back to 2023 Fall that it always shows.
-  // Ticked in the Settings snapshot table. Default none.
-  courseSnapshotPickerTerms: string[];
   // Local LAN relay server (Worker-compatible /playlist + /segment API). Opt-in;
   // binds 0.0.0.0 so other devices on the network can stream recorded HLS.
   // Independent of the in-app localhost VideoProxyService.

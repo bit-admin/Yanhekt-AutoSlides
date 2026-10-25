@@ -17,7 +17,6 @@ import type {
   SessionData,
   CourseInfoResponse,
   CourseDetailResponse,
-  CourseSnapshotPage,
 } from '@shared/services/apiClient'
 import type {
   EditorJsBlock,
@@ -239,26 +238,6 @@ export function demoCourseDetail(courseId: string): CourseDetailResponse {
     professor: course?.professor ?? 'Dr. Helena Whitcombe',
     professors: [course?.professor ?? 'Dr. Helena Whitcombe'],
     college_name: COLLEGE,
-  }
-}
-
-/**
- * The earlier-term course snapshot, fabricated: every demo course ran in every
- * earlier term. Never the bundled real list, so demo screenshots stay clean.
- */
-export function demoCourseSnapshot(term: string, keyword: string, page: number, pageSize: number): CourseSnapshotPage {
-  const words = keyword.toLowerCase().split(/\s+/).filter(Boolean)
-  const rows = DEMO_COURSES
-    .filter((c) => words.every((w) => c.title.toLowerCase().includes(w) || c.professor.toLowerCase().includes(w)))
-    .map((c) => ({ id: c.id, name: c.title, teachers: [c.professor] }))
-  const lastPage = Math.max(1, Math.ceil(rows.length / pageSize))
-  const current = Math.min(Math.max(1, page), lastPage)
-  return {
-    term,
-    total: rows.length,
-    current_page: current,
-    last_page: lastPage,
-    data: rows.slice((current - 1) * pageSize, current * pageSize),
   }
 }
 

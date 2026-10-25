@@ -34,7 +34,8 @@ export const APP_CACHE_DIR_NAMES = [
   'lecture-posters',
   'caption-sync',
   'updates',
-  // Temporary: imported course snapshot terms (platform/courseSnapshot.ts).
+  // Retired with the course snapshot (23.125); still listed so Clear Cache
+  // removes terms imported by older versions.
   'course-snapshot',
 ] as const;
 

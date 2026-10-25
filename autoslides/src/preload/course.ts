@@ -22,10 +22,6 @@ export const api: ElectronAPI['api'] = {
     invoke('api:getLiveSessionId', liveId, token),
   getCourseDetail: (courseId: string, token: string) =>
     invoke('api:getCourseDetail', courseId, token),
-  searchCourseSnapshot: (term: string, keyword: string, page?: number, pageSize?: number) =>
-    invoke('api:searchCourseSnapshot', term, keyword, page, pageSize),
-  listCourseSnapshotTerms: () => invoke('api:listCourseSnapshotTerms'),
-  importCourseSnapshot: () => invoke('api:importCourseSnapshot'),
   getCourseInfo: (courseId: string, token: string) =>
     invoke('api:getCourseInfo', courseId, token),
   getVideoAssets: (videoId: string, token: string) =>

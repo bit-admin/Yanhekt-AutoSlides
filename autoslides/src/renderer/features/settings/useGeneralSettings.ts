@@ -1,6 +1,5 @@
 import { ref, type Ref } from 'vue'
-import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode, type YanhektLiveWorkaroundConfig } from '@common/types'
-import { normalizeYanhektLiveWorkaround, sameYanhektLiveWorkaround } from '@common/yanhektLiveWorkaround'
+import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
 import { languageService } from '@features/settings/languageService'
 import { configStore } from '@shared/services/configStore'
 import { DownloadService } from '@shared/services/downloadService'
@@ -33,16 +32,10 @@ export interface UseGeneralSettingsOptions {
   preventSystemSleep: Ref<boolean>
   developerMode: Ref<boolean>
   logYanhektCatalog: Ref<boolean>
-  yanhektLiveWorkaround: Ref<YanhektLiveWorkaroundConfig>
-  yanhektCourseSnapshotSearch: Ref<boolean>
-  courseSnapshotPickerTerms: Ref<string[]>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
 }
-
-const sameTerms = (a: readonly string[], b: readonly string[]): boolean =>
-  a.length === b.length && [...a].sort().every((term, i) => term === [...b].sort()[i])
 
 export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const {
@@ -70,9 +63,6 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     preventSystemSleep,
     developerMode,
     logYanhektCatalog,
-    yanhektLiveWorkaround,
-    yanhektCourseSnapshotSearch,
-    courseSnapshotPickerTerms,
     rememberPassword,
     autoSignIn,
     yanhe2SignInWithMain
@@ -102,9 +92,6 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempPreventSystemSleep = ref(true)
   const tempDeveloperMode = ref(false)
   const tempLogYanhektCatalog = ref(false)
-  const tempYanhektLiveWorkaround = ref<YanhektLiveWorkaroundConfig>(normalizeYanhektLiveWorkaround(undefined))
-  const tempYanhektCourseSnapshotSearch = ref(true)
-  const tempCourseSnapshotPickerTerms = ref<string[]>([])
   const tempRememberPassword = ref(true)
   const tempAutoSignIn = ref(true)
   const tempYanhe2SignInWithMain = ref(true)
@@ -140,9 +127,6 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempPreventSystemSleep.value = preventSystemSleep.value
     tempDeveloperMode.value = developerMode.value
     tempLogYanhektCatalog.value = logYanhektCatalog.value
-    tempYanhektLiveWorkaround.value = { ...yanhektLiveWorkaround.value }
-    tempYanhektCourseSnapshotSearch.value = yanhektCourseSnapshotSearch.value
-    tempCourseSnapshotPickerTerms.value = [...courseSnapshotPickerTerms.value]
     tempRememberPassword.value = rememberPassword.value
     tempAutoSignIn.value = autoSignIn.value
     tempYanhe2SignInWithMain.value = yanhe2SignInWithMain.value
@@ -265,24 +249,6 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       logYanhektCatalog.value = catalogResult.logYanhektCatalog ?? false
     }
 
-    if (!sameYanhektLiveWorkaround(tempYanhektLiveWorkaround.value, yanhektLiveWorkaround.value)) {
-      const workaroundResult = await window.electronAPI.config.setYanhektLiveWorkaround({ ...tempYanhektLiveWorkaround.value })
-      yanhektLiveWorkaround.value = normalizeYanhektLiveWorkaround(workaroundResult.yanhektLiveWorkaround)
-      tempYanhektLiveWorkaround.value = { ...yanhektLiveWorkaround.value }
-    }
-
-    if (tempYanhektCourseSnapshotSearch.value !== yanhektCourseSnapshotSearch.value) {
-      const snapshotResult = await window.electronAPI.config.setYanhektCourseSnapshotSearch(tempYanhektCourseSnapshotSearch.value)
-      yanhektCourseSnapshotSearch.value = snapshotResult.yanhektCourseSnapshotSearch ?? true
-    }
-
-    if (!sameTerms(tempCourseSnapshotPickerTerms.value, courseSnapshotPickerTerms.value)) {
-      // A plain array: a reactive one cannot cross IPC (Recurring #1).
-      const termsResult = await window.electronAPI.config.setCourseSnapshotPickerTerms([...tempCourseSnapshotPickerTerms.value])
-      courseSnapshotPickerTerms.value = [...(termsResult.courseSnapshotPickerTerms ?? [])]
-      tempCourseSnapshotPickerTerms.value = [...courseSnapshotPickerTerms.value]
-    }
-
     if (tempRememberPassword.value !== rememberPassword.value) {
       const rememberResult = await window.electronAPI.config.setRememberPassword(tempRememberPassword.value)
       rememberPassword.value = rememberResult.rememberPassword ?? true
@@ -330,9 +296,6 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempPreventSystemSleep,
     tempDeveloperMode,
     tempLogYanhektCatalog,
-    tempYanhektLiveWorkaround,
-    tempYanhektCourseSnapshotSearch,
-    tempCourseSnapshotPickerTerms,
     tempRememberPassword,
     tempAutoSignIn,
     tempYanhe2SignInWithMain,

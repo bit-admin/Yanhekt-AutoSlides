@@ -36,8 +36,9 @@ export interface ConfigRepair {
 // Keys of AppConfig that are not checked:
 // - derived by ConfigService, never read from the store;
 // - read through a normalizer that understands legacy stored shapes a plain
-//   type check would reject (`yanhektLiveWorkaround` was once 0 / 1).
-const UNCHECKED_KEYS = new Set(['notionConnected', 'yanhe2SessionExpiry', 'yanhektLiveWorkaround']);
+//   type check would reject (none at the moment; the live-stream relabel was
+//   one until it was retired in 23.125).
+const UNCHECKED_KEYS = new Set<string>(['notionConnected', 'yanhe2SessionExpiry']);
 
 // Each pass fixes the first error; a config this broken is past repair anyway.
 const MAX_REPAIRS = 200;

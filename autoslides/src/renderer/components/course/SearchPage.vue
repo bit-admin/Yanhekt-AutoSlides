@@ -161,7 +161,7 @@
       <EmptySetState
         v-else-if="!errorMessage && earlierTermBlocked"
         :title="$t('searchPage.earlierTermTitle')"
-        :hint="$t(earlierTermBlocked === 'off' ? 'searchPage.earlierTermHint' : 'searchPage.earlierTermMissingHint')"
+        :hint="$t('searchPage.earlierTermHint')"
       />
 
       <EmptySetState v-else-if="!errorMessage && hasSearched && results.length === 0" :title="$t('courses.noResults')" />

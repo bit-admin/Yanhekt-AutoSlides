@@ -3,7 +3,6 @@ import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
 import type { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import type { ApiClient } from '@main/platform/apiClient';
 import type { CourseNumberLookup } from '@main/platform/courseNumberLookup';
-import type { CourseSnapshotService } from '@main/platform/courseSnapshot';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { VideoProxyService } from '@main/video/videoProxyService';
@@ -49,7 +48,6 @@ export interface IpcServices {
   apiClient: ApiClient;
   courseNumberLookup: CourseNumberLookup;
   /** Temporary: the bundled earlier-term course list. */
-  courseSnapshotService: CourseSnapshotService;
   configService: ConfigService;
   intranetMappingService: IntranetMappingService;
   videoProxyService: VideoProxyService;

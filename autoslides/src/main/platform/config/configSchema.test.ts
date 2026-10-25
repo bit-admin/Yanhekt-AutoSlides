@@ -110,12 +110,11 @@ describe('repairStoredConfig', () => {
     expect('intranetInterfaceIp' in data).toBe(false);
   });
 
-  it('never touches standalone keys or keys read through their own normalizer', () => {
+  it('never touches standalone keys', () => {
     const { store, writes } = fakeStore({
       ...storedDefaults(),
       authToken: 12345,
       ssoDeviceCookies: 'not a list',
-      yanhektLiveWorkaround: 1,
     });
     expect(repairStoredConfig(store, defaultConfig)).toEqual([]);
     expect(writes).toEqual([]);

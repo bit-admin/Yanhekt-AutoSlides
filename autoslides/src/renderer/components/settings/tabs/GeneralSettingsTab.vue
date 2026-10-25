@@ -354,64 +354,12 @@
       </div>
     </div>
 
-    <div class="advanced-setting-subsection">
-      <h5>{{ $t('advanced.workarounds') }}</h5>
-      <div class="setting-item">
-        <div class="setting-description">{{ $t('advanced.yanhektCourseSnapshotDescription') }}</div>
-        <div class="prevent-sleep-control">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="tempYanhektCourseSnapshotSearch" />
-            {{ $t('advanced.yanhektCourseSnapshot') }}
-          </label>
-        </div>
-        <CourseSnapshotTable
-          v-model:picker-terms="tempCourseSnapshotPickerTerms"
-          :enabled="tempYanhektCourseSnapshotSearch"
-        />
-      </div>
-      <div class="workaround-separator" role="separator" />
-      <div class="setting-item">
-        <div class="setting-description">{{ $t('advanced.yanhektLiveWorkaroundDescription') }}</div>
-        <div class="prevent-sleep-control">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="tempYanhektLiveWorkaround.enabled" />
-            {{ $t('advanced.yanhektLiveWorkaround') }}
-          </label>
-        </div>
-        <div class="workaround-map" :class="{ 'is-off': !tempYanhektLiveWorkaround.enabled }">
-          <div class="workaround-head">
-            <span>{{ $t('advanced.yanhektLiveShownAs') }}</span>
-            <span>{{ $t('advanced.yanhektLiveServerSent') }}</span>
-          </div>
-          <div v-for="kind in liveWorkaroundKinds" :key="kind" class="workaround-row">
-            <label class="setting-label" :for="`live-workaround-${kind}`">{{ $t(liveWorkaroundLabel[kind]) }}</label>
-            <span class="workaround-arrow" aria-hidden="true">←</span>
-            <select
-              :id="`live-workaround-${kind}`"
-              class="select-field"
-              :disabled="!tempYanhektLiveWorkaround.enabled"
-              :value="tempYanhektLiveWorkaround[kind]"
-              @change="onWorkaroundSource(kind, $event)"
-            >
-              <option v-for="source in liveWorkaroundKinds" :key="source" :value="source">{{ $t(liveWorkaroundLabel[source]) }}</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import {
-  YANHEKT_LIVE_STREAM_KINDS,
-  isLiveStreamKind,
-  reassignLiveWorkaround,
-  type YanhektLiveStreamKind,
-} from '@common/yanhektLiveWorkaround'
 import { useSettingsContext } from '@features/settings/settingsContext'
-import CourseSnapshotTable from '../CourseSnapshotTable.vue'
 import {
   onYanhe2CookiesInput,
   verifyYanhe2Cookies,
@@ -460,9 +408,6 @@ const {
   tempMaxManualTabs,
   tempDeveloperMode,
   tempLogYanhektCatalog,
-  tempYanhektLiveWorkaround,
-  tempYanhektCourseSnapshotSearch,
-  tempCourseSnapshotPickerTerms,
   tempRememberPassword,
   tempAutoSignIn,
   tempYanhe2SignInWithMain,
@@ -500,19 +445,6 @@ onMounted(async () => {
 function openLogFolder(): void {
   void window.electronAPI.app.openLogFolder()
 }
-
-const liveWorkaroundKinds = YANHEKT_LIVE_STREAM_KINDS
-const liveWorkaroundLabel: Record<YanhektLiveStreamKind, string> = {
-  screen: 'playback.streamScreen',
-  camera: 'playback.streamCamera',
-  room: 'playback.streamRoom',
-}
-
-function onWorkaroundSource(shown: YanhektLiveStreamKind, event: Event): void {
-  const source = (event.target as HTMLSelectElement).value
-  if (!isLiveStreamKind(source)) return
-  tempYanhektLiveWorkaround.value = reassignLiveWorkaround(tempYanhektLiveWorkaround.value, shown, source)
-}
 </script>
 
 <style scoped>
@@ -539,60 +471,6 @@ function onWorkaroundSource(shown: YanhektLiveStreamKind, event: Event): void {
   background: none;
   font: inherit;
   font-size: 12px;
-}
-
-.workaround-separator {
-  /* The row above leaves 16px; the last row below adds 6px of its own. */
-  margin: 0 0 10px;
-  border-top: 1px solid var(--border-color);
-}
-
-.workaround-map {
-  margin-top: 10px;
-  padding: 10px 12px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-subtle);
-}
-
-.workaround-map.is-off {
-  opacity: 0.55;
-}
-
-.workaround-head,
-.workaround-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 1.25rem minmax(9.5rem, 14rem);
-  align-items: center;
-  column-gap: 8px;
-}
-
-.workaround-head {
-  margin-bottom: 8px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.workaround-head span:last-child {
-  grid-column: 3;
-}
-
-.workaround-row + .workaround-row {
-  margin-top: 8px;
-}
-
-.workaround-row .setting-label {
-  margin: 0;
-}
-
-.workaround-arrow {
-  color: var(--text-muted);
-  text-align: center;
-}
-
-.workaround-row .select-field {
-  width: 100%;
-  min-width: 0;
 }
 
 .directory-input {

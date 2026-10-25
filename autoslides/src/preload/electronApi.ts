@@ -13,7 +13,6 @@
  */
 import type {
   AppConfig,
-  YanhektLiveWorkaroundConfig,
   Yanhe2CaptionMode,
   ConnectionMode,
   CampusProbeResult,
@@ -80,9 +79,6 @@ import type {
   SubscriptionListResponse,
   CourseInfoResponse,
   CourseDetailResponse,
-  CourseSnapshotPage,
-  CourseSnapshotTerm,
-  CourseSnapshotImportResult,
   SessionDownloadInfo,
   SemesterOption,
 } from '../shared/apiTypes';
@@ -507,9 +503,6 @@ export interface ElectronAPI {
     setResumeFromServerProgressLectures: (enabled: boolean) => Promise<AppConfig>;
     setDeveloperMode: (enabled: boolean) => Promise<AppConfig>;
     setLogYanhektCatalog: (enabled: boolean) => Promise<AppConfig>;
-    setYanhektLiveWorkaround: (value: YanhektLiveWorkaroundConfig) => Promise<AppConfig>;
-    setYanhektCourseSnapshotSearch: (enabled: boolean) => Promise<AppConfig>;
-    setCourseSnapshotPickerTerms: (terms: string[]) => Promise<AppConfig>;
     setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;
     getAutoPostProcessingLive: () => Promise<boolean>;
@@ -650,12 +643,6 @@ export interface ElectronAPI {
     getLiveSessionId: (liveId: string, token: string) => Promise<string | null>;
     /** One course's `/v1/course` detail, no session list. Anonymous-ok. */
     getCourseDetail: (courseId: string, token: string) => Promise<CourseDetailResponse>;
-    /** Temporary: one page of the bundled earlier-term course list. Null when the term is not in it. */
-    searchCourseSnapshot: (term: string, keyword: string, page?: number, pageSize?: number) => Promise<CourseSnapshotPage | null>;
-    /** Temporary: every course snapshot term (built-in and imported), newest first. */
-    listCourseSnapshotTerms: () => Promise<CourseSnapshotTerm[]>;
-    /** Temporary: pick snapshot files and import them. Null when the picker was cancelled. */
-    importCourseSnapshot: () => Promise<CourseSnapshotImportResult | null>;
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
     /** Mic-audio URL for one video id (GET /v1/video). Absent when the room recorded no mic. */
     getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;

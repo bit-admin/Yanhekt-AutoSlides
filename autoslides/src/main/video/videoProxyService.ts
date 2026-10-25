@@ -18,7 +18,6 @@ import { handleYanhe2SlideImageRequest } from './videoProxy/yanhe2SlideImage';
 import { YANHE2_PLAY_ROUTE, YANHE2_SLIDE_ROUTE, yanhe2PlayProxyUrl, yanhe2SlideProxyUrl } from './videoProxy/yanhe2PlayUrls';
 import type { Yanhe2PlayIdentity } from '@main/platform/yanhe2/yanhe2Playback';
 import { createLogger } from '@main/infra/logger';
-import { relabelYanhektLiveStreams, yanhektLiveUrlsMatchContract } from '@common/yanhektLiveWorkaround';
 import { IntranetAgentPool, intranetTarget, isConnectionFailure } from '@main/infra/intranetTransport';
 const log = createLogger('VideoProxy');
 
@@ -387,26 +386,6 @@ export class VideoProxyService {
             original_url: fixedTargetRoom
           };
         }
-      }
-
-      // Yanhekt live only. Recorded playback and Yanhe 2.0 never come through here.
-      // A response whose playlist names are already Video1, VGA, and Video2 is
-      // the documented contract, so the relabel must not touch it.
-      const workaround = this.configService.getYanhektLiveWorkaround();
-      const urlsMatch = yanhektLiveUrlsMatchContract({
-        target: stream.target,
-        target_vga: stream.target_vga,
-        target_room: stream.target_room,
-      });
-      if (workaround.enabled && urlsMatch) {
-        log.debug('Yanhekt live workaround left this response: the URLs already say Video1, VGA, and Video2');
-      }
-      const relabeled = workaround.enabled && !urlsMatch
-        ? relabelYanhektLiveStreams(result.streams, workaround)
-        : result.streams;
-      if (relabeled !== result.streams) {
-        log.debug(`Yanhekt live workaround v${workaround.version}: screen<=${workaround.screen} camera<=${workaround.camera} room<=${workaround.room}`);
-        result.streams = relabeled;
       }
 
       return result;
