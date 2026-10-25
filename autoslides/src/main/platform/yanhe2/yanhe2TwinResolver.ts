@@ -10,6 +10,13 @@
  *
  * It also finds a whole course on the other site, in either direction, for the
  * session pages' "find this course on …" button.
+ *
+ * A Yanhekt course is found by registrar code (Yanhe 2.0 `kcwybm`) or id
+ * through `CourseLookup`, in the course's own term (aita's `kkxn` + `kkxq`):
+ * the current term from the source Settings → General → Search names for it
+ * (Yanhekt's list by default), an earlier term from the course index (this
+ * computer, then online). Yanhekt's own list search covers the current term
+ * only (since 2026-10), so earlier terms need the index.
  */
 import axios from 'axios';
 import type { CourseData, SessionData } from '@common/apiTypes';
@@ -18,9 +25,11 @@ import type { Yanhe2CourseTwinResult, YanhektCourseTwinResult } from '@common/ya
 import type { Yanhe2SubtitleTarget } from '@common/yanhe2Subtitles';
 import type { ApiClient } from '../apiClient';
 import type { ConfigService } from '../configService';
+import type { CourseLookup } from '../courseIndex/courseLookup';
+import { termKeyOf } from '@common/searchSources';
 import { createLogger } from '@main/infra/logger';
 import type { Yanhe2Service } from './yanhe2Service';
-import { pickTwinCourse, pickTwinSession } from './yanhe2Twin';
+import { pickTwinSession } from './yanhe2Twin';
 
 const log = createLogger('Yanhe2Twin');
 
@@ -85,23 +94,23 @@ export class Yanhe2TwinResolver {
     private readonly yanhe2Service: Yanhe2Service,
     private readonly apiClient: ApiClient,
     private readonly configService: ConfigService,
+    private readonly courseLookup: CourseLookup,
   ) {}
 
   /** `query` is the renderer's `{ courseId, subId }` (aita ids), checked by the service. */
   async find(account: string, query: unknown): Promise<Yanhe2TwinFound> {
     const key = await this.yanhe2Service.getTwinKey(account, query);
     if (key.kind !== 'ok') return { kind: key.kind };
-    const { courseCode, startAt } = key.data;
+    const { courseCode, startAt, term } = key.data;
 
     let course: CourseData | null = null;
     let session: SessionData | null = null;
-    // Without a sign-in the session list is empty, so there is nothing to ask: Yanhe 2.0's names stand.
+    // Without a sign-in the session list is empty, so the session is not looked for: Yanhe 2.0's names stand.
     const token = this.configService.getAuthToken();
-    if (token && courseCode) {
+    if (courseCode) {
       try {
-        const listed = await this.apiClient.getCourseList(token, { keyword: courseCode, page: 1, pageSize: 16 });
-        course = pickTwinCourse(listed.data ?? [], courseCode);
-        if (course && startAt) {
+        course = await this.courseLookup.findCourse({ number: courseCode }, term, token);
+        if (course && startAt && token) {
           session = pickTwinSession(await this.apiClient.getCourseSessions(String(course.id), token), startAt);
         }
       } catch (error) {
@@ -145,8 +154,8 @@ export class Yanhe2TwinResolver {
     const token = this.configService.getAuthToken();
     if (!token) return { kind: 'yanhekt_signed_out' };
     try {
-      const listed = await this.apiClient.getCourseList(token, { keyword: courseCode, page: 1, pageSize: 16 });
-      const course = pickTwinCourse(listed.data ?? [], courseCode);
+      const term = termKeyOf(detail.data.schoolYear, detail.data.semester);
+      const course = await this.courseLookup.findCourse({ number: courseCode }, term, token);
       return course ? { kind: 'ok', data: course } : { kind: 'no_match' };
     } catch (error) {
       return this.missOf(error);
@@ -155,9 +164,10 @@ export class Yanhe2TwinResolver {
 
   /**
    * Yanhekt → Yanhe 2.0: the Yanhe 2.0 course with this Yanhekt course's
-   * number. The Yanhekt list row is read here by id, so a course opened from a
-   * pin (an id and a title, nothing else) is found the same way; then Yanhe 2.0
-   * is searched by name in that term (`fetchYanhe2CourseByCode`).
+   * number. The course is found here by id (`CourseLookup.locate`), so a
+   * course opened from a pin (an id and a title, nothing else) is found the
+   * same way, in any term; then Yanhe 2.0 is searched by name in that term
+   * (`fetchYanhe2CourseByCode`).
    * `query` is the renderer's `{ courseId }` (Yanhekt id).
    */
   async findYanhe2Course(account: string, query: unknown): Promise<Yanhe2CourseTwinResult> {
@@ -166,24 +176,33 @@ export class Yanhe2TwinResolver {
     const token = this.configService.getAuthToken();
     if (!token) return { kind: 'yanhekt_signed_out' };
 
-    let row: CourseData | undefined;
+    let key: { courseCode: string; title: string; teachers: string[]; termName: string } | null = null;
     try {
-      // The keyword also matches numbers, codes and teacher badges, so the id is checked.
-      const listed = await this.apiClient.getCourseList(token, { keyword: courseId, page: 1, pageSize: 16 });
-      row = (listed.data ?? []).find((course) => String(course.id) === courseId);
+      const located = await this.courseLookup.locate({ id: courseId }, null, token);
+      if (located?.kind === 'yanhekt') {
+        const row = located.course;
+        if (row.number !== undefined && row.number !== null && String(row.number) !== '') {
+          key = {
+            courseCode: String(row.number),
+            title: row.name_zh ?? '',
+            teachers: Array.isArray(row.professors) ? row.professors : [],
+            termName: `${row.school_year ?? ''}-${row.semester ?? ''}`,
+          };
+        }
+      } else if (located?.kind === 'index' && located.row.number) {
+        key = {
+          courseCode: located.row.number,
+          title: located.row.name,
+          teachers: located.row.teachers,
+          termName: located.row.term ?? '',
+        };
+      }
     } catch (error) {
       return this.missOf(error);
     }
-    if (!row || row.number === undefined || row.number === null || String(row.number) === '') {
-      return { kind: 'no_match' };
-    }
+    if (!key) return { kind: 'no_match' };
 
-    const found = await this.yanhe2Service.findCourseByCode(account, {
-      courseCode: String(row.number),
-      title: row.name_zh ?? '',
-      teachers: Array.isArray(row.professors) ? row.professors : [],
-      termName: `${row.school_year ?? ''}-${row.semester ?? ''}`,
-    });
+    const found = await this.yanhe2Service.findCourseByCode(account, key);
     if (found.kind !== 'ok') return { kind: found.kind };
     return found.data ? { kind: 'ok', data: found.data } : { kind: 'no_match' };
   }

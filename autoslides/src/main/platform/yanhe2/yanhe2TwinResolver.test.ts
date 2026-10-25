@@ -7,7 +7,7 @@ import { yanhe2SessionTitle } from './yanhe2Twin';
 
 // 2026-09-21 15:15 Beijing.
 const START = Date.UTC(2026, 8, 21, 7, 15) / 1000;
-const KEY = { courseCode: 'K-0001', startAt: START, courseTitle: '泛函分析', sessionTitle: '2026-09-21 第8-10节' };
+const KEY = { courseCode: 'K-0001', startAt: START, term: '2026-2027-1', courseTitle: '泛函分析', sessionTitle: '2026-09-21 第8-10节' };
 const COURSE = { id: 80101, number: 'K-0001', name_zh: '泛函分析（Yanhekt）' };
 const SESSION = { session_id: 900101, title: '第4周 星期一 第5大节', started_at: '2026-09-21 15:15:00' };
 
@@ -21,8 +21,20 @@ function resolver(options: { token?: string; courses?: unknown[]; sessions?: unk
     getCourseSessions: vi.fn(async () => options.sessions ?? [SESSION]),
   };
   const configService = { getAuthToken: () => ('token' in options ? options.token : 'cbiz-token') };
-  return new Yanhe2TwinResolver(yanhe2Service as never, apiClient as never, configService as never);
+  // As CourseLookup does for the current term with the Yanhekt source: the list, the code checked.
+  const courseLookup = {
+    findCourse: vi.fn(async (by: { number: string }, _term: string | null, token: string | null) => {
+      if (!token) return null;
+      const listed = await apiClient.getCourseList();
+      const rows = (listed.data as Array<{ number?: string }>).filter((row) => row.number === by.number);
+      return rows.length === 1 ? rows[0] : null;
+    }),
+  };
+  lastLookup = courseLookup;
+  return new Yanhe2TwinResolver(yanhe2Service as never, apiClient as never, configService as never, courseLookup as never);
 }
+
+let lastLookup: { findCourse: ReturnType<typeof vi.fn> } | null = null;
 
 const query = { courseId: '1', subId: '2' };
 
@@ -41,6 +53,8 @@ describe('yanhe2SessionTitle', () => {
 describe('Yanhe2TwinResolver.find', () => {
   it('names the Yanhekt course and session when both are found', async () => {
     const found = await resolver().find('1120000000', query);
+    // The course is looked up by code, in the Yanhe 2.0 course's own term.
+    expect(lastLookup?.findCourse).toHaveBeenCalledWith({ number: 'K-0001' }, '2026-2027-1', 'cbiz-token');
     expect(found.kind === 'ok' && found.data.target).toEqual({
       courseId: '80101', courseTitle: '泛函分析（Yanhekt）', sessionId: '900101', sessionTitle: '第4周 星期一 第5大节',
     });

@@ -4,34 +4,33 @@
  * `metadata.json` keeps the number (Yanhekt `number`, Yanhe 2.0 `kcwybm`) for
  * every extraction, but most writers only hold the course id: the renderer's
  * `Course` does not carry `number`, nor do pins, live rows or download rows.
- * So the metadata writer asks here and adds it afterwards. One list call
- * (`/v2/course/list?keyword=<id>`, the same one the course-twin lookup uses),
- * the id checked on the row, answers remembered for the session.
+ * So the metadata writer asks here and adds it afterwards. The course is found
+ * by id where Settings → General → Search says to look (`CourseLookup.locate`:
+ * Yanhekt's list for the current term, the course index on this computer or
+ * online for any term); answers are remembered for the session.
  */
-import type { ApiClient } from './apiClient';
 import type { ConfigService } from './configService';
+import type { CourseLookup } from './courseIndex/courseLookup';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('CourseNumber');
 
 export class CourseNumberLookup {
-  /** Course id → its number ('' when Yanhekt has none). Failures are not kept. */
+  /** Course id → its number ('' when it has none). Failures are not kept. */
   private readonly known = new Map<string, Promise<string>>();
 
   constructor(
-    private readonly apiClient: ApiClient,
+    private readonly courseLookup: CourseLookup,
     private readonly configService: ConfigService,
   ) {}
 
-  /** The number, or null when it cannot be had now (no sign-in, no answer, no such course). */
+  /** The number, or null when it cannot be had now (no answer, no such course). */
   async numberOf(courseId: string): Promise<string | null> {
     if (!/^\d{1,12}$/.test(courseId)) return null;
-    const token = this.configService.getAuthToken();
-    if (!token) return null;
 
     let pending = this.known.get(courseId);
     if (!pending) {
-      pending = this.ask(token, courseId);
+      pending = this.ask(courseId);
       this.known.set(courseId, pending);
       pending.catch(() => this.known.delete(courseId));
     }
@@ -43,11 +42,10 @@ export class CourseNumberLookup {
     }
   }
 
-  private async ask(token: string, courseId: string): Promise<string> {
-    // The keyword also matches numbers, codes and teacher badges, so the id is checked.
-    const listed = await this.apiClient.getCourseList(token, { keyword: courseId, page: 1, pageSize: 16 });
-    const row = (listed.data ?? []).find((course) => String(course.id) === courseId);
-    const value = row?.number;
+  private async ask(courseId: string): Promise<string> {
+    const found = await this.courseLookup.locate({ id: courseId }, null, this.configService.getAuthToken());
+    if (!found) throw new Error(`course ${courseId} not found`);
+    const value = found.kind === 'yanhekt' ? found.course.number : found.row.number;
     return value === undefined || value === null ? '' : String(value);
   }
 }

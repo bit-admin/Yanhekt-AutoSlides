@@ -41,6 +41,8 @@
     "web/frontend/src/composables/video/useVideoErrorRecovery.ts": "06ff57b3e6682ae889720f581353856ecdd4d18ad140867ad9e059b9cf3b1bb1",
     "autoslides/src/renderer/shared/services/requestCache.ts": "993cd56370b9a07c6cfdf37387f302edd0fcc0ed0284d29cd179e7edc26dec01",
     "web/frontend/src/lib/requestCache.ts": "2e2c3f221b74fb43c13122c08360509b46623e00fd2a192c0c5c378811fbb867",
+    "autoslides/src/main/platform/courseIndex/localSearch.ts": "f2f654c074cd1964fdc57689c9d99334d0d05c2d22ef7706412680eb551816b8",
+    "share/src/api/searchRank.ts": "657df981c876e8b6d30f1ff1af64dac82c85c6451d406468cd6734d0c7743531",
     "autoslides/src/shared/crypto.ts": "5ae08680ca466835c5b25b2854b124e9ae1ce0977d311484031b6bfffb0a8410",
     "web/src/lib/yanhektSignature.ts": "c31b6a2f7b0d9c3e514a2ed26c1c0f5646a8a14f37700a75d56253150b12a975",
     "relay/src/yanhekt.ts": "1a5fccedaafa1bcdaaf1d00189630bb18aa033f89ef54fdecda0378ae775f18b"

@@ -17,6 +17,7 @@ import type {
   SessionData,
   CourseInfoResponse,
   CourseDetailResponse,
+  CourseIndexSearchResult,
 } from '@shared/services/apiClient'
 import type {
   EditorJsBlock,
@@ -154,6 +155,21 @@ export function demoRecordedCourses(): CourseListResponse {
     per_page: data.length,
     total: data.length,
   }
+}
+
+/**
+ * The course index, fabricated: every demo course ran in every term. Never
+ * real index data, so demo screenshots stay clean.
+ */
+export function demoCourseIndexSearch(term: string, keyword: string, page: number, pageSize: number): CourseIndexSearchResult {
+  const words = keyword.toLowerCase().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return { ok: true, source: 'local', term, total: 0, page: 1, lastPage: 1, courses: [] }
+  const rows = DEMO_COURSES
+    .filter((c) => words.every((w) => c.title.toLowerCase().includes(w) || c.professor.toLowerCase().includes(w)))
+    .map((c) => ({ id: c.id, name: c.title, number: null, term, teachers: [c.professor] }))
+  const lastPage = Math.max(1, Math.ceil(rows.length / pageSize))
+  const at = Math.min(Math.max(1, page), lastPage)
+  return { ok: true, source: 'local', term, total: rows.length, page: at, lastPage, courses: rows.slice((at - 1) * pageSize, at * pageSize) }
 }
 
 // Build an ISO datetime relative to now, offset by `dayOffset` days, at a fixed hour.

@@ -79,6 +79,8 @@ const GROUPS = [
   pair('displayNames', 'autoslides/src/renderer/shared/i18n/displayNames.ts', 'web/frontend/src/i18n/displayNames.ts'),
   pair('videoErrorRecovery', 'autoslides/src/renderer/features/video/useVideoErrorRecovery.ts', 'web/frontend/src/composables/video/useVideoErrorRecovery.ts'),
   pair('requestCache', 'autoslides/src/renderer/shared/services/requestCache.ts', 'web/frontend/src/lib/requestCache.ts'),
+  // The app's local search matches and orders like the online Index.
+  pair('courseIndexSearch', 'autoslides/src/main/platform/courseIndex/localSearch.ts', 'share/src/api/searchRank.ts'),
   {
     // The signing code only. share/ and indexer/ send just the finished
     // client signature as hardcoded hex, pinned by golden-vector tests.
@@ -97,6 +99,8 @@ const IDENTICAL = [
   // The app opens the release files the indexer seals and signs.
   ['indexer/src/seal.ts', 'autoslides/src/main/platform/courseIndex/seal.ts'],
   ['indexer/src/clientIndex.ts', 'autoslides/src/main/platform/courseIndex/clientIndex.ts'],
+  // The app searches its local copy with the same word splitting as the Index.
+  ['indexer/src/grams.ts', 'autoslides/src/main/platform/courseIndex/grams.ts'],
 ];
 
 function read(path) {

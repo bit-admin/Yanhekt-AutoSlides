@@ -11,6 +11,7 @@
  * `yanhe2SessionExpiry`, and reads the JWT back only for the Settings field
  * (`getJwt`). Callers broadcast config after a change.
  */
+import { termKeyOf } from '@common/searchSources';
 import { session } from 'electron';
 import type { Yanhe2SessionState, Yanhe2SignInResult } from '@common/yanhe2';
 import {
@@ -269,7 +270,8 @@ export class Yanhe2Service {
       subTitle = subTitle || sub.data.subTitle;
       courseTitle = courseTitle || sub.data.title;
     }
-    return { kind: 'ok', data: { courseCode, startAt, courseTitle, sessionTitle: yanhe2SessionTitle(startAt, subTitle) } };
+    const term = termKeyOf(detail.data.schoolYear, detail.data.semester);
+    return { kind: 'ok', data: { courseCode, startAt, term, courseTitle, sessionTitle: yanhe2SessionTitle(startAt, subTitle) } };
   }
 
   /** One session's speech-recognition transcript, in time order; empty when it has none. */

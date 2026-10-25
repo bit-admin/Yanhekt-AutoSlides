@@ -129,6 +129,7 @@ describe('a command sent to the app', () => {
       configService: { getConfig: () => ({ allowCliControl: allow }) } as never,
       settings: {} as never,
       apiClient: {} as never,
+      courseLookup: {} as never,
       renderer: {} as never,
       commands: { echo },
     });

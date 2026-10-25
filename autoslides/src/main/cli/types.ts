@@ -1,4 +1,5 @@
 import type { ApiClient } from '@main/platform/apiClient';
+import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
@@ -10,6 +11,8 @@ export interface CliContext {
   version: string;
   configService: ConfigService;
   apiClient: ApiClient;
+  /** Course index search and lookups (Settings → General → Search; read only here). */
+  courseLookup: CourseLookup;
   intranetMappingService: IntranetMappingService;
   m3u8DownloadService: M3u8DownloadService;
   /** Where the running app listens for `autoslides` commands. */

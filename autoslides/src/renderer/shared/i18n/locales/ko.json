@@ -207,7 +207,7 @@
       "cliArgKeyword": "키워드",
       "cliArgCourse": "강의 링크 또는 ID",
       "cliArgToken": "토큰",
-      "cliUsageSearch": "강의 이름이나 강의 ID로 강의를 찾습니다. 로그인이 필요 없습니다.",
+      "cliUsageSearch": "코스 이름, 교수, 코스 ID로 코스를 찾습니다. 기본은 현재 학기이며 --term으로 2023년 가을 이후 어느 학기든 지정할 수 있습니다. 로그인할 필요가 없습니다.",
       "cliUsageMine": "수강 중인 강의를 나열합니다. AutoSlides 로그인을 사용합니다.",
       "cliUsageCourse": "강의를 표시하고 세션 목록을 보여 줍니다. 세션 목록에는 AutoSlides 로그인을 사용합니다.",
       "cliUsageSession": "세션 하나와 그 녹화를 표시합니다. 로그인이 필요 없습니다.",
@@ -684,7 +684,30 @@
     "developerModeDescription": "개발자 모드를 사용하면 자세한 로그가 기록됩니다.",
     "enableDeveloperMode": "개발자 모드 사용",
     "openLogFolder": "로그 폴더 열기",
-    "logYanhektCatalog": "Yanhekt 정보 기록"
+    "logYanhektCatalog": "Yanhekt 정보 기록",
+    "search": "검색",
+    "currentTermSource": "현재 학기",
+    "earlierTermSource": "이전 학기",
+    "searchSourceYanhekt": "Yanhekt 검색",
+    "searchSourceLocal": "이 컴퓨터의 코스 색인",
+    "searchSourceOnline": "AutoSlides 색인",
+    "searchSourceLocalThenOnline": "이 컴퓨터, 다음 AutoSlides 색인",
+    "searchSourceOnlineOnly": "AutoSlides 색인만",
+    "searchSourceYanhektDescription": "Yanhekt 자체 검색입니다. 관련이 적은 코스도 자주 함께 나옵니다.",
+    "searchSourceLocalDescription": "이 컴퓨터에 내려받은 코스 색인(어젯밤 기준)을 검색합니다. 「코스 색인 최신 상태 유지」가 필요합니다.",
+    "searchSourceOnlineDescription": "share.ruc.edu.kg의 AutoSlides 색인(어젯밤 기준)을 검색합니다. 연결이 필요합니다.",
+    "searchSourceLocalThenOnlineDescription": "이 컴퓨터의 코스 색인에 해당 학기가 있으면 사용하고, 없으면 AutoSlides 색인을 사용합니다. 코스 페이지와 코스 조회는 이 컴퓨터에 답이 없을 때 AutoSlides 색인에 묻습니다.",
+    "searchSourceOnlineOnlyDescription": "항상 AutoSlides 색인에 묻습니다. 이 컴퓨터에서는 아무것도 읽지 않습니다.",
+    "courseIndexAutoUpdate": "코스 색인 최신 상태 유지",
+    "courseIndexAutoUpdateDescription": "현재 학기를 매일 내려받고, 바뀐 이전 학기도 내려받습니다. 캐시 지우기는 내려받은 데이터를 지우며, 앱에 포함된 사본은 남습니다.",
+    "currentTermLocalNeedsUpdates": "업데이트가 꺼져 있으면 현재 학기는 이미 내려받은 경우에만 이 컴퓨터에서 검색할 수 있습니다.",
+    "courseIndexHeld": "이 컴퓨터에 {count}개 학기, {date} 기준 데이터.",
+    "courseIndexNone": "이 컴퓨터에는 아직 코스 색인이 없습니다.",
+    "courseIndexChecked": "마지막 확인: {time}.",
+    "courseIndexCheckFailed": "마지막 확인 실패: {error}",
+    "courseIndexNoKey": "이 빌드에는 코스 색인 키가 없어 이 컴퓨터의 코스 색인이 꺼져 있습니다.",
+    "courseIndexCheckNow": "지금 확인",
+    "courseIndexChecking": "확인 중…"
   },
   "courses": {
     "title": {
@@ -1542,8 +1565,6 @@
     }
   },
   "searchPage": {
-    "earlierTermTitle": "이전 학기는 아직 여기에서 검색할 수 없습니다",
-    "earlierTermHint": "이전 학기 검색은 곧 여기에서 제공됩니다. 지금은 AutoSlides Web에서 검색하세요.",
     "semesterFall": "{year}년 가을학기",
     "semesterSpring": "{year}년 봄학기",
     "termRangeFall": "{range} 가을학기",
@@ -1566,7 +1587,15 @@
       "opening": "여는 중…",
       "invalid": "숫자 또는 https://www.yanhekt.cn/session/901560 같은 옌허커탕 강의·세션 링크를 입력하세요.",
       "sessionFailed": "세션 {id}을(를) 열 수 없습니다. ID와 연결을 확인하세요. 아직 녹화가 없는 세션은 열 수 없습니다."
-    }
+    },
+    "indexTypeTitle": "코스 이름이나 교수 이름을 입력하세요",
+    "indexTypeHint": "이 학기는 코스 색인에서 검색합니다. 코스 이름, 교수, 코스 ID, 코스 코드로 찾을 수 있습니다.",
+    "indexLocalMissingTitle": "이 학기는 이 컴퓨터에 없습니다",
+    "indexLocalMissingHint": "설정 → 일반 → 검색에서 「코스 색인 최신 상태 유지」를 켜거나 거기서 AutoSlides 색인을 선택하세요.",
+    "indexOnlineTermTitle": "AutoSlides 색인은 아직 이 학기를 다루지 않습니다",
+    "indexOnlineTermHint": "다른 학기를 선택하세요.",
+    "indexOnlineFailedTitle": "AutoSlides 색인이 응답하지 않았습니다",
+    "indexOnlineFailedHint": "연결을 확인하고 다시 시도하거나, 이 컴퓨터의 코스 색인을 검색하세요(설정 → 일반 → 검색)."
   },
   "tabs": {
     "info": "정보",

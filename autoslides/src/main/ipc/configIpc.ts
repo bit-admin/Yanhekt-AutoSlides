@@ -22,7 +22,8 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     aiPromptsService,
     windowManager,
     localRelayService,
-    yanhektCatalogStore
+    yanhektCatalogStore,
+    courseIndexUpdater,
   } = services;
 
   const broadcastConfig = (): void => broadcastConfigSnapshot(configService);
@@ -160,6 +161,19 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setResumeFromServerProgressLectures', async (_event, enabled: boolean) => {
     configService.setResumeFromServerProgressLectures(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  // Settings → General → Search. Turning updates on or off starts or stops the updater.
+  ipcMain.handle('config:setSearchSettings', async (_event, patch: unknown) => {
+    const p = (patch && typeof patch === 'object' ? patch : {}) as Record<string, unknown>;
+    configService.setSearchSettings({
+      currentTermSource: p.currentTermSource,
+      earlierTermSource: p.earlierTermSource,
+      courseIndexAutoUpdate: p.courseIndexAutoUpdate,
+    });
+    courseIndexUpdater.applyConfig();
     broadcastConfig();
     return configService.getConfig();
   });

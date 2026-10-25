@@ -25,7 +25,10 @@ import type {
   CropEntry,
   PinnedCourse,
   StoredAccount,
+  CurrentTermSearchSource,
+  EarlierTermSearchSource,
 } from '../shared/types';
+import type { CourseIndexSearchResult, CourseIndexStatus } from '../shared/courseIndexTypes';
 import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
 import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../shared/obsidianNotesTypes';
 import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/notionNotesTypes';
@@ -534,6 +537,12 @@ export interface ElectronAPI {
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
+    /** Settings → General → Search; omitted fields keep their value. */
+    setSearchSettings: (patch: {
+      currentTermSource?: CurrentTermSearchSource;
+      earlierTermSource?: EarlierTermSearchSource;
+      courseIndexAutoUpdate?: boolean;
+    }) => Promise<AppConfig>;
     setRememberPassword: (enabled: boolean) => Promise<AppConfig>;
     setAutoSignIn: (enabled: boolean) => Promise<AppConfig>;
     setYanhe2SignInWithMain: (enabled: boolean) => Promise<AppConfig>;
@@ -643,6 +652,12 @@ export interface ElectronAPI {
     getLiveSessionId: (liveId: string, token: string) => Promise<string | null>;
     /** One course's `/v1/course` detail, no session list. Anonymous-ok. */
     getCourseDetail: (courseId: string, token: string) => Promise<CourseDetailResponse>;
+    /** One page of a course index search in one term, from the source Settings → Search picks. */
+    searchCourseIndex: (term: string, keyword: string, page?: number, pageSize?: number) => Promise<CourseIndexSearchResult>;
+    /** What the course index on this computer holds, and its update state. */
+    getCourseIndexStatus: () => Promise<CourseIndexStatus>;
+    /** Check the index release now; resolves with the new status. */
+    updateCourseIndex: () => Promise<CourseIndexStatus>;
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
     /** Mic-audio URL for one video id (GET /v1/video). Absent when the room recorded no mic. */
     getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;

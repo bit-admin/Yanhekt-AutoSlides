@@ -207,7 +207,7 @@
       "cliArgKeyword": "キーワード",
       "cliArgCourse": "コースのリンクまたは ID",
       "cliArgToken": "トークン",
-      "cliUsageSearch": "コース名またはコース ID でコースを検索します。サインインは不要です。",
+      "cliUsageSearch": "コース名、教員、コース ID でコースを探します。既定は今学期で、--term で 2023 年秋以降の任意の学期を指定できます。サインイン不要です。",
       "cliUsageMine": "履修しているコースを一覧にします。AutoSlides のサインインを使います。",
       "cliUsageCourse": "コースを表示し、そのセッションを一覧にします。一覧の取得には AutoSlides のサインインを使います。",
       "cliUsageSession": "1 つのセッションと、その録画を表示します。サインインは不要です。",
@@ -684,7 +684,30 @@
     "developerModeDescription": "開発者モードを有効にすると、詳細なログを記録します。",
     "enableDeveloperMode": "開発者モードを有効にする",
     "openLogFolder": "ログフォルダを開く",
-    "logYanhektCatalog": "延河課堂の情報を記録"
+    "logYanhektCatalog": "延河課堂の情報を記録",
+    "search": "検索",
+    "currentTermSource": "今学期",
+    "earlierTermSource": "過去の学期",
+    "searchSourceYanhekt": "延河課堂の検索",
+    "searchSourceLocal": "このコンピューターのコース索引",
+    "searchSourceOnline": "AutoSlides 索引",
+    "searchSourceLocalThenOnline": "このコンピューター、次に AutoSlides 索引",
+    "searchSourceOnlineOnly": "AutoSlides 索引のみ",
+    "searchSourceYanhektDescription": "延河課堂自身の検索です。関連の薄いコースもよく含まれます。",
+    "searchSourceLocalDescription": "このコンピューターにダウンロードしたコース索引（昨夜時点）を検索します。「コース索引を最新に保つ」が必要です。",
+    "searchSourceOnlineDescription": "share.ruc.edu.kg の AutoSlides 索引（昨夜時点）を検索します。接続が必要です。",
+    "searchSourceLocalThenOnlineDescription": "このコンピューターのコース索引にその学期があれば使い、なければ AutoSlides 索引を使います。コースページとコース照会は、このコンピューターに答えがないとき AutoSlides 索引に問い合わせます。",
+    "searchSourceOnlineOnlyDescription": "常に AutoSlides 索引に問い合わせます。このコンピューターからは何も読みません。",
+    "courseIndexAutoUpdate": "コース索引を最新に保つ",
+    "courseIndexAutoUpdateDescription": "今学期を毎日ダウンロードし、変更のあった過去の学期もダウンロードします。キャッシュを消去するとダウンロード分は削除され、アプリ同梱のコピーは残ります。",
+    "currentTermLocalNeedsUpdates": "更新がオフの場合、今学期はダウンロード済みのときだけこのコンピューターで検索できます。",
+    "courseIndexHeld": "このコンピューターに {count} 学期、{date} 時点のデータ。",
+    "courseIndexNone": "このコンピューターにはまだコース索引がありません。",
+    "courseIndexChecked": "最終確認：{time}。",
+    "courseIndexCheckFailed": "前回の確認に失敗しました：{error}",
+    "courseIndexNoKey": "このビルドにはコース索引の鍵がないため、このコンピューターのコース索引はオフです。",
+    "courseIndexCheckNow": "今すぐ確認",
+    "courseIndexChecking": "確認中…"
   },
   "courses": {
     "title": {
@@ -1542,8 +1565,6 @@
     }
   },
   "searchPage": {
-    "earlierTermTitle": "過去の学期はまだここで検索できません",
-    "earlierTermHint": "過去の学期は近日中にここで検索できるようになります。今は AutoSlides Web で検索してください。",
     "semesterFall": "{year}年秋学期",
     "semesterSpring": "{year}年春学期",
     "termRangeFall": "{range} 秋学期",
@@ -1566,7 +1587,15 @@
       "opening": "開いています…",
       "invalid": "数字、または https://www.yanhekt.cn/session/901560 のような延河課堂のコースまたはセッションのリンクを入力してください。",
       "sessionFailed": "セッション {id} を開けませんでした。ID と接続を確認してください。録画がまだないセッションは開けません。"
-    }
+    },
+    "indexTypeTitle": "コース名または教員名を入力してください",
+    "indexTypeHint": "この学期はコース索引で検索します。コース名、教員、コース ID、コースコードで探せます。",
+    "indexLocalMissingTitle": "この学期はこのコンピューターにありません",
+    "indexLocalMissingHint": "設定 → 一般 → 検索 で「コース索引を最新に保つ」をオンにするか、そこで AutoSlides 索引を選んでください。",
+    "indexOnlineTermTitle": "AutoSlides 索引はまだこの学期を扱っていません",
+    "indexOnlineTermHint": "別の学期を選んでください。",
+    "indexOnlineFailedTitle": "AutoSlides 索引から応答がありません",
+    "indexOnlineFailedHint": "接続を確認して再試行するか、このコンピューターのコース索引を検索してください（設定 → 一般 → 検索）。"
   },
   "tabs": {
     "info": "情報",

@@ -207,7 +207,7 @@
       "cliArgKeyword": "关键词",
       "cliArgCourse": "课程链接或 ID",
       "cliArgToken": "令牌",
-      "cliUsageSearch": "按课程名称或课程 ID 查找课程，无需登录。",
+      "cliUsageSearch": "按课程名称、教师或课程 ID 查找课程：默认当前学期，用 --term 可查 2023 年秋季以来的任一学期。无需登录。",
       "cliUsageMine": "列出你选修的课程。会使用你在 AutoSlides 中的登录。",
       "cliUsageCourse": "显示课程并列出其课节。列出课节会使用你在 AutoSlides 中的登录。",
       "cliUsageSession": "显示单个课节及其录像，无需登录。",
@@ -684,7 +684,30 @@
     "developerModeDescription": "启用开发者模式以记录详细日志。",
     "enableDeveloperMode": "启用开发者模式",
     "openLogFolder": "打开日志文件夹",
-    "logYanhektCatalog": "记录延河课堂信息"
+    "logYanhektCatalog": "记录延河课堂信息",
+    "search": "搜索",
+    "currentTermSource": "当前学期",
+    "earlierTermSource": "往期学期",
+    "searchSourceYanhekt": "延河课堂搜索",
+    "searchSourceLocal": "本机课程索引",
+    "searchSourceOnline": "AutoSlides 索引",
+    "searchSourceLocalThenOnline": "先本机，再 AutoSlides 索引",
+    "searchSourceOnlineOnly": "仅 AutoSlides 索引",
+    "searchSourceYanhektDescription": "延河课堂自己的搜索。结果里常有只是略微相关的课程。",
+    "searchSourceLocalDescription": "搜索下载到本机的课程索引（截至昨晚）。需要开启“保持课程索引最新”。",
+    "searchSourceOnlineDescription": "搜索 share.ruc.edu.kg 上的 AutoSlides 索引（截至昨晚）。需要联网。",
+    "searchSourceLocalThenOnlineDescription": "本机课程索引有该学期时使用本机，否则使用 AutoSlides 索引。课程页面和课程查找在本机找不到时会询问 AutoSlides 索引。",
+    "searchSourceOnlineOnlyDescription": "始终询问 AutoSlides 索引，不读取本机数据。",
+    "courseIndexAutoUpdate": "保持课程索引最新",
+    "courseIndexAutoUpdateDescription": "每天下载当前学期，以及有变化的往期学期。清除缓存会删除下载的数据；随应用附带的副本会保留。",
+    "currentTermLocalNeedsUpdates": "关闭更新后，只有已下载当前学期时才能在本机搜索当前学期。",
+    "courseIndexHeld": "本机有 {count} 个学期，数据截至 {date}。",
+    "courseIndexNone": "本机还没有课程索引。",
+    "courseIndexChecked": "上次检查：{time}。",
+    "courseIndexCheckFailed": "上次检查失败：{error}",
+    "courseIndexNoKey": "此版本没有课程索引密钥，本机课程索引不可用。",
+    "courseIndexCheckNow": "立即检查",
+    "courseIndexChecking": "正在检查…"
   },
   "courses": {
     "title": {
@@ -1542,8 +1565,6 @@
     }
   },
   "searchPage": {
-    "earlierTermTitle": "暂不能在这里搜索往期学期",
-    "earlierTermHint": "往期学期的搜索即将在这里提供。目前请在 AutoSlides Web 中搜索。",
     "semesterFall": "{year}年秋季学期",
     "semesterSpring": "{year}年春季学期",
     "termRangeFall": "{range} 秋季学期",
@@ -1566,7 +1587,15 @@
       "opening": "正在打开…",
       "invalid": "请输入数字，或延河课堂的课程、课时链接，例如 https://www.yanhekt.cn/session/901560。",
       "sessionFailed": "无法打开课时 {id}。请检查 ID 和网络连接。尚无录像的课时无法打开。"
-    }
+    },
+    "indexTypeTitle": "输入课程名或教师",
+    "indexTypeHint": "此学期在课程索引中搜索：可按课程名、教师、课程编号或课程代码查找。",
+    "indexLocalMissingTitle": "本机没有这个学期",
+    "indexLocalMissingHint": "请在 设置 → 一般 → 搜索 中开启“保持课程索引最新”，或在那里改用 AutoSlides 索引。",
+    "indexOnlineTermTitle": "AutoSlides 索引暂未收录这个学期",
+    "indexOnlineTermHint": "请选择其他学期。",
+    "indexOnlineFailedTitle": "AutoSlides 索引没有响应",
+    "indexOnlineFailedHint": "请检查网络后重试，或改为搜索本机课程索引（设置 → 一般 → 搜索）。"
   },
   "tabs": {
     "info": "课程信息",

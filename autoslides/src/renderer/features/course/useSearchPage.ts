@@ -6,6 +6,9 @@ import { openCourse } from './courseSelection'
 import { transformLiveStreamToCourse, transformCourseDataToCourse, type Course } from './useCourseList'
 import { hydrateLiveTitles } from './liveCourseTitles'
 import { getCurrentLocale } from '@shared/i18n'
+import { configStore } from '@shared/services/configStore'
+import { fillIndexCourses, indexRowToCourse } from './courseIndexSearch'
+import { isEarlierTermOption as isEarlierTerm, termKeyOfOption, termOptionsBackFrom } from '@common/termOptions'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('SearchPage');
 
@@ -34,49 +37,13 @@ const baseSemesters = ref<SemesterOption[]>([])
 const selectedSemesterIds = ref<number[]>([])
 const semesterInitialized = ref(false)
 /**
- * True while an earlier term is picked: Yanhekt's search covers only the
- * current term, and the course index search is not wired yet (TODO(index)).
+ * Why a course index search shows no grid: `type` before any keyword (the
+ * index has no "everything" listing), `local-missing` when the chosen copy on
+ * this computer lacks the term, `online-term` when the AutoSlides Index does
+ * not cover it, `online-failed` when it did not answer. Null otherwise.
  */
-const earlierTermBlocked = ref(false)
-
-/**
- * The oldest term the picker offers: autumn 2023, when this year's
- * fourth-year students started. The course index does not go further back.
- */
-const FIRST_TERM = { schoolYear: 2023, semester: 1 } as const
-
-/**
- * Earlier terms have no Yanhekt tag id (Yanhekt only names the current one), so
- * they get a negative picker id, `-(schoolYear * 10 + semester)`. A positive id
- * is the current term's Yanhekt tag id.
- */
-const isEarlierTerm = (id: number): boolean => id < 0
-
-/** A picker entry for an earlier term (negative id, see `isEarlierTerm`). */
-const earlierTermOption = (schoolYear: number, semester: number): SemesterOption => ({
-  id: -(schoolYear * 10 + semester),
-  label: `${schoolYear}-${schoolYear + 1} ${semester === 1 ? '第一学期' : '第二学期'}`,
-  labelEn: semester === 1 ? `${schoolYear} Fall` : `${schoolYear + 1} Spring`,
-  schoolYear,
-  semester,
-})
-
-/** The current term, then every earlier term back to FIRST_TERM, newest first. */
-const termsThrough = (current: SemesterOption): SemesterOption[] => {
-  const out = [current]
-  let { schoolYear, semester } = current
-  if (!schoolYear) return out
-  for (;;) {
-    if (semester === 2) semester = 1
-    else {
-      schoolYear -= 1
-      semester = 2
-    }
-    if (schoolYear < FIRST_TERM.schoolYear || (schoolYear === FIRST_TERM.schoolYear && semester < FIRST_TERM.semester)) break
-    out.push(earlierTermOption(schoolYear, semester))
-  }
-  return out
-}
+export type IndexNotice = 'type' | 'local-missing' | 'online-term' | 'online-failed'
+const indexNotice = ref<IndexNotice | null>(null)
 
 /** What the term picker lists: the current term back to 2023 Fall. */
 const availableSemesters = computed<SemesterOption[]>(() => baseSemesters.value)
@@ -110,7 +77,7 @@ const ensureSemesters = async () => {
   try {
     // Yanhekt names only the current term; earlier ones are listed from it.
     const [current] = await apiClient.getAvailableSemesters()
-    baseSemesters.value = current ? termsThrough(current) : []
+    baseSemesters.value = current ? termOptionsBackFrom(current) : []
   } catch (error) {
     log.error('Failed to load available semesters:', error)
   }
@@ -146,14 +113,17 @@ const executeSearch = async (resetPage = true) => {
   const seq = ++requestSeq
   errorMessage.value = ''
   hasSearched.value = true
-  earlierTermBlocked.value = false
+  indexNotice.value = null
 
-  // Earlier terms: Yanhekt's search covers only the current one, and the
-  // course index search is not wired yet (TODO(index)). `seq` above already
-  // made any in-flight search stale.
-  if (mode.value === 'recorded' && selectedSemesterIds.value.some(isEarlierTerm)) {
-    blockEarlierTerm()
-    return
+  // The course index answers earlier terms (Yanhekt's search covers only the
+  // current one), and the current term too when Settings → General → Search
+  // picks it over Yanhekt. `seq` above already made any in-flight search stale.
+  if (mode.value === 'recorded') {
+    const picked = availableSemesters.value.find((t) => t.id === selectedSemesterIds.value[0])
+    if (picked && (isEarlierTerm(picked.id) || configStore.currentTermSearchSource !== 'yanhekt')) {
+      await searchIndex(termKeyOfOption(picked), token, seq)
+      return
+    }
   }
 
   isLoading.value = true
@@ -191,14 +161,51 @@ const executeSearch = async (resetPage = true) => {
   }
 }
 
-/** Clear the grid and say that an earlier term cannot be searched yet. */
-const blockEarlierTerm = () => {
+/** Clear the grid and say why the index shows nothing. */
+const showIndexNotice = (notice: IndexNotice) => {
   results.value = []
   totalPages.value = 1
   currentPage.value = 1
   isLoading.value = false
-  earlierTermBlocked.value = true
+  indexNotice.value = notice
 }
+
+const searchIndex = async (term: string, token: string, seq: number) => {
+  const text = keyword.value.trim()
+  if (!text) {
+    showIndexNotice('type')
+    return
+  }
+  isLoading.value = true
+  try {
+    const answer = await apiClient.searchCourseIndex(term, text, currentPage.value, RESULTS_PER_PAGE)
+    if (seq !== requestSeq) return
+    if (!answer.ok) {
+      if (answer.reason === 'local-missing') showIndexNotice('local-missing')
+      else if (answer.code === 'term-not-indexed') showIndexNotice('online-term')
+      else if (answer.code === 'bad-param' || answer.code === 'term-required') results.value = []
+      else showIndexNotice('online-failed')
+      return
+    }
+    results.value = answer.courses.map((row) => indexRowToCourse(row, term))
+    totalPages.value = answer.lastPage
+    currentPage.value = answer.page
+    // Names and teachers show at once; the rest arrives card by card.
+    void fillIndexCourses(results.value, apiClient, token, () => seq === requestSeq)
+  } catch (error: unknown) {
+    if (seq !== requestSeq) return
+    log.error('Course index search failed:', error)
+    errorMessage.value = (error instanceof Error && error.message) || 'Failed to search courses'
+    results.value = []
+  } finally {
+    if (seq === requestSeq) isLoading.value = false
+  }
+}
+
+// A changed search source re-runs a recorded search in view.
+watch(() => [configStore.currentTermSearchSource, configStore.earlierTermSearchSource], () => {
+  if (hasSearched.value && mode.value === 'recorded') void executeSearch()
+})
 
 // Search-as-you-type: debounce while the Search page is active.
 watch(keyword, () => {
@@ -284,7 +291,7 @@ export function useSearchPage() {
     mode,
     availableSemesters,
     selectedSemesterIds,
-    earlierTermBlocked,
+    indexNotice,
     results,
     currentPage,
     totalPages,

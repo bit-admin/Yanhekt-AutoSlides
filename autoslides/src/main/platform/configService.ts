@@ -1,3 +1,9 @@
+import {
+  normalizeCurrentTermSearchSource,
+  normalizeEarlierTermSearchSource,
+  type CurrentTermSearchSource,
+  type EarlierTermSearchSource,
+} from '@common/searchSources';
 import ElectronStore from 'electron-store';
 import * as path from 'path';
 import { app, dialog } from 'electron';
@@ -331,6 +337,9 @@ export class ConfigService {
       localRelayIncludeCurrentToken: this.store.get('localRelayIncludeCurrentToken') ?? true,
       localRelayTokenWhitelist: this.store.get('localRelayTokenWhitelist') ?? [],
       accounts: this.store.get('accounts') ?? [],
+      currentTermSearchSource: this.getCurrentTermSearchSource(),
+      earlierTermSearchSource: this.getEarlierTermSearchSource(),
+      courseIndexAutoUpdate: this.getCourseIndexAutoUpdate(),
       rememberPassword: this.store.get('rememberPassword') ?? true,
       autoSignIn: this.store.get('autoSignIn') ?? true,
       yanhe2SignInWithMain: this.store.get('yanhe2SignInWithMain') ?? true,
@@ -626,6 +635,31 @@ export class ConfigService {
 
   setLogYanhektCatalog(enabled: boolean): void {
     this.store.set('logYanhektCatalog', enabled);
+  }
+
+  getCurrentTermSearchSource(): CurrentTermSearchSource {
+    return normalizeCurrentTermSearchSource(this.store.get('currentTermSearchSource'));
+  }
+
+  getEarlierTermSearchSource(): EarlierTermSearchSource {
+    return normalizeEarlierTermSearchSource(this.store.get('earlierTermSearchSource'));
+  }
+
+  getCourseIndexAutoUpdate(): boolean {
+    return this.store.get('courseIndexAutoUpdate') ?? true;
+  }
+
+  /** Settings → General → Search. Unknown values fall back to the defaults. */
+  setSearchSettings(patch: { currentTermSource?: unknown; earlierTermSource?: unknown; courseIndexAutoUpdate?: unknown }): void {
+    if (patch.currentTermSource !== undefined) {
+      this.store.set('currentTermSearchSource', normalizeCurrentTermSearchSource(patch.currentTermSource));
+    }
+    if (patch.earlierTermSource !== undefined) {
+      this.store.set('earlierTermSearchSource', normalizeEarlierTermSearchSource(patch.earlierTermSource));
+    }
+    if (typeof patch.courseIndexAutoUpdate === 'boolean') {
+      this.store.set('courseIndexAutoUpdate', patch.courseIndexAutoUpdate);
+    }
   }
 
   getRememberPassword(): boolean {

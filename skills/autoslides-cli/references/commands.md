@@ -6,11 +6,11 @@ Every command takes `--json` and `-h/--help`. `autoslides schema` and `yhdl sche
 
 | Command | Arguments and options | Sign-in | `data` with `--json` |
 |---|---|---|---|
-| `search <keyword…>` | `--term <term>` (e.g. `2025-2026-1`, a name from `terms`, or `all`), `--limit <1-100>` (default 20), `--page <n>` | yes | the courses found, with paging |
+| `search <keyword…>` | `--term <term>` (e.g. `2025-2026-1` or a name from `terms`; default the current term), `--limit <1-100>` (default 20), `--page <n>` | yes | the courses found, with paging, and `source`: `yanhekt`, `local` or `online` |
 | `mine` | `--limit`, `--page` | yes | the account's enrolled courses, plus `account: {name, badge}` |
 | `course <course id or link>` | `--no-sessions` | yes | the course, its `sessions` (each with `id`), plus `account` |
 | `session <session id or link>` | — | yes | the session and which recordings it has |
-| `terms` | — | yes | `{ terms }`, the values `search --term` accepts |
+| `terms` | — | yes | `{ terms }`, the values `search --term` accepts: the current term (`current: true`) and every earlier one back to `2023-2024-1` |
 | `whoami` | — | yes | `{ signed_in: true, account, badge }` |
 | `download <session…\|->` | `-s/--stream screen\|camera\|both` (default screen), `--course <id or link>`, `--dry-run`, `-f/--force`, `--no-wait` | yes | `{ output_dir, dry_run, waited, items: [Item] }` |
 | `downloads [action] [row…]` | actions `list` (default), `wait`, `cancel`, `retry`, `clear`; `--all` with cancel or retry | only `retry` | see below |
@@ -18,6 +18,10 @@ Every command takes `--json` and `-h/--help`. `autoslides schema` and `yhdl sche
 | `schema` | — | no | the full contract |
 
 With no arguments, `autoslides` just opens the app.
+
+### Where `search` looks
+
+The current term is searched on Yanhekt, unless the app's Settings > General > Search picks the course index for it. Earlier terms (back to `2023-2024-1`) always come from the course index: the copy on this computer, then the AutoSlides Index online (or online only, per that setting). Index results have no `title_en`, `college`, `classrooms` or `participants`; `course <id>` gives the details. A term the chosen index does not hold is `term_unavailable` (exit 3).
 
 ### `download` items
 

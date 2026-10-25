@@ -151,6 +151,12 @@ export class ApiClient {
   private cbiz: IntranetApiTransport;
   /** Developer-mode catalog. Null unless the desktop app turned it on. */
   private catalogSink: YanhektCatalogSink | null = null;
+  /**
+   * Session ids of a course when Yanhekt's session lists are empty: the
+   * online Index by default; main.ts hands in the course lookup (the course
+   * index on this computer, then the online Index, per Settings → Search).
+   */
+  private sessionIdSource: (courseId: string) => Promise<string[]> = indexSessionIds;
   /** Whether a fetched current term is saved for later fallback (off for command-line runs). */
   private saveSemesterCache = true;
 
@@ -573,7 +579,7 @@ export class ApiClient {
   private async sessionsFromIndex(courseId: string, token: string): Promise<SessionData[]> {
     let ids: string[];
     try {
-      ids = await indexSessionIds(courseId);
+      ids = await this.sessionIdSource(courseId);
     } catch (error: unknown) {
       log.warn('Index session list unavailable for course', courseId, error);
       return [];
@@ -891,6 +897,10 @@ export class ApiClient {
     }
 
     return { schoolYear, semester, labelEn };
+  }
+
+  setSessionIdSource(source: (courseId: string) => Promise<string[]>): void {
+    this.sessionIdSource = source;
   }
 
   /** A command-line run reads the cached current term but never writes it (a run never writes config). */

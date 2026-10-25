@@ -161,6 +161,9 @@ const advancedSettings = useAdvancedSettings(
     logYanhektCatalog: settings.logYanhektCatalog,
     rememberPassword: settings.rememberPassword,
     autoSignIn: settings.autoSignIn,
+    currentTermSearchSource: settings.currentTermSearchSource,
+    earlierTermSearchSource: settings.earlierTermSearchSource,
+    courseIndexAutoUpdate: settings.courseIndexAutoUpdate,
     yanhe2SignInWithMain: settings.yanhe2SignInWithMain,
     enableAIFiltering: settings.enableAIFiltering,
     tempEnableAIFiltering: settings.tempEnableAIFiltering

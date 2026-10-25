@@ -3,6 +3,9 @@
 //  - Trash and Crop manifest entries (consumed by main, renderer)
 
 import type { WatchNotesProviderId } from './watchNotesProviders';
+import type { CurrentTermSearchSource, EarlierTermSearchSource } from './searchSources';
+
+export type { CurrentTermSearchSource, EarlierTermSearchSource } from './searchSources';
 
 // Result of probing the campus authentication portal's online-status endpoint.
 export interface CampusProbeResult {
@@ -329,6 +332,15 @@ export interface AppConfig {
   // The active account is the one whose `token` equals the standalone `authToken`
   // electron-store key. Migrated from the legacy single-account fields.
   accounts: StoredAccount[];
+  // Settings → General → Search (@common/searchSources). Where the Search page,
+  // the CLI and course lookups find courses in the current term (one source,
+  // default Yanhekt) and in earlier terms (default: the course index on this
+  // computer, then the AutoSlides Index).
+  currentTermSearchSource: CurrentTermSearchSource;
+  earlierTermSearchSource: EarlierTermSearchSource;
+  // When true (default), the app keeps the course index on this computer up to
+  // date from the index release (courseIndexUpdater.ts).
+  courseIndexAutoUpdate: boolean;
   // When true (default), a successful SSO sign-in stores that account's username
   // and an OS-encrypted password, and the sign-in form offers them back. The
   // secrets themselves are not on AppConfig — ConfigService keeps them on a

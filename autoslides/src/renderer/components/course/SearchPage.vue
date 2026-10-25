@@ -159,9 +159,9 @@
       </div>
 
       <EmptySetState
-        v-else-if="!errorMessage && earlierTermBlocked"
-        :title="$t('searchPage.earlierTermTitle')"
-        :hint="$t('searchPage.earlierTermHint')"
+        v-else-if="!errorMessage && indexNotice"
+        :title="$t(INDEX_NOTICE_TEXT[indexNotice].title)"
+        :hint="$t(INDEX_NOTICE_TEXT[indexNotice].hint)"
       />
 
       <EmptySetState v-else-if="!errorMessage && hasSearched && results.length === 0" :title="$t('courses.noResults')" />
@@ -226,7 +226,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Yanhe2Course } from '@common/yanhe2Curriculum'
 import { navigationStore } from '@features/course/navigationStore'
-import { useSearchPage } from '@features/course/useSearchPage'
+import { useSearchPage, type IndexNotice } from '@features/course/useSearchPage'
 import { useOpenById } from '@features/course/useOpenById'
 import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
 import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@shared/i18n/displayNames'
@@ -246,6 +246,14 @@ import PageBanner from '../shell/PageBanner.vue'
 import PageErrorNotice from '../shell/PageErrorNotice.vue'
 import SignedOutPanel from '../shell/SignedOutPanel.vue'
 
+/** What a course index notice says (Settings → General → Search picks the source). */
+const INDEX_NOTICE_TEXT: Record<IndexNotice, { title: string; hint: string }> = {
+  type: { title: 'searchPage.indexTypeTitle', hint: 'searchPage.indexTypeHint' },
+  'local-missing': { title: 'searchPage.indexLocalMissingTitle', hint: 'searchPage.indexLocalMissingHint' },
+  'online-term': { title: 'searchPage.indexOnlineTermTitle', hint: 'searchPage.indexOnlineTermHint' },
+  'online-failed': { title: 'searchPage.indexOnlineFailedTitle', hint: 'searchPage.indexOnlineFailedHint' },
+}
+
 const { t } = useI18n()
 const { isLoggedIn } = useAuth()
 
@@ -254,7 +262,7 @@ const {
   mode,
   availableSemesters,
   selectedSemesterIds,
-  earlierTermBlocked,
+  indexNotice,
   results,
   currentPage,
   totalPages,

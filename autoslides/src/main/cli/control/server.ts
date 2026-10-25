@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import net from 'node:net';
 import type { ApiClient } from '@main/platform/apiClient';
+import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import type { ConfigService } from '@main/platform/configService';
 import { createLogger } from '@main/infra/logger';
 import type { AppCommand, AppCommandContext, AppSettingsWriter } from '../app/types';
@@ -25,6 +26,7 @@ export interface CliControlServerDeps {
   configService: ConfigService;
   settings: AppSettingsWriter;
   apiClient: ApiClient;
+  courseLookup: CourseLookup;
   renderer: RendererBridge;
   commands: Readonly<Record<string, AppCommand>>;
 }
@@ -125,6 +127,7 @@ export class CliControlServer {
       configService: this.deps.configService,
       settings: this.deps.settings,
       apiClient: this.deps.apiClient,
+      courseLookup: this.deps.courseLookup,
       renderer: this.deps.renderer,
       signal,
       term: {

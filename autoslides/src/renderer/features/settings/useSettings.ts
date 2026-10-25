@@ -1,3 +1,9 @@
+import {
+  normalizeCurrentTermSearchSource,
+  normalizeEarlierTermSearchSource,
+  type CurrentTermSearchSource,
+  type EarlierTermSearchSource,
+} from '@common/searchSources'
 import { ref, watch, type Ref } from 'vue'
 import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
 import { configStore } from '@shared/services/configStore'
@@ -27,6 +33,9 @@ export interface UseSettingsReturn {
   logYanhektCatalog: Ref<boolean>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
+  currentTermSearchSource: Ref<CurrentTermSearchSource>
+  earlierTermSearchSource: Ref<EarlierTermSearchSource>
+  courseIndexAutoUpdate: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
@@ -88,6 +97,9 @@ export function useSettings(): UseSettingsReturn {
   const logYanhektCatalog = ref(false)
   const rememberPassword = ref(true)
   const autoSignIn = ref(true)
+  const currentTermSearchSource = ref<CurrentTermSearchSource>('yanhekt')
+  const earlierTermSearchSource = ref<EarlierTermSearchSource>('local-then-online')
+  const courseIndexAutoUpdate = ref(true)
   const yanhe2SignInWithMain = ref(true)
   const enableAIFiltering = ref(true)
   const tempEnableAIFiltering = ref(true)
@@ -135,6 +147,9 @@ export function useSettings(): UseSettingsReturn {
       logYanhektCatalog.value = config.logYanhektCatalog ?? false
       rememberPassword.value = config.rememberPassword ?? true
       autoSignIn.value = config.autoSignIn ?? true
+      currentTermSearchSource.value = normalizeCurrentTermSearchSource(config.currentTermSearchSource)
+      earlierTermSearchSource.value = normalizeEarlierTermSearchSource(config.earlierTermSearchSource)
+      courseIndexAutoUpdate.value = config.courseIndexAutoUpdate ?? true
       yanhe2SignInWithMain.value = config.yanhe2SignInWithMain ?? true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
       tempEnableAIFiltering.value = enableAIFiltering.value
@@ -238,6 +253,9 @@ export function useSettings(): UseSettingsReturn {
     logYanhektCatalog,
     rememberPassword,
     autoSignIn,
+    currentTermSearchSource,
+    earlierTermSearchSource,
+    courseIndexAutoUpdate,
     yanhe2SignInWithMain,
     enableAIFiltering,
     tempEnableAIFiltering,

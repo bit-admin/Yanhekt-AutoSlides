@@ -81,6 +81,55 @@
   </div>
 
   <div class="advanced-setting-section">
+    <h4>{{ $t('advanced.search') }}</h4>
+    <div class="setting-item">
+      <div class="two-col-row">
+        <div class="two-col-item">
+          <label class="setting-label" for="current-term-source">{{ $t('advanced.currentTermSource') }}</label>
+          <div class="setting-description">{{ $t(CURRENT_SOURCE_DESCRIPTION[tempCurrentTermSearchSource]) }}</div>
+          <select id="current-term-source" v-model="tempCurrentTermSearchSource" class="select-field">
+            <option value="yanhekt">{{ $t('advanced.searchSourceYanhekt') }}</option>
+            <option value="local">{{ $t('advanced.searchSourceLocal') }}</option>
+            <option value="online">{{ $t('advanced.searchSourceOnline') }}</option>
+          </select>
+        </div>
+        <div class="two-col-item">
+          <label class="setting-label" for="earlier-term-source">{{ $t('advanced.earlierTermSource') }}</label>
+          <div class="setting-description">{{ $t(EARLIER_SOURCE_DESCRIPTION[tempEarlierTermSearchSource]) }}</div>
+          <select id="earlier-term-source" v-model="tempEarlierTermSearchSource" class="select-field">
+            <option value="local-then-online">{{ $t('advanced.searchSourceLocalThenOnline') }}</option>
+            <option value="online">{{ $t('advanced.searchSourceOnlineOnly') }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="setting-item">
+      <div class="setting-description">{{ $t('advanced.courseIndexAutoUpdateDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempCourseIndexAutoUpdate" />
+          {{ $t('advanced.courseIndexAutoUpdate') }}
+        </label>
+      </div>
+      <div v-if="!tempCourseIndexAutoUpdate && tempCurrentTermSearchSource === 'local'" class="setting-description course-index-warning">
+        {{ $t('advanced.currentTermLocalNeedsUpdates') }}
+      </div>
+      <div v-if="courseIndexStatus" class="setting-description course-index-status">
+        <span>{{ courseIndexStatusText }}</span>
+        <button
+          v-if="courseIndexStatus.hasKey"
+          type="button"
+          class="external-link log-link"
+          :disabled="courseIndexStatus.checking || courseIndexChecking"
+          @click="checkCourseIndexNow"
+        >
+          {{ courseIndexStatus.checking || courseIndexChecking ? $t('advanced.courseIndexChecking') : $t('advanced.courseIndexCheckNow') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="advanced-setting-section">
     <h4>{{ $t('advanced.authentication') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.rememberPasswordDescription') }}</div>
@@ -358,7 +407,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import type { CurrentTermSearchSource, EarlierTermSearchSource } from '@common/searchSources'
+import type { CourseIndexStatus } from '@common/courseIndexTypes'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import {
   onYanhe2CookiesInput,
@@ -369,6 +421,7 @@ import {
   yanhe2VerifyStatus,
 } from '@features/platform/yanhe2AccountUi'
 
+const { t, locale } = useI18n()
 const { auth, settings, advanced, cache } = useSettingsContext()
 
 const {
@@ -410,6 +463,9 @@ const {
   tempLogYanhektCatalog,
   tempRememberPassword,
   tempAutoSignIn,
+  tempCurrentTermSearchSource,
+  tempEarlierTermSearchSource,
+  tempCourseIndexAutoUpdate,
   tempYanhe2SignInWithMain,
 } = advanced.general
 
@@ -442,6 +498,58 @@ onMounted(async () => {
   }
 })
 
+const CURRENT_SOURCE_DESCRIPTION: Record<CurrentTermSearchSource, string> = {
+  yanhekt: 'advanced.searchSourceYanhektDescription',
+  local: 'advanced.searchSourceLocalDescription',
+  online: 'advanced.searchSourceOnlineDescription',
+}
+const EARLIER_SOURCE_DESCRIPTION: Record<EarlierTermSearchSource, string> = {
+  'local-then-online': 'advanced.searchSourceLocalThenOnlineDescription',
+  online: 'advanced.searchSourceOnlineOnlyDescription',
+}
+
+// What the course index on this computer holds (read when the page opens).
+const courseIndexStatus = ref<CourseIndexStatus | null>(null)
+const courseIndexChecking = ref(false)
+
+async function loadCourseIndexStatus(): Promise<void> {
+  try {
+    courseIndexStatus.value = await window.electronAPI.api.getCourseIndexStatus()
+  } catch {
+    courseIndexStatus.value = null
+  }
+}
+
+async function checkCourseIndexNow(): Promise<void> {
+  courseIndexChecking.value = true
+  try {
+    courseIndexStatus.value = await window.electronAPI.api.updateCourseIndex()
+  } catch {
+    // The status line keeps what it said; the next load shows the error.
+  } finally {
+    courseIndexChecking.value = false
+  }
+}
+
+const courseIndexStatusText = computed(() => {
+  const status = courseIndexStatus.value
+  if (!status) return ''
+  if (!status.hasKey) return t('advanced.courseIndexNoKey')
+  const parts: string[] = []
+  if (status.terms.length === 0 || !status.generatedAt) parts.push(t('advanced.courseIndexNone'))
+  else {
+    const date = new Date(status.generatedAt).toLocaleDateString(locale.value)
+    parts.push(t('advanced.courseIndexHeld', { count: status.terms.length, date }))
+  }
+  if (status.lastError) parts.push(t('advanced.courseIndexCheckFailed', { error: status.lastError }))
+  else if (status.checkedAt) parts.push(t('advanced.courseIndexChecked', { time: new Date(status.checkedAt).toLocaleString(locale.value) }))
+  return parts.join(' ')
+})
+
+onMounted(() => {
+  void loadCourseIndexStatus()
+})
+
 function openLogFolder(): void {
   void window.electronAPI.app.openLogFolder()
 }
@@ -462,6 +570,19 @@ function openLogFolder(): void {
 
 .developer-note .setting-description {
   margin: 0;
+}
+
+.course-index-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin-top: 8px;
+}
+
+.course-index-warning {
+  margin-top: 6px;
+  color: var(--warning);
 }
 
 .log-link {

@@ -207,7 +207,7 @@
       "cliArgKeyword": "keyword",
       "cliArgCourse": "course link or id",
       "cliArgToken": "token",
-      "cliUsageSearch": "Find courses by name or course id. No sign-in needed.",
+      "cliUsageSearch": "Find courses by name, teacher or course id, in the current term or, with --term, any term since Fall 2023. No sign-in needed.",
       "cliUsageMine": "List the courses you are enrolled in. Uses your AutoSlides sign-in.",
       "cliUsageCourse": "Show a course and list its sessions. Listing sessions uses your AutoSlides sign-in.",
       "cliUsageSession": "Show one session and which recordings it has. No sign-in needed.",
@@ -684,7 +684,30 @@
     "developerModeDescription": "Enable Developer Mode for verbose logging.",
     "enableDeveloperMode": "Enable Developer Mode",
     "openLogFolder": "Open Log Folder",
-    "logYanhektCatalog": "Log Yanhekt Catalog"
+    "logYanhektCatalog": "Log Yanhekt Catalog",
+    "search": "Search",
+    "currentTermSource": "Current Term",
+    "earlierTermSource": "Earlier Terms",
+    "searchSourceYanhekt": "Yanhekt Search",
+    "searchSourceLocal": "Course Index on This Computer",
+    "searchSourceOnline": "AutoSlides Index",
+    "searchSourceLocalThenOnline": "This Computer, Then AutoSlides Index",
+    "searchSourceOnlineOnly": "AutoSlides Index Only",
+    "searchSourceYanhektDescription": "Yanhekt's own search. It often lists loosely related courses as well.",
+    "searchSourceLocalDescription": "Searches the course index downloaded to this computer, as of last night. Needs Keep the Course Index Up to Date.",
+    "searchSourceOnlineDescription": "Searches the AutoSlides Index at share.ruc.edu.kg, as of last night. Needs a connection.",
+    "searchSourceLocalThenOnlineDescription": "Uses the course index on this computer when it has the term, else the AutoSlides Index. Course pages and course lookups ask the AutoSlides Index when this computer has no answer.",
+    "searchSourceOnlineOnlyDescription": "Always asks the AutoSlides Index. Nothing is read from this computer.",
+    "courseIndexAutoUpdate": "Keep the Course Index Up to Date",
+    "courseIndexAutoUpdateDescription": "Downloads the current term every day, and any earlier term that changed. Clear Cache removes the downloads; the copy that ships with the app stays.",
+    "currentTermLocalNeedsUpdates": "With updates off, the current term can only be searched on this computer once it has been downloaded.",
+    "courseIndexHeld": "{count} terms on this computer, data from {date}.",
+    "courseIndexNone": "No course index on this computer yet.",
+    "courseIndexChecked": "Last checked {time}.",
+    "courseIndexCheckFailed": "Last check failed: {error}",
+    "courseIndexNoKey": "This build has no course index key, so the course index on this computer is off.",
+    "courseIndexCheckNow": "Check Now",
+    "courseIndexChecking": "Checking…"
   },
   "courses": {
     "title": {
@@ -1542,8 +1565,6 @@
     }
   },
   "searchPage": {
-    "earlierTermTitle": "Earlier terms are not searchable here yet",
-    "earlierTermHint": "Earlier terms will be searchable here soon. For now, search them in AutoSlides Web.",
     "semesterFall": "Fall {year}",
     "semesterSpring": "Spring {year}",
     "termRangeFall": "{range} Fall",
@@ -1566,7 +1587,15 @@
       "opening": "Opening…",
       "invalid": "Enter a number, or a Yanhekt course or session link such as https://www.yanhekt.cn/session/901560.",
       "sessionFailed": "Could not open session {id}. Check the ID and your connection. A session with no recording yet cannot be opened."
-    }
+    },
+    "indexTypeTitle": "Type a course name or teacher",
+    "indexTypeHint": "This term is searched in the course index: by course name, teacher, course id or course code.",
+    "indexLocalMissingTitle": "This term is not on this computer",
+    "indexLocalMissingHint": "Turn on Keep the Course Index Up to Date in Settings → General → Search, or choose AutoSlides Index there.",
+    "indexOnlineTermTitle": "The AutoSlides Index does not cover this term yet",
+    "indexOnlineTermHint": "Pick another term.",
+    "indexOnlineFailedTitle": "The AutoSlides Index did not answer",
+    "indexOnlineFailedHint": "Check your connection and try again, or search the course index on this computer (Settings → General → Search)."
   },
   "tabs": {
     "info": "Info",

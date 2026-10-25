@@ -153,6 +153,7 @@ export const config: ElectronAPI['config'] = {
   setShowToolsButton: (enabled: boolean) => invoke('config:setShowToolsButton', enabled),
   setAllowCliControl: (enabled: boolean) => invoke('config:setAllowCliControl', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => invoke('config:setPreferAnonymousApiRequests', enabled),
+  setSearchSettings: (patch) => invoke('config:setSearchSettings', patch),
   setRememberPassword: (enabled: boolean) => invoke('config:setRememberPassword', enabled),
   setAutoSignIn: (enabled: boolean) => invoke('config:setAutoSignIn', enabled),
   setYanhe2SignInWithMain: (enabled: boolean) => invoke('config:setYanhe2SignInWithMain', enabled),

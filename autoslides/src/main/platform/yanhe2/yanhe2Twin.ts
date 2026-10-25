@@ -23,6 +23,8 @@ export interface Yanhe2TwinKey {
   courseCode: string;
   /** The session's scheduled start, epoch seconds. */
   startAt: number;
+  /** The course's term key (`2026-2027-1`) from aita's `kkxn` + `kkxq`, or null when it has none. */
+  term: string | null;
   /** Yanhe 2.0's course title, for when Yanhekt has no such course. */
   courseTitle: string;
   /** Yanhe 2.0's wording of the session (`yanhe2SessionTitle`), for when Yanhekt has no such session. */

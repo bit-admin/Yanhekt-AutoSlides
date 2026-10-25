@@ -234,6 +234,15 @@
         "$ref": "#/definitions/StoredAccount"
       }
     },
+    "currentTermSearchSource": {
+      "$ref": "#/definitions/CurrentTermSearchSource"
+    },
+    "earlierTermSearchSource": {
+      "$ref": "#/definitions/EarlierTermSearchSource"
+    },
+    "courseIndexAutoUpdate": {
+      "type": "boolean"
+    },
     "rememberPassword": {
       "type": "boolean"
     },
@@ -723,6 +732,22 @@
           "type": "number"
         }
       }
+    },
+    "CurrentTermSearchSource": {
+      "type": "string",
+      "enum": [
+        "yanhekt",
+        "local",
+        "online"
+      ],
+      "description": "Where course searches and course lookups get their answers (Settings → General → Search). Shared by main, the renderer and the CLI.\n\nCurrent term: one source, no fallback. Yanhekt answers loosely related courses for most keywords, so \"no match\" cannot be told from a poor answer.   yanhekt  Yanhekt's own course search (default)   local    the course index on this computer (needs the downloaded current term)   online   the AutoSlides Index (share.ruc.edu.kg)\n\nEarlier terms, a course's session ids when Yanhekt's lists are empty, and course lookups by id or registrar code:   local-then-online  the course index on this computer, then the AutoSlides                      Index (default). A keyword search uses the local copy                      when it holds the term, else the online Index; an exact                      lookup (session ids, an id, a code) asks online when the                      local copy has no answer, since it may be stale.   online             the AutoSlides Index only"
+    },
+    "EarlierTermSearchSource": {
+      "type": "string",
+      "enum": [
+        "local-then-online",
+        "online"
+      ]
     }
   }
 }

@@ -41,13 +41,20 @@ import type { CliControlServer, RendererBridge } from '@main/cli';
 import type { DeepLinkRouter } from '@main/platform/deepLinkRouter';
 import type { LocalLecturePosterService } from '@main/video/localLecturePosterService';
 
+import type { LocalCourseIndex } from '@main/platform/courseIndex/courseIndex';
+import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
+import type { CourseIndexUpdater } from '@main/platform/courseIndex/courseIndexUpdater';
+
 export interface IpcServices {
   authService: MainAuthService;
   yanhe2Service: Yanhe2Service;
   yanhe2TwinResolver: Yanhe2TwinResolver;
   apiClient: ApiClient;
   courseNumberLookup: CourseNumberLookup;
-  /** Temporary: the bundled earlier-term course list. */
+  /** The course index on this computer, the lookups over it and the online Index, and its updater. */
+  courseIndex: LocalCourseIndex;
+  courseLookup: CourseLookup;
+  courseIndexUpdater: CourseIndexUpdater;
   configService: ConfigService;
   intranetMappingService: IntranetMappingService;
   videoProxyService: VideoProxyService;

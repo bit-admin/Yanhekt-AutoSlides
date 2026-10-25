@@ -43,6 +43,10 @@ import { slideExtractionService } from '@main/extraction/slideExtractionService'
 import { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import { CourseNumberLookup } from '@main/platform/courseNumberLookup';
+import { localCourseIndex } from '@main/platform/courseIndex/courseIndex';
+import { CourseLookup } from '@main/platform/courseIndex/courseLookup';
+import { CourseIndexUpdater } from '@main/platform/courseIndex/courseIndexUpdater';
+import { setIndexTokenSource } from '@main/platform/indexClient';
 import { Yanhe2SubtitleService } from '@main/video/yanhe2SubtitleService';
 import { Yanhe2DownloadService } from '@main/video/yanhe2DownloadService';
 import { Yanhe2CaptionSyncService } from '@main/video/yanhe2CaptionSyncService';
@@ -343,6 +347,18 @@ if (!cliRun) {
 }
 // Yanhe 2.0 JSON takes the same route as the rest of the API.
 routeYanhe2Through((config) => apiTransport.send(config));
+// The course index: on this computer (bundled + downloaded) and online, picked
+// per Settings → General → Search. The online Index gets the Yanhekt token.
+setIndexTokenSource(() => configService.getAuthToken());
+const courseIndex = localCourseIndex();
+const courseLookup = new CourseLookup(courseIndex, apiClient, configService);
+apiClient.setSessionIdSource((courseId) => courseLookup.sessionIds(courseId));
+// Only the app downloads index updates; a command-line run reads what is there.
+const courseIndexUpdater = new CourseIndexUpdater({
+  index: courseIndex,
+  enabled: () => !cliRun && configService.getCourseIndexAutoUpdate(),
+  currentTerm: () => courseLookup.currentTerm(),
+});
 const videoProxyService = new VideoProxyService(
   apiClient,
   intranetMappingService,
@@ -356,8 +372,8 @@ const localLecturePosterService = new LocalLecturePosterService(configService, f
 const compressLectureService = new CompressLectureService(ffmpegService);
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 const audioDownloadService = new AudioDownloadService(configService, intranetMappingService);
-const yanhe2TwinResolver = new Yanhe2TwinResolver(yanhe2Service, apiClient, configService);
-const courseNumberLookup = new CourseNumberLookup(apiClient, configService);
+const yanhe2TwinResolver = new Yanhe2TwinResolver(yanhe2Service, apiClient, configService, courseLookup);
+const courseNumberLookup = new CourseNumberLookup(courseLookup, configService);
 const yanhe2SubtitleService = new Yanhe2SubtitleService(yanhe2Service, yanhe2TwinResolver, configService);
 const yanhe2DownloadService = new Yanhe2DownloadService(
   yanhe2Service,
@@ -396,6 +412,7 @@ const cliControlServer = new CliControlServer({
   configService,
   settings: createSettingsWriter(configService, intranetMappingService),
   apiClient,
+  courseLookup,
   renderer: cliControlBridge,
   commands: APP_COMMANDS,
 });
@@ -419,6 +436,7 @@ app.whenReady().then(() => {
       version: app.getVersion(),
       configService,
       apiClient,
+      courseLookup,
       intranetMappingService,
       m3u8DownloadService,
       controlSocketPath: cliSocketPath,
@@ -436,6 +454,8 @@ app.whenReady().then(() => {
   cliControlServer.applyConfig();
   // Keep the agent skill's copy in step with this release.
   cliInstallService.syncSkill();
+  // Download course index updates, unless Settings turned that off.
+  courseIndexUpdater.applyConfig();
 });
 
 app.on('before-quit', () => {
@@ -459,6 +479,9 @@ if (!cliRun) registerAllIpcHandlers({
   yanhe2Service,
   apiClient,
   courseNumberLookup,
+  courseIndex,
+  courseLookup,
+  courseIndexUpdater,
   configService,
   intranetMappingService,
   videoProxyService,

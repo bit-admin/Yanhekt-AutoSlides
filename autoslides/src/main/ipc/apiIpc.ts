@@ -2,7 +2,27 @@ import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
 
 export function registerApiIpcHandlers(services: IpcServices): void {
-  const { apiClient } = services;
+  const { apiClient, courseLookup, courseIndex, courseIndexUpdater } = services;
+
+  // Course index search in one term (Settings → General → Search picks the source).
+  ipcMain.handle('api:searchCourseIndex', async (_event, term: unknown, keyword: unknown, page?: unknown, pageSize?: unknown) => {
+    return courseLookup.search(String(term), String(keyword ?? ''), Number(page) || 1, Math.min(Number(pageSize) || 16, 100));
+  });
+
+  // Settings: what the course index on this computer holds, and its updates.
+  const indexStatus = async () => {
+    const [terms, generatedAt, update] = await Promise.all([
+      courseIndex.terms(),
+      courseIndex.generatedAt(),
+      courseIndexUpdater.getState(),
+    ]);
+    return { hasKey: courseIndex.passphrase !== null, terms, generatedAt, ...update };
+  };
+  ipcMain.handle('courseIndex:getStatus', indexStatus);
+  ipcMain.handle('courseIndex:update', async () => {
+    await courseIndexUpdater.check();
+    return indexStatus();
+  });
 
   ipcMain.handle('api:getPersonalLiveList', async (_event, token: string, page?: number, pageSize?: number) => {
     return await apiClient.getPersonalLiveList(token, page, pageSize);

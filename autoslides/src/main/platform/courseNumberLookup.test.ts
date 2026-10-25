@@ -4,30 +4,34 @@ vi.mock('@main/infra/logger', () => ({ createLogger: () => ({ debug: vi.fn(), in
 
 import { CourseNumberLookup } from './courseNumberLookup';
 
-function lookup(options: { token?: string; rows?: unknown[]; fail?: boolean } = {}) {
-  const getCourseList = vi.fn(async () => {
-    if (options.fail) throw new Error('no answer');
-    return { data: options.rows ?? [{ id: 80102, number: 'K-0002' }, { id: 80101, number: 'K-0001' }] };
+type Found = { kind: 'yanhekt'; course: { number?: string } } | { kind: 'index'; row: { number: string | null } } | null;
+
+function lookup(answer: Found | Error) {
+  const locate = vi.fn(async () => {
+    if (answer instanceof Error) throw answer;
+    return answer;
   });
-  const configService = { getAuthToken: () => ('token' in options ? options.token : 'cbiz-token') };
-  return { created: new CourseNumberLookup({ getCourseList } as never, configService as never), getCourseList };
+  const configService = { getAuthToken: () => 'cbiz-token' };
+  return { created: new CourseNumberLookup({ locate } as never, configService as never), locate };
 }
 
 describe('CourseNumberLookup', () => {
-  it("answers the row whose id is the course's, and asks once per course", async () => {
-    const { created, getCourseList } = lookup();
-    expect(await created.numberOf('80101')).toBe('K-0001');
-    expect(await created.numberOf('80101')).toBe('K-0001');
-    expect(getCourseList).toHaveBeenCalledTimes(1);
+  it('answers the number from Yanhekt or the index, and asks once per course', async () => {
+    const yanhekt = lookup({ kind: 'yanhekt', course: { number: 'K-0001' } });
+    expect(await yanhekt.created.numberOf('80101')).toBe('K-0001');
+    expect(await yanhekt.created.numberOf('80101')).toBe('K-0001');
+    expect(yanhekt.locate).toHaveBeenCalledTimes(1);
+    expect(yanhekt.locate).toHaveBeenCalledWith({ id: '80101' }, null, 'cbiz-token');
+    expect(await lookup({ kind: 'index', row: { number: 'K-0002' } }).created.numberOf('80102')).toBe('K-0002');
   });
 
-  it('answers null with no sign-in, a bad id, no such course or no answer, and does not keep a failure', async () => {
-    expect(await lookup({ token: '' }).created.numberOf('80101')).toBeNull();
-    expect(await lookup().created.numberOf('live_1')).toBeNull();
-    expect(await lookup({ rows: [] }).created.numberOf('80101')).toBeNull();
-    const failing = lookup({ fail: true });
-    expect(await failing.created.numberOf('80101')).toBeNull();
-    expect(await failing.created.numberOf('80101')).toBeNull();
-    expect(failing.getCourseList).toHaveBeenCalledTimes(2);
+  it('answers null for a bad id, a course without a number, no such course or no answer, and does not keep a miss', async () => {
+    expect(await lookup({ kind: 'index', row: { number: 'K' } }).created.numberOf('live_1')).toBeNull();
+    expect(await lookup({ kind: 'index', row: { number: null } }).created.numberOf('80101')).toBeNull();
+    const missing = lookup(null);
+    expect(await missing.created.numberOf('80101')).toBeNull();
+    expect(await missing.created.numberOf('80101')).toBeNull();
+    expect(missing.locate).toHaveBeenCalledTimes(2);
+    expect(await lookup(new Error('no answer')).created.numberOf('80101')).toBeNull();
   });
 });

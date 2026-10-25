@@ -7,6 +7,8 @@ const log = createLogger('ServicesApiClient');
 import type { TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, CourseDetailResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, CourseDetailResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
 export type { SessionWatchProgress };
+import type { CourseIndexSearchResult } from '@common/courseIndexTypes';
+export type { CourseIndexRow, CourseIndexSearchResult } from '@common/courseIndexTypes';
 
 // The data source ApiClient delegates to. Default = the real preload bridge;
 // a registered `overrides.apiTransport` (demo mode) returns fabricated data of
@@ -22,7 +24,8 @@ export interface ApiTransport {
   unsubscribeCourse(token: string, courseId: string): Promise<void>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
   getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse>;
-  /** Temporary: the bundled earlier-term course list. Null when the term is not in it. */
+  /** A course index search in one term (main picks local or online per Settings → Search). */
+  searchCourseIndex(term: string, keyword: string, page?: number, pageSize?: number): Promise<CourseIndexSearchResult>;
   getLiveSessionId(liveId: string, token: string): Promise<string | null>;
   getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }>;
   getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo>;
@@ -43,6 +46,7 @@ const realApiTransport: ApiTransport = {
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
   getCourseDetail: (courseId, token) => window.electronAPI.api.getCourseDetail(courseId, token),
   getLiveSessionId: (liveId, token) => window.electronAPI.api.getLiveSessionId(liveId, token),
+  searchCourseIndex: (term, keyword, page = 1, pageSize = 16) => window.electronAPI.api.searchCourseIndex(term, keyword, page, pageSize),
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
   getVideoAssets: (videoId, token) => window.electronAPI.api.getVideoAssets(videoId, token),
   getSessionDownloadInfo: (sessionId, token) => window.electronAPI.api.getSessionDownloadInfo(sessionId, token),
@@ -339,6 +343,15 @@ export class ApiClient {
       return await this.transport.getCourseDetail(courseId, token);
     } catch (error) {
       log.error('Failed to get course detail:', error);
+      throw error;
+    }
+  }
+
+  async searchCourseIndex(term: string, keyword: string, page = 1, pageSize = 16): Promise<CourseIndexSearchResult> {
+    try {
+      return await this.transport.searchCourseIndex(term, keyword, page, pageSize);
+    } catch (error) {
+      log.error('Course index search failed:', error);
       throw error;
     }
   }

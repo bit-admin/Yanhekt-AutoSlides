@@ -1,4 +1,5 @@
 import type { ApiClient } from '@main/platform/apiClient';
+import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import type { SettingsWriter } from '@main/ipc/settingsWriter';
 import type { ConfigService } from '@main/platform/configService';
 import type { RendererBridge } from '../control/rendererBridge';
@@ -24,6 +25,8 @@ export interface AppCommandContext {
   configService: ConfigService;
   settings: AppSettingsWriter;
   apiClient: ApiClient;
+  /** Course index search and lookups (Settings → General → Search). */
+  courseLookup: CourseLookup;
   renderer: RendererBridge;
   term: AppTerminal;
   /** Aborted when the client goes away (Ctrl-C); work already handed to the app keeps going. */

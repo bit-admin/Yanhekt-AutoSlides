@@ -1,3 +1,4 @@
+import type { CurrentTermSearchSource, EarlierTermSearchSource } from '@common/searchSources'
 import { nextTick, ref, type Ref } from 'vue'
 import type { ConnectionMode, Yanhe2CaptionMode } from '@common/types'
 import { useGeneralSettings } from './useGeneralSettings'
@@ -53,6 +54,9 @@ export interface UseAdvancedSettingsOptions {
   logYanhektCatalog: Ref<boolean>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
+  currentTermSearchSource: Ref<CurrentTermSearchSource>
+  earlierTermSearchSource: Ref<EarlierTermSearchSource>
+  courseIndexAutoUpdate: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>

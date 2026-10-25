@@ -1,3 +1,9 @@
+import {
+  normalizeCurrentTermSearchSource,
+  normalizeEarlierTermSearchSource,
+  type CurrentTermSearchSource,
+  type EarlierTermSearchSource,
+} from '@common/searchSources'
 import { ref, type Ref } from 'vue'
 import { YANHE2_CAPTION_OFFSET_DEFAULT, type ConnectionMode, type Yanhe2CaptionMode } from '@common/types'
 import { languageService } from '@features/settings/languageService'
@@ -34,6 +40,9 @@ export interface UseGeneralSettingsOptions {
   logYanhektCatalog: Ref<boolean>
   rememberPassword: Ref<boolean>
   autoSignIn: Ref<boolean>
+  currentTermSearchSource: Ref<CurrentTermSearchSource>
+  earlierTermSearchSource: Ref<EarlierTermSearchSource>
+  courseIndexAutoUpdate: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
 }
 
@@ -65,6 +74,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     logYanhektCatalog,
     rememberPassword,
     autoSignIn,
+    currentTermSearchSource,
+    earlierTermSearchSource,
+    courseIndexAutoUpdate,
     yanhe2SignInWithMain
   } = options
 
@@ -94,6 +106,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempLogYanhektCatalog = ref(false)
   const tempRememberPassword = ref(true)
   const tempAutoSignIn = ref(true)
+  const tempCurrentTermSearchSource = ref<CurrentTermSearchSource>('yanhekt')
+  const tempEarlierTermSearchSource = ref<EarlierTermSearchSource>('local-then-online')
+  const tempCourseIndexAutoUpdate = ref(true)
   const tempYanhe2SignInWithMain = ref(true)
 
   // Settings the command line can change too (`autoslides config`).
@@ -129,6 +144,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempLogYanhektCatalog.value = logYanhektCatalog.value
     tempRememberPassword.value = rememberPassword.value
     tempAutoSignIn.value = autoSignIn.value
+    tempCurrentTermSearchSource.value = currentTermSearchSource.value
+    tempEarlierTermSearchSource.value = earlierTermSearchSource.value
+    tempCourseIndexAutoUpdate.value = courseIndexAutoUpdate.value
     tempYanhe2SignInWithMain.value = yanhe2SignInWithMain.value
   }
 
@@ -254,6 +272,21 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       rememberPassword.value = rememberResult.rememberPassword ?? true
     }
 
+    if (
+      tempCurrentTermSearchSource.value !== currentTermSearchSource.value
+      || tempEarlierTermSearchSource.value !== earlierTermSearchSource.value
+      || tempCourseIndexAutoUpdate.value !== courseIndexAutoUpdate.value
+    ) {
+      const searchResult = await window.electronAPI.config.setSearchSettings({
+        currentTermSource: tempCurrentTermSearchSource.value,
+        earlierTermSource: tempEarlierTermSearchSource.value,
+        courseIndexAutoUpdate: tempCourseIndexAutoUpdate.value,
+      })
+      currentTermSearchSource.value = normalizeCurrentTermSearchSource(searchResult.currentTermSearchSource)
+      earlierTermSearchSource.value = normalizeEarlierTermSearchSource(searchResult.earlierTermSearchSource)
+      courseIndexAutoUpdate.value = searchResult.courseIndexAutoUpdate ?? true
+    }
+
     if (tempAutoSignIn.value !== autoSignIn.value) {
       const autoSignInResult = await window.electronAPI.config.setAutoSignIn(tempAutoSignIn.value)
       autoSignIn.value = autoSignInResult.autoSignIn ?? true
@@ -298,6 +331,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempLogYanhektCatalog,
     tempRememberPassword,
     tempAutoSignIn,
+    tempCurrentTermSearchSource,
+    tempEarlierTermSearchSource,
+    tempCourseIndexAutoUpdate,
     tempYanhe2SignInWithMain,
 
     resetTemp,
