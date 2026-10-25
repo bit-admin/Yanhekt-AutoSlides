@@ -696,7 +696,7 @@
     "searchSourceYanhektDescription": "Yanhekt 자체 검색입니다. 관련이 적은 코스도 자주 함께 나옵니다.",
     "searchSourceLocalDescription": "이 컴퓨터에 내려받은 코스 색인(어젯밤 기준)을 검색합니다. 「코스 색인 최신 상태 유지」가 필요합니다.",
     "searchSourceOnlineDescription": "share.ruc.edu.kg의 AutoSlides 색인(어젯밤 기준)을 검색합니다. 연결이 필요합니다.",
-    "searchSourceLocalThenOnlineDescription": "이 컴퓨터의 코스 색인에 해당 학기가 있으면 사용하고, 없으면 AutoSlides 색인을 사용합니다. 코스 페이지와 코스 조회는 이 컴퓨터에 답이 없을 때 AutoSlides 색인에 묻습니다.",
+    "searchSourceLocalThenOnlineDescription": "이 컴퓨터의 코스 색인에 해당 학기가 있으면 사용하고, 없으면 AutoSlides 색인을 사용합니다.",
     "searchSourceOnlineOnlyDescription": "항상 AutoSlides 색인에 묻습니다. 이 컴퓨터에서는 아무것도 읽지 않습니다.",
     "courseIndexAutoUpdate": "코스 색인 최신 상태 유지",
     "courseIndexAutoUpdateDescription": "현재 학기를 매일 내려받고, 바뀐 이전 학기도 내려받습니다. 캐시 지우기는 내려받은 데이터를 지우며, 앱에 포함된 사본은 남습니다.",

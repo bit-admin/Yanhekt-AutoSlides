@@ -696,7 +696,7 @@
     "searchSourceYanhektDescription": "延河課堂自身の検索です。関連の薄いコースもよく含まれます。",
     "searchSourceLocalDescription": "このコンピューターにダウンロードしたコース索引（昨夜時点）を検索します。「コース索引を最新に保つ」が必要です。",
     "searchSourceOnlineDescription": "share.ruc.edu.kg の AutoSlides 索引（昨夜時点）を検索します。接続が必要です。",
-    "searchSourceLocalThenOnlineDescription": "このコンピューターのコース索引にその学期があれば使い、なければ AutoSlides 索引を使います。コースページとコース照会は、このコンピューターに答えがないとき AutoSlides 索引に問い合わせます。",
+    "searchSourceLocalThenOnlineDescription": "このコンピューターのコース索引にその学期があれば使い、なければ AutoSlides 索引を使います。",
     "searchSourceOnlineOnlyDescription": "常に AutoSlides 索引に問い合わせます。このコンピューターからは何も読みません。",
     "courseIndexAutoUpdate": "コース索引を最新に保つ",
     "courseIndexAutoUpdateDescription": "今学期を毎日ダウンロードし、変更のあった過去の学期もダウンロードします。キャッシュを消去するとダウンロード分は削除され、アプリ同梱のコピーは残ります。",

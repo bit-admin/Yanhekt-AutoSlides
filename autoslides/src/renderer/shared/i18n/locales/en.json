@@ -696,7 +696,7 @@
     "searchSourceYanhektDescription": "Yanhekt's own search. It often lists loosely related courses as well.",
     "searchSourceLocalDescription": "Searches the course index downloaded to this computer, as of last night. Needs Keep the Course Index Up to Date.",
     "searchSourceOnlineDescription": "Searches the AutoSlides Index at share.ruc.edu.kg, as of last night. Needs a connection.",
-    "searchSourceLocalThenOnlineDescription": "Uses the course index on this computer when it has the term, else the AutoSlides Index. Course pages and course lookups ask the AutoSlides Index when this computer has no answer.",
+    "searchSourceLocalThenOnlineDescription": "Uses the course index on this computer when it has the term, else the AutoSlides Index.",
     "searchSourceOnlineOnlyDescription": "Always asks the AutoSlides Index. Nothing is read from this computer.",
     "courseIndexAutoUpdate": "Keep the Course Index Up to Date",
     "courseIndexAutoUpdateDescription": "Downloads the current term every day, and any earlier term that changed. Clear Cache removes the downloads; the copy that ships with the app stays.",

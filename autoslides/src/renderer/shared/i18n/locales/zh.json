@@ -696,7 +696,7 @@
     "searchSourceYanhektDescription": "延河课堂自己的搜索。结果里常有只是略微相关的课程。",
     "searchSourceLocalDescription": "搜索下载到本机的课程索引（截至昨晚）。需要开启“保持课程索引最新”。",
     "searchSourceOnlineDescription": "搜索 share.ruc.edu.kg 上的 AutoSlides 索引（截至昨晚）。需要联网。",
-    "searchSourceLocalThenOnlineDescription": "本机课程索引有该学期时使用本机，否则使用 AutoSlides 索引。课程页面和课程查找在本机找不到时会询问 AutoSlides 索引。",
+    "searchSourceLocalThenOnlineDescription": "本机课程索引有该学期时使用本机，否则使用 AutoSlides 索引。",
     "searchSourceOnlineOnlyDescription": "始终询问 AutoSlides 索引，不读取本机数据。",
     "courseIndexAutoUpdate": "保持课程索引最新",
     "courseIndexAutoUpdateDescription": "每天下载当前学期，以及有变化的往期学期。清除缓存会删除下载的数据；随应用附带的副本会保留。",
