@@ -1,3 +1,4 @@
+import { courseNumberOf } from './courseNumber'
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, type CourseListResponse } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
@@ -37,6 +38,12 @@ export interface Course {
    * only** — render it through `courseDisplayTitle()`, never into a filename.
    */
   titleEn?: string
+  /**
+   * The registrar's course number (Yanhekt `number`, Yanhe 2.0 `kcwybm`), when
+   * the row had it. Carried to metadata.json with the first write. Recorded
+   * courses only; live rows have none.
+   */
+  number?: string
   instructor: string
   time: string
   status?: number
@@ -113,6 +120,7 @@ export const transformCourseDataToCourse = (courseData: CourseData): Course => {
     id: courseData.id,
     title: courseData.name_zh,
     titleEn: courseData.name_en,
+    number: courseNumberOf(courseData.number),
     instructor: professors,
     time: timeInfo,
     professors: courseData.professors,

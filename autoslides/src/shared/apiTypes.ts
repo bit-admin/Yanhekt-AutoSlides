@@ -98,6 +98,8 @@ export interface CourseListResponse {
 // (like /v1/course) or already strings; professor_names is preferred when present.
 export interface SubscriptionCourseRow {
   id: number | string;
+  /** Registrar course number, when the row carries it (as /v1/course rows do). */
+  number?: string | null;
   name_zh: string;
   /** English course name. Present on /v2/course/list and /v1/course; often absent.
    *  Display only — never let it reach a filename, note title, or Index upload. */
@@ -148,6 +150,8 @@ export interface SessionDownloadInfo {
     /** Chinese course name — canonical, feeds filenames like every other download. */
     title: string;
     titleEn?: string;
+    /** Registrar course number (Yanhe 2.0 `kcwybm`), when Yanhekt has one. */
+    number?: string;
     college_name?: string;
     school_year?: string;
     semester?: number | string;
@@ -169,6 +173,8 @@ export interface CourseInfoResponse {
   // carries only id + title. `classrooms` is intentionally absent (not returned
   // by this endpoint).
   professors?: string[];
+  /** Registrar course number (Yanhe 2.0 `kcwybm`), when Yanhekt has one; it goes into metadata.json. */
+  number?: string;
   college_name?: string;
   school_year?: string;
   semester?: number | string;

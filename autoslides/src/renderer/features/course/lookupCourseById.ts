@@ -8,6 +8,7 @@
 
 import { ApiClient, type CourseData, type CourseListResponse } from '@shared/services/apiClient'
 import type { Course } from './useCourseList'
+import { courseNumberOf } from './courseNumber'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('lookupCourseById')
@@ -48,6 +49,7 @@ function courseFromListRow(courseData: CourseData): Course {
     id: String(courseData.id),
     title: courseData.name_zh,
     titleEn: courseData.name_en,
+    number: courseNumberOf(courseData.number),
     instructor: professors,
     time: `${courseData.school_year} ${semesterText}`,
     professors: courseData.professors,

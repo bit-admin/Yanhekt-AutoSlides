@@ -11,17 +11,7 @@ import { createLogger } from '@main/infra/logger';
 const log = createLogger('SlideMetadataIpc');
 
 export function registerSlideMetadataIpcHandlers(services: IpcServices): void {
-  const { slideMetadataService, courseNumberLookup } = services;
-
-  // Most writers hold a Yanhekt course id but not its registrar number, which
-  // every folder keeps. Written first, the number added once it is known, so
-  // a slow or failed lookup never holds up or blocks the metadata.
-  const addCourseNumber = async (folderPath: string, source: SlideMetadataSource): Promise<void> => {
-    const courseId = source?.courseId;
-    if (!courseId || source.courseNumber || source.liveId) return;
-    const courseNumber = await courseNumberLookup.numberOf(courseId);
-    if (courseNumber) await slideMetadataService.setCourseNumber(folderPath, courseId, courseNumber);
-  };
+  const { slideMetadataService } = services;
 
   ipcMain.handle('slideMetadata:get', async (_event, folderPath: string) => {
     try {
@@ -37,9 +27,6 @@ export function registerSlideMetadataIpcHandlers(services: IpcServices): void {
     async (_event, folderPath: string, data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }) => {
       try {
         await slideMetadataService.writeExtraction(folderPath, data);
-        void addCourseNumber(folderPath, data.source).catch((error) => {
-          log.warn('Failed to add the course number to metadata:', error);
-        });
         return { success: true };
       } catch (error) {
         log.error('Failed to write extraction metadata:', error);

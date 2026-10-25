@@ -38,6 +38,12 @@ function emptyReview(): SlideReviewMeta {
   return { reviewed: false, reviewedAt: null, edited: false, editedAt: null, cropped: false };
 }
 
+/** `next`, with the stored registrar number kept when `next` has none and is the same course. */
+function keepCourseNumber(next: SlideMetadataSource, stored: SlideMetadataSource | undefined): SlideMetadataSource {
+  if (next.courseNumber || !stored?.courseNumber || !next.courseId || stored.courseId !== next.courseId) return next;
+  return { ...next, courseNumber: stored.courseNumber };
+}
+
 export class SlideMetadataService {
   // Per-folder write serialization. Keyed by the resolved metadata file path.
   private writeChains = new Map<string, Promise<unknown>>();
@@ -101,6 +107,9 @@ export class SlideMetadataService {
   /**
    * Create or refresh the metadata file with extraction context. Preserves
    * `createdAt`, existing review state, and any recorded post-processing.
+   * The writer passes the registrar number (`source.courseNumber`) when its
+   * course carried one; a later write for the same course that lacks it keeps
+   * the one already stored.
    */
   async writeExtraction(
     folderPath: string,
@@ -110,25 +119,13 @@ export class SlideMetadataService {
     await this.mutate(folderPath, (current) => ({
       version: SLIDE_METADATA_VERSION,
       kind: data.kind ?? 'recorded',
-      source: data.source,
+      source: keepCourseNumber(data.source, current?.source),
       extraction: data.extraction,
       postProcessing: current?.postProcessing,
       review: current?.review ?? emptyReview(),
       createdAt: current?.createdAt ?? now,
       updatedAt: now,
     }));
-  }
-
-  /**
-   * Add the registrar's course number to a folder recorded without one, once
-   * it has been looked up. No-op if the folder has no metadata, already has a
-   * number, or has since been recorded for another course.
-   */
-  async setCourseNumber(folderPath: string, courseId: string, courseNumber: string): Promise<void> {
-    await this.mutate(folderPath, (current) => {
-      if (!current || current.source.courseNumber || current.source.courseId !== courseId) return null;
-      return { ...current, source: { ...current.source, courseNumber } };
-    });
   }
 
   /**

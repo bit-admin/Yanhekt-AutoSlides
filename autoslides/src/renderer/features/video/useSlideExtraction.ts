@@ -193,6 +193,8 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
           // broadcast as its own course. The real course id is `course.courseId`.
           courseId: isLive ? course.value?.courseId : course.value?.id,
           liveId: isLive ? course.value?.id : undefined,
+          // Recorded only: a live row's course carries no number.
+          courseNumber: isLive ? undefined : course.value?.number,
           courseTitle: course.value?.title,
           sessionId,
           sessionTitle: session.value?.title ?? liveSessionTitle,

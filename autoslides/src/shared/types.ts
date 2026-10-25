@@ -396,6 +396,8 @@ export interface PinnedCourse {
   title: string;
   /** English course name, when the API had one. Display only; absent on legacy pins. */
   titleEn?: string;
+  /** Registrar course number (Yanhe 2.0 `kcwybm`); absent on older pins until reopened. */
+  number?: string;
   instructor?: string;
   time?: string;
   classrooms?: { name: string }[];

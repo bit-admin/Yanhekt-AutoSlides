@@ -20,6 +20,8 @@ export interface SessionDataWithMeta extends SessionData {
     titleEn?: string;
     instructor: string;
     time: string;
+    /** Registrar course number (Yanhe 2.0 `kcwybm`); metadata.json keeps it. */
+    number?: string;
     classrooms?: { name: string }[];
     college_name?: string;
     participant_count?: number;
@@ -104,6 +106,8 @@ export class DataStore {
     titleEn?: string;
     instructor: string;
     time: string;
+    /** Registrar course number (Yanhe 2.0 `kcwybm`); metadata.json keeps it. */
+    number?: string;
     classrooms?: { name: string }[];
     college_name?: string;
     participant_count?: number;

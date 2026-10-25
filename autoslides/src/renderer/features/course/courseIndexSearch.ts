@@ -25,6 +25,7 @@ export function indexRowToCourse(row: CourseIndexRow, term: string): Course {
   return {
     id: String(row.id),
     title: row.name,
+    number: row.number ?? undefined,
     instructor: row.teachers.join(', '),
     professors: [...row.teachers],
     time: '',
@@ -53,6 +54,7 @@ export async function fillIndexCourses(
         const detail = await api.getCourseDetail(course.id, token)
         if (!isCurrent()) return
         if (detail.title_en) course.titleEn = detail.title_en
+        if (!course.number && detail.number) course.number = detail.number
         const cover = detail.image_url?.trim()
         if (cover) course.imageUrl = cover
         if (detail.college_name) course.college_name = detail.college_name

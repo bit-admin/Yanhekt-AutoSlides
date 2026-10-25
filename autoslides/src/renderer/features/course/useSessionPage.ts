@@ -15,7 +15,7 @@ const log = createLogger('SessionPage');
 /** The slice of `Course` the sessions page consumes (a thin/pinned course may carry only this). */
 export type SessionCourse = Pick<
   Course,
-  | 'id' | 'title' | 'titleEn' | 'instructor' | 'time'
+  | 'id' | 'title' | 'titleEn' | 'number' | 'instructor' | 'time'
   | 'classrooms' | 'college_name' | 'participant_count'
   | 'professors' | 'school_year' | 'semester'
 >
@@ -100,6 +100,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       ...base,
       title: base.title || extra.title || '',
       titleEn: base.titleEn || extra.titleEn,
+      number: base.number || extra.number,
       instructor: base.instructor || extra.instructor || '',
       professors: base.professors && base.professors.length > 0 ? base.professors : extra.professors,
       college_name: base.college_name || extra.college_name,
@@ -119,6 +120,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
         id: c.id,
         title: c.title,
         titleEn: c.titleEn,
+        number: c.number,
         instructor: c.instructor,
         time: c.time,
         classrooms: c.classrooms,
@@ -146,6 +148,8 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       sessionTitle: session.title,
       sessionId: session.session_id.toString(),
       courseId: course.value?.id,
+      // So the extracted folder's metadata.json has it in its first write.
+      courseNumber: courseDetails.value?.number,
       videoType
     })
   }
@@ -216,6 +220,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       fetchedCourseInfo.value = {
         title: response.title,
         titleEn: response.title_en,
+        number: response.number || listCourse?.number,
         instructor: response.professor,
         professors: response.professors,
         college_name: response.college_name || listCourse?.college_name,
@@ -235,6 +240,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
           ...listCourse,
           title: response.title || listCourse.title,
           titleEn: response.title_en || listCourse.titleEn,
+          number: response.number || listCourse.number,
           instructor: response.professor || listCourse.instructor,
           professors: (response.professors && response.professors.length > 0)
             ? response.professors

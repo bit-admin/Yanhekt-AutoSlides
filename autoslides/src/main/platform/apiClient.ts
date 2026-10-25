@@ -53,6 +53,8 @@ interface CourseInfoApiResponse extends BaseApiResponse {
     // it is frequently absent — callers must fall back to name_zh.
     name_en?: string;
     professors: Array<{ name: string }>;
+    /** Registrar course number (Yanhe 2.0 `kcwybm`); null or absent when there is none. */
+    number?: string | null;
     // Present on the /v1/course single-course response (confirmed against the
     // live API). Note: `classrooms` is NOT returned here — only on the course
     // list response. Recover list-only fields via keyword=id on /v2/course/list
@@ -111,6 +113,8 @@ interface SessionDetailApiResponse extends BaseApiResponse {
     video_ids?: Array<number | string>;
     course?: {
       id: number | string;
+      /** Registrar course number (Yanhe 2.0 `kcwybm`). */
+      number?: string | null;
       name_zh?: string;
       name_en?: string;
       college_name?: string;
@@ -697,6 +701,7 @@ export class ApiClient {
       title_en: nameEn,
       professor: professor,
       professors: professorNames,
+      number: courseData.data.number ? String(courseData.data.number) : undefined,
       college_name: courseData.data.college_name,
       school_year: courseData.data.school_year,
       semester: courseData.data.semester,
@@ -799,6 +804,7 @@ export class ApiClient {
         id: courseId,
         title: s.course?.name_zh?.trim() || '',
         titleEn: s.course?.name_en?.trim() || undefined,
+        number: s.course?.number ? String(s.course.number) : undefined,
         college_name: s.course?.college_name,
         school_year: s.course?.school_year,
         semester: s.course?.semester,

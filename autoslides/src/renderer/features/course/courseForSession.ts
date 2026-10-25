@@ -21,6 +21,7 @@ export function courseForSession(
     id: base.id,
     title: info?.title || list?.title || base.title,
     titleEn: info?.title_en || list?.titleEn || base.titleEn,
+    number: info?.number || list?.number || base.number,
     instructor: info?.professor || list?.instructor || '',
     time: termText(schoolYear, semester) || list?.time || '',
     professors: info?.professors?.length ? info.professors : list?.professors,

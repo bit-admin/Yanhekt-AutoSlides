@@ -23,6 +23,7 @@ export function queueSessionDownload(
     id: course.id,
     title: courseTitle,
     titleEn: course.titleEn,
+    number: course.number,
     instructor: '',
     time: '',
     college_name: course.college_name,
@@ -36,6 +37,7 @@ export function queueSessionDownload(
     sessionTitle: session.title,
     sessionId: session.session_id,
     courseId: course.id,
+    courseNumber: course.number,
     videoType,
   })
 }

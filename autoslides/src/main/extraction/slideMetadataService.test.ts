@@ -20,30 +20,24 @@ async function folder(): Promise<string> {
 
 const extraction = { extractor: 'builtin' as const, extractedAt: '2026-10-21T00:00:00.000Z', trigger: 'watch' as const };
 
-describe('SlideMetadataService.setCourseNumber', () => {
-  it('adds the number to a folder recorded for that course without one', async () => {
+describe('SlideMetadataService.writeExtraction: registrar number', () => {
+  it('stores the number the writer passes', async () => {
     const dir = await folder();
     const service = new SlideMetadataService();
-    await service.writeExtraction(dir, { source: { courseId: '80101', courseTitle: '泛函分析' }, extraction });
-    await service.setCourseNumber(dir, '80101', 'K-0001');
+    await service.writeExtraction(dir, { source: { courseId: '80101', courseTitle: '泛函分析', courseNumber: 'K-0001' }, extraction });
     const stored = JSON.parse(await readFile(path.join(dir, 'metadata.json'), 'utf8'));
     expect(stored.source).toEqual({ courseId: '80101', courseTitle: '泛函分析', courseNumber: 'K-0001' });
   });
 
-  it('leaves a folder alone that has no metadata, a number already, or another course', async () => {
+  it('keeps a stored number when a later write for the same course has none, not for another course', async () => {
     const service = new SlideMetadataService();
-    const empty = await folder();
-    await service.setCourseNumber(empty, '80101', 'K-0001');
-    expect(await service.read(empty)).toBeNull();
-
-    const numbered = await folder();
-    await service.writeExtraction(numbered, { source: { courseId: '80101', courseNumber: 'K-9999' }, extraction });
-    await service.setCourseNumber(numbered, '80101', 'K-0001');
-    expect((await service.read(numbered))?.source.courseNumber).toBe('K-9999');
-
-    const moved = await folder();
-    await service.writeExtraction(moved, { source: { courseId: '80102' }, extraction });
-    await service.setCourseNumber(moved, '80101', 'K-0001');
-    expect((await service.read(moved))?.source.courseNumber).toBeUndefined();
+    const dir = await folder();
+    await service.writeExtraction(dir, { source: { courseId: '80101', courseNumber: 'K-0001' }, extraction });
+    await service.writeExtraction(dir, { source: { courseId: '80101' }, extraction });
+    expect((await service.read(dir))?.source.courseNumber).toBe('K-0001');
+    await service.writeExtraction(dir, { source: { courseId: '80101', courseNumber: 'K-0002' }, extraction });
+    expect((await service.read(dir))?.source.courseNumber).toBe('K-0002');
+    await service.writeExtraction(dir, { source: { courseId: '80102' }, extraction });
+    expect((await service.read(dir))?.source.courseNumber).toBeUndefined();
   });
 });

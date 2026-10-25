@@ -44,6 +44,13 @@ describe('courseForSession', () => {
     })
   })
 
+  it('carries the registrar number from the detail, the list row or the session, so metadata.json gets it in its first write', () => {
+    expect(courseForSession(base, { ...info, number: 'K-0001' }, { ...list, number: 'K-0002' }).number).toBe('K-0001')
+    expect(courseForSession(base, info, { ...list, number: 'K-0002' }).number).toBe('K-0002')
+    expect(courseForSession({ ...base, number: 'K-0003' }, null, null).number).toBe('K-0003')
+    expect(courseForSession(base, info, list).number).toBeUndefined()
+  })
+
   it("falls back to the session's nested course when both lookups fail", () => {
     expect(courseForSession(base, null, null)).toMatchObject({
       id: '12',

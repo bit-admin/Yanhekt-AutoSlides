@@ -24,6 +24,7 @@ function sourceFromDataStore(sessionId?: string): SlideMetadataSource {
   return {
     courseId: ci?.id,
     courseTitle: ci?.title,
+    courseNumber: ci?.number,
     sessionId: data.session_id != null ? String(data.session_id) : sessionId,
     sessionTitle: data.title,
     instructor: ci?.instructor,

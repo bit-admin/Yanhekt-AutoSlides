@@ -2,7 +2,6 @@ import type { MainAuthService } from '@main/platform/authService';
 import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
 import type { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import type { ApiClient } from '@main/platform/apiClient';
-import type { CourseNumberLookup } from '@main/platform/courseNumberLookup';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { VideoProxyService } from '@main/video/videoProxyService';
@@ -50,7 +49,6 @@ export interface IpcServices {
   yanhe2Service: Yanhe2Service;
   yanhe2TwinResolver: Yanhe2TwinResolver;
   apiClient: ApiClient;
-  courseNumberLookup: CourseNumberLookup;
   /** The course index on this computer, the lookups over it and the online Index, and its updater. */
   courseIndex: LocalCourseIndex;
   courseLookup: CourseLookup;

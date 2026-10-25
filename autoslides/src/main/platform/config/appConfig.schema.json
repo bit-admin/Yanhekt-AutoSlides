@@ -661,6 +661,10 @@
           "type": "string",
           "description": "English course name, when the API had one. Display only; absent on legacy pins."
         },
+        "number": {
+          "type": "string",
+          "description": "Registrar course number (Yanhe 2.0 `kcwybm`); absent on older pins until reopened."
+        },
         "instructor": {
           "type": "string"
         },

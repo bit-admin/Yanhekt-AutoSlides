@@ -49,6 +49,7 @@ export function usePlaybackDownload(options: UsePlaybackDownloadOptions): UsePla
         sessionTitle: currentSession.title,
         sessionId: String(resolvedSessionId),
         courseId: course.value?.id,
+        courseNumber: course.value?.number,
         videoType
       })
       if (result.added && !firstAddedId) firstAddedId = result.item.id
