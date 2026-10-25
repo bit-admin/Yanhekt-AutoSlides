@@ -46,3 +46,6 @@ coverage/
 .vscode/
 *.swp
 *.swo
+
+# Course index bundle (npm run index-bundle): real course data, sealed
+vendor/course-index/

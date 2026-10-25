@@ -1,6 +1,18 @@
 import { defineConfig, type Plugin } from 'vite';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import { hideKey } from './src/main/platform/courseIndex/clientKey';
+
+// The course index client passphrase (src/main/platform/courseIndex/clientKey.ts):
+// $INDEX_CLIENT_PASSPHRASE in CI, else the release Mac's file. Hidden under a
+// fresh seed every build; null when neither is there (the index is then off).
+function indexClientKey(): string {
+  let key = process.env.INDEX_CLIENT_PASSPHRASE?.replace(/\r?\n$/, '') ?? '';
+  const file = path.join(os.homedir(), '.config', 'autoslides', 'index-client-passphrase.txt');
+  if (!key && fs.existsSync(file)) key = fs.readFileSync(file, 'utf8').replace(/\r?\n$/, '');
+  return JSON.stringify(key ? hideKey(key) : null);
+}
 
 // Copy PDFKit's bundled font metric files (AFM) and the sRGB ICC profile next
 // to the built main.js. PDFKit's StandardFont loader calls
@@ -33,6 +45,9 @@ function pdfkitDataCopy(): Plugin {
 // https://vitejs.dev/config
 export default defineConfig(({ mode }) => ({
   plugins: [pdfkitDataCopy()],
+  define: {
+    __AUTOSLIDES_IK__: indexClientKey(),
+  },
   resolve: {
     alias: {
       '@main': path.resolve(__dirname, 'src/main'),

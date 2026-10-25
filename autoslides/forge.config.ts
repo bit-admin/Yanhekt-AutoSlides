@@ -4,6 +4,7 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 
 // One sentence for every macOS privacy-protected location the output folder can
@@ -48,6 +49,10 @@ const config: ForgeConfig = {
       // Temporary: the earlier-term Yanhekt course list (main
       // platform/courseSnapshot.ts), until the course index replaces it.
       'vendor/course-snapshot',
+      // Earlier terms of the course index, sealed and signed
+      // (platform/courseIndex/). Git-ignored; `npm run index-bundle` fills it,
+      // release.yml and make:mac run that first. Left out when absent (CI).
+      ...(fs.existsSync(path.join(__dirname, 'vendor/course-index')) ? ['vendor/course-index'] : []),
       // The agent skill for the command line (repo `skills/`). The app copies
       // it under userData on launch for agents to link (cliInstall/skillBundle.ts).
       '../skills',

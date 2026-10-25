@@ -16,7 +16,9 @@ import { dumpForD1 } from './dump.ts';
 import { D1Http, d1FromEnv, printRemoteStatus, upload, type D1Exec } from './remote.ts';
 import { WranglerD1 } from './wranglerD1.ts';
 import { exportTerms, DEFAULT_MIN_TERM } from './export.ts';
-import { DEFAULT_TAG, NoRelease, pullRelease, pushRelease } from './release.ts';
+import { bundleRelease, currentTerm, DEFAULT_TAG, NoRelease, pullRelease, pushRelease } from './release.ts';
+import type { SigningKey } from './clientIndex.ts';
+import { createPrivateKey, type KeyObject } from 'node:crypto';
 
 const DEFAULT_UA = 'AutoSlides-Indexer/0.2 (+https://github.com/bit-admin/Yanhekt-AutoSlides)';
 
@@ -32,6 +34,8 @@ Commands
   export    Write the per-term JSON files (the release's slim layout) to --out.
   release pull   Download and decrypt the release's database to --db (which must not exist).
   release push   Encrypt and publish --db and its term files to the release.
+  release bundle Download the signed client manifest and the term files before --before
+                 to --out (default ./bundle), for the desktop app build. No --db.
 
 What to crawl
   (default)             forward from --initial-id to the newest id, and backfill down to --floor-id
@@ -71,8 +75,15 @@ Upload (needs CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN, e.g. in .env)
 Release (a GitHub pre-release; needs the gh CLI, signed in)
   --tag NAME            release tag (default ${DEFAULT_TAG}; never one starting with v)
   --min-term TERM       oldest term in the JSON files (default ${DEFAULT_MIN_TERM})
-  --passphrase-file F   encryption passphrase (default: $INDEX_ARTIFACT_PASSPHRASE, else
-                        ~/.config/autoslides/index-passphrase.txt)
+  --passphrase-file F   private passphrase: database, private manifest (default:
+                        $INDEX_ARTIFACT_PASSPHRASE, else ~/.config/autoslides/index-passphrase.txt)
+  --client-passphrase-file F   client passphrase: client manifest, term files; the app has it
+                        (default: $INDEX_CLIENT_PASSPHRASE, else
+                        ~/.config/autoslides/index-client-passphrase.txt)
+  --signing-key-file F  push: ed25519 key that signs the client manifest (default:
+                        $INDEX_SIGNING_KEY as PEM text, else ~/.config/autoslides/index-signing-key.pem)
+  --keys F              bundle: public keys to accept (the app's indexSigningKeys.json)
+  --before TERM         bundle: terms before this one (default: the current term, Beijing time)
 
 Other
   --db PATH             SQLite file (default ./data/yanhekt-index.db)
@@ -102,6 +113,10 @@ const { values: opts, positionals } = parseArgs({
     tag: { type: 'string', default: DEFAULT_TAG },
     'min-term': { type: 'string', default: DEFAULT_MIN_TERM },
     'passphrase-file': { type: 'string' },
+    'client-passphrase-file': { type: 'string' },
+    'signing-key-file': { type: 'string' },
+    keys: { type: 'string' },
+    before: { type: 'string' },
     videos: { type: 'boolean', default: false },
     'only-videos': { type: 'boolean', default: false },
     'no-course-detail': { type: 'boolean', default: false },
@@ -155,15 +170,30 @@ function jobSummary(markdown: string): void {
   }
 }
 
-/** The release passphrase: --passphrase-file, $INDEX_ARTIFACT_PASSPHRASE, or the usual file on this Mac. */
-function passphrase(): string {
+/** A release secret: the --flag file, else the environment variable, else the usual file on this Mac. */
+function secret(flag: string | undefined, envName: string, homeFile: string): string | null {
   const fromFile = (f: string) => readFileSync(f, 'utf8').replace(/\r?\n$/, '');
-  if (opts['passphrase-file']) return fromFile(resolve(opts['passphrase-file']));
-  const env = process.env.INDEX_ARTIFACT_PASSPHRASE;
-  if (env) return env;
-  const home = join(homedir(), '.config', 'autoslides', 'index-passphrase.txt');
-  if (existsSync(home)) return fromFile(home);
-  die('no passphrase: pass --passphrase-file or set INDEX_ARTIFACT_PASSPHRASE');
+  if (flag) return fromFile(resolve(flag));
+  const env = process.env[envName];
+  if (env && env.trim()) return env.replace(/\r?\n$/, '');
+  const home = join(homedir(), '.config', 'autoslides', homeFile);
+  return existsSync(home) ? fromFile(home) : null;
+}
+
+function passphrase(): string {
+  return secret(opts['passphrase-file'], 'INDEX_ARTIFACT_PASSPHRASE', 'index-passphrase.txt')
+    ?? die('no passphrase: pass --passphrase-file or set INDEX_ARTIFACT_PASSPHRASE');
+}
+
+function clientPassphrase(): string {
+  return secret(opts['client-passphrase-file'], 'INDEX_CLIENT_PASSPHRASE', 'index-client-passphrase.txt')
+    ?? die('no client passphrase: pass --client-passphrase-file or set INDEX_CLIENT_PASSPHRASE');
+}
+
+function signingKey(): KeyObject {
+  const pem = secret(opts['signing-key-file'], 'INDEX_SIGNING_KEY', 'index-signing-key.pem')
+    ?? die('no signing key: pass --signing-key-file or set INDEX_SIGNING_KEY');
+  return createPrivateKey(pem);
 }
 
 function parseWindow(s: string): [number, number] {
@@ -407,8 +437,25 @@ async function main(): Promise<void> {
   }
   if (cmd === 'release') {
     const sub = positionals[1];
-    if (sub !== 'pull' && sub !== 'push') die('release needs pull or push');
+    if (sub !== 'pull' && sub !== 'push' && sub !== 'bundle') die('release needs pull, push or bundle');
     if (/^v/i.test(opts.tag)) die('a release tag starting with v would trigger the app release workflow');
+    if (sub === 'bundle') {
+      if (!opts.keys) die('release bundle needs --keys (the app\'s indexSigningKeys.json)');
+      const keys = (JSON.parse(readFileSync(resolve(opts.keys), 'utf8')) as { keys: SigningKey[] }).keys;
+      const before = opts.before ?? currentTerm();
+      if (!/^\d{4}-\d{4}-[12]$/.test(before)) die(`--before must look like 2026-2027-1 (got ${before})`);
+      const out = resolve(opts.out === './d1-dump' ? './bundle' : opts.out);
+      try {
+        await bundleRelease(opts.tag, out, { clientPassphrase: clientPassphrase(), keys, before }, log);
+      } catch (err) {
+        if (err instanceof NoRelease) {
+          console.error(`error: ${err.message}`);
+          process.exit(3);
+        }
+        throw err;
+      }
+      return;
+    }
     const pass = passphrase();
     if (sub === 'pull') {
       mkdirSync(dirname(dbPath), { recursive: true });
@@ -426,7 +473,7 @@ async function main(): Promise<void> {
     if (!existsSync(dbPath)) die(`no such database: ${dbPath}`);
     const release = acquireLock(dbPath);
     try {
-      pushRelease(opts.tag, dbPath, pass, opts['min-term'], log);
+      pushRelease(opts.tag, dbPath, { passphrase: pass, clientPassphrase: clientPassphrase(), signingKey: signingKey() }, opts['min-term'], log);
     } finally {
       release();
     }

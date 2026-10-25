@@ -98,10 +98,13 @@ jobs:
           node-version: '22' # latest 22.x; the indexer needs >= 22.18
 
       - name: Check inputs
+        env:
+          HAS_CLIENT_KEYS: ${{ secrets.INDEX_CLIENT_PASSPHRASE != '' && secrets.INDEX_SIGNING_KEY != '' }}
         run: |
           fail() { echo "::error::$1"; exit 1; }
           num='^[0-9]+$'
           [ -n "$INDEX_ARTIFACT_PASSPHRASE" ] || fail "set the INDEX_ARTIFACT_PASSPHRASE secret"
+          [[ "$PUBLISH" != "true" || "$HAS_CLIENT_KEYS" == "true" ]] || fail "publishing needs the INDEX_CLIENT_PASSPHRASE and INDEX_SIGNING_KEY secrets"
           [[ -z "$FROM" || "$FROM" =~ $num ]] || fail "from must be a number"
           [[ -z "$TO" || "$TO" =~ $num ]] || fail "to must be a number"
           [[ -z "$TO" || -n "$FROM" ]] || fail "to needs from"
@@ -192,6 +195,11 @@ jobs:
       # the next run continues from this copy.
       - name: Publish to the release
         if: ${{ !cancelled() && steps.getdb.outcome == 'success' }}
+        env:
+          # Only this step: the client passphrase seals the term files the app
+          # reads, the signing key signs their manifest.
+          INDEX_CLIENT_PASSPHRASE: ${{ secrets.INDEX_CLIENT_PASSPHRASE }}
+          INDEX_SIGNING_KEY: ${{ secrets.INDEX_SIGNING_KEY }}
         run: |
           [ "$PUBLISH" = "true" ] || { echo "Publishing not selected."; exit 0; }
           node $NODE_FLAGS src/cli.ts release push --db "$DB" --tag "$TAG"

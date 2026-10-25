@@ -12,10 +12,11 @@
 
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
+import { TERM_FIELDS, TERM_FORMAT } from './clientIndex.ts';
 import { localSessionsReader, projectCourse } from './d1model.ts';
 
-export const EXPORT_FORMAT = 1;
-export const EXPORT_FIELDS = ['id', 'name', 'number', 'teachers', 'sessions'] as const;
+export const EXPORT_FORMAT = TERM_FORMAT;
+export const EXPORT_FIELDS = TERM_FIELDS;
 
 /** Oldest term that goes into the release (owner decision 2026-10-25). */
 export const DEFAULT_MIN_TERM = '2023-2024-1';

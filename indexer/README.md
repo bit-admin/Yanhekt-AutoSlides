@@ -129,13 +129,19 @@ The database also records which courses D1 already has (`d1_sent`), so each run 
 
 ### The release
 
-A pre-release, so the app's update check (which reads the *latest* release) never sees it. Never give it a tag starting with `v`: those start the app's release workflow. Every file is gzipped and encrypted with `INDEX_ARTIFACT_PASSPHRASE` (the repository is public):
+A pre-release, so the app's update check (which reads the *latest* release) never sees it. Never give it a tag starting with `v`: those start the app's release workflow. Every file is gzipped and encrypted (the repository is public), under one of two passphrases:
 
-| Asset | |
-|---|---|
-| `manifest.json.gz.enc` | names the current files below, with sha256, sizes and counts |
-| `yanhekt-index.<UTC time>.db.gz.enc` | the full SQLite database; the previous one is kept as a fallback |
-| `term-<term>.<hash>.json.gz.enc` | one per term from 2023-2024-1 (`--min-term`); a new name only when the term changed |
+- **private** (`INDEX_ARTIFACT_PASSPHRASE`): the database and its manifest. Only the workflow and the owner have it.
+- **client** (`INDEX_CLIENT_PASSPHRASE`): the term files and the client manifest. The desktop app carries it, so anyone determined can dig it out; it opens only the slim term data.
+
+| Asset | Passphrase | |
+|---|---|---|
+| `manifest.json.gz.enc` | private | names the current files, with sha256, sizes and counts |
+| `yanhekt-index.<UTC time>.db.gz.enc` | private | the full SQLite database; the previous one is kept as a fallback |
+| `client-manifest.json` | client | a signed envelope (below) around the client manifest: each term file with the sha256 of its sealed bytes and of its JSON |
+| `term-<term>.<hash>.<pid>.json.gz.enc` | client | one per term from 2023-2024-1 (`--min-term`); a new name when the term or the client passphrase (`<pid>`, its public id) changes |
+
+The client manifest's envelope is plain JSON holding the sealed manifest and an ed25519 signature over its name, size and sha256, made with `INDEX_SIGNING_KEY`. The app accepts only keys in `autoslides/src/main/platform/courseIndex/indexSigningKeys.json` (a key of its own, not the app update key), so the signature, not the shared passphrase, is what proves a file came from this workflow. `src/clientIndex.ts` has the format; the app runs a byte-identical copy of it and of `src/seal.ts`.
 
 A term file is the same slim data as D1, sorted by course id:
 
@@ -145,7 +151,7 @@ A term file is the same slim data as D1, sorted by course id:
   "courses": [[48123, "…", "…", ["…"], [801234, 801240]]] }
 ```
 
-A publish uploads the new files first, then replaces the manifest, then deletes files the manifest no longer names, so a reader never meets a missing file. Open any file by hand with:
+A publish uploads the new files first, then replaces the two manifests, then deletes files neither names, so a reader never meets a missing file. Open any sealed file by hand with the matching passphrase file:
 
 ```sh
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:<passphrase file> -in F.gz.enc | gunzip > F
@@ -155,13 +161,24 @@ openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:<passphrase file> -i
 
 Repository secrets (*Settings → Secrets and variables → Actions*):
 
-- `INDEX_ARTIFACT_PASSPHRASE`: encrypts everything the workflow publishes. Required.
+- `INDEX_ARTIFACT_PASSPHRASE`: the private passphrase (database, artifact). Required.
+- `INDEX_CLIENT_PASSPHRASE`, `INDEX_SIGNING_KEY` (ed25519 private key, PEM): the client passphrase and the client manifest's signing key. Required to publish. Their public halves are built into the app (its build reads `INDEX_CLIENT_PASSPHRASE` too); changing either needs an app release.
 - `CF_ACCOUNT_ID`, `CF_D1_DATABASE_ID`, `CF_API_TOKEN` (a token with *Account · D1 · Edit*): for the D1 upload. Without them the run skips the upload with a warning; the next run with them sends what was missed.
 
 The first release is created from a local database that already holds what D1 has:
 
 ```sh
-npm run release -- push          # --db, --tag, --min-term, --passphrase-file
+npm run release -- push          # --db, --tag, --min-term, --passphrase-file, --client-passphrase-file, --signing-key-file
+```
+
+Locally the three secrets default to `~/.config/autoslides/index-passphrase.txt`, `index-client-passphrase.txt` and `index-signing-key.pem`.
+
+### The app's bundle
+
+The desktop app ships the term files before the current term. `npm run index-bundle` in `autoslides/` runs `release bundle`: it downloads `client-manifest.json`, checks its signature against the app's key list and the client passphrase, downloads each earlier term file, checks both hashes, and writes them to `autoslides/vendor/course-index/` (git-ignored). `release.yml` and `make:mac` run it before packaging.
+
+```sh
+npm run release -- bundle --out DIR --keys ../autoslides/src/main/platform/courseIndex/indexSigningKeys.json [--before 2026-2027-1]
 ```
 
 ### Running it by hand
@@ -264,7 +281,7 @@ The window is always Beijing time, whatever the computer's time zone. Use `--win
 | `--max-writes N` | 90000 | `upload`: stop before writing more than N D1 rows, newest courses first; 0 = no limit |
 | `merge FILE…` | — | command: merge other index files (e.g. Actions artifacts) into this one |
 | `export` | — | command: write the per-term JSON files to `--out` (default `./export`), from `--min-term` |
-| `release pull` / `release push` | — | commands: download the release's database to `--db` (must not exist) / publish `--db` and its term files; `--tag` (default `index`), `--min-term` (default `2023-2024-1`), `--passphrase-file` |
+| `release pull` / `release push` / `release bundle` | — | commands: download the release's database to `--db` (must not exist) / publish `--db`, its term files and the signed client manifest / fetch the app's bundle to `--out`; `--tag` (default `index`), `--min-term` (default `2023-2024-1`), `--passphrase-file`, `--client-passphrase-file`, `--signing-key-file`, `--keys`, `--before` (default: the current term, Beijing time) |
 | `--forward-only` / `--backfill-only` | off | only one of the default lanes |
 | `--db PATH` | ./data/yanhekt-index.db | |
 | `--gap-threshold`, `--probe-step`, `--probe-count` | 150, 500, 20 | hole skipping (see below) |
@@ -356,6 +373,7 @@ npm install && npm run typecheck
 | `src/remote.ts` | D1 HTTP client and upload |
 | `src/dump.ts` | the D1 layout as SQL files |
 | `src/export.ts` | per-term JSON files for the release |
-| `src/release.ts` / `src/seal.ts` | the GitHub release (pull, push, manifest) / its encryption (same format as `openssl enc`) |
+| `src/release.ts` / `src/seal.ts` | the GitHub release (pull, push, bundle, manifests) / its encryption (same format as `openssl enc`) |
+| `src/clientIndex.ts` | what the app reads: signed envelope, client manifest, term file layout (copied byte for byte into the app) |
 | `src/yanhekt.ts` | Yanhekt client and pacing |
 | `src/cli.ts` | commands, window loop, lock, backoff, end-of-run report |
