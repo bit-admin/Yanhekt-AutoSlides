@@ -46,7 +46,6 @@ import { CourseNumberLookup } from '@main/platform/courseNumberLookup';
 import { localCourseIndex } from '@main/platform/courseIndex/courseIndex';
 import { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import { CourseIndexUpdater } from '@main/platform/courseIndex/courseIndexUpdater';
-import { setIndexTokenSource } from '@main/platform/indexClient';
 import { Yanhe2SubtitleService } from '@main/video/yanhe2SubtitleService';
 import { Yanhe2DownloadService } from '@main/video/yanhe2DownloadService';
 import { Yanhe2CaptionSyncService } from '@main/video/yanhe2CaptionSyncService';
@@ -348,11 +347,11 @@ if (!cliRun) {
 // Yanhe 2.0 JSON takes the same route as the rest of the API.
 routeYanhe2Through((config) => apiTransport.send(config));
 // The course index: on this computer (bundled + downloaded) and online, picked
-// per Settings → General → Search. The online Index gets the Yanhekt token.
-setIndexTokenSource(() => configService.getAuthToken());
+// per Settings → General → Search. Signed-in users only: every lookup takes the
+// Yanhekt token, which the online Index also receives as a Bearer.
 const courseIndex = localCourseIndex();
 const courseLookup = new CourseLookup(courseIndex, apiClient, configService);
-apiClient.setSessionIdSource((courseId) => courseLookup.sessionIds(courseId));
+apiClient.setSessionIdSource((courseId, token) => courseLookup.sessionIds(courseId, token));
 // Only the app downloads index updates; a command-line run reads what is there.
 const courseIndexUpdater = new CourseIndexUpdater({
   index: courseIndex,

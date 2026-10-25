@@ -652,8 +652,8 @@ export interface ElectronAPI {
     getLiveSessionId: (liveId: string, token: string) => Promise<string | null>;
     /** One course's `/v1/course` detail, no session list. Anonymous-ok. */
     getCourseDetail: (courseId: string, token: string) => Promise<CourseDetailResponse>;
-    /** One page of a course index search in one term, from the source Settings → Search picks. */
-    searchCourseIndex: (term: string, keyword: string, page?: number, pageSize?: number) => Promise<CourseIndexSearchResult>;
+    /** One page of a course index search in one term, from the source Settings → Search picks. Signed-in only. */
+    searchCourseIndex: (token: string, term: string, keyword: string, page?: number, pageSize?: number) => Promise<CourseIndexSearchResult>;
     /** What the course index on this computer holds, and its update state. */
     getCourseIndexStatus: () => Promise<CourseIndexStatus>;
     /** Check the index release now; resolves with the new status. */

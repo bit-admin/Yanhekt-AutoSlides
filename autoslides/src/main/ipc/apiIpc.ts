@@ -5,8 +5,9 @@ export function registerApiIpcHandlers(services: IpcServices): void {
   const { apiClient, courseLookup, courseIndex, courseIndexUpdater } = services;
 
   // Course index search in one term (Settings → General → Search picks the source).
-  ipcMain.handle('api:searchCourseIndex', async (_event, term: unknown, keyword: unknown, page?: unknown, pageSize?: unknown) => {
-    return courseLookup.search(String(term), String(keyword ?? ''), Number(page) || 1, Math.min(Number(pageSize) || 16, 100));
+  ipcMain.handle('api:searchCourseIndex', async (_event, token: unknown, term: unknown, keyword: unknown, page?: unknown, pageSize?: unknown) => {
+    const signedIn = typeof token === 'string' && token ? token : null;
+    return courseLookup.search(String(term), String(keyword ?? ''), Number(page) || 1, Math.min(Number(pageSize) || 16, 100), signedIn);
   });
 
   // Settings: what the course index on this computer holds, and its updates.

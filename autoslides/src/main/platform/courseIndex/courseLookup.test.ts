@@ -151,8 +151,8 @@ describe('CourseLookup', () => {
 
   it('leaves the current term to Yanhekt by default, and searches an earlier term locally', async () => {
     const { lookup: l, fetchMock } = lookup();
-    expect(await l.search('2026-2027-1', '高等数学')).toEqual({ ok: false, reason: 'yanhekt' });
-    const earlier = await l.search('2024-2025-1', '线性代数', 1, 1);
+    expect(await l.search('2026-2027-1', '高等数学', 1, 16, 'tok')).toEqual({ ok: false, reason: 'yanhekt' });
+    const earlier = await l.search('2024-2025-1', '线性代数', 1, 1, 'tok');
     expect(earlier).toMatchObject({ ok: true, source: 'local', total: 2, page: 1, lastPage: 2 });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -160,23 +160,23 @@ describe('CourseLookup', () => {
   it('asks the online Index for a term this computer does not hold, or always when set to', async () => {
     const online = [{ id: 301, name: '复变函数', number: null, term: '2023-2024-2', teachers: ['钱七'] }];
     const { lookup: l, fetchMock } = lookup({ online });
-    expect(await l.search('2023-2024-2', '复变')).toMatchObject({ ok: true, source: 'online', courses: [{ id: '301' }] });
+    expect(await l.search('2023-2024-2', '复变', 1, 16, 'tok')).toMatchObject({ ok: true, source: 'online', courses: [{ id: '301' }] });
     expect(String(fetchMock.mock.calls[0][0])).toContain('/api/search?q=%E5%A4%8D%E5%8F%98&term=2023-2024-2');
 
     const onlineOnly = lookup({ earlierSource: 'online', online });
-    expect(await onlineOnly.lookup.search('2024-2025-1', '线性代数')).toMatchObject({ ok: true, source: 'online' });
+    expect(await onlineOnly.lookup.search('2024-2025-1', '线性代数', 1, 16, 'tok')).toMatchObject({ ok: true, source: 'online' });
   });
 
   it('says so when the chosen local copy lacks the current term', async () => {
     const { lookup: l } = lookup({ currentSource: 'local' });
-    expect(await l.search('2026-2027-1', '高等数学')).toEqual({ ok: false, reason: 'local-missing' });
+    expect(await l.search('2026-2027-1', '高等数学', 1, 16, 'tok')).toEqual({ ok: false, reason: 'local-missing' });
   });
 
   it('takes session ids from this computer, and online when it has none', async () => {
     const { lookup: l, fetchMock } = lookup({ onlineSessions: [9201, 9202] });
-    expect(await l.sessionIds('101')).toEqual(['9001', '9002']);
+    expect(await l.sessionIds('101', 'tok')).toEqual(['9001', '9002']);
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(await l.sessionIds('103')).toEqual(['9201', '9202']);
+    expect(await l.sessionIds('103', 'tok')).toEqual(['9201', '9202']);
   });
 
   it('finds a course by code in its term: Yanhekt for the current term, the index for an earlier one', async () => {
@@ -185,7 +185,7 @@ describe('CourseLookup', () => {
     expect(await l.locate({ number: 'K-2024-0101' }, '2024-2025-1', 'tok')).toMatchObject({ kind: 'index', row: { id: '101', term: '2024-2025-1' } });
     expect(apiClient.getCourseList).toHaveBeenCalledTimes(1);
     // The index row stands when Yanhekt's detail does not answer.
-    expect(await l.findCourse({ number: 'K-2024-0101' }, '2024-2025-1', null)).toMatchObject({
+    expect(await l.findCourse({ number: 'K-2024-0101' }, '2024-2025-1', 'tok')).toMatchObject({
       id: '101', number: 'K-2024-0101', name_zh: '线性代数', school_year: '2024-2025', semester: '1',
     });
   });
@@ -194,8 +194,32 @@ describe('CourseLookup', () => {
     const { lookup: l, apiClient } = lookup();
     expect(await l.locate({ id: '102' }, null, 'tok')).toMatchObject({ kind: 'index', row: { id: '102' } });
     expect(apiClient.getCourseList).toHaveBeenCalledTimes(1);
-    // Signed out, Yanhekt is skipped.
-    expect(await l.locate({ id: '101' }, null, null)).toMatchObject({ kind: 'index' });
+  });
+
+  it('reads nothing without a sign-in: no search, no session ids, no lookups', async () => {
+    const { lookup: l, apiClient, fetchMock } = lookup({ currentSource: 'online', onlineSessions: [9201] });
+    expect(await l.search('2024-2025-1', '线性代数', 1, 16, null)).toEqual({ ok: false, reason: 'sign-in' });
+    expect(await l.search('2026-2027-1', '高等数学', 1, 16, null)).toEqual({ ok: false, reason: 'sign-in' });
+    expect(await l.sessionIds('101', null)).toEqual([]);
+    expect(await l.locate({ id: '101' }, null, null)).toBeNull();
+    expect(await l.findCourse({ number: 'K-2024-0101' }, '2024-2025-1', null)).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(apiClient.getCourseList).not.toHaveBeenCalled();
+  });
+
+  it('sends the token to the online Index as a Bearer', async () => {
+    const { lookup: l, fetchMock } = lookup({ earlierSource: 'online', online: [] });
+    await l.search('2024-2025-1', '线性代数', 1, 16, 'tok-1');
+    const init = (fetchMock.mock.calls[0] as unknown[])[1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok-1');
+  });
+
+  it('lets the anonymous yhdl search the index without a Bearer', async () => {
+    const { lookup: l, fetchMock } = lookup({ earlierSource: 'online', online: [] });
+    expect(await l.search('2024-2025-1', '线性代数', 1, 16, 'anonymous')).toMatchObject({ ok: true, source: 'online' });
+    const init = (fetchMock.mock.calls[0] as unknown[])[1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
+    expect(await lookup().lookup.search('2024-2025-1', '线性代数', 1, 16, 'anonymous')).toMatchObject({ ok: true, source: 'local' });
   });
 });
 

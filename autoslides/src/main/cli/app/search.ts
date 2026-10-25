@@ -23,6 +23,7 @@ export const appSearchCommand: AppCommand = {
       apiClient: ctx.apiClient,
       courseLookup: ctx.courseLookup,
       token,
+      indexToken: token,
       notice: ctx.term.info,
       nextStep: `Run '${input.program} course <id>' to list a course's sessions.`,
     });

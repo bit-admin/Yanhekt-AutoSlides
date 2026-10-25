@@ -25,7 +25,7 @@ export interface ApiTransport {
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
   getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse>;
   /** A course index search in one term (main picks local or online per Settings → Search). */
-  searchCourseIndex(term: string, keyword: string, page?: number, pageSize?: number): Promise<CourseIndexSearchResult>;
+  searchCourseIndex(token: string, term: string, keyword: string, page?: number, pageSize?: number): Promise<CourseIndexSearchResult>;
   getLiveSessionId(liveId: string, token: string): Promise<string | null>;
   getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }>;
   getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo>;
@@ -46,7 +46,7 @@ const realApiTransport: ApiTransport = {
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
   getCourseDetail: (courseId, token) => window.electronAPI.api.getCourseDetail(courseId, token),
   getLiveSessionId: (liveId, token) => window.electronAPI.api.getLiveSessionId(liveId, token),
-  searchCourseIndex: (term, keyword, page = 1, pageSize = 16) => window.electronAPI.api.searchCourseIndex(term, keyword, page, pageSize),
+  searchCourseIndex: (token, term, keyword, page = 1, pageSize = 16) => window.electronAPI.api.searchCourseIndex(token, term, keyword, page, pageSize),
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
   getVideoAssets: (videoId, token) => window.electronAPI.api.getVideoAssets(videoId, token),
   getSessionDownloadInfo: (sessionId, token) => window.electronAPI.api.getSessionDownloadInfo(sessionId, token),
@@ -347,9 +347,9 @@ export class ApiClient {
     }
   }
 
-  async searchCourseIndex(term: string, keyword: string, page = 1, pageSize = 16): Promise<CourseIndexSearchResult> {
+  async searchCourseIndex(token: string, term: string, keyword: string, page = 1, pageSize = 16): Promise<CourseIndexSearchResult> {
     try {
-      return await this.transport.searchCourseIndex(term, keyword, page, pageSize);
+      return await this.transport.searchCourseIndex(token, term, keyword, page, pageSize);
     } catch (error) {
       log.error('Course index search failed:', error);
       throw error;

@@ -178,10 +178,11 @@ const searchIndex = async (term: string, token: string, seq: number) => {
   }
   isLoading.value = true
   try {
-    const answer = await apiClient.searchCourseIndex(term, text, currentPage.value, RESULTS_PER_PAGE)
+    const answer = await apiClient.searchCourseIndex(token, term, text, currentPage.value, RESULTS_PER_PAGE)
     if (seq !== requestSeq) return
     if (!answer.ok) {
-      if (answer.reason === 'local-missing') showIndexNotice('local-missing')
+      if (answer.reason === 'sign-in' || answer.reason === 'yanhekt') results.value = []
+      else if (answer.reason === 'local-missing') showIndexNotice('local-missing')
       else if (answer.code === 'term-not-indexed') showIndexNotice('online-term')
       else if (answer.code === 'bad-param' || answer.code === 'term-required') results.value = []
       else showIndexNotice('online-failed')

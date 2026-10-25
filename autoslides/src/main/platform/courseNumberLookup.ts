@@ -24,13 +24,16 @@ export class CourseNumberLookup {
     private readonly configService: ConfigService,
   ) {}
 
-  /** The number, or null when it cannot be had now (no answer, no such course). */
+  /** The number, or null when it cannot be had now (no sign-in, no answer, no such course). */
   async numberOf(courseId: string): Promise<string | null> {
     if (!/^\d{1,12}$/.test(courseId)) return null;
+    // The lookups behind it are for signed-in users only.
+    const token = this.configService.getAuthToken();
+    if (!token) return null;
 
     let pending = this.known.get(courseId);
     if (!pending) {
-      pending = this.ask(courseId);
+      pending = this.ask(courseId, token);
       this.known.set(courseId, pending);
       pending.catch(() => this.known.delete(courseId));
     }
@@ -42,8 +45,8 @@ export class CourseNumberLookup {
     }
   }
 
-  private async ask(courseId: string): Promise<string> {
-    const found = await this.courseLookup.locate({ id: courseId }, null, this.configService.getAuthToken());
+  private async ask(courseId: string, token: string): Promise<string> {
+    const found = await this.courseLookup.locate({ id: courseId }, null, token);
     if (!found) throw new Error(`course ${courseId} not found`);
     const value = found.kind === 'yanhekt' ? found.course.number : found.row.number;
     return value === undefined || value === null ? '' : String(value);

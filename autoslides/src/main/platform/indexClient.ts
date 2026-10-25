@@ -4,8 +4,10 @@ import { SHARE_ORIGIN } from '@common/shareLink';
 /**
  * The Index API on the share Worker (contract: share/docs/api.md). First-party,
  * so every request carries {@link appUserAgent}, like the other ruc.edu.kg calls,
- * and the signed-in Yanhekt token as a Bearer (the Index does not check it yet;
- * it is there for when it does). The answers are the same for everyone.
+ * and the caller's Yanhekt token as a Bearer: in the app the index is for
+ * signed-in users only (the Index does not check the token yet; it is there
+ * for when it does). `yhdl` stays anonymous and sends none (token null).
+ * The answers are the same for everyone.
  */
 const INDEX_BASE = `${SHARE_ORIGIN}/api`;
 const INDEX_TIMEOUT_MS = 10_000;
@@ -22,21 +24,14 @@ export class IndexError extends Error {
 
 const memo = new Map<string, { at: number; value: unknown }>();
 
-let tokenOf: () => string | null = () => null;
-
-/** Where the Bearer comes from (main.ts: the active Yanhekt token). */
-export function setIndexTokenSource(source: () => string | null): void {
-  tokenOf = source;
-}
-
-async function get<T>(path: string): Promise<T> {
+async function get<T>(path: string, token: string | null): Promise<T> {
   const hit = memo.get(path);
   if (hit && Date.now() - hit.at < INDEX_TTL_MS) return hit.value as T;
 
   let res: Response;
   try {
     res = await fetch(`${INDEX_BASE}${path}`, {
-      headers: indexHeaders(),
+      headers: indexHeaders(token),
       signal: AbortSignal.timeout(INDEX_TIMEOUT_MS),
     });
   } catch (error) {
@@ -58,16 +53,16 @@ async function get<T>(path: string): Promise<T> {
 }
 
 /** The session ids the Index holds for a course, ascending. `not-found` for a course it does not have. */
-export async function indexSessionIds(courseId: string): Promise<string[]> {
+export async function indexSessionIds(courseId: string, token: string | null): Promise<string[]> {
   const data = await get<{ sessions?: Array<number | string> }>(
     `/courses/${encodeURIComponent(courseId)}/sessions`,
+    token,
   );
   return (data.sessions ?? []).map(String);
 }
 
-function indexHeaders(): Record<string, string> {
+function indexHeaders(token: string | null): Record<string, string> {
   const headers: Record<string, string> = { 'User-Agent': appUserAgent(), Accept: 'application/json' };
-  const token = tokenOf();
   if (token) headers.Authorization = `Bearer ${token}`;
   return headers;
 }
@@ -91,10 +86,10 @@ export interface IndexSearchAnswer {
  * `GET /api/search`: a word search in one term, or with `term` null an
  * identifier lookup (course id, course link, registrar code) in any term.
  */
-export async function indexSearch(q: string, term: string | null): Promise<IndexSearchAnswer> {
+export async function indexSearch(q: string, term: string | null, token: string | null): Promise<IndexSearchAnswer> {
   const params = new URLSearchParams({ q });
   if (term) params.set('term', term);
-  const data = await get<{ total?: number; results?: Array<Record<string, unknown>> }>(`/search?${params.toString()}`);
+  const data = await get<{ total?: number; results?: Array<Record<string, unknown>> }>(`/search?${params.toString()}`, token);
   const results = (data.results ?? []).map((r) => ({
     id: String(r.id),
     name: typeof r.name === 'string' ? r.name : '',
@@ -106,15 +101,15 @@ export async function indexSearch(q: string, term: string | null): Promise<Index
 }
 
 /** The course with this id, or null when the Index does not have it. */
-export async function indexCourseById(courseId: string): Promise<IndexSearchRow | null> {
-  const { results } = await indexSearch(courseId, null);
+export async function indexCourseById(courseId: string, token: string | null): Promise<IndexSearchRow | null> {
+  const { results } = await indexSearch(courseId, null, token);
   return results.find((r) => r.id === courseId) ?? null;
 }
 
 /** The one course with this registrar code (Yanhe 2.0 `kcwybm`), compared whole; null when none or several. */
-export async function indexCourseByNumber(code: string): Promise<IndexSearchRow | null> {
+export async function indexCourseByNumber(code: string, token: string | null): Promise<IndexSearchRow | null> {
   const key = code.trim().toLowerCase();
-  const { results } = await indexSearch(code.trim(), null);
+  const { results } = await indexSearch(code.trim(), null, token);
   const matches = results.filter((r) => r.number !== null && r.number.trim().toLowerCase() === key);
   return matches.length === 1 ? matches[0] : null;
 }

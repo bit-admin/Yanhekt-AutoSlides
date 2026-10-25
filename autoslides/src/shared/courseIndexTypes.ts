@@ -30,9 +30,10 @@ export type CourseIndexSearchResult =
     /**
      * local-missing: the course index on this computer does not hold the term;
      * online-failed: the AutoSlides Index refused or did not answer (`code` says which);
-     * yanhekt: the current term is searched on Yanhekt (the caller's job).
+     * yanhekt: the current term is searched on Yanhekt (the caller's job);
+     * sign-in: no Yanhekt token (the course index is for signed-in users only).
      */
-    reason: 'local-missing' | 'online-failed' | 'yanhekt';
+    reason: 'local-missing' | 'online-failed' | 'yanhekt' | 'sign-in';
     code?: string;
     message?: string;
   };

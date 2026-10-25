@@ -156,7 +156,8 @@ export class ApiClient {
    * online Index by default; main.ts hands in the course lookup (the course
    * index on this computer, then the online Index, per Settings → Search).
    */
-  private sessionIdSource: (courseId: string) => Promise<string[]> = indexSessionIds;
+  private sessionIdSource: (courseId: string, token: string) => Promise<string[]> = (courseId, token) =>
+    token ? indexSessionIds(courseId, token) : Promise.resolve([]);
   /** Whether a fetched current term is saved for later fallback (off for command-line runs). */
   private saveSemesterCache = true;
 
@@ -579,7 +580,7 @@ export class ApiClient {
   private async sessionsFromIndex(courseId: string, token: string): Promise<SessionData[]> {
     let ids: string[];
     try {
-      ids = await this.sessionIdSource(courseId);
+      ids = await this.sessionIdSource(courseId, token);
     } catch (error: unknown) {
       log.warn('Index session list unavailable for course', courseId, error);
       return [];
@@ -899,7 +900,7 @@ export class ApiClient {
     return { schoolYear, semester, labelEn };
   }
 
-  setSessionIdSource(source: (courseId: string) => Promise<string[]>): void {
+  setSessionIdSource(source: (courseId: string, token: string) => Promise<string[]>): void {
     this.sessionIdSource = source;
   }
 

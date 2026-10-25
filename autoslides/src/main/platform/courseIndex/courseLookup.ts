@@ -10,6 +10,11 @@
  *     a miss (the local copy may be stale), or the online Index only. A lookup
  *     in the current term follows the current-term source instead.
  *
+ * Signed-in users only in the app: every method takes the Yanhekt token, and
+ * without one neither the local copy nor the online Index is read (the online
+ * Index gets the token as a Bearer). The one exception is `yhdl search`, which
+ * stays anonymous (owner ruling): it passes `anonymous` and sends no Bearer.
+ *
  * Index failures (offline, an error answer) count as "not found" here: the
  * callers already have an answer that stands without the index. Yanhekt's own
  * errors are thrown, as callers handled them before.
@@ -82,18 +87,24 @@ export class CourseLookup {
     return [first, ...earlier.filter((s) => s !== first)];
   }
 
-  /** A word search in one term from the index (local or online, per the settings). */
-  async search(term: string, keyword: string, page = 1, pageSize = 16): Promise<CourseIndexSearchResult> {
+  /** Where a word search in `term` goes: Yanhekt (the caller's job), or the local or online index. */
+  async searchSource(term: string): Promise<'yanhekt' | CourseIndexSource> {
     const current = await this.currentTerm();
-    let source: CourseIndexSource;
-    if (current !== null && term === current) {
-      if (this.currentSource === 'yanhekt') return { ok: false, reason: 'yanhekt' };
-      source = this.currentSource;
-    } else if (this.earlierSource === 'online') {
-      source = 'online';
-    } else {
-      source = (await this.local.hasTerm(term)) ? 'local' : 'online';
-    }
+    if (current !== null && term === current) return this.currentSource;
+    if (this.earlierSource === 'online') return 'online';
+    return (await this.local.hasTerm(term)) ? 'local' : 'online';
+  }
+
+  /**
+   * A word search in one term from the index (local or online, per the
+   * settings). Needs a token, unless the caller is the anonymous `yhdl`
+   * (`token` then 'anonymous').
+   */
+  async search(term: string, keyword: string, page: number, pageSize: number, token: string | null | 'anonymous'): Promise<CourseIndexSearchResult> {
+    const source = await this.searchSource(term);
+    if (source === 'yanhekt') return { ok: false, reason: 'yanhekt' };
+    if (!token) return { ok: false, reason: 'sign-in' };
+    const bearer = token === 'anonymous' ? null : token;
 
     let rows: CourseIndexRow[];
     if (source === 'local') {
@@ -102,7 +113,7 @@ export class CourseLookup {
       rows = found.map(toRow);
     } else {
       try {
-        rows = await this.onlineSearch(term, keyword);
+        rows = await this.onlineSearch(term, keyword, bearer);
       } catch (error) {
         const code = error instanceof IndexError ? error.code : 'network';
         return { ok: false, reason: 'online-failed', code, message: error instanceof Error ? error.message : String(error) };
@@ -121,25 +132,26 @@ export class CourseLookup {
     };
   }
 
-  private async onlineSearch(term: string, keyword: string): Promise<CourseIndexRow[]> {
+  private async onlineSearch(term: string, keyword: string, token: string | null): Promise<CourseIndexRow[]> {
     const key = `${term}\n${keyword.trim()}`;
     const hit = this.onlinePages.get(key);
     if (hit && Date.now() - hit.at < ONLINE_PAGE_TTL_MS) return hit.rows;
-    const answer = await indexSearch(keyword.trim(), term);
+    const answer = await indexSearch(keyword.trim(), term, token);
     const rows = answer.results.map((r) => toRow(r));
     this.onlinePages.set(key, { at: Date.now(), rows });
     if (this.onlinePages.size > 50) this.onlinePages.delete(this.onlinePages.keys().next().value as string);
     return rows;
   }
 
-  /** A course's session ids from the index: local, then online on a miss (or online only). Empty when neither has any. */
-  async sessionIds(courseId: string): Promise<string[]> {
+  /** A course's session ids from the index: local, then online on a miss (or online only). Empty when neither has any, or with no token. */
+  async sessionIds(courseId: string, token: string | null): Promise<string[]> {
+    if (!token) return [];
     if (this.earlierSource !== 'online') {
       const course = await this.local.byId(courseId).catch(() => null);
       if (course && course.sessionIds.length > 0) return [...course.sessionIds];
     }
     try {
-      return await indexSessionIds(courseId);
+      return await indexSessionIds(courseId, token);
     } catch (error) {
       log.debug('Index session ids unavailable for course', courseId, error instanceof Error ? error.message : error);
       return [];
@@ -149,16 +161,17 @@ export class CourseLookup {
   /**
    * The course with this id or registrar code, where the settings say to look.
    * `term` is the course's term when the caller knows it (Yanhe 2.0 does).
+   * Without a token nothing is looked up (Yanhekt's list needs one too).
    */
   async locate(
     by: { id: string } | { number: string },
     term: string | null,
     token: string | null,
   ): Promise<{ kind: 'yanhekt'; course: CourseData } | { kind: 'index'; row: CourseIndexRow } | null> {
+    if (!token) return null;
     for (const step of await this.stepsFor(term)) {
       if (step === 'yanhekt') {
         // Yanhekt's list takes an id or a code as its keyword; the row is checked.
-        if (!token) continue;
         const keyword = 'id' in by ? by.id : by.number;
         const listed = await this.apiClient.getCourseList(token, { keyword, page: 1, pageSize: 16 });
         const rows = listed.data ?? [];
@@ -174,7 +187,7 @@ export class CourseLookup {
         continue;
       }
       try {
-        const found: IndexSearchRow | null = 'id' in by ? await indexCourseById(by.id) : await indexCourseByNumber(by.number);
+        const found: IndexSearchRow | null = 'id' in by ? await indexCourseById(by.id, token) : await indexCourseByNumber(by.number, token);
         if (found) return { kind: 'index', row: toRow(found) };
       } catch (error) {
         log.debug('Online Index lookup failed:', error instanceof Error ? error.message : error);

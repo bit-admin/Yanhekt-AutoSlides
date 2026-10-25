@@ -4,8 +4,10 @@
 // (Yanhekt's own search by default; its keyword also takes a numeric course
 // id, so `search 70101` finds that one course). Earlier terms, back to
 // 2023-2024-1, come from the course index: the copy on this computer, then the
-// AutoSlides Index online (or online only). A run reads that setting; it never
-// changes it, and never downloads index updates.
+// AutoSlides Index online (or online only). `yhdl search` stays anonymous
+// (owner ruling), the index path included; `autoslides search` runs as the
+// app's signed-in account. A run reads the setting; it never changes it, and
+// never downloads index updates.
 import type { CourseData, SemesterOption } from '@common/apiTypes';
 import type { CourseIndexRow } from '@common/courseIndexTypes';
 import { isEarlierTermOption, termKeyOfOption, termOptionsBackFrom } from '@common/termOptions';
@@ -74,6 +76,8 @@ export interface SearchDeps {
   courseLookup: CourseLookup;
   /** Empty for an anonymous search. */
   token: string;
+  /** The token for a course index search: the app's account for `autoslides`, 'anonymous' for `yhdl`. */
+  indexToken: string | 'anonymous';
   notice: (text: string) => void;
   /** The hint under the table: how to go on from a course id. */
   nextStep: string;
@@ -105,8 +109,8 @@ export async function searchCourses(input: CommandInput, deps: SearchDeps): Prom
     total: number;
     courses: CliCourseRow[];
   } | null = null;
-  if (picked && term) {
-    const answer = await deps.courseLookup.search(term, keyword, page, limit);
+  if (picked && term && (await deps.courseLookup.searchSource(term)) !== 'yanhekt') {
+    const answer = await deps.courseLookup.search(term, keyword, page, limit, deps.indexToken);
     if (answer.ok) {
       data = {
         keyword,
@@ -129,9 +133,8 @@ export async function searchCourses(input: CommandInput, deps: SearchDeps): Prom
       }
       if (answer.code === 'network') throw new CliError('network', `the AutoSlides Index did not answer: ${answer.message ?? ''}`.trim());
       throw new CliError('failed', `the AutoSlides Index refused the search: ${answer.message ?? answer.code ?? ''}`.trim());
-    } else if (isEarlierTermOption(picked.id)) {
-      // Unreachable: an earlier term is never searched on Yanhekt.
-      throw new CliError('failed', `cannot search ${term}`);
+    } else {
+      throw new CliError('sign_in_required', 'the course index needs a Yanhekt sign-in');
     }
   }
   if (!data) {
@@ -169,6 +172,7 @@ const run = (input: CommandInput, ctx: CliContext): Promise<CommandResult> =>
     apiClient: ctx.apiClient,
     courseLookup: ctx.courseLookup,
     token: ANONYMOUS,
+    indexToken: 'anonymous',
     notice: info,
     nextStep: `Run '${input.program} course <id>' to list a course's sessions.`,
   });

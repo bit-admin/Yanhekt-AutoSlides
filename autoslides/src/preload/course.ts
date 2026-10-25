@@ -22,8 +22,8 @@ export const api: ElectronAPI['api'] = {
     invoke('api:getLiveSessionId', liveId, token),
   getCourseDetail: (courseId: string, token: string) =>
     invoke('api:getCourseDetail', courseId, token),
-  searchCourseIndex: (term: string, keyword: string, page?: number, pageSize?: number) =>
-    invoke('api:searchCourseIndex', term, keyword, page, pageSize),
+  searchCourseIndex: (token: string, term: string, keyword: string, page?: number, pageSize?: number) =>
+    invoke('api:searchCourseIndex', token, term, keyword, page, pageSize),
   getCourseIndexStatus: () => invoke('courseIndex:getStatus'),
   updateCourseIndex: () => invoke('courseIndex:update'),
   getCourseInfo: (courseId: string, token: string) =>
