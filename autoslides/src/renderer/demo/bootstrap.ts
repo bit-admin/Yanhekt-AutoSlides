@@ -67,7 +67,7 @@ const demoApiTransport: ApiTransport = {
   getCourseInfo: async (courseId: string) => demoCourseInfo(courseId),
   getCourseDetail: async (courseId: string) => demoCourseDetail(courseId),
   // Demo lives keep their live-id names.
-  getLiveSessionId: async () => null,
+  getLiveDetail: async () => null,
   searchCourseIndex: async (_token: string, term: string, keyword: string, page = 1, pageSize = 16) =>
     demoCourseIndexSearch(term, keyword, page, pageSize),
   // Demo ships no media, so no lecture has a mic track.

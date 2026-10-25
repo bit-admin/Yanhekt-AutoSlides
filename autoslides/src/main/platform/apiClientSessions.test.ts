@@ -66,15 +66,22 @@ describe('getLiveSessionId', () => {
     return { client, calls };
   };
 
-  it('reads session.id off /v1/live detail, with both with_* flags', async () => {
-    const { client, calls } = answering({ code: 0, data: { id: 788727, session: { id: 920698 } } });
-    expect(await client.getLiveSessionId('788727', 'tok')).toBe('920698');
+  it('reads session.id and the course number off /v1/live detail, with both with_* flags', async () => {
+    const { client, calls } = answering({
+      code: 0,
+      data: { id: 788727, session: { id: 920698, course_id: 70101 }, course: { id: 70101, number: 'K-0001' } },
+    });
+    expect(await client.getLiveDetail('788727', 'tok')).toEqual({ sessionId: '920698', courseNumber: 'K-0001' });
     expect(calls[0]).toBe('https://cbiz.yanhekt.cn/v1/live?id=788727&with_session=true&with_course=true');
   });
 
-  it('returns null on an error code or a missing session', async () => {
-    expect(await answering({ code: 12131011, message: '直播不存在' }).client.getLiveSessionId('1', 'tok')).toBeNull();
-    expect(await answering({ code: 0, data: { session: null } }).client.getLiveSessionId('1', 'tok')).toBeNull();
+  it('leaves out what is missing, and a number of another course', async () => {
+    expect(await answering({ code: 12131011, message: '直播不存在' }).client.getLiveDetail('1', 'tok')).toBeNull();
+    expect(await answering({ code: 0, data: { session: null, course: null } }).client.getLiveDetail('1', 'tok'))
+      .toEqual({ sessionId: null, courseNumber: null });
+    expect(await answering({
+      code: 0, data: { session: { id: 1, course_id: 70101 }, course: { id: 70102, number: 'K-0002' } },
+    }).client.getLiveDetail('1', 'tok')).toEqual({ sessionId: '1', courseNumber: null });
   });
 });
 

@@ -84,6 +84,7 @@ import type {
   CourseDetailResponse,
   SessionDownloadInfo,
   SemesterOption,
+  LiveDetailIds,
 } from '../shared/apiTypes';
 
 export interface AutoCropModelInfo {
@@ -648,8 +649,8 @@ export interface ElectronAPI {
      *  does not need the course to have sessions, so it works for live-only
      *  courses. Resolves null when the course or its names are unavailable. */
     getCourseNames: (courseId: string, token: string) => Promise<{ nameZh: string; nameEn?: string } | null>;
-    /** Session id behind a live broadcast (`/v1/live?id=` detail). Null when unknown. */
-    getLiveSessionId: (liveId: string, token: string) => Promise<string | null>;
+    /** The session behind a live broadcast and its course's registrar number (`/v1/live?id=` detail). Null when unreadable. */
+    getLiveDetail: (liveId: string, token: string) => Promise<LiveDetailIds | null>;
     /** One course's `/v1/course` detail, no session list. Anonymous-ok. */
     getCourseDetail: (courseId: string, token: string) => Promise<CourseDetailResponse>;
     /** One page of a course index search in one term, from the source Settings → Search picks. Signed-in only. */

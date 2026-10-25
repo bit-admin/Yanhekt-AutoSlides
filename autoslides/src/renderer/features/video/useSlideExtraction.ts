@@ -23,7 +23,7 @@ export interface SlideExtractionStatus {
 export type { Course } from '@features/course/useCourseList'
 import type { Course } from '@features/course/useCourseList'
 import { configStore } from '@shared/services/configStore'
-import { rememberLiveSessionId, resolveLiveSessionId } from '@features/course/liveSessionIds'
+import { knownLiveCourseNumber, rememberLiveSessionId, resolveLiveSessionId } from '@features/course/liveSessionIds'
 
 import type { SessionData } from '@common/apiTypes'
 /** Recorded session row from /v1/course (alias kept for existing importers). */
@@ -193,8 +193,8 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
           // broadcast as its own course. The real course id is `course.courseId`.
           courseId: isLive ? course.value?.courseId : course.value?.id,
           liveId: isLive ? course.value?.id : undefined,
-          // Recorded only: a live row's course carries no number.
-          courseNumber: isLive ? undefined : course.value?.number,
+          // Live rows carry no number; the live detail read for the session id has it.
+          courseNumber: isLive ? knownLiveCourseNumber(course.value?.id) : course.value?.number,
           courseTitle: course.value?.title,
           sessionId,
           sessionTitle: session.value?.title ?? liveSessionTitle,

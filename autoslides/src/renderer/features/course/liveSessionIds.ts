@@ -1,6 +1,8 @@
 /**
  * Session ids behind live broadcasts, so a live lecture can be named
- * `c<course>s<session>l<live>` instead of `c<course>l<live>`.
+ * `c<course>s<session>l<live>` instead of `c<course>l<live>`, and their
+ * course's registrar number, which metadata.json keeps (live-list rows carry
+ * neither; the same detail request answers both).
  *
  * Live-list rows carry no session id, but `GET /v1/live?id=` detail does, and
  * the session exists before the class starts. One lookup per broadcast, cached
@@ -19,6 +21,10 @@ import { tokenManager } from '@shared/services/authService'
 
 const apiClient = new ApiClient()
 const known = new Map<string, string>()
+/** Registrar number of each broadcast's course, from the same detail. */
+const numbers = new Map<string, string>()
+/** Broadcasts whose detail was read: asked once, even when a row already gave the session id. */
+const read = new Set<string>()
 /** What the last `resolveLiveSessionId` call handed to naming, per broadcast. */
 const used = new Map<string, string | undefined>()
 const inflight = new Map<string, Promise<string | undefined>>()
@@ -59,15 +65,19 @@ export function resolveLiveSessionId(liveId: string | number | null | undefined)
     used.set(key, value)
     return value
   }
+  // A session id from the row is good for naming, but only the detail has the
+  // course number, so it is read once per broadcast either way.
   const hit = known.get(key)
-  if (hit) return Promise.resolve(settle(hit))
+  if (hit && read.has(key)) return Promise.resolve(settle(hit))
 
   let lookup = inflight.get(key)
   if (!lookup) {
     lookup = (async (): Promise<string | undefined> => {
       const token = tokenManager.getToken() ?? ''
-      const sessionId = await apiClient.getLiveSessionId(key, token)
-      rememberLiveSessionId(key, sessionId)
+      const detail = await apiClient.getLiveDetail(key, token)
+      if (detail) read.add(key)
+      rememberLiveSessionId(key, detail?.sessionId)
+      if (detail?.courseNumber) numbers.set(key, detail.courseNumber)
       return known.get(key)
     })().finally(() => inflight.delete(key))
     inflight.set(key, lookup)
@@ -77,14 +87,22 @@ export function resolveLiveSessionId(liveId: string | number | null | undefined)
   const timeout = new Promise<undefined>((resolve) => {
     timer = setTimeout(() => resolve(undefined), LOOKUP_TIMEOUT_MS)
   })
+  // A slow or failed detail still names with the id the row gave, if any.
   return Promise.race([lookup, timeout])
-    .then(settle)
+    .then((value) => settle(value ?? known.get(key)))
     .finally(() => clearTimeout(timer))
+}
+
+/** The registrar number of a broadcast's course, once its detail was read; no request. */
+export function knownLiveCourseNumber(liveId: string | number | null | undefined): string | undefined {
+  return numbers.get(keyOf(liveId))
 }
 
 /** Test seam. */
 export function clearLiveSessionIds(): void {
   known.clear()
+  numbers.clear()
+  read.clear()
   used.clear()
   inflight.clear()
 }

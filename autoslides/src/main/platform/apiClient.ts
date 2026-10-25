@@ -13,7 +13,7 @@ const log = createLogger('PlatformApiClient');
 /** Parallel session reads when the list comes from the Index. */
 const INDEX_SESSION_CONCURRENCY = 6;
 
-import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo, CourseDetailResponse } from '@common/apiTypes';
+import type { UserData, TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption, SessionDownloadInfo, CourseDetailResponse, LiveDetailIds } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, SemesterOption } from '@common/apiTypes';
 
 /** A row of the Yanhekt tag tree; `/v1/tag/semester/default` returns one. */
@@ -647,17 +647,30 @@ export class ApiClient {
    * starts, so a live lecture can be named by it. Null when the lookup fails or
    * the answer has no numeric id — callers keep the live-id name then.
    */
-  async getLiveSessionId(liveId: string, token: string): Promise<string | null> {
+  /**
+   * The session behind a live broadcast and its course's registrar number,
+   * from one `/v1/live?id=` detail (with session and course). Null when the
+   * broadcast cannot be read.
+   */
+  async getLiveDetail(liveId: string, token: string): Promise<LiveDetailIds | null> {
     try {
       const url = `https://cbiz.yanhekt.cn/v1/live?id=${encodeURIComponent(liveId)}&with_session=true&with_course=true`;
       const response = (await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true })) as {
         code?: number | string;
-        data?: { session?: { id?: number | string } | null } | null;
+        data?: {
+          session?: { id?: number | string; course_id?: number | string } | null;
+          course?: { id?: number | string; number?: string | null } | null;
+        } | null;
       };
       if (response.code !== 0 && response.code !== '0') return null;
       const id = response.data?.session?.id;
       const text = id == null ? '' : String(id).trim();
-      return /^\d+$/.test(text) ? text : null;
+      const course = response.data?.course;
+      const sessionCourse = response.data?.session?.course_id;
+      // The number only when the course is the session's (it always was in samples).
+      const sameCourse = course?.id != null && (sessionCourse == null || String(course.id) === String(sessionCourse));
+      const number = sameCourse && course?.number != null ? String(course.number).trim() : '';
+      return { sessionId: /^\d+$/.test(text) ? text : null, courseNumber: number || null };
     } catch (error: unknown) {
       log.warn('Failed to look up the session of live', liveId, error);
       return null;

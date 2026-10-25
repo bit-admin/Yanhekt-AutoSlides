@@ -160,6 +160,16 @@ export interface SessionDownloadInfo {
   audioUrl?: string;
 }
 
+/**
+ * What a live broadcast's `/v1/live?id=&with_session=true&with_course=true`
+ * detail gives for naming and metadata: the session behind it and its
+ * course's registrar number (Yanhe 2.0 `kcwybm`). Live-list rows carry neither.
+ */
+export interface LiveDetailIds {
+  sessionId: string | null;
+  courseNumber: string | null;
+}
+
 export interface CourseInfoResponse {
   course_id: string;
   /** Chinese course name (name_zh). The canonical title — filenames, note titles,
