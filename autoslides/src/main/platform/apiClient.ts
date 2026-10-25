@@ -151,6 +151,8 @@ export class ApiClient {
   private cbiz: IntranetApiTransport;
   /** Developer-mode catalog. Null unless the desktop app turned it on. */
   private catalogSink: YanhektCatalogSink | null = null;
+  /** Whether a fetched current term is saved for later fallback (off for command-line runs). */
+  private saveSemesterCache = true;
 
   constructor(private configService?: ConfigService, cbiz: IntranetApiTransport = new IntranetApiTransport()) {
     this.cbiz = cbiz;
@@ -891,15 +893,37 @@ export class ApiClient {
     return { schoolYear, semester, labelEn };
   }
 
+  /** A command-line run reads the cached current term but never writes it (a run never writes config). */
+  setSemesterCacheWrites(enabled: boolean): void {
+    this.saveSemesterCache = enabled;
+  }
+
   /**
    * The terms the picker offers: only the current one. Yanhekt dropped the
    * `semesters` row from `/v1/tag/list` (2026-10), so there is no term list
-   * upstream any more; `/v1/tag/semester/default` names the current term. The
-   * full list will come from the Index once it is live. Throws on failure (no
-   * hardcoded fallback), so the renderer's read cache never keeps a miss.
+   * upstream any more; `/v1/tag/semester/default` names the current term.
+   *
+   * Each answer is saved in the store; when the request fails, the last saved
+   * term is returned instead, so a failed request does not empty the picker.
+   * With nothing saved yet the error is thrown (no hardcoded fallback).
    */
   async getAvailableSemesters(): Promise<SemesterOption[]> {
-    const tag = await this.getDefaultSemesterTag();
+    let tag: { id: number; name: string };
+    try {
+      tag = await this.getDefaultSemesterTag();
+      if (this.saveSemesterCache && this.configService) {
+        try {
+          this.configService.setCachedCurrentSemester({ id: Number(tag.id), name: tag.name, savedAt: Date.now() });
+        } catch (error) {
+          log.warn('Could not save the current semester:', error);
+        }
+      }
+    } catch (error) {
+      const cached = this.configService?.getCachedCurrentSemester() ?? null;
+      if (!cached) throw error;
+      log.warn(`Current semester request failed; using the one saved ${new Date(cached.savedAt).toISOString()}:`, error);
+      tag = cached;
+    }
     const { schoolYear, semester, labelEn } = ApiClient.parseSemesterName(tag.name);
     return [{ id: Number(tag.id), label: tag.name, labelEn, schoolYear, semester }];
   }

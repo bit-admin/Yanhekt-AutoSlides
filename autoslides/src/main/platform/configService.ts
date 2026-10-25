@@ -133,6 +133,16 @@ function sanitizeYanhe2Sessions(stored: unknown): Record<string, StoredYanhe2Ses
   return out;
 }
 
+/** The cached current term (`currentSemesterTag` store key). */
+export interface CachedSemesterTag {
+  /** Yanhekt tag id. */
+  id: number;
+  /** Tag name as Yanhekt sends it, e.g. `2026-2027 第一学期`. */
+  name: string;
+  /** When it was fetched, epoch ms. */
+  savedAt: number;
+}
+
 export class ConfigService {
   private store: any; // Using any to bypass incorrect type definitions in electron-store v10+
   private themeService: ThemeService;
@@ -777,6 +787,21 @@ export class ConfigService {
   clearNotionToken(): void {
     this.store.delete('notionToken');
     this.store.delete('notionWorkspaceName');
+  }
+
+  // The current term as Yanhekt last named it (`/v1/tag/semester/default`).
+  // Standalone key, not part of AppConfig: a cache, not a setting. ApiClient
+  // falls back to it when the request fails, so the term picker survives.
+  getCachedCurrentSemester(): CachedSemesterTag | null {
+    const raw = this.store.get('currentSemesterTag') as Partial<CachedSemesterTag> | undefined;
+    if (!raw || typeof raw !== 'object') return null;
+    const id = Number(raw.id);
+    if (!Number.isInteger(id) || id <= 0 || typeof raw.name !== 'string' || !raw.name.trim()) return null;
+    return { id, name: raw.name, savedAt: Number(raw.savedAt) || 0 };
+  }
+
+  setCachedCurrentSemester(tag: CachedSemesterTag): void {
+    this.store.set('currentSemesterTag', { id: tag.id, name: tag.name, savedAt: tag.savedAt });
   }
 
   // Yanhe 2.0 sessions. Standalone key like `authToken`. AppConfig carries only

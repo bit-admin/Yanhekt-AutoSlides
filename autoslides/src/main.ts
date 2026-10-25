@@ -336,6 +336,8 @@ const yanhektCatalogLog = createLogger('YanhektCatalog');
 const yanhektCatalogStore = new YanhektCatalogStore(() => getLogDir(), {
   warn: (message, error) => yanhektCatalogLog.warn(message, error),
 });
+// A command-line run may read the saved current term but never writes it.
+apiClient.setSemesterCacheWrites(!cliRun);
 if (!cliRun) {
   apiClient.setCatalogSink(yanhektCatalogStore);
   yanhektCatalogStore.setEnabled(configService.getLogYanhektCatalog());
