@@ -4,9 +4,9 @@
  */
 
 import { parseArgs } from 'node:util';
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
-import { hostname } from 'node:os';
-import { dirname, resolve } from 'node:path';
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
+import { homedir, hostname } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { Crawler, TransientError, clampForward, defaultLanes, rangeLane, type CrawlerConfig, type LaneSpec } from './crawler.ts';
 import { SqliteStore } from './store.ts';
 import { cnClock, inWindow, nextWindowStartMs, windowEndMs } from './time.ts';
@@ -15,6 +15,8 @@ import { laneLines, printStatus } from './status.ts';
 import { dumpForD1 } from './dump.ts';
 import { D1Http, d1FromEnv, printRemoteStatus, upload, type D1Exec } from './remote.ts';
 import { WranglerD1 } from './wranglerD1.ts';
+import { exportTerms, DEFAULT_MIN_TERM } from './export.ts';
+import { DEFAULT_TAG, NoRelease, pullRelease, pushRelease } from './release.ts';
 
 const DEFAULT_UA = 'AutoSlides-Indexer/0.2 (+https://github.com/bit-admin/Yanhekt-AutoSlides)';
 
@@ -27,10 +29,14 @@ Commands
   upload    Send rows changed since the last upload to Cloudflare D1 (its slim layout, not a copy).
   merge F…  Merge other index files (e.g. GitHub Actions artifacts) into this one.
   dump      Write the D1 layout as SQL files (alternative to upload; also for a local D1).
+  export    Write the per-term JSON files (the release's slim layout) to --out.
+  release pull   Download and decrypt the release's database to --db (which must not exist).
+  release push   Encrypt and publish --db and its term files to the release.
 
 What to crawl
   (default)             forward from --initial-id to the newest id, and backfill down to --floor-id
   --backfill-only       only the backfill lane (older terms first); forward stays where it is
+  --forward-only        only the forward lane (new sessions); 'now' ends once it has caught up
   --from A [--to B]     only ids A→B (either direction), or A upward to the newest id.
                         Re-running the same command continues where it stopped.
   --restart             forget the saved position of the selected lane(s) and start over
@@ -62,6 +68,12 @@ Upload (needs CF_ACCOUNT_ID, CF_D1_DATABASE_ID, CF_API_TOKEN, e.g. in .env)
                         first; 0 = no limit (default 90000, under the free plan's
                         100k a day; the next upload sends the rest)
 
+Release (a GitHub pre-release; needs the gh CLI, signed in)
+  --tag NAME            release tag (default ${DEFAULT_TAG}; never one starting with v)
+  --min-term TERM       oldest term in the JSON files (default ${DEFAULT_MIN_TERM})
+  --passphrase-file F   encryption passphrase (default: $INDEX_ARTIFACT_PASSPHRASE, else
+                        ~/.config/autoslides/index-passphrase.txt)
+
 Other
   --db PATH             SQLite file (default ./data/yanhekt-index.db)
   --out DIR / --max-mb N   dump: output directory (default ./d1-dump) / file size (default 50)
@@ -86,6 +98,10 @@ const { values: opts, positionals } = parseArgs({
     to: { type: 'string' },
     restart: { type: 'boolean', default: false },
     'backfill-only': { type: 'boolean', default: false },
+    'forward-only': { type: 'boolean', default: false },
+    tag: { type: 'string', default: DEFAULT_TAG },
+    'min-term': { type: 'string', default: DEFAULT_MIN_TERM },
+    'passphrase-file': { type: 'string' },
     videos: { type: 'boolean', default: false },
     'only-videos': { type: 'boolean', default: false },
     'no-course-detail': { type: 'boolean', default: false },
@@ -137,6 +153,17 @@ function jobSummary(markdown: string): void {
   } catch {
     /* summary is best-effort */
   }
+}
+
+/** The release passphrase: --passphrase-file, $INDEX_ARTIFACT_PASSPHRASE, or the usual file on this Mac. */
+function passphrase(): string {
+  const fromFile = (f: string) => readFileSync(f, 'utf8').replace(/\r?\n$/, '');
+  if (opts['passphrase-file']) return fromFile(resolve(opts['passphrase-file']));
+  const env = process.env.INDEX_ARTIFACT_PASSPHRASE;
+  if (env) return env;
+  const home = join(homedir(), '.config', 'autoslides', 'index-passphrase.txt');
+  if (existsSync(home)) return fromFile(home);
+  die('no passphrase: pass --passphrase-file or set INDEX_ARTIFACT_PASSPHRASE');
 }
 
 function parseWindow(s: string): [number, number] {
@@ -366,6 +393,45 @@ async function main(): Promise<void> {
     store.close();
     return;
   }
+  if (cmd === 'export') {
+    const store = new SqliteStore(dbPath);
+    const files = exportTerms(store.db, opts['min-term']);
+    store.close();
+    const out = resolve(opts.out === './d1-dump' ? './export' : opts.out);
+    mkdirSync(out, { recursive: true });
+    for (const f of files) {
+      writeFileSync(join(out, `${f.term}.json`), f.json);
+      log(`${f.term}: ${f.courses} courses, ${f.sessions} sessions → ${join(out, `${f.term}.json`)}`);
+    }
+    return;
+  }
+  if (cmd === 'release') {
+    const sub = positionals[1];
+    if (sub !== 'pull' && sub !== 'push') die('release needs pull or push');
+    if (/^v/i.test(opts.tag)) die('a release tag starting with v would trigger the app release workflow');
+    const pass = passphrase();
+    if (sub === 'pull') {
+      mkdirSync(dirname(dbPath), { recursive: true });
+      try {
+        pullRelease(opts.tag, dbPath, pass, log);
+      } catch (err) {
+        if (err instanceof NoRelease) {
+          console.error(`error: ${err.message}`);
+          process.exit(3);
+        }
+        throw err;
+      }
+      return;
+    }
+    if (!existsSync(dbPath)) die(`no such database: ${dbPath}`);
+    const release = acquireLock(dbPath);
+    try {
+      pushRelease(opts.tag, dbPath, pass, opts['min-term'], log);
+    } finally {
+      release();
+    }
+    return;
+  }
   if (cmd === 'dump') {
     const store = new SqliteStore(dbPath);
     const files = dumpForD1(store.db, resolve(opts.out), num('max-mb', 1, 1000) * 1024 * 1024, log, { reset: opts.reset });
@@ -442,8 +508,12 @@ async function main(): Promise<void> {
     else {
       lanes = defaultLanes(num('initial-id', 2, 1e12), num('floor-id', 1, 1e12));
       if (opts['backfill-only']) lanes = lanes.filter((l) => l.key === 'backfill');
+      if (opts['forward-only']) lanes = lanes.filter((l) => l.key === 'forward');
     }
-    if (opts['backfill-only'] && (onlyVideos || opts.from !== undefined)) die('--backfill-only goes with the default lanes, not --from or --only-videos');
+    if (opts['backfill-only'] && opts['forward-only']) die('--backfill-only and --forward-only exclude each other');
+    for (const flag of ['backfill-only', 'forward-only'] as const) {
+      if (opts[flag] && (onlyVideos || opts.from !== undefined)) die(`--${flag} goes with the default lanes, not --from or --only-videos`);
+    }
 
     if (!onlyVideos && opts.from === undefined) {
       const moved = clampForward(store, num('initial-id', 2, 1e12));
@@ -458,7 +528,7 @@ async function main(): Promise<void> {
       if (queued > 0) log(`queued ${queued} stored video ids that have no URL yet`);
     }
 
-    const finished = (r: CrawlResult) => r.idle && (onlyVideos || opts.from !== undefined);
+    const finished = (r: CrawlResult) => r.idle && (onlyVideos || opts.from !== undefined || opts['forward-only']);
 
     if (cmd === 'now') {
       const minutes = num('minutes', 1, 24 * 60);

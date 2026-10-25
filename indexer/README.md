@@ -39,7 +39,7 @@ Data goes to `./data/yanhekt-index.db` (`--db` to change). Ctrl-C is always safe
 - **forward** starts at `--initial-id` (932000, the newest id on 2026-10-20) and moves up, following new sessions as Yanhekt creates them. Once it reaches the newest id, it waits until the next night.
 - **backfill** moves down from just below the same point to `--floor-id` (1), newest term first.
 
-`--backfill-only` runs only the backfill lane, so the whole run goes to older terms; the forward lane keeps its position for a later run without the flag. On Actions, tick **backfill_only**.
+`--backfill-only` runs only the backfill lane, so the whole run goes to older terms; the forward lane keeps its position for a later run without the flag. `--forward-only` is the opposite: only new sessions, and `now` ends as soon as it has caught up (the daily Actions run). On Actions, pick **lanes**.
 
 **A specific range:** `--from A --to B` crawls exactly A→B, in either direction, and nothing else. `--from A` alone goes upward until the newest id. Running the same command again continues from the saved position, and once the range is finished `run` exits. `--restart` throws away the saved position for the selected lane(s) and starts over.
 
@@ -116,63 +116,102 @@ Video URLs are never uploaded.
 
 ## Running on GitHub Actions
 
-The **Indexer** workflow (`.github/workflows/indexer.yml`) runs the same crawler on a GitHub runner for up to about 5 h 40 min, with no time window. When it finishes, the database is available to download, and you merge it into your local one.
+The **Indexer** workflow (`.github/workflows/indexer.yml`) keeps the index up to date on GitHub's runners. The master copy of the database lives in a GitHub **pre-release** (tag `index`), not on any one machine.
+
+**Every day at 03:00 Beijing time** it:
+
+1. downloads and decrypts the database from the release,
+2. crawls new sessions (the forward lane) until it has caught up, and re-checks lectures of the last 14 days for recordings and deletions (usually 15–30 minutes at 1 request/second),
+3. uploads the changed courses to D1,
+4. publishes the database and the per-term JSON files back to the release.
+
+The database also records which courses D1 already has (`d1_sent`), so each run uploads only what changed. That is why every run must start from the release copy: a run that started from an empty database would try to resend everything.
+
+### The release
+
+A pre-release, so the app's update check (which reads the *latest* release) never sees it. Never give it a tag starting with `v`: those start the app's release workflow. Every file is gzipped and encrypted with `INDEX_ARTIFACT_PASSPHRASE` (the repository is public):
+
+| Asset | |
+|---|---|
+| `manifest.json.gz.enc` | names the current files below, with sha256, sizes and counts |
+| `yanhekt-index.<UTC time>.db.gz.enc` | the full SQLite database; the previous one is kept as a fallback |
+| `term-<term>.<hash>.json.gz.enc` | one per term from 2023-2024-1 (`--min-term`); a new name only when the term changed |
+
+A term file is the same slim data as D1, sorted by course id:
+
+```json
+{ "format": 1, "term": "2025-2026-1",
+  "fields": ["id", "name", "number", "teachers", "sessions"],
+  "courses": [[48123, "…", "…", ["…"], [801234, 801240]]] }
+```
+
+A publish uploads the new files first, then replaces the manifest, then deletes files the manifest no longer names, so a reader never meets a missing file. Open any file by hand with:
+
+```sh
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:<passphrase file> -in F.gz.enc | gunzip > F
+```
 
 ### Setup (once)
 
-1. The workflow must be on the repository's **default branch** before it appears under *Actions* (GitHub only lists manually started workflows from there).
-2. Optional repository secrets (*Settings → Secrets and variables → Actions*):
-   - `INDEX_ARTIFACT_PASSPHRASE`: encrypts the downloadable database. **Set this if the repository is public.** Artifacts of a public repository can be downloaded by anyone signed in to GitHub.
-   - `CF_ACCOUNT_ID`, `CF_D1_DATABASE_ID`, `CF_API_TOKEN`: only if you want runs to upload to D1 directly.
+Repository secrets (*Settings → Secrets and variables → Actions*):
 
-### Starting a run
+- `INDEX_ARTIFACT_PASSPHRASE`: encrypts everything the workflow publishes. Required.
+- `CF_ACCOUNT_ID`, `CF_D1_DATABASE_ID`, `CF_API_TOKEN` (a token with *Account · D1 · Edit*): for the D1 upload. Without them the run skips the upload with a warning; the next run with them sends what was missed.
+
+The first release is created from a local database that already holds what D1 has:
+
+```sh
+npm run release -- push          # --db, --tag, --min-term, --passphrase-file
+```
+
+### Running it by hand
 
 *Actions → Indexer → Run workflow*, or with the GitHub CLI:
 
 ```sh
-gh workflow run indexer.yml -f from=822999 -f to=743000 -f minutes=330
+gh workflow run indexer.yml -f lanes=backfill -f minutes=330          # older terms
+gh workflow run indexer.yml -f from=459999 -f to=440000 -f minutes=330
 ```
 
 | Input | Default | |
 |---|---|---|
-| `from` / `to` | empty | range to crawl, same as `--from` / `--to`. Both empty = default lanes |
-| `minutes` | 330 | crawl time, max 340 (leaves room for setup and upload within GitHub's 6-hour limit) |
+| `lanes` | forward | `forward` (new sessions, stops once caught up), `backfill` (older terms) or `both` |
+| `from` / `to` | empty | a range instead of the lanes, same as `--from` / `--to` |
+| `minutes` | 120 | longest crawl, max 340 (leaves room for setup, upload and publishing within GitHub's 6-hour limit) |
 | `mode` | sessions | `sessions`, `sessions-and-videos` or `videos-only` |
 | `interval_ms` | 1000 | time between requests |
-| `backfill_only` | off | default lanes only: skip the forward lane, spend the run on older terms |
-| `continue_from_run` | empty | run id of an earlier Indexer run: download its database and keep going |
-| `upload_to_d1` | off | also upload to D1 at the end (needs the `CF_*` secrets) |
+| `release_tag` | index | the release to read from and publish to |
+| `continue_from_run` | empty | start from an earlier run's artifact instead of the release |
+| `upload_to_d1` | on | upload changes to D1 |
+| `publish` | on | publish to the release afterwards |
 
-The run first checks that Yanhekt answers from GitHub's network (runners are outside China) and stops at once if not. At the end, the run page's summary shows the crawl report, the database status and the exact inputs to continue.
+The run first checks that Yanhekt answers from GitHub's network (runners are outside China) and stops at once if not. Runs on the same release wait for each other instead of overwriting each other's database. A backfill that publishes adds its sessions to the release database, but the JSON files only cover terms from `--min-term` on.
 
-### Long crawls: chaining runs
+To try something without touching the release, turn **publish** and **upload_to_d1** off: the database is then only kept as the run's artifact (encrypted, 30 days), and a later run can continue from it with `continue_from_run`.
 
-One run of 330 minutes at 1 request/second is about 19,000 requests, roughly 17,000 session ids, so a term (~75k ids) takes 4–5 runs. To continue, start the workflow again with the **same `from` / `to`** and `continue_from_run` set to the previous run's id (shown in its summary and URL). The new run downloads the previous database, resumes the range where it stopped, and its artifact contains everything so far. You only need to download the last one.
-
-Two runs over **different** ranges can run at once; download both and merge both. Please don't run more than two at a time: each one adds a request per second to a university service.
-
-### Downloading and merging
+### Working with the database locally
 
 ```sh
-# from the run page (Artifacts → yanhekt-index), or:
-gh run download <run-id> -n yanhekt-index -D artifacts/<run-id>
-
-# if INDEX_ARTIFACT_PASSPHRASE is set (on Windows, use Git Bash):
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in artifacts/<run-id>/yanhekt-index.db.gz.enc | gunzip > run-<run-id>.db
-# if not:
-gunzip -c artifacts/<run-id>/yanhekt-index.db.gz > run-<run-id>.db
-
-npm run merge -- run-<run-id>.db       # several files at once is fine
-npm run upload                         # optional: push the merged rows to D1
+npm run release -- pull --db data/release.db     # download and decrypt the current copy
+npm run status -- --db data/release.db
 ```
 
-`merge` uses the same rules as D1: new rows are added, a full course record replaces a thin copy, and nothing is downgraded. Merged rows are marked as changed, so your next `upload` includes them. Merging the same file twice is harmless.
+The passphrase comes from `--passphrase-file`, `$INDEX_ARTIFACT_PASSPHRASE`, or `~/.config/autoslides/index-passphrase.txt`. Don't upload to D1 from a local copy and keep publishing from Actions: D1's record would then live in two databases. If you change a local copy (a merge, a local crawl), publish it with `release push` before the next scheduled run, or merge the artifact of a run into it:
+
+```sh
+gh run download <run-id> -n yanhekt-index -D artifacts/<run-id>
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:<passphrase file> -in artifacts/<run-id>/yanhekt-index.db.gz.enc | gunzip > run-<run-id>.db
+npm run merge -- run-<run-id>.db
+```
+
+`merge` uses the same rules as D1: new rows are added, a full course record replaces a thin copy, and nothing is downgraded.
 
 ### Things to know
 
-- Artifacts are kept for **30 days**. Download or chain runs before then. Private repositories count artifacts against the account's Actions storage quota.
+- GitHub may start a scheduled run late (often 10–60 minutes), and turns off schedules after 60 days without activity in the repository.
+- Please don't run more than two crawls at a time: each one adds a request per second to a university service.
 - GitHub's terms say Actions are for work related to the repository's software project. This index feeds the app's course lookup, but it's your call whether that fits your use.
-- If the run is cancelled or crashes, the database is still packaged and uploaded with whatever was saved, and the range can be continued from it.
+- If the crawl fails partway, the run still uploads and publishes what was saved (each round is saved whole). A cancelled run only keeps its artifact.
 
 ## Filling in video URLs later
 
@@ -224,6 +263,9 @@ The window is always Beijing time, whatever the computer's time zone. Use `--win
 | `--wrangler` | off | `upload` / `status --remote`: go through `wrangler d1 execute --remote` (your `wrangler login`) instead of `CF_API_TOKEN`; `--wrangler-db` (default `yanhekt-index`) and `--wrangler-cwd` (default `../share`) |
 | `--max-writes N` | 90000 | `upload`: stop before writing more than N D1 rows, newest courses first; 0 = no limit |
 | `merge FILE…` | — | command: merge other index files (e.g. Actions artifacts) into this one |
+| `export` | — | command: write the per-term JSON files to `--out` (default `./export`), from `--min-term` |
+| `release pull` / `release push` | — | commands: download the release's database to `--db` (must not exist) / publish `--db` and its term files; `--tag` (default `index`), `--min-term` (default `2023-2024-1`), `--passphrase-file` |
+| `--forward-only` / `--backfill-only` | off | only one of the default lanes |
 | `--db PATH` | ./data/yanhekt-index.db | |
 | `--gap-threshold`, `--probe-step`, `--probe-count` | 150, 500, 20 | hole skipping (see below) |
 | `--refresh-days N` | 14 | re-check recent sessions that had no video id yet |
@@ -313,5 +355,7 @@ npm install && npm run typecheck
 | `src/grams.ts` | search keys; also imported by the share Worker |
 | `src/remote.ts` | D1 HTTP client and upload |
 | `src/dump.ts` | the D1 layout as SQL files |
+| `src/export.ts` | per-term JSON files for the release |
+| `src/release.ts` / `src/seal.ts` | the GitHub release (pull, push, manifest) / its encryption (same format as `openssl enc`) |
 | `src/yanhekt.ts` | Yanhekt client and pacing |
 | `src/cli.ts` | commands, window loop, lock, backoff, end-of-run report |

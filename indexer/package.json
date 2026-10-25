@@ -14,6 +14,8 @@
     "upload": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts upload",
     "dump": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts dump",
     "merge": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/cli.ts merge",
+    "export": "node --disable-warning=ExperimentalWarning src/cli.ts export",
+    "release": "node --disable-warning=ExperimentalWarning src/cli.ts release",
     "test": "node --disable-warning=ExperimentalWarning --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
