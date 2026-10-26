@@ -914,6 +914,9 @@
     "slideCopied": "Copied",
     "copySlideFailed": "Copy failed",
     "copySlideTip": "Copy this slide to the clipboard",
+    "streamFallback": "{from} stopped playing, so {to} is playing instead.",
+    "streamFallbackMissing": "{from} is not on the server, so {to} is playing instead.",
+    "streamFallbackEmpty": "{from} has no video on the server, so {to} is playing instead.",
     "emptyStream": "{stream} has no video on Yanhekt's server. Check whether it plays on the Yanhekt website."
   },
   "sessions": {
@@ -1892,6 +1895,7 @@
     "errorSignedOut": "Your Yanhe 2.0 session has ended. Sign in to Yanhe 2.0 again from the account menu, then retry.",
     "errorFailed": "Yanhe 2.0 did not return this lecture. Try again later.",
     "errorPlayer": "This stream stopped playing. Check your connection and try again.",
+    "errorMissing": "This recording is not on the server. Try again later, or check whether it plays on the Yanhe 2.0 website.",
     "notStarted": "This lecture has not started yet.",
     "processing": "This lecture has ended and its recording is still being processed.",
     "noRecording": "This lecture has no recording to play.",

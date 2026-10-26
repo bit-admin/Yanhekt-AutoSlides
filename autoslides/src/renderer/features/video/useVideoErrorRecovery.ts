@@ -3,6 +3,7 @@ import type Hls from 'hls.js'
 import type { ErrorData } from 'hls.js'
 import { Events, ErrorTypes, ErrorDetails } from 'hls.js'
 import { createLogger } from '@shared/utils/logger';
+import { isMissingPlaylist } from './streamFallback'
 const log = createLogger('VideoErrorRecovery');
 
 export interface FatalErrorContext {
@@ -94,6 +95,8 @@ export interface DualHlsErrorOptions {
   mode: 'live' | 'recorded'
   /** Set when an unrecoverable error happens — typically points to a reactive `error` ref. */
   onFatal: (message: string) => void
+  /** The playlist answered 404 / 410. Called at once, with no retries; without it that is a plain fatal. */
+  onMissing?: () => void
 }
 
 /**
@@ -115,6 +118,11 @@ export function setupDualHlsErrorHandler(
 
     if (!data.fatal) {
       log.warn(`Non-fatal dual HLS error (${label}):`, data.details, data)
+      return
+    }
+
+    if (opts.onMissing && isMissingPlaylist(data)) {
+      opts.onMissing()
       return
     }
 
@@ -169,6 +177,8 @@ export interface SingleStreamHlsErrorOptions {
   onFatalStart?: () => void
   /** Called for non-fatal errors. */
   onNonFatal?: (data: ErrorData) => void
+  /** The playlist answered 404 / 410. Called at once, with no retries; without it that is a plain fatal. */
+  onMissing?: () => void
   /**
    * Divergent media-error recovery body, invoked after the per-instance media
    * counter is incremented (`attempt` = the new count). Each caller supplies its
@@ -197,6 +207,11 @@ export function createSingleStreamHlsErrorHandler(
 
     if (!data.fatal) {
       opts.onNonFatal?.(data)
+      return
+    }
+
+    if (opts.onMissing && isMissingPlaylist(data)) {
+      opts.onMissing()
       return
     }
 

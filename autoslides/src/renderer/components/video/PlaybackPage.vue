@@ -135,13 +135,16 @@
       <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode" :data-extractor-instance="slideExtraction.extractorInstanceId.value">
 
         <!-- Combined Warning Messages -->
-        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning) || aiFilteringError.type !== 'none' || emptyStreamNotice" class="combined-warning">
+        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning) || aiFilteringError.type !== 'none' || emptyStreamNotice || fallbackMessage" class="combined-warning">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
             <path d="M12 9v4"/>
             <path d="m12 17 .01 0"/>
           </svg>
           <div class="warning-messages">
+            <div v-if="fallbackMessage" class="warning-message">
+              {{ fallbackMessage }}
+            </div>
             <div v-if="emptyStreamNotice" class="warning-message">
               {{ emptyStreamNotice }}
             </div>
@@ -664,6 +667,7 @@ import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames
 import { tabStore } from '@features/course/tabStore'
 import { hydrateLiveTitles } from '@features/course/liveCourseTitles'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
+import { streamFallbackMessageKey } from '@features/video/streamFallback'
 import { layoutStore } from '@shared/services/layoutStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
 import { useSlideExtraction, type Course, type Session } from '@features/video/useSlideExtraction'
@@ -808,7 +812,9 @@ const videoPlayerComposable = useVideoPlayer({
   resumeProgressEnabled: () =>
     props.mode === 'recorded'
     && configStore.resumeFromServerProgress === true
-    && isManualWatchTab()
+    && isManualWatchTab(),
+  // `taskQueue` is created below; this runs only when a stream fails, long after setup.
+  canFallBack: () => !taskQueue.isTaskMode.value,
 })
 
 // Sync sharedPlaybackRate with video player's currentPlaybackRate
@@ -980,6 +986,13 @@ const emptyStreamNotice = computed(() => {
   if (types.length === 0) return ''
   const names = types.map(streamTypeLabel)
   return t('playback.emptyStream', { stream: names.join(', ') })
+})
+
+// The player moved on from a stream it could not play: say which and why.
+const fallbackMessage = computed(() => {
+  const notice = videoPlayerComposable.fallbackNotice.value
+  if (!notice) return ''
+  return t(streamFallbackMessageKey(notice.reason), { from: streamTypeLabel(notice.from), to: streamTypeLabel(notice.to) })
 })
 const { isSlideExtractionEnabled, extractedSlides } = slideExtraction
 const { isPostProcessing, postProcessStatus, aiFilteringError } = postProcessing
@@ -1801,37 +1814,6 @@ onUnmounted(async () => {
 }
 
 /* Combined warning */
-.combined-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 16px;
-  margin: 0 0 8px 0;
-  background-color: var(--warning-bg);
-  border: 1px solid var(--warning-border);
-  border-radius: 6px;
-  color: var(--text-warning);
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.combined-warning svg {
-  flex-shrink: 0;
-  color: var(--warning);
-  margin-top: 2px;
-}
-
-.warning-messages {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.warning-message {
-  margin: 0;
-}
-
 .warning-message.ai-error {
   display: flex;
   align-items: center;

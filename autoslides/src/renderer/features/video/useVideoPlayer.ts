@@ -10,6 +10,7 @@ import { createWatchProgressSync } from '@shared/services/watchProgressService'
 import type { SlideExtractionHandle } from '@shared/processing'
 import { attachEmptyRecordingGuard, createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './useVideoErrorRecovery'
 import { useDualStreamPlayer } from './useDualStreamPlayer'
+import { pickPlayableStream, type StreamFailureReason, type StreamFallbackNotice } from './streamFallback'
 import { applyPlaybackRate, applyMute } from './singleStreamPlayback'
 import { getHlsConfig } from './hlsConfig'
 import { isMutedByAudioMode } from './audioMode'
@@ -71,6 +72,12 @@ export interface UseVideoPlayerOptions {
    * tab (task tabs must always start from 0) — see PlaybackPage.
    */
   resumeProgressEnabled?: () => boolean
+  /**
+   * Whether a stream that cannot be played may be swapped for another. False
+   * while a task runs: it needs the screen, and the camera in its place would
+   * finish the task with no slides.
+   */
+  canFallBack?: () => boolean
 }
 
 export interface UseVideoPlayerReturn {
@@ -104,6 +111,8 @@ export interface UseVideoPlayerReturn {
   emptyStreamTypes: Ref<VideoStream['type'][]>
   /** The empty streams among the ones on screen right now. */
   visibleEmptyStreamTypes: ComputedRef<VideoStream['type'][]>
+  /** Set after the player moved on from a stream it could not play. */
+  fallbackNotice: Ref<StreamFallbackNotice | null>
   isDualStreamSelected: ComputedRef<boolean>
   hasDualStreams: ComputedRef<boolean>
   currentStreamData: ComputedRef<VideoStream | null>
@@ -241,6 +250,44 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       emptyStreamTypes.value = [...emptyStreamTypes.value, type]
     }
   }
+  // Streams that failed since the last load, and why. A fallback skips them.
+  const failedStreams = new Map<VideoStream['type'], StreamFailureReason>()
+  const fallbackNotice = ref<StreamFallbackNotice | null>(null)
+
+  /**
+   * The stream of `type` cannot be played (not on the server, no video in it,
+   * or it broke). Move on to the next stream in the default order and return
+   * true, or return false and let the caller report the error. Never during a
+   * task, never in demo mode.
+   */
+  const fallBackFrom = (type: VideoStream['type'], reason: StreamFailureReason, message: string): boolean => {
+    failedStreams.set(type, reason)
+    const streams = playbackData.value?.streams
+    if (!streams || overrides.playbackDemo || options.canFallBack?.() === false) return false
+    const offered = Object.values(streams)
+      .filter((stream) => configStore.developerMode || stream.type !== 'room')
+      .map((stream) => stream.type)
+    const next = pickPlayableStream(offered, failedStreams.keys())
+    const key = next ? Object.keys(streams).find((k) => streams[k].type === next) : undefined
+    if (!next || !key) {
+      fallbackNotice.value = null
+      return false
+    }
+    log.warn(`${type} stream failed (${message}); switching to ${next}`)
+    isHlsRecovering = false
+    isRetrying.value = false
+    retryMessage.value = ''
+    fallbackNotice.value = { from: type, to: next, reason }
+    selectedStream.value = key
+    void switchStreamNow()
+    return true
+  }
+
+  const onEmptyStream = (type: VideoStream['type'] | undefined) => {
+    markEmptyStream(type)
+    if (type) fallBackFrom(type, 'empty', 'no playable duration')
+  }
+
   const visibleEmptyStreamTypes = computed(() => {
     if (isDualStreamSelected.value) return emptyStreamTypes.value
     const type = currentStreamData.value?.type
@@ -472,7 +519,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     error,
     getHlsConfig,
     handleTaskError,
-    onEmptyStream: markEmptyStream,
+    onEmptyStream,
+    onStreamFailed: fallBackFrom,
     cleanupSingleVideoSource,
     onEnded: () => onEnded()
   })
@@ -482,6 +530,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       loading.value = true
       error.value = null
       emptyStreamTypes.value = []
+      // A reload tries every stream again.
+      failedStreams.clear()
+      fallbackNotice.value = null
 
       // Demo mode (override registered): fabricate a dual-stream playback
       // (camera + screen) with no real URLs. The <video> elements stay
@@ -623,7 +674,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         })
 
         const streamType = currentStreamData.value.type
-        attachEmptyRecordingGuard(hls.value, () => markEmptyStream(streamType))
+        attachEmptyRecordingGuard(hls.value, () => onEmptyStream(streamType))
 
         if (singleAudioSource.value === 'mic') {
           attachSingleMicAudio(videoPlayer.value?.currentTime)
@@ -633,7 +684,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
         hls.value.on(Events.ERROR, createSingleStreamHlsErrorHandler({
           hls,
-          reportFatal,
+          reportFatal: (message) => {
+            if (!streamType || !fallBackFrom(streamType, 'failed', message)) reportFatal(message)
+          },
+          onMissing: () => {
+            const message = 'Recording not found on the server (HTTP 404)'
+            if (!streamType || !fallBackFrom(streamType, 'missing', message)) reportFatal(message)
+          },
           ...opts.errorConfig
         }))
 
@@ -784,7 +841,19 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       }
     })
 
-  const switchStream = async () => {
+  /** A stream picked by hand (or by a task): the notice goes, and that stream is tried again. */
+  const switchStream = () => {
+    fallbackNotice.value = null
+    const type = currentStreamData.value?.type
+    if (type) failedStreams.delete(type)
+    if (isDualStreamSelected.value) {
+      failedStreams.delete('camera')
+      failedStreams.delete('screen')
+    }
+    return switchStreamNow()
+  }
+
+  const switchStreamNow = async () => {
     const wasPlaying = isAnyVideoPlaying()
     const currentTime = getCurrentPlaybackTime()
 
@@ -929,7 +998,17 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         break
     }
 
-    if (shouldRetry && videoErrorRetryCount < maxVideoErrorRetries.value) {
+    // An aborted load (code 1) is not the stream's fault.
+    const failedType = isDualStreamSelected.value || errorCode === 1 ? undefined : currentStreamData.value?.type
+    const retriesLeft = shouldRetry && videoErrorRetryCount < maxVideoErrorRetries.value
+    if (!retriesLeft && failedType && fallBackFrom(failedType, 'failed', userMessage)) {
+      videoErrorRetryCount = 0
+      consecutiveErrorsAtSamePosition = 0
+      lastErrorPosition = -1
+      return
+    }
+
+    if (retriesLeft) {
       videoErrorRetryCount++
 
       let skipAmount = 0
@@ -1084,6 +1163,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     shouldVideoMute,
     isScreenRecordingSelected,
     emptyStreamTypes,
+    fallbackNotice,
     visibleEmptyStreamTypes,
     isDualStreamSelected,
     hasDualStreams,

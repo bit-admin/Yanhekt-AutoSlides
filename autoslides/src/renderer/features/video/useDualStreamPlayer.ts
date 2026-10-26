@@ -34,6 +34,11 @@ export interface DualStreamPlayerDeps {
   handleTaskError: (message: string) => void
   /** A stream turned out to hold no video (see attachEmptyRecordingGuard). */
   onEmptyStream: (type: VideoStream['type']) => void
+  /**
+   * One of the pair cannot be played. Returns true when the caller moved on to
+   * another stream; otherwise the failure becomes the player's error.
+   */
+  onStreamFailed?: (type: VideoStream['type'], reason: 'missing' | 'failed', message: string) => boolean
   /** Tear down any single-stream HLS instance before dual sources load. */
   cleanupSingleVideoSource: () => void
   /** Shared playback-ended handler (stops the signature loop). */
@@ -88,6 +93,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     getHlsConfig,
     handleTaskError,
     onEmptyStream,
+    onStreamFailed,
     cleanupSingleVideoSource,
     onEnded
   } = deps
@@ -256,13 +262,16 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     dualSyncLoop.start()
   }
 
-  const setupDualHlsErrorHandling = (hlsInstance: Hls, video: HTMLVideoElement, label: string) => {
-    setupDualHlsErrorHandler(hlsInstance, video, label, {
+  const setupDualHlsErrorHandling = (hlsInstance: Hls, video: HTMLVideoElement, type: VideoStream['type']) => {
+    const fail = (reason: 'missing' | 'failed', message: string) => {
+      if (onStreamFailed?.(type, reason, message)) return
+      error.value = message
+      handleTaskError(message)
+    }
+    setupDualHlsErrorHandler(hlsInstance, video, type, {
       mode,
-      onFatal: (message) => {
-        error.value = message
-        handleTaskError(message)
-      }
+      onFatal: (message) => fail('failed', message),
+      onMissing: () => fail('missing', `Recording not found on the server (${type} stream, HTTP 404)`),
     })
   }
 
@@ -306,7 +315,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
       }, 100)
     })
 
-    setupDualHlsErrorHandling(hlsInstance, video, label)
+    setupDualHlsErrorHandling(hlsInstance, video, stream.type)
     attachEmptyRecordingGuard(hlsInstance, () => onEmptyStream(stream.type))
   }
 

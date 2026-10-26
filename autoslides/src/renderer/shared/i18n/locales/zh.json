@@ -914,6 +914,9 @@
     "slideCopied": "已复制",
     "copySlideFailed": "复制失败",
     "copySlideTip": "将此幻灯片复制到剪贴板",
+    "streamFallback": "{from}播放失败，已切换到{to}。",
+    "streamFallbackMissing": "服务器上没有{from}，已切换到{to}。",
+    "streamFallbackEmpty": "{from}在服务器上没有视频内容，已切换到{to}。",
     "emptyStream": "{stream}在延河课堂服务器上没有视频内容，可前往延河课堂网页确认能否播放。"
   },
   "sessions": {
@@ -1892,6 +1895,7 @@
     "errorSignedOut": "延河 2.0 会话已结束。请在账号菜单中重新登录延河 2.0，然后重试。",
     "errorFailed": "延河 2.0 没有返回这节课。请稍后重试。",
     "errorPlayer": "视频流已停止播放。请检查网络连接后重试。",
+    "errorMissing": "服务器上没有这节课的录像文件。可稍后重试，或前往延河 2.0 网页确认能否播放。",
     "notStarted": "这节课尚未开始。",
     "processing": "这节课已结束，录像仍在处理中。",
     "noRecording": "这节课没有可播放的录像。",

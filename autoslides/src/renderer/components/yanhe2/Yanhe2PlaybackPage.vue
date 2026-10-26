@@ -99,6 +99,17 @@
       </div>
 
       <div v-else-if="playback" class="video-content" :data-playback-mode="mode">
+        <div v-if="fallbackMessage" class="combined-warning">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <path d="M12 9v4"/>
+            <path d="m12 17 .01 0"/>
+          </svg>
+          <div class="warning-messages">
+            <div class="warning-message">{{ fallbackMessage }}</div>
+          </div>
+        </div>
+
         <div class="player-panel">
           <DualStreamControls
             :selected-stream="selected"
@@ -497,6 +508,7 @@ import { downloadYanhe2Recording, isPreparingYanhe2Download } from '@features/ya
 import type { GallerySlide } from '@features/video/gallerySlide'
 import { audioModeLabelKey, isMutedByAudioMode } from '@features/video/audioMode'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
+import { streamFallbackMessageKey } from '@features/video/streamFallback'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
 import type { VideoStream } from '@features/video/useVideoPlayer'
@@ -545,6 +557,7 @@ const {
   isDualSelected,
   masterVideo,
   playbackRate,
+  fallbackNotice,
   hasMicAudio,
   micAudioOn,
   setMicAudio,
@@ -564,6 +577,8 @@ const {
   developerMode: toRef(configStore, 'developerMode'),
   micAudioPlayer,
   preferMicAudio: toRef(configStore, 'preferMicAudioByDefault'),
+  // `taskDriver` is created below; this runs only when a stream fails, long after setup.
+  canFallBack: () => !taskDriver.isTaskMode.value,
 })
 
 const { isBuffering } = useBufferingIndicator([videoPlayer, cameraVideoPlayer, screenVideoPlayer])
@@ -599,11 +614,19 @@ const selectorStreams = computed(() => {
 })
 const onSelectStream = (key: string) => selectStream(key as Yanhe2StreamChoice)
 
+// The player moved on from a stream it could not play: say which and why.
+const fallbackMessage = computed(() => {
+  const notice = fallbackNotice.value
+  if (!notice) return ''
+  return t(streamFallbackMessageKey(notice.reason), { from: streamLabel(notice.from), to: streamLabel(notice.to) })
+})
+
 const problemMessage = computed(() => {
   switch (problem.value) {
     case 'signed_out': return t('yanhe2Playback.errorSignedOut')
     case 'network': return t('yanhe2Calendar.errorNetwork')
     case 'player': return t('yanhe2Playback.errorPlayer')
+    case 'missing': return t('yanhe2Playback.errorMissing')
     case 'not_playable':
       if (sessionStatus.value === 'upcoming') return t('yanhe2Playback.notStarted')
       if (sessionStatus.value === 'processing') return t('yanhe2Playback.processing')

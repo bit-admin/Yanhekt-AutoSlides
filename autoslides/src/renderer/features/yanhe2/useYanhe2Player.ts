@@ -13,6 +13,11 @@
  * A recording may also have the classroom microphone as its own AAC file (the
  * same one Yanhekt offers). When picked it plays in a separate `<audio>` that
  * follows the clock the same way; the page mutes the videos.
+ *
+ * aita can list a stream it does not have (a screen MP4 that answers 404,
+ * issue #39). A stream that fails moves the player on to the next one, at the
+ * same position, unless a task is running (`canFallBack`); only when none is
+ * left does the page show an error.
  */
 import { computed, nextTick, onScopeDispose, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue'
 import Hls, { Events } from 'hls.js'
@@ -22,11 +27,15 @@ import { getHlsConfig } from '@features/video/hlsConfig'
 import { createMediaSyncLoop, syncFollower } from '@features/video/mediaSync'
 import { useMicAudioCheck } from '@features/video/useMicAudioCheck'
 import { createSingleStreamHlsErrorHandler } from '@features/video/useVideoErrorRecovery'
+import {
+  isMissingMedia, pickPlayableStream, type StreamFailureReason, type StreamFallbackNotice,
+} from '@features/video/streamFallback'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('Yanhe2Player')
 
-export type Yanhe2PlayerProblem = 'signed_out' | 'network' | 'failed' | 'not_playable' | 'player'
+/** `missing`: every stream tried answered 404, so the recording is not on the server. */
+export type Yanhe2PlayerProblem = 'signed_out' | 'network' | 'failed' | 'not_playable' | 'player' | 'missing'
 
 /** The selector's value for camera + screen side by side. */
 export const YANHE2_BOTH_STREAMS = 'both'
@@ -48,6 +57,12 @@ export interface UseYanhe2PlayerOptions {
   micAudioPlayer: Ref<HTMLAudioElement | null>
   /** Start a lecture on the classroom mic when it has one (the Yanhekt player's setting). */
   preferMicAudio: Ref<boolean>
+  /**
+   * Whether a failed stream may be swapped for another. False while a task
+   * runs: a task needs the screen, and the camera in its place would end the
+   * task with no slides.
+   */
+  canFallBack?: () => boolean
 }
 
 export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
@@ -62,10 +77,15 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
   const playback = shallowRef<Yanhe2Playback | null>(null)
   const selected = ref<Yanhe2StreamChoice | ''>('')
   const playbackRate = ref(1)
+  /** Streams that failed since the last load, and why. The first pick skips them. */
+  const failedStreams = new Map<Yanhe2StreamType, StreamFailureReason>()
+  /** Set after the player moved on from a failed stream; cleared by a pick or a reload. */
+  const fallbackNotice = ref<StreamFallbackNotice | null>(null)
 
   // What is attached right now: each element, its hls.js instance if it has
   // one, and its pending first-metadata listener if it is an MP4.
   interface Attachment {
+    stream: Yanhe2PlaybackStream
     video: HTMLVideoElement
     hls: ShallowRef<Hls | null>
     onMetadata: (() => void) | null
@@ -100,9 +120,10 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
   const isOffered = (choice: Yanhe2StreamChoice | '') =>
     choice === YANHE2_BOTH_STREAMS ? hasDualStreams.value : !!choice && !!streamOf(choice)
 
-  // Screen first, like the Yanhekt player; the room camera is never the default.
+  // Screen first, like the Yanhekt player; the room camera is never the default
+  // (it is offered only in developer mode). A stream that failed is skipped.
   const pickDefault = (): Yanhe2StreamType | '' =>
-    (['screen', 'camera', 'room'] as const).find((type) => !!streamOf(type)) ?? ''
+    pickPlayableStream(streams.value.map((s) => s.type), failedStreams.keys()) ?? ''
 
   // The classroom microphone: one more follower of whichever element owns the clock.
   // aita lists the file for every recording, including ones whose microphone
@@ -195,11 +216,31 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
   const reportFatal = (message: string) => {
     log.error('Yanhe 2.0 playback stopped:', message)
     teardown()
-    problem.value = 'player'
+    const reasons = [...failedStreams.values()]
+    problem.value = reasons.length > 0 && reasons.every((reason) => reason === 'missing') ? 'missing' : 'player'
+  }
+
+  /**
+   * One stream (alone, or half of Both Streams) cannot be played. Move on to
+   * the next stream at the same position, or stop when there is none.
+   */
+  const streamFailed = (type: Yanhe2StreamType, reason: StreamFailureReason, message: string) => {
+    failedStreams.set(type, reason)
+    const next = options.canFallBack?.() === false ? '' : pickDefault()
+    if (!next) {
+      reportFatal(`${type}: ${message}`)
+      return
+    }
+    log.warn(`Yanhe 2.0 ${type} stream failed (${message}); switching to ${next}`)
+    rememberPosition()
+    teardown()
+    fallbackNotice.value = { from: type, to: next, reason }
+    // The attach watch below picks the new stream up.
+    selected.value = next
   }
 
   const attachOne = (video: HTMLVideoElement, stream: Yanhe2PlaybackStream, startAt: number, autoplay: boolean) => {
-    const attachment: Attachment = { video, hls: shallowRef(null), onMetadata: null }
+    const attachment: Attachment = { stream, video, hls: shallowRef(null), onMetadata: null }
     attachments.push(attachment)
 
     const begin = () => {
@@ -220,7 +261,7 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     }
 
     if (!Hls.isSupported()) {
-      reportFatal('HLS is not supported')
+      streamFailed(stream.type, 'failed', 'HLS is not supported')
       return
     }
     // `startPosition`, not `currentTime` after the manifest: MSE has no duration
@@ -234,7 +275,8 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     instance.on(Events.MANIFEST_PARSED, begin)
     instance.on(Events.ERROR, createSingleStreamHlsErrorHandler({
       hls: attachment.hls,
-      reportFatal,
+      reportFatal: (message) => streamFailed(stream.type, 'failed', message),
+      onMissing: () => streamFailed(stream.type, 'missing', 'playlist not on the server'),
       logLabel: `Yanhe 2.0 HLS error (${stream.type}):`,
       defaultErrorLabel: `Yanhe 2.0 HLS fatal error (${stream.type}):`,
       recoverMediaError: () => attachment.hls.value?.recoverMediaError(),
@@ -267,12 +309,24 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     syncLoop.start()
   }
 
-  /** `<video @error>`. hls.js reports its own failures; this is for the MP4 streams. */
+  /**
+   * `<video @error>`. hls.js reports its own failures; this is for the MP4
+   * streams. A 404 reaches the element only as "source not supported", so ask
+   * the server once whether the file is there at all.
+   */
   const onVideoError = (event: Event) => {
     const video = event.target as HTMLVideoElement
     const attachment = attachments.find((a) => a.video === video)
     if (!attachment || attachment.hls.value || !video.error) return
-    reportFatal(`media error ${video.error.code}`)
+    const code = video.error.code
+    const message = `media error ${code}`
+    const ticket = loadTicket
+    void (async () => {
+      const missing = code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && await isMissingMedia(attachment.stream.url)
+      // Switched, reloaded or closed while asking.
+      if (ticket !== loadTicket || !attachments.includes(attachment)) return
+      streamFailed(attachment.stream.type, missing ? 'missing' : 'failed', missing ? 'not on the server' : message)
+    })()
   }
 
   const rememberPosition = () => {
@@ -283,6 +337,14 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
 
   const selectStream = (choice: Yanhe2StreamChoice) => {
     if (choice === selected.value || !isOffered(choice)) return
+    fallbackNotice.value = null
+    // Picking a stream by hand is a request to try it again.
+    if (choice === YANHE2_BOTH_STREAMS) {
+      failedStreams.delete('camera')
+      failedStreams.delete('screen')
+    } else {
+      failedStreams.delete(choice)
+    }
     rememberPosition()
     selected.value = choice
   }
@@ -327,6 +389,9 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     problem.value = null
     playback.value = null
     selected.value = ''
+    // Try again means every stream again: a 404 may have been a server hiccup.
+    failedStreams.clear()
+    fallbackNotice.value = null
     resumeAt = 0
     resumePlaying = true
     try {
@@ -403,6 +468,7 @@ export function useYanhe2Player(options: UseYanhe2PlayerOptions) {
     isDualSelected,
     masterVideo,
     playbackRate,
+    fallbackNotice,
     hasMicAudio,
     micAudioOn,
     setMicAudio,
