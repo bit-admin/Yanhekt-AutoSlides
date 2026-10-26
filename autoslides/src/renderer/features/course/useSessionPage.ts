@@ -233,26 +233,23 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
         participant_count: listCourse?.participant_count,
       }
 
-      // Self-heal a thin pin so the next cold open has classrooms without another
-      // list hop. No-op when this course is not pinned.
-      if (listCourse) {
-        upgradePinnedCourse({
-          ...listCourse,
-          title: response.title || listCourse.title,
-          titleEn: response.title_en || listCourse.titleEn,
-          number: response.number || listCourse.number,
-          instructor: response.professor || listCourse.instructor,
-          professors: (response.professors && response.professors.length > 0)
-            ? response.professors
-            : listCourse.professors,
-          college_name: response.college_name || listCourse.college_name,
-          school_year: response.school_year || listCourse.school_year,
-          semester: semesterStr || listCourse.semester,
-          time: response.school_year
-            ? `${response.school_year} ${Number(response.semester) === 1 ? 'Fall' : 'Spring'}`
-            : listCourse.time,
-        })
-      }
+      // Self-heal a thin pin (classrooms, registrar number, term) so the next
+      // cold open needs no list hop. Earlier-term pins are never refreshed by
+      // the subscription sync, so this is how they gain a number. No-op when
+      // this course is not pinned or nothing changed.
+      upgradePinnedCourse({
+        ...(listCourse ?? {}),
+        id: courseId,
+        ...fetchedCourseInfo.value,
+        title: response.title || listCourse?.title || '',
+        instructor: response.professor || listCourse?.instructor || '',
+        professors: (response.professors && response.professors.length > 0)
+          ? response.professors
+          : listCourse?.professors,
+        time: fetchedCourseInfo.value.time || '',
+        classrooms: listCourse?.classrooms,
+        participant_count: listCourse?.participant_count,
+      })
     } catch (error: unknown) {
       log.error('Failed to load course sessions:', error)
       const errorMsg = error instanceof Error ? error.message : t('sessions.failedToLoadSessions')

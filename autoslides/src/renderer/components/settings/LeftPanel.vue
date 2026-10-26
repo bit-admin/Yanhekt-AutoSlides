@@ -377,13 +377,13 @@ const {
 // Watch userId too so switching accounts (logged-in → logged-in, isLoggedIn
 // unchanged but the badge changes) rebinds cloud storage to the new account.
 // Same [isLoggedIn, userId] trigger also re-syncs Yanhekt course subscriptions
-// into the local pin cache (launch / login / account switch). Soft-fails
-// offline and never clears last-known pins on error.
+// into the local pin cache (launch / login / account switch) and tells it whose
+// pins to show. Soft-fails offline and never clears last-known pins on error.
 watch([isLoggedIn, userId], ([loggedIn]) => {
   if (loggedIn) {
     cloudStorageStore.setUser(userId.value)
     void cloudStorageStore.refresh()
-    void syncPinnedCoursesFromServer()
+    void syncPinnedCoursesFromServer(userId.value)
   } else {
     cloudStorageStore.setUser(null)
   }

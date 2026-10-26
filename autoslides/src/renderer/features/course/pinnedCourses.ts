@@ -1,12 +1,14 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
 import { ApiClient, type SubscriptionCourseRow } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import { isDemoMode } from '@shared/services/runtimeEnv'
 import { createLogger } from '@shared/utils/logger'
+import { termKeyOf } from '@common/searchSources'
 import { openCourse } from './courseSelection'
 import { navigationStore } from './navigationStore'
+import { belongsTo, isEarlierTermPin, mergeSyncedPins } from './pinMerge'
 import type { Course } from './useCourseList'
 import type { PinnedCourse } from '@common/types'
 
@@ -15,27 +17,54 @@ const apiClient = new ApiClient()
 
 // Tracks in-flight pin/unpin per course so double-clicks don't race.
 const inFlight = new Set<string>()
-// One sync at a time (login + switch can otherwise overlap).
+// One sync at a time (login + switch can otherwise overlap). A repeat for the
+// same account joins it; another account's sync queues behind it.
 let syncInFlight: Promise<void> | null = null
+let syncInFlightOwner: string | null = null
 
 const SUBSCRIPTION_PAGE_SIZE = 100
 const MAX_SUBSCRIPTION_PAGES = 50
+
+// The signed-in account's badge, set by each sync (launch, sign-in, account
+// switch). Before the first sync, the most recently used saved account.
+const syncedOwner = ref<string | null>(null)
+
+const currentOwner = (): string | null => {
+  if (syncedOwner.value) return syncedOwner.value
+  const accounts = configStore.accounts ?? []
+  let latest: (typeof accounts)[number] | null = null
+  for (const a of accounts) if (!latest || a.lastUsedAt > latest.lastUsedAt) latest = a
+  return latest?.badge ?? null
+}
 
 // Pinned recorded courses persist in config (configStore mirrors AppConfig and
 // is re-broadcast after every config:setPinnedRecordedCourses, so this computed
 // never goes stale). We capture the full course context at pin time (see
 // PinnedCourse) so opening a pin restores classrooms/participants/term without a
-// network hop. After Yanhekt subscription sync, snapshots come from the
-// subscription list (which includes list-only fields). getCourseInfo still
-// cannot supply those; thin legacy pins can still be healed via
-// `lookupCourseById` + `upgradePinnedCourse`.
-export const pinnedRecordedCourses = computed<PinnedCourse[]>(
-  () => overrides.pinnedRecordedCourses
-    ? overrides.pinnedRecordedCourses()
-    : (configStore.pinnedRecordedCourses ?? []))
+// network hop. Current-term pins follow the Yanhekt subscription list; earlier-
+// term pins stay local, because that list no longer returns them (`pinMerge.ts`).
+// The stored list holds every saved account's pins; this shows the current one's.
+export const pinnedRecordedCourses = computed<PinnedCourse[]>(() => {
+  if (overrides.pinnedRecordedCourses) return overrides.pinnedRecordedCourses()
+  const owner = currentOwner()
+  return (configStore.pinnedRecordedCourses ?? []).filter(p => belongsTo(p, owner))
+})
 
 export const isPinned = (id: string): boolean =>
   pinnedRecordedCourses.value.some(c => String(c.id) === String(id))
+
+/** Every stored pin, all accounts, as plain objects. */
+const storedPins = (): PinnedCourse[] => toPlain(configStore.pinnedRecordedCourses ?? [])
+
+/** The current term's key (`2026-2027-1`), or null when it cannot be read. */
+async function currentTermKey(): Promise<string | null> {
+  try {
+    const [current] = await apiClient.getAvailableSemesters()
+    return current ? termKeyOf(current.schoolYear, current.semester) : null
+  } catch {
+    return null
+  }
+}
 
 // configStore entries are Vue reactive proxies, which structured-clone (and so
 // ipcRenderer.invoke) cannot serialize. Always rebuild plain objects (deep for
@@ -55,9 +84,10 @@ const toPlain = (courses: PinnedCourse[]): PinnedCourse[] =>
     school_year: c.school_year,
     semester: c.semester,
     imageUrl: c.imageUrl,
+    owner: c.owner,
   }))
 
-const toPlainOne = (course: PinnedCourse | Course): PinnedCourse => ({
+const toPlainOne =(course: PinnedCourse | Course): PinnedCourse => ({
   id: String(course.id),
   title: course.title,
   titleEn: course.titleEn,
@@ -73,9 +103,8 @@ const toPlainOne = (course: PinnedCourse | Course): PinnedCourse => ({
   imageUrl: course.imageUrl,
 })
 
-const persistPins = (courses: PinnedCourse[]): void => {
+const persistPins = (courses: PinnedCourse[]): Promise<void> =>
   window.electronAPI.config.setPinnedRecordedCourses(toPlain(courses))
-}
 
 function professorNamesFromRow(row: SubscriptionCourseRow): string[] {
   if (Array.isArray(row.professor_names) && row.professor_names.length) {
@@ -132,30 +161,50 @@ function shouldSkipNetwork(): boolean {
 }
 
 /**
- * Pull the Yanhekt subscription list into the local pin cache (replace).
- * Called after login / token verify / account switch. Soft-fails offline.
+ * Pull the Yanhekt subscription list into the local pin cache for `owner` (the
+ * signed-in account's badge). The list replaces this account's current-term
+ * pins; its earlier-term pins stay (Yanhekt no longer returns them) and other
+ * accounts' pins are left alone. Called after login / token verify / account
+ * switch. Soft-fails offline.
  */
-export async function syncPinnedCoursesFromServer(): Promise<void> {
-  if (shouldSkipNetwork()) return
-  if (syncInFlight) return syncInFlight
+export async function syncPinnedCoursesFromServer(owner: string): Promise<void> {
+  if (owner) syncedOwner.value = owner
+  if (shouldSkipNetwork() || !owner) return
+  if (syncInFlight && syncInFlightOwner === owner) return syncInFlight
 
-  syncInFlight = (async () => {
+  const prior = syncInFlight ?? Promise.resolve()
+  const run: Promise<void> = prior.then(async () => {
     const token = tokenManager.getToken()
-    if (!token) return
+    if (!token || syncedOwner.value !== owner) return
 
     try {
-      const rows = await fetchAllSubscriptionRows(token)
-      persistPins(rows.map(mapSubscriptionRowToPinnedCourse))
+      const [rows, currentTerm] = await Promise.all([
+        fetchAllSubscriptionRows(token),
+        currentTermKey(),
+      ])
+      // The account may have switched while this ran; its own sync follows.
+      if (syncedOwner.value !== owner) return
+      const serverPins = rows.map(mapSubscriptionRowToPinnedCourse)
+      // Awaited so a queued sync reads the list this one wrote.
+      await persistPins(mergeSyncedPins(storedPins(), serverPins, owner, currentTerm))
     } catch (error) {
       // Keep last-known local pins on network/API failure.
       log.warn('Subscription sync failed; keeping local pins:', error)
     }
-  })().finally(() => {
-    syncInFlight = null
+  }).finally(() => {
+    if (syncInFlight === run) {
+      syncInFlight = null
+      syncInFlightOwner = null
+    }
   })
-
-  return syncInFlight
+  syncInFlight = run
+  syncInFlightOwner = owner
+  return run
 }
+
+/** Whether a stored pin is the current account's pin of course `id`. */
+const isOwnPin = (p: PinnedCourse, id: string, owner: string | null): boolean =>
+  String(p.id) === id && belongsTo(p, owner)
 
 export const togglePinnedCourse = async (course: PinnedCourse | Course): Promise<void> => {
   if (!course.id) return
@@ -167,19 +216,22 @@ export const togglePinnedCourse = async (course: PinnedCourse | Course): Promise
   if (inFlight.has(id)) return
   inFlight.add(id)
 
-  const previous = toPlain(pinnedRecordedCourses.value)
-  const isPin = !previous.some(c => String(c.id) === id)
+  const owner = currentOwner()
+  const previous = storedPins()
+  const isPin = !previous.some(c => isOwnPin(c, id, owner))
   const next = isPin
-    ? [...previous, toPlainOne(course)]
-    : previous.filter(c => String(c.id) !== id)
+    ? [...previous, { ...toPlainOne(course), owner: owner ?? undefined }]
+    : previous.filter(c => !isOwnPin(c, id, owner))
 
   // Optimistic local write.
-  persistPins(next)
+  void persistPins(next)
 
   try {
     if (shouldSkipNetwork()) return
     const token = tokenManager.getToken()
     if (!token) return // offline / signed-out: keep local-only change
+    // Earlier-term pins are local only: Yanhekt's list no longer returns them.
+    if (isEarlierTermPin(course, await currentTermKey())) return
     if (isPin) {
       await apiClient.subscribeCourse(token, id)
     } else {
@@ -187,7 +239,7 @@ export const togglePinnedCourse = async (course: PinnedCourse | Course): Promise
     }
   } catch (error) {
     log.warn('Pin toggle API failed; rolling back:', error)
-    persistPins(previous)
+    void persistPins(previous)
   } finally {
     inFlight.delete(id)
   }
@@ -201,8 +253,9 @@ export const togglePinnedCourse = async (course: PinnedCourse | Course): Promise
 export const upgradePinnedCourse = (course: PinnedCourse | Course): void => {
   if (!course.id) return
   if (overrides.pinnedRecordedCourses) return
-  const current = pinnedRecordedCourses.value
-  const idx = current.findIndex(c => String(c.id) === String(course.id))
+  const owner = currentOwner()
+  const current = storedPins()
+  const idx = current.findIndex(c => isOwnPin(c, String(course.id), owner))
   if (idx === -1) return
 
   const existing = current[idx]
@@ -221,11 +274,13 @@ export const upgradePinnedCourse = (course: PinnedCourse | Course): void => {
     school_year: incoming.school_year || existing.school_year,
     semester: incoming.semester || existing.semester,
     imageUrl: incoming.imageUrl || existing.imageUrl,
+    owner: existing.owner,
   }
 
+  if (JSON.stringify(merged) === JSON.stringify(existing)) return
   const next = current.slice()
   next[idx] = merged
-  persistPins(next)
+  void persistPins(next)
 }
 
 export const removePinnedCourse = async (id: string): Promise<void> => {
@@ -236,23 +291,25 @@ export const removePinnedCourse = async (id: string): Promise<void> => {
   if (inFlight.has(courseId)) return
   inFlight.add(courseId)
 
-  const previous = toPlain(pinnedRecordedCourses.value)
-  const next = previous.filter(c => String(c.id) !== courseId)
-  if (next.length === previous.length) {
+  const owner = currentOwner()
+  const previous = storedPins()
+  const removed = previous.find(c => isOwnPin(c, courseId, owner))
+  if (!removed) {
     inFlight.delete(courseId)
     return
   }
 
-  persistPins(next)
+  void persistPins(previous.filter(c => !isOwnPin(c, courseId, owner)))
 
   try {
     if (shouldSkipNetwork()) return
     const token = tokenManager.getToken()
     if (!token) return
+    if (isEarlierTermPin(removed, await currentTermKey())) return
     await apiClient.unsubscribeCourse(token, courseId)
   } catch (error) {
     log.warn('Unpin API failed; rolling back:', error)
-    persistPins(previous)
+    void persistPins(previous)
   } finally {
     inFlight.delete(courseId)
   }

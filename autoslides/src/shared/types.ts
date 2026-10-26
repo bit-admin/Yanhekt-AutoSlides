@@ -412,6 +412,12 @@ export interface PinnedCourse {
   semester?: string;
   /** Cover URL from Yanhekt list/detail; optional on legacy pins. */
   imageUrl?: string;
+  /**
+   * Badge of the account that pinned it. Pins of every saved account share this
+   * one list; earlier-term pins are local only, so this keeps them apart. Absent
+   * on pins from before, which go to the next account that syncs.
+   */
+  owner?: string;
 }
 
 // Trash and crop manifest entries — written by main process, read by renderer.
