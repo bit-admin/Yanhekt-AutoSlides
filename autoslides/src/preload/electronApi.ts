@@ -537,6 +537,7 @@ export interface ElectronAPI {
     setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
+    setCloseToTray: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
     /** Settings → General → Search; omitted fields keep their value. */
     setSearchSettings: (patch: {

@@ -37,6 +37,7 @@ import { AutoCropModelService } from '@main/ai/autoCropModelService';
 import { MlClassifierModelService } from '@main/ai/mlClassifierModelService';
 import { CompressLectureService } from '@main/video/compressLectureService';
 import { WindowManager, getWindowBackgroundColor } from '@main/platform/windowManager';
+import { TrayService } from '@main/platform/trayService';
 import { pdfService } from '@main/export/pdfService';
 import { noteExportService } from '@main/export/noteExportService';
 import { slideExtractionService } from '@main/extraction/slideExtractionService';
@@ -235,7 +236,22 @@ const createWindow = () => {
   // Windows/Linux (which calls window:close → window.close()). The renderer
   // pushes its busy state via `window:setBusyState`.
   let allowClose = false;
+  // Windows is logging off or shutting down: let the window close so the
+  // session can end (a hidden-to-tray window would otherwise block it).
+  const endingSession = (): void => { quitRequested = true; };
+  mainWindow.on('query-session-end', endingSession);
+  mainWindow.on('session-end', endingSession);
   mainWindow.on('close', (event) => {
+    // Close to tray (Settings → Download & Playback): hide instead of closing, so the
+    // renderer keeps running tasks, downloads and `autoslides` commands. A
+    // quit (Cmd+Q, tray menu, app.quit, session end) still closes, and goes
+    // through the busy guard below.
+    if (!quitRequested && !allowClose && trayService.isEnabled()) {
+      event.preventDefault();
+      mainWindow.hide();
+      trayService.noteHidden();
+      return;
+    }
     if (allowClose || !windowManager.isAppBusy()) return;
 
     event.preventDefault();
@@ -244,6 +260,9 @@ const createWindow = () => {
     const wasQuitting = quitRequested;
     quitRequested = false;
 
+    // Quit from the tray menu: bring the window back so the dialog has a
+    // visible parent.
+    if (!mainWindow.isVisible()) mainWindow.show();
     if (windowManager.confirmCloseWhileBusy(mainWindow)) {
       allowClose = true;
       // Defer to the next tick: calling app.quit()/close() synchronously from
@@ -317,6 +336,12 @@ app.on('window-all-closed', () => {
 
 app.on('activate', () => {
   if (cliRun) return;
+  // macOS Dock click while the main window is hidden by a close.
+  const win = mainWindowRef;
+  if (win && !win.isVisible()) {
+    showMainWindow();
+    return;
+  }
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
@@ -416,6 +441,28 @@ const cliControlServer = new CliControlServer({
 
 const windowManager = new WindowManager();
 windowManager.setConfigService(configService);
+
+const trayService = new TrayService({
+  configService,
+  translate: (key) => windowManager.translate(key),
+  getMainWindow: () => mainWindowRef,
+  showMainWindow: () => showMainWindow(),
+  quit: () => app.quit(),
+});
+// Tell the user when everything finished while the window sat in the tray.
+// Wait a moment first: the queue goes idle briefly between two tasks.
+let workFinishedTimer: NodeJS.Timeout | null = null;
+windowManager.setOnBusyChange((busy) => {
+  if (workFinishedTimer) clearTimeout(workFinishedTimer);
+  workFinishedTimer = null;
+  if (busy) return;
+  workFinishedTimer = setTimeout(() => {
+    workFinishedTimer = null;
+    const win = mainWindowRef;
+    if (windowManager.isAppBusy() || !win || win.isDestroyed() || win.isVisible()) return;
+    if (trayService.isEnabled()) trayService.noteWorkFinished();
+  }, 5000);
+});
 // Lecture Compress moved to the main-window Lectures page; do not cancel an
 // in-flight batch encode just because the Tools window closes.
 
@@ -445,6 +492,8 @@ app.whenReady().then(() => {
   }
   initializePowerManagement();
   windowManager.setupYuketangClassCapture();
+  // Tray icon, when Settings → Download & Playback keeps the app running in the tray.
+  trayService.applyConfig();
   // Start LAN relay if Developer mode is on and the user left it enabled.
   void localRelayService.applyConfig();
   // Take `autoslides` commands, unless Settings turned that off.
@@ -464,6 +513,7 @@ app.on('before-quit', () => {
 // down power management while the app keeps running.
 app.on('will-quit', () => {
   powerManagementService.cleanup();
+  trayService.destroy();
   void localRelayService.stop();
   if (!cliRun) cliControlServer.stop();
   yanhektCatalogStore.flushSync();
@@ -517,4 +567,5 @@ if (!cliRun) registerAllIpcHandlers({
   cliControlServer,
   cliControlBridge,
   deepLinkRouter,
+  trayService,
 });

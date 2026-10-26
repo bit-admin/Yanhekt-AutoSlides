@@ -342,6 +342,17 @@
           </label>
         </div>
       </div>
+      <!-- macOS has no tray icon: the Dock brings the window back. -->
+      <div class="setting-item full-width">
+        <label class="setting-label">{{ $t(isMac ? 'advanced.closeToTrayMac' : 'advanced.closeToTray') }}</label>
+        <div class="setting-description">{{ $t(isMac ? 'advanced.closeToTrayMacDescription' : 'advanced.closeToTrayDescription') }}</div>
+        <div class="prevent-sleep-control">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="tempCloseToTray" />
+            {{ $t('advanced.enableCloseToTray') }}
+          </label>
+        </div>
+      </div>
     
     </div>
   </div>
@@ -383,6 +394,8 @@ import { useSettingsContext } from '@features/settings/settingsContext'
 const { t } = useI18n()
 const { advanced } = useSettingsContext()
 
+const isMac = navigator.userAgent.includes('Mac')
+
 // Video-token refresh interval choices (seconds), spanning 10s–10min.
 const videoTokenRefreshOptions = computed(() => [
   { value: 10, label: t('advanced.durationSeconds', { n: 10 }) },
@@ -404,6 +417,7 @@ const {
   tempResumeFromServerProgress,
   tempResumeFromServerProgressLectures,
   tempPreventSystemSleep,
+  tempCloseToTray,
   tempMaxConcurrentDownloads,
   tempDownloadMaxWorkers,
   tempDownloadNumRetries,

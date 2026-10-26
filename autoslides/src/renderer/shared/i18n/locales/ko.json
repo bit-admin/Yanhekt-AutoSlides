@@ -438,7 +438,7 @@
     "resumeServerProgressLecturesDescription": "강의 보관함 플레이어에서도 동일하게 동작하며 로컬 파일과 온라인 스트림 모두에 적용됩니다. 로그인이 필요합니다. 옌허커탕에 적용됩니다.",
     "enableResumeServerProgressLectures": "옌허커탕에 저장된 위치에서 강의 이어보기",
     "preventSystemSleep": "시스템 절전 모드 방지",
-    "preventSystemSleepDescription": "비디오 재생 중 시스템이 절전 모드로 전환되는 것을 방지하여 중단을 피합니다. 옌허커탕에 적용됩니다.",
+    "preventSystemSleepDescription": "비디오 재생 중 시스템이 절전 모드로 전환되는 것을 방지하여 중단을 피합니다. 옌허커탕과 Yanhe 2.0에 적용됩니다.",
     "enablePreventSleep": "절전 모드 방지 활성화",
     "homePreviewTitle": "홈 미리보기",
     "homePreviewFromVideo": "동영상에서 미리보기 생성",
@@ -707,7 +707,12 @@
     "courseIndexCheckFailed": "마지막 확인 실패: {error}",
     "courseIndexNoKey": "이 빌드에는 코스 색인 키가 없어 이 컴퓨터의 코스 색인이 꺼져 있습니다.",
     "courseIndexCheckNow": "지금 확인",
-    "courseIndexChecking": "확인 중…"
+    "courseIndexChecking": "확인 중…",
+    "closeToTray": "창을 닫아도 트레이에서 계속 실행",
+    "closeToTrayDescription": "창을 닫으면 종료하지 않고 창만 숨깁니다. 다운로드, 작업, autoslides 명령은 계속 실행됩니다. 트레이 아이콘을 클릭하면 창이 다시 열리며, 종료하려면 트레이 메뉴에서 선택하세요.",
+    "closeToTrayMac": "창을 닫아도 계속 실행",
+    "closeToTrayMacDescription": "창을 닫으면 창을 숨기기만 합니다. 다운로드, 작업, autoslides 명령은 계속 실행됩니다. Dock에서 AutoSlides를 클릭하면 창이 다시 열리며, ⌘Q를 누르면 종료됩니다.",
+    "enableCloseToTray": "백그라운드 실행 사용"
   },
   "courses": {
     "title": {
@@ -1482,6 +1487,16 @@
       "detail": "지금 종료하면 진행 중인 작업과 다운로드가 중지되고 완료되지 않은 작업이 모두 손실됩니다. 종료하시겠습니까?",
       "confirm": "종료",
       "cancel": "취소"
+    },
+    "tray": {
+      "tooltip": "AutoSlides",
+      "show": "AutoSlides 표시",
+      "quit": "AutoSlides 종료",
+      "hiddenTitle": "AutoSlides가 계속 실행 중입니다",
+      "hiddenBody": "트레이 아이콘을 클릭하면 창이 다시 열립니다.",
+      "doneTitle": "모두 완료됨",
+      "doneBody": "작업과 다운로드가 모두 완료되었습니다.",
+      "hiddenBodyMac": "Dock에서 AutoSlides를 클릭하면 창이 다시 열립니다."
     }
   },
   "onboarding": {

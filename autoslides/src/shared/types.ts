@@ -302,6 +302,10 @@ export interface AppConfig {
   // over a local socket (main `cli/control`). Default on; off closes the socket
   // and the command refuses without starting the app. `yhdl` is unaffected.
   allowCliControl: boolean;
+  // Settings → Download & Playback: closing the main window hides it (to the tray on
+  // Windows and Linux, the Dock on macOS) instead of closing it, so tasks, downloads and `autoslides`
+  // commands keep running (main `platform/trayService.ts`). Default on.
+  closeToTray: boolean;
   // When true, omit Authorization on Yanhekt endpoints that work without a
   // login (public catalog, public live list, course detail, video token).
   // Session list, personal lists, notes, and account APIs still send the token.

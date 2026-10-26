@@ -44,8 +44,17 @@ export class WindowManager {
     this.configService = configService;
   }
 
+  private onBusyChange?: (busy: boolean) => void;
+
   setAppBusy(busy: boolean): void {
+    if (busy === this.appBusy) return;
     this.appBusy = busy;
+    this.onBusyChange?.(busy);
+  }
+
+  /** Called when the renderer's busy state flips. */
+  setOnBusyChange(listener: (busy: boolean) => void): void {
+    this.onBusyChange = listener;
   }
 
   isAppBusy(): boolean {
@@ -71,6 +80,11 @@ export class WindowManager {
       detail: t('window.closeGuard.detail')
     });
     return choice === 1;
+  }
+
+  /** A main-process string in the app's language (menus, native dialogs, tray). */
+  translate(key: string): string {
+    return this.getTranslation(key);
   }
 
   private getTranslation(key: string): string {
@@ -114,6 +128,8 @@ export class WindowManager {
         { label: t('titlebar.settings'), accelerator: 'CmdOrCtrl+,', click: () => {
           const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
           if (mainWindow) {
+            // The main window may be hidden by a close (Keep Running).
+            if (!mainWindow.isVisible()) mainWindow.show();
             mainWindow.webContents.send('menu:openSettings');
           }
         } },
@@ -121,6 +137,8 @@ export class WindowManager {
         { label: t('titlebar.checkForUpdates'), click: async () => {
           const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
           if (mainWindow) {
+            // The main window may be hidden by a close (Keep Running).
+            if (!mainWindow.isVisible()) mainWindow.show();
             mainWindow.webContents.send('menu:checkForUpdates');
           }
         } },

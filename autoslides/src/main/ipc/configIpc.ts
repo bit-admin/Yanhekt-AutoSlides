@@ -323,6 +323,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   ipcMain.handle('config:setLanguageMode', async (_event, language: LanguageMode) => {
     configService.setLanguageMode(language);
     windowManager.updateApplicationMenu();
+    services.trayService.refreshMenu();
     broadcastConfig();
     return configService.getConfig();
   });
@@ -419,6 +420,13 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   ipcMain.handle('config:setAllowCliControl', async (_, enabled: boolean) => {
     configService.setAllowCliControl(enabled);
     services.cliControlServer.applyConfig();
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setCloseToTray', async (_, enabled: boolean) => {
+    configService.setCloseToTray(enabled === true);
+    services.trayService.applyConfig();
     broadcastConfig();
     return configService.getConfig();
   });

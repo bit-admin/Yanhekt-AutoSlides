@@ -328,6 +328,7 @@ export class ConfigService {
       cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       showToolsButton: this.store.get('showToolsButton') ?? false,
       allowCliControl: this.store.get('allowCliControl') ?? true,
+      closeToTray: this.getCloseToTray(),
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
       developerMode: this.store.get('developerMode') ?? false,
       logYanhektCatalog: this.getLogYanhektCatalog(),
@@ -407,6 +408,14 @@ export class ConfigService {
 
   setAllowCliControl(enabled: boolean): void {
     this.store.set('allowCliControl', enabled);
+  }
+
+  getCloseToTray(): boolean {
+    return this.store.get('closeToTray') ?? true;
+  }
+
+  setCloseToTray(enabled: boolean): void {
+    this.store.set('closeToTray', enabled);
   }
 
   getPreferAnonymousApiRequests(): boolean {

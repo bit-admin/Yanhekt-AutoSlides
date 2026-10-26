@@ -201,6 +201,9 @@
     "allowCliControl": {
       "type": "boolean"
     },
+    "closeToTray": {
+      "type": "boolean"
+    },
     "preferAnonymousApiRequests": {
       "type": "boolean"
     },

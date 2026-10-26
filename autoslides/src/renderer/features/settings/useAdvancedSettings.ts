@@ -58,6 +58,7 @@ export interface UseAdvancedSettingsOptions {
   earlierTermSearchSource: Ref<EarlierTermSearchSource>
   courseIndexAutoUpdate: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
+  closeToTray: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
 }

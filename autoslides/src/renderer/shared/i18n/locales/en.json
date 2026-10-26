@@ -438,7 +438,7 @@
     "resumeServerProgressLecturesDescription": "Same for the Lectures player, local files and online streams alike. Requires sign-in. Applies to Yanhekt.",
     "enableResumeServerProgressLectures": "Resume lectures from your Yanhekt position",
     "preventSystemSleep": "Prevent System Sleep",
-    "preventSystemSleepDescription": "Prevent the system from going to sleep during video playback to avoid interruptions. Applies to Yanhekt.",
+    "preventSystemSleepDescription": "Prevent the system from going to sleep during video playback to avoid interruptions. Applies to Yanhekt and Yanhe 2.0.",
     "enablePreventSleep": "Enable Sleep Prevention",
     "homePreviewTitle": "Home Previews",
     "homePreviewFromVideo": "Generate Previews from Video",
@@ -707,7 +707,12 @@
     "courseIndexCheckFailed": "Last check failed: {error}",
     "courseIndexNoKey": "This build has no course index key, so the course index on this computer is off.",
     "courseIndexCheckNow": "Check Now",
-    "courseIndexChecking": "Checking…"
+    "courseIndexChecking": "Checking…",
+    "closeToTray": "Keep Running in the Tray",
+    "closeToTrayDescription": "Closing the window hides it instead of quitting. Downloads, tasks and autoslides commands keep running. Click the tray icon to open the window again, or choose Quit from its menu.",
+    "closeToTrayMac": "Keep Running When the Window Is Closed",
+    "closeToTrayMacDescription": "Closing the window hides it instead of closing it. Downloads, tasks and autoslides commands keep running. Click AutoSlides in the Dock to open the window again, or press ⌘Q to quit.",
+    "enableCloseToTray": "Enable Background Running"
   },
   "courses": {
     "title": {
@@ -1482,6 +1487,16 @@
       "detail": "If you quit now, in-progress tasks and downloads will be stopped and any unfinished work will be lost. Are you sure you want to quit?",
       "confirm": "Quit anyway",
       "cancel": "Cancel"
+    },
+    "tray": {
+      "tooltip": "AutoSlides",
+      "show": "Show AutoSlides",
+      "quit": "Quit AutoSlides",
+      "hiddenTitle": "AutoSlides is still running",
+      "hiddenBody": "Click the tray icon to open the window again.",
+      "doneTitle": "All work finished",
+      "doneBody": "Tasks and downloads are done.",
+      "hiddenBodyMac": "Click AutoSlides in the Dock to open the window again."
     }
   },
   "onboarding": {

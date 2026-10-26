@@ -152,6 +152,7 @@ export const config: ElectronAPI['config'] = {
   setCloudShareEmbedTimeline: (enabled: boolean) => invoke('config:setCloudShareEmbedTimeline', enabled),
   setShowToolsButton: (enabled: boolean) => invoke('config:setShowToolsButton', enabled),
   setAllowCliControl: (enabled: boolean) => invoke('config:setAllowCliControl', enabled),
+  setCloseToTray: (enabled: boolean) => invoke('config:setCloseToTray', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => invoke('config:setPreferAnonymousApiRequests', enabled),
   setSearchSettings: (patch) => invoke('config:setSearchSettings', patch),
   setRememberPassword: (enabled: boolean) => invoke('config:setRememberPassword', enabled),

@@ -871,8 +871,9 @@ const audioModeLabel = computed(() => audioModeLabelKey(configStore.muteMode))
 const effectiveVolume = computed(() => (audioModeMuted.value ? 0 : volume.value))
 const volumeProgress = computed(() => `${Math.min(100, Math.max(0, effectiveVolume.value * 100))}%`)
 
-// Keeps a recording playing (and extracting) in the background, as the
-// Yanhekt player does: keep-alive, wake lock, the power blocker.
+// Keeps playback (and extraction) going in the background, as the Yanhekt
+// player does: keep-alive, wake lock, the power blocker. Live and recorded
+// alike, so Prevent System Sleep covers both sites. `mode` only labels logs.
 const perf = usePerformanceOptimization({
   mode: 'recorded',
   // Only read: whichever element owns the clock.
@@ -893,7 +894,6 @@ watch(masterVideo, (video) => {
 
   const onPlayState = () => {
     isPlaying.value = !video.paused && !video.ended
-    if (!isRecording.value) return
     if (isPlaying.value) {
       perf.startKeepAlive()
       void perf.requestWakeLock()

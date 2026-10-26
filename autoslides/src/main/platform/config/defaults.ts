@@ -213,6 +213,7 @@ export const defaultConfig: AppConfig = {
   cloudShareEmbedTimeline: true,
   showToolsButton: false,
   allowCliControl: true,
+  closeToTray: true,
   preferAnonymousApiRequests: false,
   developerMode: false,
   logYanhektCatalog: false,

@@ -44,6 +44,7 @@ export interface UseGeneralSettingsOptions {
   earlierTermSearchSource: Ref<EarlierTermSearchSource>
   courseIndexAutoUpdate: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
+  closeToTray: Ref<boolean>
 }
 
 export function useGeneralSettings(options: UseGeneralSettingsOptions) {
@@ -77,7 +78,8 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     currentTermSearchSource,
     earlierTermSearchSource,
     courseIndexAutoUpdate,
-    yanhe2SignInWithMain
+    yanhe2SignInWithMain,
+    closeToTray
   } = options
 
   const tempMaxConcurrentDownloads = ref(5)
@@ -110,6 +112,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempEarlierTermSearchSource = ref<EarlierTermSearchSource>('local-then-online')
   const tempCourseIndexAutoUpdate = ref(true)
   const tempYanhe2SignInWithMain = ref(true)
+  const tempCloseToTray = ref(true)
 
   // Settings the command line can change too (`autoslides config`).
   followOutsideChange(() => configStore.connectionMode, tempConnectionMode)
@@ -148,6 +151,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempEarlierTermSearchSource.value = earlierTermSearchSource.value
     tempCourseIndexAutoUpdate.value = courseIndexAutoUpdate.value
     tempYanhe2SignInWithMain.value = yanhe2SignInWithMain.value
+    tempCloseToTray.value = closeToTray.value
   }
 
   const save = async () => {
@@ -296,6 +300,11 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       const yanhe2Result = await window.electronAPI.config.setYanhe2SignInWithMain(tempYanhe2SignInWithMain.value)
       yanhe2SignInWithMain.value = yanhe2Result.yanhe2SignInWithMain ?? true
     }
+
+    if (tempCloseToTray.value !== closeToTray.value) {
+      const trayResult = await window.electronAPI.config.setCloseToTray(tempCloseToTray.value)
+      closeToTray.value = trayResult.closeToTray ?? true
+    }
   }
 
   // Placeholders — actual save happens in save()
@@ -335,6 +344,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempEarlierTermSearchSource,
     tempCourseIndexAutoUpdate,
     tempYanhe2SignInWithMain,
+    tempCloseToTray,
 
     resetTemp,
     save,

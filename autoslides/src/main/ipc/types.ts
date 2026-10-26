@@ -23,6 +23,7 @@ import type { AutoCropModelService } from '@main/ai/autoCropModelService';
 import type { MlClassifierModelService } from '@main/ai/mlClassifierModelService';
 import type { CompressLectureService } from '@main/video/compressLectureService';
 import type { WindowManager } from '@main/platform/windowManager';
+import type { TrayService } from '@main/platform/trayService';
 import type { PdfService } from '@main/export/pdfService';
 import type { NoteExportService } from '@main/export/noteExportService';
 import type { SlideExtractionService } from '@main/extraction/slideExtractionService';
@@ -92,6 +93,8 @@ export interface IpcServices {
   /** `autoslides` commands: the socket, and the renderer's side of them. */
   cliControlServer: CliControlServer;
   cliControlBridge: RendererBridge;
+  /** Close to tray (Windows and Linux). */
+  trayService: TrayService;
   /** `autoslides://` links waiting for the renderer. */
   deepLinkRouter: DeepLinkRouter;
 }

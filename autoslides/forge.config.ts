@@ -46,6 +46,8 @@ const config: ForgeConfig = {
       // read the bytes off disk via process.resourcesPath at runtime.
       // Terms open in the browser (https://learn.ruc.edu.kg/terms) — no bundled RTF.
       'resources/models',
+      // Tray icons for Keep Running in the Tray (platform/trayService.ts).
+      'resources/tray',
       // Earlier terms of the course index, sealed and signed
       // (platform/courseIndex/). Git-ignored; `npm run index-bundle` fills it,
       // release.yml and make:mac run that first. Left out when absent (CI).
