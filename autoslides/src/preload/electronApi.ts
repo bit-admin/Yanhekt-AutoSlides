@@ -12,6 +12,7 @@
  * declared here.
  */
 import type { PinRequest } from '@common/pins';
+import type { EnrolledRefreshResult } from '@common/types';
 import type {
   AppConfig,
   Yanhe2CaptionMode,
@@ -430,6 +431,14 @@ export interface ElectronAPI {
     remove: (owner: string, key: string) => Promise<void>;
     /** Fill a pinned course's stored details from an opened course. No-op when not pinned. */
     upgrade: (owner: string, request: PinRequest) => Promise<void>;
+  };
+  /**
+   * The Recorded page's enrolled courses (config `enrolledCourses`). Main is
+   * the only writer and broadcasts config after each change.
+   */
+  enrolled: {
+    /** Refresh the account's list; resolves once the current term is read, earlier terms fill in after. */
+    refresh: (owner: string) => Promise<EnrolledRefreshResult>;
   };
   yanhe2: {
     login: (account: string, username: string, password: string) => Promise<Yanhe2SignInResult>;

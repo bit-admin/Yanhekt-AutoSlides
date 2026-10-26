@@ -39,3 +39,7 @@ export const pins: ElectronAPI['pins'] = {
   remove: (owner, key) => invoke('pins:remove', owner, key),
   upgrade: (owner, request) => invoke('pins:upgrade', owner, request),
 };
+
+export const enrolled: ElectronAPI['enrolled'] = {
+  refresh: (owner) => invoke('enrolled:refresh', owner),
+};

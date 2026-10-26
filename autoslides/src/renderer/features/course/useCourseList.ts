@@ -4,6 +4,8 @@ import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, typ
 import { tokenManager } from '@shared/services/authService'
 import { openCourse } from './courseSelection'
 import { hydrateLiveTitles } from './liveCourseTitles'
+import { enrolledCoursesOf, refreshEnrolledCourses } from './enrolledCourses'
+import { isDemoMode } from '@shared/services/runtimeEnv'
 import { createLogger } from '@shared/utils/logger';
 import { localeTag, getCurrentLocale } from '@shared/i18n'
 const log = createLogger('CourseList');
@@ -155,6 +157,8 @@ export const getCourseStatusText = (status: number | undefined, t: (key: string)
 export interface UseCourseListOptions {
   mode: Ref<'live' | 'recorded'>
   t: (key: string) => string
+  /** The signed-in account's badge; Recorded shows that account's stored enrolled list. */
+  owner?: Ref<string>
 }
 
 export interface UseCourseListReturn {
@@ -177,7 +181,7 @@ export interface UseCourseListReturn {
 }
 
 export function useCourseList(options: UseCourseListOptions): UseCourseListReturn {
-  const { mode, t } = options
+  const { mode, t, owner } = options
 
   const apiClient = new ApiClient()
   const coursesPerPage = 16
@@ -191,6 +195,22 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
 
   // Computed
   const paginatedCourses = computed(() => courses.value)
+
+  // Recorded reads the stored enrolled list (every term, newest first; main
+  // keeps it) and pages it here. Demo mode keeps the server-paged list.
+  const storedRecorded = (): boolean => mode.value === 'recorded' && !isDemoMode() && !!owner?.value
+  const allRecorded = computed(() => (owner?.value ? enrolledCoursesOf(owner.value) : []))
+  const showRecordedPage = () => {
+    const all = allRecorded.value
+    totalPages.value = Math.max(1, Math.ceil(all.length / coursesPerPage))
+    if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
+    const start = (currentPage.value - 1) * coursesPerPage
+    courses.value = all.slice(start, start + coursesPerPage)
+  }
+  // Earlier terms fill in after the refresh resolves; follow the store.
+  watch(allRecorded, () => {
+    if (storedRecorded()) showRecordedPage()
+  })
 
   // Switching the UI to English must fill in the live titles that were skipped
   // while another locale was active — nothing else refetches this grid.
@@ -210,13 +230,33 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
       return
     }
 
-    isLoading.value = true
-    errorMessage.value = ''
-
     // Reset to page 1 for new fetches, but not when navigating pages
     if (resetPage) {
       currentPage.value = 1
     }
+
+    if (storedRecorded()) {
+      const who = owner!.value
+      errorMessage.value = ''
+      showRecordedPage()
+      // The stored list shows at once; the spinner only covers a first load.
+      isLoading.value = courses.value.length === 0
+      try {
+        const result = await refreshEnrolledCourses(who)
+        if (result.kind === 'failed' && enrolledCoursesOf(who).length === 0) {
+          errorMessage.value = result.message || 'Failed to fetch personal courses'
+        }
+      } catch (error: unknown) {
+        log.error('Failed to refresh enrolled courses:', error)
+      } finally {
+        isLoading.value = false
+        showRecordedPage()
+      }
+      return
+    }
+
+    isLoading.value = true
+    errorMessage.value = ''
 
     try {
       if (mode.value === 'live') {
@@ -249,6 +289,10 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   const goToPage = async (page: number) => {
     if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
       currentPage.value = page
+      if (storedRecorded()) {
+        showRecordedPage()
+        return
+      }
       await fetchPersonalCourses(false) // Don't reset page when navigating
     }
   }

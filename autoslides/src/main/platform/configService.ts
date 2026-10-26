@@ -47,6 +47,7 @@ import type {
   MlClassifierThresholds,
   PHashExclusionItem,
   PinnedCourse,
+  EnrolledCourse,
   QtExtractorConfig,
   SlideExtractionConfig,
   StoredAccount
@@ -144,6 +145,22 @@ function sanitizeYanhe2Sessions(stored: unknown): Record<string, StoredYanhe2Ses
 export interface PinSyncBase {
   yanhekt: string[] | null;
   yanhe2: string[] | null;
+}
+
+/** What the enrolled list knows about one Yanhe 2.0 course's Yanhekt twin. */
+export interface EnrolledTwin {
+  /** The Yanhekt course id, or null when Yanhekt has none. */
+  yanhektId: string | null;
+  /** When it was found out, epoch ms. A null is looked for again after a while. */
+  checkedAt: number;
+}
+
+/** One account's enrolled-list state (`EnrolledCoursesService`). */
+export interface EnrolledSync {
+  /** When Yanhe 2.0's My Courses was last read in full, epoch ms; 0 = never. */
+  aitaReadAt: number;
+  /** Twins by Yanhe 2.0 course id. */
+  twins: Record<string, EnrolledTwin>;
 }
 
 /** The cached current term (`currentSemesterTag` store key). */
@@ -282,6 +299,11 @@ export class ConfigService {
       const base = { ...((this.store.get('pinSyncBase') ?? {}) as Record<string, PinSyncBase>) };
       delete base[badge];
       this.store.set('pinSyncBase', base);
+      // And its enrolled list.
+      this.setEnrolledCourses(this.getEnrolledCourses().filter((c) => c.owner !== badge));
+      const enrolled = { ...((this.store.get('enrolledSync') ?? {}) as Record<string, EnrolledSync>) };
+      delete enrolled[badge];
+      this.store.set('enrolledSync', enrolled);
     }
   }
 
@@ -329,6 +351,7 @@ export class ConfigService {
       savedSearchesLive: this.store.get('savedSearchesLive') ?? [],
       savedSearchesRecorded: this.store.get('savedSearchesRecorded') ?? [],
       pinnedRecordedCourses: this.store.get('pinnedRecordedCourses') ?? [],
+      enrolledCourses: this.getEnrolledCourses(),
       onboardingCompleted: this.store.get('onboardingCompleted') ?? false,
       lastOnboardingVersion: this.store.get('lastOnboardingVersion') ?? null,
       cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? [],
@@ -566,6 +589,36 @@ export class ConfigService {
   setPinSyncBase(badge: string, base: PinSyncBase): void {
     const all = (this.store.get('pinSyncBase') ?? {}) as Record<string, PinSyncBase>;
     this.store.set('pinSyncBase', { ...all, [badge]: base });
+  }
+
+  getEnrolledCourses(): EnrolledCourse[] {
+    const raw = this.store.get('enrolledCourses');
+    return Array.isArray(raw) ? (raw as EnrolledCourse[]) : [];
+  }
+
+  setEnrolledCourses(courses: EnrolledCourse[]): void {
+    this.store.set('enrolledCourses', courses);
+  }
+
+  // How each account's enrolled list was built (`EnrolledCoursesService`).
+  // Standalone key, not part of AppConfig: lookup state, not a setting.
+  getEnrolledSync(badge: string): EnrolledSync {
+    const all = this.store.get('enrolledSync') as Record<string, Partial<EnrolledSync>> | undefined;
+    const raw = all && typeof all === 'object' ? all[badge] : undefined;
+    const twins: Record<string, EnrolledTwin> = {};
+    if (raw && raw.twins && typeof raw.twins === 'object') {
+      for (const [id, twin] of Object.entries(raw.twins)) {
+        if (!twin || typeof twin !== 'object') continue;
+        const yanhektId = typeof twin.yanhektId === 'string' && twin.yanhektId ? twin.yanhektId : null;
+        twins[id] = { yanhektId, checkedAt: Number(twin.checkedAt) || 0 };
+      }
+    }
+    return { aitaReadAt: Number(raw?.aitaReadAt) || 0, twins };
+  }
+
+  setEnrolledSync(badge: string, sync: EnrolledSync): void {
+    const all = (this.store.get('enrolledSync') ?? {}) as Record<string, EnrolledSync>;
+    this.store.set('enrolledSync', { ...all, [badge]: sync });
   }
 
   /** The saved Yanhekt token of one account, or null. */

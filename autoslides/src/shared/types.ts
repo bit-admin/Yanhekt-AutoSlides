@@ -250,6 +250,13 @@ export interface AppConfig {
   savedSearchesLive: string[];
   savedSearchesRecorded: string[];
   pinnedRecordedCourses: PinnedCourse[];
+  /**
+   * The Recorded page's enrolled courses, every term, newest term first. Main
+   * is the only writer (`EnrolledCoursesService`): the current term from
+   * Yanhekt's enrolled list, earlier terms from Yanhe 2.0's My Courses matched
+   * to their Yanhekt twins. Rows of every saved account; `owner` keeps them apart.
+   */
+  enrolledCourses: EnrolledCourse[];
   onboardingCompleted: boolean;
   /**
    * App version last acknowledged by finishing or skipping onboarding / What's New.
@@ -430,6 +437,36 @@ export interface PinnedCourse {
    */
   owner?: string;
 }
+
+/**
+ * One enrolled course on the Recorded page: a Yanhekt course (`id`) with the
+ * fields its card shows, so the grid draws without a request.
+ */
+export interface EnrolledCourse {
+  /** Yanhekt course id. */
+  id: string;
+  /** The same course's Yanhe 2.0 (aita) id, when it came from My Courses. */
+  yanhe2Id?: string;
+  /** Chinese course name — canonical. */
+  title: string;
+  titleEn?: string;
+  /** Registrar course number (Yanhe 2.0 `kcwybm`). */
+  number?: string;
+  instructor?: string;
+  time?: string;
+  classrooms?: { name: string }[];
+  participant_count?: number;
+  college_name?: string;
+  professors?: string[];
+  school_year?: string;
+  semester?: string;
+  imageUrl?: string;
+  /** Badge of the account it is enrolled under. */
+  owner: string;
+}
+
+/** `enrolled:refresh`: the current term was read (or there was a stored list to show), or why not. */
+export type EnrolledRefreshResult = { kind: 'ok' } | { kind: 'failed'; message: string };
 
 // Trash and crop manifest entries — written by main process, read by renderer.
 

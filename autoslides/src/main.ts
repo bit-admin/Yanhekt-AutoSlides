@@ -44,6 +44,7 @@ import { slideExtractionService } from '@main/extraction/slideExtractionService'
 import { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import { PinSyncService } from '@main/platform/pins/pinSyncService';
+import { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
 import { broadcastConfig } from '@main/ipc/broadcastConfig';
 import { localCourseIndex } from '@main/platform/courseIndex/courseIndex';
 import { CourseLookup } from '@main/platform/courseIndex/courseLookup';
@@ -407,6 +408,13 @@ const pinSyncService = new PinSyncService(
   courseLookup,
   () => broadcastConfig(configService),
 );
+const enrolledCoursesService = new EnrolledCoursesService(
+  configService,
+  apiClient,
+  yanhe2Service,
+  courseLookup,
+  () => broadcastConfig(configService),
+);
 const yanhe2DownloadService = new Yanhe2DownloadService(
   yanhe2Service,
   yanhe2TwinResolver,
@@ -569,6 +577,7 @@ if (!cliRun) registerAllIpcHandlers({
   yanhe2TwinResolver,
   yanhe2CaptionSyncService,
   pinSyncService,
+  enrolledCoursesService,
   cacheManagementService,
   yanhektCatalogStore,
   notesService,

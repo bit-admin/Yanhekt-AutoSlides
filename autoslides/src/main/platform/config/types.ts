@@ -17,6 +17,7 @@ export type {
   AIFilteringConfig,
   AppConfig,
   PinnedCourse,
+  EnrolledCourse,
   StoredAccount,
   ThemeMode,
   SSIMPresetMode,

@@ -107,7 +107,8 @@ const {
   getStatusText
 } = useCourseList({
   mode: toRef(props, 'mode'),
-  t
+  t,
+  owner: userId
 })
 
 const refresh = () => {

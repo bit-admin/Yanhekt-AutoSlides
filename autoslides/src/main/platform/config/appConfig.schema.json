@@ -140,6 +140,13 @@
         "$ref": "#/definitions/PinnedCourse"
       }
     },
+    "enrolledCourses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/EnrolledCourse"
+      },
+      "description": "The Recorded page's enrolled courses, every term, newest term first. Main is the only writer (`EnrolledCoursesService`): the current term from Yanhekt's enrolled list, earlier terms from Yanhe 2.0's My Courses matched to their Yanhekt twins. Rows of every saved account; `owner` keeps them apart."
+    },
     "onboardingCompleted": {
       "type": "boolean"
     },
@@ -725,6 +732,73 @@
           "description": "Badge of the account that pinned it. Pins of every saved account share this one list; earlier-term pins are local only, so this keeps them apart. Absent on pins from before, which go to the next account that syncs."
         }
       }
+    },
+    "EnrolledCourse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Yanhekt course id."
+        },
+        "yanhe2Id": {
+          "type": "string",
+          "description": "The same course's Yanhe 2.0 (aita) id, when it came from My Courses."
+        },
+        "title": {
+          "type": "string",
+          "description": "Chinese course name — canonical."
+        },
+        "titleEn": {
+          "type": "string"
+        },
+        "number": {
+          "type": "string",
+          "description": "Registrar course number (Yanhe 2.0 `kcwybm`)."
+        },
+        "instructor": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "classrooms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "participant_count": {
+          "type": "number"
+        },
+        "college_name": {
+          "type": "string"
+        },
+        "professors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "school_year": {
+          "type": "string"
+        },
+        "semester": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string",
+          "description": "Badge of the account it is enrolled under."
+        }
+      },
+      "description": "One enrolled course on the Recorded page: a Yanhekt course (`id`) with the fields its card shows, so the grid draws without a request."
     },
     "WatchNotesProviderId": {
       "type": "string",

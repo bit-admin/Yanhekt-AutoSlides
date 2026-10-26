@@ -2,6 +2,7 @@ import type { MainAuthService } from '@main/platform/authService';
 import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
 import type { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import type { PinSyncService } from '@main/platform/pins/pinSyncService';
+import type { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
 import type { ApiClient } from '@main/platform/apiClient';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
@@ -52,6 +53,8 @@ export interface IpcServices {
   yanhe2TwinResolver: Yanhe2TwinResolver;
   /** Pinned courses: the only writer of the stored list, and its sync with both sites. */
   pinSyncService: PinSyncService;
+  /** The Recorded page's enrolled courses, every term: the only writer of the stored list. */
+  enrolledCoursesService: EnrolledCoursesService;
   apiClient: ApiClient;
   /** The course index on this computer, the lookups over it and the online Index, and its updater. */
   courseIndex: LocalCourseIndex;

@@ -198,6 +198,7 @@ export const defaultConfig: AppConfig = {
   savedSearchesLive: [],
   savedSearchesRecorded: [],
   pinnedRecordedCourses: [],
+  enrolledCourses: [],
   onboardingCompleted: false,
   lastOnboardingVersion: null,
   cloudStorageInitializedUsers: [],

@@ -5,7 +5,7 @@ import { video, compressLecture, download } from './video';
 import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
 import { pdfmaker, yuketang, noteExport } from './export';
-import { api, pins } from './course';
+import { api, enrolled, pins } from './course';
 import { update, extractorInstaller } from './update';
 import { tools, webCapture } from './tools';
 import { intranet } from './intranet';
@@ -25,6 +25,7 @@ const electronAPI: ElectronAPI = {
   config,
   api,
   pins,
+  enrolled,
   intranet,
   localRelay,
   cli,
