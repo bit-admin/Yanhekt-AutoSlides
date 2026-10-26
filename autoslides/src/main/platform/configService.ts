@@ -137,6 +137,15 @@ function sanitizeYanhe2Sessions(stored: unknown): Record<string, StoredYanhe2Ses
   return out;
 }
 
+/**
+ * One account's pin sync state: the course ids each site held after the last
+ * sync that reached it. null: that site has never been synced.
+ */
+export interface PinSyncBase {
+  yanhekt: string[] | null;
+  yanhe2: string[] | null;
+}
+
 /** The cached current term (`currentSemesterTag` store key). */
 export interface CachedSemesterTag {
   /** Yanhekt tag id. */
@@ -267,6 +276,13 @@ export class ConfigService {
     // The Yanhe 2.0 session belongs to the account; forgetting one forgets both.
     // There is nothing to revoke server-side (aita logout does not invalidate the JWT).
     this.clearYanhe2Session(badge);
+    // So do its pins and their sync state (the sites keep theirs).
+    if (badge) {
+      this.setPinnedRecordedCourses(this.getPinnedRecordedCourses().filter((p) => p.owner !== badge));
+      const base = { ...((this.store.get('pinSyncBase') ?? {}) as Record<string, PinSyncBase>) };
+      delete base[badge];
+      this.store.set('pinSyncBase', base);
+    }
   }
 
   getConfig(): AppConfig {
@@ -527,8 +543,36 @@ export class ConfigService {
     this.store.set(mode === 'live' ? 'savedSearchesLive' : 'savedSearchesRecorded', searches);
   }
 
+  getPinnedRecordedCourses(): PinnedCourse[] {
+    const raw = this.store.get('pinnedRecordedCourses');
+    return Array.isArray(raw) ? (raw as PinnedCourse[]) : [];
+  }
+
   setPinnedRecordedCourses(courses: PinnedCourse[]): void {
     this.store.set('pinnedRecordedCourses', courses);
+  }
+
+  // What each site held after an account's last pin sync (`PinSyncService`).
+  // Standalone key, not part of AppConfig: sync state, not a setting.
+  getPinSyncBase(badge: string): PinSyncBase | null {
+    const all = this.store.get('pinSyncBase') as Record<string, Partial<PinSyncBase>> | undefined;
+    const raw = all && typeof all === 'object' ? all[badge] : undefined;
+    if (!raw || typeof raw !== 'object') return null;
+    const ids = (value: unknown): string[] | null =>
+      Array.isArray(value) ? value.map(String) : null;
+    return { yanhekt: ids(raw.yanhekt), yanhe2: ids(raw.yanhe2) };
+  }
+
+  setPinSyncBase(badge: string, base: PinSyncBase): void {
+    const all = (this.store.get('pinSyncBase') ?? {}) as Record<string, PinSyncBase>;
+    this.store.set('pinSyncBase', { ...all, [badge]: base });
+  }
+
+  /** The saved Yanhekt token of one account, or null. */
+  getAccountToken(badge: string): string | null {
+    if (!badge) return null;
+    const accounts = (this.store.get('accounts') ?? []) as StoredAccount[];
+    return accounts.find((a) => a.badge === badge)?.token || null;
   }
 
   setOutputDirectory(directory: string): void {

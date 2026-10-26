@@ -10,12 +10,6 @@ export const api: ElectronAPI['api'] = {
     invoke('api:getCourseList', token, options),
   getPersonalCourseList: (token: string, options: PersonalCourseListOptions) =>
     invoke('api:getPersonalCourseList', token, options),
-  getSubscriptionList: (token: string, options?: { page?: number; pageSize?: number }) =>
-    invoke('api:getSubscriptionList', token, options),
-  subscribeCourse: (token: string, courseId: string) =>
-    invoke('api:subscribeCourse', token, courseId),
-  unsubscribeCourse: (token: string, courseId: string) =>
-    invoke('api:unsubscribeCourse', token, courseId),
   getCourseNames: (courseId: string, token: string) =>
     invoke('api:getCourseNames', courseId, token),
   getLiveDetail: (liveId: string, token: string) =>
@@ -37,4 +31,11 @@ export const api: ElectronAPI['api'] = {
   reportSessionProgress: (sessionId: string, seconds: number, token: string) =>
     invoke('api:reportSessionProgress', sessionId, seconds, token),
   getAvailableSemesters: () => invoke('api:getAvailableSemesters'),
+};
+
+export const pins: ElectronAPI['pins'] = {
+  sync: (owner) => invoke('pins:sync', owner),
+  toggle: (owner, request) => invoke('pins:toggle', owner, request),
+  remove: (owner, key) => invoke('pins:remove', owner, key),
+  upgrade: (owner, request) => invoke('pins:upgrade', owner, request),
 };

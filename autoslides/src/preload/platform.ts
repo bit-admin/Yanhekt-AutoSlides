@@ -1,7 +1,7 @@
 import { ipcRenderer } from 'electron';
 import { invoke } from './invoke';
 import type { ElectronAPI, DialogOptions } from './electronApi';
-import type { AppConfig, ConnectionMode, CustomProviderId, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import type { AppConfig, ConnectionMode, CustomProviderId, LanguageMode, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 import type { Yanhe2SlideSaveProgress } from '@common/yanhe2SlideSave';
 
@@ -168,7 +168,6 @@ export const config: ElectronAPI['config'] = {
   upsertAccount: (account: StoredAccount) => invoke('config:upsertAccount', account),
   removeAccount: (badge: string) => invoke('config:removeAccount', badge),
   setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => invoke('config:setSavedSearches', mode, searches),
-  setPinnedRecordedCourses: (courses: PinnedCourse[]) => invoke('config:setPinnedRecordedCourses', courses),
   getSlideExtractionConfig: () => invoke('config:getSlideExtractionConfig'),
   setSlideExtractionConfig: (cfg: { enableDuplicateRemoval?: boolean; enableExclusionList?: boolean }) =>
     invoke('config:setSlideExtractionConfig', cfg),

@@ -28,6 +28,7 @@ import type { Yanhe2Slide } from '@common/yanhe2Slides';
 import type { Yanhe2TranscriptLine } from '@common/yanhe2Transcript';
 import type { ConfigService } from '../configService';
 import { fetchYanhe2Profile } from './yanhe2Api';
+import { fetchYanhe2Bookmarks, setYanhe2Bookmark, type Yanhe2Bookmark } from './yanhe2Bookmarks';
 import { fetchYanhe2Day, fetchYanhe2Week, type Yanhe2Fetched } from './yanhe2Calendar';
 import { fetchYanhe2CourseDetail, fetchYanhe2Courses } from './yanhe2Curriculum';
 import { fetchYanhe2SubInfo, type Yanhe2PlayIdentity, type Yanhe2SubInfo } from './yanhe2Playback';
@@ -272,6 +273,26 @@ export class Yanhe2Service {
     }
     const term = termKeyOf(detail.data.schoolYear, detail.data.semester);
     return { kind: 'ok', data: { courseCode, startAt, term, courseTitle, sessionTitle: yanhe2SessionTitle(startAt, subTitle) } };
+  }
+
+  /** Every course the account bookmarked (「我的收藏」), every term. Main only: pin sync. */
+  async getBookmarks(account: string): Promise<Yanhe2ReadResult<Yanhe2Bookmark[]>> {
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await fetchYanhe2Bookmarks(stored.jwt));
+  }
+
+  /** Bookmark a course or remove its bookmark. Main only: pin sync. */
+  async setBookmark(account: string, courseId: string, on: boolean): Promise<Yanhe2ReadResult<true>> {
+    if (!/^\d{1,12}$/.test(courseId)) return { kind: 'failed' };
+    const stored = this.liveSession(account);
+    if (!stored) return { kind: 'signed_out' };
+    return this.settle(account, await setYanhe2Bookmark(stored.jwt, courseId, on));
+  }
+
+  /** Whether the account has a live Yanhe 2.0 session. */
+  isSignedIn(account: string): boolean {
+    return this.liveSession(account) !== null;
   }
 
   /** One session's speech-recognition transcript, in time order; empty when it has none. */

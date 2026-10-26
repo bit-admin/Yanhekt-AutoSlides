@@ -5,7 +5,7 @@ import type { IpcServices } from './types';
 import { createSettingsWriter } from './settingsWriter';
 import { broadcastConfig as broadcastConfigSnapshot } from './broadcastConfig';
 import type { AIServiceType } from '@main/platform/configService';
-import type { ConnectionMode, CustomProviderId, LanguageMode, PinnedCourse, StoredAccount } from '@common/types';
+import type { ConnectionMode, CustomProviderId, LanguageMode, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 import { expandTilde } from '@main/infra/pathUtils';
 import { probeOutputDir, recreateOutputDir } from '@main/infra/outputDir';
@@ -484,11 +484,6 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setSavedSearches', async (_, mode: 'live' | 'recorded', searches: string[]) => {
     configService.setSavedSearches(mode, searches);
-    broadcastConfig();
-  });
-
-  ipcMain.handle('config:setPinnedRecordedCourses', async (_, courses: PinnedCourse[]) => {
-    configService.setPinnedRecordedCourses(courses);
     broadcastConfig();
   });
 

@@ -35,6 +35,19 @@
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
         </button>
+        <!-- Pins on both sites, like the Recorded page's pin. -->
+        <button
+          type="button"
+          class="btn expand-btn pin-btn"
+          :class="{ active: pinned }"
+          :title="pinned ? $t('sessions.unpin') : $t('sessions.pin')"
+          @click="togglePin"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" :fill="pinned ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 17v5"/>
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+          </svg>
+        </button>
         <button type="button" class="btn expand-btn" :aria-expanded="showDetails" @click="showDetails = !showDetails">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ rotated: showDetails }" aria-hidden="true">
             <polyline points="6,9 12,15 18,9"/>
@@ -370,6 +383,7 @@ import type { Yanhe2Course } from '@common/yanhe2Curriculum'
 import type { Yanhe2DownloadKind } from '@common/yanhe2Download'
 import { isYanhe2Playable } from '@common/yanhe2Playback'
 import { navigationStore } from '@features/course/navigationStore'
+import { isYanhe2Pinned, toggleYanhe2Pin } from '@features/course/pinnedCourses'
 import {
   requestYanhe2SsoSignIn,
   yanhe2ActiveBadge,
@@ -451,6 +465,12 @@ const showDetails = ref(false)
 watch(() => selected.value?.courseId, () => {
   showDetails.value = false
 })
+
+const pinned = computed(() => !!selected.value && isYanhe2Pinned(selected.value.courseId))
+// The request is built field by field, so the reactive row never crosses IPC.
+const togglePin = () => {
+  if (selected.value) void toggleYanhe2Pin(selected.value)
+}
 
 const findingTwin = ref(false)
 const findOnYanhekt = async () => {
@@ -610,6 +630,11 @@ const clockLine = (s: Yanhe2CalendarSession) => {
 
 .expand-btn svg {
   transition: transform 0.2s;
+}
+
+/* Same as the Recorded page's pin. */
+.pin-btn.active {
+  color: var(--text-primary);
 }
 
 .expand-btn svg.rotated {

@@ -395,7 +395,18 @@ export interface LectureRenameOptions {
 // returned by getCourseInfo. Thin/legacy pins (id+title only) stay valid; session
 // load recovers list fields via `lookupCourseById` and upgrades the snapshot.
 export interface PinnedCourse {
+  /**
+   * The pin's key: the Yanhekt course id, or `yanhe2:<aita id>` for a course
+   * Yanhekt does not have (`@common/pins`). Read the Yanhekt id with
+   * `yanhektIdOf`, never from this field directly.
+   */
   id: string;
+  /** The same course's Yanhe 2.0 (aita) id, once found. */
+  yanhe2Id?: string;
+  /** When Yanhe 2.0 was last found to have no such course (epoch ms); looked for again after a week. */
+  yanhe2MissingAt?: number;
+  /** When Yanhekt was last found to have no such course (epoch ms); looked for again after a week. */
+  yanhektMissingAt?: number;
   /** Chinese course name — canonical, feeds filenames once the pin is opened. */
   title: string;
   /** English course name, when the API had one. Display only; absent on legacy pins. */

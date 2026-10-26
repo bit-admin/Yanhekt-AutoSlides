@@ -11,6 +11,7 @@
  * metadata, sidecars, Yanhekt API models); only bridge-specific shapes are
  * declared here.
  */
+import type { PinRequest } from '@common/pins';
 import type {
   AppConfig,
   Yanhe2CaptionMode,
@@ -23,7 +24,6 @@ import type {
   TrashMetadata,
   CropRect,
   CropEntry,
-  PinnedCourse,
   StoredAccount,
   CurrentTermSearchSource,
   EarlierTermSearchSource,
@@ -79,7 +79,6 @@ import type {
   TokenVerificationResult,
   LiveStream,
   CourseData,
-  SubscriptionListResponse,
   CourseInfoResponse,
   CourseDetailResponse,
   SessionDownloadInfo,
@@ -417,6 +416,21 @@ export interface ElectronAPI {
    * badge (student id). `getJwt` is the one read of the stored token, for the
    * Settings field. `getProfile` is the id and play-signing phone for the menu.
    */
+  /**
+   * Pinned courses. Main is the only writer of the stored list (it broadcasts
+   * config after each change) and syncs it with Yanhekt subscriptions and
+   * Yanhe 2.0 bookmarks. `owner` is the signed-in account's badge.
+   */
+  pins: {
+    /** Sync the account's pins with both sites; resolves when done. */
+    sync: (owner: string) => Promise<void>;
+    /** Pin the course, or unpin it when pinned. Sending to the sites follows in the background. */
+    toggle: (owner: string, request: PinRequest) => Promise<{ pinned: boolean }>;
+    /** Unpin by the pin's key (`PinnedCourse.id`). */
+    remove: (owner: string, key: string) => Promise<void>;
+    /** Fill a pinned course's stored details from an opened course. No-op when not pinned. */
+    upgrade: (owner: string, request: PinRequest) => Promise<void>;
+  };
   yanhe2: {
     login: (account: string, username: string, password: string) => Promise<Yanhe2SignInResult>;
     submitSmsCode: (account: string, challengeId: string, code: string) => Promise<Yanhe2SignInResult>;
@@ -558,7 +572,6 @@ export interface ElectronAPI {
     upsertAccount: (account: StoredAccount) => Promise<void>;
     removeAccount: (badge: string) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
-    setPinnedRecordedCourses: (courses: PinnedCourse[]) => Promise<void>;
 
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<SlideExtractionConfig>;
@@ -643,9 +656,6 @@ export interface ElectronAPI {
     searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStream>>;
     getCourseList: (token: string, options: CourseListOptions) => Promise<PaginatedResponse<CourseData>>;
     getPersonalCourseList: (token: string, options: PersonalCourseListOptions) => Promise<PaginatedResponse<CourseData>>;
-    getSubscriptionList: (token: string, options?: { page?: number; pageSize?: number }) => Promise<SubscriptionListResponse>;
-    subscribeCourse: (token: string, courseId: string) => Promise<void>;
-    unsubscribeCourse: (token: string, courseId: string) => Promise<void>;
     /** Names only, via the single `/v1/course?id=` hop. Unlike getCourseInfo this
      *  does not need the course to have sessions, so it works for live-only
      *  courses. Resolves null when the course or its names are unavailable. */

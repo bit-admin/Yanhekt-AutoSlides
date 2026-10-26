@@ -912,7 +912,9 @@ A row is a course row of the same kind as `get-course-list`, plus a watch pointe
 }
 ```
 
-`id` is the bookmark row, not the course. `collect_time` is unix seconds as a string. Whether a course is bookmarked can also be read from `is_collect` on `get-course-detail`. `course-collect/down` toggles the bookmark; it is not a query (§5.16).
+`id` is the bookmark row, not the course. `collect_time` is unix seconds as a string. A row has no `kcwybm` and no term; read those from `get-course-detail`. Unlike cbiz's subscription list, this list returns courses from every term.
+
+The list is the only way to read bookmarks: `is_collect` on `get-course-detail` stays `0` for a bookmarked course, with or without the `tenant-id` header (measured 2026-10-27). `course-collect/down` adds or removes a bookmark; it is not a query (§5.16).
 
 ### 5.15 `GET /courseapi/v3/multi-search/get-course-teacher-others` A
 
@@ -944,8 +946,8 @@ Do not judge these by their HTTP method:
 
 | Call | Effect |
 |-|-|
-| `GET /courseapi/v3/course-collect/down?course_id=` | Adds the course to 「我的收藏」 |
-| `GET …/course-collect/down?course_id=&cancel=1` | Removes it |
+| `GET /courseapi/v3/course-collect/down?course_id=` | Adds the course to 「我的收藏」: `result.err` `200` 收藏成功. Adding one already there answers `201` 重复收藏 and changes nothing (still `success:true`) |
+| `GET …/course-collect/down?course_id=&cancel=1` | Removes it: `200` 已取消收藏, the same when it was not bookmarked |
 | `POST /courseapi/v2/learn-record/learn-record` | The player's watch-progress beacon (a `keepalive` fetch). This is where `play_time` comes from |
 | `courseapi/v3/portal-record/*` (`add-comment`, `sub-praise`, …) | Comments and likes |
 | `courseapi/v3/course-learn-log/*` | Study log |

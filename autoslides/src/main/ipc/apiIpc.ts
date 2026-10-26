@@ -41,18 +41,6 @@ export function registerApiIpcHandlers(services: IpcServices): void {
     return await apiClient.getPersonalCourseList(token, options);
   });
 
-  ipcMain.handle('api:getSubscriptionList', async (_event, token: string, options?: { page?: number; pageSize?: number }) => {
-    return await apiClient.getSubscriptionList(token, options);
-  });
-
-  ipcMain.handle('api:subscribeCourse', async (_event, token: string, courseId: string) => {
-    return await apiClient.subscribeCourse(token, courseId);
-  });
-
-  ipcMain.handle('api:unsubscribeCourse', async (_event, token: string, courseId: string) => {
-    return await apiClient.unsubscribeCourse(token, courseId);
-  });
-
   ipcMain.handle('api:getCourseNames', async (_event, courseId: string, token: string) => {
     return await apiClient.getCourseNames(courseId, token);
   });

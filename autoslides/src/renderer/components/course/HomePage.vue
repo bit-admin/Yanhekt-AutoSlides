@@ -67,7 +67,7 @@
           v-for="c in pinnedRecordedCourses"
           :key="'pin:' + c.id"
           class="saved-card saved-card--recorded"
-          @click="openPinnedCourse(c)"
+          @click="openPin(c)"
         >
           <span class="saved-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -77,7 +77,7 @@
           </span>
           <div class="saved-text">
             <span class="saved-label">{{ courseDisplayTitle(c) }}</span>
-            <span class="saved-mode">{{ $t('navigation.recorded') }}</span>
+            <span class="saved-mode">{{ isYanhe2OnlyPin(c) ? $t('navigation.yanhe2') : $t('navigation.recorded') }}</span>
           </div>
           <button
             class="saved-remove"
@@ -266,7 +266,8 @@ import { openCourse } from '@features/course/courseSelection'
 import { getCourseStatusClass, getCourseStatusText, type Course } from '@features/course/useCourseList'
 import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@shared/i18n/displayNames'
 import { mergedSavedSearches, addSavedSearch, removeSavedSearch, savedSearchesLive, savedSearchesRecorded } from '@features/course/savedSearches'
-import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
+import { pinnedRecordedCourses, removePinnedCourse } from '@features/course/pinnedCourses'
+import { isYanhe2OnlyPin, openPin } from './openPin'
 import { useCampusNetworkCheck } from '@features/platform/useCampusNetworkCheck'
 import { useOutputDirAccessCheck } from '@features/platform/useOutputDirAccessCheck'
 import PageBanner from '../shell/PageBanner.vue'

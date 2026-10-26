@@ -3,8 +3,8 @@
  *
  * On aita a GET is not always a read (`course-collect/down` adds a favorite,
  * `learn-record` writes a watch position), so nothing builds a URL from a
- * caller's path: `YANHE2_READ_PATHS` is the whole list of what may be
- * requested.
+ * caller's path: `YANHE2_READ_PATHS` and `YANHE2_WRITE_PATHS` are the whole
+ * list of what may be requested.
  *
  * Bodies carry teacher badges and more than any page needs. Callers parse them
  * into plain rows and never log them.
@@ -27,9 +27,22 @@ export const YANHE2_READ_PATHS = {
   terms: '/courseapi/v2/schedule/search-term',
   slides: '/pptnote/v1/schedule/search-ppt',
   transcript: '/courseapi/v3/web-socket/search-trans-result',
+  // 「我的收藏」, the account's course bookmarks, every term.
+  bookmarks: '/courseapi/v3/course-collect/lists',
 } as const;
 
 export type Yanhe2ReadPath = (typeof YANHE2_READ_PATHS)[keyof typeof YANHE2_READ_PATHS];
+
+/**
+ * The GETs that change the account, kept apart from the reads so a read can
+ * never reach one by mistake. Only `writeYanhe2` takes these.
+ */
+export const YANHE2_WRITE_PATHS = {
+  // Adds a bookmark; with `cancel=1` removes it.
+  bookmark: '/courseapi/v3/course-collect/down',
+} as const;
+
+export type Yanhe2WritePath = (typeof YANHE2_WRITE_PATHS)[keyof typeof YANHE2_WRITE_PATHS];
 
 const TIMEOUT_MS = 20_000;
 
@@ -85,9 +98,26 @@ export async function getYanhe2Json(jwt: string, url: string): Promise<{ status:
   }
 }
 
-export async function readYanhe2(
+export function readYanhe2(
   jwt: string,
   path: Yanhe2ReadPath,
+  params: Record<string, string>,
+): Promise<Yanhe2Fetched<unknown>> {
+  return requestYanhe2(jwt, path, params);
+}
+
+/** One call that changes the account (`YANHE2_WRITE_PATHS`), judged like a read. */
+export function writeYanhe2(
+  jwt: string,
+  path: Yanhe2WritePath,
+  params: Record<string, string>,
+): Promise<Yanhe2Fetched<unknown>> {
+  return requestYanhe2(jwt, path, params);
+}
+
+async function requestYanhe2(
+  jwt: string,
+  path: Yanhe2ReadPath | Yanhe2WritePath,
   params: Record<string, string>,
 ): Promise<Yanhe2Fetched<unknown>> {
   const url = new URL(path, YANHE2_ORIGIN);

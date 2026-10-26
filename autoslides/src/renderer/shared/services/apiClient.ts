@@ -1,10 +1,10 @@
 import { overrides } from '../overrideRegistry'
-import { cached, invalidate } from './requestCache'
+import { cached } from './requestCache'
 import { parseUserProgress, progressBucket, resumePositionFor, type SessionWatchProgress } from '@common/watchProgress';
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesApiClient');
 
-import type { TokenVerificationResult, LiveListResponse, CourseListResponse, SubscriptionListResponse, CourseInfoResponse, CourseDetailResponse, SemesterOption, SessionDownloadInfo, LiveDetailIds } from '@common/apiTypes';
+import type { TokenVerificationResult, LiveListResponse, CourseListResponse, CourseInfoResponse, CourseDetailResponse, SemesterOption, SessionDownloadInfo, LiveDetailIds } from '@common/apiTypes';
 export type { UserData, TokenVerificationResult, LiveStream, LiveListResponse, CourseData, CourseListResponse, SubscriptionCourseRow, SubscriptionListResponse, SessionData, CourseInfoResponse, CourseDetailResponse, SemesterOption, SessionDownloadInfo } from '@common/apiTypes';
 export type { SessionWatchProgress };
 import type { CourseIndexSearchResult } from '@common/courseIndexTypes';
@@ -19,9 +19,6 @@ export interface ApiTransport {
   searchLiveList(token: string, keyword: string, page?: number, pageSize?: number): Promise<LiveListResponse>;
   getCourseList(token: string, options?: { semesters?: number[]; page?: number; pageSize?: number; keyword?: string }): Promise<CourseListResponse>;
   getPersonalCourseList(token: string, options?: { page?: number; pageSize?: number }): Promise<CourseListResponse>;
-  getSubscriptionList(token: string, options?: { page?: number; pageSize?: number }): Promise<SubscriptionListResponse>;
-  subscribeCourse(token: string, courseId: string): Promise<void>;
-  unsubscribeCourse(token: string, courseId: string): Promise<void>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
   getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse>;
   /** A course index search in one term (main picks local or online per Settings → Search). */
@@ -40,9 +37,6 @@ const realApiTransport: ApiTransport = {
   searchLiveList: (token, keyword, page = 1, pageSize = 16) => window.electronAPI.api.searchLiveList(token, keyword, page, pageSize),
   getCourseList: (token, options = {}) => window.electronAPI.api.getCourseList(token, options),
   getPersonalCourseList: (token, options = {}) => window.electronAPI.api.getPersonalCourseList(token, options),
-  getSubscriptionList: (token, options = {}) => window.electronAPI.api.getSubscriptionList(token, options),
-  subscribeCourse: (token, courseId) => window.electronAPI.api.subscribeCourse(token, courseId),
-  unsubscribeCourse: (token, courseId) => window.electronAPI.api.unsubscribeCourse(token, courseId),
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
   getCourseDetail: (courseId, token) => window.electronAPI.api.getCourseDetail(courseId, token),
   getLiveDetail: (liveId, token) => window.electronAPI.api.getLiveDetail(liveId, token),
@@ -72,32 +66,19 @@ const READ_TTL_MS: Partial<Record<keyof ApiTransport, number>> = {
   // Local and immutable: only the paging round-trip is saved.
   getCourseList: 60 * 1000,
   getPersonalCourseList: 60 * 1000,
-  getSubscriptionList: 60 * 1000,
   getPersonalLiveList: 30 * 1000,
   searchLiveList: 30 * 1000,
   getVideoAssets: 5 * 60 * 1000,
 };
 
 /**
- * Writes that make cached reads wrong — a subscribe changes the subscription
- * list and the course lists that mirror it, so it drops every cached read.
- *
- * `reportSessionProgress` is deliberately **not** here. It is a write, but it
- * writes this account's playhead and invalidates no list — and it is the
- * wall-clock 5-second watch heartbeat, so invalidating on it would empty the
- * cache every five seconds for the whole of a lecture.
- */
-const WRITE_METHODS: ReadonlySet<keyof ApiTransport> = new Set([
-  'subscribeCourse',
-  'unsubscribeCourse',
-]);
-
-/**
  * Methods that pass straight through — never cached, coalesced or invalidating.
  *
  * `verifyToken` is the account-switch gate and must always reach the server.
- * `reportSessionProgress` is the 5s heartbeat (see above); coalescing it would
- * also be wrong, since two reports a second apart carry different seconds.
+ * `reportSessionProgress` is the wall-clock 5s watch heartbeat; coalescing it
+ * would be wrong, since two reports a second apart carry different seconds, and
+ * it invalidates nothing (it writes only this account's playhead). The
+ * renderer has no other write: pins are subscribed and bookmarked by main.
  * `getSessionProgress` is the account's live watch position — a memo there
  * would resurrect a stale playhead when a lecture is reopened.
  */
@@ -129,18 +110,6 @@ function withRequestCache(transport: ApiTransport): ApiTransport {
     const fn = transport[name] as (...args: unknown[]) => Promise<unknown>;
     if (UNCACHED_METHODS.has(name)) {
       wrapped[name] = fn;
-      continue;
-    }
-    if (WRITE_METHODS.has(name)) {
-      wrapped[name] = async (...args: unknown[]) => {
-        try {
-          return await fn(...args);
-        } finally {
-          // A subscribe changes the subscription list and the course lists that
-          // mirror it, so a write drops every cached read.
-          invalidate('');
-        }
-      };
       continue;
     }
     const ttl = READ_TTL_MS[name] ?? 0;
@@ -220,36 +189,6 @@ export class ApiClient {
       return await this.transport.getPersonalCourseList(token, options);
     } catch (error) {
       log.error('Failed to get personal course list:', error);
-      throw error;
-    }
-  }
-
-  async getSubscriptionList(token: string, options: {
-    page?: number;
-    pageSize?: number;
-  } = {}): Promise<SubscriptionListResponse> {
-    try {
-      return await this.transport.getSubscriptionList(token, options);
-    } catch (error) {
-      log.error('Failed to get subscription list:', error);
-      throw error;
-    }
-  }
-
-  async subscribeCourse(token: string, courseId: string): Promise<void> {
-    try {
-      await this.transport.subscribeCourse(token, courseId);
-    } catch (error) {
-      log.error('Failed to subscribe course:', error);
-      throw error;
-    }
-  }
-
-  async unsubscribeCourse(token: string, courseId: string): Promise<void> {
-    try {
-      await this.transport.unsubscribeCourse(token, courseId);
-    } catch (error) {
-      log.error('Failed to unsubscribe course:', error);
       throw error;
     }
   }

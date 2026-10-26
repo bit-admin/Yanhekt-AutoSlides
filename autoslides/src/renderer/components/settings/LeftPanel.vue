@@ -54,7 +54,7 @@
             </svg>
             <span>{{ $t('navigation.yanhe2Calendar') }}</span>
           </button>
-          <button :class="['nav-item', { active: activeNav === 'yanhe2-curriculum' }]" @click="navigate('yanhe2-curriculum')">
+          <button :class="['nav-item', { active: activeNav === 'yanhe2-curriculum' && !activePinnedId }]" @click="navigate('yanhe2-curriculum')">
             <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
@@ -102,7 +102,7 @@
         <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.pinned') }}</div>
         <div class="nav-items">
           <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
-            <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPinnedCourse(c)" :title="courseDisplayTitle(c)">
+            <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPin(c)" :title="courseDisplayTitle(c)">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -318,9 +318,9 @@ import { useSearchPage } from '@features/course/useSearchPage'
 import {
   pinnedRecordedCourses,
   removePinnedCourse,
-  openPinnedCourse,
   syncPinnedCoursesFromServer,
 } from '@features/course/pinnedCourses'
+import { openPin } from '../course/openPin'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
@@ -333,6 +333,7 @@ import {
   installYanhe2Session,
   requestYanhe2BrowserSignIn,
   showYanhe2SsoModal,
+  yanhe2SignedIn,
 } from '@features/platform/yanhe2AccountUi'
 
 // Yanhe 2.0 session check on launch / sign-in / account switch, and renewal
@@ -388,6 +389,12 @@ watch([isLoggedIn, userId], ([loggedIn]) => {
     cloudStorageStore.setUser(null)
   }
 }, { immediate: true })
+
+// Pins also sync with Yanhe 2.0 bookmarks, so a Yanhe 2.0 sign-in (or renewal)
+// after the main one syncs again.
+watch(yanhe2SignedIn, (signedIn, was) => {
+  if (signedIn && !was && isLoggedIn.value) void syncPinnedCoursesFromServer(userId.value)
+})
 
 // The signed-out "Switch account" block only appears when there is at least one
 // saved account to switch into.
