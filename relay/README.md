@@ -12,10 +12,11 @@ desktop app does **not** — it runs its own `localhost` proxy. No D1, KV, or ot
 bindings: Cache API only.
 
 > [!NOTE]
-> This origin is campus-network only (Cloudflare WAF on the zone, not Worker
-> code). Open [relay.ruc.edu.kg](https://relay.ruc.edu.kg) to check whether your
-> browser can reach it. Off-campus browsing, live playback, and slide review on
-> the web app still work; recorded playback will not.
+> Connections from the campus network should be allowlisted. If you believe
+> your connection has been restricted by mistake, contact
+> [info@ruc.edu.kg](mailto:info@ruc.edu.kg). Open
+> [relay.ruc.edu.kg](https://relay.ruc.edu.kg) for connection details. Loading the
+> page does not confirm that media requests will succeed.
 
 ## How it works
 
@@ -98,10 +99,8 @@ well-formed but expired, revoked, or invented token still gets cache hits until
 the entry expires or is evicted — cache hits never revalidate upstream. The
 regex only stops malformed junk.
 
-**This deployment's real gate is the zone WAF** (campus ASNs, currently AS4134 /
-Chinanet, AS4847 and AS23910 / CERNET2). That list lives in Cloudflare, not in `src/`. A clone
-with no edge rule is an open Yanhekt-VOD proxy for anyone who can supply 32 hex
-chars.
+The token format check is not authorization. Configure access controls
+appropriate to your deployment before exposing the service publicly.
 
 `/cdn-cgi/trace` does not include ASN. To surface it, add a **Response Header
 Transform Rule** on `GET /cf.txt` that sets `x-client-asn` to
@@ -111,10 +110,10 @@ request at the edge; not a Worker route.
 `public/_headers` puts `Access-Control-Allow-Origin: *` and
 `Access-Control-Expose-Headers: x-client-asn` on `/cf.txt` only. AutoSlides Web
 fetches that file credential-less (like hls.js) when recorded playback fails: a
-readable `ok` means this origin is reachable; a rejected fetch means the request
-never got past the edge (a challenge page has no CORS headers). That is how the
-web client distinguishes “off-campus / challenged” from a generic HLS error
-instead of retrying forever.
+readable `ok` confirms this origin is reachable. An unreadable response may
+indicate an access or network problem; browser-based checks do not necessarily
+work in an HLS client. The web client uses this signal to show a connection
+message instead of retrying forever.
 
 Web's own policy (`RELAY_PUBLIC_ORIGIN` / `ALLOW_OFFCAMPUS_RELAY`) decides
 whether the browser talks to this origin (`direct`, production default) or to
@@ -171,9 +170,9 @@ Or open `/`, paste a 32-hex token + `.m3u8` URL, and hit **Test play**.
 
 - **Recorded videos only.** Live is a different CDN path.
 - **Treat generated URLs as secrets anyway.** They embed `t=`, they work in any
-  HLS player, and on a clone without WAF any well-formed `t=` is enough to
-  stream (and to drain the shared cache). A URL carrying `sid=` additionally
-  lets its holder overwrite that account's saved watch position.
+  HLS player, and without additional access controls any well-formed `t=` is
+  enough to stream (and to drain the shared cache). A URL carrying `sid=`
+  additionally lets its holder overwrite that account's saved watch position.
 - **Electron in-app playback is a different proxy** (`/recorded?originalUrl=&loginToken=`
   on localhost). The desktop *can* expose this same `/playlist`+`/segment` API
   on the LAN (`localRelayService`) for phones / a custom web `relayEndpoint`;

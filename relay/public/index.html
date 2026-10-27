@@ -79,16 +79,10 @@
   .verdict--muted { background: color-mix(in srgb, CanvasText 6%, Canvas); }
   .src { margin-top: 1.35rem; }
   .conn-lead + .src { margin-top: 0; }
-  .src h3, .allow h3 { font-size: .92rem; margin: 0 0 .25rem; }
-  .src > .hint, .allow > .hint { margin: 0 0 .75rem; }
+  .src h3, .access h3 { font-size: .92rem; margin: 0 0 .25rem; }
+  .src > .hint, .access > .hint { margin: 0 0 .75rem; }
   .src > .kv + .hint { margin: .85rem 0 0; }
-  .allow { margin-top: 1.35rem; }
-  .allow ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
-  .allow li { padding: .55rem .7rem; border-radius: 8px; border: 1px solid color-mix(in srgb, CanvasText 12%, transparent); background: color-mix(in srgb, CanvasText 3%, Canvas); font-size: 13px; }
-  .allow li.match { border-color: color-mix(in srgb, #16a34a 45%, transparent); background: color-mix(in srgb, #16a34a 10%, Canvas); }
-  .allow .kv { grid-template-columns: 5.6rem 1fr; font-size: 13px; }
-  .allow .kv .v { font-size: 13px; }
-  .allow .asn { font-family: ui-monospace, monospace; font-weight: 650; }
+  .access { margin-top: 1.35rem; }
   .src h4 { font-size: .8rem; font-weight: 650; margin: 1.1rem 0 .4rem; opacity: .72; }
   .cards { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
   .card {
@@ -212,23 +206,6 @@
     }
   };
 
-  var ALLOWLIST = [
-    {
-      asn: 4134,
-      isp: 'CHINANET',
-      network: 'Chinanet (CDN, VPSH, DSL, MOBILE, BIZNET, CARRIER)'
-    },
-    {
-      asn: 4847,
-      isp: 'China Networks Inter-Exchange',
-      network: 'China Networks Inter-Exchange (DSL, MOBILE, BIZNET, EYEBALL)'
-    },
-    {
-      asn: 23910,
-      isp: 'China Education and Research Network',
-      network: 'China Next Generation Internet CERNET2 (IPv6)'
-    }
-  ];
   // Colo names/countries from Netrvin/cloudflare-colo-list DC-Colos.json.
   var COLO = {
     AAE: 'Annaba', ABJ: 'Abidjan', ABQ: 'Albuquerque', ACC: 'Accra', ACX: 'Xingyi',
@@ -396,10 +373,6 @@
     if (v == null || v === '') return null;
     var n = parseInt(String(v).replace(/^AS/i, ''), 10);
     return isFinite(n) ? n : null;
-  }
-  function allowEntry(asn) {
-    for (var i = 0; i < ALLOWLIST.length; i++) if (ALLOWLIST[i].asn === asn) return ALLOWLIST[i];
-    return null;
   }
   function row(k, v, plain) {
     return '<div class="k">' + escapeHtml(k) + '</div><div class="v' + (plain ? ' plain' : '') + '">' + v + '</div>';
@@ -727,7 +700,7 @@
     return origin + ' The relay is pinned to ' + here + '. ' + closest + ' would be closer to Beijing.';
   }
 
-  function pathHint(loc, colo, place, listed) {
+  function pathHint(loc, colo, place) {
     var locName = loc ? (countryName(loc) || loc) : 'an unknown country';
     var city = coloCity(colo);
     var nearColo = !!NEAR_COLO[colo];
@@ -781,7 +754,7 @@
       }
       return {
         cls: 'verdict--warn',
-        html: unpinned + ' That is a long fetch from Beijing.' + (listed ? '' : proxyTo(closest))
+        html: unpinned + ' That is a long fetch from Beijing.' + proxyTo(closest)
       };
     }
     if (colo === place.colo) {
@@ -795,15 +768,6 @@
       escapeHtml(city) + ', then to you.';
     if (nearColo) {
       return { cls: 'verdict--ok', html: pinned + ' That is a short detour.' };
-    }
-    if (listed) {
-      // Allowlisted networks land far out as a matter of course, and a proxy
-      // would take them off the allowlist, so this is not a warning.
-      return {
-        cls: 'verdict--muted',
-        html: pinned + ' That is a long way round, and normal on this network: its carrier picks the Cloudflare city. ' +
-          'Playback works; only the last leg is longer.'
-      };
     }
     return {
       cls: 'verdict--warn',
@@ -832,10 +796,9 @@
     var city = coloCity(colo);
     var http = prettyHttp(t.http);
     var asn = asnInfo && asnInfo.asn;
-    var listed = allowEntry(asn);
-    var org = listed ? listed.isp : ((asnInfo && asnInfo.org) || '');
+    var org = (asnInfo && asnInfo.org) || '';
     var asnText = asn == null ? 'unavailable' : ('AS' + asn + (org ? ' — ' + org : ''));
-    var path = pathHint(loc, colo, place, !!listed);
+    var path = pathHint(loc, colo, place);
     var pinCity = place && place.pinned ? placeCityOf(place) : '';
 
     var lead = 'You are in <strong>' + escapeHtml(locName) + '</strong> and reached Cloudflare in <strong>' +
@@ -853,28 +816,8 @@
       row('Edge', escapeHtml(city + (colo ? ' (' + colo + ')' : '')), true) +
       row('Worker', workerRow(place, colo), true) +
       row('IP', escapeHtml(t.ip || '—')) +
-      row('Network', escapeHtml(asnText) + (listed
-        ? ' <span class="pill pill--ok">on allowlist</span>'
-        : (asn == null ? '' : ' <span class="pill pill--warn">not on allowlist</span>'))) +
+      row('Network', escapeHtml(asnText)) +
       (http || t.tls ? row('Protocol', escapeHtml((http || '') + (t.tls ? (http ? ' · ' : '') + t.tls : '')), true) : '');
-
-    var allowItems = ALLOWLIST.map(function (a) {
-      var match = asn === a.asn;
-      return '<li' + (match ? ' class="match"' : '') + '>' +
-        '<div class="kv">' +
-        row('ISP', escapeHtml(a.isp) + (match ? ' <span class="pill pill--ok">you</span>' : ''), true) +
-        row('Network', '<span class="asn">AS' + a.asn + '</span> ' + escapeHtml(a.network), true) +
-        '</div></li>';
-    }).join('');
-
-    var waf;
-    if (asn == null) {
-      waf = '<p class="hint">Could not read your network, so this page cannot tell whether it is on the allowlist.</p>';
-    } else if (listed) {
-      waf = '<p class="hint">Your network is on the allowlist. Cloudflare lets this connection through without a challenge.</p>';
-    } else {
-      waf = '<p class="hint">Your network is not on the allowlist. Cloudflare may challenge or block this connection.</p>';
-    }
 
     document.getElementById('conn-body').innerHTML =
       '<p class="conn-lead">' + lead + '</p>' +
@@ -886,9 +829,10 @@
         '<div class="verdict ' + path.cls + '">' + path.html + '</div>' +
         '<details><summary>Raw /cdn-cgi/trace</summary><pre>' + escapeHtml(raw.trim()) + '</pre></details>' +
       '</div>' +
-      '<div class="allow"><h3>WAF Allowlist</h3>' +
-      waf +
-      '<ul>' + allowItems + '</ul></div>' +
+      '<div class="access"><h3>Connection Access</h3>' +
+        '<p class="hint">Connections from the campus network should be allowlisted. If you believe your connection has been restricted by mistake, contact <a href="mailto:info@ruc.edu.kg">info@ruc.edu.kg</a>.</p>' +
+        '<p class="hint">Loading this page does not confirm that playback is available.</p>' +
+      '</div>' +
       '<details class="mean">' +
         '<summary>What does this mean?</summary>' +
         '<div class="mean-body">' +
@@ -896,10 +840,8 @@
           '<p>The carrier chooses that city, and it does not choose by distance. From campus networks the Edge is most often Amsterdam (<code>AMS</code>) or Singapore (<code>SIN</code>), and now and then San Jose (<code>SJC</code>).</p>' +
           '<p>Recordings are stored in Beijing, and ' + escapeHtml(place ? closestCityOf(place) : 'Hong Kong') +
             ' is the Cloudflare region closest to them. A relay pinned there always fetches over that short link, so a far Edge only lengthens the last leg back to you. A relay that is not pinned runs at the Edge, so a far Edge has to fetch from Beijing itself.</p>' +
-          '<p>The allowlist above names the networks that campus traffic leaves through. Cloudflare lets those through, and may challenge or block any other network.</p>' +
-          '<p>A proxy rule for <code>ruc.edu.kg</code> that exits near ' +
-            escapeHtml(pinCity || (place ? closestCityOf(place) : 'Hong Kong')) +
-            ' moves the Edge onto the short path. From a network that is not on the allowlist, the browser has to pass a Cloudflare challenge first. Dedicated players such as VLC, ffmpeg and most HLS apps cannot pass it, so they fail even when this page loads.</p>' +
+          '<p>Connection details describe the route, not whether media requests will succeed. Availability can differ between this page, playlists and media segments.</p>' +
+          '<p>Some access checks may require browser features that dedicated players such as VLC, ffmpeg and other HLS apps do not provide.</p>' +
         '</div>' +
       '</details>' +
       '<div class="src" id="rdap">' +
