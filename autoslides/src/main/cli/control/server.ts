@@ -11,6 +11,7 @@ import net from 'node:net';
 import type { ApiClient } from '@main/platform/apiClient';
 import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import type { ConfigService } from '@main/platform/configService';
+import type { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
 import { createLogger } from '@main/infra/logger';
 import type { AppCommand, AppCommandContext, AppSettingsWriter } from '../app/types';
 import { toCliError } from '../classifyError';
@@ -27,6 +28,7 @@ export interface CliControlServerDeps {
   settings: AppSettingsWriter;
   apiClient: ApiClient;
   courseLookup: CourseLookup;
+  enrolledCoursesService: EnrolledCoursesService;
   renderer: RendererBridge;
   commands: Readonly<Record<string, AppCommand>>;
 }
@@ -128,6 +130,7 @@ export class CliControlServer {
       settings: this.deps.settings,
       apiClient: this.deps.apiClient,
       courseLookup: this.deps.courseLookup,
+      enrolledCoursesService: this.deps.enrolledCoursesService,
       renderer: this.deps.renderer,
       signal,
       term: {

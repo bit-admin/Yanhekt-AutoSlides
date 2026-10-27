@@ -7,6 +7,7 @@ import { COURSE_DATA, showCourse } from '../commands/course';
 import { MINE_DATA, MINE_OPTIONS, listMyCourses } from '../commands/mine';
 import { SESSION_DATA, showSession } from '../commands/session';
 import { TERMS_DATA, listTerms } from '../commands/terms';
+import { CliError } from '../errors';
 import { requireSignIn } from './signIn';
 import type { AppCommand } from './types';
 
@@ -15,14 +16,33 @@ const ACCOUNT_DATA = 'account: { name, badge } | null';
 export const appMineCommand: AppCommand = {
   summary: 'List the courses you are enrolled in',
   args: '',
-  description: ['List the courses the account signed in to AutoSlides is enrolled in.'],
+  description: [
+    'List the signed-in account\'s cached enrolled courses, all known terms,',
+    'and refresh the list in the app in the background. With no cached courses,',
+    'wait only for the current term; never wait for earlier terms to fill in.',
+  ],
   examples: ['mine', 'mine --page 2 --json'],
   options: MINE_OPTIONS,
   positionals: { min: 0, max: 0 },
   data: `${MINE_DATA}, ${ACCOUNT_DATA} }`,
   serve: async (input, ctx) => {
     const { token, account } = await requireSignIn(ctx);
-    const result = await listMyCourses(input, { apiClient: ctx.apiClient, token, notice: ctx.term.info });
+    const result = await listMyCourses(input, {
+      apiClient: ctx.apiClient,
+      token,
+      notice: ctx.term.info,
+      readStored: async () => {
+        if (!account) return null;
+        const read = () => ctx.configService.getEnrolledCourses().filter((c) => c.owner === account.badge);
+        const cached = read();
+        // The app owns the refresh, so it outlives this socket and CLI process.
+        const refresh = ctx.enrolledCoursesService.refresh(account.badge);
+        if (cached.length) return cached;
+        const result = await refresh;
+        if (result.kind === 'failed') throw new CliError('failed', result.message);
+        return read();
+      },
+    });
     return { ...result, data: { ...(result.data as object), account } };
   },
 };

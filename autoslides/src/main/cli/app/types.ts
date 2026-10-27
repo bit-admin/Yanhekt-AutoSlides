@@ -2,6 +2,7 @@ import type { ApiClient } from '@main/platform/apiClient';
 import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import type { SettingsWriter } from '@main/ipc/settingsWriter';
 import type { ConfigService } from '@main/platform/configService';
+import type { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
 import type { RendererBridge } from '../control/rendererBridge';
 import type { CliCommand, CommandInput, CommandResult } from '../types';
 
@@ -27,6 +28,7 @@ export interface AppCommandContext {
   apiClient: ApiClient;
   /** Course index search and lookups (Settings → General → Search). */
   courseLookup: CourseLookup;
+  enrolledCoursesService: EnrolledCoursesService;
   renderer: RendererBridge;
   term: AppTerminal;
   /** Aborted when the client goes away (Ctrl-C); work already handed to the app keeps going. */

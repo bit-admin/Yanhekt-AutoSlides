@@ -23,6 +23,14 @@ With no arguments, `autoslides` just opens the app.
 
 The current term is searched on Yanhekt, unless the app's Settings > General > Search picks the course index for it. Earlier terms (back to `2023-2024-1`) always come from the course index: the copy on this computer, then the AutoSlides Index online (or online only, per that setting). Index results have no `title_en`, `college`, `classrooms` or `participants`; `course <id>` gives the details. A term the chosen index does not hold is `term_unavailable` (exit 3).
 
+### Where `mine` looks
+
+Both commands read the selected saved account's cached enrolled courses (all known terms, newest first), with local `--page` / `--limit` paging. Only Yanhekt courses are returned, in the same data shape as before.
+
+- **`autoslides mine`** starts the app's enrolled-list refresh in the background and returns the cached snapshot without waiting. With no cached courses, it waits only for Yanhekt's current-term list; earlier terms continue filling in after the command exits. Run `mine` again later to see them.
+- **`yhdl mine`** only reads the cache; it never builds, refreshes or writes it. If the selected account has no cached courses, it asks Yanhekt for the current term only. An explicit or environment token uses the cache only if it matches a saved account; an unknown token never reads another account's cache.
+- A sign-in token not matched to a saved account uses Yanhekt's current-term list directly in either command.
+
 ### `download` items
 
 `Item = { session_id, course_id, course_title, session_title, stream: "screen"|"camera"|null, status, path, error?: { code, message } }`

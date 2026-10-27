@@ -453,6 +453,7 @@ const cliControlServer = new CliControlServer({
   settings: createSettingsWriter(configService, intranetMappingService),
   apiClient,
   courseLookup,
+  enrolledCoursesService,
   renderer: cliControlBridge,
   commands: APP_COMMANDS,
 });

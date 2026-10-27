@@ -130,6 +130,7 @@ describe('a command sent to the app', () => {
       settings: {} as never,
       apiClient: {} as never,
       courseLookup: {} as never,
+      enrolledCoursesService: {} as never,
       renderer: {} as never,
       commands: { echo },
     });
