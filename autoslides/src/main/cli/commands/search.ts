@@ -1,12 +1,13 @@
-// `yhdl search <keyword>`: find courses. Anonymous.
+// `yhdl search <keyword>`: find courses. Anonymous, except the online Index.
 //
 // The current term is searched where Settings → General → Search says
 // (Yanhekt's own search by default; its keyword also takes a numeric course
 // id, so `search 70101` finds that one course). Earlier terms, back to
 // 2023-2024-1, come from the course index: the copy on this computer, then the
-// AutoSlides Index online (or online only). `yhdl search` stays anonymous
-// (owner ruling), the index path included; `autoslides search` runs as the
-// app's signed-in account. A run reads the setting; it never changes it, and
+// AutoSlides Index online (or online only). The online Index wants a Yanhekt
+// token as a Bearer, so `yhdl search` reads one (--token, --account,
+// YANHEKT_TOKEN, the app's account) only when it goes there; every other path
+// stays anonymous. `autoslides search` runs as the app's signed-in account. A run reads the setting; it never changes it, and
 // never downloads index updates.
 import type { CourseData, SemesterOption } from '@common/apiTypes';
 import type { CourseIndexRow } from '@common/courseIndexTypes';
@@ -14,6 +15,7 @@ import { isEarlierTermOption, termKeyOfOption, termOptionsBackFrom } from '@comm
 import type { ApiClient } from '@main/platform/apiClient';
 import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import { intOption, type OptionSpec } from '../args';
+import { announceCredentials, readCredentials } from '../auth';
 import { CliError } from '../errors';
 import { englishTitle, table } from '../format';
 import { matchTerm, termKey } from '../terms';
@@ -76,8 +78,8 @@ export interface SearchDeps {
   courseLookup: CourseLookup;
   /** Empty for an anonymous search. */
   token: string;
-  /** The token for a course index search: the app's account for `autoslides`, 'anonymous' for `yhdl`. */
-  indexToken: string | 'anonymous';
+  /** The token for the online Index, asked for only when the search goes there. Throws a CliError when there is none. */
+  indexToken: () => string;
   notice: (text: string) => void;
   /** The hint under the table: how to go on from a course id. */
   nextStep: string;
@@ -109,8 +111,11 @@ export async function searchCourses(input: CommandInput, deps: SearchDeps): Prom
     total: number;
     courses: CliCourseRow[];
   } | null = null;
-  if (picked && term && (await deps.courseLookup.searchSource(term)) !== 'yanhekt') {
-    const answer = await deps.courseLookup.search(term, keyword, page, limit, deps.indexToken);
+  const source = picked && term ? await deps.courseLookup.searchSource(term) : 'yanhekt';
+  if (picked && term && source !== 'yanhekt') {
+    // The copy on this computer needs no token; the online Index does.
+    const indexToken = source === 'online' ? deps.indexToken() : 'anonymous';
+    const answer = await deps.courseLookup.search(term, keyword, page, limit, indexToken);
     if (answer.ok) {
       data = {
         keyword,
@@ -134,7 +139,7 @@ export async function searchCourses(input: CommandInput, deps: SearchDeps): Prom
       if (answer.code === 'network') throw new CliError('network', `the AutoSlides Index did not answer: ${answer.message ?? ''}`.trim());
       throw new CliError('failed', `the AutoSlides Index refused the search: ${answer.message ?? answer.code ?? ''}`.trim());
     } else {
-      throw new CliError('sign_in_required', 'the course index needs a Yanhekt sign-in');
+      throw new CliError('auth_required', 'the AutoSlides Index needs a Yanhekt sign-in');
     }
   }
   if (!data) {
@@ -172,10 +177,25 @@ const run = (input: CommandInput, ctx: CliContext): Promise<CommandResult> =>
     apiClient: ctx.apiClient,
     courseLookup: ctx.courseLookup,
     token: ANONYMOUS,
-    indexToken: 'anonymous',
+    indexToken: () => indexCredentials(input, ctx),
     notice: info,
     nextStep: `Run '${input.program} course <id>' to list a course's sessions.`,
   });
+
+/** `yhdl`'s token for the online Index, announced on stderr like the other sign-ins. */
+function indexCredentials(input: CommandInput, ctx: CliContext): string {
+  let credentials;
+  try {
+    credentials = readCredentials(input, ctx);
+  } catch (error) {
+    if (error instanceof CliError && error.code === 'auth_required') {
+      throw new CliError('auth_required', 'the AutoSlides Index online needs a Yanhekt sign-in, and none was found', error.hint);
+    }
+    throw error;
+  }
+  announceCredentials(credentials, 'index');
+  return credentials.token;
+}
 
 export const SEARCH_OPTIONS: OptionSpec[] = [
   { long: 'term', value: 'term', description: 'This term: 2025-2026-1 or a name from `yhdl terms` (default: the current term)' },
@@ -187,19 +207,24 @@ export const SEARCH_DATA =
   "{ keyword, term: string|null, source: 'yanhekt'|'local'|'online', page, last_page, total, courses: [{ id, title, title_en, professors: string[], college, term, classrooms: string[], participants }] }";
 
 export const searchCommand: CliCommand = {
-  summary: 'Find courses by name, teacher or course id (no sign-in)',
+  summary: 'Find courses by name, teacher or course id',
   args: '<keyword…>',
   description: [
     'Search courses in one term (default: the current one). The current term',
     'is searched on Yanhekt unless the app\'s Settings > General > Search picks',
     'the course index; earlier terms (back to 2023-2024-1) always come from the',
     'course index: on this computer, then the AutoSlides Index online. A number',
-    'finds the course with that id. No sign-in is needed.',
+    'finds the course with that id.',
+    '',
+    'No sign-in is needed, except for the AutoSlides Index online: its token',
+    'comes from --token, --account, YANHEKT_TOKEN, or the account signed in to',
+    'AutoSlides, in that order.',
   ],
   examples: ['search 微积分', 'search 泛函分析 --term 2025-2026-1 --json'],
   options: SEARCH_OPTIONS,
   positionals: { min: 1, max: Infinity },
   network: true,
+  tokenUse: 'Only for the AutoSlides Index online (earlier terms not on this computer, or when Settings picks it)',
   data: SEARCH_DATA,
   run,
 };

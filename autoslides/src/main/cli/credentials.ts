@@ -1,6 +1,7 @@
 // Which Yanhekt login token a run uses. Only personal lists need one — a
 // course's sessions (`course`, `download --course`) and the account's own
-// courses (`mine`); every other request is anonymous.
+// courses (`mine`) — and the AutoSlides Index online (`search`); every other
+// request is anonymous.
 // Pure, so it is unit-tested.
 //
 // First match wins: `--token`, `--account`, the YANHEKT_TOKEN environment

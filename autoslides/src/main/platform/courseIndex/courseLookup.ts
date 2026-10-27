@@ -97,14 +97,13 @@ export class CourseLookup {
 
   /**
    * A word search in one term from the index (local or online, per the
-   * settings). Needs a token, unless the caller is the anonymous `yhdl`
-   * (`token` then 'anonymous').
+   * settings). Needs a token; 'anonymous' may read the local copy but not
+   * the online Index, which wants a Bearer (`sign-in` then).
    */
   async search(term: string, keyword: string, page: number, pageSize: number, token: string | null | 'anonymous'): Promise<CourseIndexSearchResult> {
     const source = await this.searchSource(term);
     if (source === 'yanhekt') return { ok: false, reason: 'yanhekt' };
     if (!token) return { ok: false, reason: 'sign-in' };
-    const bearer = token === 'anonymous' ? null : token;
 
     let rows: CourseIndexRow[];
     if (source === 'local') {
@@ -112,8 +111,10 @@ export class CourseLookup {
       if (!found) return { ok: false, reason: 'local-missing' };
       rows = found.map(toRow);
     } else {
+      // The online Index wants a Bearer: an anonymous search reads the local copy only.
+      if (token === 'anonymous') return { ok: false, reason: 'sign-in' };
       try {
-        rows = await this.onlineSearch(term, keyword, bearer);
+        rows = await this.onlineSearch(term, keyword, token);
       } catch (error) {
         const code = error instanceof IndexError ? error.code : 'network';
         return { ok: false, reason: 'online-failed', code, message: error instanceof Error ? error.message : String(error) };
@@ -132,7 +133,7 @@ export class CourseLookup {
     };
   }
 
-  private async onlineSearch(term: string, keyword: string, token: string | null): Promise<CourseIndexRow[]> {
+  private async onlineSearch(term: string, keyword: string, token: string): Promise<CourseIndexRow[]> {
     const key = `${term}\n${keyword.trim()}`;
     const hit = this.onlinePages.get(key);
     if (hit && Date.now() - hit.at < ONLINE_PAGE_TTL_MS) return hit.rows;

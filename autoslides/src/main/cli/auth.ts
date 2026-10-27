@@ -1,4 +1,4 @@
-// The token for a command that reads a personal list (sessions, enrolled courses), read from the flags, the
+// The token for a command that reads a personal list (sessions, enrolled courses) or the online Index, read from the flags, the
 // environment and the app's saved accounts (see credentials.ts).
 import { CliError } from './errors';
 import { TOKEN_ENV, TOKEN_SOURCE_TEXT, resolveCredentials, type Credentials } from './credentials';
@@ -21,10 +21,16 @@ export function readCredentials(input: CommandInput, ctx: CliContext): Credentia
   return result.credentials;
 }
 
-/** One stderr line naming whose sign-in lists the sessions. Never the token. */
-export function announceCredentials(credentials: Credentials, what: 'sessions' | 'courses' = 'sessions'): void {
+const USE_TEXT = {
+  sessions: 'Listing sessions',
+  courses: 'Listing courses',
+  index: 'Searching the AutoSlides Index',
+} as const;
+
+/** One stderr line naming whose sign-in the run uses. Never the token. */
+export function announceCredentials(credentials: Credentials, what: keyof typeof USE_TEXT = 'sessions'): void {
   const who = credentials.account ? ` (${credentials.account.name})` : '';
-  info(`Listing ${what} with ${TOKEN_SOURCE_TEXT[credentials.source]}${who}.`);
+  info(`${USE_TEXT[what]} with ${TOKEN_SOURCE_TEXT[credentials.source]}${who}.`);
 }
 
 /** The `auth` part of a JSON answer. */

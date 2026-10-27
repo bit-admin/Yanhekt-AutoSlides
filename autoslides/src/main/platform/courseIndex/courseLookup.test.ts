@@ -214,11 +214,10 @@ describe('CourseLookup', () => {
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok-1');
   });
 
-  it('lets the anonymous yhdl search the index without a Bearer', async () => {
+  it('keeps an anonymous search off the online Index but lets it read the local copy', async () => {
     const { lookup: l, fetchMock } = lookup({ earlierSource: 'online', online: [] });
-    expect(await l.search('2024-2025-1', '线性代数', 1, 16, 'anonymous')).toMatchObject({ ok: true, source: 'online' });
-    const init = (fetchMock.mock.calls[0] as unknown[])[1] as RequestInit;
-    expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
+    expect(await l.search('2024-2025-1', '线性代数', 1, 16, 'anonymous')).toEqual({ ok: false, reason: 'sign-in' });
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(await lookup().lookup.search('2024-2025-1', '线性代数', 1, 16, 'anonymous')).toMatchObject({ ok: true, source: 'local' });
   });
 });

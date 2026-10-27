@@ -406,13 +406,12 @@ export class NotesService {
 
   /**
    * Exchange a share-link fragment for a KV-backed short URL via the public
-   * share Worker. Runs in the main process so it doesn't hit renderer CORS; the
-   * endpoint needs no auth.
+   * share Worker. Runs in the main process so it doesn't hit renderer CORS.
    */
   async shortenShareUrl(fragment: string): Promise<{ url: string }> {
     const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/shorten`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'User-Agent': appUserAgent() },
+      headers: this.shareHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ fragment }),
     });
     if (!res.ok) {
@@ -423,6 +422,17 @@ export class NotesService {
       throw new Error('Short-link response missing url');
     }
     return { url: data.url };
+  }
+
+  /**
+   * Headers for the share Worker: {@link appUserAgent}, and the signed-in
+   * Yanhekt token as a Bearer when there is one (like the Index calls).
+   */
+  private shareHeaders(extra: Record<string, string> = {}): Record<string, string> {
+    const headers: Record<string, string> = { ...extra, 'User-Agent': appUserAgent() };
+    const token = this.configService.getAuthToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
   }
 
   // ── Share-link resolve ──────────────────────────────────────────────────
@@ -482,7 +492,7 @@ export class NotesService {
    */
   private async fetchShortLink(id: string): Promise<{ fragment: string; meta: ShareLectureMeta | null }> {
     const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/get?id=${encodeURIComponent(id)}`, {
-      headers: { 'User-Agent': appUserAgent() },
+      headers: this.shareHeaders(),
     });
     if (!res.ok) throw new Error(`Short-link lookup failed (${res.status})`);
     const data = (await res.json()) as { fragment?: string; meta?: ShareLectureMeta | null };
@@ -501,7 +511,7 @@ export class NotesService {
     if (sessionId) params.set('sessionId', sessionId);
     try {
       const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/meta?${params}`, {
-        headers: { 'User-Agent': appUserAgent() },
+        headers: this.shareHeaders(),
       });
       if (!res.ok) return null;
       const data = (await res.json()) as { meta?: ShareLectureMeta | null };

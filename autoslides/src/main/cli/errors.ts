@@ -16,7 +16,7 @@ export const CLI_ERROR_CODES = {
   usage: { exit: EXIT.usage, meaning: 'The command line was wrong; nothing was requested' },
   not_found: { exit: EXIT.notFound, meaning: 'Yanhekt has no course or session with that id, or the app\'s download list has nothing for it' },
   no_recording: { exit: EXIT.notFound, meaning: 'The session exists but has no recording (yet), or not the stream asked for' },
-  auth_required: { exit: EXIT.auth, meaning: 'A personal list (a course\'s sessions, your enrolled courses) needs a Yanhekt token and none was found' },
+  auth_required: { exit: EXIT.auth, meaning: 'A personal list (a course\'s sessions, your enrolled courses) or the AutoSlides Index online needs a Yanhekt token and none was found' },
   sign_in_required: { exit: EXIT.auth, meaning: 'AutoSlides is not signed in to Yanhekt; every app command that talks to Yanhekt needs it' },
   network: { exit: EXIT.network, meaning: 'Yanhekt (or the AutoSlides Index) could not be reached' },
   cli_control_disabled: { exit: EXIT.appUnavailable, meaning: 'Command-line control is turned off in AutoSlides (Settings > Add-ons > Command Line)' },

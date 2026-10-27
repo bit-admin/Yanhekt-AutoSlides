@@ -12,6 +12,7 @@ import { cached, json, type D1Database, type Env, type ExecutionContext } from '
 import { courseSessions, search } from './search';
 import { cacheKey, isParamError, parseSearchParams, TERM_KEY } from './searchParams';
 import { courseDetails, failureStatus, hasUnavailable, isFailure, sessionDetails } from './yanhekt';
+import { appTokenMissing } from './appAuth';
 
 /** Edge: until the next upload (keys change then); a week bounds orphaned entries. */
 const EDGE_TTL = 7 * 24 * 3600;
@@ -147,6 +148,9 @@ export async function routeApi(req: Request, env: Env, ctx: ExecutionContext, ur
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     return json({ error: 'method-not-allowed', message: 'use GET' }, 405);
+  }
+  if (appTokenMissing(req)) {
+    return json({ error: 'token-required', message: 'AutoSlides must be signed in to Yanhekt to use the Index' }, 403);
   }
 
   if (pathname === '/api/terms') {

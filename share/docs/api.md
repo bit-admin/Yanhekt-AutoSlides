@@ -4,7 +4,7 @@ The Index API answers questions about Yanhekt courses from our own copy of the c
 
 It is deliberately small: it returns course ids and the few fields needed to show a match, plus each course's session ids. Everything else about a course or a session (times, titles, recordings) comes from Yanhekt, which serves it by id without login. A client can read it there itself, or, for a course the index holds, through [`/api/courses/{id}/yanhekt`](#get-apicoursesidyanhekt), which reads Yanhekt live. Only the list of a course's sessions needs our crawl.
 
-- **Read-only, no auth.** Access is limited at the edge: the zone's WAF challenges requests from outside the campus network, so a browser on campus (or one that has passed the challenge) can call it; a script off campus will get a challenge page, not JSON.
+- **Read-only, no auth for browsers.** The AutoSlides desktop app (and its `yhdl` command) calls it as a signed-in user: its requests must carry the user's Yanhekt login token as `Authorization: Bearer <token>`, or they get `403 token-required`. Only the token's shape is checked. Access is limited at the edge: the zone's WAF challenges requests from outside the campus network, so a browser on campus (or one that has passed the challenge) can call it; a script off campus will get a challenge page, not JSON.
 - **Our model, not Yanhekt's.** Terms are named by academic year and semester (`2026-2027-1`), never by Yanhekt's semester tag ids.
 - **As fresh as the last upload.** The index is updated when a crawl is uploaded (at most a few times a day). Courses and sessions Yanhekt has not shown the crawler yet are missing.
 
@@ -178,6 +178,7 @@ Errors are JSON with a stable `error` code and a human `message`; parameter erro
 | 404 | `not-found` | unknown `/api/` path, or unknown course |
 | 502 | `yanhekt-unavailable` | `/yanhekt` endpoints: Yanhekt did not answer; retry later |
 | 503 | `yanhekt-not-configured` | `/yanhekt` endpoints: this deployment has no route to Yanhekt |
+| 403 | `token-required` | a request from the AutoSlides app without a well-formed Yanhekt token as a Bearer |
 | 405 | `method-not-allowed` | not `GET` |
 | 410 | `retired` | `/v2/api/*` (the old Index) |
 | 500 | `internal` | the database failed; retry later |

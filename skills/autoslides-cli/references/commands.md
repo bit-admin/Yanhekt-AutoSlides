@@ -21,7 +21,7 @@ With no arguments, `autoslides` just opens the app.
 
 ### Where `search` looks
 
-The current term is searched on Yanhekt, unless the app's Settings > General > Search picks the course index for it. Earlier terms (back to `2023-2024-1`) always come from the course index: the copy on this computer, then the AutoSlides Index online (or online only, per that setting). Index results have no `title_en`, `college`, `classrooms` or `participants`; `course <id>` gives the details. A term the chosen index does not hold is `term_unavailable` (exit 3).
+The current term is searched on Yanhekt, unless the app's Settings > General > Search picks the course index for it. Earlier terms (back to `2023-2024-1`) always come from the course index: the copy on this computer, then the AutoSlides Index online (or online only, per that setting). Index results have no `title_en`, `college`, `classrooms` or `participants`; `course <id>` gives the details. A term the chosen index does not hold is `term_unavailable` (exit 3). The AutoSlides Index online needs a Yanhekt sign-in: `autoslides search` uses the app's account; `yhdl search` reads a token (below) only when it goes online, and fails with `auth_required` (exit 4) when there is none. The copy on this computer needs no sign-in.
 
 ### Where `mine` looks
 
@@ -73,7 +73,7 @@ Booleans also take `on`/`off`, `yes`/`no` and `1`/`0`. No other setting can be r
 
 The same lookup commands (`search`, `mine`, `course`, `session`, `terms`, `whoami`, `schema`) and `download`, run without the app. It has no `downloads` or `config`: those answer "needs the AutoSlides app".
 
-- **Anonymous by default.** Only the personal lists use a token: `mine`, the session list of `course`, and `download --course`. The token comes from, in order: `--token <token>`, `--account <name or student number>` (an account saved in AutoSlides), `YANHEKT_TOKEN`, then the account signed in to the app. A token is never saved or printed. `whoami` reports which one would be used, offline.
+- **Anonymous by default.** Only the personal lists and the AutoSlides Index online use a token: `mine`, the session list of `course`, `download --course`, and `search` when it reads the online Index. The token comes from, in order: `--token <token>`, `--account <name or student number>` (an account saved in AutoSlides), `YANHEKT_TOKEN`, then the account signed in to the app. A token is never saved or printed. `whoami` reports which one would be used, offline.
 - **Route.** Public network unless `--intranet` (strict: no fallback to public). `--interface <name or IPv4>` picks the interface, only with `--intranet`. The app's Connection Mode is ignored.
 - **`download`.** Takes `-o/--output <dir>` for this run (created if needed); otherwise the app's output folder. Same `--stream`, `--course`, `--dry-run`, `--force`. Item `status` can also be `interrupted`; running the same command again resumes.
 - `-v/--verbose` prints diagnostic logs to stderr.

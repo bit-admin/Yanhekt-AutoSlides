@@ -60,6 +60,27 @@ describe('worker routing', () => {
     expect(await missing.json()).toMatchObject({ error: 'not-found' });
   });
 
+  it('refuses app requests without a well-formed Bearer token, before touching D1', async () => {
+    const app = 'AutoSlides/5.3.0 (macOS; arm64)';
+    for (const path of ['/api/search?q=数学&term=2026-2027-1', '/api/courses/1/sessions', '/api/terms']) {
+      for (const auth of [undefined, 'Bearer ', 'Bearer abc', `Basic ${'a'.repeat(32)}`, `Bearer ${'g'.repeat(32)}`]) {
+        const headers: Record<string, string> = { 'User-Agent': app };
+        if (auth !== undefined) headers.Authorization = auth;
+        const res = await call(path, { headers });
+        expect(res.status).toBe(403);
+        expect(await res.json()).toMatchObject({ error: 'token-required' });
+      }
+    }
+    // A well-formed token passes the gate (and reaches the usual checks).
+    const signedIn = await call('/api/search?q=数学', { headers: { 'User-Agent': app, Authorization: `Bearer ${'0a'.repeat(16)}` } });
+    expect(await signedIn.json()).toMatchObject({ error: 'term-required' });
+    // Browsers and the web Worker's binding send no token and are not gated.
+    expect(await (await call('/api/search?q=数学', { headers: { 'User-Agent': 'Mozilla/5.0' } })).json()).toMatchObject({ error: 'term-required' });
+    expect(await (await call('/api/search?q=数学')).json()).toMatchObject({ error: 'term-required' });
+    // Share links are not gated yet (released apps send no token there).
+    expect(await (await call('/v1/whatever', { headers: { 'User-Agent': app } })).text()).toBe('asset');
+  });
+
   it('leaves other paths to the asset layer', async () => {
     expect(await (await call('/v1/whatever')).text()).toBe('asset');
   });
