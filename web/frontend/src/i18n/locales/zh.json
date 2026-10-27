@@ -285,6 +285,9 @@
     "watching": "正在观看",
     "showMore": "展开",
     "showLess": "收起",
+    "streamFallback": "{from}播放失败，已切换到{to}。",
+    "streamFallbackMissing": "服务器上没有{from}，已切换到{to}。",
+    "streamFallbackEmpty": "{from}在服务器上没有视频内容，已切换到{to}。",
     "emptyStream": "{stream}在延河课堂服务器上没有视频内容，可前往延河课堂网页确认能否播放。"
   },
   "searchPage": {

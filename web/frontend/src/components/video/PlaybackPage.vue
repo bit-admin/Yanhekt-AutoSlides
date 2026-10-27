@@ -49,6 +49,7 @@
 
           <div v-else-if="playbackData" class="video-content">
             <div class="player-panel">
+              <p v-if="fallbackMessage" class="empty-stream-notice" role="status">{{ fallbackMessage }}</p>
               <p v-if="emptyStreamNotice" class="empty-stream-notice" role="status">{{ emptyStreamNotice }}</p>
               <!--
                 Classroom mic track. One element for BOTH modes, deliberately
@@ -690,6 +691,7 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '../../composables/video/useVideoPlayer'
 import { useControlsVisibility } from '../../composables/video/useControlsVisibility'
+import { streamFallbackMessageKey } from '../../composables/video/streamFallback'
 import { useSlideExtraction } from '../../composables/video/useSlideExtraction'
 import { postProcessingStatus } from '../../lib/postProcessing/runner'
 import { dialogStore } from '../../stores/dialogStore'
@@ -938,6 +940,13 @@ const emptyStreamNotice = computed(() => {
   if (types.length === 0) return ''
   const names = types.map(type => t(type === 'screen' ? 'playback.streamScreen' : 'playback.streamCamera'))
   return t('playback.emptyStream', { stream: names.join(', ') })
+})
+
+const fallbackMessage = computed(() => {
+  const notice = videoPlayerComposable.fallbackNotice.value
+  if (!notice) return ''
+  const label = (type: string) => t(type === 'screen' ? 'playback.streamScreen' : 'playback.streamCamera')
+  return t(streamFallbackMessageKey(notice.reason), { from: label(notice.from), to: label(notice.to) })
 })
 
 // Relay failure details, shown when the player classifies an error as the

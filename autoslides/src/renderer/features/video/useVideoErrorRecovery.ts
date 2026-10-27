@@ -221,9 +221,10 @@ export function createSingleStreamHlsErrorHandler(
       case ErrorTypes.NETWORK_ERROR:
         if (counters.networkErrorRecoveryCount < counters.maxRecoveryAttempts) {
           counters.networkErrorRecoveryCount++
+          const instance = opts.hls.value
           setTimeout(() => {
-            if (opts.hls.value) {
-              retryNetworkLoad(opts.hls.value, data)
+            if (instance && opts.hls.value === instance) {
+              retryNetworkLoad(instance, data)
             }
           }, 1000 * counters.networkErrorRecoveryCount)
         } else {

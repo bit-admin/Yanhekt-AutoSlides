@@ -50,13 +50,16 @@ export function isMissingPlaylist(data: ErrorData): boolean {
 }
 
 /**
- * Whether a progressive file (an MP4 the `<video>` element refused) is simply
- * not on the server. The element's error says only "not supported", so ask
- * for its first byte and read the status. Any other answer, or none, is false.
+ * Whether a source the `<video>` element refused (native HLS or an MP4) is
+ * simply not on the server. Ask for its first byte and read the status, with
+ * a short timeout so a diagnostic never stalls fallback. Any other answer,
+ * or none, is false.
  */
 export async function isMissingMedia(url: string): Promise<boolean> {
   try {
-    const response = await fetch(url, { headers: { Range: 'bytes=0-0' }, cache: 'no-store' })
+    const response = await fetch(url, {
+      headers: { Range: 'bytes=0-0' }, cache: 'no-store', signal: AbortSignal.timeout(5000),
+    })
     void response.body?.cancel().catch(() => undefined)
     return isMissingStatus(response.status)
   } catch {

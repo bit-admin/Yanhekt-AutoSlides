@@ -285,6 +285,9 @@
     "watching": "Watching",
     "showMore": "Show More",
     "showLess": "Show Less",
+    "streamFallback": "{from} stopped playing, so {to} is playing instead.",
+    "streamFallbackMissing": "{from} is not on the server, so {to} is playing instead.",
+    "streamFallbackEmpty": "{from} has no video on the server, so {to} is playing instead.",
     "emptyStream": "{stream} has no video on Yanhekt's server. Check whether it plays on the Yanhekt website."
   },
   "searchPage": {

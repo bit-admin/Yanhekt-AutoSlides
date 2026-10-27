@@ -4,6 +4,7 @@ import { attachEmptyRecordingGuard, attachNetworkErrorSniffer, setupDualHlsError
 import { createMediaSyncLoop, syncFollower } from "./mediaSync";
 import type { VideoStream, DualAudioSource } from "./useVideoPlayer";
 import { demoHooks } from "../../lib/demoRegistry";
+import { isMissingMedia } from "./streamFallback";
 
 /**
  * Dual-stream (camera + screen) playback subsystem — ported near-verbatim
@@ -38,10 +39,12 @@ export interface DualStreamPlayerDeps {
   cleanupSingleVideoSource: () => void;
   /** Shared playback-ended handler. */
   onEnded: () => Promise<void>;
-  /** Called on any network-type HLS error, so the host can diagnose the cause. */
-  onNetworkError?: () => void;
+  /** Diagnose a network failure; true means the relay access error was reported. */
+  onNetworkError?: () => Promise<boolean>;
   /** A stream turned out to hold no video (see attachEmptyRecordingGuard). */
   onEmptyStream: (type: VideoStream["type"]) => void;
+  /** Move out of dual mode to a stream that has not failed, if one remains. */
+  onStreamFailed?: (type: VideoStream["type"], reason: "missing" | "failed", message: string) => boolean;
   /**
    * hls.js fragment loader that turns segment fetches into watch-progress
    * heartbeats. Attached to the **master** instance only — both streams sit at
@@ -72,6 +75,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     onEnded,
     onNetworkError,
     onEmptyStream,
+    onStreamFailed,
     getProgressFragmentLoader,
   } = deps;
 
@@ -86,6 +90,8 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
   let isApplyingDualAudioState = false;
   // Tracks videos playing via native HLS (Safari) so cleanup clears their src.
   const nativeVideos = new Set<HTMLVideoElement>();
+  const nativeListeners = new Map<HTMLVideoElement, () => void>();
+  let sourceGeneration = 0;
 
   const dualCanSeek = computed(() => {
     return Number.isFinite(dualDuration.value) && dualDuration.value > 0;
@@ -100,6 +106,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
   };
 
   const cleanupDualVideoSources = () => {
+    sourceGeneration++;
     stopDualSync();
     detachMicAudio();
 
@@ -113,6 +120,8 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
       screenHls.value = null;
     }
 
+    for (const cleanup of nativeListeners.values()) cleanup();
+    nativeListeners.clear();
     for (const video of nativeVideos) {
       video.removeAttribute("src");
       video.load();
@@ -288,10 +297,12 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
   const onSourceReady = (
     video: HTMLVideoElement,
     label: string,
-    seekToTime?: number,
-    shouldAutoPlay?: boolean,
+    seekToTime: number | undefined,
+    shouldAutoPlay: boolean | undefined,
+    isCurrent: () => boolean,
   ) => {
     setTimeout(() => {
+      if (!isCurrent()) return;
       if (mode === "recorded") {
         video.playbackRate = Number(currentPlaybackRate.value);
       } else {
@@ -318,6 +329,21 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     }, 100);
   };
 
+  const failStream = async (
+    type: VideoStream["type"],
+    reason: "missing" | "failed",
+    message: string,
+    isCurrent: () => boolean,
+  ) => {
+    if (!isCurrent()) return;
+    if (reason === "failed" && await onNetworkError?.()) return;
+    if (!isCurrent()) return;
+    if (onStreamFailed?.(type, reason, message)) return;
+    error.value = message;
+    isVideoLoading.value = false;
+    handleTaskError(message);
+  };
+
   const attachDualHls = (
     video: HTMLVideoElement,
     stream: VideoStream,
@@ -331,25 +357,31 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     const fLoader = label === "screen" ? getProgressFragmentLoader?.() : undefined;
     const hlsInstance = new Hls({
       ...getHlsConfig(mode),
+      ...(seekToTime !== undefined ? { startPosition: seekToTime } : {}),
       ...(fLoader ? { fLoader } : {}),
     });
     hlsRef.value = hlsInstance;
+    const isCurrent = () => hlsRef.value === hlsInstance && isDualStreamSelected.value && !error.value;
 
     hlsInstance.loadSource(stream.url);
     hlsInstance.attachMedia(video);
 
     hlsInstance.on(Events.MANIFEST_PARSED, () => {
-      onSourceReady(video, label, seekToTime, shouldAutoPlay);
+      onSourceReady(video, label, seekToTime, shouldAutoPlay, isCurrent);
     });
 
-    if (onNetworkError) attachNetworkErrorSniffer(hlsInstance, onNetworkError);
-    attachEmptyRecordingGuard(hlsInstance, () => onEmptyStream(stream.type));
+    if (onNetworkError) attachNetworkErrorSniffer(hlsInstance, () => {
+      if (isCurrent()) void onNetworkError();
+    });
+    attachEmptyRecordingGuard(hlsInstance, () => {
+      if (isCurrent()) onEmptyStream(stream.type);
+    });
 
     setupDualHlsErrorHandler(hlsInstance, video, label, {
       mode,
-      onFatal: (message) => {
-        error.value = message;
-        handleTaskError(message);
+      onFatal: (message) => { void failStream(stream.type, "failed", message, isCurrent); },
+      onMissing: () => {
+        void failStream(stream.type, "missing", `Recording not found on the server (${label} stream, HTTP 404/410)`, isCurrent);
       },
     });
   };
@@ -363,12 +395,30 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     shouldAutoPlay?: boolean,
   ) => {
     nativeVideos.add(video);
+    const generation = sourceGeneration;
+    const isCurrent = () => generation === sourceGeneration && nativeVideos.has(video) &&
+      isDualStreamSelected.value && !error.value;
+    const onMetadata = () => {
+      if (!isCurrent()) return;
+      if (mode === "recorded" && video.duration === 0) onEmptyStream(stream.type);
+      else onSourceReady(video, label, seekToTime, shouldAutoPlay, isCurrent);
+    };
+    const onError = async () => {
+      if (!isCurrent() || !video.error || video.error.code === 1) return;
+      if (await onNetworkError?.() || !isCurrent()) return;
+      const missing = await isMissingMedia(stream.url);
+      if (!isCurrent()) return;
+      await failStream(stream.type, missing ? "missing" : "failed",
+        missing ? `Recording not found on the server (${label} stream, HTTP 404/410)` : `Video playback error (${label})`,
+        isCurrent);
+    };
+    video.addEventListener("loadedmetadata", onMetadata, { once: true });
+    video.addEventListener("error", onError);
+    nativeListeners.set(video, () => {
+      video.removeEventListener("loadedmetadata", onMetadata);
+      video.removeEventListener("error", onError);
+    });
     video.src = stream.url;
-    video.addEventListener(
-      "loadedmetadata",
-      () => onSourceReady(video, label, seekToTime, shouldAutoPlay),
-      { once: true },
-    );
   };
 
   const loadDualVideoSources = async (seekToTime?: number, shouldAutoPlay?: boolean) => {

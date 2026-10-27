@@ -50,7 +50,10 @@ describe('isMissingPlaylist', () => {
 })
 
 describe('isMissingMedia', () => {
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
 
   it('reads the status of a one-byte request', async () => {
     const fetchMock = vi.fn(async () => new Response('', { status: 404 }))
@@ -59,6 +62,16 @@ describe('isMissingMedia', () => {
     expect(fetchMock).toHaveBeenCalledWith('http://localhost:1/yanhe2?u=x', expect.objectContaining({
       headers: { Range: 'bytes=0-0' },
     }))
+  })
+
+  it('bounds the status probe to five seconds', async () => {
+    const signal = new AbortController().signal
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(signal)
+    const fetchMock = vi.fn(async () => new Response('', { status: 404 }))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(isMissingMedia('u')).resolves.toBe(true)
+    expect(timeout).toHaveBeenCalledWith(5000)
+    expect(fetchMock).toHaveBeenCalledWith('u', expect.objectContaining({ signal }))
   })
 
   it('is false for a file that is there, and for no answer', async () => {

@@ -2,6 +2,7 @@ import type { Ref, ShallowRef } from "vue";
 import type Hls from "hls.js";
 import type { ErrorData } from "hls.js";
 import { Events, ErrorTypes, ErrorDetails } from "hls.js";
+import { isMissingPlaylist } from "./streamFallback";
 
 // Ported near-verbatim from the desktop app's
 // features/video/useVideoErrorRecovery.ts (logger swapped for console).
@@ -98,6 +99,8 @@ export interface DualHlsErrorOptions {
   mode: "live" | "recorded";
   /** Set when an unrecoverable error happens. */
   onFatal: (message: string) => void;
+  /** The playlist answered 404 / 410. Called at once, with no retries. */
+  onMissing?: () => void;
 }
 
 /**
@@ -119,6 +122,11 @@ export function setupDualHlsErrorHandler(
 
     if (!data.fatal) {
       console.warn(`Non-fatal dual HLS error (${label}):`, data.details, data);
+      return;
+    }
+
+    if (opts.onMissing && isMissingPlaylist(data)) {
+      opts.onMissing();
       return;
     }
 
@@ -173,6 +181,8 @@ export interface SingleStreamHlsErrorOptions {
   onFatalStart?: () => void;
   /** Called for non-fatal errors. */
   onNonFatal?: (data: ErrorData) => void;
+  /** The playlist answered 404 / 410. Called at once, with no retries. */
+  onMissing?: () => void;
   /**
    * Divergent media-error recovery body, invoked after the per-instance media
    * counter is incremented (`attempt` = the new count).
@@ -198,15 +208,21 @@ export function createSingleStreamHlsErrorHandler(
       return;
     }
 
+    if (opts.onMissing && isMissingPlaylist(data)) {
+      opts.onMissing();
+      return;
+    }
+
     opts.onFatalStart?.();
 
     switch (data.type) {
       case ErrorTypes.NETWORK_ERROR:
         if (counters.networkErrorRecoveryCount < counters.maxRecoveryAttempts) {
           counters.networkErrorRecoveryCount++;
+          const instance = opts.hls.value;
           setTimeout(() => {
-            if (opts.hls.value) {
-              retryNetworkLoad(opts.hls.value, data);
+            if (instance && opts.hls.value === instance) {
+              retryNetworkLoad(instance, data);
             }
           }, 1000 * counters.networkErrorRecoveryCount);
         } else {

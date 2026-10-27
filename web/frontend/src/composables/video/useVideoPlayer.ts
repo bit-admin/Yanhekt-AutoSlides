@@ -7,6 +7,7 @@ import {
   createSingleStreamHlsErrorHandler,
 } from "./useVideoErrorRecovery";
 import { useDualStreamPlayer } from "./useDualStreamPlayer";
+import { isMissingMedia, pickPlayableStream, type StreamFailureReason, type StreamFallbackNotice } from "./streamFallback";
 import { createMediaSyncLoop, syncFollower } from "./mediaSync";
 import { authStore } from "../../stores/authStore";
 import { getRecordedPlaybackData, getLivePlaybackData, getRelayBase, type PlaybackData, type VideoStream } from "../../lib/streamUrls";
@@ -73,6 +74,16 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   let isHlsRecovering = false;
   // Set when the browser lacks MSE and plays HLS natively (Safari/iOS).
   let usingNativeHls = false;
+  let sourceGeneration = 0;
+  let playbackGeneration = 0;
+
+  // A source can be replaced while a recovery, seek, or autoplay is queued.
+  const scheduleSourceCallback = (callback: () => void, delay: number) => {
+    const generation = sourceGeneration;
+    setTimeout(() => {
+      if (generation === sourceGeneration) callback();
+    }, delay);
+  };
 
   // The web player has no app-level mute policy (the desktop app mutes
   // background/live playback via settings); keep the computed so ported
@@ -126,6 +137,35 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       emptyStreamTypes.value = [...emptyStreamTypes.value, type];
     }
   };
+  const failedStreams = new Map<VideoStream["type"], StreamFailureReason>();
+  const fallbackNotice = ref<StreamFallbackNotice | null>(null);
+
+  const fallBackFrom = (type: VideoStream["type"], reason: StreamFailureReason, message: string): boolean => {
+    const streams = playbackData.value?.streams;
+    if (!streams || errorKind.value || (__DEMO__ && demoHooks.playback)) return false;
+    failedStreams.set(type, reason);
+    const next = pickPlayableStream(Object.values(streams).map((stream) => stream.type), failedStreams.keys());
+    const key = next ? Object.keys(streams).find((key) => streams[key].type === next) : undefined;
+    if (!next || !key) {
+      fallbackNotice.value = null;
+      return false;
+    }
+
+    // Capture before changing selection: leaving dual mode unmounts both videos.
+    const position = getCurrentPlaybackTime() || resumeStartPosition() || lastPlaybackPosition;
+    console.warn(`${type} stream failed (${message}); switching to ${next}`);
+    fallbackNotice.value = { from: type, to: next, reason };
+    selectedStream.value = key;
+    void switchStreamNow(position);
+    return true;
+  };
+
+  const onEmptyStream = (type: VideoStream["type"] | undefined) => {
+    markEmptyStream(type);
+    if (type && fallBackFrom(type, "empty", "no playable duration")) return;
+    isVideoLoading.value = false;
+  };
+
   const visibleEmptyStreamTypes = computed(() => {
     if (isDualStreamSelected.value) return emptyStreamTypes.value;
     const type = currentStreamData.value?.type;
@@ -346,6 +386,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   };
 
   const cleanupSingleVideoSource = () => {
+    sourceGeneration++;
     if (hls.value) {
       hls.value.destroy();
       hls.value = null;
@@ -385,15 +426,21 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     onEnded: () => onEnded(),
     // Lazy call: classifyRelayFailure is defined below this hook.
     onNetworkError: () => classifyRelayFailure(),
-    onEmptyStream: markEmptyStream,
+    onEmptyStream,
+    onStreamFailed: fallBackFrom,
     getProgressFragmentLoader: () => progressSync.fragmentLoader(),
   });
 
   const loadVideoStreams = async () => {
+    playbackGeneration++;
     try {
       loading.value = true;
       error.value = null;
+      errorKind.value = null;
       emptyStreamTypes.value = [];
+      failedStreams.clear();
+      fallbackNotice.value = null;
+      resetErrorCounters();
 
       const token = authStore.token.value;
       if (!token) {
@@ -481,26 +528,26 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
    * retry ladder cannot fix a network the relay will not serve, and the viewer
    * would otherwise watch a spinner until every retry has been spent.
    */
-  const classifyRelayFailure = (): void => {
+  const classifyRelayFailure = async (): Promise<boolean> => {
+    if (errorKind.value) return true;
     const origin = relayPolicyOrigin();
-    if (!origin || errorKind.value) return;
+    if (!origin) return false;
+    const generation = playbackGeneration;
+    const reach = await probeRelayReach(origin);
+    if (generation !== playbackGeneration) return false;
+    if (errorKind.value) return true;
+    // An unknown probe or a stream that recovered still deserves its retries.
+    if (reach !== "blocked" || isPlaying.value) return false;
+    if ((videoPlayer.value?.readyState ?? 0) >= 2) return false;
 
-    void probeRelayReach(origin).then((reach) => {
-      // Only a definite refusal ends playback. A probe that timed out
-      // ("unknown") says nothing, and the normal retry ladder deserves its
-      // chance — as does a retry that got through while we were probing.
-      if (reach !== "blocked" || errorKind.value) return;
-      if (isPlaying.value || (videoPlayer.value?.readyState ?? 0) >= 2) return;
-
-      errorKind.value = "relay_offcampus";
-      // Stop the retry ladder; the message is now on screen.
-      hls.value?.stopLoad();
-      dual.cleanupDualVideoSources();
-      isVideoLoading.value = false;
-      isRetrying.value = false;
-      retryMessage.value = "";
-      if (!error.value) error.value = "Recorded playback could not be loaded from the relay";
-    });
+    errorKind.value = "relay_offcampus";
+    hls.value?.stopLoad();
+    dual.cleanupDualVideoSources();
+    isVideoLoading.value = false;
+    isRetrying.value = false;
+    retryMessage.value = "";
+    if (!error.value) error.value = "Recorded playback could not be loaded from the relay";
+    return true;
   };
 
   // Backstop for paths with no error sniffer (native HLS on Safari/iOS): once a
@@ -554,7 +601,24 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       dual.cleanupDualVideoSources();
       cleanupSingleVideoSource();
 
-      const videoUrl = currentStreamData.value.url;
+      const stream = currentStreamData.value;
+      const video = videoPlayer.value;
+      const videoUrl = stream.url;
+      const generation = sourceGeneration;
+      const isCurrent = () => generation === sourceGeneration &&
+        currentStreamData.value === stream && videoPlayer.value === video && !errorKind.value;
+      const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError });
+      const fail = async (reason: "missing" | "failed", message: string) => {
+        if (reason === "failed" && await classifyRelayFailure()) return;
+        if (!isCurrent()) return;
+        if (!fallBackFrom(stream.type, reason, message)) {
+          isVideoLoading.value = false;
+          reportFatal(message);
+        }
+      };
+      const onReady = () => scheduleSourceCallback(() => {
+        if (isCurrent()) opts.onManifestParsed();
+      }, 100);
 
       if (Hls.isSupported()) {
         // Turns every segment fetch into a watch-progress heartbeat; undefined
@@ -569,33 +633,33 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.loadSource(videoUrl);
         hls.value.attachMedia(videoPlayer.value);
 
-        hls.value.on(Events.MANIFEST_PARSED, () => {
-          setTimeout(opts.onManifestParsed, 100);
+        hls.value.on(Events.MANIFEST_PARSED, onReady);
+
+        attachNetworkErrorSniffer(hls.value, () => {
+          if (isCurrent()) void classifyRelayFailure();
+        });
+        attachEmptyRecordingGuard(hls.value, () => {
+          if (isCurrent()) onEmptyStream(stream.type);
         });
 
-        attachNetworkErrorSniffer(hls.value, classifyRelayFailure);
-        const streamType = currentStreamData.value.type;
-        attachEmptyRecordingGuard(hls.value, () => markEmptyStream(streamType));
-
-        const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError });
-
-        hls.value.on(
-          Events.ERROR,
-          createSingleStreamHlsErrorHandler({
-            hls,
-            reportFatal,
-            ...opts.errorConfig,
-          }),
-        );
+        const handleError = createSingleStreamHlsErrorHandler({
+          hls,
+          reportFatal: (message) => { void fail("failed", message); },
+          onMissing: () => { void fail("missing", "Recording not found on the server (HTTP 404/410)"); },
+          ...opts.errorConfig,
+        });
+        hls.value.on(Events.ERROR, (event, data) => {
+          if (isCurrent()) handleError(event, data);
+        });
       } else if (videoPlayer.value.canPlayType("application/vnd.apple.mpegurl")) {
         // Safari/iOS: no MSE — native HLS playback straight off the m3u8 URL.
         usingNativeHls = true;
         videoPlayer.value.src = videoUrl;
-        videoPlayer.value.addEventListener(
-          "loadedmetadata",
-          () => setTimeout(opts.onManifestParsed, 100),
-          { once: true },
-        );
+        videoPlayer.value.addEventListener("loadedmetadata", () => {
+          if (!isCurrent()) return;
+          if (mode === "recorded" && video.duration === 0) onEmptyStream(stream.type);
+          else onReady();
+        }, { once: true });
       } else {
         throw new Error("HLS is not supported in this browser");
       }
@@ -617,6 +681,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const loadVideoSourceWithPosition = (seekToTime?: number, shouldAutoPlay?: boolean) =>
     setupHlsSource({
       catchLogLabel: "Failed to load video source with position:",
+      startPosition: seekToTime,
       onManifestParsed: () => {
         if (!videoPlayer.value) return;
         const targetRate =
@@ -631,10 +696,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         }
 
         if (shouldAutoPlay !== false) {
-          setTimeout(() => {
+          scheduleSourceCallback(() => {
             if (videoPlayer.value) {
               videoPlayer.value.play().catch(() => {
-                setTimeout(() => {
+                scheduleSourceCallback(() => {
                   if (videoPlayer.value) {
                     videoPlayer.value.play().catch(() => {
                       /* Ignore retry play error */
@@ -655,7 +720,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
             data.details === ErrorDetails.BUFFER_FULL_ERROR ||
             data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE
           ) {
-            setTimeout(() => {
+            scheduleSourceCallback(() => {
               if (hls.value && videoPlayer.value) {
                 const currentTime = videoPlayer.value.currentTime;
                 videoPlayer.value.currentTime = currentTime + 0.1;
@@ -663,7 +728,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
               }
             }, 500);
           } else {
-            setTimeout(() => {
+            scheduleSourceCallback(() => {
               if (hls.value) {
                 hls.value.recoverMediaError();
               }
@@ -712,7 +777,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
             data.details === ErrorDetails.BUFFER_FULL_ERROR ||
             data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE
           ) {
-            setTimeout(() => {
+            scheduleSourceCallback(() => {
               if (hls.value && videoPlayer.value) {
                 const skipAmount = 0.5 + attempt * 0.5;
                 videoPlayer.value.currentTime = currentPosition + skipAmount;
@@ -723,12 +788,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
             data.details === ErrorDetails.BUFFER_APPEND_ERROR ||
             data.details === ErrorDetails.BUFFER_APPENDING_ERROR
           ) {
-            setTimeout(() => {
+            scheduleSourceCallback(() => {
               if (hls.value && videoPlayer.value) {
                 const skipAmount = 1 + attempt * 1;
                 try {
                   hls.value.recoverMediaError();
-                  setTimeout(() => {
+                  scheduleSourceCallback(() => {
                     if (videoPlayer.value) {
                       videoPlayer.value.currentTime = currentPosition + skipAmount;
                       if (wasPlaying) {
@@ -746,10 +811,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
               }
             }, 200);
           } else {
-            setTimeout(() => {
+            scheduleSourceCallback(() => {
               if (hls.value) {
                 hls.value.recoverMediaError();
-                setTimeout(() => {
+                scheduleSourceCallback(() => {
                   if (videoPlayer.value && currentPosition > 0) {
                     videoPlayer.value.currentTime = currentPosition;
                     if (wasPlaying) {
@@ -767,40 +832,39 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       },
     });
 
-  const switchStream = async () => {
-    const wasPlaying = isAnyVideoPlaying();
-    const currentTime = getCurrentPlaybackTime();
-
+  const switchStream = () => {
+    fallbackNotice.value = null;
+    const type = currentStreamData.value?.type;
+    if (type) failedStreams.delete(type);
     if (isDualStreamSelected.value) {
-      cleanupSingleVideoSource();
-      await nextTick();
-      await dual.loadDualVideoSources(currentTime, true);
-      return;
+      failedStreams.delete("camera");
+      failedStreams.delete("screen");
     }
+    return switchStreamNow();
+  };
 
+  const switchStreamNow = async (position = getCurrentPlaybackTime()) => {
+    playbackGeneration++;
+    const generation = playbackGeneration;
+    error.value = null;
+    errorKind.value = null;
+    isHlsRecovering = false;
+    isRetrying.value = false;
+    retryMessage.value = "";
+    resetErrorCounters();
+    const currentTime = mode === "recorded" ? position : 0;
+    pendingResumeSeconds = currentTime > 0 ? currentTime : null;
+    lastPlaybackPosition = currentTime;
+    cleanupSingleVideoSource();
     dual.cleanupDualVideoSources();
     await nextTick();
+    if (generation !== playbackGeneration) return;
 
-    if (videoPlayer.value) {
-      await loadVideoSource();
-
-      if (videoPlayer.value) {
-        videoPlayer.value.currentTime = currentTime;
-        videoPlayer.value.playbackRate = mode === "recorded" ? currentPlaybackRate.value : 1;
-
-        if (singleAudioSource.value === "mic") {
-          attachSingleMicAudio(currentTime);
-        }
-
-        try {
-          await videoPlayer.value.play();
-          syncSingleMic();
-        } catch (err) {
-          if (wasPlaying) {
-            console.warn("Could not resume playback:", err);
-          }
-        }
-      }
+    const seekToTime = mode === "recorded" ? currentTime : undefined;
+    if (isDualStreamSelected.value) {
+      await dual.loadDualVideoSources(seekToTime, true);
+    } else if (videoPlayer.value) {
+      await loadVideoSourceWithPosition(seekToTime, true);
     }
   };
 
@@ -838,6 +902,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   };
 
   const cleanup = () => {
+    playbackGeneration++;
     // Before the elements go: stop() sends the final position, and it can only
     // read it while there is still a player to read it from.
     progressSync.stop();
@@ -850,9 +915,17 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     const target = event.target as HTMLVideoElement;
     const errorCode = target.error?.code;
     const errorMessage = target.error?.message;
+    if (target !== videoPlayer.value || !errorCode || errorKind.value) return;
+    const generation = sourceGeneration;
+    const stream = currentStreamData.value;
+    const isCurrent = () => generation === sourceGeneration && target === videoPlayer.value &&
+      currentStreamData.value === stream && !errorKind.value;
+    if (usingNativeHls && errorCode === 2) {
+      if (await classifyRelayFailure() || !isCurrent()) return;
+    }
 
     if (isHlsRecovering) {
-      setTimeout(() => {
+      scheduleSourceCallback(() => {
         if (isHlsRecovering) {
           isHlsRecovering = false;
           onVideoError(event);
@@ -904,7 +977,15 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         break;
     }
 
-    if (shouldRetry && videoErrorRetryCount < maxVideoErrorRetries.value) {
+    const retriesLeft = shouldRetry && videoErrorRetryCount < maxVideoErrorRetries.value;
+    if (!retriesLeft && errorCode !== 1 && stream) {
+      if (await classifyRelayFailure() || !isCurrent()) return;
+      const missing = usingNativeHls && await isMissingMedia(stream.url);
+      if (!isCurrent()) return;
+      if (fallBackFrom(stream.type, missing ? "missing" : "failed", userMessage)) return;
+    }
+
+    if (retriesLeft) {
       videoErrorRetryCount++;
 
       let skipAmount = 0;
@@ -923,10 +1004,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       isRetrying.value = true;
       retryMessage.value = `Recovering from playback error... (${videoErrorRetryCount}/${maxVideoErrorRetries.value})`;
 
-      setTimeout(
+      scheduleSourceCallback(
         () => {
-          if (videoPlayer.value && currentStreamData.value) {
-            loadVideoSourceWithPosition(targetPosition, true);
+          if (isCurrent()) {
+            void loadVideoSourceWithPosition(targetPosition, true);
           }
         },
         1000 + 500 * videoErrorRetryCount,
@@ -952,13 +1033,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     isVideoLoading.value = false;
     syncSingleMic();
     if (isRetrying.value) {
-      setTimeout(() => {
+      scheduleSourceCallback(() => {
         isRetrying.value = false;
         retryMessage.value = "";
       }, 500);
     }
 
-    setTimeout(() => {
+    scheduleSourceCallback(() => {
       if (videoPlayer.value && !videoPlayer.value.paused && !videoPlayer.value.ended) {
         if (consecutiveErrorsAtSamePosition > 0) {
           consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1);
@@ -1005,6 +1086,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     isRetrying,
     retryMessage,
     errorKind,
+    fallbackNotice,
     visibleEmptyStreamTypes,
     maxVideoErrorRetries,
     dualAudioSource: dual.dualAudioSource,
