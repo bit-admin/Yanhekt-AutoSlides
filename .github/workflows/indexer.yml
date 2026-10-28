@@ -2,14 +2,14 @@ name: Indexer
 
 # Keeps the Yanhekt index up to date. See indexer/README.md ("Running on GitHub Actions").
 #
-# Every day at 03:00 Beijing time: download the database from the `index`
+# Every day at 00:00 Beijing time: download the database from the `index`
 # pre-release, crawl new sessions until caught up, upload changes to D1, and
 # publish the database and the per-term JSON files back to the release.
 # Run it by hand for backfills or ranges; those can publish too.
 
 on:
   schedule:
-    - cron: '0 19 * * *' # 03:00 UTC+8
+    - cron: '0 16 * * *' # 00:00 UTC+8; GitHub often starts it 2-4 h late
   workflow_dispatch:
     inputs:
       lanes:

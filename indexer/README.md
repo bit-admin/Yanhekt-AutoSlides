@@ -118,7 +118,7 @@ Video URLs are never uploaded.
 
 The **Indexer** workflow (`.github/workflows/indexer.yml`) keeps the index up to date on GitHub's runners. The master copy of the database lives in a GitHub **pre-release** (tag `index`), not on any one machine.
 
-**Every day at 03:00 Beijing time** it:
+**Every day at 00:00 Beijing time** (GitHub often starts scheduled runs a few hours late) it:
 
 1. downloads and decrypts the database from the release,
 2. crawls new sessions (the forward lane) until it has caught up, and re-checks lectures of the last 14 days for recordings and deletions (usually 15–30 minutes at 1 request/second),
