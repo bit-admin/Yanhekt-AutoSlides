@@ -953,6 +953,7 @@ export interface ElectronAPI {
     /** Quit the app on every platform (closing the window does not on macOS). */
     quit: () => Promise<void>;
     getVersion: () => Promise<string>;
+    getPlatform: () => Promise<string>;
     /** `<userData>/logs`, or null if the log folder could not be created. */
     getLogDir: () => Promise<string | null>;
     openLogFolder: () => Promise<{ success: boolean; error?: string }>;

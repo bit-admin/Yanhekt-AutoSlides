@@ -279,6 +279,7 @@ export const app: ElectronAPI['app'] = {
   restart: () => invoke('app:restart'),
   quit: () => invoke('app:quit'),
   getVersion: () => invoke('app:getVersion'),
+  getPlatform: () => invoke('app:getPlatform'),
   getLogDir: () => invoke('app:getLogDir'),
   openLogFolder: () => invoke('app:openLogFolder'),
 };

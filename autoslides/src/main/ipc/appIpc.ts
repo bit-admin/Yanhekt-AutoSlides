@@ -1,5 +1,6 @@
 import { ipcMain, app, shell } from 'electron';
 import { createLogger } from '@main/infra/logger';
+import { appPlatform } from '@main/infra/appUserAgent';
 import { getLogDir, writeLogMessage } from '@main/infra/logFile';
 import {
   LOG_LEVELS,
@@ -29,6 +30,7 @@ export function registerAppIpcHandlers(): void {
   });
 
   ipcMain.handle('app:getVersion', () => app.getVersion());
+  ipcMain.handle('app:getPlatform', () => appPlatform());
 
   // Renderer log forwarding. Fire-and-forget (`send`, not `invoke`), and the
   // renderer has already formatted everything into strings.

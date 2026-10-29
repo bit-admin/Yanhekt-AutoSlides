@@ -17,7 +17,11 @@ const PLATFORM_NAMES: Partial<Record<NodeJS.Platform, string>> = {
  * Do NOT use this for Yanhekt (`*.yanhekt.cn`) requests: those deliberately send
  * a browser User-Agent to mimic the Yanhekt web client.
  */
-export function appUserAgent(): string {
+export function appPlatform(): string {
   const platform = PLATFORM_NAMES[process.platform] ?? process.platform;
-  return `${app.getName()}/${app.getVersion()} (${platform}; ${process.arch})`;
+  return `${platform}; ${process.arch}`;
+}
+
+export function appUserAgent(): string {
+  return `${app.getName()}/${app.getVersion()} (${appPlatform()})`;
 }

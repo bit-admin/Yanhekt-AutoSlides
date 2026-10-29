@@ -246,15 +246,7 @@ const openAutoSlidesWeb = async () => {
   }
 }
 
-const openFeedbackIssue = async () => {
-  try {
-    await window.electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides/issues/new')
-  } catch (error) {
-    log.error('Failed to open issue page:', error)
-  }
-}
-
-const openFeedbackEmail = async () => {
+const getFeedbackSnapshot = async () => {
   const now = new Date()
   const timestampLocal = now.toLocaleString()
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown'
@@ -266,8 +258,34 @@ const openFeedbackEmail = async () => {
   }
   appVersion = appVersion || 'Unknown'
   const electronVersion = navigator.userAgent.match(/Electron\/([\d.]+)/)?.[1] || 'Unknown'
-  const platform = navigator.platform || 'Unknown'
+  let platform = 'Unknown'
+  try {
+    platform = await window.electronAPI.app.getPlatform() || 'Unknown'
+  } catch (error) {
+    log.error('Failed to get app platform:', error)
+  }
 
+  const snapshot = `Timestamp: ${timestampLocal}\n` +
+    `Time zone: ${timezone}\n` +
+    `App version: ${appVersion}\n` +
+    `Electron: ${electronVersion}\n` +
+    `Platform: ${platform}\n`
+  return { timestampLocal, snapshot }
+}
+
+const openFeedbackIssue = async () => {
+  const { snapshot } = await getFeedbackSnapshot()
+  const body = `## What happened?\n\n\n## Steps to reproduce\n\n\n## Expected result\n\n\n## Actual result\n\n\n## Additional notes\n\n\n## Environment Snapshot\n\n\`\`\`\n${snapshot}\`\`\`\n`
+  const params = new URLSearchParams({ body })
+  try {
+    await window.electronAPI.shell.openExternal(`https://github.com/bit-admin/Yanhekt-AutoSlides/issues/new?${params}`)
+  } catch (error) {
+    log.error('Failed to open issue page:', error)
+  }
+}
+
+const openFeedbackEmail = async () => {
+  const { timestampLocal, snapshot } = await getFeedbackSnapshot()
   const subject = encodeURIComponent(`[AutoSlides Feedback] ${timestampLocal.slice(0, 10)}`)
   const body = encodeURIComponent(
     `Hello AutoSlides Team,\n\n` +
@@ -279,11 +297,7 @@ const openFeedbackEmail = async () => {
     `────────────────────────\n` +
     `Environment Snapshot\n` +
     `────────────────────────\n` +
-    `Timestamp: ${timestampLocal}\n` +
-    `Time zone: ${timezone}\n` +
-    `App version: ${appVersion}\n` +
-    `Electron: ${electronVersion}\n` +
-    `Platform: ${platform}\n`
+    snapshot
   )
 
   try {

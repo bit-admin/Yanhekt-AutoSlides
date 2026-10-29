@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('electron', () => ({ app: { getName: () => 'AutoSlides', getVersion: () => '5.2.0' } }));
 
-import { appUserAgent } from './appUserAgent';
+import { appPlatform, appUserAgent } from './appUserAgent';
 
 const realPlatform = process.platform;
 const realArch = process.arch;
@@ -19,6 +19,7 @@ describe('appUserAgent', () => {
     expect(appUserAgent()).toBe('AutoSlides/5.2.0 (Windows; x64)');
     as('darwin', 'arm64');
     expect(appUserAgent()).toBe('AutoSlides/5.2.0 (macOS; arm64)');
+    expect(appPlatform()).toBe('macOS; arm64');
     as('linux', 'x64');
     expect(appUserAgent()).toBe('AutoSlides/5.2.0 (Linux; x64)');
   });
