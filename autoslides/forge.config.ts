@@ -40,6 +40,8 @@ const config: ForgeConfig = {
       NSNetworkVolumesUsageDescription: FOLDER_USAGE,
     },
     icon: 'resources/img/icon', // Will use .icns on macOS, .ico on Windows
+    // Leave ignore to Vite's .vite-only filter: vendor media tools and the
+    // download cache must not also enter app.asar (extraResource copies once).
     // Include all necessary resources
     extraResource: [
       // Bundled YOLO model(s) for auto-crop. Kept outside asar so we can
@@ -55,15 +57,8 @@ const config: ForgeConfig = {
       // The agent skill for the command line (repo `skills/`). The app copies
       // it under userData on launch for agents to link (cliInstall/skillBundle.ts).
       '../skills',
-      // Include FFmpeg binary for all platforms
-      'node_modules/ffmpeg-static',
-      // Include ffprobe binary (@ffprobe-installer/*; NOT part of ffmpeg-static).
-      // Required by the lecture-compress probe step in packaged builds.
-      // Optional platform packages install only the host os/cpu, so this tree
-      // already contains a single real-arch binary (unlike the retired
-      // ffprobe-static package, whose darwin/arm64 slot was x86_64 and tripped
-      // macOS "Support Ending for Intel-Based Apps").
-      'node_modules/@ffprobe-installer',
+      // generateAssets adds the pinned FFmpeg/FFprobe bundle for the explicit
+      // target. Do not pick a binary from the build host's node_modules.
       // Include sharp and its dependencies
       'node_modules/sharp',
       'node_modules/@img',
@@ -73,6 +68,19 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   hooks: {
+    generateAssets: async (forgeConfig, platform, arch) => {
+      execFileSync(process.execPath, [
+        path.join(__dirname, 'scripts/media-tools.mjs'), 'prepare',
+        '--platform', platform, '--arch', arch,
+      ], { stdio: 'inherit' });
+      const mediaRoot = path.join(__dirname, 'vendor/media-tools');
+      const resources = forgeConfig.packagerConfig.extraResource ?? [];
+      const existing = typeof resources === 'string' ? [resources] : resources;
+      forgeConfig.packagerConfig.extraResource = [
+        ...existing.filter(resource => !resource.startsWith(mediaRoot + path.sep)),
+        path.join(mediaRoot, `${platform}-${arch}`, 'media-tools'),
+      ];
+    },
     // Packager rewrites Info.plist after Electron's own ad-hoc signature and the
     // fuses plugin re-signs only the executable, which ships a bundle whose
     // signature is invalid ("Info.plist=not bound", identifier
@@ -84,12 +92,21 @@ const config: ForgeConfig = {
     // the unpacked native modules. An ad-hoc identity still changes every
     // release, so macOS may ask for folder access again after an update — only
     // a Developer ID certificate avoids that.
-    postPackage: async (_forgeConfig, { platform, outputPaths }) => {
-      if (platform !== 'darwin') return;
+    postPackage: async (_forgeConfig, { platform, arch, outputPaths }) => {
       for (const outputPath of outputPaths) {
         const appPath = path.join(outputPath, 'AutoSlides.app');
-        execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'inherit' });
-        execFileSync('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath], { stdio: 'inherit' });
+        const resources = platform === 'darwin'
+          ? path.join(appPath, 'Contents/Resources')
+          : path.join(outputPath, 'resources');
+        execFileSync(process.execPath, [
+          path.join(__dirname, 'scripts/media-tools.mjs'), 'verify',
+          '--platform', platform, '--arch', arch,
+          '--directory', path.join(resources, 'media-tools'),
+        ], { stdio: 'inherit' });
+        if (platform === 'darwin') {
+          execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'inherit' });
+          execFileSync('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath], { stdio: 'inherit' });
+        }
       }
     },
   },

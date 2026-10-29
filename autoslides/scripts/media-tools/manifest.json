@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "version": "9.0.2",
+  "targets": {
+    "darwin-arm64": {
+      "provider": "Martin Riedl",
+      "build": "1789931890_9.0.2",
+      "version": "9.0.2",
+      "source": "https://git.martin-riedl.de/ffmpeg/build-script",
+      "metadata": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/versions.txt",
+      "artifacts": [
+        {
+          "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip",
+          "sha256": "c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924",
+          "files": { "ffmpeg": "ffmpeg" }
+        },
+        {
+          "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffprobe.zip",
+          "sha256": "fcbe839537485eaee7a7a8bc5cbc0f90d53617e80943e8a5b2e31cb851197ea6",
+          "files": { "ffprobe": "ffprobe" }
+        }
+      ]
+    },
+    "win32-x64": {
+      "provider": "BtbN",
+      "build": "autobuild-2026-09-30-13-08",
+      "version": "9.0.2",
+      "revision": "2a571b6068",
+      "source": "https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-09-30-13-08",
+      "artifacts": [
+        {
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0.zip",
+          "sha256": "a0e45723c72141975f51d8666302e614711745f3102b704ca3f82c897a58d278",
+          "files": {
+            "ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0/bin/ffmpeg.exe": "ffmpeg.exe",
+            "ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0/bin/ffprobe.exe": "ffprobe.exe",
+            "ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0/LICENSE.txt": "licenses/BtbN-LICENSE.txt"
+          }
+        }
+      ]
+    },
+    "linux-x64": {
+      "provider": "BtbN",
+      "build": "autobuild-2026-09-30-13-08",
+      "version": "9.0.2",
+      "revision": "2a571b6068",
+      "source": "https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-09-30-13-08",
+      "artifacts": [
+        {
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0.tar.xz",
+          "sha256": "68ee646831adaae2495618346f3bba94ff207ff83bbd34d643e7004730d66269",
+          "files": {
+            "ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0/bin/ffmpeg": "ffmpeg",
+            "ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0/bin/ffprobe": "ffprobe",
+            "ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0/LICENSE.txt": "licenses/BtbN-LICENSE.txt"
+          }
+        }
+      ]
+    }
+  }
+}

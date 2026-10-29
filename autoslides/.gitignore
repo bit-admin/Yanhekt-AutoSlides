@@ -49,3 +49,6 @@ coverage/
 
 # Course index bundle (npm run index-bundle): real course data, sealed
 vendor/course-index/
+
+# Pinned platform media binaries (Forge or npm run media:prepare fills this)
+vendor/media-tools/

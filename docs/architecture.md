@@ -293,7 +293,7 @@ renderer.ts → App.vue
 - **Tools window**: Web Capture + Yuketang only. Compress lives in Lectures. Guest `<webview>` gets `src/webviewCapturePreload.ts`.
 - **Demo**: `src/renderer/demo/` + `src/main/demo/`. Production never imports it. Inversion of control through `@shared/overrideRegistry` (empty `overrides` object; demo bootstrap is the only writer). Deleting both `demo/` trees plus the documented guarded hooks leaves a working real app. ESLint forbids production imports of `@renderer/demo`. Screenshot-only: `window.__demoSetWatchNotesProvider` reseeds the open watch tab as Obsidian or Notion (`seedWatchNoteEntry` takes any provider's entry). No override slot — the panel does not call those bridges until a button is clicked.
 
-Forge unpacks native bits from asar (`*.node`, `sharp`, `@img`, `ort-wasm`) so Node can load binaries and ONNX Runtime Web can `file://`-import its WASM. Extra resources: `resources/models`, `ffmpeg-static`, `@ffprobe-installer`. Packaged builds flip Electron fuses (`RunAsNode: false`, `OnlyLoadAppFromAsar: true`, …).
+Forge unpacks native bits from asar (`*.node`, `sharp`, `@img`, `ort-wasm`) so Node can load binaries and ONNX Runtime Web can `file://`-import its WASM. Extra resources include `resources/models` and the matched FFmpeg/FFprobe bundle in `media-tools`. Forge prepares checksum-pinned binaries for the explicit target before start/package, keeps them outside ASAR, and checks the packaged tools before signing. Runtime uses only the bundle, never PATH/system FFmpeg. Pins, commands and source/license responsibilities: [Media tools](media-tools.md). Packaged builds flip Electron fuses (`RunAsNode: false`, `OnlyLoadAppFromAsar: true`, …).
 
 ### Main-process domains (`src/main/`)
 

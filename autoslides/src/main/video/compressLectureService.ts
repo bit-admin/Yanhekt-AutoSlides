@@ -300,7 +300,7 @@ export class CompressLectureService {
       }
       throw new Error('FFmpeg is not available for validation');
     }
-    const ffprobePath = await this.resolveFfprobePath(ffmpegPath);
+    const ffprobePath = this.resolveFfprobePath();
     let outDuration = 0;
     try {
       const probe = await this.probeInput(ffprobePath, tempPath);
@@ -379,7 +379,7 @@ export class CompressLectureService {
       throw new Error('FFmpeg is not available');
     }
 
-    const ffprobePath = await this.resolveFfprobePath(ffmpegPath);
+    const ffprobePath = this.resolveFfprobePath();
     const probe = await this.probeInput(ffprobePath, normalized.inputPath);
 
     const cropResult = await this.resolveCropFilter(
@@ -673,33 +673,12 @@ export class CompressLectureService {
     }
   }
 
-  private async resolveFfprobePath(ffmpegPath: string): Promise<string> {
-    // Prefer the bundled/static ffprobe resolved by FFmpegService. This is the
-    // path that works in a packaged app, where there is no system ffprobe on
-    // the (minimal) PATH a Finder-launched app inherits.
+  private resolveFfprobePath(): string {
     const bundled = this.ffmpegService.getFfprobePath();
-    if (bundled) {
-      return bundled;
-    }
-
-    const ffprobeBinary = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe';
-    const adjacentPath = path.join(path.dirname(ffmpegPath), ffprobeBinary);
-
-    if (fs.existsSync(adjacentPath)) {
-      try {
-        await this.runAndCapture(adjacentPath, ['-version']);
-        return adjacentPath;
-      } catch {
-        // fall back to PATH binary
-      }
-    }
-
-    try {
-      await this.runAndCapture(ffprobeBinary, ['-version']);
-      return ffprobeBinary;
-    } catch {
+    if (!bundled) {
       throw new Error('ffprobe is not available');
     }
+    return bundled;
   }
 
   private async probeInput(ffprobePath: string, inputPath: string): Promise<ProbeResult> {

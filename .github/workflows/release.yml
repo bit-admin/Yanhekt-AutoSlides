@@ -25,6 +25,12 @@ jobs:
         cd autoslides
         npm ci
 
+    - name: Cache pinned media archives
+      uses: actions/cache@v4
+      with:
+        path: autoslides/.cache/media-tools
+        key: media-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('autoslides/scripts/media-tools/manifest.json') }}
+
     - name: Lint code
       run: |
         cd autoslides
@@ -97,9 +103,11 @@ jobs:
         cd autoslides
         npm ci
 
-    - name: Fix FFmpeg permissions
-      run: |
-        chmod +x autoslides/node_modules/ffmpeg-static/ffmpeg
+    - name: Cache pinned media archives
+      uses: actions/cache@v4
+      with:
+        path: autoslides/.cache/media-tools
+        key: media-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('autoslides/scripts/media-tools/manifest.json') }}
 
     - name: Lint code
       run: |
