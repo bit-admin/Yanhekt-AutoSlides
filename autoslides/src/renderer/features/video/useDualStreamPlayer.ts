@@ -271,7 +271,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     setupDualHlsErrorHandler(hlsInstance, video, type, {
       mode,
       onFatal: (message) => fail('failed', message),
-      onMissing: () => fail('missing', `Recording not found on the server (${type} stream, HTTP 404)`),
+      onMissing: () => fail('missing', `Stream not found on the server (${type} stream, HTTP 404)`),
     })
   }
 

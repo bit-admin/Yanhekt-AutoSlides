@@ -688,7 +688,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
             if (!streamType || !fallBackFrom(streamType, 'failed', message)) reportFatal(message)
           },
           onMissing: () => {
-            const message = 'Recording not found on the server (HTTP 404)'
+            const message = 'Stream not found on the server (HTTP 404)'
             if (!streamType || !fallBackFrom(streamType, 'missing', message)) reportFatal(message)
           },
           ...opts.errorConfig
