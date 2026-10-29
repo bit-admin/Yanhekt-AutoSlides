@@ -8,16 +8,18 @@ const log = createLogger('Ffmpeg');
 type MediaTool = 'ffmpeg' | 'ffprobe';
 
 export class FFmpegService {
-  private paths: Partial<Record<MediaTool, string | null>> = {};
+  private paths: Partial<Record<MediaTool, string>> = {};
 
   /**
-   * Probe only the prepared bundle, lazily and once per tool (including failures).
-   * Packaging/preparation owns permissions; runtime never repairs or substitutes
-   * an executable from the system, PATH, or an npm installer package.
+   * Probe only the prepared bundle, lazily. A success is cached; a failure is
+   * not, so the next call tries again (a first run can be slow while antivirus
+   * scans the ~165 MB executable). Packaging/preparation owns permissions;
+   * runtime never repairs or substitutes an executable from the system, PATH,
+   * or an npm installer package.
    */
   private resolveTool(tool: MediaTool): string | null {
-    if (this.paths[tool] !== undefined) return this.paths[tool];
-    this.paths[tool] = null;
+    const cached = this.paths[tool];
+    if (cached) return cached;
 
     let binaryPath: string | undefined;
     try {
@@ -34,7 +36,7 @@ export class FFmpegService {
       const version = execFileSync(binaryPath, ['-version'], {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 5000,
+        timeout: 30000,
         windowsHide: true,
       });
       if (!new RegExp(`^${tool} version \\S+`, 'm').test(version)) {

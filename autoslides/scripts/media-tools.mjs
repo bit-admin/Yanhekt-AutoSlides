@@ -284,6 +284,8 @@ async function main(args) {
     const directory = values['--directory'] ? path.resolve(values['--directory']) : bundlePath(platform, arch);
     const info = JSON.parse(fs.readFileSync(path.join(directory, 'build-info.json'), 'utf8'));
     if (info.format !== FORMAT || info.target !== target.key || info.fingerprint !== await bundleFingerprint(manifest)) throw new Error('Bundle metadata does not match the pinned media tools');
+    // The packaged copy must be the prepared bytes, not just carry its metadata.
+    if (JSON.stringify(await fileHashes(directory)) !== JSON.stringify(info.files)) throw new Error(`Bundle files do not match build-info.json: ${directory}`);
     const { native } = verifyBundle(directory, platform, arch, target);
     process.stdout.write(`Verified ${directory}${native ? ' (version, architecture, codecs, filters and protocols)' : ' (architecture only; execute verification on the target runner)'}\n`);
   } else throw new Error('Usage: media-tools.mjs prepare|verify [--platform <os>] [--arch <cpu>] [--directory <bundle>]');

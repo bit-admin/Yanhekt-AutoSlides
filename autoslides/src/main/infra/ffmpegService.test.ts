@@ -79,7 +79,7 @@ describe('bundled media tool resolution', () => {
     expect(mocks.execFileSync.mock.calls).toEqual(['ffmpeg', 'ffprobe'].map((tool) => [
       bundledPath(tool as 'ffmpeg' | 'ffprobe'),
       ['-version'],
-      { encoding: 'utf8', stdio: 'pipe', timeout: 5000, windowsHide: true },
+      { encoding: 'utf8', stdio: 'pipe', timeout: 30000, windowsHide: true },
     ]));
     if (packaged) expect(mocks.app.getAppPath).not.toHaveBeenCalled();
   });
@@ -102,37 +102,45 @@ describe('bundled media tool resolution', () => {
     expect(mocks.existsSync).toHaveBeenCalledExactlyOnceWith(bundledPath('ffprobe'));
   });
 
-  it('logs and caches missing binaries without searching elsewhere', () => {
+  it('logs missing binaries without searching elsewhere, and checks again next time', () => {
     mocks.existsSync.mockReturnValue(false);
     const service = new FFmpegService();
     service.warmUp();
-    service.warmUp();
     expect(service.isAvailable()).toBe(false);
-    expect(service.getPlatformInfo().ffmpegPath).toBeNull();
     expect(service.getFfprobePath()).toBeNull();
     expect(mocks.execFileSync).not.toHaveBeenCalled();
-    expect(mocks.existsSync.mock.calls).toEqual([[bundledPath('ffmpeg')], [bundledPath('ffprobe')]]);
+    expect(mocks.existsSync.mock.calls).toEqual([
+      [bundledPath('ffmpeg')], [bundledPath('ffprobe')], [bundledPath('ffmpeg')], [bundledPath('ffprobe')],
+    ]);
     expect(mocks.log.error).toHaveBeenCalledWith('Bundled ffmpeg binary is missing:', bundledPath('ffmpeg'));
     expect(mocks.log.error).toHaveBeenCalledWith('Bundled ffprobe binary is missing:', bundledPath('ffprobe'));
   });
 
-  it.each(['EACCES', 'ENOEXEC', 'SIGSEGV', 'ETIMEDOUT'])('rejects and caches broken tools (%s), with no fallback', (reason) => {
+  it.each(['EACCES', 'ENOEXEC', 'SIGSEGV', 'ETIMEDOUT'])('rejects broken tools (%s) with no fallback', (reason) => {
     const error = new Error(reason);
     mocks.execFileSync.mockImplementation(() => { throw error; });
     const service = new FFmpegService();
-    service.warmUp();
-    service.warmUp();
     expect(service.getFfmpegPath()).toBeNull();
     expect(service.getFfprobePath()).toBeNull();
     expect(mocks.execFileSync).toHaveBeenCalledTimes(2);
-    expect(mocks.existsSync).toHaveBeenCalledTimes(2);
     expect(mocks.log.error).toHaveBeenCalledWith('Bundled ffmpeg could not be initialized:', bundledPath('ffmpeg'), error);
+  });
+
+  it('recovers after a first probe times out (antivirus scan on first run)', () => {
+    const timeout = new Error('ETIMEDOUT');
+    mocks.execFileSync
+      .mockImplementationOnce(() => { throw timeout; })
+      .mockImplementation((file: string) => `${path.basename(file)} version 9.0.2\n`);
+    const service = new FFmpegService();
+    expect(service.getFfmpegPath()).toBeNull();
+    expect(service.getFfmpegPath()).toBe(bundledPath('ffmpeg'));
+    expect(service.getFfmpegPath()).toBe(bundledPath('ffmpeg'));
+    expect(mocks.execFileSync).toHaveBeenCalledTimes(2);
   });
 
   it.each(['', 'not a media tool', 'ffprobe version 9.0.2', 'ffmpeg version '])('rejects invalid ffmpeg version output %j', (output) => {
     mocks.execFileSync.mockReturnValue(output);
     const service = new FFmpegService();
-    expect(service.getFfmpegPath()).toBeNull();
     expect(service.getFfmpegPath()).toBeNull();
     expect(mocks.execFileSync).toHaveBeenCalledTimes(1);
     expect(mocks.log.error).toHaveBeenCalledWith('Bundled ffmpeg returned invalid version output:', bundledPath('ffmpeg'));
@@ -145,14 +153,14 @@ describe('bundled media tool resolution', () => {
     expect(service.getFfmpegPath()).toBe(bundledPath('ffmpeg'));
   });
 
-  it('contains resolution errors and caches failure', () => {
+  it('contains resolution errors', () => {
     mocks.app.isPackaged = false;
     const error = new Error('App path unavailable');
     mocks.app.getAppPath.mockImplementation(() => { throw error; });
     const service = new FFmpegService();
     expect(service.getFfmpegPath()).toBeNull();
     expect(service.isAvailable()).toBe(false);
-    expect(mocks.app.getAppPath).toHaveBeenCalledTimes(1);
+    expect(mocks.app.getAppPath).toHaveBeenCalledTimes(2);
     expect(mocks.log.error).toHaveBeenCalledWith('Bundled ffmpeg could not be initialized:', undefined, error);
     expect(mocks.execFileSync).not.toHaveBeenCalled();
   });
