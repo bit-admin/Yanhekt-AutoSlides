@@ -207,8 +207,9 @@ const isGroupPartiallySelected = (group: LectureCourseGroup) => {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
-  /* No min-height: 0 / flex: 1 here: the list must keep its content height so
-     .content-area scrolls, instead of shrinking the groups to fit. */
+  /* Fill the viewport for the empty state, but never shrink below the content
+     height so .content-area scrolls instead of squeezing the groups. */
+  flex-grow: 1;
   flex-shrink: 0;
   width: 100%;
 }
