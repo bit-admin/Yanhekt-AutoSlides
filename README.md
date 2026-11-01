@@ -1,28 +1,30 @@
 <div align="center">
 
-  <img src="docs/images/icon.png" width="120" />
+  <a href="https://qm.qq.com/cgi-bin/qm/qr?k=46c1-VkItO41Shd6vayUxoUUAwzGxYS2&amp;jump_from=webapi&amp;qr=1#">
+    <img src="docs/images/2.5k.downloads.png" width="100%" alt="Celebrating 2,500 AutoSlides downloads — thank you for being part of it. Scan the QR code to join our QQ community." />
+  </a>
 
-  # AutoSlides
-  
-  **北京理工大学延河课堂第三方客户端｜自动提取幻灯片｜下载课程录像｜AI 过滤与审查**
+  <p>We've reached <strong>2,500 downloads</strong>—thank you! Scan the QR code above to join our <a href="https://qm.qq.com/cgi-bin/qm/qr?k=46c1-VkItO41Shd6vayUxoUUAwzGxYS2&amp;jump_from=webapi&amp;qr=1#">QQ community</a>.</p>
+
+  <p><img src="docs/images/icon.png" width="120" height="120" alt="AutoSlides icon" /></p>
+
+  <h1>AutoSlides</h1>
+
+  <p><strong>北京理工大学延河课堂第三方客户端｜自动提取幻灯片｜下载课程录像｜AI 过滤与审查</strong></p>
 
   <p>
-    <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/YDX-2147483647/best-of-bits/main/config/badge/v1.json" alt="best of BITs">
-    <img src="https://img.shields.io/github/downloads/bit-admin/Yanhekt-AutoSlides/total?color=orange&logo=docusign" alt="Downloads">
-    <img src="https://img.shields.io/github/v/release/bit-admin/Yanhekt-AutoSlides?color=blue" alt="Version">
-    <img src="https://img.shields.io/badge/platform-win%20%7C%20mac%20%7C%20linux-lightgrey?color=green" alt="Platform">
+    <a href="https://github.com/YDX-2147483647/best-of-bits"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/YDX-2147483647/best-of-bits/main/config/badge/v1.json" alt="best of BITs" /></a>
+    <a href="https://github.com/bit-admin/Yanhekt-AutoSlides/releases"><img src="https://img.shields.io/github/downloads/bit-admin/Yanhekt-AutoSlides/total?color=orange&logo=docusign" alt="Downloads" /></a>
+    <a href="https://github.com/bit-admin/Yanhekt-AutoSlides/releases/latest"><img src="https://img.shields.io/github/v/release/bit-admin/Yanhekt-AutoSlides?color=blue" alt="Version" /></a>
+    <img src="https://img.shields.io/badge/platform-win%20%7C%20mac%20%7C%20linux-lightgrey?color=green" alt="Platforms: Windows, macOS, Linux" />
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/Electron-191970?style=for-the-badge&logo=Electron&logoColor=white" alt="Electron">
-    <img src="https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vue.js&logoColor=4FC08D" alt="Vue.js">
-    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
-  </p>
-
-  <p>
-    <a href="#-快速开始">🚀 快速开始</a> • 
-    <a href="#-功能特性">✨ 功能特性</a> •
-    <a href="#-架构设计">🏗️ 架构设计</a>
+    <a href="https://github.com/bit-admin/Yanhekt-AutoSlides/releases/latest">下载桌面版</a> ·
+    <a href="https://learn.ruc.edu.kg">网页版</a> ·
+    <a href="#-快速开始">快速开始</a> ·
+    <a href="#-功能特性">功能特性</a> ·
+    <a href="#-架构设计">架构设计</a>
   </p>
 
 </div>
@@ -678,6 +680,12 @@
 </p>
 
 ## 🏗️ 架构设计
+
+<p>
+  <img src="https://img.shields.io/badge/Electron-191970?style=for-the-badge&logo=Electron&logoColor=white" alt="Electron" />
+  <img src="https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vue.js&logoColor=4FC08D" alt="Vue.js" />
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+</p>
 
 本仓库包含四个被 git 跟踪的项目。根 README 同时是桌面应用的用户手册；开发者完整说明请参阅 **[docs/architecture.md](docs/architecture.md)**.
 

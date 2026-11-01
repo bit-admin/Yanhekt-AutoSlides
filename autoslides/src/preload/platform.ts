@@ -240,6 +240,7 @@ export const windowNs: ElectronAPI['window'] = {
 };
 
 export const shell: ElectronAPI['shell'] = {
+  openCommunity: () => invoke('shell:openCommunity'),
   openExternal: (url: string) => invoke('shell:openExternal', url),
   openPath: (filePath: string) => invoke('shell:openPath', filePath),
   openPrivacySettings: () => invoke('shell:openPrivacySettings'),

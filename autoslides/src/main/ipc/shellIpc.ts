@@ -1,4 +1,5 @@
-import { ipcMain, shell } from 'electron';
+import { BrowserWindow, ipcMain, shell } from 'electron';
+import { CommunityWindow } from '@main/platform/communityWindow';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('ShellIpc');
 
@@ -19,6 +20,19 @@ function isUrlLike(value: string): boolean {
 }
 
 export function registerShellIpcHandlers(): void {
+  const community = new CommunityWindow();
+  ipcMain.handle('shell:openCommunity', async (event) => {
+    try {
+      const parent = BrowserWindow.fromWebContents(event.sender);
+      if (!parent) return { success: false, error: 'No parent window' };
+      await community.open(parent);
+      return { success: true };
+    } catch (error) {
+      log.error('Failed to open community:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
   ipcMain.handle('shell:openExternal', async (_, url: string) => {
     try {
       const scheme = new URL(url).protocol;

@@ -191,7 +191,7 @@
         </button>
 
         <div v-if="showSigninMenu" class="user-menu signin-menu">
-          <UserMenuLinks />
+          <UserMenuLinks @community="openCommunityDialog" />
           <button type="button" class="signin-option" @click="startBrowserLogin">
             <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -244,7 +244,7 @@
         </button>
 
         <div v-if="showUserMenu" class="user-menu user-menu-expanded">
-          <UserMenuLinks />
+          <UserMenuLinks @community="openCommunityDialog" />
           <AccountSwitcher mode="signed-in" @close="closeUserMenu" />
           <Yanhe2AccountMenu @close="closeUserMenu" />
           <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
@@ -253,6 +253,8 @@
 
       </div>
     </div>
+
+    <CommunityModal v-if="showCommunityModal" @close="closeCommunityDialog" />
 
     <!-- SSO Sign-In Dialog: the same shared SignInModal used by onboarding. -->
     <SignInModal
@@ -308,7 +310,7 @@
 <script setup lang="ts">
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('LeftPanel');
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { usePinyinName } from '@features/platform/usePinyinName'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
@@ -324,6 +326,7 @@ import { openPin } from '../course/openPin'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
+import CommunityModal from './CommunityModal.vue'
 import AccountSwitcher from './AccountSwitcher.vue'
 import Yanhe2AccountMenu from './Yanhe2AccountMenu.vue'
 import SignInModal from './SignInModal.vue'
@@ -428,6 +431,20 @@ const toggleSigninMenu = () => {
 
 const closeSigninMenu = () => {
   showSigninMenu.value = false
+}
+
+const showCommunityModal = ref(false)
+const openCommunityDialog = () => {
+  closeUserMenu()
+  closeSigninMenu()
+  showCommunityModal.value = true
+}
+const closeCommunityDialog = () => {
+  showCommunityModal.value = false
+  void nextTick(() => {
+    const userBar = isLoggedIn.value ? userInfoRef.value : signinMenuRef.value
+    userBar?.querySelector<HTMLButtonElement>('.user-banner')?.focus()
+  })
 }
 
 const openSsoModal = () => {

@@ -914,6 +914,8 @@ export interface ElectronAPI {
   };
 
   shell: {
+    /** Fixed QQ invitation in an isolated native modal; never accepts arbitrary URLs. */
+    openCommunity: () => Promise<{ success: boolean; error?: string }>;
     openExternal: (url: string) => Promise<void>;
     openPath: (filePath: string) => Promise<{ success: boolean; error?: string }>;
     /** macOS Files & Folders privacy pane; resolves unsuccessful elsewhere. */
