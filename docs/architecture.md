@@ -47,7 +47,7 @@ Each package has its own `package.json` / lockfile. Commands always run **inside
 │   └── drift-manifest.json
 ├── docs/                this guide, the Yanhe 2.0 API reference, the www.yanhekt.cn endpoint catalog, the image-analysis report
 │   └── images/          README screenshots (from `autoslides/scripts/process-docs.mjs`) and the app icon
-├── .github/workflows/   ci.yml, build.yml, release.yml
+├── .github/workflows/   ci.yml, release.yml, indexer.yml
 ├── README.md            Desktop user guide + (this) architecture pointer
 └── LICENSE              Apache-2.0
 ```
@@ -240,7 +240,7 @@ Workers have no Node/WebCrypto MD5. `relay/` ships a pure-JS MD5 (`relay/src/md5
 
 ## 5. `autoslides/` — Electron desktop
 
-**Identity.** `package.json` name `autoslides`, productName `AutoSlides`, version `5.2.0`, `main` `.vite/build/main.js`. Electron Forge + Vite; Windows/Linux installers go through `electron-builder.yml` on top of a Forge `--prepackaged` tree. macOS DMG is Forge + DropDMG (`make:mac`).
+**Identity.** `package.json` name `autoslides`, productName `AutoSlides`, version `5.2.0`, `main` `.vite/build/main.js`. Electron Forge + Vite; All installers (macOS DMG, Windows NSIS, Linux AppImage/deb) go through `electron-builder.yml` on top of a Forge `--prepackaged` tree. `make:mac` (release workflow) builds an uncompressed DMG and `scripts/dmg-lzma.mjs` converts it to LZMA (ULMO; electron-builder's `dmg.format` does not offer it). `make:mac:local` is the local Mac build: index-bundle, Forge package, DropDMG `AutoSlides` profile, then signs the DMG with the local update key.
 
 ### Commands
 
@@ -253,6 +253,7 @@ npm test               # vitest run
 npx tsc --noEmit && npx vue-tsc --noEmit
 npm run package        # Forge package
 npm run make:mac | make:win | make:linux
+npm run make:mac:local # local Mac: index-bundle, Forge, DropDMG, sign
 npm run screenshots:build && npm run docs:images   # Playwright → ../docs
 ```
 
@@ -374,7 +375,7 @@ Pure TS, no Node/Electron IO:
 - **Queues are reload-volatile.** `DownloadService.items` / `PostProcessingService.jobs` die on renderer reload **by design**. Do not add persistence without an explicit request. The Download panel can also enqueue from a session id or a Yanhekt session URL (`useSessionIdDownload` → `getSessionDownloadInfo`: session detail by id, then `/v1/video`). It does not walk the session list.
 - **Cache management.** Settings → General is **manual only**. `session.clearCache()` + `clearCodeCaches({})`; do not raw-unlink `Cache/` while Chromium is running. Clear Cache also calls `clearLogFiles()` (the stream is open). Factory reset skips `<userData>/logs` for the same reason. Never delete `userData/models` or `config.json` from the ordinary clear path.
 - **Onboarding.** `resolveOnboarding` in `@common/onboarding`. Catalog: `legal` (`since: 5.1.0`, `always: true` — leads every run, and only triggers What's New by itself when its `since` is new), then `output` / `connection` / `audio` / `ai` / `signIn` (`5.0.0`), then `notesProvider` + `notes` (`5.1.0`, one numbered step — `onboardingStepOf` maps `notes` → `notesProvider`), then `done`. A 5.0.0 user who already finished therefore sees legal + the two notes pages, not the older steps. Completing or skipping stamps `lastOnboardingVersion` to `app.getVersion()`. Do not backfill that key in `migrateOnboardingFlag()`.
-- **App updates.** `updateIpc` reads the latest GitHub release (direct, then `gh-proxy.org`). Every release asset has an ed25519 `<file>.sig` from `scripts/update-signing.mjs`: the release workflow signs the Windows and Linux files with the `AUTOSLIDES_UPDATE_SIGNING_KEY` secret, and `npm run make:mac` signs the DMG with the release Mac's local key (`~/.config/autoslides/update-signing-key.pem`). The app checks name, size and SHA-256 against `download/updateSigningKeys.json` after the download and again right before opening the file, so a mirror cannot hand over a different file. A new key goes into that JSON one release *before* it signs anything; never drop the old key in the same release. **Windows** updates in place through electron-updater (`download/windowsAutoUpdater.ts`) when the release has `latest.yml` and a signed `.exe`: the feed is that release's folder on GitHub or the proxy, the ed25519 check runs through `verifyUpdateCodeSignature` (the userData updater config names a placeholder publisher so the hook is called), and the silent installer runs from the app's `quit` event into the current install folder. macOS, `.deb`, AppImage and older releases keep download-and-open. electron-builder writes `latest.yml` / `.blockmap` only because `publish` names a generic target; `--publish never` keeps it from uploading.
+- **App updates.** `updateIpc` reads the latest GitHub release (direct, then `gh-proxy.org`). Every release asset has an ed25519 `<file>.sig` from `scripts/update-signing.mjs`: the release workflow signs the Windows, Linux and macOS files with the `AUTOSLIDES_UPDATE_SIGNING_KEY` secret (`~/.config/autoslides/update-signing-key.pem` holds a copy for `npm run sign:update`). The app checks name, size and SHA-256 against `download/updateSigningKeys.json` after the download and again right before opening the file, so a mirror cannot hand over a different file. A new key goes into that JSON one release *before* it signs anything; never drop the old key in the same release. **Windows** updates in place through electron-updater (`download/windowsAutoUpdater.ts`) when the release has `latest.yml` and a signed `.exe`: the feed is that release's folder on GitHub or the proxy, the ed25519 check runs through `verifyUpdateCodeSignature` (the userData updater config names a placeholder publisher so the hook is called), and the silent installer runs from the app's `quit` event into the current install folder. macOS, `.deb`, AppImage and older releases keep download-and-open. electron-builder writes `latest.yml` / `.blockmap` only because `publish` names a generic target; `--publish never` keeps it from uploading.
 
 ### 5.1 Dependency rules
 
@@ -1556,8 +1557,7 @@ CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each 
 | File | Trigger | Jobs |
 |---|---|---|
 | `.github/workflows/ci.yml` | push `main` + **all PRs** | `autoslides` (lint, tsc, vue-tsc, vitest, **drift**); `workers` matrix `web|share|relay` (typecheck, test, web also `typecheck:web`); `security` matrix all four (`npm audit --audit-level=moderate`); `package` Windows `npm run package` (retry loop for transient Electron downloads) |
-| `build.yml` | push `main` | Windows NSIS + Linux AppImage/deb artifacts (30-day) |
-| `release.yml` | tag `v*` | Draft GitHub release with those artifacts. **macOS is local** (`make:mac`: forge package + ad-hoc re-sign hook + DropDMG `AutoSlides` profile; users strip quarantine themselves in Terminal per README) |
+| `release.yml` | tag `v*` | Windows NSIS (`make:win`), Linux AppImage/deb (`make:linux`) and macOS arm64 DMG (`make:mac` on `macos-15`: Forge package + ad-hoc re-sign hook + electron-builder DMG with `resources/dmg-background.png` (+ `@2x`, source `dmg-background.html`), converted to LZMA; users strip quarantine themselves in Terminal per README), each after `index-bundle`; signs every installer and creates a draft release |
 
 Node 22 everywhere. Web CI generates types with `npx wrangler types -c wrangler.example.jsonc --strict-vars false` so `SSO_RESUME_KEY` stays `string`.
 

@@ -738,6 +738,7 @@ npm test               # 运行单元测试 (Vitest)
 npx tsc --noEmit && npx vue-tsc --noEmit
 npm run package        # 打包应用
 npm run make:mac       # 生成 macOS DMG
+npm run make:mac:local # 本机构建：获取课程索引，用 DropDMG 生成并签名 DMG
 npm run make:win       # 生成 Windows 安装包
 npm run make:linux     # 生成 Linux AppImage/deb
 ```

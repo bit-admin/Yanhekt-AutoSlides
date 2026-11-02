@@ -1,8 +1,8 @@
 // Checks a downloaded installer against its `<file>.sig` before the app opens it.
 //
 // Every release asset is signed with the project's ed25519 key
-// (scripts/update-signing.mjs; CI for Windows and Linux, `make:mac` on the
-// release Mac). The signature covers the file name, size and SHA-256, so a
+// (scripts/update-signing.mjs, run by the release workflow for every
+// platform). The signature covers the file name, size and SHA-256, so a
 // mirror cannot swap in a different file, an older release under a newer
 // name, or a truncated download. The format must match the script;
 // updateSignature.test.ts signs with the script and verifies here.

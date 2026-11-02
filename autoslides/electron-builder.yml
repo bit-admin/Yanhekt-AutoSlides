@@ -26,6 +26,45 @@ protocols:
     schemes:
       - autoslides
 
+# macOS configuration (npm run make:mac). The app comes from Forge, whose
+# postPackage hook already re-signs it ad-hoc (forge.config.ts); identity null
+# keeps electron-builder from signing it again.
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  identity: null
+  icon: resources/img/icon.icns
+  artifactName: ${productName}-${version}-macOS-${arch}.${ext}
+
+# The updater matches AutoSlides-<version>-macOS-arm64.dmg
+# (download/updateDownloadService.ts).
+dmg:
+  title: ${productName} ${version}
+  # Uncompressed here; scripts/dmg-lzma.mjs converts it to LZMA (ULMO),
+  # which this schema does not accept.
+  format: UDRO
+  # resources/dmg-background.html is the source of the PNG and its @2x
+  # (Chrome headless screenshots at scale 1 and 2). Icon centers sit on
+  # either side of its arrow.
+  background: resources/dmg-background.png
+  # The image is 600x400; the window is 28 px taller for the title bar.
+  # Everything sits in the top ~320 px so a Finder tab bar and status bar
+  # (about 60 px more) cover only blank space.
+  window:
+    width: 600
+    height: 428
+  iconSize: 96
+  contents:
+    - x: 150
+      y: 210
+      type: file
+    - x: 450
+      y: 210
+      type: link
+      path: /Applications
+
 # Windows configuration
 win:
   target:
@@ -135,7 +174,7 @@ compression: maximum
 # latest.yml and the installer's .blockmap next to the .exe, which the Windows
 # in-place updater reads (src/main/download/windowsAutoUpdater.ts). The URL is
 # a placeholder: the app points the updater at the release it offers, on
-# GitHub or through the proxy. make:win / make:linux pass `--publish never`,
+# GitHub or through the proxy. make:win / make:linux / make:mac pass `--publish never`,
 # so nothing is uploaded from here; the release workflow uploads the files.
 publish:
   provider: generic

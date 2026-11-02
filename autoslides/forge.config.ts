@@ -52,7 +52,7 @@ const config: ForgeConfig = {
       'resources/tray',
       // Earlier terms of the course index, sealed and signed
       // (platform/courseIndex/). Git-ignored; `npm run index-bundle` fills it,
-      // release.yml and make:mac run that first. Left out when absent (CI).
+      // release.yml and make:mac:local run that first. Left out when absent (CI).
       ...(fs.existsSync(path.join(__dirname, 'vendor/course-index')) ? ['vendor/course-index'] : []),
       // The agent skill for the command line (repo `skills/`). The app copies
       // it under userData on launch for agents to link (cliInstall/skillBundle.ts).
@@ -111,8 +111,8 @@ const config: ForgeConfig = {
     },
   },
   makers: [
-    // macOS: Use `npm run package` then DropDMG manually
-    // Windows: Use `npm run make:win` (electron-builder with NSIS, see electron-builder.yml)
+    // Installers come from electron-builder on top of the packaged app
+    // (electron-builder.yml): `npm run make:mac` (DMG), `make:win` (NSIS), `make:linux`.
   ],
   plugins: [
     new VitePlugin({

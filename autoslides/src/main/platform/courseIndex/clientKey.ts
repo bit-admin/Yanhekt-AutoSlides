@@ -4,7 +4,7 @@
  * time and never written into the bundle as plain text.
  *
  * vite.main.config.ts reads it from $INDEX_CLIENT_IDENTITY (release.yml) or
- * ~/.config/autoslides/index-client-identity.txt (the release Mac, dev),
+ * ~/.config/autoslides/index-client-identity.txt (local builds, dev),
  * hides it with {@link hideKey} under a fresh random seed and defines
  * `__AUTOSLIDES_IK__`. Without it the build still works and the index is off.
  *

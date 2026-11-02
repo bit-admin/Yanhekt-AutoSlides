@@ -196,7 +196,7 @@ Locally the secrets default to `~/.config/autoslides/index-passphrase.txt`, `ind
 
 ### The app's bundle
 
-The desktop app ships the term files before the current term. `npm run index-bundle` in `autoslides/` runs `release bundle`: it downloads `client-manifest.json`, checks its signature against the app's key list and that the app's age identity (`INDEX_CLIENT_IDENTITY`) is a recipient, downloads each earlier term file, checks both hashes, and writes them to `autoslides/vendor/course-index/` (git-ignored). `release.yml` and `make:mac` run it before packaging.
+The desktop app ships the term files before the current term. `npm run index-bundle` in `autoslides/` runs `release bundle`: it downloads `client-manifest.json`, checks its signature against the app's key list and that the app's age identity (`INDEX_CLIENT_IDENTITY`) is a recipient, downloads each earlier term file, checks both hashes, and writes them to `autoslides/vendor/course-index/` (git-ignored). `release.yml` and `make:mac:local` run it before packaging.
 
 ```sh
 npm run release -- bundle --out DIR --keys ../autoslides/src/main/platform/courseIndex/indexSigningKeys.json [--before 2026-2027-1]

@@ -5,7 +5,7 @@ import os from 'os';
 import { hideKey } from './src/main/platform/courseIndex/clientKey';
 
 // The course index age identity (src/main/platform/courseIndex/clientKey.ts):
-// $INDEX_CLIENT_IDENTITY in CI, else the release Mac's file (as age-keygen
+// $INDEX_CLIENT_IDENTITY in CI, else the local Mac file (as age-keygen
 // writes it: comment lines, then the key). Hidden under a fresh seed every
 // build; null when neither is there (the index is then off).
 function indexClientKey(): string {

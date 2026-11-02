@@ -146,8 +146,67 @@ jobs:
           autoslides/out/make/*.deb
         retention-days: 7
 
+  build-macos:
+    # Apple silicon runner; the DMG is arm64 only.
+    runs-on: macos-15
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: autoslides/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd autoslides
+        npm ci
+
+    - name: Cache pinned media archives
+      uses: actions/cache@v4
+      with:
+        path: autoslides/.cache/media-tools
+        key: media-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('autoslides/scripts/media-tools/manifest.json') }}
+
+    - name: Fetch course index bundle
+      working-directory: autoslides
+      env:
+        GH_TOKEN: ${{ github.token }}
+        INDEX_CLIENT_IDENTITY: ${{ secrets.INDEX_CLIENT_IDENTITY }}
+      run: npm run index-bundle
+
+    - name: Build DMG
+      # Same transient-500 exposure as the Windows job — see the note there.
+      # Forge's postPackage hook re-signs the app ad-hoc; there is no
+      # Developer ID, so users strip quarantine themselves (README).
+      working-directory: autoslides
+      env:
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+        INDEX_CLIENT_IDENTITY: ${{ secrets.INDEX_CLIENT_IDENTITY }}
+      run: |
+        for i in 1 2 3; do
+          if npm run make:mac; then exit 0; fi
+          if [ "$i" -lt 3 ]; then
+            echo "::warning::make:mac failed (attempt $i/3), retrying in 30s"
+            rm -rf out
+            sleep 30
+          fi
+        done
+        exit 1
+
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-macos
+        path: autoslides/out/make/*.dmg
+        retention-days: 7
+
   release:
-    needs: [ build-windows, build-linux ]
+    needs: [ build-windows, build-linux, build-macos ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -168,8 +227,7 @@ jobs:
         node-version: '22'
 
     # Writes <file>.sig next to each installer; the app refuses an update
-    # whose signature does not check out. The macOS DMG is signed by
-    # `npm run make:mac` on the release Mac and uploaded by hand.
+    # whose signature does not check out.
     - name: Sign release files
       env:
         AUTOSLIDES_UPDATE_SIGNING_KEY: ${{ secrets.AUTOSLIDES_UPDATE_SIGNING_KEY }}
@@ -177,7 +235,8 @@ jobs:
         node autoslides/scripts/update-signing.mjs sign \
           artifacts/release-windows/*.exe \
           artifacts/release-linux/*.AppImage \
-          artifacts/release-linux/*.deb
+          artifacts/release-linux/*.deb \
+          artifacts/release-macos/*.dmg
 
     - name: Create draft release
       uses: softprops/action-gh-release@v2
@@ -200,3 +259,5 @@ jobs:
           artifacts/release-linux/*.AppImage.sig
           artifacts/release-linux/*.deb
           artifacts/release-linux/*.deb.sig
+          artifacts/release-macos/*.dmg
+          artifacts/release-macos/*.dmg.sig
