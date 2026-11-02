@@ -1,4 +1,6 @@
 import { ipcMain } from 'electron';
+import { formatSessionLookupProblem } from '@common/sessionLookupProblem';
+import { YanhektLookupError } from '@main/platform/apiClient';
 import type { IpcServices } from './types';
 
 export function registerApiIpcHandlers(services: IpcServices): void {
@@ -50,7 +52,7 @@ export function registerApiIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('api:getCourseDetail', async (_event, courseId: string, token: string) => {
-    return await apiClient.getCourseDetail(String(courseId), token);
+    return await apiClient.getCourseDetailIfAvailable(String(courseId), token);
   });
 
   ipcMain.handle('api:getCourseInfo', async (_event, courseId: string, token: string) => {
@@ -62,7 +64,13 @@ export function registerApiIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('api:getSessionDownloadInfo', async (_event, sessionId: string, token: string) => {
-    return apiClient.getSessionDownloadInfo(sessionId, token);
+    try {
+      return await apiClient.getSessionDownloadInfo(sessionId, token);
+    } catch (error: unknown) {
+      // IPC keeps only the message; the marker carries the kind across.
+      if (error instanceof YanhektLookupError) throw new Error(formatSessionLookupProblem(error.kind, error.message));
+      throw error;
+    }
   });
 
   ipcMain.handle('api:getSessionProgress', async (_event, sessionId: string, token: string) => {

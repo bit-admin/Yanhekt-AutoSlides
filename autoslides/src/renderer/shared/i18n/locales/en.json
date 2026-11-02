@@ -966,6 +966,7 @@
     "addedToDownloadQueueAudio": "Added {count} mic audio tracks to download queue",
     "allInDownloadQueueAudio": "All mic audio tracks are already in the download queue",
     "noMicAudio": "This lecture has no mic audio",
+    "expiredSessionById": "Session {id} is from an earlier term. Yanhekt no longer opens those by ID, and the course index on this computer or the course's session list could not supply it. Update the course index in Settings → General → Search, or open the course and pick the session there.",
     "noMicAudioAny": "None of these lectures have mic audio",
     "noCourseSelected": "No Course Selected",
     "signInToView": "Sign In to View Sessions",

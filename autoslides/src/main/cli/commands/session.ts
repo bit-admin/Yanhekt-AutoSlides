@@ -1,6 +1,7 @@
 // `yhdl session <session link or id>`: one session, its course and its
 // recordings. Anonymous: session detail by id, then the video record.
 import type { ApiClient } from '@main/platform/apiClient';
+import { announceCredentials, readCredentials } from '../auth';
 import { englishTitle, formatDuration, formatTime } from '../format';
 import { parseSessionTarget } from '../targets';
 import { termKey } from '../terms';
@@ -9,9 +10,14 @@ import type { CliCommand, CliContext, CommandInput, CommandResult } from '../typ
 const ANONYMOUS = '';
 
 /** The session lookup, for both the terminal command (anonymous) and the app's (its token). */
-export async function showSession(input: CommandInput, apiClient: ApiClient, token: string): Promise<CommandResult> {
+export async function showSession(
+  input: CommandInput,
+  apiClient: ApiClient,
+  token: string,
+  listToken?: () => string,
+): Promise<CommandResult> {
   const sessionId = parseSessionTarget(input.positionals[0], input.program);
-  const { session, course, audioUrl } = await apiClient.getSessionDownloadInfo(sessionId, token);
+  const { session, course, audioUrl } = await apiClient.getSessionDownloadInfo(sessionId, token, listToken);
 
   const data = {
     session: {
@@ -54,7 +60,13 @@ export async function showSession(input: CommandInput, apiClient: ApiClient, tok
   };
 }
 
-const run = (input: CommandInput, ctx: CliContext): Promise<CommandResult> => showSession(input, ctx.apiClient, ANONYMOUS);
+// Credentials only for a session of an expired course (its course's list needs them).
+const run = (input: CommandInput, ctx: CliContext): Promise<CommandResult> =>
+  showSession(input, ctx.apiClient, ANONYMOUS, () => {
+    const credentials = readCredentials(input, ctx);
+    announceCredentials(credentials);
+    return credentials.token;
+  });
 
 export const SESSION_DATA =
   '{ session: { id, title, week, day, started_at, ended_at, duration (s), streams: { screen, camera }, mic }, course: { id, title, title_en, college, term } }';
@@ -65,12 +77,16 @@ export const sessionCommand: CliCommand = {
   description: [
     'Show one recorded session: its course, time, length and which streams',
     'exist. A bare number is a session id; a link such as',
-    'https://www.yanhekt.cn/session/<id> works too. No sign-in is needed.',
+    'https://www.yanhekt.cn/session/<id> works too. No sign-in is needed,',
+    'except for a session of an earlier term\'s course: Yanhekt no longer',
+    'serves those by id, so the course is found in the course index on this',
+    'computer and the session in its session list, which needs a token.',
   ],
   examples: ['session 850101', 'session https://www.yanhekt.cn/session/850101 --json'],
   options: [],
   positionals: { min: 1, max: 1 },
   network: true,
+  tokenUse: 'Only for a session of an earlier term\'s course, to list its course\'s sessions',
   data: SESSION_DATA,
   run,
 };

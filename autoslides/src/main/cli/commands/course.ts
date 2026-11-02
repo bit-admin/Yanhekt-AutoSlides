@@ -55,7 +55,7 @@ export interface CourseDeps {
 /** The course and its sessions, for both the terminal command and the app's. `data` has no account; the caller adds it. */
 export async function showCourse(input: CommandInput, deps: CourseDeps): Promise<CommandResult> {
   const courseId = parseCourseTarget(input.positionals[0], input.program);
-  const detail = await deps.apiClient.getCourseDetail(courseId, deps.lookupToken);
+  const detail = await deps.apiClient.getCourseDetailOrIndex(courseId, deps.lookupToken);
   const course = courseJson(detail);
 
   let sessions: ReturnType<typeof sessionRowJson>[] | null = null;

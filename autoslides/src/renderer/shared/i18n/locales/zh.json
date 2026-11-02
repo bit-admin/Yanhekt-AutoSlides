@@ -966,6 +966,7 @@
     "addedToDownloadQueueAudio": "已添加 {count} 个麦克风音频到下载队列。",
     "allInDownloadQueueAudio": "所有麦克风音频都已在下载队列中。",
     "noMicAudio": "此课程没有麦克风音频。",
+    "expiredSessionById": "课时 {id} 属于往期课程。延河课堂已不再按 ID 提供往期课时，且本机课程索引或该课程的课时列表中找不到它。请在 设置 → 一般 → 搜索 中更新课程索引，或打开该课程后再选择此课时。",
     "noMicAudioAny": "这些课程都没有麦克风音频。",
     "noCourseSelected": "未选择课程",
     "signInToView": "登录后查看课时",

@@ -319,6 +319,20 @@ export class LocalCourseIndex {
     return (await this.all()).find((c) => c.id === courseId) ?? null;
   }
 
+  /**
+   * The course whose session list holds this session id, newest term first
+   * when (never seen) two do; null when none. A plain scan: a few hundred
+   * thousand ids, asked only for sessions Yanhekt no longer serves by id.
+   */
+  async bySessionId(sessionId: string): Promise<IndexCourse | null> {
+    const id = String(sessionId);
+    let found: IndexCourse | null = null;
+    for (const c of await this.all()) {
+      if (c.sessionIds.includes(id) && (!found || c.term > found.term)) found = c;
+    }
+    return found;
+  }
+
   /** The one course with this registrar code (Yanhe 2.0 `kcwybm`), compared whole; null when none or several. */
   async byNumber(code: string): Promise<IndexCourse | null> {
     const key = numberKey(code);

@@ -671,8 +671,8 @@ export interface ElectronAPI {
     getCourseNames: (courseId: string, token: string) => Promise<{ nameZh: string; nameEn?: string } | null>;
     /** The session behind a live broadcast and its course's registrar number (`/v1/live?id=` detail). Null when unreadable. */
     getLiveDetail: (liveId: string, token: string) => Promise<LiveDetailIds | null>;
-    /** One course's `/v1/course` detail, no session list. Anonymous-ok. */
-    getCourseDetail: (courseId: string, token: string) => Promise<CourseDetailResponse>;
+    /** One course's `/v1/course` detail, no session list. Anonymous-ok. Null when expired. */
+    getCourseDetail: (courseId: string, token: string) => Promise<CourseDetailResponse | null>;
     /** One page of a course index search in one term, from the source Settings → Search picks. Signed-in only. */
     searchCourseIndex: (token: string, term: string, keyword: string, page?: number, pageSize?: number) => Promise<CourseIndexSearchResult>;
     /** What the course index on this computer holds, and its update state. */

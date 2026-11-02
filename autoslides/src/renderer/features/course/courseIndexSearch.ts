@@ -53,6 +53,7 @@ export async function fillIndexCourses(
       try {
         const detail = await api.getCourseDetail(course.id, token)
         if (!isCurrent()) return
+        if (!detail) continue
         if (detail.title_en) course.titleEn = detail.title_en
         if (!course.number && detail.number) course.number = detail.number
         const cover = detail.image_url?.trim()

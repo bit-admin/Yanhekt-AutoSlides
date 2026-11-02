@@ -20,7 +20,7 @@ export interface ApiTransport {
   getCourseList(token: string, options?: { semesters?: number[]; page?: number; pageSize?: number; keyword?: string }): Promise<CourseListResponse>;
   getPersonalCourseList(token: string, options?: { page?: number; pageSize?: number }): Promise<CourseListResponse>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
-  getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse>;
+  getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse | null>;
   /** A course index search in one term (main picks local or online per Settings → Search). */
   searchCourseIndex(token: string, term: string, keyword: string, page?: number, pageSize?: number): Promise<CourseIndexSearchResult>;
   getLiveDetail(liveId: string, token: string): Promise<LiveDetailIds | null>;
@@ -195,7 +195,14 @@ export class ApiClient {
 
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
     try {
-      return await this.transport.getCourseInfo(courseId, token);
+      const info = await this.transport.getCourseInfo(courseId, token);
+      // A list row's mic URL answers the mic question without `/v1/video`,
+      // which refuses for an expired course. Only a present one: a row
+      // without it says nothing about the video record.
+      for (const s of info.videos ?? []) {
+        if (s.video_id && s.audio_url) audioUrlCache.set(String(s.video_id), s.audio_url);
+      }
+      return info;
     } catch (error) {
       log.error('Failed to get course info:', error);
       throw error;
@@ -222,11 +229,13 @@ export class ApiClient {
    */
   async getMicAudioUrl(videoId: string, token: string): Promise<string | undefined> {
     if (!videoId) return undefined;
-    if (audioUrlCache.has(videoId)) return audioUrlCache.get(videoId);
+    // Ids are numbers at runtime; the memo is keyed by string.
+    const key = String(videoId);
+    if (audioUrlCache.has(key)) return audioUrlCache.get(key);
 
     try {
-      const { audioUrl } = await this.transport.getVideoAssets(videoId, token);
-      audioUrlCache.set(videoId, audioUrl);
+      const { audioUrl } = await this.transport.getVideoAssets(key, token);
+      audioUrlCache.set(key, audioUrl);
       return audioUrl;
     } catch (error) {
       log.error('Failed to get mic audio URL:', error);
@@ -245,7 +254,7 @@ export class ApiClient {
    */
   async getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo> {
     const info = await this.transport.getSessionDownloadInfo(sessionId, token);
-    if (info.session.video_id) audioUrlCache.set(info.session.video_id, info.audioUrl);
+    if (info.session.video_id) audioUrlCache.set(String(info.session.video_id), info.audioUrl);
     return info;
   }
 
@@ -278,7 +287,7 @@ export class ApiClient {
     }
   }
 
-  async getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse> {
+  async getCourseDetail(courseId: string, token: string): Promise<CourseDetailResponse | null> {
     try {
       return await this.transport.getCourseDetail(courseId, token);
     } catch (error) {

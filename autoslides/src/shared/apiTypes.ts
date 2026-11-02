@@ -135,6 +135,11 @@ export interface SessionData {
   ended_at: string;
   main_url?: string;
   vga_url?: string;
+  /**
+   * Classroom mic `.aac` when a session-list row carried one (`/v1` rows do).
+   * Lets an expired course offer its mic, whose `/v1/video` hop refuses.
+   */
+  audio_url?: string;
 }
 
 /**

@@ -82,21 +82,23 @@ async function run(rawInput: CommandInput, ctx: CliContext): Promise<CommandResu
   const force = rawInput.options.force === true;
   const dryRun = rawInput.options['dry-run'] === true;
 
-  const hasToken = rawInput.options.token !== undefined || rawInput.options.account !== undefined;
-  if (typeof rawInput.options.course !== 'string' && hasToken) {
-    throw new CliError('usage', '--token and --account only apply with --course: downloads themselves never sign in');
-  }
-
   const outputDir = resolveOutputDir(rawInput, ctx, !dryRun);
   const input = await expandStdin(rawInput);
+  // Read once, and only when a list is needed: --course, or a session of an
+  // expired course, which Yanhekt no longer serves by id without one.
+  let token: string | null = null;
+  const listToken = (): string => {
+    if (token === null) {
+      const credentials = readCredentials(input, ctx);
+      announceCredentials(credentials);
+      token = credentials.token;
+    }
+    return token;
+  };
   const { targets, skipped } = await collectTargets(input, {
     apiClient: ctx.apiClient,
     lookupToken: ANONYMOUS,
-    listToken: () => {
-      const credentials = readCredentials(input, ctx);
-      announceCredentials(credentials);
-      return credentials.token;
-    },
+    listToken,
     notice: info,
   });
   const items: Item[] = [...skipped];
@@ -105,7 +107,7 @@ async function run(rawInput: CommandInput, ctx: CliContext): Promise<CommandResu
   for (const [index, target] of targets.entries()) {
     let lecture: Lecture;
     try {
-      lecture = await resolveLecture(target, ctx.apiClient, ANONYMOUS);
+      lecture = await resolveLecture(target, ctx.apiClient, ANONYMOUS, listToken);
     } catch (error) {
       const item = unresolvedItem(target.sessionId, error);
       info(`${target.sessionId}: ${item.error?.message}`);
@@ -244,7 +246,7 @@ export const downloadCommand: CliCommand = {
   ],
   positionals: { min: 0, max: Infinity },
   network: true,
-  tokenUse: 'Only with --course, to list the course\'s sessions; the videos are always fetched anonymously',
+  tokenUse: 'With --course, or for a session of an earlier term\'s course, to list the course\'s sessions; the videos are always fetched anonymously',
   data: `{ output_dir, dry_run, items: [${ITEM_SHAPE}] }; ItemStatus: "downloaded"|"skipped"|"planned"|"failed"|"interrupted"`,
   run,
 };

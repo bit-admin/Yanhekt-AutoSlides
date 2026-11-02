@@ -379,6 +379,7 @@ routeYanhe2Through((config) => apiTransport.send(config));
 const courseIndex = localCourseIndex();
 const courseLookup = new CourseLookup(courseIndex, apiClient, configService);
 apiClient.setSessionIdSource((courseId, token) => courseLookup.sessionIds(courseId, token));
+apiClient.setLocalCourseFacts(courseLookup.localFacts());
 // Only the app downloads index updates; a command-line run reads what is there.
 const courseIndexUpdater = new CourseIndexUpdater({
   index: courseIndex,

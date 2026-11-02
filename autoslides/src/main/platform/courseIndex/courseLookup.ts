@@ -24,7 +24,7 @@ import type { CourseData } from '@common/apiTypes';
 import type { CourseIndexRow, CourseIndexSearchResult, CourseIndexSource } from '@common/courseIndexTypes';
 import { termKeyOf, type CurrentTermSearchSource, type EarlierTermSearchSource } from '@common/searchSources';
 import { createLogger } from '@main/infra/logger';
-import type { ApiClient } from '../apiClient';
+import type { ApiClient, IndexedCourseHint, LocalCourseFacts } from '../apiClient';
 import type { ConfigService } from '../configService';
 import { IndexError, indexCourseById, indexCourseByNumber, indexSearch, indexSessionIds, type IndexSearchRow } from '../indexClient';
 import type { LocalCourseIndex } from './courseIndex';
@@ -157,6 +157,20 @@ export class CourseLookup {
       log.debug('Index session ids unavailable for course', courseId, error instanceof Error ? error.message : error);
       return [];
     }
+  }
+
+  /**
+   * The course index on this computer for courses Yanhekt no longer
+   * describes (expired), whatever Settings → Search says: the online Index
+   * cannot look a session up.
+   */
+  localFacts(): LocalCourseFacts {
+    const hint = (c: { id: string; name: string; number: string | null; teachers: string[]; term: string } | null): IndexedCourseHint | null =>
+      c ? { id: c.id, name: c.name, number: c.number, teachers: [...c.teachers], term: c.term } : null;
+    return {
+      courseOfSession: async (sessionId) => hint(await this.local.bySessionId(sessionId)),
+      course: async (courseId) => hint(await this.local.byId(courseId)),
+    };
   }
 
   /**

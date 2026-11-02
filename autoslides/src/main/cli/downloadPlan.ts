@@ -82,7 +82,7 @@ export async function collectTargets(
   if (input.positionals.length > 0) throw new CliError('usage', 'give either session ids or --course, not both');
   const courseId = parseCourseTarget(courseArg, input.program);
   const listToken = deps.listToken();
-  const detail = await deps.apiClient.getCourseDetail(courseId, deps.lookupToken);
+  const detail = await deps.apiClient.getCourseDetailOrIndex(courseId, deps.lookupToken);
   const sessions = await deps.apiClient.getCourseSessions(courseId, listToken);
   if (sessions.length === 0) {
     throw new CliError(
@@ -93,7 +93,7 @@ export async function collectTargets(
 
   const course: Lecture['course'] = {
     id: courseId,
-    title: detail.title,
+    title: detail.title || 'Unknown Course',
     titleEn: detail.title_en,
     college_name: detail.college_name,
     school_year: detail.school_year,
@@ -123,9 +123,15 @@ export async function collectTargets(
   return { targets, skipped };
 }
 
-export async function resolveLecture(target: Target, apiClient: ApiClient, token: string): Promise<Lecture> {
+/** `listToken` is asked only for a session of an expired course (see ApiClient.getSessionDownloadInfo). */
+export async function resolveLecture(
+  target: Target,
+  apiClient: ApiClient,
+  token: string,
+  listToken?: () => string,
+): Promise<Lecture> {
   if (target.lecture) return target.lecture;
-  const { session, course } = await apiClient.getSessionDownloadInfo(target.sessionId, token);
+  const { session, course } = await apiClient.getSessionDownloadInfo(target.sessionId, token, listToken);
   return { course: { ...course, id: String(course.id), title: course.title || 'Unknown Course' }, session };
 }
 

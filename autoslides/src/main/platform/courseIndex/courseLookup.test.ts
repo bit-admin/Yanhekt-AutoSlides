@@ -179,6 +179,17 @@ describe('CourseLookup', () => {
     expect(await l.sessionIds('103', 'tok')).toEqual(['9201', '9202']);
   });
 
+  it('maps a session to its course from this computer only, even when Settings picks online', async () => {
+    const { lookup: l, fetchMock } = lookup({ earlierSource: 'online' });
+    const facts = l.localFacts();
+    expect(await facts.courseOfSession('9003')).toEqual({
+      id: '102', name: '线性代数（双语）', number: null, teachers: ['李四'], term: '2024-2025-1',
+    });
+    expect(await facts.courseOfSession('9999')).toBeNull();
+    expect(await facts.course('101')).toMatchObject({ id: '101', number: 'K-2024-0101', term: '2024-2025-1' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('finds a course by code in its term: Yanhekt for the current term, the index for an earlier one', async () => {
     const { lookup: l, apiClient } = lookup();
     expect(await l.locate({ number: 'K-2026-0201' }, '2026-2027-1', 'tok')).toMatchObject({ kind: 'yanhekt', course: { id: 201 } });

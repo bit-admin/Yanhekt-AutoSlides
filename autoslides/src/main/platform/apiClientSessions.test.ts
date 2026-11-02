@@ -42,6 +42,34 @@ describe('getCourseSessions', () => {
     expect(sessions[0]).toMatchObject({ session_id: 850101, video_id: 450101, duration: 5936, main_url: 'm.m3u8' });
   });
 
+  it.each([12121028, '12121028'])('tries /v1 when /v2 reports expiry code %s', async (code) => {
+    const { client, calls } = clientAnswering({ v2: { code, message: '课程已过期' }, v1: { code: 0, data: [ROW] } });
+    const sessions = await client.getCourseSessions('70101', 'tok');
+    expect(sessions[0]).toMatchObject({ session_id: 850101, main_url: 'm.m3u8', vga_url: 'v.m3u8' });
+    expect(calls).toEqual([
+      'https://cbiz.yanhekt.cn/v2/course/session/list?course_id=70101',
+      'https://cbiz.yanhekt.cn/v1/course/session/list?course_id=70101',
+    ]);
+  });
+
+  it('does not hide expiry from /v1 or fall through to the Index', async () => {
+    const { client } = clientAnswering({ v2: { code: 12121028, message: '课程已过期' }, v1: { code: 12121028, message: '课程已过期' } });
+    const index = vi.fn(async () => []);
+    client.setSessionIdSource(index);
+    await expect(client.getCourseSessions('70101', 'tok')).rejects.toThrow('课程已过期');
+    expect(index).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { code: 13001001, message: 'invalid token' },
+    { code: 99151011, message: 'upstream unavailable' },
+    { code: 61101113, message: '课程已过期' },
+  ])('does not fall back on another /v2 failure ($code)', async (answer) => {
+    const { client, calls } = clientAnswering({ v2: answer, v1: { code: 0, data: [ROW] } });
+    await expect(client.getCourseSessions('70101', 'tok')).rejects.toThrow(answer.message);
+    expect(calls).toHaveLength(1);
+  });
+
   it('returns [] when both are empty and the Index has no sessions', async () => {
     clearIndexMemo();
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ course: 70101, sessions: [] }))));
@@ -54,6 +82,103 @@ describe('getCourseSessions', () => {
   it('throws on a non-zero code from the fallback', async () => {
     const { client } = clientAnswering({ v2: { code: 0, data: [] }, v1: { code: 61101113, message: '用户未登录' } });
     await expect(client.getCourseSessions('70101', 'tok')).rejects.toThrow('用户未登录');
+  });
+});
+
+describe('getCourseInfo expired metadata', () => {
+  function setup(
+    courseAnswer: unknown,
+    sessionAnswer: unknown = { code: 0, data: [ROW] },
+    v2Answer: unknown = { code: 0, data: [] },
+  ) {
+    const client = new ApiClient();
+    const makeRequest = vi.fn(async (_method: string, url: string) => {
+      if (url.includes('/v2/course/session/list')) return v2Answer;
+      if (url.includes('/v1/course/session/list')) return sessionAnswer;
+      if (url.includes('/v1/course?')) return courseAnswer;
+      throw new Error(`unexpected request ${url}`);
+    });
+    (client as unknown as { makeRequest: typeof makeRequest }).makeRequest = makeRequest;
+    client.setSessionIdSource(async () => []);
+    return { client, makeRequest };
+  }
+
+  it.each([12121028, '12121028'])('loads embedded session URLs after expiry code %s', async (code) => {
+    const { client, makeRequest } = setup({ code, message: '课程已过期', data: null });
+
+    const info = await client.getCourseInfo('70101', 'tok');
+
+    expect(info).toMatchObject({ course_id: '70101', title: '', professor: '' });
+    expect(info.videos).toEqual([
+      expect.objectContaining({ session_id: 850101, video_id: 450101, main_url: 'm.m3u8', vga_url: 'v.m3u8' }),
+    ]);
+    expect(makeRequest.mock.calls.map(([, url]) => new URL(url).pathname)).toEqual([
+      '/v1/course', '/v2/course/session/list', '/v1/course/session/list',
+    ]);
+    expect(makeRequest).toHaveBeenNthCalledWith(2, 'GET', expect.any(String), 'tok');
+    expect(makeRequest).toHaveBeenNthCalledWith(3, 'GET', expect.any(String), 'tok');
+  });
+
+  it.each([12121028, '12121028'])('loads /v1 recordings when metadata AND /v2 return expiry code %s', async (code) => {
+    const expired = { code, message: '课程已过期', data: null };
+    const { client, makeRequest } = setup(expired, { code: 0, data: [ROW] }, expired);
+    const info = await client.getCourseInfo('70101', 'tok');
+    expect(info.videos[0]).toMatchObject({ main_url: 'm.m3u8', vga_url: 'v.m3u8' });
+    expect(makeRequest.mock.calls.map(([, url]) => new URL(url).pathname)).toEqual([
+      '/v1/course', '/v2/course/session/list', '/v1/course/session/list',
+    ]);
+  });
+
+  it.each([12121028, '12121028'])('represents expired metadata as unavailable for enrichment (%s)', async (code) => {
+    const { client, makeRequest } = setup({ code, message: '课程已过期' });
+    await expect(client.getCourseDetailIfAvailable('70101', 'tok')).resolves.toBeNull();
+    expect(makeRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not suppress other failures during optional enrichment', async () => {
+    const { client } = setup({ code: 13001001, message: 'invalid token' });
+    await expect(client.getCourseDetailIfAvailable('70101', 'tok')).rejects.toThrow('Authentication failed');
+  });
+
+  it('keeps successful course metadata unchanged', async () => {
+    const { client } = setup({ code: 0, data: { name_zh: '测试课程', name_en: 'Test Course', professors: [{ name: 'Test Teacher' }] } });
+    expect(await client.getCourseInfo('70101', 'tok')).toMatchObject({
+      title: '测试课程', title_en: 'Test Course', professor: 'Test Teacher', professors: ['Test Teacher'],
+    });
+  });
+
+  it.each([
+    { code: 12111010, message: 'not found' },
+    { code: 13001001, message: 'invalid token' },
+    { code: 99151011, message: 'upstream unavailable' },
+    { code: 61101113, message: '课程已过期' },
+  ])('does not suppress other course errors ($code)', async (answer) => {
+    const { client, makeRequest } = setup(answer);
+    await expect(client.getCourseInfo('70101', 'tok')).rejects.toThrow();
+    expect(makeRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not suppress a course request failure', async () => {
+    const { client, makeRequest } = setup(null);
+    makeRequest.mockRejectedValueOnce(new Error('connection failed'));
+    await expect(client.getCourseInfo('70101', 'tok')).rejects.toThrow('connection failed');
+    expect(makeRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('still surfaces a failed session list after course expiry', async () => {
+    const { client } = setup({ code: 12121028, message: '课程已过期' }, { code: 13001001, message: 'invalid token' });
+    await expect(client.getCourseInfo('70101', 'tok')).rejects.toThrow('invalid token');
+  });
+
+  it('still accepts an empty session list after course expiry', async () => {
+    const { client } = setup({ code: 12121028, message: '课程已过期' }, { code: 0, data: [] });
+    expect((await client.getCourseInfo('70101', 'tok')).videos).toEqual([]);
+  });
+
+  it('keeps metadata-only reads strict so existing enrichment fallbacks still run', async () => {
+    const { client, makeRequest } = setup({ code: 12121028, message: '课程已过期' });
+    await expect(client.getCourseDetail('70101', 'tok')).rejects.toThrow('课程已过期');
+    expect(makeRequest).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -167,5 +292,118 @@ describe('getCourseSessions → Index fallback', () => {
       url.includes('/v1/') ? { code: 0, data: [ROW] } : { code: 0, data: [] });
     expect(await client.getCourseSessions('70101', 'tok')).toHaveLength(1);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('expired courses skip the by-id Index fallback', () => {
+  it('answers [] without reading Index sessions when /v2 expired and /v1 is empty', async () => {
+    const { client, calls } = clientAnswering({ v2: { code: 12121028, message: '课程已过期' }, v1: { code: 0, data: [] } });
+    const index = vi.fn(async () => ['850101']);
+    client.setSessionIdSource(index);
+    expect(await client.getCourseSessions('70101', 'tok')).toEqual([]);
+    expect(index).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(2);
+  });
+});
+
+describe('getSessionDownloadInfo for an expired course', () => {
+  const EXPIRED = { code: 12121028, message: '课程已过期' };
+  const LIST_ROW = { ...ROW, videos: [{ ...ROW.videos[0], audio: 'a.aac' }] };
+  const HINT = { id: '70101', name: '示例课程', number: 'C123', teachers: ['某老师'], term: '2024-2025-1' };
+
+  function client(answer: (url: string, token: string) => unknown) {
+    const c = new ApiClient();
+    const calls: Array<{ url: string; token: string }> = [];
+    (c as unknown as { makeRequest: unknown }).makeRequest = vi.fn(async (_m: string, url: string, token: string) => {
+      calls.push({ url, token });
+      return answer(url, token);
+    });
+    const facts = { courseOfSession: vi.fn(async (_id: string) => HINT as typeof HINT | null), course: vi.fn(async () => null) };
+    c.setLocalCourseFacts(facts);
+    return { c, calls, facts };
+  }
+  const expiredUpstream = (url: string) =>
+    url.includes('/v1/course/session/list') ? { code: 0, data: [{ ...LIST_ROW, id: 850100 }, LIST_ROW] } : EXPIRED;
+
+  it('finds the course in the local index and the session in its signed-in /v1 list', async () => {
+    const { c, calls, facts } = client(expiredUpstream);
+    const listToken = vi.fn(() => 'tok');
+    const info = await c.getSessionDownloadInfo('850101', '', listToken);
+    expect(facts.courseOfSession).toHaveBeenCalledWith('850101');
+    expect(calls.map((x) => x.url)).toEqual([
+      'https://cbiz.yanhekt.cn/v1/course/session?session_id=850101&with_video=true',
+      'https://cbiz.yanhekt.cn/v1/course/session/list?course_id=70101',
+    ]);
+    expect(calls[0].token).toBe('');
+    expect(calls[1].token).toBe('tok');
+    expect(info.session).toMatchObject({ session_id: '850101', video_id: '450101', main_url: 'm.m3u8', vga_url: 'v.m3u8', duration: 5936 });
+    expect(info.course).toEqual({ id: '70101', title: '示例课程', number: 'C123', school_year: '2024-2025', semester: 1 });
+    expect(info.audioUrl).toBe('a.aac');
+  });
+
+  it('does not ask for a token for a current-term session', async () => {
+    const { c } = client((url) => url.includes('/v1/video')
+      ? { code: 0, data: { id: 450101, main: 'm', vga: 'v' } }
+      : { code: 0, data: { id: 850101, course_id: 70101, title: 't', video_ids: [450101] } });
+    const listToken = vi.fn(() => 'tok');
+    await c.getSessionDownloadInfo('850101', '', listToken);
+    expect(listToken).not.toHaveBeenCalled();
+  });
+
+  it('uses the course id from session detail when only /v1/video expired', async () => {
+    const { c, calls } = client((url) => url.includes('/v1/course/session?')
+      ? { code: 0, data: { id: 850101, course_id: 70109, title: 't', video_ids: [450101] } }
+      : expiredUpstream(url));
+    const info = await c.getSessionDownloadInfo('850101', 'tok');
+    expect(calls.at(-1)?.url).toBe('https://cbiz.yanhekt.cn/v1/course/session/list?course_id=70109');
+    // The index hint names another course, so its facts are not used.
+    expect(info.course).toEqual({ id: '70109', title: '', number: undefined });
+  });
+
+  it('is `expired` when the local index does not list the session', async () => {
+    const { c, facts } = client(expiredUpstream);
+    facts.courseOfSession.mockResolvedValue(null);
+    await expect(c.getSessionDownloadInfo('850101', 'tok')).rejects.toMatchObject({ name: 'YanhektLookupError', kind: 'expired' });
+  });
+
+  it('is `auth_required` without a token, before asking the list', async () => {
+    const { c, calls } = client(expiredUpstream);
+    await expect(c.getSessionDownloadInfo('850101', '')).rejects.toMatchObject({ kind: 'auth_required' });
+    expect(calls).toHaveLength(1);
+  });
+
+  it('is `expired` when the course list does not give the session', async () => {
+    const { c } = client((url) => url.includes('/session/list') ? { code: 0, data: [] } : EXPIRED);
+    await expect(c.getSessionDownloadInfo('850101', 'tok')).rejects.toMatchObject({ kind: 'expired' });
+  });
+
+  it('is `no_recording` when the list row has no stream', async () => {
+    const { c } = client((url) => url.includes('/session/list') ? { code: 0, data: [{ ...ROW, videos: [] }] } : EXPIRED);
+    await expect(c.getSessionDownloadInfo('850101', 'tok')).rejects.toMatchObject({ kind: 'no_recording' });
+  });
+
+  it('still reports a wrong id as not found', async () => {
+    const { c } = client(() => ({ code: 12121010, message: '课时不存在' }));
+    await expect(c.getSessionDownloadInfo('850101', 'tok')).rejects.toMatchObject({ kind: 'not_found' });
+  });
+});
+
+describe('getCourseDetailOrIndex', () => {
+  it('fills an expired course from the local index', async () => {
+    const c = new ApiClient();
+    (c as unknown as { makeRequest: unknown }).makeRequest = vi.fn(async () => ({ code: 12121028, message: '课程已过期' }));
+    c.setLocalCourseFacts({
+      courseOfSession: async () => null,
+      course: async () => ({ id: '70101', name: '示例课程', number: null, teachers: ['甲', '乙'], term: '2023-2024-2' }),
+    });
+    expect(await c.getCourseDetailOrIndex('70101', '')).toEqual({
+      course_id: '70101', title: '示例课程', professor: '甲', professors: ['甲', '乙'], number: undefined, school_year: '2023-2024', semester: 2,
+    });
+  });
+
+  it('is empty facts when the index lacks it too', async () => {
+    const c = new ApiClient();
+    (c as unknown as { makeRequest: unknown }).makeRequest = vi.fn(async () => ({ code: '12121028', message: '课程已过期' }));
+    expect(await c.getCourseDetailOrIndex('70101', '')).toEqual({ course_id: '70101', title: '', professor: '' });
   });
 });

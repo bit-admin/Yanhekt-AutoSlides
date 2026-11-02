@@ -1,4 +1,5 @@
 import type { SessionDownloadInfo } from '@common/apiTypes'
+import { parseSessionLookupProblem } from '@common/sessionLookupProblem'
 import { i18n } from '@shared/i18n'
 import { ApiClient } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
@@ -42,9 +43,12 @@ export async function openSessionById(sessionId: string): Promise<boolean> {
     resolved = await apiClient.getSessionDownloadInfo(sessionId, token)
   } catch (error) {
     // Not found, no recording yet and a network failure read the same to
-    // the user; the detail goes to the log.
+    // the user; the detail goes to the log. An earlier term's session gets
+    // its own message: retrying cannot help, updating the index can.
     log.warn('Session lookup failed:', sessionId, error)
-    notifyOpenById(t('searchPage.openById.sessionFailed', { id: sessionId }))
+    notifyOpenById(parseSessionLookupProblem(error) === 'expired'
+      ? t('sessions.expiredSessionById', { id: sessionId })
+      : t('searchPage.openById.sessionFailed', { id: sessionId }))
     return false
   }
 

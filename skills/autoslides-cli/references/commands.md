@@ -23,6 +23,8 @@ With no arguments, `autoslides` just opens the app.
 
 The current term is searched on Yanhekt, unless the app's Settings > General > Search picks the course index for it. Earlier terms (back to `2023-2024-1`) always come from the course index: the copy on this computer, then the AutoSlides Index online (or online only, per that setting). Index results have no `title_en`, `college`, `classrooms` or `participants`; `course <id>` gives the details. A term the chosen index does not hold is `term_unavailable` (exit 3). The AutoSlides Index online needs a Yanhekt sign-in: `autoslides search` uses the app's account; `yhdl search` reads a token (below) only when it goes online, and fails with `auth_required` (exit 4) when there is none. The copy on this computer needs no sign-in.
 
+Yanhekt no longer serves earlier terms' sessions by id. For such a session, `session` and `download` find its course in the course index on this computer and take the session from that course's session list, which needs a sign-in: `autoslides` uses the app's account; `yhdl` reads a token (below) only then, and fails with `auth_required` (exit 4) when there is none. A session the index on this computer does not list, or that the list does not give, is `expired` (exit 3). Current-term sessions still need no sign-in. An expired course's `course` details come from the index (no `title_en` or `college`).
+
 ### Where `mine` looks
 
 Both commands read the selected saved account's cached enrolled courses (all known terms, newest first), with local `--page` / `--limit` paging. Only Yanhekt courses are returned, in the same data shape as before.

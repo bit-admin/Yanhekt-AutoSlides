@@ -80,6 +80,8 @@ interface SessionListApiResponse extends BaseApiResponse {
       duration: string;
       main: string;
       vga: string;
+      /** Classroom mic `.aac`; present on `/v1` rows when the room recorded one. */
+      audio?: string;
     }>;
   }>;
 }
@@ -136,10 +138,56 @@ interface VideoTokenApiResponse extends BaseApiResponse {
  * Error. The message is the same one the app always showed.
  */
 export class YanhektLookupError extends Error {
-  constructor(message: string, readonly kind: 'not_found' | 'no_recording') {
+  constructor(
+    message: string,
+    /**
+     * `expired`: Yanhekt no longer serves this session by id and its course
+     * list could not stand in. `auth_required`: it could, but needs a token.
+     */
+    readonly kind: 'not_found' | 'no_recording' | 'expired' | 'auth_required',
+  ) {
     super(message);
     this.name = 'YanhektLookupError';
   }
+}
+
+/**
+ * `12121028` 课程已过期 (since 2026-11-02, number or string): earlier terms'
+ * course detail, session detail, `/v1/video` and `/v2` session list refuse
+ * with it, with or without a token. The signed-in `/v1` session list still
+ * answers, with playback URLs.
+ */
+function isExpiredCode(code: unknown): boolean {
+  return String(code) === '12121028';
+}
+
+class CourseExpiredError extends Error {}
+
+/** A course as the course index on this computer knows it. */
+export interface IndexedCourseHint {
+  id: string;
+  /** Canonical Chinese name. */
+  name: string;
+  number: string | null;
+  teachers: string[];
+  /** `2025-2026-1`. */
+  term: string | null;
+}
+
+/**
+ * The course index on this computer, for courses Yanhekt no longer describes
+ * (expired). The online Index has no session lookup, so only the local copy
+ * can map a session to its course.
+ */
+export interface LocalCourseFacts {
+  courseOfSession(sessionId: string): Promise<IndexedCourseHint | null>;
+  course(courseId: string): Promise<IndexedCourseHint | null>;
+}
+
+/** `2025-2026-1` → `['2025-2026', 1]`; empty for anything else. */
+function splitTerm(term: string | null | undefined): { school_year?: string; semester?: number } {
+  const m = /^(\d{4}-\d{4})-([12])$/.exec(term ?? '');
+  return m ? { school_year: m[1], semester: Number(m[2]) } : {};
 }
 
 export class ApiClient {
@@ -162,6 +210,8 @@ export class ApiClient {
    */
   private sessionIdSource: (courseId: string, token: string) => Promise<string[]> = (courseId, token) =>
     token ? indexSessionIds(courseId, token) : Promise.resolve([]);
+  /** Facts for expired courses and sessions; main.ts hands in the course lookup. */
+  private localCourseFacts: LocalCourseFacts = { courseOfSession: async () => null, course: async () => null };
   /** Whether a fetched current term is saved for later fallback (off for command-line runs). */
   private saveSemesterCache = true;
 
@@ -525,7 +575,9 @@ export class ApiClient {
     const url = `https://cbiz.yanhekt.cn/${version}/course/session/list?course_id=${courseId}`;
     const response = (await this.makeRequest('GET', url, token)) as SessionListApiResponse;
     if (response.code !== 0 && response.code !== "0") {
-      throw new Error(`Failed to get course sessions: ${response.message}`);
+      const message = `Failed to get course sessions: ${response.message}`;
+      if (isExpiredCode(response.code)) throw new CourseExpiredError(message);
+      throw new Error(message);
     }
     return response.data ?? [];
   }
@@ -535,17 +587,27 @@ export class ApiClient {
    * login token: an anonymous request answers `code: 0` with an empty list, so
    * an empty result is either "no sessions" or "not signed in".
    *
-   * `/v2` first; when it is empty, the `/v1` twin (same bare-array shape). Since
-   * 2026-10-22 `/v2` answers `[]` even signed in (docs/architecture.md §9.5.1).
+   * `/v2` first; when it is empty or reports course expiry, the `/v1` twin
+   * (same bare-array shape). `/v1` can still carry embedded playback URLs when
+   * `/v2` refuses an expired course. Other failures are not suppressed.
    * Last, the Index's session ids, each read by id ({@link sessionsFromIndex}):
    * both lists are empty for a course this account may not list, but its
-   * sessions still play by id.
+   * sessions still play by id. Not for an expired course: its sessions refuse
+   * by id too, so that would only be one failed request per session.
    */
   async getCourseSessions(courseId: string, token: string): Promise<SessionData[]> {
     // Session *detail by id* is a different endpoint — see getSessionById.
-    let rows = await this.fetchSessionRows('v2', courseId, token);
+    let rows: SessionListApiResponse['data'];
+    let expired = false;
+    try {
+      rows = await this.fetchSessionRows('v2', courseId, token);
+    } catch (error: unknown) {
+      if (!(error instanceof CourseExpiredError)) throw error;
+      rows = [];
+      expired = true;
+    }
     if (rows.length === 0) rows = await this.fetchSessionRows('v1', courseId, token);
-    if (rows.length === 0) return this.sessionsFromIndex(String(courseId), token);
+    if (rows.length === 0) return expired ? [] : this.sessionsFromIndex(String(courseId), token);
 
     return rows.map((video) => {
       const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : '';
@@ -564,6 +626,7 @@ export class ApiClient {
         ended_at: video.ended_at,
         main_url: mainUrl,
         vga_url: vgaUrl,
+        audio_url: videoData?.audio?.trim() || undefined,
         id: realVideoId
       };
     });
@@ -689,6 +752,7 @@ export class ApiClient {
     const courseData = courseResponse as CourseInfoApiResponse;
 
     if (courseData.code !== 0 && courseData.code !== "0") {
+      if (isExpiredCode(courseData.code)) throw new CourseExpiredError(`Course ID: ${courseId}, ${courseData.message}`);
       switch (courseData.code) {
         case 12111010:
           throw new YanhektLookupError("Course not found, please check if course ID is correct", 'not_found');
@@ -722,9 +786,44 @@ export class ApiClient {
     };
   }
 
+  /**
+   * Metadata enrichment for a known course. Expiry means the facts are no
+   * longer available, not that its recordings are gone. Return that absence
+   * as data, including over IPC; other failures still throw.
+   */
+  async getCourseDetailIfAvailable(courseId: string, token: string): Promise<CourseDetailResponse | null> {
+    try {
+      return await this.getCourseDetail(courseId, token);
+    } catch (error: unknown) {
+      if (!(error instanceof CourseExpiredError)) throw error;
+      return null;
+    }
+  }
+
+  /**
+   * {@link getCourseDetail}, or for an expired course what the course index on
+   * this computer knows (name, number, teachers, term), or empty facts when it
+   * does not hold the course. Empty, not a placeholder: callers keep a title
+   * they already have, and pick their own fallback.
+   */
+  async getCourseDetailOrIndex(courseId: string, token: string): Promise<CourseDetailResponse> {
+    const detail = await this.getCourseDetailIfAvailable(courseId, token);
+    if (detail) return detail;
+    const row = await this.localCourseFacts.course(String(courseId)).catch(() => null);
+    if (!row) return { course_id: String(courseId), title: '', professor: '' };
+    return {
+      course_id: String(courseId),
+      title: row.name,
+      professor: row.teachers[0] ?? '',
+      professors: [...row.teachers],
+      number: row.number ?? undefined,
+      ...splitTerm(row.term),
+    };
+  }
+
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
     try {
-      const detail = await this.getCourseDetail(courseId, token);
+      const detail = await this.getCourseDetailOrIndex(courseId, token);
 
       // An empty list is an answer, not an error. Yanhekt sends `{code:0, data:[]}`
       // both for a course with no recordings and for one this account may not
@@ -773,12 +872,24 @@ export class ApiClient {
    *
    * Throws a user-readable message when the session does not exist or has no
    * recording yet.
+   *
+   * A session of an expired course (earlier terms) refuses both hops with
+   * `12121028`. Then the course comes from the course index on this computer
+   * and the session from that course's signed-in `/v1` list
+   * ({@link expiredSessionDownloadInfo}). `listToken` is asked only then, so a
+   * caller that is anonymous by design (yhdl) reads credentials only for an
+   * old session; it defaults to `token`.
    */
-  async getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo> {
+  async getSessionDownloadInfo(
+    sessionId: string,
+    token: string,
+    listToken: () => string = () => token,
+  ): Promise<SessionDownloadInfo> {
     const detail = await this.makeRequest('GET', this.sessionDetailUrl(sessionId), token, undefined, {
       allowAnonymous: true,
     }) as SessionDetailApiResponse;
 
+    if (isExpiredCode(detail.code)) return this.expiredSessionDownloadInfo(sessionId, null, listToken);
     if ((detail.code !== 0 && detail.code !== "0") || !detail.data || Array.isArray(detail.data) || !detail.data.id) {
       throw new YanhektLookupError(`Session ${sessionId} not found`, 'not_found');
     }
@@ -793,12 +904,13 @@ export class ApiClient {
       allowAnonymous: true,
     }) as VideoDetailApiResponse;
 
+    const courseId = String(s.course?.id ?? s.course_id);
+    if (isExpiredCode(video.code)) return this.expiredSessionDownloadInfo(sessionId, courseId, listToken);
     if (video.code !== 0 && video.code !== "0") {
       throw new Error(`Failed to get video for session ${sessionId}: ${video.message}`);
     }
 
     const v = video.data || { id: videoId };
-    const courseId = String(s.course?.id ?? s.course_id);
     return {
       session: {
         id: videoId,
@@ -821,6 +933,83 @@ export class ApiClient {
         college_name: s.course?.college_name,
         school_year: s.course?.school_year,
         semester: s.course?.semester,
+      },
+      audioUrl: v.audio?.trim() || undefined,
+    };
+  }
+
+  /**
+   * {@link getSessionDownloadInfo} for a session of an expired course:
+   * session id → course (the detail's own `course_id` when it answered, else
+   * the course index on this computer) → that course's signed-in `/v1`
+   * session list, matched by session id here (the list ignores a
+   * `session_id` filter) → the row's embedded URLs. Course facts come from
+   * the index row, since `/v1/course` refuses too.
+   */
+  private async expiredSessionDownloadInfo(
+    sessionId: string,
+    knownCourseId: string | null,
+    listToken: () => string,
+  ): Promise<SessionDownloadInfo> {
+    const hint = await this.localCourseFacts.courseOfSession(sessionId).catch((error: unknown) => {
+      log.warn('Course index lookup failed for session', sessionId, error);
+      return null;
+    });
+    const courseId = knownCourseId ?? hint?.id ?? null;
+    if (!courseId) {
+      throw new YanhektLookupError(
+        `Session ${sessionId} is from an expired course, which Yanhekt no longer serves by session id, and the course index on this computer does not list it`,
+        'expired',
+      );
+    }
+    const token = listToken();
+    if (!token) {
+      throw new YanhektLookupError(
+        `Session ${sessionId} is from an expired course; its recordings are only listed to a signed-in Yanhekt account`,
+        'auth_required',
+      );
+    }
+
+    let rows: SessionListApiResponse['data'];
+    try {
+      rows = await this.fetchSessionRows('v1', courseId, token);
+    } catch (error: unknown) {
+      if (!(error instanceof CourseExpiredError)) throw error;
+      rows = [];
+    }
+    const row = rows.find((r) => String(r.id) === sessionId);
+    if (!row) {
+      throw new YanhektLookupError(
+        `Session ${sessionId} is from an expired course, and that course's session list does not include it (this account may not watch the course)`,
+        'expired',
+      );
+    }
+    const v = row.videos?.[0];
+    if (!v?.main?.trim() && !v?.vga?.trim()) {
+      throw new YanhektLookupError(`Session ${sessionId} has no recording yet`, 'no_recording');
+    }
+
+    const videoId = String(v.id);
+    const sameCourse = hint && hint.id === courseId ? hint : null;
+    return {
+      session: {
+        id: videoId,
+        session_id: String(row.id),
+        video_id: videoId,
+        title: row.title,
+        duration: parseInt(String(v.duration ?? 0)) || 0,
+        week_number: row.week_number,
+        day: Number(row.day),
+        started_at: row.started_at,
+        ended_at: row.ended_at,
+        main_url: v.main?.trim() || '',
+        vga_url: v.vga?.trim() || '',
+      },
+      course: {
+        id: courseId,
+        title: sameCourse?.name ?? '',
+        number: sameCourse?.number ?? undefined,
+        ...splitTerm(sameCourse?.term),
       },
       audioUrl: v.audio?.trim() || undefined,
     };
@@ -921,6 +1110,10 @@ export class ApiClient {
 
   setSessionIdSource(source: (courseId: string, token: string) => Promise<string[]>): void {
     this.sessionIdSource = source;
+  }
+
+  setLocalCourseFacts(facts: LocalCourseFacts): void {
+    this.localCourseFacts = facts;
   }
 
   /** A command-line run reads the cached current term but never writes it (a run never writes config). */

@@ -32,7 +32,7 @@ Progress and notices go to stderr; ignore them or show them to the user. Branch 
 | 0 | — | done |
 | 1 | `failed` | read the message; for downloads, `data.items` says which failed |
 | 2 | `usage` | the command line was wrong and nothing ran; fix the arguments (see `--help`) |
-| 3 | `not_found`, `no_recording`, `term_unavailable` | wrong id, the session has no recording yet, or the course index does not hold that term; do not retry unchanged |
+| 3 | `not_found`, `no_recording`, `expired`, `term_unavailable` | wrong id, the session has no recording yet, an earlier-term session that the course index on this computer or its course's session list cannot supply, or the course index does not hold that term; do not retry unchanged |
 | 4 | `sign_in_required` (autoslides), `auth_required` (yhdl) | ask the user to sign in to Yanhekt in the AutoSlides window, then run it again |
 | 5 | `network` | Yanhekt or the AutoSlides Index could not be reached; check the connection or `connection_mode` |
 | 6 | `app_not_running`, `cli_control_disabled` | the app could not start, or the user turned off Allow Command-Line Control; ask the user |

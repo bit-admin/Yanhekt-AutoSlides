@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { parseSessionInput } from '@common/sessionInput'
+import { parseSessionLookupProblem } from '@common/sessionLookupProblem'
 import { ApiClient } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import type { DownloadItem } from '@shared/services/downloadService'
@@ -86,9 +87,12 @@ export function useSessionIdDownload() {
       window.dispatchEvent(new CustomEvent('switchToDownload', { detail: result.item.id }))
     } catch (error) {
       // Not found, no recording yet and network failure all read the same to
-      // the user; the detail goes to the log.
+      // the user; the detail goes to the log. An earlier term's session gets
+      // its own message: retrying cannot help, updating the index can.
       log.warn('Session lookup failed:', error)
-      notify(t('downloads.bySession.failed', { id: parsed.sessionId }))
+      notify(parseSessionLookupProblem(error) === 'expired'
+        ? t('sessions.expiredSessionById', { id: parsed.sessionId })
+        : t('downloads.bySession.failed', { id: parsed.sessionId }))
     } finally {
       busy.value = false
     }
