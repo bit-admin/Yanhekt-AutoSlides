@@ -67,13 +67,13 @@
     "braces": "$braces",
     "image-size": "^2.0.4",
     "@typescript-eslint/typescript-estree": {
-      "minimatch": "^11.0.4"
+      "minimatch@^10": "^11.0.4"
     },
     "app-builder-lib": {
-      "minimatch": "^11.0.4"
+      "minimatch@^10": "^11.0.4"
     },
     "@electron/universal": {
-      "minimatch": "^11.0.4"
+      "minimatch@^9": "^11.0.4"
     },
     "ts-json-schema-generator": {
       "glob": "^14.0.3"
