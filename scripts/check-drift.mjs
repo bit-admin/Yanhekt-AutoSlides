@@ -97,8 +97,7 @@ const IDENTICAL = [
   // The share tests seed D1 through the indexer's own upload statements.
   ['indexer/src/d1model.ts', 'share/src/indexer/d1model.ts'],
   ['indexer/src/sql.ts', 'share/src/indexer/sql.ts'],
-  // The app opens the release files the indexer seals and signs.
-  ['indexer/src/seal.ts', 'autoslides/src/main/platform/courseIndex/seal.ts'],
+  // The app opens the release files the indexer encrypts and signs.
   ['indexer/src/clientIndex.ts', 'autoslides/src/main/platform/courseIndex/clientIndex.ts'],
   // The app searches its local copy with the same word splitting as the Index.
   ['indexer/src/grams.ts', 'autoslides/src/main/platform/courseIndex/grams.ts'],

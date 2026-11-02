@@ -1,0 +1,11 @@
+# Readers of the index release's term files and client manifest (clientIndex.ts).
+# One public age recipient (age1…) per line; every published file is encrypted
+# to all of them. Public keys only: the secret identities stay with each reader.
+#
+# A new reader makes a key pair (`age-keygen -o key.txt`, or
+# `npm run release -- keygen --out key.txt`) and sends only the age1… line.
+# Adding or removing a line gives the next publish new term file names; a
+# removed reader keeps whatever it already downloaded.
+
+# AutoSlides desktop app (identity: INDEX_CLIENT_IDENTITY, built into the app)
+age1y0pkjtlq3hdm5p8q9khzssz9hleze8dl4jqvgfqyts9dxuaepgqsa9wqch

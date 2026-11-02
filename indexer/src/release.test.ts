@@ -4,10 +4,11 @@ import { rangeLane } from './crawler.ts';
 import { exportTerms, termAtLeast } from './export.ts';
 import { generateKeyPairSync } from 'node:crypto';
 import {
-  CLIENT_MANIFEST_ASSET, keyIdOf, makeEnvelope, openEnvelope, parseClientManifest, parseTermDoc, termAssetName,
+  CLIENT_MANIFEST_ASSET, keyIdOf, makeEnvelope, openEnvelope, parseClientManifest, parseTermDoc, recipientsId, termAssetName,
   type SigningKey,
 } from './clientIndex.ts';
-import { currentTerm, dbAssetName } from './release.ts';
+import { ageSeal, ageUnseal, currentTerm, dbAssetName, parseRecipients } from './release.ts';
+import * as age from './age.ts';
 import { decrypt, encrypt, passphraseId, seal, unseal, unsealAsync } from './seal.ts';
 import { drain, FakeApi, make } from './testkit.ts';
 
@@ -46,15 +47,23 @@ function keyPair(): { privateKey: import('node:crypto').KeyObject; entry: Signin
 
 test('envelope: opens with the right key, refuses tampering, other keys and other names', () => {
   const { privateKey, entry } = keyPair();
-  const data = seal(Buffer.from('{"x":1}'), 'client');
-  const text = makeEnvelope(CLIENT_MANIFEST_ASSET, data, passphraseId('client'), privateKey);
+  const reader = age.generateIdentity();
+  const data = ageSeal(Buffer.from('{"x":1}'), [reader.recipient]);
+  const text = makeEnvelope(CLIENT_MANIFEST_ASSET, data, [reader.recipient], privateKey);
   const ok = openEnvelope(text, CLIENT_MANIFEST_ASSET, [entry]);
   assert.ok(ok.ok);
   if (ok.ok) {
     assert.deepEqual(ok.data, data);
-    assert.equal(ok.passphraseId, passphraseId('client'));
+    assert.deepEqual(ok.recipients, [reader.recipient]);
     assert.equal(ok.keyId, entry.id);
+    assert.equal(ageUnseal(ok.data, reader.identity).toString(), '{"x":1}');
   }
+  // A format-1 envelope (passphrase, no recipients) is not read any more.
+  const v1 = JSON.parse(text);
+  v1.format = 'autoslides-index-envelope/v1';
+  v1.passphraseId = 'abcd1234';
+  delete v1.recipients;
+  assert.deepEqual(openEnvelope(JSON.stringify(v1), CLIENT_MANIFEST_ASSET, [entry]), { ok: false, reason: 'malformed' });
   assert.deepEqual(openEnvelope(text, 'other.json', [entry]), { ok: false, reason: 'wrong-file' });
   assert.deepEqual(openEnvelope(text, CLIENT_MANIFEST_ASSET, [keyPair().entry]), { ok: false, reason: 'unknown-key' });
   assert.deepEqual(openEnvelope('nope', CLIENT_MANIFEST_ASSET, [entry]), { ok: false, reason: 'malformed' });
@@ -65,15 +74,16 @@ test('envelope: opens with the right key, refuses tampering, other keys and othe
   assert.deepEqual(openEnvelope(JSON.stringify(e), CLIENT_MANIFEST_ASSET, [entry]), { ok: false, reason: 'mismatch' });
   // A forged key id pointing at a real key still fails the signature.
   const other = keyPair();
-  const forged = JSON.parse(makeEnvelope(CLIENT_MANIFEST_ASSET, data, 'x', other.privateKey));
+  const forged = JSON.parse(makeEnvelope(CLIENT_MANIFEST_ASSET, data, [reader.recipient], other.privateKey));
   forged.key = entry.id;
   assert.deepEqual(openEnvelope(JSON.stringify(forged), CLIENT_MANIFEST_ASSET, [entry]), { ok: false, reason: 'mismatch' });
 });
 
 test('client manifest and term file parsing', () => {
-  assert.throws(() => parseClientManifest('{"format":2,"terms":[],"passphraseId":"x"}'), /unsupported/);
+  assert.throws(() => parseClientManifest('{"format":1,"terms":[],"passphraseId":"x"}'), /unsupported/);
+  assert.deepEqual(parseClientManifest('{"format":2,"generatedAt":"","recipientsId":"x","terms":[]}').terms, []);
   assert.throws(() => parseClientManifest(JSON.stringify({
-    format: 1, generatedAt: '', passphraseId: 'x',
+    format: 2, generatedAt: '', recipientsId: 'x',
     terms: [{ term: 't', asset: '../evil', assetSha256: 'a', sha256: 'b', bytes: 1, courses: 0, sessions: 0 }],
   })), /bad asset name/);
   const doc = JSON.stringify({ format: 1, term: '2024-2025-1', fields: ['id', 'name', 'number', 'teachers', 'sessions'], courses: [[5, 'A', null, ['T'], [7, 8]]] });
@@ -116,6 +126,66 @@ test('export: one file per term from the minimum term, stable bytes, gone sessio
 test('release names', () => {
   assert.ok(termAtLeast('2023-2024-2', '2023-2024-1'));
   assert.ok(!termAtLeast('2022-2023-2', '2023-2024-1'));
-  assert.equal(termAssetName('2025-2026-1', 'abcdef0123456789', '0badcafe'), 'term-2025-2026-1.abcdef012345.0badcafe.json.gz.enc');
+  assert.equal(termAssetName('2025-2026-1', 'abcdef0123456789', '0badcafe'), 'term-2025-2026-1.abcdef012345.0badcafe.json.gz.age');
+  const [a, b] = [age.generateIdentity().recipient, age.generateIdentity().recipient];
+  assert.match(recipientsId([a, b]), /^[0-9a-f]{8}$/);
+  assert.equal(recipientsId([a, b]), recipientsId([b, a, a]), 'order and repeats do not matter');
+  assert.notEqual(recipientsId([a]), recipientsId([a, b]));
   assert.equal(dbAssetName(Date.UTC(2026, 9, 25, 19, 3, 4, 567)), 'yanhekt-index.20261025T190304Z.db.gz.enc');
+});
+
+// A file written by age-encryption (typage) 0.3.1, the library the desktop app
+// reads with; the key is a throwaway made for this test.
+const TYPAGE = {
+  "identity": "AGE-SECRET-KEY-1RHEUEAK0XU83QVF7QL08Q4FPLVGU3GXET9RCCWFGMCS5756PZ8FSVPN4HZ",
+  "recipient": "age12g92k3rnqdd25hlz6c4cu4qev2hwcekrl37uudpd4cqme08rpgkqvyzmyy",
+  "plain": "written by age-encryption (typage) 0.3.1, test-only key",
+  "file": "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBheWs4cHo0K1NFdUQvUHEzKzlEOGx4V3Z6NDVpUFpjVDFPeUtCOEtoYnpFClc5RDlScXBnZklQZ0dWYmxvUktNRkp5dU1rclVyNUg4eStHeVlpalc5VVkKLS0tIFpGR1k5L3o3elM3VUVSamtxWkE2MUJLR1BVZzhrS3F3Smgwcy9OemVrbzQKqkPvhU36THhtheQZUPgH+mc4/EESDG/yfCdo3DeCR9NCQuhChz+k5OyMc1I5ST93/LDSuggOH5DWccjDUtsJaFMmoZiROir+WdiaPtFp1SVRPliUgTco"
+};
+
+test('age: reads a file written by the app\'s age library', () => {
+  assert.equal(age.recipientOf(TYPAGE.identity), TYPAGE.recipient);
+  assert.equal(age.decrypt(Buffer.from(TYPAGE.file, 'base64'), TYPAGE.identity).toString(), TYPAGE.plain);
+});
+
+test('age: round trips across chunk sizes, to several recipients', () => {
+  const a = age.generateIdentity();
+  const b = age.generateIdentity();
+  assert.match(a.identity, /^AGE-SECRET-KEY-1[0-9A-Z]{58}$/);
+  assert.match(a.recipient, /^age1[0-9a-z]{58}$/);
+  assert.equal(age.recipientOf(a.identity), a.recipient);
+  for (const n of [0, 1, 65535, 65536, 65537, 200_000]) {
+    const plain = Buffer.from(Buffer.alloc(n).map((_, i) => (i * 31) & 255));
+    const file = age.encrypt(plain, [a.recipient, b.recipient]);
+    assert.deepEqual(age.decrypt(file, a.identity), plain, `size ${n}, first recipient`);
+    assert.deepEqual(age.decrypt(file, b.identity), plain, `size ${n}, second recipient`);
+  }
+});
+
+test('age: refuses other identities, tampering and truncation', () => {
+  const a = age.generateIdentity();
+  const file = age.encrypt(Buffer.alloc(70_000, 7), [a.recipient]);
+  assert.throws(() => age.decrypt(file, age.generateIdentity().identity), /no identity matches/);
+  const body = Buffer.from(file);
+  body[body.length - 100] ^= 1;
+  assert.throws(() => age.decrypt(body, a.identity), /corrupt/);
+  assert.throws(() => age.decrypt(file.subarray(0, file.length - 70_000 + 100), a.identity), /corrupt|truncated/);
+  const header = Buffer.from(file);
+  const at = header.indexOf('X25519 ') + 10;
+  header[at] = header[at] === 0x41 ? 0x42 : 0x41;
+  assert.throws(() => age.decrypt(header, a.identity));
+  assert.throws(() => age.decrypt(Buffer.from('not age'), a.identity), /truncated|not an age/);
+});
+
+test('recipients file: comments, blanks and repeats; bad keys refused', () => {
+  const a = age.generateIdentity().recipient;
+  assert.deepEqual(parseRecipients(`# readers\n\n${a}  # the app\n${a}\n`), [a]);
+  assert.throws(() => parseRecipients('# nobody\n'), /no recipients/);
+  assert.throws(() => parseRecipients('age1notakey\n'));
+  assert.throws(() => parseRecipients(a.toUpperCase()));
+});
+
+test('the committed index-recipients.txt parses', async () => {
+  const { readFileSync } = await import('node:fs');
+  assert.ok(parseRecipients(readFileSync(new URL('../index-recipients.txt', import.meta.url), 'utf8')).length >= 1);
 });

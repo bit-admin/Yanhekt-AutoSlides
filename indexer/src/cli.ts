@@ -16,7 +16,8 @@ import { dumpForD1 } from './dump.ts';
 import { D1Http, d1FromEnv, printRemoteStatus, upload, type D1Exec } from './remote.ts';
 import { WranglerD1 } from './wranglerD1.ts';
 import { exportTerms, DEFAULT_MIN_TERM } from './export.ts';
-import { bundleRelease, currentTerm, DEFAULT_TAG, NoRelease, pullRelease, pushRelease } from './release.ts';
+import { bundleRelease, currentTerm, DEFAULT_TAG, NoRelease, parseRecipients, pullRelease, pushRelease } from './release.ts';
+import { generateIdentity } from './age.ts';
 import type { SigningKey } from './clientIndex.ts';
 import { createPrivateKey, type KeyObject } from 'node:crypto';
 
@@ -36,6 +37,9 @@ Commands
   release push   Encrypt and publish --db and its term files to the release.
   release bundle Download the signed client manifest and the term files before --before
                  to --out (default ./bundle), for the desktop app build. No --db.
+  release keygen Make an age key pair for a reader of the term files: writes the secret
+                 identity to --out (new file, mode 600) and prints its public recipient,
+                 which goes into index-recipients.txt. Same as 'age-keygen -o FILE'.
 
 What to crawl
   (default)             forward from --initial-id to the newest id, and backfill down to --floor-id
@@ -77,9 +81,11 @@ Release (a GitHub pre-release; needs the gh CLI, signed in)
   --min-term TERM       oldest term in the JSON files (default ${DEFAULT_MIN_TERM})
   --passphrase-file F   private passphrase: database, private manifest (default:
                         $INDEX_ARTIFACT_PASSPHRASE, else ~/.config/autoslides/index-passphrase.txt)
-  --client-passphrase-file F   client passphrase: client manifest, term files; the app has it
-                        (default: $INDEX_CLIENT_PASSPHRASE, else
-                        ~/.config/autoslides/index-client-passphrase.txt)
+  --recipients-file F   push: public age recipients the term files and client manifest are
+                        encrypted to, one per line (default: $INDEX_RECIPIENTS, else
+                        index-recipients.txt in this package; the app's recipient is in it)
+  --identity-file F     bundle: the app's age identity, to open every file once (default:
+                        $INDEX_CLIENT_IDENTITY, else ~/.config/autoslides/index-client-identity.txt)
   --signing-key-file F  push: ed25519 key that signs the client manifest (default:
                         $INDEX_SIGNING_KEY as PEM text, else ~/.config/autoslides/index-signing-key.pem)
   --keys F              bundle: public keys to accept (the app's indexSigningKeys.json)
@@ -113,7 +119,8 @@ const { values: opts, positionals } = parseArgs({
     tag: { type: 'string', default: DEFAULT_TAG },
     'min-term': { type: 'string', default: DEFAULT_MIN_TERM },
     'passphrase-file': { type: 'string' },
-    'client-passphrase-file': { type: 'string' },
+    'recipients-file': { type: 'string' },
+    'identity-file': { type: 'string' },
     'signing-key-file': { type: 'string' },
     keys: { type: 'string' },
     before: { type: 'string' },
@@ -185,9 +192,21 @@ function passphrase(): string {
     ?? die('no passphrase: pass --passphrase-file or set INDEX_ARTIFACT_PASSPHRASE');
 }
 
-function clientPassphrase(): string {
-  return secret(opts['client-passphrase-file'], 'INDEX_CLIENT_PASSPHRASE', 'index-client-passphrase.txt')
-    ?? die('no client passphrase: pass --client-passphrase-file or set INDEX_CLIENT_PASSPHRASE');
+function clientIdentity(): string {
+  const text = secret(opts['identity-file'], 'INDEX_CLIENT_IDENTITY', 'index-client-identity.txt')
+    ?? die('no client identity: pass --identity-file or set INDEX_CLIENT_IDENTITY');
+  // An identity file as age-keygen writes it: comment lines, then the key.
+  return /^AGE-SECRET-KEY-1[0-9A-Z]+$/m.exec(text)?.[0] ?? die('the client identity has no AGE-SECRET-KEY-1… line');
+}
+
+/** Public, so committed: index-recipients.txt beside src/, unless a file or $INDEX_RECIPIENTS says otherwise. */
+function recipients(): string[] {
+  const text = opts['recipients-file']
+    ? readFileSync(resolve(opts['recipients-file']), 'utf8')
+    : process.env.INDEX_RECIPIENTS?.trim()
+      ? process.env.INDEX_RECIPIENTS
+      : readFileSync(new URL('../index-recipients.txt', import.meta.url), 'utf8');
+  return parseRecipients(text);
 }
 
 function signingKey(): KeyObject {
@@ -437,7 +456,17 @@ async function main(): Promise<void> {
   }
   if (cmd === 'release') {
     const sub = positionals[1];
-    if (sub !== 'pull' && sub !== 'push' && sub !== 'bundle') die('release needs pull, push or bundle');
+    if (sub !== 'pull' && sub !== 'push' && sub !== 'bundle' && sub !== 'keygen') die('release needs pull, push, bundle or keygen');
+    if (sub === 'keygen') {
+      if (opts.out === './d1-dump') die('release keygen needs --out FILE for the secret identity');
+      const file = resolve(opts.out);
+      if (existsSync(file)) die(`${file} already exists; not overwriting a key`);
+      const { identity, recipient } = generateIdentity();
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, `# public key: ${recipient}\n${identity}\n`, { mode: 0o600, flag: 'wx' });
+      console.log(recipient);
+      return;
+    }
     if (/^v/i.test(opts.tag)) die('a release tag starting with v would trigger the app release workflow');
     if (sub === 'bundle') {
       if (!opts.keys) die('release bundle needs --keys (the app\'s indexSigningKeys.json)');
@@ -446,7 +475,7 @@ async function main(): Promise<void> {
       if (!/^\d{4}-\d{4}-[12]$/.test(before)) die(`--before must look like 2026-2027-1 (got ${before})`);
       const out = resolve(opts.out === './d1-dump' ? './bundle' : opts.out);
       try {
-        await bundleRelease(opts.tag, out, { clientPassphrase: clientPassphrase(), keys, before }, log);
+        await bundleRelease(opts.tag, out, { identity: clientIdentity(), keys, before }, log);
       } catch (err) {
         if (err instanceof NoRelease) {
           console.error(`error: ${err.message}`);
@@ -473,7 +502,7 @@ async function main(): Promise<void> {
     if (!existsSync(dbPath)) die(`no such database: ${dbPath}`);
     const release = acquireLock(dbPath);
     try {
-      pushRelease(opts.tag, dbPath, { passphrase: pass, clientPassphrase: clientPassphrase(), signingKey: signingKey() }, opts['min-term'], log);
+      pushRelease(opts.tag, dbPath, { passphrase: pass, recipients: recipients(), signingKey: signingKey() }, opts['min-term'], log);
     } finally {
       release();
     }

@@ -4,18 +4,19 @@
  * check reads `releases/latest`, which skips pre-releases. Tags starting with
  * `v` would also trigger release.yml.
  *
- * Assets, all gzip + encrypted (seal.ts):
- *   manifest.json.gz.enc                         private passphrase; fixed name, replaced last but one
+ * Assets, all gzip + encrypted:
+ *   manifest.json.gz.enc                         private passphrase (seal.ts); fixed name, replaced last but one
  *   yanhekt-index.<UTC stamp>.db.gz.enc          private passphrase; the full SQLite database (the master copy)
  *   client-manifest.json                         signed envelope around the client manifest (clientIndex.ts), replaced last
- *   term-<term>.<sha256:12>.<pid>.json.gz.enc    client passphrase; one per term (export.ts), a new name only when it changed
+ *   term-<term>.<sha256:12>.<rid>.json.gz.age    age to the recipients (age.ts); one per term (export.ts), a new name only when it changed
  * The manifests name the current files. A push uploads new files first, then
  * the manifests, then deletes files neither names (keeping the previous
  * database as a fallback), so a reader never meets a missing file.
  *
- * Two passphrases: the app carries the client one, so anyone can dig it out;
- * it opens only the term files. The database (every field, video URLs, upload
- * bookkeeping) stays under the private one.
+ * The term files are for readers (the app, and whoever else is a recipient
+ * in index-recipients.txt); publishing them needs only those public keys. The
+ * database (every field, video URLs, upload bookkeeping) stays under the
+ * private passphrase.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -27,11 +28,13 @@ import { createHash, createPublicKey } from 'node:crypto';
 import type { KeyObject } from 'node:crypto';
 import {
   CLIENT_MANIFEST_ASSET, CLIENT_MANIFEST_FORMAT, keyIdOf, makeEnvelope, openEnvelope, parseClientManifest,
-  sha256Hex, termAssetName,
+  recipientsId, sha256Hex, TERM_ASSET_PATTERN, termAssetName,
 } from './clientIndex.ts';
 import type { ClientManifest, ClientTerm, SigningKey } from './clientIndex.ts';
 import { exportTerms, EXPORT_FORMAT } from './export.ts';
-import { passphraseId, seal, unseal, unsealAsync } from './seal.ts';
+import { seal, unseal } from './seal.ts';
+import * as age from './age.ts';
+import { gunzipSync, gzipSync } from 'node:zlib';
 
 export const DEFAULT_TAG = 'index';
 export const MANIFEST_ASSET = 'manifest.json.gz.enc';
@@ -46,11 +49,34 @@ export interface Manifest {
   terms: ClientTerm[];
 }
 
-/** What a push needs: both passphrases and the manifest signing key. */
+/** What a push needs: the private passphrase, the readers' public age recipients and the manifest signing key. */
 export interface ReleaseKeys {
   passphrase: string;
-  clientPassphrase: string;
+  recipients: string[];
   signingKey: KeyObject;
+}
+
+/** gzip, then age to `recipients`. */
+export function ageSeal(plain: Buffer, recipients: string[]): Buffer {
+  return age.encrypt(gzipSync(plain), recipients);
+}
+
+/** age with `identity`, then gunzip. */
+export function ageUnseal(file: Buffer, identity: string): Buffer {
+  return gunzipSync(age.decrypt(file, identity));
+}
+
+/** Recipients from an index-recipients.txt: one `age1…` per line; blank lines and `#` comments ignored. */
+export function parseRecipients(text: string): string[] {
+  const out: string[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/#.*$/, '').trim();
+    if (!line) continue;
+    age.checkRecipient(line);
+    if (!out.includes(line)) out.push(line);
+  }
+  if (out.length === 0) throw new Error('no recipients');
+  return out;
 }
 
 export class NoRelease extends Error {}
@@ -115,9 +141,9 @@ export function pushRelease(
   log: Log,
   nowMs: number = Date.now(),
 ): Manifest {
-  const { passphrase, clientPassphrase, signingKey } = keys;
-  if (passphrase === clientPassphrase) throw new Error('the client passphrase must differ from the private one');
-  const pid = passphraseId(clientPassphrase);
+  const { passphrase, recipients, signingKey } = keys;
+  if (recipients.length === 0) throw new Error('no recipients');
+  const rid = recipientsId(recipients);
   // Fold the WAL into the file and read what the release needs.
   const db = new DatabaseSync(dbPath);
   let terms;
@@ -157,13 +183,13 @@ export function pushRelease(
 
     const termEntries: ClientTerm[] = [];
     for (const t of terms) {
-      const asset = termAssetName(t.term, t.sha256, pid);
+      const asset = termAssetName(t.term, t.sha256, rid);
       const before = old?.terms.find((e) => e.asset === asset && e.assetSha256);
       let sealed: { bytes: number; assetSha256: string };
       if (assets.includes(asset) && before) {
         sealed = { bytes: before.bytes, assetSha256: before.assetSha256 };
       } else {
-        const bytes = seal(t.json, clientPassphrase);
+        const bytes = ageSeal(t.json, recipients);
         upload(asset, bytes);
         sealed = { bytes: bytes.length, assetSha256: sha256Hex(bytes) };
         log(`uploaded ${asset} (${t.courses} courses, ${t.sessions} sessions)`);
@@ -185,15 +211,15 @@ export function pushRelease(
     const client: ClientManifest = {
       format: CLIENT_MANIFEST_FORMAT,
       generatedAt: manifest.generatedAt,
-      passphraseId: pid,
+      recipientsId: rid,
       terms: termEntries,
     };
-    const envelope = makeEnvelope(CLIENT_MANIFEST_ASSET, seal(Buffer.from(JSON.stringify(client, null, 1)), clientPassphrase), pid, signingKey);
+    const envelope = makeEnvelope(CLIENT_MANIFEST_ASSET, ageSeal(Buffer.from(JSON.stringify(client, null, 1)), recipients), recipients, signingKey);
     const publicKey = createPublicKey(signingKey);
     const self: SigningKey = { id: keyIdOf(publicKey), publicKey: publicKey.export({ format: 'pem', type: 'spki' }).toString() };
     if (!openEnvelope(envelope, CLIENT_MANIFEST_ASSET, [self]).ok) throw new Error('client manifest failed its own signature check');
     upload(CLIENT_MANIFEST_ASSET, Buffer.from(envelope));
-    log(`client manifest updated (signing key ${self.id}, passphrase ${pid})`);
+    log(`client manifest updated (signing key ${self.id}, ${recipients.length} recipients ${rid})`);
 
     const keep = new Set([MANIFEST_ASSET, CLIENT_MANIFEST_ASSET, dbAsset, ...termEntries.map((t) => t.asset)]);
     if (manifest.previousDb) keep.add(manifest.previousDb);
@@ -219,7 +245,8 @@ export function currentTerm(nowMs: number = Date.now()): string {
 }
 
 export interface BundleOptions {
-  clientPassphrase: string;
+  /** The app's age identity (`AGE-SECRET-KEY-1…`): every file is opened once with it. */
+  identity: string;
   /** Public keys the app accepts (its indexSigningKeys.json). */
   keys: SigningKey[];
   /** Terms before this one go into the bundle. */
@@ -228,8 +255,8 @@ export interface BundleOptions {
 
 /**
  * Fill `outDir` with what the app ships: the client manifest envelope as
- * published and the sealed term files before `opts.before`, each checked
- * against the manifest and opened once with the client passphrase. Files
+ * published and the encrypted term files before `opts.before`, each checked
+ * against the manifest and opened once with the app's identity. Files
  * already there with the right hash are kept; other term files are removed.
  */
 export async function bundleRelease(tag: string, outDir: string, opts: BundleOptions, log: Log): Promise<ClientTerm[]> {
@@ -241,10 +268,11 @@ export async function bundleRelease(tag: string, outDir: string, opts: BundleOpt
     const text = download(tag, CLIENT_MANIFEST_ASSET, dir).toString('utf8');
     const opened = openEnvelope(text, CLIENT_MANIFEST_ASSET, opts.keys);
     if (!opened.ok) throw new Error(`${CLIENT_MANIFEST_ASSET}: signature check failed (${opened.reason})`);
-    if (opened.passphraseId !== passphraseId(opts.clientPassphrase)) {
-      throw new Error(`the release is sealed with client passphrase ${opened.passphraseId}, not the one given (${passphraseId(opts.clientPassphrase)})`);
+    const me = age.recipientOf(opts.identity);
+    if (!opened.recipients.includes(me)) {
+      throw new Error(`the release is not encrypted to this identity (${me}); add it to index-recipients.txt and publish again`);
     }
-    const manifest = parseClientManifest(await unsealAsync(opened.data, opts.clientPassphrase));
+    const manifest = parseClientManifest(ageUnseal(opened.data, opts.identity));
     const chosen = manifest.terms.filter((t) => t.term < opts.before).sort((a, b) => a.term.localeCompare(b.term));
     log(`release ${tag}: client manifest from ${manifest.generatedAt} (key ${opened.keyId}); bundling ${chosen.length} terms before ${opts.before}`);
 
@@ -257,14 +285,14 @@ export async function bundleRelease(tag: string, outDir: string, opts: BundleOpt
       }
       const bytes = download(tag, t.asset, dir);
       if (bytes.length !== t.bytes || sha256Hex(bytes) !== t.assetSha256) throw new Error(`${t.asset}: checksum mismatch`);
-      if (sha256Hex(await unsealAsync(bytes, opts.clientPassphrase)) !== t.sha256) throw new Error(`${t.asset}: content checksum mismatch`);
+      if (sha256Hex(ageUnseal(bytes, opts.identity)) !== t.sha256) throw new Error(`${t.asset}: content checksum mismatch`);
       writeFileSync(target, bytes);
       log(`${t.term}: ${t.asset} (${t.courses} courses, ${t.sessions} sessions)`);
     }
     writeFileSync(join(outDir, CLIENT_MANIFEST_ASSET), text);
     const keep = new Set(chosen.map((t) => t.asset));
     for (const name of readdirSync(outDir)) {
-      if (/^term-.*\.json\.gz\.enc$/.test(name) && !keep.has(name)) {
+      if (TERM_ASSET_PATTERN.test(name) && !keep.has(name)) {
         unlinkSync(join(outDir, name));
         log(`removed old ${name}`);
       }
