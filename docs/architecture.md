@@ -1556,7 +1556,7 @@ CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each 
 
 | File | Trigger | Jobs |
 |---|---|---|
-| `.github/workflows/ci.yml` | push `main` + **all PRs** | `autoslides` (lint, tsc, vue-tsc, vitest, **drift**); `workers` matrix `web|share|relay` (typecheck, test, web also `typecheck:web`); `security` matrix all four (`npm audit --audit-level=moderate`); `package` Windows `npm run package` (retry loop for transient Electron downloads) |
+| `.github/workflows/ci.yml` | push `main` + **all PRs** | `autoslides` (lint, tsc, vue-tsc, vitest, **drift**); `workers` matrix `web|share|relay` (typecheck, test, web also `typecheck:web`); `security` matrix all four (`npm audit --json` through `scripts/audit-gate.mjs`: moderate and above fails, except per-package allowances in the matrix, each with its reason and a major-version ceiling); `package` Windows `npm run package` (retry loop for transient Electron downloads) |
 | `release.yml` | tag `v*` | Windows NSIS (`make:win`), Linux AppImage/deb (`make:linux`) and macOS arm64 DMG (`make:mac` on `macos-15`: Forge package + ad-hoc re-sign hook + electron-builder DMG with `resources/dmg-background.png` (+ `@2x`, source `dmg-background.html`), converted to LZMA; users strip quarantine themselves in Terminal per README), each after `index-bundle`; signs every installer and creates a draft release |
 
 Node 22 everywhere. Web CI generates types with `npx wrangler types -c wrangler.example.jsonc --strict-vars false` so `SSO_RESUME_KEY` stays `string`.

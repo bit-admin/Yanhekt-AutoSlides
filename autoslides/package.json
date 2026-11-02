@@ -65,7 +65,19 @@
     "tmp": "^0.2.7",
     "extract-zip": "$extract-zip",
     "braces": "$braces",
-    "image-size": "^2.0.4"
+    "image-size": "^2.0.4",
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.4"
+    },
+    "app-builder-lib": {
+      "minimatch": "^11.0.4"
+    },
+    "@electron/universal": {
+      "minimatch": "^11.0.4"
+    },
+    "ts-json-schema-generator": {
+      "glob": "^14.0.3"
+    }
   },
   "dependencies": {
     "@editorjs/code": "^2.8.0",
