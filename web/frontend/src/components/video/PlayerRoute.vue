@@ -39,7 +39,7 @@ import { authStore } from '../../stores/authStore'
 import { playbackStore } from '../../stores/playbackStore'
 import { takeCourse, takeSession } from '../../stores/courseTransfer'
 import { getSubscribedCourse, upgradeSubscribedCourse } from '../../composables/subscribedCourses'
-import { getCourseDetail, getLiveById, getSessionById, type LiveStream, type SessionData } from '../../lib/api'
+import { getCourseDetailIfAvailable, getLiveById, getSessionById, type LiveStream, type SessionData } from '../../lib/api'
 import { transformLiveStreamToCourse, type Course } from '../../composables/useCourseList'
 import { lookupCourseById, needsListHydration } from '../../composables/lookupCourseById'
 import { courseDisplayTitle } from '../../i18n/displayNames'
@@ -120,14 +120,21 @@ const hydrateRecorded = async (token: string): Promise<void> => {
   // id (/v1/course/session + /v1/video). Both are anonymous upstream, so a link
   // to any course plays, not only courses this account's session list shows.
   // The list only fills the player's playlist (PlaybackPage), never this page.
-  const detailPromise = getCourseDetail(courseId, token)
-  const sessionPromise = !session.value && sessionId ? getSessionById(sessionId, token) : Promise.resolve(null)
+  // An expired course has no detail (empty facts) and its session comes from
+  // the course's signed-in list, which the link's course id makes possible.
+  const detailPromise = getCourseDetailIfAvailable(courseId, token)
+  const sessionPromise = !session.value && sessionId ? getSessionById(sessionId, token, courseId) : Promise.resolve(null)
   const listPromise = needsListHydration(course.value)
     ? lookupCourseById(token, courseId)
     : Promise.resolve(null)
   const [info, lookup, listCourse] = await Promise.all([detailPromise, sessionPromise, listPromise])
 
   if (lookup) {
+    if (lookup.kind === 'expired') {
+      notFoundKey.value = 'playback.sessionExpired'
+      state.value = 'not-found'
+      return
+    }
     if (lookup.kind === 'missing' || lookup.courseId !== courseId) {
       state.value = 'not-found'
       return

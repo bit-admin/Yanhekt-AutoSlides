@@ -247,6 +247,7 @@
     "selectStream": "Select Stream",
     "sessionNotFound": "Session not found in this course",
     "sessionNoRecording": "This session has no recording yet",
+    "sessionExpired": "This session is from an earlier term. Yanhekt now only lists it to accounts that can watch the course",
     "otherSessionsUnavailable": "Other sessions of this course could not be found",
     "signInToWatch": "Sign in to watch this lecture",
     "slideExtraction": "Slide Extraction",

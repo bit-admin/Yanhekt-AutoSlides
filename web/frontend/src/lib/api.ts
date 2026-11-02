@@ -252,10 +252,23 @@ interface SessionListApiResponse extends BaseApiResponse {
   }>;
 }
 
+type SessionListRow = SessionListApiResponse["data"][number];
+
 const PROXY_BASE = "/api/yanhekt";
+
+/**
+ * `12121028` 课程已过期 (since 2026-11-02, number or string): earlier terms'
+ * course detail, session detail, `/v1/video` and `/v2` session list refuse
+ * with it, signed in or not. The signed-in `/v1` session list still answers,
+ * with playback URLs.
+ */
+class CourseExpiredError extends Error {}
 
 function unwrapEnvelope<T>(data: BaseApiResponse & { data: T }): T {
   if (data.code !== 0 && data.code !== "0") {
+    if (String(data.code) === "12121028") {
+      throw new CourseExpiredError(`API error: ${data.message} (code: ${data.code})`);
+    }
     switch (data.code) {
       case 13001001:
         throw new Error("Authentication failed, please check if token is valid");
@@ -568,6 +581,20 @@ export async function getCourseDetail(courseId: string, token: string): Promise<
   };
 }
 
+/**
+ * {@link getCourseDetail}, or empty facts for an expired course (its
+ * recordings still play). Empty, not a placeholder: callers keep a title they
+ * already have. Other failures still throw.
+ */
+export async function getCourseDetailIfAvailable(courseId: string, token: string): Promise<CourseDetail> {
+  try {
+    return await getCourseDetail(courseId, token);
+  } catch (error) {
+    if (!(error instanceof CourseExpiredError)) throw error;
+    return { course_id: String(courseId), title: "", professor: "" };
+  }
+}
+
 interface SessionDetailData {
   id: number | string;
   course_id: number | string;
@@ -594,15 +621,22 @@ const MISSING_ID = /\(code: (12121010|13121010)\)/;
 export type SessionLookup =
   | { kind: "found"; courseId: string; session: SessionData }
   | { kind: "missing" }
-  | { kind: "no-recording"; courseId: string };
+  | { kind: "no-recording"; courseId: string }
+  /** An expired course's session that its course's signed-in list does not give. */
+  | { kind: "expired" };
 
 /**
  * One recorded session by id, playable without the course's session list:
  * `/v1/course/session` gives the session and its `video_ids`, `/v1/video` the
  * stream URLs. Both are anonymous upstream, so this works for any course, not
  * only ones the account can list. A wrong id is `missing`, not an error.
+ *
+ * An expired course's session refuses both hops. Then, when the caller knows
+ * the course (a player link carries it), the session comes from that course's
+ * signed-in `/v1` list, matched by id here (the list ignores a `session_id`
+ * filter); otherwise, or when the list does not give it, `expired`.
  */
-export async function getSessionById(sessionId: string, token: string): Promise<SessionLookup> {
+export async function getSessionById(sessionId: string, token: string, knownCourseId?: string): Promise<SessionLookup> {
   let detail: SessionDetailData;
   try {
     detail = await request<SessionDetailData>(
@@ -611,6 +645,7 @@ export async function getSessionById(sessionId: string, token: string): Promise<
     );
   } catch (error) {
     if (error instanceof Error && MISSING_ID.test(error.message)) return { kind: "missing" };
+    if (error instanceof CourseExpiredError) return expiredSessionById(sessionId, token, knownCourseId);
     throw error;
   }
   const courseId = String(detail.course_id);
@@ -622,6 +657,7 @@ export async function getSessionById(sessionId: string, token: string): Promise<
     video = await request<VideoPlaybackData>(`/v1/video?id=${encodeURIComponent(String(videoId))}`, token);
   } catch (error) {
     if (error instanceof Error && MISSING_ID.test(error.message)) return { kind: "no-recording", courseId };
+    if (error instanceof CourseExpiredError) return expiredSessionById(sessionId, token, courseId);
     throw error;
   }
   if (!video?.main && !video?.vga) return { kind: "no-recording", courseId };
@@ -643,6 +679,48 @@ export async function getSessionById(sessionId: string, token: string): Promise<
       vga_url: video.vga || "",
       id: realVideoId,
     },
+  };
+}
+
+/** {@link getSessionById} for an expired course's session, from the course's signed-in `/v1` list. */
+async function expiredSessionById(sessionId: string, token: string, courseId: string | undefined): Promise<SessionLookup> {
+  if (!courseId || !token) return { kind: "expired" };
+  let rows: SessionListApiResponse["data"];
+  try {
+    rows = await request<SessionListApiResponse["data"]>(
+      `/v1/course/session/list?course_id=${encodeURIComponent(courseId)}`,
+      token,
+    );
+  } catch (error) {
+    if (error instanceof CourseExpiredError) return { kind: "expired" };
+    throw error;
+  }
+  const row = (rows ?? []).find((r) => String(r.id) === String(sessionId));
+  if (!row) return { kind: "expired" };
+  const session = sessionOfListRow(row);
+  if (!session.main_url && !session.vga_url) return { kind: "no-recording", courseId };
+  return { kind: "found", courseId, session };
+}
+
+/** One session-list row as the player's session (embedded URLs, ids as strings). */
+function sessionOfListRow(video: SessionListRow): SessionData {
+  const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
+  // The API returns numeric ids at runtime despite the declared string
+  // types (the Electron app String()s them at every use site). Normalize
+  // here so router params and Map keys compare reliably.
+  const realVideoId = videoData ? String(videoData.id) : "";
+  return {
+    session_id: String(video.id),
+    video_id: realVideoId,
+    title: video.title,
+    duration: videoData ? parseInt(videoData.duration) : 0,
+    week_number: video.week_number,
+    day: video.day,
+    started_at: video.started_at,
+    ended_at: video.ended_at,
+    main_url: videoData?.main?.trim() || "",
+    vga_url: videoData?.vga?.trim() || "",
+    id: realVideoId,
   };
 }
 
@@ -727,13 +805,22 @@ export async function getSessionRoom(sessionId: string, token: string): Promise<
 }
 
 export async function getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
-  const detail = await getCourseDetail(courseId, token);
-  // `/v2` first; when it is empty, the `/v1` twin (same bare-array shape).
-  // Since 2026-10-22 `/v2` answers `[]` even signed in.
-  let videoList = await request<SessionListApiResponse["data"]>(
-    `/v2/course/session/list?course_id=${courseId}`,
-    token,
-  );
+  // Old courses can still list recordings with embedded playback URLs.
+  const detail = await getCourseDetailIfAvailable(courseId, token);
+  // `/v2` first; when it is empty or reports course expiry, the `/v1` twin
+  // can still carry embedded playback URLs. Other failures are not suppressed.
+  let videoList: SessionListApiResponse["data"];
+  let expired = false;
+  try {
+    videoList = await request<SessionListApiResponse["data"]>(
+      `/v2/course/session/list?course_id=${courseId}`,
+      token,
+    );
+  } catch (error) {
+    if (!(error instanceof CourseExpiredError)) throw error;
+    videoList = [];
+    expired = true;
+  }
   if (!videoList || videoList.length === 0) {
     videoList = await request<SessionListApiResponse["data"]>(
       `/v1/course/session/list?course_id=${courseId}`,
@@ -741,8 +828,9 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
     );
   }
   // Last: the Index's session ids, each read by id. Both lists are empty for a
-  // course this account may not list, but its sessions still play by id.
-  if (!videoList || videoList.length === 0) {
+  // course this account may not list, but its sessions still play by id. Not
+  // for an expired course: its sessions refuse by id too.
+  if (!expired && (!videoList || videoList.length === 0)) {
     const fromIndex = await sessionsFromIndex(String(courseId), token);
     if (fromIndex.length > 0) return { ...detail, videos: fromIndex };
   }
@@ -753,27 +841,7 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
   // code, so the two cannot be told apart here. A wrong id or a bad token is
   // a non-zero `code`, which `request` throws.
 
-  const formattedVideos: SessionData[] = (videoList ?? []).map((video) => {
-    const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
-    // The API returns numeric ids at runtime despite the declared string
-    // types (the Electron app String()s them at every use site). Normalize
-    // here so router params and Map keys compare reliably.
-    const realVideoId = videoData ? String(videoData.id) : "";
-
-    return {
-      session_id: String(video.id),
-      video_id: realVideoId,
-      title: video.title,
-      duration: videoData ? parseInt(videoData.duration) : 0,
-      week_number: video.week_number,
-      day: video.day,
-      started_at: video.started_at,
-      ended_at: video.ended_at,
-      main_url: videoData ? videoData.main : "",
-      vga_url: videoData ? videoData.vga : "",
-      id: realVideoId,
-    };
-  });
+  const formattedVideos: SessionData[] = (videoList ?? []).map(sessionOfListRow);
 
   return { ...detail, videos: formattedVideos };
 }
