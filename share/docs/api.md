@@ -120,6 +120,8 @@ GET /api/courses/12345/yanhekt
 
 `404 not-found` for a course the index does not have (Yanhekt is not asked) or Yanhekt does not have. Cached for 6 hours.
 
+An earlier term's course, which Yanhekt no longer describes (`12121028` 课程已过期, since 2026-11-02), answers the index's own name and teachers with every other field `null` and `"expired": true`.
+
 ## `GET /api/courses/{id}/yanhekt/sessions`
 
 Yanhekt's details for the course's sessions, in the order of [`/sessions`](#get-apicoursesidsessions), at most 30 per call. Ask again with `from` = `next` until `next` is `null`.
@@ -144,6 +146,7 @@ GET /api/courses/12345/yanhekt/sessions?from=0
     },
     { "id": 100102, "error": "gone" },        // Yanhekt no longer has it (or it moved to another course)
     { "id": 100103, "error": "unavailable" }  // could not be read this time (Yanhekt down, including its gateway's "failed to invoke service"); ask again later
+    // { "id": 100104, "error": "expired" }    // an earlier term's session: Yanhekt no longer shows it (课程已过期); it still exists
   ]
 }
 ```
@@ -152,7 +155,7 @@ GET /api/courses/12345/yanhekt/sessions?from=0
 |---|---|
 | `from` | optional, default `0`: the position in the session list to start at |
 
-Every field but `id` may be `null`. Only the index's own session ids for that course are read. A page is cached for 30 minutes, except one with an `unavailable` session, which is not cached.
+Every field but `id` may be `null`. Only the index's own session ids for that course are read. Since 2026-11-02 Yanhekt refuses earlier terms' courses and sessions to everyone with `12121028` 课程已过期: such a session is `expired`, and when a page's first session is, the whole page is (expiry is per course), read with one request. A page is cached for 30 minutes, except one with an `unavailable` session, which is not cached.
 
 ## `GET /api/terms`
 

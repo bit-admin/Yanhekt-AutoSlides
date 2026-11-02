@@ -10,6 +10,8 @@
  * metadata (no video token, no VOD URLs).
  */
 
+import type { D1Database } from './runtime';
+
 const CBIZ = 'https://cbiz.yanhekt.cn';
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3';
@@ -151,16 +153,46 @@ export async function fetchSession(sessionId: string): Promise<YanhektSession | 
 }
 
 /**
+ * What the Index (D1) holds about a course: its name, teachers and term. The
+ * stand-in when Yanhekt refuses an earlier term's course (课程已过期, since
+ * 2026-11-02) or does not answer. One row read; null when not indexed.
+ */
+export async function indexedCourse(db: D1Database | undefined, courseId: string): Promise<YanhektCourse | null> {
+  if (!db || !/^\d{1,12}$/.test(courseId)) return null;
+  try {
+    const row = await db
+      .prepare('SELECT name, teachers, term FROM courses WHERE id = ?')
+      .bind(Number(courseId))
+      .first<{ name: string; teachers: string | null; term: string | null }>();
+    if (!row) return null;
+    const teachers = JSON.parse(row.teachers ?? '[]') as unknown;
+    const [, schoolYear, semester] = /^(\d{4}-\d{4})-(\d)$/.exec(row.term ?? '') ?? [];
+    return {
+      id: courseId,
+      name_zh: row.name,
+      professors: Array.isArray(teachers) ? teachers.map(String) : [],
+      school_year: schoolYear,
+      semester,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * One Worker-side fan-out: session detail (nested course) plus a course-detail
  * fallback when the session payload is thin. Used by /v1/api/meta and /v1/api/get.
+ * When Yanhekt gives no course (an expired one), the Index's copy stands in;
+ * the session title is then unknown.
  */
-export async function fetchLectureMeta(courseId: string, sessionId?: string): Promise<LectureMeta | null> {
+export async function fetchLectureMeta(courseId: string, sessionId?: string, db?: D1Database): Promise<LectureMeta | null> {
   const cid = courseId.trim();
   const sid = sessionId?.trim();
   if (!cid && !sid) return null;
 
   if (sid) {
-    const [session, course] = await Promise.all([fetchSession(sid), cid ? fetchCourse(cid) : Promise.resolve(null)]);
+    const [session, fetched] = await Promise.all([fetchSession(sid), cid ? fetchCourse(cid) : Promise.resolve(null)]);
+    const course = fetched ?? (!session?.course && cid ? await indexedCourse(db, cid) : null);
     if (!session && !course) return null;
     const fromSession = metaFromSession(session ?? undefined, cid || asString(session?.course?.id), sid);
     if (course) {
@@ -178,7 +210,7 @@ export async function fetchLectureMeta(courseId: string, sessionId?: string): Pr
     return fromSession;
   }
 
-  const course = await fetchCourse(cid);
+  const course = (await fetchCourse(cid)) ?? (await indexedCourse(db, cid));
   if (!course) return null;
   const fromCourse = courseFromYanhekt(course, cid);
   return {

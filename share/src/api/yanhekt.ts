@@ -41,6 +41,12 @@ export interface CourseDetails {
   image: string | null;
   /** Teacher names Yanhekt lists for the course; often empty. */
   teachers: string[];
+  /**
+   * Present (true) when Yanhekt no longer describes the course (an earlier
+   * term, 课程已过期 since 2026-11-02): then only the Index's own name and
+   * teachers are given, and every other field is null.
+   */
+  expired?: true;
 }
 
 export interface SessionDetails {
@@ -58,10 +64,15 @@ export interface SessionDetails {
   recorded: boolean;
 }
 
-/** A session id the Index lists that Yanhekt did not answer for: `gone` (deleted, or moved to another course) or `unavailable` (failed; retry later). */
+/**
+ * A session id the Index lists that Yanhekt did not answer for: `gone`
+ * (deleted, or moved to another course), `expired` (an earlier term's session,
+ * which Yanhekt no longer serves by id; it still exists) or `unavailable`
+ * (failed; retry later).
+ */
 export interface SessionMissing {
   id: number;
-  error: 'gone' | 'unavailable';
+  error: 'gone' | 'expired' | 'unavailable';
 }
 
 export interface SessionsPage {
@@ -76,7 +87,7 @@ export interface SessionsPage {
 
 export type Failure = { error: 'not-found' | 'yanhekt-unavailable' | 'yanhekt-not-configured'; message: string };
 
-type Read<T> = { ok: true; data: T } | { ok: false; gone: boolean };
+type Read<T> = { ok: true; data: T } | { ok: false; gone: boolean; expired?: true };
 
 /**
  * Envelope codes that mean Yanhekt failed, not that the record is missing. `99151011` is its gateway's
@@ -84,6 +95,9 @@ type Read<T> = { ok: true; data: T } | { ok: false; gone: boolean };
  * behind it is down, so every read answers with it until it comes back (docs/architecture.md §9.1).
  */
 const OUTAGE_CODES = new Set(['99151011']);
+
+/** 课程已过期: earlier terms' courses and sessions, refused to everyone since 2026-11-02. */
+const EXPIRED_CODE = '12121028';
 
 /** One GET through the web Worker's Yanhekt proxy. `gone`: Yanhekt answered with a non-zero code other than an outage. */
 async function readYanhekt<T>(web: NonNullable<Env['WEB']>, pathAndQuery: string): Promise<Read<T>> {
@@ -97,6 +111,7 @@ async function readYanhekt<T>(web: NonNullable<Env['WEB']>, pathAndQuery: string
     if (!res.ok) return { ok: false, gone: false };
     const body = (await res.json()) as { code?: unknown; data?: T };
     if (OUTAGE_CODES.has(String(body.code))) return { ok: false, gone: false };
+    if (String(body.code) === EXPIRED_CODE) return { ok: false, gone: false, expired: true };
     if (String(body.code) !== '0') return { ok: false, gone: true };
     return body.data == null ? { ok: false, gone: true } : { ok: true, data: body.data };
   } catch {
@@ -190,8 +205,26 @@ export async function courseDetails(env: Env, id: number): Promise<CourseDetails
   if (!env.WEB) return notConfigured;
   if (!(await courseSessions(env.YANHEKT_DB, id))) return notIndexed(id);
   const read = await readYanhekt<RawCourse>(env.WEB, `/v1/course?id=${id}`);
+  if (!read.ok && read.expired) return expiredCourse(env, id);
   if (!read.ok) return read.gone ? { error: 'not-found', message: `Yanhekt has no course ${id}` } : unavailable;
   return courseFromRaw(id, read.data);
+}
+
+/** An expired course: what the Index itself holds (one row read; the course is known to be indexed). */
+async function expiredCourse(env: Env, id: number): Promise<CourseDetails> {
+  const row = await env.YANHEKT_DB.prepare('SELECT name, teachers FROM courses WHERE id = ?')
+    .bind(id)
+    .first<{ name: string; teachers: string | null }>();
+  let teachers: unknown = [];
+  try {
+    teachers = JSON.parse(row?.teachers ?? '[]');
+  } catch {
+    /* none */
+  }
+  return {
+    ...courseFromRaw(id, { name_zh: row?.name ?? '', professors: Array.isArray(teachers) ? teachers.map(String) : [] }),
+    expired: true,
+  };
 }
 
 /** `GET /api/courses/{id}/yanhekt/sessions?from=`: up to SESSION_BATCH sessions, in the Index's order. */
@@ -202,17 +235,31 @@ export async function sessionDetails(env: Env, id: number, from: number): Promis
   if (!listed) return notIndexed(id);
   const ids = listed.sessions.slice(from, from + SESSION_BATCH);
   const out: Array<SessionDetails | SessionMissing> = new Array(ids.length);
-  let next = 0;
-  const worker = async () => {
-    while (next < ids.length) {
-      const i = next++;
-      const sid = ids[i];
-      const read = await readYanhekt<RawSession>(web, `/v1/course/session?session_id=${sid}&with_video=true`);
-      if (read.ok && text(read.data.course_id) === String(id)) out[i] = sessionFromRaw(sid, read.data);
-      else out[i] = { id: sid, error: read.ok || read.gone ? 'gone' : 'unavailable' };
-    }
+  const missing = (sid: number, read: Read<RawSession>): SessionMissing => ({
+    id: sid,
+    error: read.ok || read.gone ? 'gone' : read.expired ? 'expired' : 'unavailable',
+  });
+  const readOne = async (i: number) => {
+    const sid = ids[i];
+    const read = await readYanhekt<RawSession>(web, `/v1/course/session?session_id=${sid}&with_video=true`);
+    out[i] = read.ok && text(read.data.course_id) === String(id) ? sessionFromRaw(sid, read.data) : missing(sid, read);
   };
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ids.length) }, worker));
+  // Expiry is per course: when the first session is expired, so is the rest
+  // of the page, and the other reads would only spend subrequests.
+  let next = 0;
+  if (ids.length > 0) {
+    await readOne(0);
+    next = 1;
+    const first = out[0];
+    if ('error' in first && first.error === 'expired') {
+      for (let i = 1; i < ids.length; i++) out[i] = { id: ids[i], error: 'expired' };
+      next = ids.length;
+    }
+  }
+  const worker = async () => {
+    while (next < ids.length) await readOne(next++);
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, ids.length - next) }, worker));
   // Every read failing is an outage, not a page of "unavailable" rows.
   if (ids.length > 0 && out.every((s) => 'error' in s && s.error === 'unavailable')) return unavailable;
   const end = from + ids.length;

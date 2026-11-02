@@ -15,12 +15,15 @@ const web = {
     const a = answers[u.pathname.replace(/^\/api\/yanhekt/, '') + u.search];
     if (typeof a === 'number') return new Response('upstream', { status: a });
     if (a === OUTAGE) return Response.json(OUTAGE);
+    if (a === EXPIRED) return Response.json(EXPIRED);
     if (a === undefined) return Response.json({ code: 12111010, message: '课程信息不存在', data: null });
     return Response.json({ code: 0, message: '', data: a });
   },
 };
 /** Yanhekt's gateway failure, verbatim: an HTTP 200 envelope, not a missing record. */
 const OUTAGE = { code: 99151011, message: 'failed to invoke service', displayable: false, data: [], module: 'frame_client_request' };
+/** An earlier term's course or session since 2026-11-02, verbatim. */
+const EXPIRED = { code: 12121028, message: '课程已过期', data: [] };
 const env = (bound = true) => ({ YANHEKT_DB: db, WEB: bound ? web : undefined }) as unknown as Env;
 const sessionPath = (id: number) => `/v1/course/session?session_id=${id}&with_video=true`;
 
@@ -156,5 +159,30 @@ describe('session details', () => {
       room: null,
       recorded: false,
     });
+  });
+});
+
+describe('expired courses (earlier terms)', () => {
+  it('answers the Index name and teachers for an expired course, marked expired', async () => {
+    addCourse(db, { id: 22222, name: '复变函数', teachers: [['张三', '教授']], sessions: [200201] });
+    answers['/v1/course?id=22222'] = EXPIRED;
+    expect(await courseDetails(env(), 22222)).toEqual({
+      id: 22222, nameZh: '复变函数', nameEn: null, code: null, level: null, college: null, collegeEn: null, image: null,
+      teachers: ['张三'], expired: true,
+    });
+  });
+
+  it('marks every session expired after one read when the first is, and is no outage', async () => {
+    for (const sid of [100101, 100102, 100103]) answers[sessionPath(sid)] = EXPIRED;
+    const page = await sessionDetails(env(), 12345, 0);
+    expect(page).toMatchObject({
+      total: 3,
+      sessions: [
+        { id: 100101, error: 'expired' },
+        { id: 100102, error: 'expired' },
+        { id: 100103, error: 'expired' },
+      ],
+    });
+    expect(seen).toHaveLength(1);
   });
 });

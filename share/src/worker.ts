@@ -55,11 +55,11 @@ async function handleShorten(req: Request, env: Env, origin: string): Promise<Re
   return json({ id, url: `${origin}/v1/s/${id}` });
 }
 
-async function metaForFragment(fragment: string) {
+async function metaForFragment(fragment: string, env: Env) {
   const payload = decodeSharePayload(fragment);
   if (!payload) return null;
   if (!payload.c && !payload.s) return null;
-  return fetchLectureMeta(payload.c ?? '', payload.s);
+  return fetchLectureMeta(payload.c ?? '', payload.s, env.YANHEKT_DB);
 }
 
 async function handleGet(url: URL, env: Env): Promise<Response> {
@@ -67,16 +67,16 @@ async function handleGet(url: URL, env: Env): Promise<Response> {
   if (!id) return json({ error: 'missing-id' }, 400);
   const fragment = await env.SHARE_KV.get(id);
   if (fragment === null) return json({ error: 'not-found' }, 404);
-  const meta = await metaForFragment(fragment);
+  const meta = await metaForFragment(fragment, env);
   return json({ fragment, meta });
 }
 
-async function handleMeta(req: Request, url: URL, ctx: ExecutionContext): Promise<Response> {
+async function handleMeta(req: Request, url: URL, env: Env, ctx: ExecutionContext): Promise<Response> {
   return cached(req, ctx, 3600, async () => {
     const courseId = url.searchParams.get('courseId') ?? url.searchParams.get('c') ?? '';
     const sessionId = url.searchParams.get('sessionId') ?? url.searchParams.get('s') ?? '';
     if (!courseId && !sessionId) return json({ error: 'missing-ids' }, 400);
-    const meta = await fetchLectureMeta(courseId, sessionId || undefined);
+    const meta = await fetchLectureMeta(courseId, sessionId || undefined, env.YANHEKT_DB);
     if (!meta) return json({ error: 'not-found' }, 404);
     return json({ ok: true, meta });
   });
@@ -120,7 +120,7 @@ export default {
       return handleGet(url, env);
     }
     if (pathname === '/v1/api/meta' && req.method === 'GET') {
-      return handleMeta(req, url, ctx);
+      return handleMeta(req, url, env, ctx);
     }
 
     // Short-link view: serve the versioned SPA shell (a real static asset); the

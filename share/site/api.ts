@@ -45,6 +45,8 @@ export interface YanhektCourse {
   collegeEn: string | null;
   image: string | null;
   teachers: string[];
+  /** Yanhekt no longer describes this (earlier-term) course; only name and teachers are given. */
+  expired?: true;
 }
 
 /** One session as Yanhekt lists it. Times are China time, `YYYY-MM-DD HH:MM:SS`. */
@@ -59,7 +61,7 @@ export interface YanhektSession {
   recorded: boolean;
 }
 
-export type YanhektSessionRow = YanhektSession | { id: number; error: 'gone' | 'unavailable' };
+export type YanhektSessionRow = YanhektSession | { id: number; error: 'gone' | 'expired' | 'unavailable' };
 
 export interface YanhektSessionsPage {
   course: number;

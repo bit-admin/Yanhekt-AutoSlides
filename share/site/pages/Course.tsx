@@ -37,9 +37,17 @@ type Live = {
   complete: boolean;
   /** Yanhekt could not be read at all. */
   failed: boolean;
+  /**
+   * An earlier term's course: Yanhekt no longer shows its details to anyone
+   * (课程已过期, since 2026-11-02), so the page lists the Index's session ids
+   * and links where they still play.
+   */
+  expired: boolean;
 };
 
-const emptyLive = (): Live => ({ course: null, rows: new Map(), complete: false, failed: false });
+const emptyLive = (): Live => ({ course: null, rows: new Map(), complete: false, failed: false, expired: false });
+
+const isExpiredRow = (r: YanhektSessionRow): boolean => 'error' in r && r.error === 'expired';
 
 export function Course({ id }: { id: number }) {
   const t = useT();
@@ -72,7 +80,7 @@ export function Course({ id }: { id: number }) {
     const ac = new AbortController();
     setLive(emptyLive());
     yanhektCourse(id, ac.signal)
-      .then(({ course }) => setLive((l) => ({ ...l, course })))
+      .then(({ course }) => setLive((l) => ({ ...l, course, expired: l.expired || !!course.expired })))
       .catch(() => {
         /* the Index facts stand on their own */
       });
@@ -80,6 +88,11 @@ export function Course({ id }: { id: number }) {
       let from: number | null = 0;
       while (from !== null) {
         const page = await yanhektSessions(id, from, ac.signal);
+        // Expiry is per course: the other pages would say the same.
+        if (page.sessions.length > 0 && page.sessions.every(isExpiredRow)) {
+          setLive((l) => ({ ...l, expired: true }));
+          break;
+        }
         setLive((l) => {
           const rows = new Map(l.rows);
           for (const r of page.sessions) rows.set(r.id, r);
@@ -143,7 +156,9 @@ function CoursePage({
   const teachers = course.teachers.length > 0 ? course.teachers : (yc?.teachers ?? []);
 
   const details = sessionIds.map((s) => live.rows.get(s));
-  const recorded = live.complete && !live.failed ? details.filter((d) => d && 'recorded' in d && d.recorded).length : null;
+  const expired = live.expired;
+  // An expired course's sessions say nothing about recordings, so no count.
+  const recorded = live.complete && !live.failed && !expired ? details.filter((d) => d && 'recorded' in d && d.recorded).length : null;
 
   // Index order (ascending ids) while loading, so rows do not jump; by start time once everything is in.
   const order = live.complete ? [...sessionIds].sort(byStart(live.rows)) : sessionIds;
@@ -157,10 +172,13 @@ function CoursePage({
           {termLabel(t, course.term)}
         </p>
         <div className="course__actions">
-          <a className="pill pill--primary" href={yanhektCourseUrl(id)} target="_blank" rel="noreferrer">
-            {t.openOnYanhekt} ↗
-          </a>
-          <a className="pill" href={webCourseUrl(id)} target="_blank" rel="noreferrer">
+          {/* Yanhekt's own page only says 课程已过期 for an expired course. */}
+          {!expired && (
+            <a className="pill pill--primary" href={yanhektCourseUrl(id)} target="_blank" rel="noreferrer">
+              {t.openOnYanhekt} ↗
+            </a>
+          )}
+          <a className={`pill${expired ? ' pill--primary' : ''}`} href={webCourseUrl(id)} target="_blank" rel="noreferrer">
             {t.openOnWeb} ↗
           </a>
           <AppLink className="pill" href={appCourseUrl(id)} onLaunch={() => app.watch('course')} />
@@ -222,6 +240,18 @@ function CoursePage({
         {live.failed && <p className="sessions__note">{t.yanhektFailed}</p>}
         {sessionIds.length === 0 ? (
           <p>{t.noSessions}</p>
+        ) : expired ? (
+          <>
+            <div className="sessions__callout">
+              <p className="sessions__callout-title">{t.expiredTitle}</p>
+              <p>{t.yanhektExpired}</p>
+            </div>
+            <ol className="lectures lectures--plain">
+              {sessionIds.map((s, i) => (
+                <PlainLecture key={s} courseId={id} id={s} n={i + 1} app={app} t={t} />
+              ))}
+            </ol>
+          </>
         ) : (
           <ol className="lectures">
             {order.map((s) => (
@@ -231,6 +261,28 @@ function CoursePage({
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * One session of an expired course: nothing but its place in the Index's
+ * list (ascending ids, which follow the timetable as Yanhekt created it) and
+ * the links that still play it when signed in.
+ */
+function PlainLecture({ courseId, id, n, app, t }: { courseId: number; id: number; n: number; app: ReturnType<typeof useAppLaunch>; t: Strings }) {
+  return (
+    <li className="lecture lecture--plain">
+      <a className="lecture__plain-title" href={webSessionUrl(courseId, id)} target="_blank" rel="noreferrer" title={t.openOnWeb}>
+        {t.sessionNumbered(n)}
+      </a>
+      <span className="lecture__links">
+        <AppLink short href={appSessionUrl(id)} onLaunch={() => app.watch(`session:${id}`)} />
+        <span className="lecture__id">
+          <code>{id}</code> <CopyButton text={String(id)} />
+        </span>
+      </span>
+      {app.missing === `session:${id}` && <AppMissingHint />}
+    </li>
   );
 }
 
@@ -259,6 +311,7 @@ function Lecture({
 }) {
   const s = row && !('error' in row) ? row : null;
   const gone = row && 'error' in row && row.error === 'gone';
+  const expired = row && 'error' in row && row.error === 'expired';
   const start = s ? chinaTime(s.startedAt) : null;
   const where = [start ? t.dateFormat(start) : null, s?.room].filter(Boolean).join(' · ');
   const hint = app.missing === `session:${id}`;
@@ -272,7 +325,7 @@ function Lecture({
         </a>
       </h3>
       <div className="lecture__snippet">
-        {s ? <When s={s} t={t} /> : row ? (gone ? t.sessionGone : t.sessionUnavailable) : pending ? t.loading : null}
+        {s ? <When s={s} t={t} /> : row ? (gone ? t.sessionGone : expired ? t.sessionExpired : t.sessionUnavailable) : pending ? t.loading : null}
       </div>
       <div className="lecture__links">
         <a href={webSessionUrl(courseId, id)} target="_blank" rel="noreferrer" title={t.openOnWeb}>

@@ -718,6 +718,51 @@ button {
 .lecture__id {
   color: var(--text-3);
 }
+/* An expired (earlier-term) course: one explanation, then a plain list of its sessions. */
+.sessions__callout {
+  margin: -6px 0 22px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+.sessions__callout p {
+  margin: 0;
+}
+.sessions__callout .sessions__callout-title {
+  color: var(--text);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.lectures--plain {
+  border-top: 1px solid var(--border);
+}
+.lecture--plain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.lecture--plain .lecture__links {
+  margin-top: 0;
+}
+.lecture__plain-title {
+  font-size: 16px;
+}
+.lecture__plain-title:visited {
+  color: var(--link-visited);
+}
+.lecture--plain .app-hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 /* "Nothing opened?" under an Open in AutoSlides Desktop link (components/AppLink.tsx). */
 .app-hint {
   margin: 4px 0 8px;
