@@ -13,7 +13,7 @@
  *
  * Reading a copy:
  *   1. the manifest envelope must carry a signature from indexSigningKeys.json;
- *   2. it must be sealed with the passphrase this build carries (clientKey.ts);
+ *   2. it must be encrypted to the age identity this build carries (clientKey.ts);
  *   3. each term file must match the manifest's hash before and after decrypting.
  * Anything else counts as no copy; nothing here touches the network.
  */
@@ -33,8 +33,8 @@ import {
   type SigningKey,
   type TermCourse,
 } from './clientIndex';
-import { indexClientPassphrase } from './clientKey';
-import { passphraseId, unsealAsync } from './seal';
+import { indexClientIdentity } from './clientKey';
+import { openAgeGz, recipientOf } from './ageOpen';
 import signingKeys from './indexSigningKeys.json';
 import { numberKey } from './grams';
 import { searchCourses, type IndexCourse } from './localSearch';
@@ -45,10 +45,10 @@ export type { TermCourse, IndexCourse };
 
 /** Why there is no index. */
 export type CourseIndexProblem =
-  | 'no-key'            // this build carries no client passphrase
-  | 'missing'           // no bundled manifest
+  | 'no-key'            // this build carries no index identity
+  | 'missing'           // no manifest (or one in a format this build does not read)
   | 'bad-signature'     // manifest not signed by a known key
-  | 'other-passphrase'  // sealed with a passphrase this build does not have
+  | 'other-key'         // not encrypted to this build's identity
   | 'unreadable';       // could not decrypt or parse
 
 export interface CourseIndexTerm {
@@ -69,20 +69,20 @@ interface Opened {
 
 export interface CourseIndexOptions {
   dir: string;
-  passphrase: string | null;
+  identity: string | null;
   keys?: SigningKey[];
 }
 
 export class CourseIndexBundle {
   private readonly dir: string;
-  private readonly passphrase: string | null;
+  private readonly identity: string | null;
   private readonly keys: SigningKey[];
   private opening: Promise<Opened | { problem: CourseIndexProblem; detail?: string }> | null = null;
   private readonly terms = new Map<string, Promise<TermCourse[] | null>>();
 
   constructor(options: CourseIndexOptions) {
     this.dir = options.dir;
-    this.passphrase = options.passphrase;
+    this.identity = options.identity;
     this.keys = options.keys ?? signingKeys.keys;
   }
 
@@ -126,7 +126,7 @@ export class CourseIndexBundle {
   }
 
   private async openOnce(): Promise<Opened | { problem: CourseIndexProblem; detail?: string }> {
-    if (!this.passphrase) return { problem: 'no-key' };
+    if (!this.identity) return { problem: 'no-key' };
     let text: string;
     try {
       text = await fs.readFile(path.join(this.dir, CLIENT_MANIFEST_ASSET), 'utf8');
@@ -134,13 +134,13 @@ export class CourseIndexBundle {
       return { problem: 'missing' };
     }
     const envelope = openEnvelope(text, CLIENT_MANIFEST_ASSET, this.keys);
-    if (!envelope.ok) return { problem: 'bad-signature', detail: envelope.reason };
-    if (envelope.passphraseId !== passphraseId(this.passphrase)) {
-      return { problem: 'other-passphrase', detail: envelope.passphraseId };
-    }
+    // A format-1 copy (before 2026-11-03, a shared passphrase) reads as malformed: no copy.
+    if (!envelope.ok) return { problem: envelope.reason === 'malformed' ? 'missing' : 'bad-signature', detail: envelope.reason };
     let manifest: ClientManifest;
     try {
-      manifest = parseClientManifest(await unsealAsync(envelope.data, this.passphrase));
+      const me = await recipientOf(this.identity);
+      if (!envelope.recipients.includes(me)) return { problem: 'other-key', detail: me };
+      manifest = parseClientManifest(await openAgeGz(envelope.data, this.identity));
     } catch (error) {
       return { problem: 'unreadable', detail: error instanceof Error ? error.message : String(error) };
     }
@@ -158,13 +158,13 @@ export class CourseIndexBundle {
 
   private async readTerm(term: string): Promise<TermCourse[] | null> {
     const opened = await this.open();
-    if ('problem' in opened || !this.passphrase) return null;
+    if ('problem' in opened || !this.identity) return null;
     const entry = opened.present.get(term);
     if (!entry) return null;
     try {
       const sealed = await fs.readFile(path.join(this.dir, entry.asset));
       if (sealed.length !== entry.bytes || sha256Hex(sealed) !== entry.assetSha256) throw new Error('file checksum mismatch');
-      const json = await unsealAsync(sealed, this.passphrase);
+      const json = await openAgeGz(sealed, this.identity);
       if (sha256Hex(json) !== entry.sha256) throw new Error('content checksum mismatch');
       return parseTermDoc(json, term);
     } catch (error) {
@@ -197,7 +197,7 @@ export interface LocalIndexTerm extends CourseIndexTerm {
 export interface LocalCourseIndexOptions {
   downloadedDir: string;
   bundledDir: string;
-  passphrase: string | null;
+  identity: string | null;
   keys?: SigningKey[];
 }
 
@@ -211,15 +211,15 @@ export class LocalCourseIndex {
   constructor(options: LocalCourseIndexOptions) {
     this.options = options;
     this.downloaded = this.openDownloaded();
-    this.bundled = new CourseIndexBundle({ dir: options.bundledDir, passphrase: options.passphrase, keys: options.keys });
+    this.bundled = new CourseIndexBundle({ dir: options.bundledDir, identity: options.identity, keys: options.keys });
   }
 
   get downloadedDir(): string {
     return this.options.downloadedDir;
   }
 
-  get passphrase(): string | null {
-    return this.options.passphrase;
+  get identity(): string | null {
+    return this.options.identity;
   }
 
   get keys(): SigningKey[] | undefined {
@@ -227,7 +227,7 @@ export class LocalCourseIndex {
   }
 
   private openDownloaded(): CourseIndexBundle {
-    return new CourseIndexBundle({ dir: this.options.downloadedDir, passphrase: this.options.passphrase, keys: this.options.keys });
+    return new CourseIndexBundle({ dir: this.options.downloadedDir, identity: this.options.identity, keys: this.options.keys });
   }
 
   /** Forget what was read, after the downloaded copy changed or was removed. */
@@ -350,7 +350,7 @@ export function localCourseIndex(): LocalCourseIndex {
     shared = new LocalCourseIndex({
       downloadedDir: downloadedCourseIndexDir(),
       bundledDir: bundledCourseIndexDir(),
-      passphrase: indexClientPassphrase(),
+      identity: indexClientIdentity(),
     });
   }
   return shared;

@@ -37,13 +37,13 @@ jobs:
         npm run lint
 
     # Earlier terms of the course index, from the `index` pre-release
-    # (sealed + signed; checked here and again by the app). The client
-    # passphrase also goes into the build (vite.main.config.ts).
+    # (age-encrypted + signed; checked here and again by the app). The app's
+    # age identity also goes into the build (vite.main.config.ts).
     - name: Fetch course index bundle
       working-directory: autoslides
       env:
         GH_TOKEN: ${{ github.token }}
-        INDEX_CLIENT_PASSPHRASE: ${{ secrets.INDEX_CLIENT_PASSPHRASE }}
+        INDEX_CLIENT_IDENTITY: ${{ secrets.INDEX_CLIENT_IDENTITY }}
       run: npm run index-bundle
 
     - name: Build NSIS installer
@@ -71,7 +71,7 @@ jobs:
       env:
         # Disable code signing for CI builds
         CSC_IDENTITY_AUTO_DISCOVERY: false
-        INDEX_CLIENT_PASSPHRASE: ${{ secrets.INDEX_CLIENT_PASSPHRASE }}
+        INDEX_CLIENT_IDENTITY: ${{ secrets.INDEX_CLIENT_IDENTITY }}
 
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
@@ -118,14 +118,14 @@ jobs:
       working-directory: autoslides
       env:
         GH_TOKEN: ${{ github.token }}
-        INDEX_CLIENT_PASSPHRASE: ${{ secrets.INDEX_CLIENT_PASSPHRASE }}
+        INDEX_CLIENT_IDENTITY: ${{ secrets.INDEX_CLIENT_IDENTITY }}
       run: npm run index-bundle
 
     - name: Build Linux packages
       # Same transient-500 exposure as the Windows job — see the note there.
       working-directory: autoslides
       env:
-        INDEX_CLIENT_PASSPHRASE: ${{ secrets.INDEX_CLIENT_PASSPHRASE }}
+        INDEX_CLIENT_IDENTITY: ${{ secrets.INDEX_CLIENT_IDENTITY }}
       run: |
         for i in 1 2 3; do
           if npm run make:linux; then exit 0; fi

@@ -4,13 +4,15 @@ import fs from 'fs';
 import os from 'os';
 import { hideKey } from './src/main/platform/courseIndex/clientKey';
 
-// The course index client passphrase (src/main/platform/courseIndex/clientKey.ts):
-// $INDEX_CLIENT_PASSPHRASE in CI, else the release Mac's file. Hidden under a
-// fresh seed every build; null when neither is there (the index is then off).
+// The course index age identity (src/main/platform/courseIndex/clientKey.ts):
+// $INDEX_CLIENT_IDENTITY in CI, else the release Mac's file (as age-keygen
+// writes it: comment lines, then the key). Hidden under a fresh seed every
+// build; null when neither is there (the index is then off).
 function indexClientKey(): string {
-  let key = process.env.INDEX_CLIENT_PASSPHRASE?.replace(/\r?\n$/, '') ?? '';
-  const file = path.join(os.homedir(), '.config', 'autoslides', 'index-client-passphrase.txt');
-  if (!key && fs.existsSync(file)) key = fs.readFileSync(file, 'utf8').replace(/\r?\n$/, '');
+  let text = process.env.INDEX_CLIENT_IDENTITY ?? '';
+  const file = path.join(os.homedir(), '.config', 'autoslides', 'index-client-identity.txt');
+  if (!text.trim() && fs.existsSync(file)) text = fs.readFileSync(file, 'utf8');
+  const key = /^AGE-SECRET-KEY-1[0-9A-Z]+$/m.exec(text)?.[0] ?? '';
   return JSON.stringify(key ? hideKey(key) : null);
 }
 

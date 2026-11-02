@@ -7,16 +7,16 @@ import path from 'node:path';
 vi.mock('electron', () => ({ app: { isPackaged: false, getAppPath: () => '', getPath: () => '', getName: () => 'AutoSlides', getVersion: () => '0.0.0' } }));
 vi.mock('@main/infra/logger', () => ({ createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }));
 
-import { CLIENT_MANIFEST_ASSET, keyIdOf, makeEnvelope, sha256Hex, termAssetName, type ClientManifest, type SigningKey } from './clientIndex';
+import { CLIENT_MANIFEST_ASSET, keyIdOf, makeEnvelope, recipientsId, sha256Hex, termAssetName, type ClientManifest, type SigningKey } from './clientIndex';
 import { LocalCourseIndex } from './courseIndex';
 import { CourseIndexUpdater, fetchReleaseAsset } from './courseIndexUpdater';
 import { CourseLookup } from './courseLookup';
 import { searchCourses, type IndexCourse } from './localSearch';
-import { passphraseId, seal } from './seal';
+import { newIdentity, sealAgeGz } from './testAge';
 import { clearIndexMemo } from '../indexClient';
 
 // Fabricated courses only: real index data never goes into tests.
-const PASS = 'test-client-passphrase';
+let ME: { identity: string; recipient: string };
 type Row = [number, string, string | null, string[], number[]];
 
 function keyPair(): { privateKey: crypto.KeyObject; entry: SigningKey } {
@@ -26,21 +26,24 @@ function keyPair(): { privateKey: crypto.KeyObject; entry: SigningKey } {
 
 const signer = keyPair();
 
-/** A release's files: the manifest envelope text and each term's sealed bytes, by asset name. */
-function release(terms: Record<string, Row[]>, generatedAt: string, reuse?: Map<string, Buffer>): { manifest: ClientManifest; files: Map<string, Buffer> } {
-  const pid = passphraseId(PASS);
+/** A release's files: the manifest envelope text and each term's encrypted bytes, by asset name. */
+async function release(terms: Record<string, Row[]>, generatedAt: string, reuse?: Map<string, Buffer>): Promise<{ manifest: ClientManifest; files: Map<string, Buffer> }> {
+  const recipients = [ME.recipient];
+  const rid = recipientsId(recipients);
   const files = new Map<string, Buffer>();
-  const entries = Object.entries(terms).map(([term, courses]) => {
+  const entries = [];
+  for (const [term, courses] of Object.entries(terms)) {
     const json = Buffer.from(JSON.stringify({ format: 1, term, fields: ['id', 'name', 'number', 'teachers', 'sessions'], courses }));
     const sha256 = sha256Hex(json);
-    const asset = termAssetName(term, sha256, pid);
-    // An unchanged term keeps its file, as on the real release (sealing salts afresh).
-    const sealed = reuse?.get(asset) ?? seal(json, PASS);
+    const asset = termAssetName(term, sha256, rid);
+    // An unchanged term keeps its file, as on the real release (age encrypts afresh each time).
+    const sealed = reuse?.get(asset) ?? (await sealAgeGz(json, recipients));
     files.set(asset, sealed);
-    return { term, asset, bytes: sealed.length, assetSha256: sha256Hex(sealed), sha256, courses: courses.length, sessions: 0 };
-  });
-  const manifest: ClientManifest = { format: 1, generatedAt, passphraseId: pid, terms: entries };
-  files.set(CLIENT_MANIFEST_ASSET, Buffer.from(makeEnvelope(CLIENT_MANIFEST_ASSET, seal(Buffer.from(JSON.stringify(manifest)), PASS), pid, signer.privateKey)));
+    entries.push({ term, asset, bytes: sealed.length, assetSha256: sha256Hex(sealed), sha256, courses: courses.length, sessions: 0 });
+  }
+  const manifest: ClientManifest = { format: 2, generatedAt, recipientsId: rid, terms: entries };
+  const sealed = await sealAgeGz(Buffer.from(JSON.stringify(manifest)), recipients);
+  files.set(CLIENT_MANIFEST_ASSET, Buffer.from(makeEnvelope(CLIENT_MANIFEST_ASSET, sealed, recipients, signer.privateKey)));
   return { manifest, files };
 }
 
@@ -63,7 +66,8 @@ let root = '';
 let downloadedDir = '';
 let bundledDir = '';
 
-beforeEach(() => {
+beforeEach(async () => {
+  ME ??= await newIdentity();
   root = fs.mkdtempSync(path.join(os.tmpdir(), 'course-lookup-'));
   downloadedDir = path.join(root, 'downloaded');
   bundledDir = path.join(root, 'bundled');
@@ -75,7 +79,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const localIndex = () => new LocalCourseIndex({ downloadedDir, bundledDir, passphrase: PASS, keys: [signer.entry] });
+const localIndex = () => new LocalCourseIndex({ downloadedDir, bundledDir, identity: ME.identity, keys: [signer.entry] });
 
 describe('searchCourses (local, ranked like the online Index)', () => {
   const courses: IndexCourse[] = EARLIER.map(([id, name, number, teachers, sessions]) => ({
@@ -100,9 +104,9 @@ describe('searchCourses (local, ranked like the online Index)', () => {
 
 describe('LocalCourseIndex', () => {
   it('reads each term from the copy that has it, the newer one when both do', async () => {
-    const old = release({ '2024-2025-1': EARLIER }, '2026-10-01T00:00:00.000Z');
+    const old = await release({ '2024-2025-1': EARLIER }, '2026-10-01T00:00:00.000Z');
     writeRelease(bundledDir, old.files);
-    const fresh = release({ '2024-2025-1': [...EARLIER, [104, '数值分析', null, [], [9004]]], '2026-2027-1': CURRENT }, '2026-10-25T00:00:00.000Z');
+    const fresh = await release({ '2024-2025-1': [...EARLIER, [104, '数值分析', null, [], [9004]]], '2026-2027-1': CURRENT }, '2026-10-25T00:00:00.000Z');
     writeRelease(downloadedDir, fresh.files);
     const index = localIndex();
     expect((await index.terms()).map((t) => [t.term, t.source])).toEqual([['2026-2027-1', 'downloaded'], ['2024-2025-1', 'downloaded']]);
@@ -111,7 +115,7 @@ describe('LocalCourseIndex', () => {
     expect((await index.byId('104'))?.term).toBe('2024-2025-1');
 
     // An app update shipped a fresher bundle than the old download.
-    writeRelease(bundledDir, release({ '2024-2025-1': [EARLIER[0]] }, '2026-11-01T00:00:00.000Z').files);
+    writeRelease(bundledDir, (await release({ '2024-2025-1': [EARLIER[0]] }, '2026-11-01T00:00:00.000Z')).files);
     fs.rmSync(path.join(bundledDir, old.manifest.terms[0].asset));
     index.reset();
     const bundledIndex = localIndex();
@@ -120,7 +124,7 @@ describe('LocalCourseIndex', () => {
   });
 
   it('answers null for a term it does not hold', async () => {
-    writeRelease(bundledDir, release({ '2024-2025-1': EARLIER }, '2026-10-01T00:00:00.000Z').files);
+    writeRelease(bundledDir, (await release({ '2024-2025-1': EARLIER }, '2026-10-01T00:00:00.000Z')).files);
     expect(await localIndex().search('2023-2024-1', '线性代数')).toBeNull();
   });
 });
@@ -145,8 +149,8 @@ function lookup(options: { current?: string; currentSource?: string; earlierSour
 }
 
 describe('CourseLookup', () => {
-  beforeEach(() => {
-    writeRelease(bundledDir, release({ '2024-2025-1': EARLIER }, '2026-10-01T00:00:00.000Z').files);
+  beforeEach(async () => {
+    writeRelease(bundledDir, (await release({ '2024-2025-1': EARLIER }, '2026-10-01T00:00:00.000Z')).files);
   });
 
   it('leaves the current term to Yanhekt by default, and searches an earlier term locally', async () => {
@@ -235,9 +239,9 @@ describe('CourseLookup', () => {
 
 describe('CourseIndexUpdater', () => {
   it('downloads the terms it does not hold, writes the manifest, and leaves matching terms to the bundle', async () => {
-    const bundled = release({ '2024-2025-1': EARLIER }, '2026-10-01T00:00:00.000Z');
+    const bundled = await release({ '2024-2025-1': EARLIER }, '2026-10-01T00:00:00.000Z');
     writeRelease(bundledDir, bundled.files);
-    const published = release({ '2024-2025-1': EARLIER, '2026-2027-1': CURRENT, '2026-2027-2': [] }, '2026-10-25T00:00:00.000Z', bundled.files);
+    const published = await release({ '2024-2025-1': EARLIER, '2026-2027-1': CURRENT, '2026-2027-2': [] }, '2026-10-25T00:00:00.000Z', bundled.files);
     const urls: string[] = [];
     const fetcher = vi.fn(async (url: string) => {
       urls.push(url);
@@ -267,7 +271,7 @@ describe('CourseIndexUpdater', () => {
   });
 
   it('refuses a manifest signed by another key', async () => {
-    const forged = release({ '2026-2027-1': CURRENT }, '2026-10-25T00:00:00.000Z');
+    const forged = await release({ '2026-2027-1': CURRENT }, '2026-10-25T00:00:00.000Z');
     const updater = new CourseIndexUpdater({
       index: localIndex(),
       enabled: () => false,

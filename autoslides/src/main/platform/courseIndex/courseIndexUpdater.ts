@@ -24,7 +24,7 @@ import { appUserAgent } from '@main/infra/appUserAgent';
 import { createLogger } from '@main/infra/logger';
 import { CLIENT_MANIFEST_ASSET, openEnvelope, parseClientManifest, sha256Hex, type SigningKey } from './clientIndex';
 import type { LocalCourseIndex } from './courseIndex';
-import { passphraseId, unsealAsync } from './seal';
+import { openAgeGz, recipientOf } from './ageOpen';
 import signingKeys from './indexSigningKeys.json';
 
 const log = createLogger('CourseIndexUpdate');
@@ -163,17 +163,17 @@ export class CourseIndexUpdater {
 
   private async update(): Promise<CourseIndexUpdateResult> {
     const { index } = this.options;
-    const passphrase = index.passphrase;
-    if (!passphrase) return { ok: false, error: 'this build has no index key' };
+    const identity = index.identity;
+    if (!identity) return { ok: false, error: 'this build has no index key' };
     const fetcher = this.options.fetcher;
 
     const text = (await fetchReleaseAsset(CLIENT_MANIFEST_ASSET, fetcher)).toString('utf8');
     const envelope = openEnvelope(text, CLIENT_MANIFEST_ASSET, this.options.keys ?? index.keys ?? signingKeys.keys);
     if (!envelope.ok) return { ok: false, error: `manifest signature check failed (${envelope.reason})` };
-    if (envelope.passphraseId !== passphraseId(passphrase)) {
-      return { ok: false, error: 'the release uses another key; this app needs an update' };
+    if (!envelope.recipients.includes(await recipientOf(identity))) {
+      return { ok: false, error: 'the release is not encrypted for this app; it needs an update' };
     }
-    const manifest = parseClientManifest(await unsealAsync(envelope.data, passphrase));
+    const manifest = parseClientManifest(await openAgeGz(envelope.data, identity));
     const current = await this.options.currentTerm();
     const wanted = manifest.terms.filter((t) => !current || t.term <= current);
 
@@ -190,7 +190,7 @@ export class CourseIndexUpdater {
       }
       const bytes = await fetchReleaseAsset(t.asset, fetcher);
       if (bytes.length !== t.bytes || sha256Hex(bytes) !== t.assetSha256) throw new Error(`${t.asset}: checksum mismatch`);
-      if (sha256Hex(await unsealAsync(bytes, passphrase)) !== t.sha256) throw new Error(`${t.asset}: content checksum mismatch`);
+      if (sha256Hex(await openAgeGz(bytes, identity)) !== t.sha256) throw new Error(`${t.asset}: content checksum mismatch`);
       await writeAtomic(target, bytes);
       downloaded.push(t.term);
     }
@@ -201,7 +201,8 @@ export class CourseIndexUpdater {
       await writeAtomic(path.join(this.dir, CLIENT_MANIFEST_ASSET), text);
       const keep = new Set(manifest.terms.map((t) => t.asset));
       for (const name of await fs.readdir(this.dir)) {
-        if (/^term-.*\.json\.gz\.enc(\.tmp)?$/.test(name) && !keep.has(name)) {
+        // Also format-1 files (.enc) a previous version downloaded.
+        if (/^term-.*\.json\.gz\.(?:age|enc)(\.tmp)?$/.test(name) && !keep.has(name)) {
           await fs.rm(path.join(this.dir, name), { force: true });
         }
       }
