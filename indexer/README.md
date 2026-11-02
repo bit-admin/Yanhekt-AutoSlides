@@ -2,7 +2,9 @@
 
 A local script that walks Yanhekt session ids **without logging in** and records, for every lecture, which course it belongs to. It runs in a nightly window (02:00–05:00 Beijing time by default) at about one request per second, stores everything in a local SQLite file, and can upload it to Cloudflare D1 so several devices can contribute to one index.
 
-**Why:** since 2026-10, Yanhekt's course list and search only show the current term, so older courses can't be found by name. Any course or session can still be opened by id without logging in. This index makes the old ones findable again.
+**Why:** since 2026-10, Yanhekt's course list and search only show the current term, so older courses can't be found by name. This index makes the old ones findable again.
+
+**Since 2026-11-02, earlier terms are closed by id too.** Their sessions, courses and videos answer `12121028` 课程已过期 to every anonymous read; only the signed-in `/v1/course/session/list` of a course still lists them. The crawler takes that answer as *expired*: the record exists, is never retried, is not a failure and not "gone", and nothing stored about it is changed (a course is marked `detail_status = 'expired'`, a queued video `status = 'expired'`). New sessions are always current-term, so the forward crawl is unaffected; what the database already holds about earlier terms is now the only copy.
 
 ## What it stores
 
@@ -16,6 +18,8 @@ By default it makes two kinds of request, both without login:
 Every field of both responses is kept, in its own column, or in an `extra` JSON column if it's a field we don't know yet. Three are dropped: the session's `live` (the live-broadcast record, whose stream URLs only work during the lecture), the session's `user_progress` and the course's `user_mapping_type` (both always empty without login). The course copy inside each session response is stored once and then replaced by the fuller `/v1/course` record, so no request is spent twice.
 
 That is enough to find any course by name or teacher and list all its sessions. The recorded URLs (camera, screen, mic) are **not** in the session response, only the `video_ids`. Your client resolves them when a lecture is played (`GET /v1/video?id=`, no login), or the index can fill them in later with `--only-videos`.
+
+The daily Actions run fetches them too (`sessions-and-videos`, since 2026-11-03): Yanhekt answers `/v1/video` without login only while the video's term is current, so they are recorded while that lasts. `--videos` / `--only-videos` queue only stored videos of the current term or later; earlier terms' would only answer 课程已过期. Video URLs stay in the local database (and the encrypted release copy of it); they never go to D1 or the index files.
 
 The login-only session list (`/v2/course/session/list`) is never used.
 
@@ -319,7 +323,7 @@ API fields keep their API names as columns. Fields we don't know yet go into an 
 
 | Table | Contents |
 |---|---|
-| `courses` | course fields (`tags`, `college`, `professors`, `introduction` as JSON), `professor_names` (e.g. `张三、李四`), `detail_status` |
+| `courses` | course fields (`tags`, `college`, `professors`, `introduction` as JSON), `professor_names` (e.g. `张三、李四`), `detail_status` (`ok`, `missing`, `error`, `expired`) |
 | `sessions` | every session field, `video_ids` (JSON array), `gone_at` |
 | `videos` | `main`, `vga`, `room`, `audio` (+ `*_origin`), `duration`, `start_*`, `session_id` (only with `--videos` / `--only-videos`); never uploaded |
 | `pending_videos`, `gaps`, `failures`, `runs`, `crawl_state` | device-local queue, logs, positions |

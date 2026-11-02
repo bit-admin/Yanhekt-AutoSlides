@@ -46,6 +46,8 @@ export class FakeApi implements Api {
   errorOn = new Set<number>();
   /** Ids answered with code 2002 this many more times, then normally. */
   errorTimes = new Map<number, number>();
+  /** Ids (sessions, courses, videos) answered with 12121028 课程已过期. */
+  expiredOn = new Set<number>();
   constructor(existing: Iterable<number>) {
     this.existing = new Set(existing);
   }
@@ -55,10 +57,12 @@ export class FakeApi implements Api {
     const left = this.errorTimes.get(id) ?? 0;
     if (left > 0) this.errorTimes.set(id, left - 1);
     if (left > 0 || this.errorOn.has(id)) return { kind: 'unexpected', code: '2002', message: 'service runtime exception' };
+    if (this.expiredOn.has(id)) return { kind: 'expired' };
     return this.existing.has(id) ? { kind: 'ok', data: session(id) } : { kind: 'missing' };
   }
   async video(id: number): Promise<Outcome<Json>> {
     this.calls.push(`v${id}`);
+    if (this.expiredOn.has(id)) return { kind: 'expired' };
     return {
       kind: 'ok',
       data: { id, course_id: 0, session_id: 0, main: `https:\\/\\/cvideo.yanhekt.cn\\/vod\\/${id}\\/Video1.m3u8`, duration: '8934' },
@@ -66,6 +70,7 @@ export class FakeApi implements Api {
   }
   async course(id: number): Promise<Outcome<Json>> {
     this.calls.push(`c${id}`);
+    if (this.expiredOn.has(id)) return { kind: 'expired' };
     return {
       kind: 'ok',
       data: {

@@ -123,7 +123,7 @@ export interface LaneProgress {
 }
 
 export class Crawler {
-  readonly stats: RunStats = { requests: 0, sessionsFound: 0, sessionsMissing: 0, courses: 0, videos: 0 };
+  readonly stats: RunStats = { requests: 0, sessionsFound: 0, sessionsMissing: 0, expired: 0, courses: 0, videos: 0 };
   private readonly d: CrawlerDeps;
   private lanes = new Map<string, LaneState>();
   private readonly runStart = new Map<string, number>();
@@ -281,6 +281,13 @@ export class Crawler {
         this.stats.sessionsMissing += 1;
         if (lane.missRun === 0) lane.missRunStart = id;
         lane.missRun += 1;
+      } else if (o.kind === 'expired') {
+        // An earlier term's session: it exists (so this is no miss), but
+        // Yanhekt will never let us read it. Nothing to save or retry.
+        this.d.store.clearFailure('session', id);
+        this.stats.expired += 1;
+        lane.missRun = 0;
+        lane.missRunStart = null;
       } else {
         this.unexpected('session', id, o);
         // The id is retried later (retryFailed). For the scan, count it toward
@@ -314,7 +321,8 @@ export class Crawler {
       if (this.stopped() || !budget.canAfford(1)) return used; // state unchanged: probe again next time
       const o = await this.call(() => this.d.api.session(id));
       used += 1;
-      if (o.kind === 'ok') {
+      // An expired answer is a session too: ids are in use there.
+      if (o.kind === 'ok' || o.kind === 'expired') {
         const resume = lane.cursor + dir * (k - 1) * config.probeStep;
         if (k > 1) store.recordGap(spec.key, lane.cursor, resume - dir, `skipped: no hit at probes 1..${k - 1}`, this.d.now());
         this.log(`${spec.key}: ${lane.missRun} misses from ${lane.missRunStart}; next id found at ${id}, resuming at ${resume}`);
@@ -379,8 +387,9 @@ export class Crawler {
         store.clearFailure('session', id);
         this.stats.sessionsFound += 1;
         this.log(`retry: session ${id} found`);
-      } else if (r.o.kind === 'missing') {
+      } else if (r.o.kind === 'missing' || r.o.kind === 'expired') {
         store.clearFailure('session', id);
+        if (r.o.kind === 'expired') this.stats.expired += 1;
       } else {
         this.unexpected('session', id, r.o);
       }
@@ -401,8 +410,9 @@ export class Crawler {
         if (c.kind === 'ok') {
           store.saveCourseDetail(c.data, this.d.now());
           this.stats.courses += 1;
-        } else if (c.kind === 'missing') {
-          store.markCourse(id, 'missing', this.d.now());
+        } else if (c.kind === 'missing' || c.kind === 'expired') {
+          // Expired: the thin copy from its session stays; never asked again.
+          store.markCourse(id, c.kind, this.d.now());
         } else {
           store.markCourse(id, 'error', this.d.now());
           this.unexpected('course', id, c);
@@ -418,8 +428,8 @@ export class Crawler {
         if (o.kind === 'ok') {
           store.saveVideo(o.data as Json, v.sessionId, this.d.now());
           this.stats.videos += 1;
-        } else if (o.kind === 'missing') {
-          store.markVideoMissing(v.videoId, v.sessionId, this.d.now());
+        } else if (o.kind === 'missing' || o.kind === 'expired') {
+          store.markVideoMissing(v.videoId, v.sessionId, this.d.now(), o.kind);
         } else {
           store.bumpVideoAttempt(v.videoId, `${o.code} ${o.message}`);
           this.unexpected('video', v.videoId, o);
@@ -451,6 +461,8 @@ export class Crawler {
       used += 1;
       if (o.kind === 'ok') store.saveSession(o.data, this.d.now(), { refreshed: true, queueVideos: config.fetchVideos });
       else if (o.kind === 'missing') store.markSessionGone(id, this.d.now());
+      // Expired is not gone: the session and its recording still exist.
+      else if (o.kind === 'expired') store.markSessionChecked(id, this.d.now());
       else this.unexpected('session', id, o);
     }
     return used;

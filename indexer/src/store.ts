@@ -40,6 +40,8 @@ export interface RunStats {
   requests: number;
   sessionsFound: number;
   sessionsMissing: number;
+  /** Records that exist but are unreadable (expired course); not saved in `runs`. */
+  expired: number;
   courses: number;
   videos: number;
 }
@@ -54,9 +56,10 @@ export interface Store {
   saveSession(raw: Json, nowMs: number, opts: { refreshed: boolean; queueVideos: boolean }): void;
   markSessionGone(id: number, nowMs: number): void;
   saveCourseDetail(raw: Json, nowMs: number): void;
-  markCourse(id: number, status: 'missing' | 'error', nowMs: number): void;
+  markCourse(id: number, status: 'missing' | 'error' | 'expired', nowMs: number): void;
   saveVideo(raw: Json, sessionId: number, nowMs: number): void;
-  markVideoMissing(id: number, sessionId: number, nowMs: number): void;
+  markVideoMissing(id: number, sessionId: number, nowMs: number, status?: 'missing' | 'expired'): void;
+  markSessionChecked(id: number, nowMs: number): void;
   bumpVideoAttempt(id: number, error: string): void;
   recordGap(lane: string, fromId: number, toId: number, reason: string, nowMs: number): void;
   recordFailure(kind: string, id: number, code: string, message: string, nowMs: number): void;
@@ -200,16 +203,22 @@ export class SqliteStore implements Store {
     );
   }
 
-  /** Queue every stored `video_ids` entry that has no video row yet. Returns how many were added. */
-  queueMissingVideos(nowMs: number): number {
+  /**
+   * Queue every stored `video_ids` entry that has no video row yet, for
+   * courses of `fromTerm` (`2026-2027-1`) or later. Earlier terms are left
+   * out: since 2026-11-02 Yanhekt answers their videos 课程已过期, so each
+   * would cost a request for nothing. Returns how many were added.
+   */
+  queueMissingVideos(nowMs: number, fromTerm: string): number {
     const r = this.stmt(
       `INSERT INTO pending_videos (video_id, session_id, added_at)
        SELECT CAST(j.value AS INTEGER), s.id, ?
-       FROM sessions s, json_each(s.video_ids) j
+       FROM sessions s JOIN courses c ON c.id = s.course_id, json_each(s.video_ids) j
        WHERE s.video_ids <> '[]'
+         AND c.school_year || '-' || c.semester >= ?
          AND NOT EXISTS (SELECT 1 FROM videos v WHERE v.id = CAST(j.value AS INTEGER))
        ON CONFLICT(video_id) DO NOTHING`,
-    ).run(nowMs);
+    ).run(nowMs, fromTerm);
     return Number(r.changes);
   }
 
@@ -225,7 +234,7 @@ export class SqliteStore implements Store {
     this.run(sql, [...api.map((c) => row[c]), professorNames(raw.professors).join('、') || null, nowMs, 'ok', nowMs, nowMs]);
   }
 
-  markCourse(id: number, status: 'missing' | 'error', nowMs: number): void {
+  markCourse(id: number, status: 'missing' | 'error' | 'expired', nowMs: number): void {
     this.run(
       `UPDATE courses SET detail_status = ?, detail_attempts = detail_attempts + 1,
          detail_fetched_at = ?, changed_at = ? WHERE id = ?`,
@@ -242,10 +251,15 @@ export class SqliteStore implements Store {
     this.run('DELETE FROM pending_videos WHERE video_id = ?', [Number(raw.id)]);
   }
 
-  markVideoMissing(id: number, sessionId: number, nowMs: number): void {
+  markVideoMissing(id: number, sessionId: number, nowMs: number, status: 'missing' | 'expired' = 'missing'): void {
     const cols = ['id', 'session_id', 'status', 'fetched_at', 'changed_at'];
-    this.run(upsertSql('videos', cols, cols.slice(1)), [id, sessionId, 'missing', nowMs, nowMs]);
+    this.run(upsertSql('videos', cols, cols.slice(1)), [id, sessionId, status, nowMs, nowMs]);
     this.run('DELETE FROM pending_videos WHERE video_id = ?', [id]);
+  }
+
+  /** A refresh that could not read the session (expired): not gone, just not asked again for a while. */
+  markSessionChecked(id: number, nowMs: number): void {
+    this.run('UPDATE sessions SET refreshed_at = ? WHERE id = ?', [nowMs, id]);
   }
 
   bumpVideoAttempt(id: number, error: string): void {

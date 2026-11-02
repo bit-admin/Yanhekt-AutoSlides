@@ -30,10 +30,10 @@ on:
         required: true
         default: '120'
       mode:
-        description: 'What to fetch.'
+        description: 'What to fetch. Videos: recorded URLs of the current term, into the database only (never D1 or the index files).'
         type: choice
         options: [sessions, sessions-and-videos, videos-only]
-        default: sessions
+        default: sessions-and-videos
       interval_ms:
         description: 'Milliseconds between requests (min 250; 1000 = 1 request/second).'
         required: true
@@ -83,7 +83,9 @@ jobs:
       TO: ${{ inputs.to }}
       MINUTES: ${{ inputs.minutes || '120' }}
       INTERVAL: ${{ inputs.interval_ms || '1000' }}
-      MODE: ${{ inputs.mode || 'sessions' }}
+      # The schedule fetches video URLs too (2026-11-03): Yanhekt serves them
+      # only while their term is current, so they are recorded while it is.
+      MODE: ${{ inputs.mode || 'sessions-and-videos' }}
       TAG: ${{ inputs.release_tag || 'index' }}
       CONTINUE: ${{ inputs.continue_from_run }}
       UPLOAD: ${{ github.event_name == 'schedule' || inputs.upload_to_d1 }}
@@ -142,10 +144,15 @@ jobs:
 
       - name: Check Yanhekt is reachable from this runner
         run: |
+          # The newest stored session: a fixed old one stopped answering on
+          # 2026-11-02, when Yanhekt began refusing earlier terms (课程已过期).
+          newest=$(node $NODE_FLAGS -e "const { DatabaseSync } = require('node:sqlite'); const db = new DatabaseSync(process.argv[1], { readOnly: true }); console.log(db.prepare('SELECT MAX(id) AS id FROM sessions WHERE gone_at IS NULL').get().id ?? '')" "$DB")
+          [ -n "$newest" ] || { echo "::error::the database holds no session to check with"; exit 1; }
+          echo "Checking with session $newest."
           # Several tries: while Yanhekt is unstable it answers some requests
           # with a server error (code 2002), and one of those must not end the run.
           for try in 1 2 3 4 5; do
-            body=$(curl -sS --max-time 20 'https://cbiz.yanhekt.cn/v1/course/session?session_id=753801' \
+            body=$(curl -sS --max-time 20 "https://cbiz.yanhekt.cn/v1/course/session?session_id=$newest" \
               -H 'Origin: https://www.yanhekt.cn' -H 'Referer: https://www.yanhekt.cn/' -H 'Xdomain-Client: web_user' \
               -w '\n%{http_code}' || true)
             code=$(echo "$body" | tail -n1)

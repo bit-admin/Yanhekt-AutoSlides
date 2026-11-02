@@ -381,7 +381,7 @@ async function crawl(
   // End-of-run report: what happened, where each lane is, how to continue.
   const s = crawler.stats;
   const t = store.totals();
-  log(`stop (${reason}): ${s.requests} requests, ${s.sessionsFound} sessions found, ${s.sessionsMissing} missing, ${s.courses} courses, ${s.videos} videos`);
+  log(`stop (${reason}): ${s.requests} requests, ${s.sessionsFound} sessions found, ${s.sessionsMissing} missing, ${s.expired} expired, ${s.courses} courses, ${s.videos} videos`);
   for (const line of laneLines(crawler.progress(), Date.now())) log(`  ${line}`);
   log(`  database: ${t.sessions} sessions (ids ${t.minSessionId}–${t.maxSessionId}), ${t.courses} courses, ${t.videos} video URLs, ${t.videosQueued} queued`);
   const range = lanes.find((l) => l.key.startsWith('range:'));
@@ -571,8 +571,10 @@ async function main(): Promise<void> {
       log(`restart: cleared saved position of ${lanes.map((l) => l.key).join(', ') || '(no lanes)'}`);
     }
     if (config.fetchVideos) {
-      const queued = store.queueMissingVideos(Date.now());
-      if (queued > 0) log(`queued ${queued} stored video ids that have no URL yet`);
+      // Only the current term: earlier terms' videos answer 课程已过期.
+      const term = currentTerm();
+      const queued = store.queueMissingVideos(Date.now(), term);
+      if (queued > 0) log(`queued ${queued} stored video ids of ${term} or later that have no URL yet`);
     }
 
     const finished = (r: CrawlResult) => r.idle && (onlyVideos || opts.from !== undefined || opts['forward-only']);

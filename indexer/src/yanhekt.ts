@@ -28,6 +28,13 @@ export const MISSING_CODE = {
  */
 const TRANSIENT_CODES: ReadonlySet<string> = new Set(['61101114', '99151011']);
 
+/**
+ * 课程已过期 (since 2026-11-02): earlier terms' sessions, courses and videos
+ * answer this to every anonymous read, for good. The record exists; we just
+ * cannot read it any more, so it is neither "missing" nor worth retrying.
+ */
+export const EXPIRED_CODE = '12121028';
+
 export type Json = Record<string, unknown>;
 
 export type Outcome<T> =
@@ -35,6 +42,8 @@ export type Outcome<T> =
   | { kind: 'missing' }
   /** Network, timeout, HTTP error, or "busy": stop and retry later. */
   | { kind: 'transient'; reason: string }
+  /** The record exists but belongs to an expired (earlier-term) course: unreadable for good. */
+  | { kind: 'expired' }
   /** A code we do not know. Recorded, then skipped. */
   | { kind: 'unexpected'; code: string; message: string };
 
@@ -186,6 +195,7 @@ export function classify<T>(body: unknown, missingCode: string, arrayData = fals
     return { kind: 'missing' };
   }
   if (code === missingCode) return { kind: 'missing' };
+  if (code === EXPIRED_CODE) return { kind: 'expired' };
   if (TRANSIENT_CODES.has(code)) return { kind: 'transient', reason: `unavailable (code ${code})` };
   return { kind: 'unexpected', code, message };
 }

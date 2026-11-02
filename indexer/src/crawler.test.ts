@@ -83,8 +83,9 @@ test('--videos later: stored video ids are queued and filled without rescanning'
   await drain(make(api, [rangeLane(1000, 1002)], store).crawler);
   assert.equal(count(store, 'SELECT COUNT(*) FROM videos'), 0);
 
-  assert.equal(store.queueMissingVideos(1), 3);
-  assert.equal(store.queueMissingVideos(1), 0, 'idempotent');
+  assert.equal(store.queueMissingVideos(1, '2026-2027-1'), 0, 'earlier terms are not queued');
+  assert.equal(store.queueMissingVideos(1, '2025-2026-1'), 3);
+  assert.equal(store.queueMissingVideos(1, '2025-2026-1'), 0, 'idempotent');
   api.calls = [];
   const filler = make(api, [], store, { ...config, fetchVideos: true }).crawler;
   assert.equal(await drain(filler), 'idle');
@@ -201,4 +202,53 @@ test('budget cap stops the run', async () => {
   while (r === 'ok');
   assert.equal(r, 'budget');
   assert.equal(api.calls.length, 30);
+});
+
+test('expired sessions: asked once, not saved, not failures, and no TransientError for a run of them', async () => {
+  const ids = [...Array(40).keys()].map((i) => i + 1);
+  const api = new FakeApi(ids);
+  for (let id = 5; id <= 20; id++) api.expiredOn.add(id);
+  const { crawler, store } = make(api, [rangeLane(1, 40)]);
+  assert.equal(await drain(crawler), 'idle');
+  assert.equal(count(store, 'SELECT COUNT(*) FROM sessions'), 24);
+  assert.equal(count(store, 'SELECT COUNT(*) FROM failures'), 0);
+  assert.equal(api.calls.filter((c) => c === 's10').length, 1, 'no retries for an expired answer');
+  assert.equal(crawler.stats.expired, 16);
+});
+
+test('expired answers count as hits when probing past a hole', async () => {
+  // 1..10 exist, 11..200 do not, 201..260 expired: the lane must find them, not stop.
+  const api = new FakeApi([...Array(10).keys()].map((i) => i + 1));
+  for (let id = 201; id <= 260; id++) api.expiredOn.add(id);
+  api.existing.add(261);
+  const { crawler, store } = make(api, [rangeLane(1, 300)]);
+  assert.equal(await drain(crawler), 'idle');
+  assert.equal(count(store, 'SELECT COUNT(*) FROM sessions WHERE id = 261'), 1);
+});
+
+test('an expired course or video is marked and never asked again', async () => {
+  const api = new FakeApi([1, 2, 3]);
+  api.expiredOn.add(501); // course of session 1 (500 + 1 % 7)
+  api.expiredOn.add(20); // video of session 2
+  const { crawler, store } = make(api, [rangeLane(1, 3)], undefined, { ...config, fetchVideos: true });
+  assert.equal(await drain(crawler), 'idle');
+  assert.equal(count(store, "SELECT COUNT(*) FROM courses WHERE id = 501 AND detail_status = 'expired'"), 1);
+  assert.equal(count(store, "SELECT COUNT(*) FROM videos WHERE id = 20 AND status = 'expired'"), 1);
+  assert.equal(count(store, 'SELECT COUNT(*) FROM pending_videos'), 0);
+  assert.deepEqual(store.pendingCourses(10), []);
+  assert.equal(count(store, 'SELECT COUNT(*) FROM failures'), 0);
+});
+
+test('a refresh that meets expiry keeps the session (not gone)', async () => {
+  const api = new FakeApi([]);
+  const store = new SqliteStore(':memory:');
+  // Ended before the fake clock's "2 h ago", with no video yet: a refresh candidate.
+  store.saveSession({ id: 7, course_id: 500, state: 1, video_ids: [], ended_at: '1970-01-01 00:00:00', started_at: '1969-12-31 22:00:00' }, 1, { refreshed: false, queueVideos: false });
+  api.expiredOn.add(7);
+  const { crawler } = make(api, [], store);
+  await (crawler as unknown as { refresh(): Promise<number> }).refresh();
+  assert.deepEqual(api.calls, ['s7']);
+  const row = store.db.prepare('SELECT gone_at, refreshed_at FROM sessions WHERE id = 7').get() as { gone_at: number | null; refreshed_at: number | null };
+  assert.equal(row.gone_at, null);
+  assert.equal(row.refreshed_at, 1_000_000);
 });

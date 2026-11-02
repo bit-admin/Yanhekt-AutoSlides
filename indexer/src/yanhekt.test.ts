@@ -51,3 +51,8 @@ test('Budget: request cap and deadline', () => {
   now = 9500;
   assert.equal(b.canAfford(1), false);
 });
+
+test('classify: 课程已过期 is expired, number or string', () => {
+  assert.deepEqual(classify({ code: 12121028, message: '课程已过期', data: [] }, MISSING_CODE.session), { kind: 'expired' });
+  assert.deepEqual(classify({ code: '12121028', message: '课程已过期' }, MISSING_CODE.video), { kind: 'expired' });
+});
