@@ -96,7 +96,7 @@ jobs:
           # do not contain the affected firstPhasePreProcess code, and 11 drops
           # APIs they use. Remove once 3.x/5.x patches ship or the range narrows.
           - dir: autoslides
-            allow: --allow GHSA-g3hv-75wg-m249:minimatch:<9
+            allow: --allow 'GHSA-g3hv-75wg-m249:minimatch:<9'
     defaults:
       run:
         working-directory: ${{ matrix.dir }}
