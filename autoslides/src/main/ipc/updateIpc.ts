@@ -1,7 +1,11 @@
 import { ipcMain, app } from 'electron';
 import { UpdateDownloadService, type UpdateAsset } from '@main/download/updateDownloadService';
-import { WindowsAutoUpdater, UpdateCancelledError } from '@main/download/windowsAutoUpdater';
-import { signatureCodeOf, sourceOfUrl, windowsInstallerName } from '@main/download/windowsUpdateFeed';
+import { WindowsAutoUpdater } from '@main/download/windowsAutoUpdater';
+import { MacSparkleUpdater } from '@main/download/macSparkleUpdater';
+import { UpdateCancelledError, type InPlaceUpdater } from '@main/download/inPlaceUpdater';
+import {
+  MAC_APPCAST_NAME, macDmgName, signatureCodeOf, sourceOfUrl, windowsInstallerName,
+} from '@main/download/updateFeed';
 import { fetchGithubRelease, buildGithubReleaseOptions } from '@common/githubRelease';
 import { compareVersions } from '@main/download/updateVersion';
 import type { IpcServices } from './types';
@@ -31,20 +35,32 @@ async function fetchLatestRelease(): Promise<{ release: GithubRelease } | { erro
   }
 }
 
+/** The asset the update dialog names for an in-place update to `version`. */
+function inPlaceAssetName(version: string): string {
+  return process.platform === 'darwin' ? macDmgName(version) : windowsInstallerName(version);
+}
+
 /**
- * True when this Windows build can update in place to `release`: the release
- * carries electron-updater's `latest.yml` and a signed installer. Older
- * releases, and every other platform, use the download-and-open flow.
+ * True when this build can update in place to `release`. Windows needs
+ * electron-updater's `latest.yml` and a signed installer; macOS needs
+ * Sparkle's `appcast.xml` and the DMG. Older releases, Linux, and dev runs
+ * use the download-and-open flow.
  */
 function supportsInPlaceUpdate(release: GithubRelease, version: string): boolean {
-  if (!WindowsAutoUpdater.isSupported()) return false;
   const names = new Set((release.assets || []).map((a) => a.name));
-  const installer = windowsInstallerName(version);
-  return names.has('latest.yml') && names.has(installer) && names.has(installer + '.sig');
+  if (WindowsAutoUpdater.isSupported()) {
+    const installer = windowsInstallerName(version);
+    return names.has('latest.yml') && names.has(installer) && names.has(installer + '.sig');
+  }
+  if (MacSparkleUpdater.isSupported()) {
+    return names.has(MAC_APPCAST_NAME) && names.has(macDmgName(version));
+  }
+  return false;
 }
 
 export function registerUpdateIpcHandlers(services: IpcServices): void {
-  const { updateDownloadService, windowsAutoUpdater } = services;
+  const { updateDownloadService, windowsAutoUpdater, macSparkleUpdater } = services;
+  const inPlaceUpdater: InPlaceUpdater = process.platform === 'darwin' ? macSparkleUpdater : windowsAutoUpdater;
 
   const mapAssets = (release: GithubRelease) =>
     updateDownloadService.getAssetsForPlatform(release.assets || []).map((asset) => ({
@@ -58,7 +74,7 @@ export function registerUpdateIpcHandlers(services: IpcServices): void {
   // The version the last check offered for in-place install, if any.
   let inPlaceVersion: string | null = null;
   const inPlaceVersionFor = (filename: string): string | null =>
-    inPlaceVersion && filename === windowsInstallerName(inPlaceVersion) ? inPlaceVersion : null;
+    inPlaceVersion && filename === inPlaceAssetName(inPlaceVersion) ? inPlaceVersion : null;
 
   ipcMain.handle('update:checkForUpdates', async () => {
     const fetched = await fetchLatestRelease();
@@ -113,7 +129,7 @@ export function registerUpdateIpcHandlers(services: IpcServices): void {
       const version = inPlaceVersionFor(filename);
       let filePath: string | undefined;
       if (version) {
-        await windowsAutoUpdater.download(version, sourceOfUrl(url), { onProgress: progressCallback });
+        await inPlaceUpdater.download(version, sourceOfUrl(url), { onProgress: progressCallback });
       } else {
         filePath = await updateDownloadService.downloadUpdate(url, filename, progressCallback);
       }
@@ -128,7 +144,8 @@ export function registerUpdateIpcHandlers(services: IpcServices): void {
         return { success: false, error: 'cancelled' };
       }
       const raw = error instanceof Error ? error.message : 'Unknown error';
-      // electron-updater wraps the signature hook's answer in its own message.
+      // electron-updater wraps the signature hook's answer in its own message;
+      // the Sparkle updater reports it bare.
       const errorMessage = signatureCodeOf(raw) ?? raw;
       if (!event.sender.isDestroyed()) {
         event.sender.send('update:downloadError', errorMessage);
@@ -138,7 +155,7 @@ export function registerUpdateIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('update:cancelDownload', async () => {
-    const cancelled = windowsAutoUpdater.cancel() || updateDownloadService.cancelDownload();
+    const cancelled = inPlaceUpdater.cancel() || updateDownloadService.cancelDownload();
     return { success: cancelled };
   });
 
@@ -158,10 +175,10 @@ export function registerUpdateIpcHandlers(services: IpcServices): void {
   ipcMain.handle('update:installUpdate', async (event, filename: string) => {
     try {
       const version = inPlaceVersionFor(filename);
-      if (version && windowsAutoUpdater.isReady(version)) {
-        // The renderer asked the user first; the quit hook runs the installer
-        // silently and starts the new version.
-        windowsAutoUpdater.restartToInstall();
+      if (version && inPlaceUpdater.isReady(version)) {
+        // The renderer asked the user first. Windows: the quit hook runs the
+        // installer silently. macOS: Sparkle quits, installs and relaunches.
+        inPlaceUpdater.restartToInstall();
         return { success: true };
       }
 
@@ -208,6 +225,6 @@ export function registerUpdateIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('update:isDownloading', async () => {
-    return { isDownloading: updateDownloadService.isDownloading() || windowsAutoUpdater.isDownloading() };
+    return { isDownloading: updateDownloadService.isDownloading() || inPlaceUpdater.isDownloading() };
   });
 }

@@ -4,6 +4,7 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { execFileSync } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -12,6 +13,19 @@ import path from 'node:path';
 // without a prompt when the bundle cannot say why it wants the folder.
 const FOLDER_USAGE =
   'AutoSlides saves and reads lecture videos and extracted slides in the output folder you choose.';
+
+// Sparkle's SUPublicEDKey: the raw ed25519 public key of the update signing
+// key, so Sparkle checks updates against the same key as the .sig files
+// (scripts/sparkle.mjs signs the appcast archives with it).
+function sparklePublicKey(): string {
+  const keysFile = path.join(__dirname, 'src/main/download/updateSigningKeys.json');
+  const { keys } = JSON.parse(fs.readFileSync(keysFile, 'utf8')) as { keys: { publicKey: string }[] };
+  const der = crypto.createPublicKey(keys[0].publicKey).export({ format: 'der', type: 'spki' });
+  return der.subarray(-32).toString('base64');
+}
+
+const SPARKLE_SCRIPT = path.join(__dirname, 'scripts/sparkle.mjs');
+const SPARKLE_BRIDGE = path.join(__dirname, 'vendor/sparkle/sparkle_bridge.node');
 
 // Check if we're running in development mode (npm start)
 const isDev = process.argv.some(arg => arg.includes('electron-forge-start'));
@@ -38,6 +52,13 @@ const config: ForgeConfig = {
       NSDesktopFolderUsageDescription: FOLDER_USAGE,
       NSRemovableVolumesUsageDescription: FOLDER_USAGE,
       NSNetworkVolumesUsageDescription: FOLDER_USAGE,
+      // In-place updates (download/macSparkleUpdater.ts). The app picks the
+      // feed and decides when to check, so Sparkle never checks on its own
+      // and there is no SUFeedURL.
+      SUPublicEDKey: sparklePublicKey(),
+      SUEnableAutomaticChecks: false,
+      SUAutomaticallyUpdate: false,
+      SUAllowsAutomaticUpdates: false,
     },
     icon: 'resources/img/icon', // Will use .icns on macOS, .ico on Windows
     // Leave ignore to Vite's .vite-only filter: vendor media tools and the
@@ -76,10 +97,19 @@ const config: ForgeConfig = {
       const mediaRoot = path.join(__dirname, 'vendor/media-tools');
       const resources = forgeConfig.packagerConfig.extraResource ?? [];
       const existing = typeof resources === 'string' ? [resources] : resources;
-      forgeConfig.packagerConfig.extraResource = [
-        ...existing.filter(resource => !resource.startsWith(mediaRoot + path.sep)),
+      const extra = [
+        ...existing.filter(resource => !resource.startsWith(mediaRoot + path.sep) && resource !== SPARKLE_BRIDGE),
         path.join(mediaRoot, `${platform}-${arch}`, 'media-tools'),
       ];
+      // macOS in-place updates: pinned Sparkle plus the bridge the main
+      // process loads from Contents/Resources. postPackage copies the
+      // framework into Contents/Frameworks.
+      if (platform === 'darwin') {
+        execFileSync(process.execPath, [SPARKLE_SCRIPT, 'prepare'], { stdio: 'inherit' });
+        execFileSync(process.execPath, [SPARKLE_SCRIPT, 'build', '--arch', arch], { stdio: 'inherit' });
+        extra.push(SPARKLE_BRIDGE);
+      }
+      forgeConfig.packagerConfig.extraResource = extra;
     },
     // Packager rewrites Info.plist after Electron's own ad-hoc signature and the
     // fuses plugin re-signs only the executable, which ships a bundle whose
@@ -104,6 +134,13 @@ const config: ForgeConfig = {
           '--directory', path.join(resources, 'media-tools'),
         ], { stdio: 'inherit' });
         if (platform === 'darwin') {
+          // ditto keeps the framework's symlinks. The re-sign below covers it
+          // ad-hoc; Sparkle only needs the new app's signature to be valid.
+          const frameworks = path.join(appPath, 'Contents/Frameworks');
+          execFileSync('ditto', [
+            path.join(__dirname, 'vendor/sparkle/Sparkle.framework'),
+            path.join(frameworks, 'Sparkle.framework'),
+          ], { stdio: 'inherit' });
           execFileSync('codesign', ['--force', '--deep', '--sign', '-', appPath], { stdio: 'inherit' });
           execFileSync('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath], { stdio: 'inherit' });
         }

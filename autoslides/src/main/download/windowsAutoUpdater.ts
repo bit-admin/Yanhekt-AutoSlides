@@ -26,7 +26,8 @@ import type { NsisUpdater, CancellationToken, ProgressInfo } from 'electron-upda
 import { createLogger } from '@main/infra/logger';
 import { verifyUpdateFile } from './updateSignature';
 import { compareVersions } from './updateVersion';
-import { releaseDownloadBase, windowsInstallerName, type UpdateSource } from './windowsUpdateFeed';
+import { releaseDownloadBase, windowsInstallerName, type UpdateSource } from './updateFeed';
+import { UpdateCancelledError, type InPlaceUpdateEvents, type InPlaceUpdater } from './inPlaceUpdater';
 
 const log = createLogger('WindowsUpdater');
 
@@ -46,25 +47,14 @@ const UPDATER_CONFIG = [
   '',
 ].join('\n');
 
-export class UpdateCancelledError extends Error {
-  constructor() {
-    super('cancelled');
-    this.name = 'UpdateCancelledError';
-  }
-}
-
-export interface WindowsUpdateEvents {
-  onProgress: (progress: { downloaded: number; total: number; percent: number }) => void;
-}
-
-export class WindowsAutoUpdater {
+export class WindowsAutoUpdater implements InPlaceUpdater {
   private updater: NsisUpdater | null = null;
   private cancellation: CancellationToken | null = null;
   private pending: { version: string; sigUrl: string } | null = null;
   private readyVersion: string | null = null;
   private restartAfterInstall = false;
   private quitHookInstalled = false;
-  private events: WindowsUpdateEvents | null = null;
+  private events: InPlaceUpdateEvents | null = null;
   private busy = false;
 
   /** Packaged Windows builds only; dev and other platforms keep the manual flow. */
@@ -141,7 +131,7 @@ export class WindowsAutoUpdater {
    * Downloads and verifies `version` from the chosen source. Resolves once
    * the installer is ready to run; rejects with the reason otherwise.
    */
-  async download(version: string, source: UpdateSource, events: WindowsUpdateEvents): Promise<void> {
+  async download(version: string, source: UpdateSource, events: InPlaceUpdateEvents): Promise<void> {
     if (this.busy) throw new Error('An update download is already running');
     if (compareVersions(version, app.getVersion()) <= 0) throw new Error('update-signature:not-newer');
     this.busy = true;
@@ -152,7 +142,7 @@ export class WindowsAutoUpdater {
     }
   }
 
-  private async runDownload(version: string, source: UpdateSource, events: WindowsUpdateEvents): Promise<void> {
+  private async runDownload(version: string, source: UpdateSource, events: InPlaceUpdateEvents): Promise<void> {
     const updater = await this.getUpdater();
     const base = releaseDownloadBase(version, source);
     updater.setFeedURL({ provider: 'generic', url: base, useMultipleRangeRequest: false });

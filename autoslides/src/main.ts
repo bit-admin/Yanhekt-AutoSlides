@@ -32,6 +32,7 @@ import { AIFilteringService } from '@main/ai/aiFilteringService';
 import { LLMApiService } from '@main/ai/llmApiService';
 import { updateDownloadService } from '@main/download/updateDownloadService';
 import { windowsAutoUpdater } from '@main/download/windowsAutoUpdater';
+import { macSparkleUpdater } from '@main/download/macSparkleUpdater';
 import { QtExtractorService } from '@main/extraction/qtExtractorService';
 import { extractorInstallerService } from '@main/download/extractorInstallerService';
 import { AutoCropModelService } from '@main/ai/autoCropModelService';
@@ -566,6 +567,7 @@ if (!cliRun) registerAllIpcHandlers({
   llmApiService,
   updateDownloadService,
   windowsAutoUpdater,
+  macSparkleUpdater,
   qtExtractorService,
   extractorInstallerService,
   autoCropModelService,

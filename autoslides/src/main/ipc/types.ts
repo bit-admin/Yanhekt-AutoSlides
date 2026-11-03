@@ -20,6 +20,7 @@ import type { AIFilteringService } from '@main/ai/aiFilteringService';
 import type { LLMApiService } from '@main/ai/llmApiService';
 import type { UpdateDownloadService } from '@main/download/updateDownloadService';
 import type { WindowsAutoUpdater } from '@main/download/windowsAutoUpdater';
+import type { MacSparkleUpdater } from '@main/download/macSparkleUpdater';
 import type { QtExtractorService } from '@main/extraction/qtExtractorService';
 import type { ExtractorInstallerService } from '@main/download/extractorInstallerService';
 import type { AutoCropModelService } from '@main/ai/autoCropModelService';
@@ -77,6 +78,7 @@ export interface IpcServices {
   llmApiService: LLMApiService;
   updateDownloadService: UpdateDownloadService;
   windowsAutoUpdater: WindowsAutoUpdater;
+  macSparkleUpdater: MacSparkleUpdater;
   qtExtractorService: QtExtractorService;
   extractorInstallerService: ExtractorInstallerService;
   autoCropModelService: AutoCropModelService;

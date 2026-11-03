@@ -198,11 +198,32 @@ jobs:
         done
         exit 1
 
+    # Sparkle's feed for in-place updates (download/macSparkleUpdater.ts):
+    # appcast.xml for this DMG, plus a .delta from each of the last three
+    # releases whose app ships Sparkle (scripts/sparkle.mjs skips the rest).
+    # Signed with the update signing key, the key in SUPublicEDKey.
+    - name: Build Sparkle appcast
+      working-directory: autoslides
+      env:
+        GH_TOKEN: ${{ github.token }}
+        AUTOSLIDES_UPDATE_SIGNING_KEY: ${{ secrets.AUTOSLIDES_UPDATE_SIGNING_KEY }}
+      run: |
+        mkdir -p out/previous out/sparkle
+        for tag in $(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 3 --json tagName --jq '.[].tagName'); do
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern 'AutoSlides-*-macOS-arm64.dmg' --dir out/previous \
+            || echo "::warning::no macOS DMG in $tag"
+        done
+        node scripts/sparkle.mjs appcast --dmg out/make/AutoSlides-*-macOS-arm64.dmg --out out/sparkle --previous out/previous
+        ls -la out/sparkle
+
     - name: Upload macOS artifact
       uses: actions/upload-artifact@v4
       with:
         name: release-macos
-        path: autoslides/out/make/*.dmg
+        # sparkle/ holds appcast.xml and any .delta files.
+        path: |
+          autoslides/out/make/*.dmg
+          autoslides/out/sparkle/*
         retention-days: 7
 
   release:
@@ -236,7 +257,7 @@ jobs:
           artifacts/release-windows/*.exe \
           artifacts/release-linux/*.AppImage \
           artifacts/release-linux/*.deb \
-          artifacts/release-macos/*.dmg
+          artifacts/release-macos/make/*.dmg
 
     - name: Create draft release
       uses: softprops/action-gh-release@v2
@@ -259,5 +280,6 @@ jobs:
           artifacts/release-linux/*.AppImage.sig
           artifacts/release-linux/*.deb
           artifacts/release-linux/*.deb.sig
-          artifacts/release-macos/*.dmg
-          artifacts/release-macos/*.dmg.sig
+          artifacts/release-macos/make/*.dmg
+          artifacts/release-macos/make/*.dmg.sig
+          artifacts/release-macos/sparkle/*

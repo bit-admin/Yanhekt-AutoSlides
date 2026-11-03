@@ -107,9 +107,9 @@
               </button>
             </div>
 
-            <!-- macOS Quarantine Notice -->
+            <!-- macOS Quarantine Notice (not for Sparkle, which clears quarantine) -->
             <QuarantineNotice
-              v-if="isMacOS"
+              v-if="isMacOS && !releaseInfo?.inPlaceUpdate"
               :message="$t('titlebar.updateModal.macQuarantineNotice')"
               :command="MAC_QUARANTINE_COMMAND"
             />
@@ -309,7 +309,8 @@ const openDownloadFolder = async () => {
 const installUpdate = async () => {
   if (!downloadedFile.value) return
 
-  // Windows in-place update: main quits, installs silently and reopens the app.
+  // In-place update (Windows installer, macOS Sparkle): main quits, installs
+  // and reopens the app.
   if (releaseInfo.value?.inPlaceUpdate) {
     const response = await window.electronAPI.dialog?.showMessageBox?.({
       type: 'question',
