@@ -1059,6 +1059,7 @@
       "installUpdate": "Install Update",
       "restartToUpdate": "Restart to Update",
       "installsOnQuit": "Restart to apply the update, or keep working: it installs when you quit AutoSlides.",
+      "macKeychainNotice": "After updating, macOS may ask for your login password to let AutoSlides use “AutoSlides Safe Storage”. Enter it and choose Always Allow so your saved sign-ins keep working.",
       "confirmRestart": "Restart to Update",
       "confirmRestartMessage": "AutoSlides will close, install the update and open again.",
       "restartNow": "Restart Now",

@@ -1059,6 +1059,7 @@
       "installUpdate": "安装更新",
       "restartToUpdate": "重启以更新",
       "installsOnQuit": "重启以应用更新；或继续使用，退出 AutoSlides 时会自动安装更新。",
+      "macKeychainNotice": "更新后，macOS 可能会要求输入登录密码，以允许 AutoSlides 使用“AutoSlides Safe Storage”。请输入密码并选择“始终允许”，以保留已保存的登录状态。",
       "confirmRestart": "重启以更新",
       "confirmRestartMessage": "AutoSlides 将关闭、安装更新，然后重新打开。",
       "restartNow": "立即重启",

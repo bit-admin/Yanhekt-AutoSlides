@@ -87,8 +87,13 @@
               </svg>
               <span>{{ $t('titlebar.updateModal.downloadComplete') }}</span>
             </div>
-            <p v-if="releaseInfo?.inPlaceUpdate" class="install-on-quit-hint">
+            <p v-if="releaseInfo?.inPlaceUpdate" class="complete-hint">
               {{ $t('titlebar.updateModal.installsOnQuit') }}
+            </p>
+            <!-- Each release has a new ad-hoc signature, so the keychain asks
+                 again for the key that encrypts saved cookies. -->
+            <p v-if="isMacOS" class="complete-hint">
+              {{ $t('titlebar.updateModal.macKeychainNotice') }}
             </p>
             <div class="complete-actions">
               <button v-if="!releaseInfo?.inPlaceUpdate" class="btn action-btn" @click="openDownloadFolder">
@@ -462,7 +467,7 @@ defineExpose({
 <style scoped>
 /* Shared installer/update chrome lives in shared/styles/installerModal.css
    (namespaced under .installer-modal). Only update-specific extras here. */
-.install-on-quit-hint {
+.complete-hint {
   margin: 0 0 8px;
   font-size: 12px;
   color: var(--text-secondary);

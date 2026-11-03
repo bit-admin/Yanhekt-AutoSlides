@@ -1059,6 +1059,7 @@
       "installUpdate": "업데이트 설치",
       "restartToUpdate": "재시작하여 업데이트",
       "installsOnQuit": "재시작하면 업데이트가 적용됩니다. 계속 사용해도 AutoSlides를 종료하면 설치됩니다.",
+      "macKeychainNotice": "업데이트 후 macOS가 AutoSlides에서 “AutoSlides Safe Storage”를 사용하도록 로그인 암호를 요청할 수 있습니다. 암호를 입력하고 “항상 허용”을 선택하면 저장된 로그인이 유지됩니다.",
       "confirmRestart": "재시작하여 업데이트",
       "confirmRestartMessage": "AutoSlides가 종료된 뒤 업데이트를 설치하고 다시 열립니다.",
       "restartNow": "지금 재시작",

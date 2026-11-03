@@ -1059,6 +1059,7 @@
       "installUpdate": "アップデートをインストール",
       "restartToUpdate": "再起動して更新",
       "installsOnQuit": "再起動するとアップデートが適用されます。このまま作業を続けても、AutoSlides を終了するとインストールされます。",
+      "macKeychainNotice": "アップデート後、AutoSlides が「AutoSlides Safe Storage」を使用するために、macOS がログインパスワードを求めることがあります。パスワードを入力して「常に許可」を選ぶと、保存済みのサインインがそのまま使えます。",
       "confirmRestart": "再起動して更新",
       "confirmRestartMessage": "AutoSlides を終了してアップデートをインストールし、再度起動します。",
       "restartNow": "今すぐ再起動",
