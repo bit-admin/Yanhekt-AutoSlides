@@ -1,10 +1,14 @@
 import { ipcMain } from 'electron';
 import { formatSessionLookupProblem } from '@common/sessionLookupProblem';
 import { YanhektLookupError } from '@main/platform/apiClient';
+import type { DevApiRequest } from '@common/devApi';
 import type { IpcServices } from './types';
 
 export function registerApiIpcHandlers(services: IpcServices): void {
-  const { apiClient, courseLookup, courseIndex, courseIndexUpdater } = services;
+  const { apiClient, courseLookup, courseIndex, courseIndexUpdater, devApiConsole } = services;
+
+  // Developer → API. The console refuses unless developer mode is on.
+  ipcMain.handle('api:devSend', async (_event, request: DevApiRequest) => devApiConsole.send(request));
 
   // Course index search in one term (Settings → General → Search picks the source).
   ipcMain.handle('api:searchCourseIndex', async (_event, token: unknown, term: unknown, keyword: unknown, page?: unknown, pageSize?: unknown) => {

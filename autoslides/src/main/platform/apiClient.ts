@@ -190,15 +190,18 @@ function splitTerm(term: string | null | undefined): { school_year?: string; sem
   return m ? { school_year: m[1], semester: Number(m[2]) } : {};
 }
 
+/** The official web client's fixed headers; `Xclient-Signature`/`-Timestamp` are added per request. */
+export const YANHEKT_CLIENT_HEADERS: Readonly<Record<string, string>> = {
+  "Origin": "https://www.yanhekt.cn",
+  "Referer": "https://www.yanhekt.cn/",
+  "xdomain-client": "web_user",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3",
+  "Xdomain-Client": "web_user",
+  "Xclient-Version": "v1"
+};
+
 export class ApiClient {
-  private readonly BASE_HEADERS = {
-    "Origin": "https://www.yanhekt.cn",
-    "Referer": "https://www.yanhekt.cn/",
-    "xdomain-client": "web_user",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3",
-    "Xdomain-Client": "web_user",
-    "Xclient-Version": "v1"
-  };
+  private readonly BASE_HEADERS = YANHEKT_CLIENT_HEADERS;
 
   private cbiz: IntranetApiTransport;
   /** Developer-mode catalog. Null unless the desktop app turned it on. */

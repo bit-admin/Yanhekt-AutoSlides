@@ -12,6 +12,7 @@
  * declared here.
  */
 import type { PinRequest } from '@common/pins';
+import type { DevApiRequest, DevApiResponse } from '@common/devApi';
 import type { EnrolledRefreshResult } from '@common/types';
 import type {
   AppConfig,
@@ -661,6 +662,8 @@ export interface ElectronAPI {
     resetAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
   };
   api: {
+    /** Developer → API: send one hand-built Yanhekt request (developer mode only). Never rejects on an HTTP error. */
+    devSend: (request: DevApiRequest) => Promise<DevApiResponse>;
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStream>>;
     searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStream>>;
     getCourseList: (token: string, options: CourseListOptions) => Promise<PaginatedResponse<CourseData>>;

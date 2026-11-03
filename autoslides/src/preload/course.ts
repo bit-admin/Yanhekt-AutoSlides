@@ -1,7 +1,9 @@
 import { invoke } from './invoke';
+import type { DevApiRequest } from '@common/devApi';
 import type { ElectronAPI, CourseListOptions, PersonalCourseListOptions } from './electronApi';
 
 export const api: ElectronAPI['api'] = {
+  devSend: (request: DevApiRequest) => invoke('api:devSend', request),
   getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>
     invoke('api:getPersonalLiveList', token, page, pageSize),
   searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) =>

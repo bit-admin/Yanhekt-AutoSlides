@@ -13,6 +13,7 @@ import { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import { NotionNotesService } from '@main/export/notionNotesService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { IntranetApiTransport } from '@main/platform/intranetApiTransport';
+import { DevApiConsole } from '@main/platform/devApiConsole';
 import { routeYanhe2Through } from '@main/platform/yanhe2/yanhe2Http';
 import { VideoProxyService } from '@main/video/videoProxyService';
 import { LocalRelayService } from '@main/video/localRelayService';
@@ -358,6 +359,8 @@ const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
 const apiTransport = new IntranetApiTransport(intranetMappingService);
 const apiClient = new MainApiClient(configService, apiTransport);
+// Developer → API console: same route as the client above.
+const devApiConsole = new DevApiConsole(apiTransport, () => configService.getDeveloperMode());
 // Developer-mode catalog of raw cbiz responses, written under logs/. A command
 // line run does not open the log file (the app may already hold it), and it
 // does not record into the catalog either.
@@ -545,6 +548,7 @@ if (!cliRun) registerAllIpcHandlers({
   authService,
   yanhe2Service,
   apiClient,
+  devApiConsole,
   courseIndex,
   courseLookup,
   courseIndexUpdater,

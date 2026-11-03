@@ -4,6 +4,7 @@ import type { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolve
 import type { PinSyncService } from '@main/platform/pins/pinSyncService';
 import type { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
 import type { ApiClient } from '@main/platform/apiClient';
+import type { DevApiConsole } from '@main/platform/devApiConsole';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { VideoProxyService } from '@main/video/videoProxyService';
@@ -56,6 +57,8 @@ export interface IpcServices {
   /** The Recorded page's enrolled courses, every term: the only writer of the stored list. */
   enrolledCoursesService: EnrolledCoursesService;
   apiClient: ApiClient;
+  /** Developer → API: hand-built Yanhekt requests (developer mode only). */
+  devApiConsole: DevApiConsole;
   /** The course index on this computer, the lookups over it and the online Index, and its updater. */
   courseIndex: LocalCourseIndex;
   courseLookup: CourseLookup;
