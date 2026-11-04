@@ -1819,7 +1819,8 @@
     },
     "tabs": {
       "imageLab": "图像实验室",
-      "api": "API"
+      "api": "API",
+      "sso": "SSO"
     },
     "api": {
       "filterPlaceholder": "筛选请求…",
@@ -1865,9 +1866,79 @@
       "response": "响应",
       "failed": "无响应",
       "copyBody": "复制响应体",
-      "copyCurl": "复制 cURL",
       "emptyResponse": "在左侧选择一个请求或输入地址，然后发送。",
       "sentRequest": "已发送"
+    },
+    "sso": {
+      "start": "开始",
+      "restart": "重新开始",
+      "pause": "暂停",
+      "pausing": "正在暂停…",
+      "resume": "继续",
+      "step": "单步",
+      "stop": "停止",
+      "copyReport": "复制报告",
+      "before": "即将{step}",
+      "status": {
+        "idle": "未开始",
+        "running": "运行中…",
+        "paused": "已暂停",
+        "awaiting_sms_send": "等待发送验证码",
+        "awaiting_code": "等待输入验证码",
+        "succeeded": "已登录",
+        "failed": "失败",
+        "stopped": "已停止"
+      },
+      "fillSaved": "从已保存的登录填入…",
+      "username": "学号",
+      "password": "密码",
+      "target": "登录到",
+      "targets": {
+        "yanhekt": "延河课堂",
+        "both": "延河课堂，然后延河 2.0",
+        "yanhe2": "仅延河 2.0"
+      },
+      "nothingStored": "测试运行不保存任何内容：不保存账号、令牌或可信设备 Cookie。除非开启原始值，敏感信息在离开主进程前即被隐藏。暂停过久（几分钟）后 CAS 会使流程失效。",
+      "smsGateText": "CAS 要求向 {phone} 发送验证码。尚未发送。",
+      "sendCode": "发送验证码",
+      "haveCode": "使用已发送的验证码",
+      "codeSentTo": "发送至 {phone}。",
+      "codePlaceholder": "6 位验证码",
+      "submitCode": "提交验证码",
+      "yanhektToken": "延河课堂令牌",
+      "yanhe2Token": "延河 2.0 会话",
+      "durableCookie": "可信设备 Cookie",
+      "seeded": "已发送的 Cookie",
+      "emptyTimeline": "开始运行后，每一步和每个请求会显示在这里。",
+      "emptyDetail": "选择一个请求以查看详情。",
+      "detail": {
+        "step": "步骤",
+        "request": "请求",
+        "response": "响应",
+        "body": "正文"
+      },
+      "truncated": "仅显示前 {shown} 个字符（共 {total} 个）。",
+      "noBody": "（空）",
+      "steps": {
+        "discover_service": "查找延河 2.0 服务",
+        "load_login_page": "加载登录页",
+        "captcha_probe": "检查图形验证码",
+        "submit_password": "提交密码",
+        "lookup_phone": "查询绑定手机",
+        "send_sms": "发送短信验证码",
+        "check_code": "校验验证码",
+        "submit_code": "提交验证码",
+        "exchange_ticket": "兑换票据",
+        "mint_yanhe2": "登录延河 2.0"
+      },
+      "revealWarning": "已显示原始值：令牌和 Cookie 会完整显示在此处和复制的报告中。截图或分享报告前请先关闭。",
+      "run": "运行",
+      "details": "详情",
+      "trustedDeviceShort": "可信设备（{count}）",
+      "trustedDeviceHint": "发送本机保存的可信设备 Cookie。关闭后 CAS 会要求短信验证码。",
+      "stepModeShort": "每步暂停",
+      "revealShort": "原始值",
+      "noNotes": "此步骤没有记录。"
     }
   },
   "pageError": {

@@ -1819,7 +1819,8 @@
     },
     "tabs": {
       "imageLab": "Image Lab",
-      "api": "API"
+      "api": "API",
+      "sso": "SSO"
     },
     "api": {
       "filterPlaceholder": "Filter requests…",
@@ -1865,9 +1866,79 @@
       "response": "Response",
       "failed": "No response",
       "copyBody": "Copy Body",
-      "copyCurl": "Copy cURL",
       "emptyResponse": "Pick a request on the left or type a URL, then Send.",
       "sentRequest": "Sent"
+    },
+    "sso": {
+      "start": "Start",
+      "restart": "Start Over",
+      "pause": "Pause",
+      "pausing": "Pausing…",
+      "resume": "Resume",
+      "step": "Step",
+      "stop": "Stop",
+      "copyReport": "Copy Report",
+      "before": "before {step}",
+      "status": {
+        "idle": "Not started",
+        "running": "Running…",
+        "paused": "Paused",
+        "awaiting_sms_send": "Waiting to send the code",
+        "awaiting_code": "Waiting for the code",
+        "succeeded": "Signed in",
+        "failed": "Failed",
+        "stopped": "Stopped"
+      },
+      "fillSaved": "Fill from a saved login…",
+      "username": "Student ID",
+      "password": "Password",
+      "target": "Sign In To",
+      "targets": {
+        "yanhekt": "Yanhekt",
+        "both": "Yanhekt, then Yanhe 2.0",
+        "yanhe2": "Yanhe 2.0 only"
+      },
+      "nothingStored": "A test run stores nothing: no account, token or trusted-device cookie is saved. Unless raw values are on, secrets are hidden before they leave the main process. CAS expires a flow left paused for a few minutes.",
+      "smsGateText": "CAS wants a code texted to {phone}. Nothing has been sent.",
+      "sendCode": "Send Code",
+      "haveCode": "Use a Code Already Sent",
+      "codeSentTo": "For {phone}.",
+      "codePlaceholder": "6-digit code",
+      "submitCode": "Submit Code",
+      "yanhektToken": "Yanhekt token",
+      "yanhe2Token": "Yanhe 2.0 session",
+      "durableCookie": "Trusted-device cookie",
+      "seeded": "Cookies sent",
+      "emptyTimeline": "Start a run to see each step and request here.",
+      "emptyDetail": "Pick a request to see its details.",
+      "detail": {
+        "step": "Step",
+        "request": "Request",
+        "response": "Response",
+        "body": "Body"
+      },
+      "truncated": "Showing the first {shown} of {total} characters.",
+      "noBody": "(empty)",
+      "steps": {
+        "discover_service": "Find the Yanhe 2.0 service",
+        "load_login_page": "Load the sign-in page",
+        "captcha_probe": "Check for a captcha",
+        "submit_password": "Submit the password",
+        "lookup_phone": "Look up the bound phone",
+        "send_sms": "Send the SMS code",
+        "check_code": "Check the code",
+        "submit_code": "Submit the code",
+        "exchange_ticket": "Exchange the ticket",
+        "mint_yanhe2": "Sign in to Yanhe 2.0"
+      },
+      "revealWarning": "Raw values are on: tokens and cookies appear in full here and in Copy Report. Turn this off before you take a screenshot or share a report.",
+      "run": "Run",
+      "details": "Details",
+      "trustedDeviceShort": "Trusted device ({count})",
+      "trustedDeviceHint": "Send the trusted-device cookies stored on this computer. Turn off to make CAS ask for the SMS code.",
+      "stepModeShort": "Pause each step",
+      "revealShort": "Raw values",
+      "noNotes": "Nothing recorded for this step."
     }
   },
   "pageError": {

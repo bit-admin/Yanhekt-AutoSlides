@@ -1819,7 +1819,8 @@
     },
     "tabs": {
       "imageLab": "이미지 랩",
-      "api": "API"
+      "api": "API",
+      "sso": "SSO"
     },
     "api": {
       "filterPlaceholder": "요청 필터…",
@@ -1865,9 +1866,79 @@
       "response": "응답",
       "failed": "응답 없음",
       "copyBody": "본문 복사",
-      "copyCurl": "cURL 복사",
       "emptyResponse": "왼쪽에서 요청을 고르거나 URL을 입력한 뒤 보내세요.",
       "sentRequest": "보낸 요청"
+    },
+    "sso": {
+      "start": "시작",
+      "restart": "다시 시작",
+      "pause": "일시 정지",
+      "pausing": "일시 정지 중…",
+      "resume": "재개",
+      "step": "단계 실행",
+      "stop": "중지",
+      "copyReport": "보고서 복사",
+      "before": "다음: {step}",
+      "status": {
+        "idle": "시작 전",
+        "running": "실행 중…",
+        "paused": "일시 정지됨",
+        "awaiting_sms_send": "코드 전송 대기",
+        "awaiting_code": "코드 입력 대기",
+        "succeeded": "로그인됨",
+        "failed": "실패",
+        "stopped": "중지됨"
+      },
+      "fillSaved": "저장된 로그인으로 채우기…",
+      "username": "학번",
+      "password": "비밀번호",
+      "target": "로그인 대상",
+      "targets": {
+        "yanhekt": "Yanhekt",
+        "both": "Yanhekt 후 Yanhe 2.0",
+        "yanhe2": "Yanhe 2.0만"
+      },
+      "nothingStored": "테스트 실행은 아무것도 저장하지 않습니다. 계정, 토큰, 신뢰할 수 있는 기기 쿠키를 저장하지 않습니다. 원본 값을 켜지 않으면 민감한 정보는 메인 프로세스를 떠나기 전에 숨겨집니다. 몇 분 이상 일시 정지된 흐름은 CAS가 만료시킵니다.",
+      "smsGateText": "CAS가 {phone}(으)로 코드 전송을 요구합니다. 아직 보내지 않았습니다.",
+      "sendCode": "코드 보내기",
+      "haveCode": "이미 받은 코드 사용",
+      "codeSentTo": "{phone} 대상.",
+      "codePlaceholder": "6자리 코드",
+      "submitCode": "코드 제출",
+      "yanhektToken": "Yanhekt 토큰",
+      "yanhe2Token": "Yanhe 2.0 세션",
+      "durableCookie": "신뢰할 수 있는 기기 쿠키",
+      "seeded": "보낸 쿠키",
+      "emptyTimeline": "실행을 시작하면 각 단계와 요청이 여기에 표시됩니다.",
+      "emptyDetail": "요청을 선택하면 세부 정보가 표시됩니다.",
+      "detail": {
+        "step": "단계",
+        "request": "요청",
+        "response": "응답",
+        "body": "본문"
+      },
+      "truncated": "전체 {total}자 중 처음 {shown}자를 표시합니다.",
+      "noBody": "(비어 있음)",
+      "steps": {
+        "discover_service": "Yanhe 2.0 서비스 찾기",
+        "load_login_page": "로그인 페이지 불러오기",
+        "captcha_probe": "캡차 확인",
+        "submit_password": "비밀번호 제출",
+        "lookup_phone": "등록된 휴대폰 조회",
+        "send_sms": "SMS 코드 보내기",
+        "check_code": "코드 확인",
+        "submit_code": "코드 제출",
+        "exchange_ticket": "티켓 교환",
+        "mint_yanhe2": "Yanhe 2.0 로그인"
+      },
+      "revealWarning": "원본 값이 표시되고 있습니다. 토큰과 쿠키가 여기와 복사한 보고서에 그대로 나타납니다. 스크린샷을 찍거나 보고서를 공유하기 전에 끄세요.",
+      "run": "실행",
+      "details": "세부 정보",
+      "trustedDeviceShort": "신뢰할 수 있는 기기 ({count})",
+      "trustedDeviceHint": "이 컴퓨터에 저장된 신뢰할 수 있는 기기 쿠키를 보냅니다. 끄면 CAS가 SMS 코드를 요구합니다.",
+      "stepModeShort": "단계마다 일시 정지",
+      "revealShort": "원본 값",
+      "noNotes": "이 단계에 기록된 내용이 없습니다."
     }
   },
   "pageError": {

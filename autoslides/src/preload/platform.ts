@@ -4,6 +4,7 @@ import type { ElectronAPI, DialogOptions } from './electronApi';
 import type { AppConfig, ConnectionMode, CustomProviderId, LanguageMode, StoredAccount } from '@common/types';
 import type { WatchNotesProviderId } from '@common/watchNotesProviders';
 import type { Yanhe2SlideSaveProgress } from '@common/yanhe2SlideSave';
+import type { DevSsoSnapshot } from '@common/devSso';
 
 export const auth: ElectronAPI['auth'] = {
   login: (username: string, password: string) => invoke('auth:login', username, password),
@@ -20,6 +21,19 @@ export const auth: ElectronAPI['auth'] = {
     invoke('auth:saveSavedLogin', badge, username, password),
   forgetSavedLogin: (badge: string) => invoke('auth:forgetSavedLogin', badge),
   getBrowserLoginPreloadPath: () => invoke('auth:getBrowserLoginPreloadPath'),
+  devSsoState: () => invoke('auth:devSsoState'),
+  devSsoStart: (request) => invoke('auth:devSsoStart', request),
+  devSsoControl: (action) => invoke('auth:devSsoControl', action),
+  devSsoSendSms: (decision) => invoke('auth:devSsoSendSms', decision),
+  devSsoSubmitCode: (code) => invoke('auth:devSsoSubmitCode', code),
+  devSsoSetReveal: (on) => invoke('auth:devSsoSetReveal', on),
+  onDevSsoUpdate: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, snapshot: DevSsoSnapshot) => callback(snapshot);
+    ipcRenderer.on('auth:devSsoUpdate', listener);
+    return () => {
+      ipcRenderer.removeListener('auth:devSsoUpdate', listener);
+    };
+  },
 };
 
 export const yanhe2: ElectronAPI['yanhe2'] = {

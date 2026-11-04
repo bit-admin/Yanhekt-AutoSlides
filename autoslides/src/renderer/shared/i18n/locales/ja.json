@@ -1819,7 +1819,8 @@
     },
     "tabs": {
       "imageLab": "画像ラボ",
-      "api": "API"
+      "api": "API",
+      "sso": "SSO"
     },
     "api": {
       "filterPlaceholder": "リクエストを絞り込み…",
@@ -1865,9 +1866,79 @@
       "response": "レスポンス",
       "failed": "応答なし",
       "copyBody": "ボディをコピー",
-      "copyCurl": "cURL をコピー",
       "emptyResponse": "左のリクエストを選ぶか URL を入力して送信してください。",
       "sentRequest": "送信内容"
+    },
+    "sso": {
+      "start": "開始",
+      "restart": "やり直す",
+      "pause": "一時停止",
+      "pausing": "一時停止中…",
+      "resume": "再開",
+      "step": "ステップ",
+      "stop": "停止",
+      "copyReport": "レポートをコピー",
+      "before": "次: {step}",
+      "status": {
+        "idle": "未開始",
+        "running": "実行中…",
+        "paused": "一時停止中",
+        "awaiting_sms_send": "コードの送信待ち",
+        "awaiting_code": "コードの入力待ち",
+        "succeeded": "サインイン済み",
+        "failed": "失敗",
+        "stopped": "停止済み"
+      },
+      "fillSaved": "保存済みのログインから入力…",
+      "username": "学籍番号",
+      "password": "パスワード",
+      "target": "サインイン先",
+      "targets": {
+        "yanhekt": "Yanhekt",
+        "both": "Yanhekt、続いて Yanhe 2.0",
+        "yanhe2": "Yanhe 2.0 のみ"
+      },
+      "nothingStored": "テスト実行では何も保存されません。アカウント、トークン、信頼済みデバイス Cookie は保存されません。生の値をオンにしない限り、機密情報はメインプロセスを出る前に隠されます。数分間一時停止したままのフローは CAS により無効になります。",
+      "smsGateText": "CAS が {phone} へのコード送信を求めています。まだ送信していません。",
+      "sendCode": "コードを送信",
+      "haveCode": "送信済みのコードを使う",
+      "codeSentTo": "{phone} 宛て。",
+      "codePlaceholder": "6 桁のコード",
+      "submitCode": "コードを送信",
+      "yanhektToken": "Yanhekt トークン",
+      "yanhe2Token": "Yanhe 2.0 セッション",
+      "durableCookie": "信頼済みデバイス Cookie",
+      "seeded": "送信した Cookie",
+      "emptyTimeline": "実行を開始すると、各ステップとリクエストがここに表示されます。",
+      "emptyDetail": "リクエストを選ぶと詳細が表示されます。",
+      "detail": {
+        "step": "ステップ",
+        "request": "リクエスト",
+        "response": "レスポンス",
+        "body": "本文"
+      },
+      "truncated": "{total} 文字のうち先頭 {shown} 文字を表示しています。",
+      "noBody": "（空）",
+      "steps": {
+        "discover_service": "Yanhe 2.0 サービスを検出",
+        "load_login_page": "サインインページを読み込む",
+        "captcha_probe": "画像認証の確認",
+        "submit_password": "パスワードを送信",
+        "lookup_phone": "登録電話番号を照会",
+        "send_sms": "SMS コードを送信",
+        "check_code": "コードを確認",
+        "submit_code": "コードを送信",
+        "exchange_ticket": "チケットを交換",
+        "mint_yanhe2": "Yanhe 2.0 にサインイン"
+      },
+      "revealWarning": "生の値を表示中です。トークンと Cookie はここにもコピーしたレポートにもそのまま表示されます。スクリーンショットやレポートの共有前にオフにしてください。",
+      "run": "実行",
+      "details": "詳細",
+      "trustedDeviceShort": "信頼済みデバイス（{count}）",
+      "trustedDeviceHint": "このコンピュータに保存された信頼済みデバイス Cookie を送信します。オフにすると CAS が SMS コードを求めます。",
+      "stepModeShort": "各ステップで一時停止",
+      "revealShort": "生の値",
+      "noNotes": "このステップの記録はありません。"
     }
   },
   "pageError": {

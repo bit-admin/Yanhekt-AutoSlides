@@ -72,18 +72,6 @@ export function readEnvelope(body: string): { code: string; message: string; mea
   }
 }
 
-/** A shell command for the last request; the token is left as a variable. */
-export function toCurl(method: DevApiMethod, url: string, headers: Record<string, string>, body: string): string {
-  const quote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
-  const lines = [`curl -X ${method} ${quote(url)}`]
-  for (const [key, value] of Object.entries(headers)) {
-    const shown = key.toLowerCase() === 'authorization' ? 'Bearer $YANHEKT_TOKEN' : value
-    lines.push(`  -H ${quote(`${key}: ${shown}`)}`)
-  }
-  if (method !== 'GET' && body.trim()) lines.push(`  --data-raw ${quote(body)}`)
-  return lines.join(' \\\n')
-}
-
 export function useApiLab() {
   const presets = YANHEKT_API_PRESETS
   const presetId = ref<string | null>(null)
@@ -103,7 +91,7 @@ export function useApiLab() {
   const state = reactive({
     running: false,
     response: null as DevApiResponse | null,
-    /** What the response belongs to, for cURL and the request tab. */
+    /** What the response belongs to, for the Sent tab. */
     sentMethod: 'GET' as DevApiMethod,
     sentUrl: '',
     sentBody: '',
@@ -267,10 +255,6 @@ export function useApiLab() {
     }
   })
 
-  const curl = computed(() =>
-    state.response ? toCurl(state.sentMethod, state.sentUrl, state.response.sentHeaders, state.sentBody) : '',
-  )
-
   async function copy(text: string) {
     try {
       await navigator.clipboard.writeText(text)
@@ -303,7 +287,6 @@ export function useApiLab() {
     responseTab,
     envelope,
     prettyBody,
-    curl,
     applyPreset,
     setMethod,
     onUrlInput,

@@ -1,6 +1,7 @@
-import { ipcMain, session } from 'electron';
+import { BrowserWindow, ipcMain, session } from 'electron';
 import path from 'node:path';
 import type { IpcServices } from './types';
+import type { DevSsoControl, DevSsoStartRequest } from '@common/devSso';
 import { broadcastConfig } from './broadcastConfig';
 import { createLogger } from '@main/infra/logger';
 import { decryptPassword, encryptPassword } from '@main/platform/passwordCipher';
@@ -12,7 +13,22 @@ import {
 const log = createLogger('AuthIpc');
 
 export function registerAuthIpcHandlers(services: IpcServices): void {
-  const { authService, apiClient, configService } = services;
+  const { authService, apiClient, configService, devSsoLab } = services;
+
+  // Developer → SSO. The lab refuses unless developer mode is on, and pushes
+  // its (already redacted) state to every window as the run moves.
+  devSsoLab.subscribe((snapshot) => {
+    for (const w of BrowserWindow.getAllWindows()) {
+      if (!w.isDestroyed()) w.webContents.send('auth:devSsoUpdate', snapshot);
+    }
+  });
+  ipcMain.handle('auth:devSsoState', async () => devSsoLab.snapshot());
+  ipcMain.handle('auth:devSsoStart', async (_event, request: DevSsoStartRequest) => devSsoLab.start(request));
+  ipcMain.handle('auth:devSsoControl', async (_event, action: DevSsoControl) => devSsoLab.control(action));
+  ipcMain.handle('auth:devSsoSendSms', async (_event, decision: 'send' | 'skip') =>
+    devSsoLab.sendSms(decision === 'skip' ? 'skip' : 'send'));
+  ipcMain.handle('auth:devSsoSubmitCode', async (_event, code: string) => devSsoLab.submitCode(code));
+  ipcMain.handle('auth:devSsoSetReveal', async (_event, on: boolean) => devSsoLab.setReveal(on === true));
 
   // May resolve with a token, a failure, or an `smsChallenge` the renderer has
   // to answer via auth:submitSmsCode. The CAS flow behind the challenge stays

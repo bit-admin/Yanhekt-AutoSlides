@@ -25,6 +25,10 @@
  * hops in yanhe2Leg.ts. A cbiz sign-in can also mint the Yanhe 2.0 session
  * on its way out (`alsoYanhe2`), reusing the CAS session it just created.
  *
+ * Developer → SSO passes a `CasProbe` (casProbe.ts) to watch and pause the
+ * flow step by step; sign-in proper never does, and without one every probe
+ * call below is a no-op.
+ *
  * Nothing here logs codes, passwords, phone values, or cookies.
  */
 import { CasTransport, type DurableCookie } from './casTransport';
@@ -53,6 +57,7 @@ import {
   followYanhe2Ticket,
   mintYanhe2WithSession,
 } from './yanhe2Leg';
+import type { CasProbe, CasStep } from './casProbe';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('CampusSso');
@@ -124,6 +129,8 @@ export interface SecondFactorHandle {
   phoneHandle: string;
   /** Masked number as CAS renders it, for display only. */
   phoneHint: string;
+  /** Developer → SSO only. */
+  probe?: CasProbe;
 }
 
 export type PasswordSignInOutcome =
@@ -139,24 +146,32 @@ export async function startPasswordSignIn(
   password: string,
   seedCookies: readonly DurableCookie[] = [],
   options: SignInOptions = {},
+  probe?: CasProbe,
 ): Promise<PasswordSignInOutcome> {
   const opts: Required<SignInOptions> = {
     target: options.target ?? 'yanhekt',
     alsoYanhe2: options.target === 'yanhe2' ? false : options.alsoYanhe2 ?? false,
   };
   const transport = new CasTransport(`${CAS_ORIGIN}/`);
+  if (probe) transport.observe((exchange) => probe.onExchange(exchange));
   // Any remembered-device cookies go in before the first hop, so CAS can
   // recognise the device while it is still deciding whether to demand SMS.
   transport.seedDurableCookies(seedCookies);
 
-  const loginUrl = opts.target === 'yanhe2'
-    ? casLoginUrlFor(await withYanhe2Errors(() => discoverYanhe2Service(transport)))
-    : `${CAS_LOGIN_URL}?service=${encodeURIComponent(SERVICE_URL)}`;
+  let loginUrl = `${CAS_LOGIN_URL}?service=${encodeURIComponent(SERVICE_URL)}`;
+  if (opts.target === 'yanhe2') {
+    await gate(probe, 'discover_service');
+    const service = await withYanhe2Errors(() => discoverYanhe2Service(transport));
+    probe?.note({ service });
+    loginUrl = casLoginUrlFor(service);
+  }
 
+  await gate(probe, 'load_login_page');
   const loaded = await loadCredentialPage(transport, loginUrl);
   if (loaded.kind === 'ticket') {
     // CAS already knew this client; no password needed.
-    const tokens = await completeSignIn(transport, loaded.url, opts);
+    probe?.note({ outcome: 'CAS session reused; ticket issued without a password' });
+    const tokens = await completeSignIn(transport, loaded.url, opts, probe);
     return { kind: 'signed_in', tokens, durableCookies: transport.exportDurableCookies() };
   }
   const { url: pageUrl, html: pageHtml } = loaded;
@@ -168,11 +183,18 @@ export async function startPasswordSignIn(
       'unsupported_page',
     );
   }
+  probe?.note({
+    execution: page.execution,
+    pageKey: page.pageKey,
+    formAction: page.formAction,
+    riskSystem: page.riskSystem || '(none)',
+  });
   transport.setReferer(pageUrl);
 
   // We cannot solve an image captcha in-app; detect it and say so plainly
   // rather than submitting a blank one and reporting a bogus password error.
-  await assertNoCaptchaRequired(transport, username);
+  await gate(probe, 'captcha_probe');
+  await assertNoCaptchaRequired(transport, username, probe);
 
   const form = new URLSearchParams({
     username,
@@ -185,6 +207,7 @@ export async function startPasswordSignIn(
     captcha_code: '',
   });
 
+  await gate(probe, 'submit_password');
   const loginResponse = await transport.request(page.formAction, { method: 'POST', form });
 
   if (loginResponse.status === 401) {
@@ -192,7 +215,8 @@ export async function startPasswordSignIn(
   }
 
   if (loginResponse.status === 302) {
-    const tokens = await completeSignIn(transport, loginResponse.headers['location'], opts);
+    probe?.note({ outcome: 'Password accepted; no second factor' });
+    const tokens = await completeSignIn(transport, loginResponse.headers['location'], opts, probe);
     return { kind: 'signed_in', tokens, durableCookies: transport.exportDurableCookies() };
   }
 
@@ -201,7 +225,14 @@ export async function startPasswordSignIn(
 
   if (secondFactor) {
     log.debug('Password accepted; CAS requires an SMS second factor');
-    const handle = await beginSecondFactor(transport, username, secondFactor, opts);
+    probe?.note({
+      outcome: 'Password accepted; SMS second factor required',
+      execution: secondFactor.execution,
+      formAction: secondFactor.formAction,
+      userObjectId: secondFactor.userObjectId,
+      displayPhone: secondFactor.displayPhone || '(none)',
+    });
+    const handle = await beginSecondFactor(transport, username, secondFactor, opts, probe);
     return { kind: 'second_factor', handle };
   }
 
@@ -230,8 +261,9 @@ export async function finishSecondFactor(
   handle: SecondFactorHandle,
   code: string,
 ): Promise<{ tokens: SignInTokens; durableCookies: DurableCookie[] }> {
-  const { transport, page, username, phoneHandle, options } = handle;
+  const { transport, page, username, phoneHandle, options, probe } = handle;
 
+  await gate(probe, 'check_code');
   const check = await postJson(transport, CHECK_CODE_URL, {
     phone: phoneHandle,
     token: code,
@@ -246,6 +278,7 @@ export async function finishSecondFactor(
       'code_rejected',
     );
   }
+  probe?.note({ outcome: 'Code accepted' });
 
   // CAS reuses the login form for the second step: same endpoint, but the code
   // travels in the `password` field under a different `type`.
@@ -260,6 +293,7 @@ export async function finishSecondFactor(
     trustDevice: String(TRUST_THIS_DEVICE),
   });
 
+  await gate(probe, 'submit_code');
   const response = await transport.request(page.formAction, { method: 'POST', form });
 
   if (response.status !== 302) {
@@ -272,7 +306,7 @@ export async function finishSecondFactor(
     throw new CasSignInError(failure.message, failure.reason);
   }
 
-  const tokens = await completeSignIn(transport, response.headers['location'], options);
+  const tokens = await completeSignIn(transport, response.headers['location'], options, probe);
   return { tokens, durableCookies: transport.exportDurableCookies() };
 }
 
@@ -285,7 +319,9 @@ async function completeSignIn(
   transport: CasTransport,
   ticketLocation: unknown,
   options: Required<SignInOptions>,
+  probe?: CasProbe,
 ): Promise<SignInTokens> {
+  await gate(probe, 'exchange_ticket');
   if (options.target === 'yanhe2') {
     if (typeof ticketLocation !== 'string' || !ticketLocation) {
       throw new CasSignInError(
@@ -299,9 +335,11 @@ async function completeSignIn(
 
   const yanhekt = await exchangeTicketForToken(transport, ticketLocation);
   if (!options.alsoYanhe2) return { yanhekt };
+  await gate(probe, 'mint_yanhe2');
   try {
     return { yanhekt, yanhe2: await mintYanhe2WithSession(transport) };
   } catch (error) {
+    probe?.note({ outcome: `Yanhe 2.0 not minted: ${describeErrorSafely(error)}` });
     log.warn('Signed in, but the Yanhe 2.0 session could not be minted:', describeErrorSafely(error));
     return { yanhekt };
   }
@@ -358,7 +396,9 @@ async function beginSecondFactor(
   username: string,
   page: SecondFactorPage,
   options: Required<SignInOptions>,
+  probe?: CasProbe,
 ): Promise<SecondFactorHandle> {
+  await gate(probe, 'lookup_phone');
   // The protected SMS APIs are called from the CAS app root, not from the form
   // URL — CAS cross-checks the referer, so match what the page itself sends.
   transport.setReferer(`${CAS_ORIGIN}/cas/`);
@@ -371,23 +411,30 @@ async function beginSecondFactor(
       'unsupported_page',
     );
   }
+  probe?.note({ maskedPhone: phone.masked || '(none)', phoneHandle: phone.handle ? 'from lookup' : 'from page' });
 
-  const send = await postJson(transport, SEND_CODE_URL, {
-    phone: phoneHandle,
-    businessNo: SECOND_FACTOR_BUSINESS_NO,
-  });
+  // Developer → SSO never sends an SMS on its own: the probe asks first.
+  const decision = probe ? await probe.confirmSmsSend(phone.masked) : 'send';
+  if (decision === 'send') {
+    await gate(probe, 'send_sms');
+    const send = await postJson(transport, SEND_CODE_URL, {
+      phone: phoneHandle,
+      businessNo: SECOND_FACTOR_BUSINESS_NO,
+    });
 
-  const sendMessage = readApiMessage(send);
-  // A resend inside the validity window is reported as a failure but means the
-  // previous code is still usable, so let the user enter it.
-  if (readApiCode(send) !== 200 && !isCodeStillValidNotice(sendMessage)) {
-    throw new CasSignInError(
-      sendMessage || 'Failed to send the verification code. Please try again.',
-      'sms_send_failed',
-    );
+    const sendMessage = readApiMessage(send);
+    // A resend inside the validity window is reported as a failure but means the
+    // previous code is still usable, so let the user enter it.
+    if (readApiCode(send) !== 200 && !isCodeStillValidNotice(sendMessage)) {
+      throw new CasSignInError(
+        sendMessage || 'Failed to send the verification code. Please try again.',
+        'sms_send_failed',
+      );
+    }
+    probe?.note({ outcome: sendMessage || 'Code sent' });
   }
 
-  return { transport, options, page, username, phoneHandle, phoneHint: phone.masked };
+  return { transport, options, page, username, phoneHandle, phoneHint: phone.masked, probe };
 }
 
 /**
@@ -432,7 +479,7 @@ async function lookupBoundPhone(
  * one — the point is to fail with an accurate reason instead of submitting an
  * empty `captcha_code` and getting back a generic rejection.
  */
-async function assertNoCaptchaRequired(transport: CasTransport, username: string): Promise<void> {
+async function assertNoCaptchaRequired(transport: CasTransport, username: string, probe?: CasProbe): Promise<void> {
   let payload: unknown;
   try {
     const response = await transport.request(
@@ -446,6 +493,7 @@ async function assertNoCaptchaRequired(transport: CasTransport, username: string
     return;
   }
 
+  probe?.note({ captchaRequired: readApiData(payload)?.captchaInvisible ? 'yes' : 'no' });
   if (readApiData(payload)?.captchaInvisible) {
     throw new CasSignInError(
       'This account needs an image captcha. Please sign in with browser.',
@@ -496,6 +544,11 @@ async function exchangeTicketForToken(
   }
 
   return token;
+}
+
+/** Developer → SSO: let the probe see (and hold) the next step. */
+async function gate(probe: CasProbe | undefined, step: CasStep): Promise<void> {
+  if (probe) await probe.beforeStep(step);
 }
 
 async function postJson(

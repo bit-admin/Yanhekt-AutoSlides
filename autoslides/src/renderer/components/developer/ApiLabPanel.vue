@@ -158,13 +158,12 @@
                 <span class="stat" :class="statusClass">{{ state.response.status }} {{ state.response.statusText }}</span>
                 <span class="stat">{{ state.response.durationMs }} ms</span>
                 <span class="stat">{{ formatSize(state.response.size) }}</span>
-                <span v-if="envelope" class="stat" :class="envelope.code === '0' ? 'ok' : 'bad'" :title="envelope.message">
+                <span v-if="envelope" class="stat stat--envelope" :class="envelope.code === '0' ? 'ok' : 'bad'" :title="envelope.meaning ? `${envelope.code} · ${envelope.meaning}\n${envelope.message}` : envelope.message">
                   code {{ envelope.code }}<template v-if="envelope.meaning"> · {{ envelope.meaning }}</template>
                 </span>
               </template>
               <span v-else class="stat bad">{{ $t('developer.api.failed') }}</span>
               <button type="button" class="btn btn--sm" :disabled="!state.response.ok" @click="copy(prettyBody)">{{ $t('developer.api.copyBody') }}</button>
-              <button type="button" class="btn btn--sm" @click="copy(curl)">{{ $t('developer.api.copyCurl') }}</button>
             </div>
           </div>
 
@@ -226,7 +225,6 @@ const {
   responseTab,
   envelope,
   prettyBody,
-  curl,
   applyPreset,
   setMethod,
   onUrlInput,
@@ -508,11 +506,13 @@ function formatSize(bytes: number): string {
   flex-shrink: 0;
 }
 
+/* One line, always: if the strip wrapped, the tabs' underline would float
+   above the strip's bottom border. The right-hand group shrinks instead. */
 .panel-strip {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 12px;
+  flex-wrap: nowrap;
+  gap: 12px;
   padding: 0 10px 0 8px;
   border-bottom: 1px solid var(--border-color);
   min-height: 38px;
@@ -522,6 +522,7 @@ function formatSize(bytes: number): string {
   display: flex;
   align-items: stretch;
   align-self: stretch;
+  flex-shrink: 0;
   gap: 2px;
 }
 
@@ -571,10 +572,17 @@ function formatSize(bytes: number): string {
 .response-stats {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
   gap: 8px;
+  min-width: 0;
   margin-left: auto;
   padding: 5px 0;
+}
+
+.auth-controls > *,
+.response-stats > * {
+  flex-shrink: 0;
 }
 
 .text-input.compact {
@@ -582,12 +590,15 @@ function formatSize(bytes: number): string {
   padding: 3px 8px;
 }
 
-.token-select {
+.auth-controls > .token-select {
+  flex-shrink: 1;
+  min-width: 120px;
   max-width: 260px;
 }
 
-.token-input {
-  width: 220px;
+.auth-controls > .token-input {
+  flex: 0 1 220px;
+  min-width: 90px;
 }
 
 .client-headers {
@@ -677,6 +688,15 @@ function formatSize(bytes: number): string {
   font-family: var(--lab-mono);
   font-size: 12px;
   color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* The cbiz code and its meaning can run long; it gives way first. */
+.response-stats > .stat--envelope {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat.ok {

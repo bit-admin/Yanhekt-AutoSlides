@@ -13,6 +13,7 @@
  */
 import type { PinRequest } from '@common/pins';
 import type { DevApiRequest, DevApiResponse } from '@common/devApi';
+import type { DevSsoControl, DevSsoSnapshot, DevSsoStartRequest } from '@common/devSso';
 import type { EnrolledRefreshResult } from '@common/types';
 import type {
   AppConfig,
@@ -411,6 +412,17 @@ export interface ElectronAPI {
     forgetSavedLogin: (badge: string) => Promise<void>;
     /** file:// URL of the guest preload for the browser sign-in <webview>. */
     getBrowserLoginPreloadPath: () => Promise<string>;
+    /** Developer → SSO (developer mode only). State is redacted in main; nothing is stored. */
+    devSsoState: () => Promise<DevSsoSnapshot>;
+    /** Start a run, replacing any current one. */
+    devSsoStart: (request: DevSsoStartRequest) => Promise<DevSsoSnapshot>;
+    devSsoControl: (action: DevSsoControl) => Promise<DevSsoSnapshot>;
+    /** Answer the SMS gate. The lab never sends a code without this. */
+    devSsoSendSms: (decision: 'send' | 'skip') => Promise<DevSsoSnapshot>;
+    devSsoSubmitCode: (code: string) => Promise<DevSsoSnapshot>;
+    /** Show tokens, cookies, tickets and codes unmasked in the lab's state (or mask them again). */
+    devSsoSetReveal: (on: boolean) => Promise<DevSsoSnapshot>;
+    onDevSsoUpdate: (callback: (snapshot: DevSsoSnapshot) => void) => () => void;
   };
 
   /**

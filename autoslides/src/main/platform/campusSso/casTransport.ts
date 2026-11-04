@@ -18,6 +18,8 @@
  */
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 import { buildGuardHeaders } from './casPayloads';
+import type { CasExchange } from './casProbe';
+import { describeErrorSafely } from './casDiagnostics';
 
 /** A cookie we are willing to persist between login attempts. */
 export interface DurableCookie {
@@ -118,6 +120,7 @@ export class CasTransport {
   private readonly http: AxiosInstance;
   private readonly jar = new Map<string, JarEntry>();
   private referer: string;
+  private observer: ((exchange: CasExchange) => void) | null = null;
 
   constructor(initialReferer: string, timeoutMs = 15_000) {
     this.referer = initialReferer;
@@ -135,6 +138,11 @@ export class CasTransport {
 
   get userAgent(): string {
     return CLIENT_HEADERS['User-Agent'];
+  }
+
+  /** Developer → SSO: see every exchange, raw. Sign-in proper never sets one. */
+  observe(observer: (exchange: CasExchange) => void): void {
+    this.observer = observer;
   }
 
   /** Remember where the next request is coming "from". */
@@ -177,15 +185,55 @@ export class CasTransport {
       headers['Content-Type'] ??= 'application/json';
     }
 
-    const response = await this.http.request<string>({
-      url: target,
-      method,
-      headers,
-      data: body,
-    });
+    const startedAt = Date.now();
+    let response: AxiosResponse<string>;
+    try {
+      response = await this.http.request<string>({
+        url: target,
+        method,
+        headers,
+        data: body,
+      });
+    } catch (error) {
+      this.report({ method, url: target, headers, body, options, startedAt, error });
+      throw error;
+    }
 
     this.absorbCookies(response, target);
+    this.report({ method, url: target, headers, body, options, startedAt, response });
     return response;
+  }
+
+  private report(entry: {
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    body: string | undefined;
+    options: CasRequestOptions;
+    startedAt: number;
+    response?: AxiosResponse<string>;
+    error?: unknown;
+  }): void {
+    if (!this.observer) return;
+    const { options, response } = entry;
+    try {
+      this.observer({
+        method: entry.method,
+        url: entry.url,
+        requestHeaders: { ...entry.headers },
+        requestBody: entry.body,
+        requestBodyKind: options.form ? 'form' : options.json !== undefined ? 'json' : options.raw !== undefined ? 'raw' : undefined,
+        status: response?.status,
+        statusText: response?.statusText,
+        responseHeaders: response ? { ...(response.headers as Record<string, unknown>) } : undefined,
+        responseBody: response ? (typeof response.data === 'string' ? response.data : String(response.data ?? '')) : undefined,
+        error: entry.error === undefined ? undefined : describeErrorSafely(entry.error),
+        startedAt: entry.startedAt,
+        durationMs: Date.now() - entry.startedAt,
+      });
+    } catch {
+      // An observer must never break the flow it watches.
+    }
   }
 
   /** Cookies for `url`, honouring host and path scope and dropping expired ones. */

@@ -16,7 +16,7 @@
 </template>
 
 <script lang="ts">
-export type DevTab = 'image' | 'api'
+export type DevTab = 'image' | 'api' | 'sso'
 </script>
 
 <script setup lang="ts">
@@ -26,6 +26,7 @@ const emit = defineEmits<{ 'update:modelValue': [tab: DevTab] }>()
 const tabs: Array<{ id: DevTab; label: string }> = [
   { id: 'image', label: 'developer.tabs.imageLab' },
   { id: 'api', label: 'developer.tabs.api' },
+  { id: 'sso', label: 'developer.tabs.sso' },
 ]
 </script>
 

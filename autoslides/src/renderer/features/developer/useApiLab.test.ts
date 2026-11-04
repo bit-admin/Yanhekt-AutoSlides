@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildUrl, parseQuery, readEnvelope, toCurl } from './useApiLab';
+import { buildUrl, parseQuery, readEnvelope } from './useApiLab';
 import { YANHEKT_API_PRESETS, presetUrl } from './yanhektApiPresets';
 
 describe('query round trip', () => {
@@ -30,16 +30,6 @@ describe('readEnvelope', () => {
     expect(readEnvelope('{"code":0}')).toMatchObject({ code: '0', meaning: 'OK' });
     expect(readEnvelope('<html>')).toBeNull();
     expect(readEnvelope('[]')).toBeNull();
-  });
-});
-
-describe('toCurl', () => {
-  it('never prints the token', () => {
-    const out = toCurl('PUT', "https://h/p?a='b'", { Authorization: 'Bearer 0123…cdef' }, '{"x":1}');
-    expect(out).toContain('$YANHEKT_TOKEN');
-    expect(out).not.toContain('0123');
-    expect(out).toContain(`'https://h/p?a='\\''b'\\'''`);
-    expect(out).toContain('--data-raw');
   });
 });
 
