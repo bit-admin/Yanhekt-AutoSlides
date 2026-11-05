@@ -9,7 +9,8 @@
  */
 import type * as http from 'http';
 import type { Readable } from 'stream';
-import axios, { type AxiosResponse } from 'axios';
+import type { AxiosResponse } from 'axios';
+import { isHttpError } from '@main/infra/http';
 import type { IntranetAgents } from '@main/infra/intranetTransport';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { isYanhe2SlideImageUrl } from '@main/platform/yanhe2/yanhe2Slides';
@@ -62,7 +63,7 @@ export async function handleYanhe2SlideImageRequest(
     });
   } catch (error) {
     if (abort.signal.aborted) return;
-    const reason = axios.isAxiosError(error) ? (error.code ?? 'no answer') : 'request error';
+    const reason = isHttpError(error) ? (error.code ?? 'no answer') : 'request error';
     log.warn(`Yanhe 2.0 slide request failed: ${reason}`);
     fail(res, 502, 'Yanhe 2.0 slide request failed');
     return;

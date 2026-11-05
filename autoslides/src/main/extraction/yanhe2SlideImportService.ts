@@ -17,7 +17,7 @@
  * which is taken to be the Yanhekt video's (owner ruling 2026-10-13: the two
  * are in sync), so no offset is applied.
  */
-import axios from 'axios';
+import { isHttpError } from '@main/infra/http';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { buildSlideFolderName } from '@common/lectureNaming';
@@ -195,7 +195,7 @@ export class Yanhe2SlideImportService {
           onProgress(++done, urls.length);
         } catch (error) {
           failed = true;
-          const reason = axios.isAxiosError(error) ? (error.code ?? `HTTP ${error.response?.status ?? '?'}`) : String(error);
+          const reason = isHttpError(error) ? (error.code ?? `HTTP ${error.response?.status ?? '?'}`) : String(error);
           log.warn(`Yanhe 2.0 slide ${index + 1} of ${urls.length} was not saved: ${reason}`);
         }
       }

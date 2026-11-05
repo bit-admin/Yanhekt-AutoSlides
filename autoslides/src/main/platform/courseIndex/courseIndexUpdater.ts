@@ -26,6 +26,7 @@ import { CLIENT_MANIFEST_ASSET, openEnvelope, parseClientManifest, sha256Hex, ty
 import type { LocalCourseIndex } from './courseIndex';
 import { openAgeGz, recipientOf } from './ageOpen';
 import signingKeys from './indexSigningKeys.json';
+import { httpFetch } from '@main/infra/http';
 
 const log = createLogger('CourseIndexUpdate');
 
@@ -51,7 +52,7 @@ export type CourseIndexUpdateResult =
 type Fetcher = (url: string) => Promise<Buffer>;
 
 async function fetchOnce(url: string): Promise<Buffer> {
-  const res = await fetch(url, {
+  const res = await httpFetch(url, {
     headers: { 'User-Agent': appUserAgent() },
     redirect: 'follow',
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),

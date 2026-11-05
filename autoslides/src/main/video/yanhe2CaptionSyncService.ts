@@ -24,7 +24,8 @@ import { spawn } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { app } from 'electron';
-import axios, { type AxiosInstance } from 'axios';
+import type { AxiosInstance } from 'axios';
+import { isHttpError } from '@main/infra/http';
 import {
   SYNC_PCM_RATE,
   SYNC_WINDOW_SECONDS,
@@ -232,7 +233,7 @@ export class Yanhe2CaptionSyncService {
         return response.data;
       } catch (error) {
         // The code or status only: an axios error carries the signed URL in its config.
-        reason = axios.isAxiosError(error) ? (error.code ?? `HTTP ${error.response?.status ?? '?'}`) : 'request error';
+        reason = isHttpError(error) ? (error.code ?? `HTTP ${error.response?.status ?? '?'}`) : 'request error';
       }
     }
     log.warn(`Yanhe 2.0 caption sync could not fetch media: ${reason}`);

@@ -19,6 +19,7 @@ import type {
   AppConfig,
   Yanhe2CaptionMode,
   ConnectionMode,
+  ProxySettings,
   CampusProbeResult,
   AIFilteringConfig,
   PHashExclusionItem,
@@ -575,6 +576,8 @@ export interface ElectronAPI {
     setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
     setCloseToTray: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
+    /** Any subset of the proxy settings; the rest stays as saved. */
+    setProxySettings: (next: Partial<ProxySettings>) => Promise<AppConfig>;
     /** Settings → General → Search; omitted fields keep their value. */
     setSearchSettings: (patch: {
       currentTermSource?: CurrentTermSearchSource;

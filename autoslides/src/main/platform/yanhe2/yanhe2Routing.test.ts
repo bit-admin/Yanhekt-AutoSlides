@@ -22,7 +22,7 @@ function yanhe2Sources(dir: string, found: string[] = []): string[] {
   return found;
 }
 
-/** The one place allowed to name `axios.request`: the default sender that main replaces at startup. */
+/** The one place allowed to send directly: the default sender (`httpClient.request`) that main replaces at startup. */
 const ALLOWED = new Set([path.join(MAIN, 'platform/yanhe2/yanhe2Http.ts')]);
 
 describe('Yanhe 2.0 requests', () => {
@@ -30,7 +30,9 @@ describe('Yanhe 2.0 requests', () => {
     const offenders: string[] = [];
     for (const file of yanhe2Sources(MAIN)) {
       const code = fs.readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
-      const direct = /\bfetch\s*\(|\baxios\s*(\.\s*(get|post|put|delete|request|create)\s*)?\(|\bhttps?\.(request|get)\s*\(/.test(code);
+      // The shared client in @main/infra/http applies the proxy settings but not
+      // the intranet route, so it counts as direct here too.
+      const direct = /\bfetch\s*\(|\bhttpFetch\s*\(|\bhttpClient\s*\.\s*(get|post|put|delete|request)\s*\(|\bcreateHttpClient\s*\(|\baxios\s*(\.\s*(get|post|put|delete|request|create)\s*)?\(|\bhttps?\.(request|get)\s*\(/.test(code);
       if (direct && !ALLOWED.has(file)) offenders.push(path.relative(MAIN, file));
     }
     expect(offenders, 'use getYanhe2Json or getAlongRoute; see .claude/rules/yanhe2.md').toEqual([]);

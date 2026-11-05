@@ -32,7 +32,7 @@ import {
   sanitizeSavedLogins,
   type SavedLoginRecord,
 } from './savedLogins';
-import { YANHE2_CAPTION_OFFSET_DEFAULT, YANHE2_CAPTION_OFFSET_LIMIT, type ConnectionMode } from '@common/types';
+import { PROXY_MODES, YANHE2_CAPTION_OFFSET_DEFAULT, YANHE2_CAPTION_OFFSET_LIMIT, type ConnectionMode, type ProxyMode, type ProxySettings } from '@common/types';
 import type {
   AIClassifierMode,
   AIFilteringConfig,
@@ -369,6 +369,9 @@ export class ConfigService {
       allowCliControl: this.store.get('allowCliControl') ?? true,
       closeToTray: this.getCloseToTray(),
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
+      proxyCampusMode: this.getProxySettings().campus,
+      proxyOtherMode: this.getProxySettings().other,
+      proxyCustomUrl: this.getProxySettings().customUrl,
       developerMode: this.store.get('developerMode') ?? false,
       logYanhektCatalog: this.getLogYanhektCatalog(),
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
@@ -463,6 +466,24 @@ export class ConfigService {
 
   setPreferAnonymousApiRequests(enabled: boolean): void {
     this.store.set('preferAnonymousApiRequests', enabled);
+  }
+
+  getProxySettings(): ProxySettings {
+    const mode = (value: unknown, fallback: ProxyMode): ProxyMode =>
+      PROXY_MODES.includes(value as ProxyMode) ? (value as ProxyMode) : fallback;
+    const customUrl = this.store.get('proxyCustomUrl');
+    return {
+      campus: mode(this.store.get('proxyCampusMode'), 'direct'),
+      other: mode(this.store.get('proxyOtherMode'), 'system'),
+      customUrl: typeof customUrl === 'string' ? customUrl : '',
+    };
+  }
+
+  /** Saves the parts given; an unknown mode is ignored. The address is kept as typed (trimmed). */
+  setProxySettings(next: Partial<ProxySettings>): void {
+    if (next.campus !== undefined && PROXY_MODES.includes(next.campus)) this.store.set('proxyCampusMode', next.campus);
+    if (next.other !== undefined && PROXY_MODES.includes(next.other)) this.store.set('proxyOtherMode', next.other);
+    if (typeof next.customUrl === 'string') this.store.set('proxyCustomUrl', next.customUrl.trim().slice(0, 500));
   }
 
   /** Clamp local-relay listen port to an unprivileged range. */

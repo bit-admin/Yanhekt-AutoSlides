@@ -3,9 +3,10 @@
 // Each method saves through ConfigService (which checks and clamps), applies
 // whatever else the setting drives, and sends the new config to every window,
 // so neither writer can leave the app half-updated.
-import type { ConnectionMode } from '@common/types';
+import type { ConnectionMode, ProxySettings } from '@common/types';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
+import { applyProxySettings } from '@main/platform/proxyControl';
 import { broadcastConfig } from './broadcastConfig';
 
 export interface SettingsWriter {
@@ -14,6 +15,8 @@ export interface SettingsWriter {
   /** null = the system default. */
   setIntranetInterfaceIp: (ip: string | null) => void;
   setPreferAnonymousApiRequests: (enabled: boolean) => void;
+  /** Any subset; the rest stays as saved. */
+  setProxySettings: (next: Partial<ProxySettings>) => void;
   setMaxConcurrentDownloads: (count: number) => void;
   setDownloadMaxWorkers: (count: number) => void;
   setDownloadNumRetries: (count: number) => void;
@@ -37,6 +40,10 @@ export function createSettingsWriter(
     }),
     setIntranetInterfaceIp: saved((ip) => intranetMappingService.setInterfaceIp(ip)),
     setPreferAnonymousApiRequests: saved((enabled) => configService.setPreferAnonymousApiRequests(enabled)),
+    setProxySettings: saved((next) => {
+      configService.setProxySettings(next);
+      void applyProxySettings(configService.getProxySettings());
+    }),
     setMaxConcurrentDownloads: saved((count) => configService.setMaxConcurrentDownloads(count)),
     setDownloadMaxWorkers: saved((count) => configService.setDownloadMaxWorkers(count)),
     setDownloadNumRetries: saved((count) => configService.setDownloadNumRetries(count)),

@@ -9,7 +9,8 @@
  * Bodies carry teacher badges and more than any page needs. Callers parse them
  * into plain rows and never log them.
  */
-import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { httpClient } from '@main/infra/http';
 import { YANHE2_ORIGIN, YANHE2_TENANT_ID } from '@common/yanhe2';
 
 export const YANHE2_READ_PATHS = {
@@ -60,7 +61,7 @@ export type Yanhe2Send = (config: AxiosRequestConfig & { url: string }) => Promi
 // Straight to the public host until main installs the shared API transport
 // (`routeYanhe2Through`). Kept as a plain function so this module, and the
 // parsers that import it, load without Electron in unit tests.
-let send: Yanhe2Send = (config) => axios.request(config);
+let send: Yanhe2Send = (config) => httpClient.request(config);
 
 /**
  * Send every Yanhe 2.0 JSON request through `sender` from now on. Main passes

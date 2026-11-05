@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import axios, { type AxiosInstance } from 'axios';
+import type { AxiosInstance } from 'axios';
+import { isHttpCancel } from '@main/infra/http';
 import { spawn } from 'child_process';
 import { pipeline } from 'stream/promises';
 import { FFmpegService } from '@main/infra/ffmpegService';
@@ -618,7 +619,7 @@ class M3u8Downloader {
         throw new Error(`TS segment request failed: ${response.status}`);
       }
     } catch (error) {
-      if (this.shouldStop || axios.isCancel(error)) {
+      if (this.shouldStop || isHttpCancel(error)) {
         if (fs.existsSync(outputPath)) {
           fs.unlinkSync(outputPath);
         }

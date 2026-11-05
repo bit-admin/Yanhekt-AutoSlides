@@ -5,6 +5,7 @@ import { app } from 'electron';
 import type { VideoProxyService } from './videoProxyService';
 import type { FFmpegService } from '@main/infra/ffmpegService';
 import { createLogger } from '@main/infra/logger';
+import { childProcessEnv } from '@main/infra/proxyRouting';
 const log = createLogger('Thumbnail');
 
 export interface ScreenThumbnailRequest {
@@ -117,7 +118,7 @@ export class ThumbnailService {
     return { url: screen?.url || '', source: screen?.original_url || '' };
   }
 
-  private grabFrame(ffmpegPath: string, url: string, seekSeconds: number): Promise<Buffer | null> {
+  private async grabFrame(ffmpegPath: string, url: string, seekSeconds: number): Promise<Buffer | null> {
     const needsHeaders = !url.startsWith('http://localhost');
     const args: string[] = [];
     if (needsHeaders) {
@@ -136,10 +137,13 @@ export class ThumbnailService {
       'pipe:1'
     );
 
+    // ffmpeg reads the proxy from its environment; give it the route the
+    // proxy settings pick for this URL (none for the local proxy).
+    const env = await childProcessEnv(url);
     return new Promise((resolve) => {
       const chunks: Buffer[] = [];
       let settled = false;
-      const child = spawn(ffmpegPath, args, { stdio: ['ignore', 'pipe', 'ignore'] });
+      const child = spawn(ffmpegPath, args, { stdio: ['ignore', 'pipe', 'ignore'], env });
 
       const timer = setTimeout(() => {
         if (settled) return;

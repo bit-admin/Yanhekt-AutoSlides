@@ -99,12 +99,15 @@
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.10",
     "hls.js": "^1.7.1",
+    "https-proxy-agent": "^7.0.6",
     "jszip": "^3.10.1",
     "onnxruntime-web": "^1.27.0",
     "pdfkit": "^0.18.0",
     "pinyin-pro": "^3.29.3",
     "pptxgenjs": "^4.0.1",
+    "proxy-from-env": "^2.1.0",
     "sharp": "^0.35.3",
+    "socks-proxy-agent": "^8.0.5",
     "vue": "^3.5.41",
     "vue-i18n": "^11.4.8"
   }

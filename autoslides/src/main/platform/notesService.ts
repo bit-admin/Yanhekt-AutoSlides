@@ -34,6 +34,7 @@ import { timelineFromSharePayload } from '@common/shareTimeline';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
 import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
+import { httpFetch } from '@main/infra/http';
 
 const log = createLogger('NotesService');
 
@@ -380,7 +381,7 @@ export class NotesService {
    * raw bytes are written, best-effort).
    */
   async downloadImageToFolder(url: string, dir: string, filename: string): Promise<void> {
-    const res = await fetch(url);
+    const res = await httpFetch(url);
     if (!res.ok) {
       throw new Error(`Image download failed (${res.status})`);
     }
@@ -409,7 +410,7 @@ export class NotesService {
    * share Worker. Runs in the main process so it doesn't hit renderer CORS.
    */
   async shortenShareUrl(fragment: string): Promise<{ url: string }> {
-    const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/shorten`, {
+    const res = await httpFetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/shorten`, {
       method: 'POST',
       headers: this.shareHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ fragment }),
@@ -491,7 +492,7 @@ export class NotesService {
    * `{ fragment, meta }` so the folder title can be rebuilt without a second hop.
    */
   private async fetchShortLink(id: string): Promise<{ fragment: string; meta: ShareLectureMeta | null }> {
-    const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/get?id=${encodeURIComponent(id)}`, {
+    const res = await httpFetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/get?id=${encodeURIComponent(id)}`, {
       headers: this.shareHeaders(),
     });
     if (!res.ok) throw new Error(`Short-link lookup failed (${res.status})`);
@@ -510,7 +511,7 @@ export class NotesService {
     if (courseId) params.set('courseId', courseId);
     if (sessionId) params.set('sessionId', sessionId);
     try {
-      const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/meta?${params}`, {
+      const res = await httpFetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/meta?${params}`, {
         headers: this.shareHeaders(),
       });
       if (!res.ok) return null;
@@ -532,7 +533,7 @@ export class NotesService {
     let token: string | null = null;
 
     do {
-      const res: Response = await fetch(buildCossListUrl(prefix, token));
+      const res: Response = await httpFetch(buildCossListUrl(prefix, token));
       if (!res.ok) break;
       const xml: string = await res.text();
 

@@ -18,7 +18,7 @@
  * computer, then online). Yanhekt's own list search covers the current term
  * only (since 2026-10), so earlier terms need the index.
  */
-import axios from 'axios';
+import { isHttpError } from '@main/infra/http';
 import type { CourseData, SessionData } from '@common/apiTypes';
 import type { SlideMetadataSource } from '@common/sidecars/metadata';
 import type { Yanhe2CourseTwinResult, YanhektCourseTwinResult } from '@common/yanhe2CourseTwin';
@@ -114,7 +114,7 @@ export class Yanhe2TwinResolver {
           session = pickTwinSession(await this.apiClient.getCourseSessions(String(course.id), token), startAt);
         }
       } catch (error) {
-        if (axios.isAxiosError(error) && !error.response) return { kind: 'network' };
+        if (isHttpError(error) && !error.response) return { kind: 'network' };
         // An answer that is not a list is as good as no match: keep what was found.
         log.warn('Yanhekt lookup for a Yanhe 2.0 session failed:', error instanceof Error ? error.message : error);
       }
@@ -208,7 +208,7 @@ export class Yanhe2TwinResolver {
   }
 
   private missOf(error: unknown): { kind: 'network' | 'failed' } {
-    if (axios.isAxiosError(error) && !error.response) return { kind: 'network' };
+    if (isHttpError(error) && !error.response) return { kind: 'network' };
     log.warn('Yanhekt course lookup failed:', error instanceof Error ? error.message : error);
     return { kind: 'failed' };
   }

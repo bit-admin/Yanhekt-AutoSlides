@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { BrowserWindow, dialog } from 'electron';
-import axios from 'axios';
+import { httpClient } from '@main/infra/http';
 import PDFDocument from 'pdfkit';
 import {
   Document,
@@ -96,7 +96,7 @@ async function fetchImage(url: string): Promise<Buffer | null> {
       const base64 = url.slice(url.indexOf(',') + 1);
       return Buffer.from(base64, 'base64');
     }
-    const res = await axios.get<ArrayBuffer>(url, { responseType: 'arraybuffer', timeout: 30000 });
+    const res = await httpClient.get<ArrayBuffer>(url, { responseType: 'arraybuffer', timeout: 30000 });
     return Buffer.from(res.data);
   } catch (err) {
     log.warn('failed to fetch note image', url, err);

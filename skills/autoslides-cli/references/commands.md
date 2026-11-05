@@ -63,20 +63,23 @@ Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `c
 | `connection_mode` | General > Connection Mode | `auto`, `internal` (campus intranet) or `external` (public network) |
 | `intranet_interface` | Network > Intranet Network Interface | an interface name (`en0`) or one of this computer's IPv4 addresses; `default` for the system default |
 | `anonymous_requests` | Network > Anonymous API requests | `true` / `false` |
+| `proxy_campus` | Network > Proxy > Yanhekt and Campus SSO | `direct`, `system` or `custom` |
+| `proxy_other` | Network > Proxy > Everything Else | `direct`, `system` or `custom` |
+| `proxy_url` | Network > Proxy > Custom Proxy | `http://`, `https://` or `socks5://` with host and port; `none` clears it. A password is shown as `***` |
 | `concurrent_downloads` | Download & Playback > Concurrent Download Limit | 1-10 |
 | `download_workers` | Download & Playback > Download Worker Threads | 1-32 |
 | `download_retries` | Download & Playback > Download Retry Count | 1-30 |
 | `extract_after_download` | Download & Playback > Run C++ Slide Extraction Automatically After Download | `true` / `false` |
 | `post_process_after_extraction` | Download & Playback > Run Post-Processing After Extraction | `true` / `false` |
 
-Booleans also take `on`/`off`, `yes`/`no` and `1`/`0`. No other setting can be read or changed from the command line.
+Booleans also take `on`/`off`, `yes`/`no` and `1`/`0`. `custom` uses `proxy_url`; `system` follows the operating system's proxy settings, then `HTTPS_PROXY`. Campus addresses never go through a proxy. No other setting can be read or changed from the command line.
 
 ## `yhdl` (terminal only)
 
 The same lookup commands (`search`, `mine`, `course`, `session`, `terms`, `whoami`, `schema`) and `download`, run without the app. It has no `downloads` or `config`: those answer "needs the AutoSlides app".
 
 - **Anonymous by default.** Only the personal lists and the AutoSlides Index online use a token: `mine`, the session list of `course`, `download --course`, and `search` when it reads the online Index. The token comes from, in order: `--token <token>`, `--account <name or student number>` (an account saved in AutoSlides), `YANHEKT_TOKEN`, then the account signed in to the app. A token is never saved or printed. `whoami` reports which one would be used, offline.
-- **Route.** Public network unless `--intranet` (strict: no fallback to public). `--interface <name or IPv4>` picks the interface, only with `--intranet`. The app's Connection Mode is ignored.
+- **Route.** Public network unless `--intranet` (strict: no fallback to public). `--interface <name or IPv4>` picks the interface, only with `--intranet`. The app's Connection Mode is ignored; its proxy settings (`proxy_campus`, `proxy_other`, `proxy_url`) apply.
 - **`download`.** Takes `-o/--output <dir>` for this run (created if needed); otherwise the app's output folder. Same `--stream`, `--course`, `--dry-run`, `--force`. Item `status` can also be `interrupted`; running the same command again resumes.
 - `-v/--verbose` prints diagnostic logs to stderr.
 

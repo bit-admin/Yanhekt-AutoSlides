@@ -20,6 +20,7 @@ import {
   CONNECT_TIMEOUT_CODE,
   type IntranetUrlMapper,
 } from './intranetTransport';
+import { httpClient } from './http';
 
 const CAMPUS_IP = '10.62.1.7';
 
@@ -57,9 +58,12 @@ type Interceptors = { forEach(fn: (h: { fulfilled?: (c: InternalAxiosRequestConf
 /** Run a request config through the instance's request interceptors. */
 function intercept(instance: ReturnType<typeof createIntranetAxios>['instance'], url: string) {
   let config = { url, headers: new AxiosHeaders() } as unknown as InternalAxiosRequestConfig;
-  (instance.interceptors.request as unknown as Interceptors).forEach((handler) => {
+  const handlers: Parameters<Parameters<Interceptors['forEach']>[0]>[0][] = [];
+  (instance.interceptors.request as unknown as Interceptors).forEach((handler) => handlers.push(handler));
+  // The first one is `createHttpClient`'s proxy routing (async, runs last); these tests are about the rewrite.
+  for (const handler of handlers.slice(1)) {
     if (handler.fulfilled) config = handler.fulfilled(config) as InternalAxiosRequestConfig;
-  });
+  }
   return config;
 }
 
@@ -312,15 +316,16 @@ describe('createIntranetAxios', () => {
 
 describe('intranetRequest', () => {
   const agents = () => new IntranetAgentPool(makeMapper({ enabled: false, interfaceIp: null })).resolve();
-  const original = axios.defaults.adapter;
+  // intranetRequest sends through the shared client.
+  const original = httpClient.defaults.adapter;
   const useNetwork = (dead: (url: string) => boolean) => {
     const net = fakeNetwork(dead);
-    axios.defaults.adapter = net.adapter;
+    httpClient.defaults.adapter = net.adapter;
     return net;
   };
 
   beforeEach(() => {
-    axios.defaults.adapter = original;
+    httpClient.defaults.adapter = original;
   });
 
   it('sends a mapped URL to its intranet address with the original Host', async () => {

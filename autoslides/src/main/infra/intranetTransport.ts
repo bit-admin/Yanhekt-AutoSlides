@@ -26,10 +26,14 @@
 // Both can fall back to the public host when the intranet address cannot be
 // connected to. Whether they may is the caller's decision (Auto mode yes, a
 // forced Internal mode no), not this module's.
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
+//
+// Requests go out through `./http`, which applies the proxy settings to public
+// hosts. A request rewritten onto a campus address always connects directly.
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import http from 'node:http';
 import https from 'node:https';
 import os from 'node:os';
+import { createHttpClient, httpClient, isHttpCancel, isHttpError } from './http';
 import { createLogger } from './logger';
 
 const log = createLogger('IntranetTransport');
@@ -109,7 +113,7 @@ export function intranetTarget(url: string, map: (url: string) => string): Intra
  * failure, and neither is a request the caller cancelled.
  */
 export function isConnectionFailure(error: unknown): boolean {
-  return axios.isAxiosError(error) && !error.response && !axios.isCancel(error);
+  return isHttpError(error) && !error.response && !isHttpCancel(error);
 }
 
 /** The code of a request whose connection was not made within a pool's `connectTimeoutMs`. */
@@ -131,7 +135,7 @@ const UNSENT_CODES = new Set([
  * the test for retrying something that must not run twice.
  */
 export function isUnsentFailure(error: unknown): boolean {
-  return isConnectionFailure(error) && axios.isAxiosError(error) && UNSENT_CODES.has(error.code ?? '');
+  return isConnectionFailure(error) && isHttpError(error) && UNSENT_CODES.has(error.code ?? '');
 }
 
 export interface IntranetRequestOptions {
@@ -156,12 +160,12 @@ export async function intranetRequest<T = unknown>(
   const target = intranetTarget(config.url, (u) => mapper.rewriteUrl(u));
   const { httpAgent, httpsAgent } = agents;
   if (!target.host) {
-    return axios.request<T>({ ...config, httpAgent, httpsAgent });
+    return httpClient.request<T>({ ...config, httpAgent, httpsAgent });
   }
 
   const startedAt = Date.now();
   try {
-    return await axios.request<T>({
+    return await httpClient.request<T>({
       ...config,
       url: target.url,
       headers: { ...config.headers, Host: target.host },
@@ -175,10 +179,11 @@ export async function intranetRequest<T = unknown>(
     // The code and the wait tell a dead route (refused, or the whole cap spent)
     // from a slow answer or a socket closed under the request. Never the URL:
     // it can carry a signature.
-    const code = (axios.isAxiosError(error) && error.code) || 'no code';
+    const code = (isHttpError(error) && error.code) || 'no code';
     log.warn(`Intranet address for ${target.host} did not answer (${code} after ${Date.now() - startedAt} ms); using the public host for this request.`);
     // Default agents on purpose: the pool's may be bound to the campus NIC.
-    return axios.request<T>(config);
+    // The public host takes its group's proxy setting like any request.
+    return httpClient.request<T>(config);
   }
 }
 
@@ -331,7 +336,9 @@ export function createIntranetAxios(options: IntranetAxiosOptions): IntranetAxio
     return publicAgents;
   };
 
-  const instance = axios.create({ timeout, httpAgent, httpsAgent });
+  // Interceptors added below run before the route is picked, so a URL
+  // rewritten onto a campus address always connects directly.
+  const instance = createHttpClient({ timeout, httpAgent, httpsAgent });
 
   if (isIntranetMode) {
     let usePublic = false;
@@ -363,7 +370,7 @@ export function createIntranetAxios(options: IntranetAxiosOptions): IntranetAxio
         return response;
       },
       (error: unknown) => {
-        const config = axios.isAxiosError(error) ? (error.config as RoutedConfig | undefined) : undefined;
+        const config = isHttpError(error) ? (error.config as RoutedConfig | undefined) : undefined;
         if (!config?.intranetOrigin || !isConnectionFailure(error)) throw error;
         intranetMapping.reportFailure();
         if (!publicFallback) throw error;

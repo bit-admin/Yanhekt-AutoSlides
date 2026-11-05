@@ -301,12 +301,14 @@ Forge unpacks native bits from asar (`*.node`, `sharp`, `@img`, `ort-wasm`) so N
 | Domain | Directory | Owns |
 |---|---|---|
 | platform | `platform/` | `configService`, `authService` + `campusSso/`, `apiClient`, `notesService`, `intranetMappingService`, `windowManager`, `themeService`, `powerManagementService`, `cacheManagementService` |
-| infra | `infra/` | `ffmpegService`, `sharpService`, `onnxModelService`, `fileDownloadService`, `logger`, `logFile` |
+| infra | `infra/` | `http` + `proxyRouting` (every outbound request), `intranetTransport`, `ffmpegService`, `sharpService`, `onnxModelService`, `fileDownloadService`, `logger`, `logFile` |
 | video | `video/` | `videoProxyService`, `localRelayService`, `m3u8DownloadService`, `compressLectureService`, `asmediaProtocol`, posters/thumbnails |
 | extraction | `extraction/` | `slideExtractionService`, `slideMetadataService`, `slideTimelineService`, `qtExtractorService` |
 | ai | `ai/` | `llmApiService`, `aiFilteringService`, `aiPromptsService`, `copilotService`, auto-crop + ML model services |
 | export | `export/` | `pdfService`, `coverFontService`, `yuketangService`, `noteExportService`, `obsidianNotesService` + `obsidianPaths`, `notionNotesService` + `notionApi` |
 | download | `download/` | `updateDownloadService`, `extractorInstallerService` |
+
+**Outbound requests.** Every main-process HTTP request goes through `infra/http.ts`: `httpClient` (shared axios instance), `createHttpClient(defaults)`, or `httpFetch` (the fetch API, also handed to the Notion client). ESLint forbids importing axios for values, the global `fetch`, `net.fetch`/`net.request` and `http(s).request/get` anywhere else in main (the two campus probes excepted). Each instance's first interceptor picks the route in `infra/proxyRouting.ts`, from Settings → Network → Proxy: two groups of hosts (`*.yanhekt.cn` + `*.bit.edu.cn`, default **no proxy**; everything else, default **system proxy**), each `direct` / `system` (the OS answer from Electron's `resolveProxy`, then `HTTPS_PROXY`/`NO_PROXY`) / `custom` (one http/https/socks URL). Private and loopback addresses, and any request carrying a `Host` that differs from its URL (an intranet rewrite), always connect directly. axios's own environment proxy is always off (`proxy: false`). `platform/proxyControl.ts` applies the same settings to the Chromium sessions (default, sign-in, Web Capture, Yuketang, Community) with `setProxy`; ffmpeg gets its proxy variables from `childProcessEnv`. The intranet transport sits on top: interceptors it adds run before the route is picked.
 
 IPC lives in `src/main/ipc/`. `registerAllIpcHandlers` fans out to 33 registrars (`authIpc`, `configIpc`, `videoIpc`, `notesIpc`, `obsidianNotesIpc`, `notionNotesIpc`, `slideMetadataIpc`, `slideTimelineIpc`, …). Services are injected; IPC modules do not import singletons.
 

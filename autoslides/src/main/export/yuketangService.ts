@@ -9,6 +9,7 @@ import { pdfService } from './pdfService';
 import type { FolderEntry, PdfMakeOptions } from './pdfService';
 import { withPngCopyright } from '@main/infra/pngCopyright';
 import { ensureCopyrightNotice } from '@main/infra/copyrightNoticeFile';
+import { httpFetch } from '@main/infra/http';
 
 const LESSON_API = 'https://www.yuketang.cn/api/v3/lesson-summary/student';
 const CLASS_PRESENTATION_API = 'https://www.yuketang.cn/api/v3/lesson/presentation/fetch';
@@ -24,7 +25,7 @@ function sanitizeFileName(name: string): string {
 }
 
 async function fetchJson(url: string, headers: Record<string, string>): Promise<unknown> {
-  const response = await fetch(url, { headers });
+  const response = await httpFetch(url, { headers });
   if (!response.ok) {
     throw new Error(`Request failed (${response.status}): ${url}`);
   }
@@ -36,7 +37,7 @@ async function fetchJson(url: string, headers: Record<string, string>): Promise<
 }
 
 async function fetchImage(url: string, headers: Record<string, string>): Promise<Buffer> {
-  const response = await fetch(url, { headers });
+  const response = await httpFetch(url, { headers });
   if (!response.ok) {
     throw new Error(`Slide download failed (${response.status}): ${url}`);
   }

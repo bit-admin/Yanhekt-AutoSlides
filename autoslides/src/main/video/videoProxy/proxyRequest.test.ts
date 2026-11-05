@@ -2,14 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AxiosResponse } from 'axios';
 
 const axiosGet = vi.hoisted(() => vi.fn());
-// The transport sends through `axios.request`; these tests only care about the
-// (url, config) each attempt was made with.
-vi.mock('axios', () => ({
-  default: {
-    request: (config: { url: string }) => axiosGet(config.url, config),
-    isAxiosError: () => false,
-    isCancel: () => false,
-  },
+// The transport sends through the shared `httpClient`; these tests only care
+// about the (url, config) each attempt was made with.
+vi.mock('@main/infra/http', () => ({
+  httpClient: { request: (config: { url: string }) => axiosGet(config.url, config) },
+  createHttpClient: () => { throw new Error('not used by these tests'); },
+  isHttpError: () => false,
+  isHttpCancel: () => false,
 }));
 // proxyRequest reaches the logger (and so Electron's `app`) through the intranet transport.
 vi.mock('@main/infra/logger', () => ({

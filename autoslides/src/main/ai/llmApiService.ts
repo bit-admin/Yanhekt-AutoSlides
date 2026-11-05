@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import { httpClient, isHttpError } from '@main/infra/http';
 import Bottleneck from 'bottleneck';
 import { ConfigService } from '@main/platform/configService';
 import { appUserAgent } from '@main/infra/appUserAgent';
@@ -318,7 +318,7 @@ export class LLMApiService {
       };
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      const response = await axios.get(`${BUILTIN_API_BASE_URL}/model`, {
+      const response = await httpClient.get(`${BUILTIN_API_BASE_URL}/model`, {
         headers,
         timeout: 10000
       });
@@ -341,7 +341,7 @@ export class LLMApiService {
       if (error instanceof Error && error.message === 'cloudflareBlocked') throw error;
       if (error instanceof Error && error.message === 'temporarilyUnavailable') throw error;
 
-      if (error instanceof AxiosError && error.response) {
+      if (isHttpError(error) && error.response) {
         if (this.isCloudflareBlocked(error.response.data)) {
           throw new Error('cloudflareBlocked');
         }
@@ -435,7 +435,7 @@ export class LLMApiService {
     const controller = new AbortController();
     const watchdog = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await axios.post<ChatCompletionResponse>(
+      const response = await httpClient.post<ChatCompletionResponse>(
         `${input.baseUrl}/chat/completions`,
         requestBody,
         { headers, timeout: timeoutMs, signal: controller.signal }
@@ -489,7 +489,7 @@ export class LLMApiService {
         ok: false,
         error: this.classifyError(error, model)
       };
-      if (error instanceof AxiosError && error.response) {
+      if (isHttpError(error) && error.response) {
         const retryAfter = parseRetryAfter(
           error.response.headers?.['retry-after'] ?? error.response.headers?.['Retry-After']
         );
@@ -545,7 +545,7 @@ export class LLMApiService {
   }
 
   private classifyError(error: unknown, modelAttempted: string): LLMError {
-    if (error instanceof AxiosError) {
+    if (isHttpError(error)) {
       const status = error.response?.status;
       const responseData = error.response?.data;
       const rawMessage =

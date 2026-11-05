@@ -50,6 +50,20 @@ function mainDomainRule(self, allowed = []) {
   };
 }
 
+// Main-process network access goes through one module, `src/main/infra/http.ts`,
+// which picks each request's route (direct, or the proxy Settings → Network →
+// Proxy names for that host). A bare axios / fetch / http(s).request would skip
+// the proxy settings and the campus-address rule. Type-only axios imports are
+// fine. The two probes test one network card or address on purpose.
+const MAIN_NETWORK_MESSAGE = 'Send main-process requests through @main/infra/http (httpClient, createHttpClient, httpFetch); it applies the proxy settings.';
+const MAIN_NETWORK_BAN = [
+  { selector: "ImportDeclaration[source.value='axios'][importKind!='type']", message: MAIN_NETWORK_MESSAGE },
+  { selector: "CallExpression[callee.type='Identifier'][callee.name='fetch']", message: MAIN_NETWORK_MESSAGE },
+  { selector: "CallExpression[callee.object.name='globalThis'][callee.property.name='fetch']", message: MAIN_NETWORK_MESSAGE },
+  { selector: "CallExpression[callee.object.name='net'][callee.property.name=/^(fetch|request)$/]", message: MAIN_NETWORK_MESSAGE },
+  { selector: "CallExpression[callee.object.name=/^https?$/][callee.property.name=/^(request|get)$/]", message: MAIN_NETWORK_MESSAGE },
+];
+
 export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -190,6 +204,12 @@ export default tseslint.config(
                      message: 'infra/ is foundational; do not import from other main domains.' }],
       }],
     },
+  },
+
+  {
+    files: ['src/main/**/*.ts', 'src/main.ts'],
+    ignores: ['src/main/infra/http.ts', 'src/main/platform/intranetProbe.ts', 'src/main/platform/campusNetworkProbe.ts', '**/*.test.ts'],
+    rules: { 'no-restricted-syntax': ['error', ...MAIN_NETWORK_BAN] },
   },
 
   {

@@ -17,7 +17,7 @@
 //   runs from (`/D=`). "Restart to Update" quits and starts the new version.
 //   It is started from the `quit` event, after the close guard for running
 //   tasks has had its say, never before the quit.
-import { app, net } from 'electron';
+import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 // Type-only: the module itself is loaded on first use, so macOS and Linux
@@ -28,6 +28,7 @@ import { verifyUpdateFile } from './updateSignature';
 import { compareVersions } from './updateVersion';
 import { releaseDownloadBase, windowsInstallerName, type UpdateSource } from './updateFeed';
 import { UpdateCancelledError, type InPlaceUpdateEvents, type InPlaceUpdater } from './inPlaceUpdater';
+import { httpFetch } from '@main/infra/http';
 
 const log = createLogger('WindowsUpdater');
 
@@ -104,7 +105,7 @@ export class WindowsAutoUpdater implements InPlaceUpdater {
     if (!pending) return 'update-signature:missing';
     let sigText: string | null = null;
     try {
-      const response = await net.fetch(pending.sigUrl);
+      const response = await httpFetch(pending.sigUrl);
       if (response.ok) sigText = await response.text();
       else if (response.status !== 404) return `could not download the signature (HTTP ${response.status})`;
     } catch (error) {

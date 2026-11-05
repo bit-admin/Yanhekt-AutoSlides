@@ -214,6 +214,15 @@
     "preferAnonymousApiRequests": {
       "type": "boolean"
     },
+    "proxyCampusMode": {
+      "$ref": "#/definitions/ProxyMode"
+    },
+    "proxyOtherMode": {
+      "$ref": "#/definitions/ProxyMode"
+    },
+    "proxyCustomUrl": {
+      "type": "string"
+    },
     "developerMode": {
       "type": "boolean"
     },
@@ -807,6 +816,15 @@
         "obsidian",
         "notion"
       ]
+    },
+    "ProxyMode": {
+      "type": "string",
+      "enum": [
+        "direct",
+        "system",
+        "custom"
+      ],
+      "description": "How one group of hosts reaches the internet (Settings → Network → Proxy)."
     },
     "StoredAccount": {
       "type": "object",

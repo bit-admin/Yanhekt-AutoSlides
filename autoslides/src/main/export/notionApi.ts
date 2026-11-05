@@ -7,6 +7,7 @@ import type {
   NotionPageSummary,
   NotionResult,
 } from '@common/notionNotesTypes';
+import { httpFetch } from '@main/infra/http';
 
 export const NOTION_API_BASE = 'https://api.notion.com/v1';
 export const NOTION_VERSION = '2026-03-11';
@@ -20,7 +21,7 @@ export interface NotionTransport {
 }
 
 export const defaultTransport: NotionTransport = {
-  fetch: (...args) => fetch(...args),
+  fetch: (input, init) => httpFetch(input, init),
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 

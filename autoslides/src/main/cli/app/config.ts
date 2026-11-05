@@ -15,7 +15,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { AppConfig, ConnectionMode } from '@common/types';
+import { PROXY_MODES, type AppConfig, type ConnectionMode, type ProxyMode } from '@common/types';
+import { parseProxyUrl } from '@common/proxyUrl';
 import { expandTilde } from '@main/infra/pathUtils';
 import { CliError } from '../errors';
 import { table } from '../format';
@@ -74,6 +75,28 @@ function parseFolder(raw: string): string {
   return path.normalize(folder);
 }
 
+function parseProxyMode(key: string, raw: string): ProxyMode {
+  const mode = PROXY_MODES.find((m) => m === raw);
+  if (!mode) throw new CliError('usage', `${key} is one of ${PROXY_MODES.join(', ')}, not ${raw}`);
+  return mode;
+}
+
+/** A proxy address (`none` clears it). The password, if any, is never printed back. */
+function parseProxyAddress(raw: string): string {
+  if (['none', ''].includes(raw.toLowerCase())) return '';
+  if (!parseProxyUrl(raw)) {
+    throw new CliError('usage', `proxy_url is http://, https:// or socks5:// with a host and port, not ${raw}`);
+  }
+  return raw.trim();
+}
+
+function maskProxyPassword(raw: string): string {
+  const url = parseProxyUrl(raw);
+  if (!url || !url.password) return raw;
+  url.password = '***';
+  return url.href.replace(/\/$/, '');
+}
+
 /** An interface name or one of this computer's IPv4 addresses; `default` goes back to the system default. */
 function parseInterface(raw: string): string | null {
   if (['default', 'system', 'none', ''].includes(raw.toLowerCase())) return null;
@@ -118,6 +141,30 @@ export const SETTINGS: readonly Setting[] = [
     accepts: 'true|false',
     read: (c) => c.preferAnonymousApiRequests,
     write: (raw, ctx) => ctx.settings.setPreferAnonymousApiRequests(parseBoolean('anonymous_requests', raw)),
+  },
+  {
+    key: 'proxy_campus',
+    setting: 'Network > Proxy > Yanhekt and Campus SSO',
+    type: '"direct"|"system"|"custom"',
+    accepts: PROXY_MODES.join('|'),
+    read: (c) => c.proxyCampusMode,
+    write: (raw, ctx) => ctx.settings.setProxySettings({ campus: parseProxyMode('proxy_campus', raw) }),
+  },
+  {
+    key: 'proxy_other',
+    setting: 'Network > Proxy > Everything Else',
+    type: '"direct"|"system"|"custom"',
+    accepts: PROXY_MODES.join('|'),
+    read: (c) => c.proxyOtherMode,
+    write: (raw, ctx) => ctx.settings.setProxySettings({ other: parseProxyMode('proxy_other', raw) }),
+  },
+  {
+    key: 'proxy_url',
+    setting: 'Network > Proxy > Custom Proxy',
+    type: 'string|null',
+    accepts: 'http://, https:// or socks5:// host:port, or none',
+    read: (c) => (c.proxyCustomUrl ? maskProxyPassword(c.proxyCustomUrl) : null),
+    write: (raw, ctx) => ctx.settings.setProxySettings({ customUrl: parseProxyAddress(raw) }),
   },
   {
     key: 'concurrent_downloads',

@@ -34,6 +34,19 @@ export type MuteMode = 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
  */
 export type ConnectionMode = 'auto' | 'internal' | 'external';
 
+/** How one group of hosts reaches the internet (Settings → Network → Proxy). */
+export type ProxyMode = 'direct' | 'system' | 'custom';
+export const PROXY_MODES: readonly ProxyMode[] = ['direct', 'system', 'custom'];
+
+export interface ProxySettings {
+  /** Yanhekt, Yanhe 2.0 and campus sign-in. */
+  campus: ProxyMode;
+  /** Everything else: AI, ruc.edu.kg services, GitHub, Notion, Yuketang. */
+  other: ProxyMode;
+  /** Used by whichever group is set to `custom`: http://, https:// or socks5:// host:port. */
+  customUrl: string;
+}
+
 export interface PHashExclusionItem {
   id: string;
   name: string;
@@ -318,6 +331,12 @@ export interface AppConfig {
   // Session list, personal lists, notes, and account APIs still send the token.
   // Default off — production behavior is always-authenticated.
   preferAnonymousApiRequests: boolean;
+  // Settings → Network → Proxy (main `infra/proxyRouting.ts`). Yanhekt and campus
+  // sign-in default to no proxy; everything else follows the system proxy.
+  // Requests to campus or private addresses never use a proxy.
+  proxyCampusMode: ProxyMode;
+  proxyOtherMode: ProxyMode;
+  proxyCustomUrl: string;
   // When true, show the Developer workspace page (Auto Crop detection lab, etc.).
   // Default off.
   developerMode: boolean;

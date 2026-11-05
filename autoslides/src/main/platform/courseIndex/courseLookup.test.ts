@@ -6,6 +6,11 @@ import path from 'node:path';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getAppPath: () => '', getPath: () => '', getName: () => 'AutoSlides', getVersion: () => '0.0.0' } }));
 vi.mock('@main/infra/logger', () => ({ createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }));
+// The Index client sends through httpFetch; hand it to the global fetch these tests stub.
+vi.mock('@main/infra/http', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@main/infra/http')>()),
+  httpFetch: (input: string | URL, init?: RequestInit) => globalThis.fetch(input, init),
+}));
 
 import { CLIENT_MANIFEST_ASSET, keyIdOf, makeEnvelope, recipientsId, sha256Hex, termAssetName, type ClientManifest, type SigningKey } from './clientIndex';
 import { LocalCourseIndex } from './courseIndex';

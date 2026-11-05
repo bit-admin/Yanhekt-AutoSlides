@@ -16,7 +16,8 @@
  * "trust this device" is remembered) can be exported for persistence and seeded
  * back on a later attempt. Session cookies are deliberately excluded.
  */
-import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+import type { AxiosInstance, AxiosResponse } from 'axios';
+import { createHttpClient } from '@main/infra/http';
 import { buildGuardHeaders } from './casPayloads';
 import type { CasExchange } from './casProbe';
 import { describeErrorSafely } from './casDiagnostics';
@@ -124,7 +125,7 @@ export class CasTransport {
 
   constructor(initialReferer: string, timeoutMs = 15_000) {
     this.referer = initialReferer;
-    this.http = axios.create({
+    this.http = createHttpClient({
       timeout: timeoutMs,
       maxRedirects: 0,
       // Redirects and CAS's own 4xx rejections are both data to inspect, not

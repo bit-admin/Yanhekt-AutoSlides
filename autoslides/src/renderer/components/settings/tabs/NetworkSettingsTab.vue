@@ -113,6 +113,40 @@
     </div>
   </div>
 
+  <!-- Proxy: two groups of hosts, each direct / system / custom. Main applies it
+       to its own requests and to the browser sessions (infra/proxyRouting.ts,
+       platform/proxyControl.ts). Campus and private addresses never use one. -->
+  <div class="advanced-setting-section">
+    <h4>{{ $t('advanced.proxy') }}</h4>
+    <div class="setting-description proxy-intro">{{ $t('advanced.proxyDescription') }}</div>
+    <div class="setting-grid">
+      <div v-for="group in proxyGroups" :key="group.key" class="setting-item">
+        <label class="setting-label">{{ $t(group.label) }}</label>
+        <div class="setting-description">{{ $t(group.description) }}</div>
+        <select v-model="group.model.value" class="select-field">
+          <option v-for="mode in PROXY_MODES" :key="mode" :value="mode">
+            {{ $t(`advanced.proxyMode.${mode}`) }}
+          </option>
+        </select>
+      </div>
+      <div v-if="proxyCustomInUse" class="setting-item full-width">
+        <label class="setting-label">{{ $t('advanced.proxyCustomUrl') }}</label>
+        <div class="setting-description">{{ $t('advanced.proxyCustomUrlDescription') }}</div>
+        <input
+          v-model="tempProxyCustomUrl"
+          type="text"
+          class="text-input proxy-url-input"
+          spellcheck="false"
+          autocomplete="off"
+          placeholder="http://127.0.0.1:7890"
+        />
+        <div v-if="proxyCustomUrlInvalid" class="intranet-interface-warning">
+          {{ $t('advanced.proxyCustomUrlInvalid') }}
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.preferAnonymousApiRequests') }}</h4>
     <div class="setting-item">
@@ -284,6 +318,7 @@ import { computed } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import { useI18n } from 'vue-i18n'
 import type { IntranetAddressResult, IntranetMapping } from '@features/settings/settingsTypes'
+import { PROXY_MODES } from '@common/types'
 
 const { advanced } = useSettingsContext()
 
@@ -302,6 +337,11 @@ const {
   toggleMappingExpanded,
   getStrategyDisplayName,
   tempPreferAnonymousApiRequests,
+  tempProxyCampusMode,
+  tempProxyOtherMode,
+  tempProxyCustomUrl,
+  proxyCustomInUse,
+  proxyCustomUrlInvalid,
   tempLocalRelayEnabled,
   tempLocalRelayPort,
   tempLocalRelayWhitelistEnabled,
@@ -318,6 +358,11 @@ const {
 } = advanced.network
 
 const { t } = useI18n()
+
+const proxyGroups = [
+  { key: 'campus', label: 'advanced.proxyCampus', description: 'advanced.proxyCampusDescription', model: tempProxyCampusMode },
+  { key: 'other', label: 'advanced.proxyOther', description: 'advanced.proxyOtherDescription', model: tempProxyOtherMode },
+]
 
 const addressesOf = (mapping: IntranetMapping): string[] =>
   mapping.type === 'single' ? (mapping.ip ? [mapping.ip] : []) : (mapping.ips ?? [])
@@ -366,6 +411,15 @@ const statusClass = computed(() => {
 
 .intranet-interface-row .btn {
   min-height: var(--control-height);
+}
+
+.proxy-intro {
+  margin-bottom: 12px;
+}
+
+.proxy-url-input {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .intranet-interface-warning {

@@ -1,5 +1,6 @@
 import { appUserAgent } from '@main/infra/appUserAgent';
 import { SHARE_ORIGIN } from '@common/shareLink';
+import { httpFetch } from '@main/infra/http';
 
 /**
  * The Index API on the share Worker (contract: share/docs/api.md). First-party,
@@ -28,7 +29,7 @@ async function get<T>(path: string, token: string): Promise<T> {
 
   let res: Response;
   try {
-    res = await fetch(`${INDEX_BASE}${path}`, {
+    res = await httpFetch(`${INDEX_BASE}${path}`, {
       headers: indexHeaders(token),
       signal: AbortSignal.timeout(INDEX_TIMEOUT_MS),
     });

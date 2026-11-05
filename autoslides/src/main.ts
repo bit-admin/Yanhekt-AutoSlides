@@ -13,6 +13,8 @@ import { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import { NotionNotesService } from '@main/export/notionNotesService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { IntranetApiTransport } from '@main/platform/intranetApiTransport';
+import { applyProxySettings, installSystemProxyResolver } from '@main/platform/proxyControl';
+import { configureProxy } from '@main/infra/proxyRouting';
 import { DevApiConsole } from '@main/platform/devApiConsole';
 import { DevSsoLab } from '@main/platform/devSso/devSsoLab';
 import { routeYanhe2Through } from '@main/platform/yanhe2/yanhe2Http';
@@ -138,6 +140,15 @@ if (!cliRun && app.isPackaged && !app.requestSingleInstanceLock()) {
 const cliSocketPath = controlSocketPath(app.getPath('userData'), { dev: !app.isPackaged });
 
 const configService = new ConfigService();
+
+// Proxy settings: main-process requests follow them from here on. The app also
+// applies them to its Chromium sessions; a command-line run uses no windows and
+// leaves the sessions (and their folders on disk) alone.
+if (cliRun) {
+  configureProxy(configService.getProxySettings());
+} else {
+  void applyProxySettings(configService.getProxySettings());
+}
 
 // Persistent log file under <userData>/logs — after the demo swap so demo runs
 // log separately. warn/error always; debug/info while Developer mode is on.
@@ -502,6 +513,8 @@ const initializePowerManagement = async () => {
 };
 
 app.whenReady().then(() => {
+  // `system` proxy mode asks Chromium what the operating system says.
+  installSystemProxyResolver();
   if (cliRun) {
     void runCli(cliRun, {
       version: app.getVersion(),

@@ -1,4 +1,5 @@
-import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { httpClient } from '@main/infra/http';
 import { app } from 'electron';
 import { getClientSignature } from '@common/crypto';
 import { createLogger } from '@main/infra/logger';
@@ -283,7 +284,7 @@ export class ApiClient {
 
         // Send token to server for AI service verification (fire-and-forget, production only)
         if (app.isPackaged) {
-          axios.post('https://learn.ruc.edu.kg/api/verify-token', { token }, {
+          httpClient.post('https://learn.ruc.edu.kg/api/verify-token', { token }, {
             headers: { 'User-Agent': appUserAgent() }
           }).catch(() => { /* fire-and-forget, ignore errors */ });
         }

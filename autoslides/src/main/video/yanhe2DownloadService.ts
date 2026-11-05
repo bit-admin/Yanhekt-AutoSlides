@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import axios from 'axios';
+import { isHttpError, isHttpCancel } from '@main/infra/http';
 import type { Yanhe2DownloadKind, Yanhe2DownloadPrepared } from '@common/yanhe2Download';
 import { createIntranetAxios } from '@main/infra/intranetTransport';
 import { createLogger } from '@main/infra/logger';
@@ -268,9 +268,9 @@ export class Yanhe2DownloadService {
           if (!done) reason = 'connection closed early';
         } catch (error) {
           writer?.destroy();
-          if (signal.aborted || axios.isCancel(error)) throw new Error(CANCELLED);
+          if (signal.aborted || isHttpCancel(error)) throw new Error(CANCELLED);
           // The code only: an axios error carries the signed URL in its config.
-          reason = axios.isAxiosError(error) ? (error.code ?? 'no answer') : 'write error';
+          reason = isHttpError(error) ? (error.code ?? 'no answer') : 'write error';
           // What was written before the failure may be partial; trust only what the file holds.
           received = await fs.promises.stat(partPath).then((stat) => stat.size, () => 0);
         }

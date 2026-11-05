@@ -7,7 +7,8 @@
 // Shared by ApiClient, NotesService and the Yanhe 2.0 reads so none of them
 // can route differently. It is host-agnostic: a URL goes to the intranet when
 // its host is in the mapping table, and nowhere special otherwise.
-import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios';
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { httpClient } from '@main/infra/http';
 import { IntranetAgentPool, intranetRequest, isConnectionFailure, isUnsentFailure } from '@main/infra/intranetTransport';
 import type { IntranetMappingService } from './intranetMappingService';
 
@@ -42,7 +43,7 @@ export class IntranetApiTransport {
    */
   async send<T = unknown>(config: AxiosRequestConfig & { url: string }): Promise<AxiosResponse<T>> {
     const mapping = this.intranetMapping;
-    if (!mapping || !this.agentPool) return axios.request<T>(config);
+    if (!mapping || !this.agentPool) return httpClient.request<T>(config);
 
     const isRead = (config.method ?? 'GET').toUpperCase() === 'GET';
     if (isRead) {
@@ -50,7 +51,7 @@ export class IntranetApiTransport {
     } else {
       await mapping.ensureFresh();
     }
-    if (!mapping.isApiViaIntranet()) return axios.request<T>(config);
+    if (!mapping.isApiViaIntranet()) return httpClient.request<T>(config);
 
     return intranetRequest<T>(config, {
       mapper: mapping,

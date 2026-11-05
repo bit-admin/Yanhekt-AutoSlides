@@ -1,8 +1,13 @@
 import { app, shell } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as https from 'https';
-import * as http from 'http';
+import type { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
+import { httpClient, isHttpError } from './http';
+
+function removeQuietly(filePath: string): void {
+  try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch { /* noop */ }
+}
 
 export interface DownloadProgress {
   downloaded: number;
@@ -18,7 +23,7 @@ export interface FileDownloadServiceOptions {
 
 export class FileDownloadService {
   protected readonly updatesPath: string;
-  protected activeDownload: { request: http.ClientRequest; filename: string } | null = null;
+  protected activeDownload: { controller: AbortController; filename: string } | null = null;
   private readonly userAgent: string;
   private readonly timeoutMs: number;
   private readonly maxRedirects: number;
@@ -41,92 +46,57 @@ export class FileDownloadService {
     return this.updatesPath;
   }
 
-  downloadFile(
+  async downloadFile(
     url: string,
     filename: string,
     progressCallback: (progress: DownloadProgress) => void
   ): Promise<string> {
     this.ensureUpdatesFolder();
     const filePath = path.join(this.updatesPath, filename);
-    if (fs.existsSync(filePath)) {
-      try { fs.unlinkSync(filePath); } catch { /* noop */ }
-    }
+    removeQuietly(filePath);
 
-    return new Promise((resolve, reject) => {
-      const makeRequest = (requestUrl: string, redirectCount = 0) => {
-        if (redirectCount > this.maxRedirects) {
-          reject(new Error('Too many redirects'));
-          return;
-        }
-        const parsedUrl = new URL(requestUrl);
-        const protocol = parsedUrl.protocol === 'https:' ? https : http;
-        const request = protocol.get(
-          requestUrl,
-          {
-            headers: { 'User-Agent': this.userAgent },
-            timeout: this.timeoutMs
-          },
-          (response) => {
-            if (
-              response.statusCode &&
-              response.statusCode >= 300 &&
-              response.statusCode < 400 &&
-              response.headers.location
-            ) {
-              request.destroy();
-              makeRequest(response.headers.location, redirectCount + 1);
-              return;
-            }
-            if (response.statusCode !== 200) {
-              reject(new Error(`HTTP error: ${response.statusCode}`));
-              return;
-            }
-            const totalSize = parseInt(response.headers['content-length'] || '0', 10);
-            let downloadedSize = 0;
-            const fileStream = fs.createWriteStream(filePath);
-            response.on('data', (chunk: Buffer) => {
-              downloadedSize += chunk.length;
-              progressCallback({
-                downloaded: downloadedSize,
-                total: totalSize,
-                percent: totalSize > 0 ? Math.round((downloadedSize / totalSize) * 100) : 0
-              });
-            });
-            response.pipe(fileStream);
-            fileStream.on('finish', () => {
-              fileStream.close();
-              this.activeDownload = null;
-              resolve(filePath);
-            });
-            fileStream.on('error', (err) => {
-              try { fs.unlinkSync(filePath); } catch { /* noop */ }
-              this.activeDownload = null;
-              reject(err);
-            });
-          }
-        );
-        request.on('error', (err) => {
-          try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch { /* noop */ }
-          this.activeDownload = null;
-          reject(err);
+    const controller = new AbortController();
+    this.activeDownload = { controller, filename };
+    try {
+      const response = await httpClient.get<Readable>(url, {
+        responseType: 'stream',
+        headers: { 'User-Agent': this.userAgent },
+        // axios times socket inactivity, the same as the old request timeout.
+        timeout: this.timeoutMs,
+        maxRedirects: this.maxRedirects,
+        signal: controller.signal,
+        validateStatus: () => true,
+      });
+      if (response.status !== 200) {
+        response.data.destroy();
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      const totalSize = parseInt(String(response.headers['content-length'] ?? '0'), 10) || 0;
+      let downloadedSize = 0;
+      response.data.on('data', (chunk: Buffer) => {
+        downloadedSize += chunk.length;
+        progressCallback({
+          downloaded: downloadedSize,
+          total: totalSize,
+          percent: totalSize > 0 ? Math.round((downloadedSize / totalSize) * 100) : 0
         });
-        request.on('timeout', () => {
-          request.destroy();
-          try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch { /* noop */ }
-          this.activeDownload = null;
-          reject(new Error('Download timeout'));
-        });
-        this.activeDownload = { request, filename };
-      };
-      makeRequest(url);
-    });
+      });
+      await pipeline(response.data, fs.createWriteStream(filePath));
+      return filePath;
+    } catch (error) {
+      removeQuietly(filePath);
+      if (isHttpError(error) && error.code === 'ECONNABORTED') throw new Error('Download timeout');
+      if (isHttpError(error) && error.code === 'ERR_FR_TOO_MANY_REDIRECTS') throw new Error('Too many redirects');
+      throw error;
+    } finally {
+      if (this.activeDownload?.controller === controller) this.activeDownload = null;
+    }
   }
 
   cancelDownload(): boolean {
     if (this.activeDownload) {
-      this.activeDownload.request.destroy();
-      const partialFile = path.join(this.updatesPath, this.activeDownload.filename);
-      try { if (fs.existsSync(partialFile)) fs.unlinkSync(partialFile); } catch { /* noop */ }
+      this.activeDownload.controller.abort();
+      removeQuietly(path.join(this.updatesPath, this.activeDownload.filename));
       this.activeDownload = null;
       return true;
     }

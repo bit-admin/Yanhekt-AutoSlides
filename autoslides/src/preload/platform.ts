@@ -168,6 +168,7 @@ export const config: ElectronAPI['config'] = {
   setAllowCliControl: (enabled: boolean) => invoke('config:setAllowCliControl', enabled),
   setCloseToTray: (enabled: boolean) => invoke('config:setCloseToTray', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => invoke('config:setPreferAnonymousApiRequests', enabled),
+  setProxySettings: (next) => invoke('config:setProxySettings', next),
   setSearchSettings: (patch) => invoke('config:setSearchSettings', patch),
   setRememberPassword: (enabled: boolean) => invoke('config:setRememberPassword', enabled),
   setAutoSignIn: (enabled: boolean) => invoke('config:setAutoSignIn', enabled),

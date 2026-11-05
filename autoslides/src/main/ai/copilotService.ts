@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { httpClient } from '@main/infra/http';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('Copilot');
 
@@ -40,7 +40,7 @@ export class CopilotService {
    * Request a device code for OAuth device flow
    */
   async requestDeviceCode(): Promise<DeviceCodeResponse> {
-    const response = await axios.post<DeviceCodeResponse>(
+    const response = await httpClient.post<DeviceCodeResponse>(
       'https://github.com/login/device/code',
       {
         client_id: GITHUB_CLIENT_ID,
@@ -68,7 +68,7 @@ export class CopilotService {
       await new Promise(resolve => setTimeout(resolve, pollInterval));
 
       try {
-        const response = await axios.post<OAuthTokenResponse>(
+        const response = await httpClient.post<OAuthTokenResponse>(
           'https://github.com/login/oauth/access_token',
           {
             client_id: GITHUB_CLIENT_ID,
@@ -134,7 +134,7 @@ export class CopilotService {
       }
     }
 
-    const response = await axios.get<CopilotTokenResponse>(
+    const response = await httpClient.get<CopilotTokenResponse>(
       'https://api.github.com/copilot_internal/v2/token',
       {
         headers: {
@@ -185,7 +185,7 @@ export class CopilotService {
    * Get GitHub user info for display
    */
   async getUserInfo(ghoToken: string): Promise<GitHubUser> {
-    const response = await axios.get<GitHubUser>(
+    const response = await httpClient.get<GitHubUser>(
       'https://api.github.com/user',
       {
         headers: {

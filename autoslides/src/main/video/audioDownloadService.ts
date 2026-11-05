@@ -15,7 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import type { Readable } from 'node:stream';
-import axios from 'axios';
+import { isHttpCancel } from '@main/infra/http';
 import { expandTilde } from '@main/infra/pathUtils';
 import { createIntranetAxios } from '@main/infra/intranetTransport';
 import type { ConfigService } from '@main/platform/configService';
@@ -128,7 +128,7 @@ export class AudioDownloadService {
     } catch (error) {
       await fs.promises.rm(partPath, { force: true }).catch(() => { /* best effort */ });
 
-      if (controller.signal.aborted || axios.isCancel(error)) {
+      if (controller.signal.aborted || isHttpCancel(error)) {
         throw new Error('Cancelled by user');
       }
       throw error;

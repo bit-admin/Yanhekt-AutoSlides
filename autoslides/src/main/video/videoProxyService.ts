@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as url from 'url';
-import axios, { AxiosResponse } from 'axios';
+import type { AxiosResponse } from 'axios';
+import { httpClient, isHttpError } from '@main/infra/http';
 import { ApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
@@ -23,7 +24,7 @@ const log = createLogger('VideoProxy');
 
 /** Narrow an unknown catch value to the axios-ish fields this proxy logs. */
 function asHttpError(error: unknown): { message: string; code?: string; response?: AxiosResponse } {
-  if (axios.isAxiosError(error)) {
+  if (isHttpError(error)) {
     return { message: error.message, code: error.code, response: error.response };
   }
   return { message: error instanceof Error ? error.message : String(error) };
@@ -582,7 +583,7 @@ export class VideoProxyService {
       const axiosConfig = { ...buildAxiosConfig(headers, opts), httpAgent, httpsAgent };
 
       try {
-        const response = await axios.get(requestUrl, axiosConfig);
+        const response = await httpClient.get(requestUrl, axiosConfig);
         if (response.status === 200) {
           return response;
         }
@@ -608,7 +609,7 @@ export class VideoProxyService {
         }
         if (viaIntranet && this.intranetMapping.allowsPublicFallback() && isConnectionFailure(error)) {
           log.warn('Live intranet addresses did not answer; using the public host for this request.');
-          return axios.get(rawUrl, buildAxiosConfig(headers, opts));
+          return httpClient.get(rawUrl, buildAxiosConfig(headers, opts));
         }
         throw error;
       }

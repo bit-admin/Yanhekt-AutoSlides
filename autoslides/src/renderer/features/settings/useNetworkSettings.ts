@@ -4,6 +4,8 @@ import { configStore } from '@shared/services/configStore'
 import { tokenManager } from '@shared/services/authService'
 import { createLogger } from '@shared/utils/logger'
 import { followOutsideChange } from './followOutsideChange'
+import type { ProxyMode } from '@common/types'
+import { parseProxyUrl } from '@common/proxyUrl'
 const log = createLogger('NetworkSettings')
 
 const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i
@@ -85,6 +87,21 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
   followOutsideChange(() => configStore.intranetInterfaceIp ?? '', tempIntranetInterfaceIp)
   followOutsideChange(() => configStore.preferAnonymousApiRequests, tempPreferAnonymousApiRequests)
 
+  // ---- Proxy (buffered; applied on Save) -------------------------------------
+  const proxyCampusMode = ref<ProxyMode>('direct')
+  const proxyOtherMode = ref<ProxyMode>('system')
+  const proxyCustomUrl = ref('')
+  const tempProxyCampusMode = ref<ProxyMode>('direct')
+  const tempProxyOtherMode = ref<ProxyMode>('system')
+  const tempProxyCustomUrl = ref('')
+  followOutsideChange(() => configStore.proxyCampusMode, tempProxyCampusMode)
+  followOutsideChange(() => configStore.proxyOtherMode, tempProxyOtherMode)
+  followOutsideChange(() => configStore.proxyCustomUrl ?? '', tempProxyCustomUrl)
+  /** Some group is set to Custom. */
+  const proxyCustomInUse = computed(() => tempProxyCampusMode.value === 'custom' || tempProxyOtherMode.value === 'custom')
+  /** The address does not parse; requests in a Custom group then connect directly. */
+  const proxyCustomUrlInvalid = computed(() => proxyCustomInUse.value && parseProxyUrl(tempProxyCustomUrl.value) === null)
+
   const localRelayEnabled = ref(false)
   const localRelayPort = ref(8787)
   const localRelayWhitelistEnabled = ref(true)
@@ -149,6 +166,9 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
     currentAuthToken.value = tokenManager.getToken()
     const cfg = configStore
     preferAnonymousApiRequests.value = !!cfg.preferAnonymousApiRequests
+    proxyCampusMode.value = cfg.proxyCampusMode ?? 'direct'
+    proxyOtherMode.value = cfg.proxyOtherMode ?? 'system'
+    proxyCustomUrl.value = cfg.proxyCustomUrl ?? ''
     localRelayEnabled.value = !!cfg.localRelayEnabled
     localRelayPort.value = cfg.localRelayPort ?? 8787
     localRelayWhitelistEnabled.value = cfg.localRelayWhitelistEnabled !== false
@@ -182,6 +202,23 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
         tempPreferAnonymousApiRequests.value
       )
       preferAnonymousApiRequests.value = tempPreferAnonymousApiRequests.value
+    }
+
+    if (
+      tempProxyCampusMode.value !== proxyCampusMode.value ||
+      tempProxyOtherMode.value !== proxyOtherMode.value ||
+      tempProxyCustomUrl.value.trim() !== proxyCustomUrl.value
+    ) {
+      // Plain strings only: IPC cannot clone a Vue proxy.
+      const cfg = await window.electronAPI.config.setProxySettings({
+        campus: tempProxyCampusMode.value,
+        other: tempProxyOtherMode.value,
+        customUrl: String(tempProxyCustomUrl.value),
+      })
+      proxyCampusMode.value = cfg.proxyCampusMode
+      proxyOtherMode.value = cfg.proxyOtherMode
+      proxyCustomUrl.value = cfg.proxyCustomUrl
+      tempProxyCustomUrl.value = cfg.proxyCustomUrl
     }
 
     if (tempIntranetInterfaceIp.value !== intranetInterfaceIp.value) {
@@ -237,6 +274,9 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
     tempIntranetInterfaceIp.value = intranetInterfaceIp.value
     intranetInterfaceWarning.value = null
     tempPreferAnonymousApiRequests.value = preferAnonymousApiRequests.value
+    tempProxyCampusMode.value = proxyCampusMode.value
+    tempProxyOtherMode.value = proxyOtherMode.value
+    tempProxyCustomUrl.value = proxyCustomUrl.value
     resetTempLocalRelay()
   }
 
@@ -306,6 +346,11 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
     intranetInterfaceWarning,
 
     tempPreferAnonymousApiRequests,
+    tempProxyCampusMode,
+    tempProxyOtherMode,
+    tempProxyCustomUrl,
+    proxyCustomInUse,
+    proxyCustomUrlInvalid,
     tempLocalRelayEnabled,
     tempLocalRelayPort,
     tempLocalRelayWhitelistEnabled,

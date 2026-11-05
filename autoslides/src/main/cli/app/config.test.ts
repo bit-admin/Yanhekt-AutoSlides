@@ -13,6 +13,9 @@ const storedConfig = {
   connectionMode: 'auto',
   intranetInterfaceIp: '',
   preferAnonymousApiRequests: true,
+  proxyCampusMode: 'direct',
+  proxyOtherMode: 'system',
+  proxyCustomUrl: 'http://user:secret@127.0.0.1:7890',
   maxConcurrentDownloads: 3,
   downloadMaxWorkers: 8,
   downloadNumRetries: 5,
@@ -37,6 +40,12 @@ const writer = new Proxy({} as Record<string, (value: unknown) => void>, {
     if (key === 'qtExtractorAutoRun') current.qtExtractor = { ...(current.qtExtractor as object), autoRunAfterDownload: value };
     else if (key === 'qtExtractorAutoPostProcess') current.qtExtractor = { ...(current.qtExtractor as object), autoPostProcessAfter: value };
     else if (key === 'intranetInterfaceIp') current.intranetInterfaceIp = value ?? '';
+    else if (key === 'proxySettings') {
+      const next = value as { campus?: string; other?: string; customUrl?: string };
+      if (next.campus) current.proxyCampusMode = next.campus;
+      if (next.other) current.proxyOtherMode = next.other;
+      if (next.customUrl !== undefined) current.proxyCustomUrl = next.customUrl;
+    }
     else current[key] = value;
   },
 });
@@ -67,6 +76,9 @@ describe('autoslides config', () => {
         connection_mode: 'auto',
         intranet_interface: null,
         anonymous_requests: true,
+        proxy_campus: 'direct',
+        proxy_other: 'system',
+        proxy_url: 'http://user:***@127.0.0.1:7890',
         concurrent_downloads: 3,
         download_workers: 8,
         download_retries: 5,
@@ -80,6 +92,7 @@ describe('autoslides config', () => {
     const { data, text } = await appConfigCommand.serve(input([]), context());
     const everything = JSON.stringify(data) + text;
     expect(everything).not.toContain(TOKEN);
+    expect(everything).not.toContain('secret');
     expect(everything).not.toContain('Vault');
     expect(everything).not.toContain('/opt/extractor');
     expect(everything.toLowerCase()).not.toContain('yanhe2');
@@ -121,6 +134,9 @@ describe('autoslides config', () => {
         ['output_dir', folder, 'setOutputDirectory', path.normalize(folder), path.normalize(folder)],
         ['intranet_interface', 'default', 'setIntranetInterfaceIp', null, null],
         ['anonymous_requests', 'off', 'setPreferAnonymousApiRequests', false, false],
+        ['proxy_campus', 'system', 'setProxySettings', { campus: 'system' }, 'system'],
+        ['proxy_other', 'custom', 'setProxySettings', { other: 'custom' }, 'custom'],
+        ['proxy_url', 'socks5://127.0.0.1:7891', 'setProxySettings', { customUrl: 'socks5://127.0.0.1:7891' }, 'socks5://127.0.0.1:7891'],
         ['concurrent_downloads', '10', 'setMaxConcurrentDownloads', 10, 10],
         ['download_workers', '1', 'setDownloadMaxWorkers', 1, 1],
         ['download_retries', '30', 'setDownloadNumRetries', 30, 30],
@@ -155,6 +171,8 @@ describe('autoslides config', () => {
       ['output_dir', 'Lectures'],
       ['output_dir', path.join(os.tmpdir(), 'as-config-missing-folder')],
       ['intranet_interface', 'no-such-interface-0'],
+      ['proxy_campus', 'on'],
+      ['proxy_url', 'ftp://127.0.0.1:21'],
     ];
     for (const [key, raw] of wrong) {
       await expect(appConfigCommand.serve(input([key, raw]), context()), `${key} ${raw}`).rejects.toMatchObject({ code: 'usage' });
