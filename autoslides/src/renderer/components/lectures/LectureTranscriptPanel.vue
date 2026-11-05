@@ -86,14 +86,13 @@ const rootEl = ref<HTMLElement | null>(null)
 
 /**
  * The column's width is the player's `--transcript-width`, which the top bar
- * reads too, so this only reports the number and the player sets it. Nothing
- * stored means the default (a share of the player's width); a dragged width is
- * kept between launches, and re-clamped to the player it is shown in.
+ * reads too, so this only reports the number and the player sets it. No
+ * chosen width means the default (a share of the player's width); a dragged
+ * width is not saved and is re-clamped to the player it is shown in.
  */
 const MIN_WIDTH = 260
 const MAX_SHARE = 0.6
 const KEY_STEP = 24
-const WIDTH_STORAGE_KEY = 'autoslides.lectureTranscript.width'
 
 const resizing = ref(false)
 let chosenWidth: number | null = null
@@ -105,25 +104,14 @@ function maxWidth(): number {
   return stageWidth > 0 ? Math.max(MIN_WIDTH, Math.floor(stageWidth * MAX_SHARE)) : Number.POSITIVE_INFINITY
 }
 
-function setWidth(width: number, persist = true): void {
+function setWidth(width: number): void {
   chosenWidth = Math.round(Math.max(MIN_WIDTH, Math.min(maxWidth(), width)))
   emit('width', chosenWidth)
-  if (!persist) return
-  try {
-    localStorage.setItem(WIDTH_STORAGE_KEY, String(chosenWidth))
-  } catch {
-    /* per-viewer convenience only */
-  }
 }
 
 function resetWidth(): void {
   chosenWidth = null
   emit('width', null)
-  try {
-    localStorage.removeItem(WIDTH_STORAGE_KEY)
-  } catch {
-    /* per-viewer convenience only */
-  }
 }
 
 function onResizeStart(e: PointerEvent): void {
@@ -136,7 +124,7 @@ function onResizeStart(e: PointerEvent): void {
   handle.setPointerCapture(e.pointerId)
 
   // The column is on the right, so dragging left widens it.
-  const onMove = (ev: PointerEvent) => setWidth(startWidth + (startX - ev.clientX), false)
+  const onMove = (ev: PointerEvent) => setWidth(startWidth + (startX - ev.clientX))
   const onEnd = (ev: PointerEvent) => {
     handle.releasePointerCapture(ev.pointerId)
     handle.removeEventListener('pointermove', onMove)
@@ -152,16 +140,10 @@ function onResizeStart(e: PointerEvent): void {
 
 // Re-clamp a chosen width when the player changes size (window, fullscreen).
 const reclamp = () => {
-  if (chosenWidth !== null) setWidth(chosenWidth, false)
+  if (chosenWidth !== null) setWidth(chosenWidth)
 }
 
 onMounted(() => {
-  try {
-    const stored = Number(localStorage.getItem(WIDTH_STORAGE_KEY))
-    if (Number.isFinite(stored) && stored >= MIN_WIDTH) setWidth(stored, false)
-  } catch {
-    /* default width */
-  }
   window.addEventListener('resize', reclamp)
   document.addEventListener('fullscreenchange', reclamp)
 })

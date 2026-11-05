@@ -492,28 +492,10 @@ watch(currentView, async (view) => {
   }
 })
 
-const DEDUP_AFTER_CROP_ACTIONS_KEY = 'autoslides.results.dedupAfterCropActions'
-
-const readDedupAfterCropActions = () => {
-  try {
-    return window.sessionStorage.getItem(DEDUP_AFTER_CROP_ACTIONS_KEY) !== 'false'
-  } catch {
-    return true
-  }
-}
-
-const dedupAfterCropActions = ref(readDedupAfterCropActions())
+const dedupAfterCropActions = ref(true)
 const showRestoreMenu = ref(false)
 const showAutoCropMenu = ref(false)
 const showRemoveDuplicatesMenu = ref(false)
-
-watch(dedupAfterCropActions, (value) => {
-  try {
-    window.sessionStorage.setItem(DEDUP_AFTER_CROP_ACTIONS_KEY, value ? 'true' : 'false')
-  } catch {
-    // Session storage can be unavailable in restricted renderer contexts.
-  }
-})
 
 const currentFolderRemovedIds = computed(() => {
   return folderItems.value

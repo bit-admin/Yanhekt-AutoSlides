@@ -2,7 +2,7 @@
 // shared/services so both PostProcessingService and feature composables may
 // import it (shared/ may not import features/). All calls are best-effort —
 // metadata recording must never break extraction or review flows.
-import { DataStore } from './dataStore';
+import type { SessionSnapshot } from './sessionSnapshot';
 import { createLogger } from '@shared/utils/logger';
 import type {
   SlideMetadataKind,
@@ -13,19 +13,18 @@ import type {
 
 const log = createLogger('SlideMetadataClient');
 
-// Build identifying context from the volatile session store (keyed by sessionId).
-// Returns an empty object when the session isn't cached — callers can still pass
-// an explicit `source` override for the fields they hold directly.
-function sourceFromDataStore(sessionId?: string): SlideMetadataSource {
-  if (!sessionId) return {};
-  const data = DataStore.getSessionData(sessionId);
-  if (!data) return {};
-  const ci = data.courseInfo;
+// Build identifying context from the session a download or task carries.
+// Returns an empty object when there is none — callers can still pass an
+// explicit `source` override for the fields they hold directly.
+function sourceFromSnapshot(snapshot?: SessionSnapshot): SlideMetadataSource {
+  if (!snapshot) return {};
+  const data = snapshot.session;
+  const ci = snapshot.course;
   return {
     courseId: ci?.id,
     courseTitle: ci?.title,
     courseNumber: ci?.number,
-    sessionId: data.session_id != null ? String(data.session_id) : sessionId,
+    sessionId: data.session_id != null ? String(data.session_id) : undefined,
     sessionTitle: data.title,
     instructor: ci?.instructor,
     professors: ci?.professors,
@@ -68,7 +67,7 @@ function normalizeSource(source: SlideMetadataSource): SlideMetadataSource {
   };
 }
 
-// Overlay only defined keys so an explicit partial never blanks a DataStore value.
+// Overlay only defined keys so an explicit partial never blanks a snapshot value.
 function mergeSource(base: SlideMetadataSource, override?: Partial<SlideMetadataSource>): SlideMetadataSource {
   if (!override) return base;
   const merged: SlideMetadataSource = { ...base };
@@ -88,16 +87,16 @@ export interface RecordRecordedExtractionInput {
   kind?: SlideMetadataKind;
   // How the extraction was initiated (task/download → 'auto', playback → 'watch').
   trigger?: 'auto' | 'watch';
-  // Used to enrich `source` from the cached session data.
-  sessionId?: string;
-  // Fields the caller holds directly (wins over DataStore-derived values).
+  // The queued session, used to enrich `source`.
+  session?: SessionSnapshot;
+  // Fields the caller holds directly (wins over snapshot-derived values).
   source?: Partial<SlideMetadataSource>;
 }
 
 /** Create/refresh metadata.json for an extraction folder. */
 export async function recordRecordedExtraction(input: RecordRecordedExtractionInput): Promise<void> {
   try {
-    const source = normalizeSource(mergeSource(sourceFromDataStore(input.sessionId), input.source));
+    const source = normalizeSource(mergeSource(sourceFromSnapshot(input.session), input.source));
     const extraction: SlideExtractionMeta = {
       extractor: input.extractor,
       ssimThreshold: input.ssimThreshold,

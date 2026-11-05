@@ -10,6 +10,7 @@
 // `start()`. No global events, no retry storm, no acknowledgment Set.
 
 import type { Yanhe2CalendarSession } from '@common/yanhe2Calendar'
+import type { SessionSnapshot } from '@shared/services/sessionSnapshot'
 
 /**
  * A task that plays a Yanhe 2.0 recording: the video is aita's, while the
@@ -29,6 +30,8 @@ export interface TaskContext {
   courseId: string
   courseTitle: string
   sessionTitle: string
+  /** The Yanhekt session to play, as it was queued. */
+  session?: SessionSnapshot
   yanhe2?: Yanhe2TaskSource
 }
 

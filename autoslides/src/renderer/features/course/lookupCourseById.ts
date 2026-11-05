@@ -37,8 +37,8 @@ export function needsListHydration(
 /**
  * Map a list/search row to Course. Kept local (instead of importing
  * `transformCourseDataToCourse`) so this module stays free of the
- * useCourseList → courseSelection → DataStore import chain — that chain
- * touches localStorage at module load and breaks node-env unit tests.
+ * useCourseList → courseSelection import chain and the app stores it loads,
+ * which node-env unit tests cannot run.
  * Field mapping must stay in lockstep with useCourseList.
  */
 function courseFromListRow(courseData: CourseData): Course {

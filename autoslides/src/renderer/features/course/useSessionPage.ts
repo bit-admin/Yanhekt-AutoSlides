@@ -1,7 +1,7 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { ApiClient, type SessionData, type CourseInfoResponse } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
-import { DataStore } from '@shared/services/dataStore'
+import { snapshotSession, type SessionSnapshot } from '@shared/services/sessionSnapshot'
 import { DownloadService, type DownloadItem, type DownloadQueueAddResult } from '@shared/services/downloadService'
 import { TaskQueue, type TaskQueueAddResult } from '@shared/services/taskQueueService'
 import { lectureLabel } from '@common/lectureNaming'
@@ -112,32 +112,12 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     }
   })
 
-  // Helper: Store session data with course information
-  const storeSessionData = (session: Session): void => {
-    const c = courseDetails.value
-    if (c) {
-      DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-        id: c.id,
-        title: c.title,
-        titleEn: c.titleEn,
-        number: c.number,
-        instructor: c.instructor,
-        time: c.time,
-        classrooms: c.classrooms,
-        college_name: c.college_name,
-        participant_count: c.participant_count,
-        professors: c.professors,
-        school_year: c.school_year,
-        semester: c.semester
-      })
-    } else {
-      DataStore.setSessionData(session.session_id.toString(), session)
-    }
-  }
+  // The session as queued, with the merged course facts, for the item to carry.
+  const snapshotOf = (session: Session): SessionSnapshot =>
+    snapshotSession(session, courseDetails.value)
 
   // Helper: Add session to download queue
   const addSessionToDownload = (session: Session, videoType: DownloadItem['videoType']): DownloadQueueAddResult => {
-    storeSessionData(session)
     // `name` stays the raw human-readable label — it is sanitized once, later,
     // by buildDownloadFileName (sanitizeDownloadName, which differs from
     // sanitizeFileName on path separators). The ids ride alongside so that
@@ -150,20 +130,21 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       courseId: course.value?.id,
       // So the extracted folder's metadata.json has it in its first write.
       courseNumber: courseDetails.value?.number,
-      videoType
+      videoType,
+      session: snapshotOf(session),
     })
   }
 
   // Helper: Add session to task queue
   const addSessionToTask = (session: Session): TaskQueueAddResult => {
-    storeSessionData(session)
     // Display label only — the real folder is named by useSlideExtraction.
     return TaskQueue.addToQueue({
       name: `slides_${lectureLabel(course.value?.title, session.title)}`,
       courseTitle: course.value?.title || t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id.toString(),
-      courseId: course.value?.id || 'unknown'
+      courseId: course.value?.id || 'unknown',
+      session: snapshotOf(session),
     })
   }
 
@@ -173,7 +154,6 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   }
 
   const selectSession = (session: Session): void => {
-    storeSessionData(session)
     onSessionSelected(session)
   }
 

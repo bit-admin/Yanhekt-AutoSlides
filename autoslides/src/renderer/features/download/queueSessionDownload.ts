@@ -1,12 +1,12 @@
 import type { SessionDownloadInfo } from '@common/apiTypes'
 import { lectureLabel } from '@common/lectureNaming'
-import { DataStore } from '@shared/services/dataStore'
+import { snapshotSession } from '@shared/services/sessionSnapshot'
 import { DownloadService, type DownloadItem, type DownloadQueueAddResult } from '@shared/services/downloadService'
 
 /**
  * Queue one stream of a session resolved by id, exactly as a download started
- * from a course page: the session is written to DataStore as the course page's
- * `storeSessionData` does, then queued through `DownloadService.addToQueue` —
+ * from a course page: the item carries the session and its course facts, and
+ * goes through `DownloadService.addToQueue` —
  * so dedupe, file naming, intranet host rewriting, the "prefer anonymous" flag,
  * auto-extraction and the queue UI all behave the same.
  *
@@ -19,7 +19,7 @@ export function queueSessionDownload(
   videoType: DownloadItem['videoType'],
 ): DownloadQueueAddResult {
   const { session, course } = info
-  DataStore.setSessionDataWithCourse(session.session_id, session, {
+  const snapshot = snapshotSession(session, {
     id: course.id,
     title: courseTitle,
     titleEn: course.titleEn,
@@ -39,5 +39,6 @@ export function queueSessionDownload(
     courseId: course.id,
     courseNumber: course.number,
     videoType,
+    session: snapshot,
   })
 }

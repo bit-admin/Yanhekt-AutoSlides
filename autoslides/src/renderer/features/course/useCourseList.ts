@@ -13,7 +13,7 @@ const log = createLogger('CourseList');
 export interface Course {
   /**
    * Recorded: the course id. **Live: the BROADCAST id** — live rows are keyed by
-   * broadcast, and this feeds `streamId`/DataStore. Use `courseId` when you need
+   * broadcast, and this feeds `streamId`. Use `courseId` when you need
    * the actual course.
    */
   id: string

@@ -172,12 +172,12 @@ import LecturesPage from '@renderer/components/lectures/LecturesPage.vue'
 import DeveloperPage from '@renderer/components/developer/DeveloperPage.vue'
 import SettingsPage from '@renderer/components/settings/SettingsPage.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
-import { DataStore } from '@shared/services/dataStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
 import { taskQueueState } from '@shared/services/taskQueueService'
 import { navigationStore } from '@features/course/navigationStore'
 import { tabStore, openPlaybackTab, yanhe2TabKey } from '@features/course/tabStore'
 import type { SessionCourse } from '@features/course/useSessionPage'
+import type { SessionSnapshot } from '@shared/services/sessionSnapshot'
 import { configStore } from '@shared/services/configStore'
 
 type Page = 'courses' | 'sessions'
@@ -390,18 +390,19 @@ const handleTaskNavigation = (task: TaskContext) => {
     return
   }
 
-  const sessionData = DataStore.getSessionData(sessionId)
-  if (!sessionData) {
-    log.error('Session data not found for task navigation:', sessionId)
-    log.error('Make sure the session was properly stored when the task was added to the queue')
+  if (!task.session) {
+    log.error('Task has no session to play:', sessionId)
     return
   }
 
-  const courseInfo = sessionData.courseInfo
+  // A plain copy: the task list is reactive, and the player sends the session over IPC.
+  const { session: sessionData, course: courseInfo } =
+    JSON.parse(JSON.stringify(task.session)) as SessionSnapshot
   const course = {
     id: courseId,
     title: courseTitle,
     titleEn: courseInfo?.titleEn,
+    number: courseInfo?.number,
     instructor: courseInfo?.instructor || 'Auto Task',
     time: courseInfo?.time || sessionData.started_at,
     status: 1,

@@ -151,7 +151,6 @@ function scrollActiveIntoView(): void {
 const MIN_CARD_WIDTH = 240
 const ABS_MAX_CARD_WIDTH = 640
 const KEY_STEP = 24
-const WIDTH_STORAGE_KEY = 'autoslides.lectureSlideStrip.cardWidth'
 
 function maxCardWidth(): number {
   const playerHeight = rootEl.value?.closest<HTMLElement>('.lecture-player')?.clientHeight ?? 0
@@ -160,26 +159,12 @@ function maxCardWidth(): number {
   return Math.max(MIN_CARD_WIDTH, Math.min(ABS_MAX_CARD_WIDTH, byHeight))
 }
 
-function readStoredWidth(): number {
-  try {
-    const n = Number(localStorage.getItem(WIDTH_STORAGE_KEY))
-    return Number.isFinite(n) && n >= MIN_CARD_WIDTH ? n : MIN_CARD_WIDTH
-  } catch {
-    return MIN_CARD_WIDTH
-  }
-}
-
-const cardWidth = ref(readStoredWidth())
+// Starts at the floor every launch; the size is not remembered.
+const cardWidth = ref(MIN_CARD_WIDTH)
 const resizing = ref(false)
 
-function setCardWidth(width: number, persist = true): void {
+function setCardWidth(width: number): void {
   cardWidth.value = Math.round(Math.max(MIN_CARD_WIDTH, Math.min(maxCardWidth(), width)))
-  if (!persist) return
-  try {
-    localStorage.setItem(WIDTH_STORAGE_KEY, String(cardWidth.value))
-  } catch {
-    /* per-viewer convenience only */
-  }
 }
 
 function onResizeStart(e: PointerEvent): void {
@@ -193,7 +178,7 @@ function onResizeStart(e: PointerEvent): void {
 
   // Dragging up grows the thumb height; width follows the 16:9 ratio.
   const onMove = (ev: PointerEvent) => {
-    setCardWidth(startWidth + ((startY - ev.clientY) * 16) / 9, false)
+    setCardWidth(startWidth + ((startY - ev.clientY) * 16) / 9)
   }
   const onEnd = (ev: PointerEvent) => {
     handle.releasePointerCapture(ev.pointerId)
@@ -209,11 +194,11 @@ function onResizeStart(e: PointerEvent): void {
   handle.addEventListener('pointercancel', onEnd)
 }
 
-// Re-clamp a stored width against the current player size.
-const onWindowResize = () => setCardWidth(cardWidth.value, false)
+// Re-clamp the width against the current player size.
+const onWindowResize = () => setCardWidth(cardWidth.value)
 
 onMounted(() => {
-  setCardWidth(cardWidth.value, false)
+  setCardWidth(cardWidth.value)
   window.addEventListener('resize', onWindowResize)
   void nextTick(() => setupObserver())
 })

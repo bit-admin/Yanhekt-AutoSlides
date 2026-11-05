@@ -21,29 +21,13 @@ import ApiLabPanel from './ApiLabPanel.vue'
 import SsoLabPanel from './SsoLabPanel.vue'
 import DeveloperTabSwitch, { type DevTab } from './DeveloperTabSwitch.vue'
 
-const TAB_KEY = 'autoslides.developer.tab'
-
-function readTab(): DevTab {
-  try {
-    const stored = localStorage.getItem(TAB_KEY)
-    return stored === 'api' || stored === 'sso' ? stored : 'image'
-  } catch {
-    return 'image'
-  }
-}
-
-const activeTab = ref<DevTab>(readTab())
-const apiMounted = ref(activeTab.value === 'api')
-const ssoMounted = ref(activeTab.value === 'sso')
+// Always opens on the API tab; the choice is not remembered.
+const activeTab = ref<DevTab>('api')
+const apiMounted = ref(true)
+const ssoMounted = ref(false)
 
 watch(activeTab, (tab) => {
-  if (tab === 'api') apiMounted.value = true
   if (tab === 'sso') ssoMounted.value = true
-  try {
-    localStorage.setItem(TAB_KEY, tab)
-  } catch {
-    // Remembering the tab is a convenience only.
-  }
 })
 </script>
 

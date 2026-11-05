@@ -4,6 +4,7 @@ import { configStore } from './configStore'
 import { TaskCoordinator, type TaskContext, type Yanhe2TaskSource } from '@shared/orchestration/taskCoordinator'
 import { reduceTask, type TaskEvent } from '@shared/orchestration/taskMachine'
 import { overrides } from '../overrideRegistry'
+import type { SessionSnapshot } from './sessionSnapshot'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesTaskQueue');
 
@@ -35,6 +36,8 @@ export interface TaskItem {
   extractedSlideFiles?: string[]
   /** Run by its caller, not by this queue (`addExternalTask`). */
   external?: boolean
+  /** The Yanhekt session to play, as it was queued; its tab is built from it. */
+  session?: SessionSnapshot
   /** Played from Yanhe 2.0 rather than Yanhekt. */
   yanhe2?: Yanhe2TaskSource
 }
@@ -116,6 +119,7 @@ class TaskQueueService {
       courseId: task.courseId,
       courseTitle: task.courseTitle,
       sessionTitle: task.sessionTitle,
+      session: task.session,
       yanhe2: task.yanhe2
     }
   }
@@ -127,6 +131,7 @@ class TaskQueueService {
     sessionTitle: string
     sessionId: string
     courseId: string
+    session?: SessionSnapshot
     yanhe2?: Yanhe2TaskSource
   }): TaskQueueAddResult {
     // Check if task already exists
@@ -149,6 +154,7 @@ class TaskQueueService {
       status: 'queued',
       progress: 0,
       createdAt: Date.now(),
+      ...(taskData.session ? { session: taskData.session } : {}),
       ...(taskData.yanhe2 ? { yanhe2: taskData.yanhe2 } : {})
     }
 

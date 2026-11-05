@@ -1,7 +1,7 @@
 import { ref, shallowRef, computed, nextTick, watch, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import type { ConnectionMode, MuteMode } from '@common/types'
 import Hls, { Events, ErrorDetails } from 'hls.js'
-import { DataStore } from '@shared/services/dataStore'
+import type { LiveStream } from '@common/apiTypes'
 import { tokenManager } from '@shared/services/authService'
 import { createMediaSyncLoop, syncFollower } from './mediaSync'
 import { useMicAudioCheck } from './useMicAudioCheck'
@@ -63,6 +63,8 @@ export interface SessionInput {
 export interface UseVideoPlayerOptions {
   mode: 'live' | 'recorded'
   streamId?: string
+  /** Live mode: the stream to play, read when playback loads. */
+  liveStream?: () => LiveStream | null
   session: Ref<SessionInput | null>
   slideExtractorInstance: Ref<SlideExtractionHandle | null>
   onTaskError?: (message: string) => void
@@ -560,7 +562,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       let result: PlaybackData
 
       if (mode === 'live' && streamId) {
-        const streamData = DataStore.getStreamData(streamId)
+        const streamData = options.liveStream?.()
         if (!streamData) {
           throw new Error('Stream data not found')
         }

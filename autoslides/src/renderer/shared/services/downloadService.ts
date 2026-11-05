@@ -5,6 +5,7 @@ import { ApiClient } from './apiClient'
 import { tokenManager } from './authService'
 import { configStore } from './configStore'
 import { overrides } from '../overrideRegistry'
+import type { SessionSnapshot } from './sessionSnapshot'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('Download');
 
@@ -52,6 +53,10 @@ export interface DownloadItem {
   // it), while every other field is the same lecture's on Yanhekt, so the file,
   // dedupe and auto-extraction are exactly a Yanhekt download's.
   yanhe2?: Yanhe2DownloadSource
+  // The Yanhekt session as it was queued: its stream URLs are what this service
+  // downloads, and its course facts go into the extracted folder's
+  // metadata.json. Absent on Yanhe 2.0 rows and on rows with their own runner.
+  session?: SessionSnapshot
   status: DownloadStatus
   progress: number
   error?: string
@@ -301,7 +306,7 @@ class DownloadServiceClass {
       }
 
       // Get video stream URL from session data
-      const sessionData = await this.getSessionVideoUrl(item.sessionId, item.videoType)
+      const sessionData = await this.getSessionVideoUrl(item)
       if (!sessionData) {
         throw new Error('Video stream URL not found')
       }
@@ -321,14 +326,12 @@ class DownloadServiceClass {
     }
   }
 
-  private async getSessionVideoUrl(sessionId: string, videoType: DownloadItem['videoType']): Promise<{ url: string } | null> {
+  private async getSessionVideoUrl(item: DownloadItem): Promise<{ url: string } | null> {
+    const { sessionId, videoType } = item
     try {
-      // Import DataStore dynamically to avoid circular dependencies
-      const { DataStore } = await import('./dataStore')
-      const sessionData = DataStore.getSessionData(sessionId)
-
+      const sessionData = item.session?.session
       if (!sessionData) {
-        log.error('Session data not found for:', sessionId)
+        log.error('Download has no session data:', sessionId)
         return null
       }
 

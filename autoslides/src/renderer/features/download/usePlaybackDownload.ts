@@ -1,6 +1,7 @@
 import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DownloadService } from '@shared/services/downloadService'
+import { snapshotSession } from '@shared/services/sessionSnapshot'
 import { lectureLabel } from '@common/lectureNaming'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 
@@ -22,7 +23,7 @@ export interface UsePlaybackDownloadReturn {
 // go back to the session list to start a download. Mirrors the session-list
 // path (DownloadService.addToQueue keyed by sessionId) — downloads the currently
 // selected stream, or both streams when "Both Streams" is active. Recorded mode
-// only; the session data is already in DataStore from when the tab was opened.
+// only; the items carry the tab's own session and course.
 export function usePlaybackDownload(options: UsePlaybackDownloadOptions): UsePlaybackDownloadReturn {
   const { mode, course, session, sessionId, isDualStreamSelected, isScreenRecordingSelected } = options
   const { t } = useI18n()
@@ -41,6 +42,7 @@ export function usePlaybackDownload(options: UsePlaybackDownloadOptions): UsePla
       ? ['camera', 'screen']
       : [isScreenRecordingSelected.value ? 'screen' : 'camera']
 
+    const snapshot = snapshotSession(currentSession, course.value)
     let firstAddedId: string | undefined
     for (const videoType of videoTypes) {
       const result = DownloadService.addToQueue({
@@ -50,7 +52,8 @@ export function usePlaybackDownload(options: UsePlaybackDownloadOptions): UsePla
         sessionId: String(resolvedSessionId),
         courseId: course.value?.id,
         courseNumber: course.value?.number,
-        videoType
+        videoType,
+        session: snapshot,
       })
       if (result.added && !firstAddedId) firstAddedId = result.item.id
     }

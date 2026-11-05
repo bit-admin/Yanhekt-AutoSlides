@@ -325,7 +325,7 @@ renderer/
 │   ├── mlClassifier/      onnxruntime-web client
 │   ├── workers/           *.worker.ts
 │   ├── orchestration/     extraction + task state machines
-│   ├── services/          configStore, dataStore, queues, clients
+│   ├── services/          configStore, sessionSnapshot, queues, clients
 │   └── styles/            theme.css tokens
 └── demo/           deletable screenshot add-on
 ```
@@ -1474,7 +1474,7 @@ AI dispatch in watch mode is **arity-based**: 1 image → single-image endpoint 
 
 **Stage 3 — auto-crop detector** (`autoCrop/`). Modes: `canny_then_yolo` (default), `canny_only`, `yolo_only`. YOLO is `onnxruntime-web` single-threaded (no SharedArrayBuffer). Built-in model in `resources/models/`; custom copies to `<userData>/models/` and self-heals to built-in if missing. Developer workspace lab draws a red box in memory — no disk writes.
 
-`useTaskQueue` calls `ssimThresholdService.setCurrentClassrooms(...)` from `DataStore.getSessionData(sessionId)`, **not** via the pipeline's `Input.classrooms`. Don't "fix" this to match playback.
+Downloads and tasks carry the session they were queued with (`SessionSnapshot`, `shared/services/sessionSnapshot.ts`): its stream URLs are what a download fetches, a task's playback tab is built from it, and its course facts fill `metadata.json`. Nothing is looked up by session id afterwards. Live tabs build their stream from the tab's course (`liveStreamOf`).
 
 ---
 

@@ -665,6 +665,7 @@ import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
 import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames'
 import { tabStore } from '@features/course/tabStore'
+import { liveStreamOf } from '@features/course/courseSelection'
 import { hydrateLiveTitles } from '@features/course/liveCourseTitles'
 import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { streamFallbackMessageKey } from '@features/video/streamFallback'
@@ -807,6 +808,7 @@ const isManualWatchTab = () =>
 const videoPlayerComposable = useVideoPlayer({
   mode: props.mode,
   streamId: props.streamId,
+  liveStream: () => props.course ? liveStreamOf(props.course) : null,
   session: sessionRef,
   slideExtractorInstance: slideExtraction.slideExtractorInstance,
   resumeProgressEnabled: () =>

@@ -282,7 +282,7 @@ export class ExtractionOrchestrator {
       extractor: 'qt',
       trigger: 'auto',
       ssimThreshold: item.ssimThreshold,
-      sessionId: item.sessionId,
+      session: item.session,
       source: {
         courseId: item.courseId,
         courseNumber: item.courseNumber,

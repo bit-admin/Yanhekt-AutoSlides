@@ -186,7 +186,6 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
         kind: mode === 'live' ? 'live' : 'recorded',
         trigger: isTaskExtraction?.() ? 'auto' : 'watch',
         ssimThreshold: configStore.slideExtraction?.ssimThreshold,
-        sessionId,
         source: {
           // Live: `course.id` is a broadcast id and must NOT be written as a
           // courseId — the Index keys on courseId/sessionId and would treat each
