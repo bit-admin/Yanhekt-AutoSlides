@@ -78,14 +78,33 @@ export function isYanhe2PlayUrl(value: string): boolean {
   );
 }
 
-/** A live playlist on the Yanhekt live CDN (`clive*.yanhekt.cn`). Unsigned. */
-function isLivePlaylistUrl(value: string): boolean {
+/**
+ * A live playlist or segment the local proxy may fetch: `/live/` on a
+ * yanhekt.cn host (the `clive*` live CDN). Since 2026-11-06 these want the same
+ * `t` signature as `/play/`, on the playlist and on every segment.
+ */
+export function isYanhe2LiveUrl(value: string): boolean {
+  let url: URL;
   try {
-    const url = new URL(value);
-    return url.protocol === 'https:' && url.hostname.endsWith('.yanhekt.cn') && /\.m3u8$/i.test(url.pathname);
+    url = new URL(value);
   } catch {
     return false;
   }
+  return (
+    url.protocol === 'https:'
+    && !url.port
+    && !url.username
+    && !url.password
+    && url.hostname.endsWith('.yanhekt.cn')
+    && url.pathname.startsWith('/live/')
+    && !url.pathname.includes('..')
+    && /\.(m3u8|ts)$/i.test(url.pathname)
+  );
+}
+
+/** Anything the `/yanhe2` proxy route serves: a recording or a live stream. */
+export function isYanhe2MediaUrl(value: string): boolean {
+  return isYanhe2PlayUrl(value) || isYanhe2LiveUrl(value);
 }
 
 function recordedSources(videoList: unknown): Yanhe2Source[] {
@@ -120,7 +139,7 @@ function liveSources(liveUrl: unknown): Yanhe2Source[] {
   for (const [key, type] of LIVE_KEY) {
     const entry = liveUrl[key];
     const url = isRow(entry) ? text(entry.m3u8) : '';
-    if (isLivePlaylistUrl(url)) out.push({ type, format: 'hls', url });
+    if (isYanhe2LiveUrl(url) && /\.m3u8$/i.test(new URL(url).pathname)) out.push({ type, format: 'hls', url });
   }
   return out;
 }
@@ -168,10 +187,17 @@ export interface Yanhe2PlayIdentity {
   tenantId: number;
   /** infosimple `phone`. The signing secret; never logged. */
   playSigningPhone: string;
+  /**
+   * The account's JWT. aita's `/live/` gateway wants it as a Bearer on the
+   * playlist and on every segment, beside the `t` signature (measured
+   * 2026-11-06: either one alone is a 403). `/play/` does not need it.
+   */
+  jwt?: string;
 }
 
 /**
- * The `t` a `/play/` playlist, segment or MP4 needs:
+ * The `t` a `/play/` playlist, segment or MP4 needs, and since 2026-11-06 a
+ * `/live/` playlist or segment too (same formula):
  * `{userId}-{unix}-{md5(pathname + userId + tenantId + reverse(phone) + unix)}`.
  *
  * Bound to one pathname and one second, and accepted from about three hours

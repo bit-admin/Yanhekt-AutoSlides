@@ -191,8 +191,8 @@ export class VideoProxyService {
   }
 
   /**
-   * A local URL for one Yanhe 2.0 recording stream. The caller holds a
-   * registered client for as long as it plays, like any other proxied stream.
+   * A local URL for one Yanhe 2.0 stream, recorded or live (both are signed
+   * per request). The caller holds a registered client for as long as it plays, like any other proxied stream.
    */
   async getYanhe2PlayUrl(account: string, upstreamUrl: string): Promise<string> {
     await this.intranetMapping.ensureFresh();
@@ -208,20 +208,6 @@ export class VideoProxyService {
     await this.intranetMapping.ensureFresh();
     const port = await this.startVideoProxy();
     return upstreamUrls.map((url) => yanhe2SlideProxyUrl(port, url));
-  }
-
-  /**
-   * The URL to play one Yanhe 2.0 live stream from. These are the same
-   * unsigned live CDN playlists Yanhekt uses, so they follow the same rule as
-   * `getLiveStreamUrls`: straight from the CDN on the public route, through
-   * the local `/live` proxy (for the address rewrite) on the intranet one.
-   * `account` only keys the proxy's per-stream state; it is not sent upstream.
-   */
-  async getYanhe2LiveUrl(account: string, upstreamUrl: string): Promise<string> {
-    await this.intranetMapping.ensureFresh();
-    if (!this.intranetMapping.isEnabled()) return upstreamUrl;
-    const proxyPort = await this.startVideoProxy();
-    return `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(upstreamUrl)}&loginToken=${encodeURIComponent(account)}`;
   }
 
   /**

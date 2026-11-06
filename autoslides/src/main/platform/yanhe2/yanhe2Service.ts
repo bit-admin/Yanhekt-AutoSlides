@@ -310,7 +310,7 @@ export class Yanhe2Service {
   getPlayIdentity(account: string): Yanhe2PlayIdentity | null {
     const stored = this.liveSession(account);
     if (!stored?.playSigningPhone) return null;
-    return { userId: stored.userId, tenantId: stored.tenantId, playSigningPhone: stored.playSigningPhone };
+    return { userId: stored.userId, tenantId: stored.tenantId, playSigningPhone: stored.playSigningPhone, jwt: stored.jwt };
   }
 
   private liveSession(account: string) {

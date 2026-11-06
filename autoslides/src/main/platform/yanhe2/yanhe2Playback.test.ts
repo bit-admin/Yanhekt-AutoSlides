@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isYanhe2PlayUrl, parseSubInfo, signYanhe2PlayPath, signYanhe2PlayUrl } from './yanhe2Playback';
+import { isYanhe2LiveUrl, isYanhe2MediaUrl, isYanhe2PlayUrl, parseSubInfo, signYanhe2PlayPath, signYanhe2PlayUrl } from './yanhe2Playback';
 
 const identity = { userId: 10001, tenantId: 21, playSigningPhone: '13800138000' };
 const TEACHER = 'https://aita.yanhekt.cn/play/2/vod3/2026/09/21/51230000/1/Video1/Video1.m3u8';
@@ -29,6 +29,34 @@ describe('signYanhe2PlayUrl', () => {
   it('replaces a stale t', () => {
     const signed = new URL(signYanhe2PlayUrl(`${TEACHER}?t=old`, identity, 1700000000_000));
     expect(signed.searchParams.getAll('t')).toEqual(['10001-1700000000-8fe2ba7907c0093a7e04cd17e3a32e91']);
+  });
+
+  it('signs a live playlist by its path and keeps the gateway parameters', () => {
+    const live = 'https://clive11.yanhekt.cn/live/217_Video1.m3u8?host=gateway.example&port=443&t=old&t=dup';
+    const signed = new URL(signYanhe2PlayUrl(live, identity, 1700000000_000));
+    expect(signed.searchParams.get('host')).toBe('gateway.example');
+    expect(signed.searchParams.get('port')).toBe('443');
+    expect(signed.searchParams.getAll('t')).toEqual([signYanhe2PlayPath('/live/217_Video1.m3u8', identity, 1700000000)]);
+  });
+});
+
+describe('isYanhe2LiveUrl', () => {
+  it('accepts live playlists and segments on the live CDN', () => {
+    expect(isYanhe2LiveUrl('https://clive11.yanhekt.cn/live/217_Video1.m3u8')).toBe(true);
+    expect(isYanhe2LiveUrl('https://clive11.yanhekt.cn/live/217_Video1-1234.ts?host=x')).toBe(true);
+    expect(isYanhe2MediaUrl('https://clive11.yanhekt.cn/live/217_Video1.m3u8')).toBe(true);
+    expect(isYanhe2MediaUrl(TEACHER)).toBe(true);
+  });
+
+  it('refuses other hosts, schemes, ports, trees and files', () => {
+    expect(isYanhe2LiveUrl('https://example.com/live/a.m3u8')).toBe(false);
+    expect(isYanhe2LiveUrl('https://clive11.yanhekt.cn.example.com/live/a.m3u8')).toBe(false);
+    expect(isYanhe2LiveUrl('http://clive11.yanhekt.cn/live/a.m3u8')).toBe(false);
+    expect(isYanhe2LiveUrl('https://clive11.yanhekt.cn:8443/live/a.m3u8')).toBe(false);
+    expect(isYanhe2LiveUrl('https://clive11.yanhekt.cn/other/a.m3u8')).toBe(false);
+    expect(isYanhe2LiveUrl('https://clive11.yanhekt.cn/live/a.mp4')).toBe(false);
+    // Recordings stay /play/ only: downloads and caption sync rely on it.
+    expect(isYanhe2PlayUrl('https://clive11.yanhekt.cn/live/a.m3u8')).toBe(false);
   });
 });
 

@@ -1,9 +1,10 @@
 /**
- * URL shapes for the Yanhe 2.0 proxy routes. `/yanhe2` (see `yanhe2Play.ts`):
+ * URL shapes for the Yanhe 2.0 proxy routes. `/yanhe2` (see `yanhe2Play.ts`,
+ * recordings and live streams):
  * the local URL the renderer is given, and the playlist rewrite that keeps
  * every segment coming back through it. `/yanhe2-slide`: one slide image.
  */
-import { isYanhe2PlayUrl } from '@main/platform/yanhe2/yanhe2Playback';
+import { isYanhe2MediaUrl } from '@main/platform/yanhe2/yanhe2Playback';
 
 export const YANHE2_PLAY_ROUTE = '/yanhe2';
 
@@ -21,7 +22,8 @@ export function yanhe2PlayProxyUrl(port: number, account: string, upstreamUrl: s
 /**
  * Point every media line of a playlist back at this route, so each segment is
  * signed when hls.js asks for it. Signing them all here would age out on a long
- * lecture: a signature is good for about three hours.
+ * lecture: a signature is good for about three hours. Live playlists are
+ * rewritten the same way.
  */
 export function rewriteYanhe2Playlist(content: string, playlistUrl: string, port: number, account: string): string {
   const proxied = (reference: string): string | null => {
@@ -31,7 +33,7 @@ export function rewriteYanhe2Playlist(content: string, playlistUrl: string, port
     } catch {
       return null;
     }
-    return isYanhe2PlayUrl(absolute) ? yanhe2PlayProxyUrl(port, account, absolute) : null;
+    return isYanhe2MediaUrl(absolute) ? yanhe2PlayProxyUrl(port, account, absolute) : null;
   };
 
   return content

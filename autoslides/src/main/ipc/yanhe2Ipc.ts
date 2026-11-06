@@ -112,10 +112,9 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     return result;
   });
 
-  // One session's streams. Recorded media is signed per request with a secret
-  // that stays in main, so those URLs are swapped for local proxy ones here.
-  // Live streams are the unsigned live CDN playlists: they go out as they are
-  // on the public route and through the local proxy on the intranet one.
+  // One session's streams. Recorded and live media are both signed per request
+  // with a secret that stays in main, so every URL is swapped for a local
+  // proxy one here.
   ipcMain.handle('yanhe2:playback', async (_event, account: string, query: unknown): Promise<Yanhe2PlaybackResult> => {
     const badge = str(account);
     const result = await yanhe2Service.getSubInfo(badge, query);
@@ -128,16 +127,14 @@ export function registerYanhe2IpcHandlers(services: IpcServices): void {
     }
     const recorded = status === 'playable';
     // No phone on the profile means nothing can be signed.
-    if (recorded && !yanhe2Service.getPlayIdentity(badge)) return { kind: 'failed' };
+    if (!yanhe2Service.getPlayIdentity(badge)) return { kind: 'failed' };
 
     const streams: Yanhe2PlaybackStream[] = [];
     for (const source of sources) {
       streams.push({
         type: source.type,
         format: source.format,
-        url: recorded
-          ? await videoProxyService.getYanhe2PlayUrl(badge, source.url)
-          : await videoProxyService.getYanhe2LiveUrl(badge, source.url),
+        url: await videoProxyService.getYanhe2PlayUrl(badge, source.url),
       });
     }
     const audioUrl = recorded && upstreamAudio ? await videoProxyService.getYanhe2PlayUrl(badge, upstreamAudio) : '';

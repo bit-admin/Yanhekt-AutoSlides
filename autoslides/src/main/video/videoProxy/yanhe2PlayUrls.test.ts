@@ -21,6 +21,19 @@ describe('rewriteYanhe2Playlist', () => {
     expect(out).not.toMatch(/[?&]t=|%26t%3D|%3Ft%3D/);
   });
 
+  it('sends live segments back through the proxy too', () => {
+    const live = 'https://clive11.yanhekt.cn/live/217_Video1.m3u8?host=gateway.example';
+    const out = rewriteYanhe2Playlist(
+      ['#EXTM3U', '#EXT-X-MEDIA-SEQUENCE:40', '#EXTINF:4.0,', '217_Video1-40.ts?host=gateway.example', ''].join('\n'),
+      live,
+      4321,
+      'b',
+    );
+    expect(out.split('\n')[3]).toBe(
+      yanhe2PlayProxyUrl(4321, 'b', 'https://clive11.yanhekt.cn/live/217_Video1-40.ts?host=gateway.example'),
+    );
+  });
+
   it('leaves a line that points outside /play/ alone', () => {
     const out = rewriteYanhe2Playlist('#EXTM3U\nhttps://example.com/a.ts\n', PLAYLIST, 4321, 'b');
     expect(out.split('\n')[1]).toBe('https://example.com/a.ts');

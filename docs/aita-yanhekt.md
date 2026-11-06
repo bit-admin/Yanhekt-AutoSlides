@@ -2,7 +2,7 @@
 
 This is the field guide to **Yanhe 2.0**, the second Yanhekt web app at `aita.yanhekt.cn` (code name `yanhe2` in this repo). The site is still under active development. Everything here comes from observing it with an ordinary student account. None of it comes from vendor documentation, and any of it can change.
 
-In short: `aita.yanhekt.cn` runs alongside `www.yanhekt.cn` / `cbiz.yanhekt.cn`. It has its own API, its own ids and its own sign-in. Underneath, both sites use the same recording archive and the same live CDN. For the cbiz side, see [architecture §9](architecture.md#9-yanhekt-api).
+In short: `aita.yanhekt.cn` runs alongside `www.yanhekt.cn` / `cbiz.yanhekt.cn`. It has its own API, its own ids and its own sign-in. Underneath, both sites use the same recording archive. Until November 2026 they also shared the same live CDN; since 2026-11-06 aita serves its live streams itself (§6.4). For the cbiz side, see [architecture §9](architecture.md#9-yanhekt-api).
 
 **About the examples.** Course titles, teacher names, ids, course codes, rooms, hashes and recording paths in this document are made up. They keep the shape of the real values (lengths, formats, string vs number), not their content. Field names, envelopes, status codes, hosts and the signing scheme are as observed. The main sample is a fictional Functional Analysis (泛函分析) course taught by 林知远, aita course `200101` / session `3000101`, cbiz course `80101`.
 
@@ -44,7 +44,7 @@ One host serves the SPA, the JSON API, `/play/` and `/ai-nginx/`.
 
 Both addresses are the same service: TLS validates against the host name, a given file has the same ETag on both, and the same requests get the same 403s. The desktop intranet route uses the campus address.
 
-Live streams are not on this host. They are on `clive*.yanhekt.cn`.
+Live streams used to be on `clive*.yanhekt.cn`. Since 2026-11-06 aita's `live_url` points at `/live/` on this host instead, a gateway that wants both the §6.3 `t` and a Bearer (§6.4).
 
 ### 1.3 Pages
 
@@ -1050,7 +1050,7 @@ So one session has three "video URLs": `playurl["0"]` and `save_playback.content
 
 **Live** (`sub_status` `"1"`). `video_list` is a placeholder, `playurl` is empty, and the streams are in `live_url`. `output` (teacher), `output_ppt` (screen), `output_student` and `output_tts` are each an object of 12 URLs: `flv`, `flv_audio`, `flv_lhd`, `flv_lsd`, `m3u8`, `m3u8_audio`, `m3u8_lhd`, `m3u8_lsd`, `rtmp`, `rtmp_audio`, `rtmp_lhd`, `rtmp_lsd`. `output_msg` is `""`.
 
-`m3u8` values seen:
+`m3u8` values seen before 2026-11-06 (the current shape is in §6.4):
 
 | Key | URL | cbiz name |
 |-|-|-|
@@ -1164,6 +1164,37 @@ t     10001-1700000000-8fe2ba7907c0093a7e04cd17e3a32e91
 | Slide JPEG | `/ai-nginx/ai3/ppt/<YYYYMMDD>/<uuid>/<ms>.jpg` | Neither `t` nor Referer. See §7 |
 
 `/ai-nginx/` is not under `/play/`, and the player does not sign it.
+
+### 6.4 `/live/` gateway (since 2026-11-06)
+
+By 2026-11-06 `get-sub-info`'s `live_url` named aita itself instead of `clive*`, and clients that fetched live playlists unsigned got 403:
+
+```
+https://aita.yanhekt.cn/live/<32 hex>.m3u8?host=yanhe11&port=83
+```
+
+Each stream (teacher, screen) has its own 32-hex name. `host` and `port` look like routing parameters for the gateway's upstream; keep them as given.
+
+The playlist is ordinary live HLS: `#EXT-X-VERSION:3`, `#EXT-X-TARGETDURATION:15`, segments of about 12 s, `#EXT-X-MEDIA-SEQUENCE` in the hundreds. Segment lines are **absolute** URLs on the same gateway with the same `host` / `port` and no `t`:
+
+```
+https://aita.yanhekt.cn/live/<32 hex>-<seq>.ts?host=yanhe11&port=83
+```
+
+Measured on one live class from a plain HTTP client, every request with Referer `https://aita.yanhekt.cn/`:
+
+| Request | `.m3u8` | `.ts` |
+|-|-|-|
+| Nothing else | 403 | |
+| `t` only | 403 | 403 |
+| `t` + `Origin: https://aita.yanhekt.cn` | 403 | |
+| `t` + Cookie `_token=<raw JWT>` (not the signed Yii form of §2.2) | 403 | |
+| `Authorization: Bearer <jwt>` only | 403 | |
+| `t` + `Authorization: Bearer <jwt>` | **200** `application/vnd.apple.mpegurl` | **200** `video/MP2T` |
+
+So the playlist and every segment need **both** walls: a `t` made with the §6.3 formula (hash of the pathname alone, e.g. `/live/<32 hex>.m3u8` or `/live/<32 hex>-<seq>.ts`; append it and keep `host` / `port`) and the account's JWT as a Bearer. The 403s are nginx's HTML page, the same as `/play/`. The campus address `10.0.11.240` and the public one gave the same answers. Not tested: dropping the Referer, the server-issued signed `_token` cookie, how long a `t` lasts here, and the `flv` / `_lhd` / `_lsd` variants.
+
+Unlike `/play/`, a plain `<video>` or an hls.js loader cannot add the Bearer, so a client either signs and authenticates each request itself or puts a proxy in between. The desktop app sends these URLs through its local proxy, which adds a fresh `t` and the Bearer to each request and never sends the JWT to any host but `aita.yanhekt.cn`.
 
 ---
 
