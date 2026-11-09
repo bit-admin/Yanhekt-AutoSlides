@@ -1,8 +1,14 @@
 /**
- * Developer → API: a request console for the Yanhekt API. The renderer builds
- * the request; main signs and sends it along the app's own route (intranet or
- * public), so what you see is what the app sees.
+ * Developer → API: a request console for the Yanhekt API (cbiz) and the
+ * Yanhe 2.0 API (aita). The renderer builds the request; main signs and sends
+ * it along the app's own route (intranet or public), so what you see is what
+ * the app sees.
  */
+
+/** `yanhekt`: cbiz.yanhekt.cn. `yanhe2`: aita.yanhekt.cn. */
+export type DevApiPlatform = 'yanhekt' | 'yanhe2';
+
+export const YANHE2_API_HOST = 'aita.yanhekt.cn';
 
 export type DevApiMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
@@ -14,6 +20,8 @@ export interface DevApiHeader {
 }
 
 export interface DevApiRequest {
+  /** Which site's client headers to add. Missing means `yanhekt`. */
+  platform?: DevApiPlatform;
   method: DevApiMethod;
   /** Full https URL on a `yanhekt.cn` host, query included. */
   url: string;
@@ -23,7 +31,16 @@ export interface DevApiRequest {
   body?: string;
   /** Login token sent as `Authorization: Bearer`. Empty or null sends none. */
   token?: string | null;
-  /** Add the official web client headers (Origin, Referer, Xdomain-Client, Xclient-*). */
+  /**
+   * Yanhe 2.0 only: send this account's stored Yanhe 2.0 token (by badge).
+   * Main reads it, so the JWT never reaches the page. Takes the place of `token`,
+   * and only an aita.yanhekt.cn URL may carry it.
+   */
+  yanhe2Account?: string | null;
+  /**
+   * Add the client headers. Yanhekt: the official web client's (Origin, Referer,
+   * Xdomain-Client, Xclient-*). Yanhe 2.0: what the app sends (Accept, tenant-id).
+   */
   clientHeaders: boolean;
 }
 
@@ -60,6 +77,16 @@ export function isYanhektApiUrl(url: string): boolean {
   if (parsed.protocol !== 'https:') return false;
   const host = parsed.hostname.toLowerCase();
   return host === 'yanhekt.cn' || host.endsWith('.yanhekt.cn');
+}
+
+/** An https URL on aita.yanhekt.cn, the one host a Yanhe 2.0 token may go to. */
+export function isYanhe2ApiUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && parsed.hostname.toLowerCase() === YANHE2_API_HOST;
+  } catch {
+    return false;
+  }
 }
 
 /** `abcd…wxyz` — enough to tell accounts apart, not enough to reuse. */

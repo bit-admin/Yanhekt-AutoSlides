@@ -1846,7 +1846,10 @@
         "video": "動画",
         "personal": "マイコース",
         "account": "アカウント",
-        "notes": "ノート"
+        "notes": "ノート",
+        "calendar": "カレンダー",
+        "playback": "再生",
+        "serverContent": "スライドと文字起こし"
       },
       "method": "メソッド",
       "url": "リクエスト URL",
@@ -1881,7 +1884,16 @@
       "failed": "応答なし",
       "copyBody": "ボディをコピー",
       "emptyResponse": "左のリクエストを選ぶか URL を入力して送信してください。",
-      "sentRequest": "送信内容"
+      "sentRequest": "送信内容",
+      "platform": "プラットフォーム",
+      "platforms": {
+        "yanhekt": "Yanhekt",
+        "yanhe2": "延河 2.0"
+      },
+      "tokenActiveYanhe2": "サインイン中のアカウント（延河 2.0、{time} まで）",
+      "tokenActiveNoneYanhe2": "サインイン中のアカウント（延河 2.0 に未サインイン）",
+      "tokenPlaceholderYanhe2": "延河 2.0 の JWT",
+      "clientHeadersHintYanhe2": "アプリが延河 2.0 に送るヘッダー（Accept、tenant-id）を送信します。"
     },
     "sso": {
       "start": "開始",

@@ -373,7 +373,11 @@ const intranetMappingService = new IntranetMappingService(configService);
 const apiTransport = new IntranetApiTransport(intranetMappingService);
 const apiClient = new MainApiClient(configService, apiTransport);
 // Developer → API console: same route as the client above.
-const devApiConsole = new DevApiConsole(apiTransport, () => configService.getDeveloperMode());
+const devApiConsole = new DevApiConsole(
+  apiTransport,
+  () => configService.getDeveloperMode(),
+  (account) => yanhe2Service.getJwt(account),
+);
 // Developer → SSO: the campus sign-in, step by step. Stores nothing.
 const devSsoLab = new DevSsoLab(configService, () => configService.getDeveloperMode());
 // Developer-mode catalog of raw cbiz responses, written under logs/. A command

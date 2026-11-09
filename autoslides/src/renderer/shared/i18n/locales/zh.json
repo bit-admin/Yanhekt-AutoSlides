@@ -1846,7 +1846,10 @@
         "video": "视频",
         "personal": "我的课程",
         "account": "账号",
-        "notes": "笔记"
+        "notes": "笔记",
+        "calendar": "日历",
+        "playback": "播放",
+        "serverContent": "幻灯片与转写"
       },
       "method": "方法",
       "url": "请求地址",
@@ -1881,7 +1884,16 @@
       "failed": "无响应",
       "copyBody": "复制响应体",
       "emptyResponse": "在左侧选择一个请求或输入地址，然后发送。",
-      "sentRequest": "已发送"
+      "sentRequest": "已发送",
+      "platform": "平台",
+      "platforms": {
+        "yanhekt": "延河课堂",
+        "yanhe2": "延河 2.0"
+      },
+      "tokenActiveYanhe2": "当前登录账号（延河 2.0 有效至 {time}）",
+      "tokenActiveNoneYanhe2": "当前登录账号（未登录延河 2.0）",
+      "tokenPlaceholderYanhe2": "延河 2.0 JWT",
+      "clientHeadersHintYanhe2": "发送应用对延河 2.0 使用的请求头：Accept 和 tenant-id。"
     },
     "sso": {
       "start": "开始",

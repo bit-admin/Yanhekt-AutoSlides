@@ -10,7 +10,10 @@ export const CBIZ = 'https://cbiz.yanhekt.cn';
 /** `anonymous`: works without a token. `auth`: needs one. */
 export type PresetAuth = 'anonymous' | 'auth';
 
-export type PresetGroup = 'catalog' | 'course' | 'live' | 'video' | 'personal' | 'account' | 'notes';
+export type PresetGroup =
+  | 'catalog' | 'course' | 'live' | 'video' | 'personal' | 'account' | 'notes'
+  // Yanhe 2.0 only (yanhe2ApiPresets.ts).
+  | 'calendar' | 'playback' | 'serverContent';
 
 export const PRESET_GROUPS: readonly PresetGroup[] = ['catalog', 'course', 'live', 'video', 'personal', 'account', 'notes'];
 
@@ -25,13 +28,13 @@ export interface ApiPreset {
   id: string;
   group: PresetGroup;
   method: DevApiMethod;
-  /** Path on cbiz.yanhekt.cn. */
+  /** Path on the platform's host (cbiz.yanhekt.cn or aita.yanhekt.cn). */
   path: string;
   params: ApiPresetParam[];
   /** JSON body template for writes. */
   body?: string;
   auth: PresetAuth;
-  /** Changes data on the account. */
+  /** Changes data on the account. On Yanhe 2.0 some GETs do. */
   write?: boolean;
   /** One line from the docs: what it returns, how it fails. */
   note: string;
@@ -383,7 +386,7 @@ export const CBIZ_CODES: Readonly<Record<string, string>> = {
 };
 
 /** Full URL of a preset, empty params kept so they show in the table. */
-export function presetUrl(preset: ApiPreset): string {
+export function presetUrl(preset: ApiPreset, origin: string = CBIZ): string {
   const query = preset.params.map((p) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join('&');
-  return `${CBIZ}${preset.path}${query ? `?${query}` : ''}`;
+  return `${origin}${preset.path}${query ? `?${query}` : ''}`;
 }

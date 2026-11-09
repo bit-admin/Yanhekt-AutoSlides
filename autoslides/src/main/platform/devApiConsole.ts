@@ -1,9 +1,16 @@
-// Developer → API: sends one hand-built Yanhekt request along the app's own
-// route (IntranetApiTransport), so it behaves like ApiClient's requests.
-// Developer mode only; Yanhekt hosts only.
+// Developer → API: sends one hand-built Yanhekt or Yanhe 2.0 request along the
+// app's own route (IntranetApiTransport), so it behaves like ApiClient's and
+// yanhe2Http's requests. Developer mode only; yanhekt.cn hosts only.
 import type { AxiosResponse } from 'axios';
 import { getClientSignature } from '@common/crypto';
-import { isYanhektApiUrl, maskToken, type DevApiRequest, type DevApiResponse } from '@common/devApi';
+import {
+  isYanhe2ApiUrl,
+  isYanhektApiUrl,
+  maskToken,
+  type DevApiRequest,
+  type DevApiResponse,
+} from '@common/devApi';
+import { YANHE2_TENANT_ID } from '@common/yanhe2';
 import { YANHEKT_CLIENT_HEADERS } from '@main/platform/apiClient';
 import type { IntranetApiTransport } from '@main/platform/intranetApiTransport';
 
@@ -19,16 +26,27 @@ function setHeader(headers: Record<string, string>, key: string, value: string):
   headers[key] = value;
 }
 
-/** The headers to send, built from the request alone (pure; tested). */
-export function buildDevApiHeaders(request: DevApiRequest, nowSeconds: number): Record<string, string> {
+/**
+ * The headers to send (pure; tested). `token` is the bearer to use; it defaults
+ * to the request's own and is how main passes a stored Yanhe 2.0 token.
+ */
+export function buildDevApiHeaders(
+  request: DevApiRequest,
+  nowSeconds: number,
+  token: string | null | undefined = request.token,
+): Record<string, string> {
   const headers: Record<string, string> = {};
-  if (request.clientHeaders) {
+  if (request.clientHeaders && request.platform === 'yanhe2') {
+    // What getYanhe2Json sends besides the bearer.
+    setHeader(headers, 'Accept', 'application/json');
+    setHeader(headers, 'tenant-id', String(YANHE2_TENANT_ID));
+  } else if (request.clientHeaders) {
     for (const [key, value] of Object.entries(YANHEKT_CLIENT_HEADERS)) setHeader(headers, key, value);
     setHeader(headers, 'Xclient-Signature', getClientSignature());
     setHeader(headers, 'Xclient-Timestamp', String(nowSeconds));
   }
-  const token = request.token?.trim();
-  if (token) setHeader(headers, 'Authorization', `Bearer ${token}`);
+  const bearer = token?.trim();
+  if (bearer) setHeader(headers, 'Authorization', `Bearer ${bearer}`);
   if (request.method !== 'GET' && request.body?.trim()) {
     setHeader(headers, 'Content-Type', 'application/json');
   }
@@ -75,6 +93,8 @@ export class DevApiConsole {
   constructor(
     private readonly transport: IntranetApiTransport,
     private readonly isEnabled: () => boolean,
+    /** An account's stored Yanhe 2.0 JWT, or '' when it has none. */
+    private readonly yanhe2Jwt: (account: string) => string = () => '',
   ) {}
 
   async send(request: DevApiRequest): Promise<DevApiResponse> {
@@ -85,7 +105,16 @@ export class DevApiConsole {
     if (!request || typeof request.url !== 'string' || !METHODS.has(request.method)) return refuse('Invalid request.');
     if (!isYanhektApiUrl(request.url)) return refuse('Only https URLs on yanhekt.cn hosts can be sent.');
 
-    const headers = buildDevApiHeaders(request, Math.floor(started / 1000));
+    let token = request.token;
+    const yanhe2Account = typeof request.yanhe2Account === 'string' ? request.yanhe2Account.trim() : '';
+    if (yanhe2Account) {
+      // The stored token goes to aita only, like getYanhe2Json's.
+      if (!isYanhe2ApiUrl(request.url)) return refuse('A Yanhe 2.0 token is only sent to https://aita.yanhekt.cn.');
+      token = this.yanhe2Jwt(yanhe2Account);
+      if (!token) return refuse('That account is not signed in to Yanhe 2.0.');
+    }
+
+    const headers = buildDevApiHeaders(request, Math.floor(started / 1000), token);
     const sentHeaders = maskSentHeaders(headers);
     try {
       const response = await this.transport.send<string>({

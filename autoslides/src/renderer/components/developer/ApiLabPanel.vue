@@ -18,7 +18,7 @@
             spellcheck="false"
             :value="urlText"
             :aria-label="$t('developer.api.url')"
-            placeholder="https://cbiz.yanhekt.cn/v1/user"
+            :placeholder="urlPlaceholder"
             @input="onUrlInput(($event.target as HTMLInputElement).value)"
           />
         </div>
@@ -30,6 +30,20 @@
 
     <div class="api-body">
       <aside class="preset-pane custom-scrollbar">
+        <div class="platform-switch" role="tablist" :aria-label="$t('developer.api.platform')">
+          <button
+            v-for="p in PLATFORM_TABS"
+            :key="p.id"
+            type="button"
+            role="tab"
+            class="platform-pill"
+            :class="{ active: platform === p.id }"
+            :aria-selected="platform === p.id"
+            @click="setPlatform(p.id)"
+          >
+            {{ $t(p.label) }}
+          </button>
+        </div>
         <div class="preset-search">
           <input
             v-model="filter"
@@ -81,10 +95,15 @@
               <label class="field-label" for="dev-api-token">{{ $t('developer.api.token') }}</label>
               <select id="dev-api-token" v-model="tokenSource" class="text-input compact token-select">
                 <option value="active">
-                  {{ activeTokenLabel ? $t('developer.api.tokenActive', { token: activeTokenLabel }) : $t('developer.api.tokenActiveNone') }}
+                  <template v-if="platform === 'yanhe2'">
+                    {{ activeTokenLabel ? $t('developer.api.tokenActiveYanhe2', { time: activeTokenLabel }) : $t('developer.api.tokenActiveNoneYanhe2') }}
+                  </template>
+                  <template v-else>
+                    {{ activeTokenLabel ? $t('developer.api.tokenActive', { token: activeTokenLabel }) : $t('developer.api.tokenActiveNone') }}
+                  </template>
                 </option>
                 <option v-for="opt in accountOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }} ({{ opt.masked }})
+                  {{ opt.label }}<template v-if="opt.masked"> ({{ opt.masked }})</template>
                 </option>
                 <option value="custom">{{ $t('developer.api.tokenCustom') }}</option>
                 <option value="none">{{ $t('developer.api.tokenNone') }}</option>
@@ -96,15 +115,15 @@
                 type="password"
                 autocomplete="off"
                 spellcheck="false"
-                :placeholder="$t('developer.api.tokenPlaceholder')"
+                :placeholder="platform === 'yanhe2' ? $t('developer.api.tokenPlaceholderYanhe2') : $t('developer.api.tokenPlaceholder')"
               />
-              <label class="client-headers" :title="$t('developer.api.clientHeadersHint')">
+              <label class="client-headers" :title="platform === 'yanhe2' ? $t('developer.api.clientHeadersHintYanhe2') : $t('developer.api.clientHeadersHint')">
                 <input v-model="clientHeaders" type="checkbox" />
                 <span>{{ $t('developer.api.clientHeaders') }}</span>
               </label>
             </div>
           </div>
-          <p v-if="tokenSource !== 'none' && !activeToken" class="auth-warning">{{ $t('developer.api.noToken') }}</p>
+          <p v-if="tokenSource !== 'none' && !hasToken" class="auth-warning">{{ $t('developer.api.noToken') }}</p>
 
           <div v-if="requestTab === 'params'" class="kv-table">
             <div v-for="(row, i) in params" :key="i" class="kv-row">
@@ -158,7 +177,7 @@
                 <span class="stat" :class="statusClass">{{ state.response.status }} {{ state.response.statusText }}</span>
                 <span class="stat">{{ state.response.durationMs }} ms</span>
                 <span class="stat">{{ formatSize(state.response.size) }}</span>
-                <span v-if="envelope" class="stat stat--envelope" :class="envelope.code === '0' ? 'ok' : 'bad'" :title="envelope.meaning ? `${envelope.code} · ${envelope.meaning}\n${envelope.message}` : envelope.message">
+                <span v-if="envelope" class="stat stat--envelope" :class="envelope.ok ? 'ok' : 'bad'" :title="envelope.meaning ? `${envelope.code} · ${envelope.meaning}\n${envelope.message}` : envelope.message">
                   code {{ envelope.code }}<template v-if="envelope.meaning"> · {{ envelope.meaning }}</template>
                 </span>
               </template>
@@ -198,11 +217,19 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { DEV_API_METHODS, type DevApiMethod } from '@common/devApi'
+import { DEV_API_METHODS, type DevApiMethod, type DevApiPlatform } from '@common/devApi'
 import { useApiLab } from '@features/developer/useApiLab'
-import { PRESET_GROUPS } from '@features/developer/yanhektApiPresets'
+
+const PLATFORM_TABS: Array<{ id: DevApiPlatform; label: string }> = [
+  { id: 'yanhekt', label: 'developer.api.platforms.yanhekt' },
+  { id: 'yanhe2', label: 'developer.api.platforms.yanhe2' },
+]
 
 const {
+  platform,
+  setPlatform,
+  platformOrigin,
+  presetGroups,
   filteredPresets,
   filter,
   preset,
@@ -220,7 +247,7 @@ const {
   clientHeaders,
   activeTokenLabel,
   accountOptions,
-  activeToken,
+  hasToken,
   state,
   responseTab,
   envelope,
@@ -238,8 +265,12 @@ const {
   copy,
 } = useApiLab()
 
+const urlPlaceholder = computed(() =>
+  platform.value === 'yanhe2' ? `${platformOrigin.value}/userapi/v1/infosimple` : `${platformOrigin.value}/v1/user`,
+)
+
 const visibleGroups = computed(() =>
-  PRESET_GROUPS.map((id) => ({ id, items: filteredPresets.value.filter((p) => p.group === id) })).filter((g) => g.items.length),
+  presetGroups.value.map((id) => ({ id, items: filteredPresets.value.filter((p) => p.group === id) })).filter((g) => g.items.length),
 )
 
 const enabledParams = computed(() => params.value.filter((r) => r.enabled && r.key.trim()).length)
@@ -373,6 +404,42 @@ function formatSize(bytes: number): string {
   overflow: auto;
   border-right: 1px solid var(--border-color);
   padding: 12px 8px 16px;
+}
+
+/* A smaller copy of the page's segmented control (DeveloperTabSwitch). */
+.platform-switch {
+  display: flex;
+  margin: 0 4px 8px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-page-alt);
+  border: 1px solid var(--border-color);
+}
+
+.platform-pill {
+  flex: 1;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.platform-pill:hover {
+  color: var(--text-primary);
+}
+
+.platform-pill.active {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .preset-search {

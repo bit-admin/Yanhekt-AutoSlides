@@ -1846,7 +1846,10 @@
         "video": "동영상",
         "personal": "내 강좌",
         "account": "계정",
-        "notes": "노트"
+        "notes": "노트",
+        "calendar": "캘린더",
+        "playback": "재생",
+        "serverContent": "슬라이드 및 자막"
       },
       "method": "메서드",
       "url": "요청 URL",
@@ -1881,7 +1884,16 @@
       "failed": "응답 없음",
       "copyBody": "본문 복사",
       "emptyResponse": "왼쪽에서 요청을 고르거나 URL을 입력한 뒤 보내세요.",
-      "sentRequest": "보낸 요청"
+      "sentRequest": "보낸 요청",
+      "platform": "플랫폼",
+      "platforms": {
+        "yanhekt": "Yanhekt",
+        "yanhe2": "연하 2.0"
+      },
+      "tokenActiveYanhe2": "로그인한 계정 (연하 2.0, {time}까지)",
+      "tokenActiveNoneYanhe2": "로그인한 계정 (연하 2.0 로그인 안 됨)",
+      "tokenPlaceholderYanhe2": "연하 2.0 JWT",
+      "clientHeadersHintYanhe2": "앱이 연하 2.0에 보내는 헤더(Accept, tenant-id)를 보냅니다."
     },
     "sso": {
       "start": "시작",

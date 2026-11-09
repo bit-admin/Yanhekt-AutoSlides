@@ -1846,7 +1846,10 @@
         "video": "Video",
         "personal": "My Courses",
         "account": "Account",
-        "notes": "Notes"
+        "notes": "Notes",
+        "calendar": "Calendar",
+        "playback": "Playback",
+        "serverContent": "Slides & Transcript"
       },
       "method": "Method",
       "url": "Request URL",
@@ -1881,7 +1884,16 @@
       "failed": "No response",
       "copyBody": "Copy Body",
       "emptyResponse": "Pick a request on the left or type a URL, then Send.",
-      "sentRequest": "Sent"
+      "sentRequest": "Sent",
+      "platform": "Platform",
+      "platforms": {
+        "yanhekt": "Yanhekt",
+        "yanhe2": "Yanhe 2.0"
+      },
+      "tokenActiveYanhe2": "Signed-in account (Yanhe 2.0 until {time})",
+      "tokenActiveNoneYanhe2": "Signed-in account (not signed in to Yanhe 2.0)",
+      "tokenPlaceholderYanhe2": "Yanhe 2.0 JWT",
+      "clientHeadersHintYanhe2": "Send the headers the app sends to Yanhe 2.0: Accept and tenant-id."
     },
     "sso": {
       "start": "Start",

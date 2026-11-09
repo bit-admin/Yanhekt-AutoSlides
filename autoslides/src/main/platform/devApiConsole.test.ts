@@ -32,6 +32,11 @@ describe('buildDevApiHeaders', () => {
     expect(h.Origin).toBeUndefined();
   });
 
+  it('adds the app\'s Yanhe 2.0 headers, not the cbiz ones', () => {
+    const h = buildDevApiHeaders({ ...base, platform: 'yanhe2', url: 'https://aita.yanhekt.cn/userapi/v1/infosimple' }, 1, 'jwt');
+    expect(h).toEqual({ Accept: 'application/json', 'tenant-id': '21', Authorization: 'Bearer jwt' });
+  });
+
   it('marks a write body as JSON', () => {
     const h = buildDevApiHeaders({ ...base, method: 'PUT', body: '{"a":1}', clientHeaders: false }, 1);
     expect(h['Content-Type']).toBe('application/json');
@@ -83,6 +88,21 @@ describe('DevApiConsole.send', () => {
     expect(send.mock.calls[0][0].headers.Authorization).toBe(`Bearer ${TOKEN}`);
     expect(result).toMatchObject({ ok: true, status: 200, body: '{"code":0}', size: 10 });
     if (result.ok) expect(result.sentHeaders.Authorization).toBe('Bearer 0123…cdef');
+  });
+
+  it('sends a stored Yanhe 2.0 token by account, to aita only', async () => {
+    const send = vi.fn().mockResolvedValue({ status: 200, statusText: 'OK', headers: {}, data: '{"code":200}' });
+    const jwtOf = vi.fn((account: string) => (account === 'a1' ? 'eyJ.stored.jwt' : ''));
+    const lab = new DevApiConsole(transport(send), () => true, jwtOf);
+    const y2 = { ...base, platform: 'yanhe2' as const, url: 'https://aita.yanhekt.cn/userapi/v1/infosimple' };
+
+    const ok = await lab.send({ ...y2, yanhe2Account: 'a1', token: 'ignored' });
+    expect(send.mock.calls[0][0].headers.Authorization).toBe('Bearer eyJ.stored.jwt');
+    expect(ok.ok).toBe(true);
+
+    expect((await lab.send({ ...y2, yanhe2Account: 'nobody' })).ok).toBe(false);
+    expect((await lab.send({ ...y2, url: 'https://cbiz.yanhekt.cn/v1/user', yanhe2Account: 'a1' })).ok).toBe(false);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 
   it('reports a request with no answer', async () => {
