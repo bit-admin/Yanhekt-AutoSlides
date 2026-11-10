@@ -130,6 +130,16 @@
       </div>
     </div>
   </div>
+
+  <!-- Qt extractor update, offered when the app itself is up to date -->
+  <ExtractorInstallModal
+    :visible="showExtractorModal"
+    :installed="true"
+    :current-version="extractorVersion"
+    :auto-check="isAutoCheck"
+    @close="closeExtractorModal"
+    @skip="skipFor7Days"
+  />
 </template>
 
 <script setup lang="ts">
@@ -139,6 +149,8 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../../assets/github-markdown.css'
 import QuarantineNotice from '../shell/QuarantineNotice.vue'
+import ExtractorInstallModal from '../settings/ExtractorInstallModal.vue'
+import { checkExtractorUpdate, type ExtractorUpdateCheck } from '@features/settings/extractorUpdateCheck'
 
 interface ReleaseAsset {
   name: string
@@ -177,6 +189,8 @@ const isDownloading = ref(false)
 const downloadedFile = ref<string | null>(null)
 const downloadProgress = ref<DownloadProgress>({ downloaded: 0, total: 0, percent: 0 })
 const isAutoCheck = ref(false)
+const showExtractorModal = ref(false)
+const extractorVersion = ref('')
 
 let cleanupDownloadProgress: (() => void) | null = null
 let cleanupDownloadComplete: (() => void) | null = null
@@ -261,10 +275,23 @@ const closeUpdateModal = () => {
   }
 }
 
+const openExtractorModal = (currentVersion: string, fromAutoCheck = false) => {
+  extractorVersion.value = currentVersion
+  isAutoCheck.value = fromAutoCheck
+  showExtractorModal.value = true
+}
+
+const closeExtractorModal = () => {
+  showExtractorModal.value = false
+  isAutoCheck.value = false
+}
+
+// One skip covers both the app and the extractor.
 const skipFor7Days = async () => {
   const skipUntilTimestamp = Date.now() + 7 * 24 * 60 * 60 * 1000
   await window.electronAPI.config.setSkipUpdateCheckUntil(skipUntilTimestamp)
   closeUpdateModal()
+  closeExtractorModal()
 }
 
 const handleReleaseNotesClick = (event: MouseEvent) => {
@@ -402,11 +429,23 @@ const checkForUpdates = async () => {
       isDownloading.value = false
       openUpdateModal()
     } else {
+      // The app is current: check the Qt extractor next.
+      const extractor: ExtractorUpdateCheck = await checkExtractorUpdate()
+      if (extractor.status === 'hasUpdate') {
+        openExtractorModal(extractor.currentVersion)
+        return
+      }
+      if (extractor.status === 'failed') log.warn('Extractor update check failed:', extractor.error)
       await window.electronAPI.dialog?.showMessageBox?.({
         type: 'info',
         title: $t('titlebar.noUpdateAvailable'),
         message: $t('titlebar.noUpdateMessage'),
-        detail: $t('titlebar.noUpdateDetail', { currentVersion: result.currentVersion }),
+        detail: extractor.status === 'upToDate'
+          ? $t('titlebar.noUpdateDetailWithExtractor', {
+              currentVersion: result.currentVersion,
+              extractorVersion: extractor.currentVersion,
+            })
+          : $t('titlebar.noUpdateDetail', { currentVersion: result.currentVersion }),
         buttons: [$t('titlebar.ok')],
         defaultId: 0,
         cancelId: 0
@@ -442,7 +481,13 @@ const autoCheckForUpdates = async () => {
 
     const result = await window.electronAPI.update.checkForUpdates()
 
-    if (!result.success || !result.hasUpdate) {
+    if (!result.success) {
+      return
+    }
+
+    if (!result.hasUpdate) {
+      const extractor = await checkExtractorUpdate()
+      if (extractor.status === 'hasUpdate') openExtractorModal(extractor.currentVersion, true)
       return
     }
 

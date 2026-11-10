@@ -891,8 +891,17 @@ export interface ElectronAPI {
     download: (url: string, filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
     cancel: () => Promise<{ success: boolean }>;
     isDownloading: () => Promise<{ isDownloading: boolean }>;
-    install: (filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    /** `kind: 'appImage'` = copied to `installedPath` and set as the extractor path (Linux). */
+    install: (filename: string) => Promise<{
+      success: boolean;
+      kind?: 'opened' | 'appImage';
+      filePath?: string;
+      installedPath?: string;
+      error?: string;
+    }>;
     openDownloadFolder: () => Promise<{ success: boolean; error?: string }>;
+    /** Linux: shows the installed AppImage in the file manager. */
+    revealInstalled: () => Promise<void>;
     openRepo: () => Promise<void>;
     onProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => () => void;
     onComplete: (callback: (filename: string) => void) => () => void;

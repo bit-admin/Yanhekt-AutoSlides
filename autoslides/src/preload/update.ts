@@ -53,6 +53,7 @@ export const extractorInstaller: ElectronAPI['extractorInstaller'] = {
   isDownloading: () => invoke('extractorInstaller:isDownloading'),
   install: (filename: string) => invoke('extractorInstaller:install', filename),
   openDownloadFolder: () => invoke('extractorInstaller:openDownloadFolder'),
+  revealInstalled: () => invoke('extractorInstaller:revealInstalled'),
   openRepo: () => invoke('extractorInstaller:openRepo'),
   onProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, progress: { downloaded: number; total: number; percent: number }) => callback(progress);

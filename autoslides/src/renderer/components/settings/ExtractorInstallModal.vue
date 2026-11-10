@@ -54,16 +54,8 @@
           </div>
 
           <div class="download-section">
-            <!-- Linux: Build from Source notice -->
-            <div v-if="isLinux" class="build-from-source-section">
-              <p>{{ $t('extractorInstall.linuxBuildNotice') }}</p>
-              <button class="btn btn--primary action-btn" @click="openRepo">
-                {{ $t('extractorInstall.openRepo') }}
-              </button>
-            </div>
-
             <!-- No matching asset for current platform -->
-            <div v-else-if="!release.assets || release.assets.length === 0" class="build-from-source-section">
+            <div v-if="!release.assets || release.assets.length === 0" class="build-from-source-section">
               <p>{{ $t('extractorInstall.noPlatformAsset') }}</p>
               <button class="btn action-btn" @click="openRepo">{{ $t('extractorInstall.openRepo') }}</button>
             </div>
@@ -73,7 +65,9 @@
               <div v-for="asset in release.assets" :key="asset.name" class="asset-item">
                 <div class="asset-info">
                   <span class="asset-name">{{ asset.name }}</span>
-                  <span class="asset-size">{{ asset.formattedSize }}</span>
+                  <span class="asset-size">
+                    {{ asset.formattedSize }}<template v-if="linuxAssetHint(asset.name)"> · {{ linuxAssetHint(asset.name) }}</template>
+                  </span>
                 </div>
                 <div class="asset-actions">
                   <button class="download-btn" @click="startDownload(asset.url, asset.name)">
@@ -123,7 +117,15 @@
                 </svg>
                 <span>{{ $t('extractorInstall.downloadComplete') }}</span>
               </div>
-              <div class="complete-actions">
+              <!-- Linux AppImage: copied into place, nothing to open -->
+              <template v-if="installedAppImagePath">
+                <p class="complete-hint">{{ $t('extractorInstall.appImageInstalled', { path: installedAppImagePath }) }}</p>
+                <p class="complete-hint">{{ $t('extractorInstall.appImageFuseNotice') }}</p>
+                <div class="complete-actions">
+                  <button class="btn action-btn" @click="revealInstalled">{{ $t('extractorInstall.showInFolder') }}</button>
+                </div>
+              </template>
+              <div v-else class="complete-actions">
                 <button class="btn action-btn" @click="openDownloadFolder">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -145,13 +147,22 @@
                 :message="$t('extractorInstall.macInstallNotice')"
                 :command="MAC_QUARANTINE_COMMAND"
               />
+              <!-- Not every desktop opens a .deb (no software center, or one that refuses local packages). -->
+              <QuarantineNotice
+                v-if="isLinux && downloadedPath && isDeb(downloadedFile)"
+                :message="$t('extractorInstall.debInstallNotice')"
+                :command="`sudo apt install ${shellQuote(downloadedPath)}`"
+              />
             </div>
           </div>
         </template>
       </div>
 
       <div class="modal-actions">
-        <button class="btn btn--primary" @click="onClose">{{ $t('extractorInstall.close') }}</button>
+        <button v-if="props.autoCheck" class="btn" @click="emit('skip')">{{ $t('titlebar.skipFor7Days') }}</button>
+        <button class="btn btn--primary" @click="onClose">
+          {{ props.autoCheck ? $t('titlebar.remindMeLater') : $t('extractorInstall.close') }}
+        </button>
       </div>
     </div>
   </div>
@@ -161,6 +172,7 @@
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractorInstallModal');
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { compareSemver } from '@common/semver'
 import '../../assets/github-markdown.css'
 import QuarantineNotice from '../shell/QuarantineNotice.vue'
@@ -190,10 +202,12 @@ const props = withDefaults(
     /** When true, modal is opened for updates (title only; no auto-check). */
     installed?: boolean
     currentVersion?: string
+    /** Opened by the launch update check: offer Skip for 7 Days. */
+    autoCheck?: boolean
   }>(),
-  { installed: false, currentVersion: '' }
+  { installed: false, currentVersion: '', autoCheck: false }
 )
-const emit = defineEmits<{ (e: 'close'): void }>()
+const emit = defineEmits<{ (e: 'close'): void; (e: 'skip'): void }>()
 
 const isUpToDate = computed(() => {
   if (!props.installed || !release.value?.tagName || !props.currentVersion) return false
@@ -201,8 +215,23 @@ const isUpToDate = computed(() => {
   return compareSemver(latestVersion, props.currentVersion) <= 0
 })
 
+const { t: $t } = useI18n()
 const isLinux = navigator.userAgent.toLowerCase().includes('linux') && !navigator.userAgent.toLowerCase().includes('android')
 const isMacOS = navigator.userAgent.toLowerCase().includes('mac')
+
+const isDeb = (name: string | null) => !!name && /\.deb$/i.test(name)
+const isAppImage = (name: string | null) => !!name && /\.AppImage$/i.test(name)
+
+function linuxAssetHint(name: string): string {
+  if (isDeb(name)) return $t('extractorInstall.debHint')
+  if (isAppImage(name)) return $t('extractorInstall.appImageHint')
+  return ''
+}
+
+/** Single-quotes a path for the copyable shell command. */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`
+}
 const MAC_QUARANTINE_COMMAND = 'sudo xattr -dr com.apple.quarantine /Applications/AutoSlides\\ Extractor.app'
 
 const loading = ref(false)
@@ -211,6 +240,10 @@ const release = ref<ReleaseInfo | null>(null)
 const isDownloading = ref(false)
 const downloadProgress = ref({ downloaded: 0, total: 0, percent: 0 })
 const downloadedFile = ref<string | null>(null)
+/** Full path of the downloaded file, for the apt command. */
+const downloadedPath = ref<string | null>(null)
+/** Set once a Linux AppImage was copied into place. */
+const installedAppImagePath = ref<string | null>(null)
 
 let cleanupProgress: (() => void) | null = null
 let cleanupComplete: (() => void) | null = null
@@ -262,11 +295,14 @@ async function startDownload(url: string, filename: string) {
   isDownloading.value = true
   downloadProgress.value = { downloaded: 0, total: 0, percent: 0 }
   downloadedFile.value = null
+  downloadedPath.value = null
+  installedAppImagePath.value = null
   try {
     const result = await window.electronAPI.extractorInstaller.download(url, filename)
     isDownloading.value = false
     if (result.success && result.filePath) {
       downloadedFile.value = filename
+      downloadedPath.value = result.filePath
     } else if (result.error && !/cancel/i.test(result.error)) {
       loadError.value = result.error
     }
@@ -287,7 +323,12 @@ async function cancelDownload() {
 async function installInstaller() {
   if (!downloadedFile.value) return
   try {
-    await window.electronAPI.extractorInstaller.install(downloadedFile.value)
+    const result = await window.electronAPI.extractorInstaller.install(downloadedFile.value)
+    if (!result.success) {
+      loadError.value = result.error || 'Unknown error'
+    } else if (result.kind === 'appImage' && result.installedPath) {
+      installedAppImagePath.value = result.installedPath
+    }
   } catch (err) {
     log.error('[ExtractorInstall] install failed:', err)
   }
@@ -298,6 +339,14 @@ async function openDownloadFolder() {
     await window.electronAPI.extractorInstaller.openDownloadFolder()
   } catch (err) {
     log.error('[ExtractorInstall] openDownloadFolder failed:', err)
+  }
+}
+
+async function revealInstalled() {
+  try {
+    await window.electronAPI.extractorInstaller.revealInstalled()
+  } catch (err) {
+    log.error('[ExtractorInstall] revealInstalled failed:', err)
   }
 }
 
@@ -331,6 +380,8 @@ watch(
     if (visible) {
       // Reset transient state and (re)load the release on open
       downloadedFile.value = null
+      downloadedPath.value = null
+      installedAppImagePath.value = null
       isDownloading.value = false
       downloadProgress.value = { downloaded: 0, total: 0, percent: 0 }
       void loadRelease()
@@ -388,6 +439,13 @@ onBeforeUnmount(() => {
   color: var(--success);
   font-size: 12px;
   font-weight: 500;
+}
+
+.complete-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .release-body-plain {

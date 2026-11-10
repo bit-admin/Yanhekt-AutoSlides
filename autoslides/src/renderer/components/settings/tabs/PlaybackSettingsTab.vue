@@ -116,23 +116,17 @@
 
         <div class="extractor-reference">
           <div class="extractor-reference-header">
-            {{ $t('advanced.qtExtractor.defaultExecutables') }}
+            <span>{{ $t('advanced.qtExtractor.defaultExecutables') }}</span>
+            <button type="button" class="btn btn--ghost btn--sm" @click="showAllExtractorPlatforms = !showAllExtractorPlatforms">
+              {{ showAllExtractorPlatforms ? $t('advanced.qtExtractor.showCurrentPlatform') : $t('advanced.qtExtractor.showAllPlatforms') }}
+            </button>
           </div>
           <div class="extractor-platform-list">
-            <div class="extractor-platform-row">
-              <span class="extractor-platform-name">{{ $t('advanced.qtExtractor.platformMacOS') }}</span>
-              <code>/Applications/AutoSlides Extractor.app/Contents/MacOS/AutoSlidesExtractor</code>
-            </div>
-            <div class="extractor-platform-row">
-              <span class="extractor-platform-name">{{ $t('advanced.qtExtractor.platformWindows') }}</span>
+            <div v-for="row in visibleExtractorPlatforms" :key="row.id" class="extractor-platform-row">
+              <span class="extractor-platform-name">{{ $t(row.labelKey) }}</span>
               <div class="extractor-path-stack">
-                <code>C:\Program Files\AutoSlides Extractor\AutoSlidesExtractor.exe</code>
-                <code>C:\Program Files (x86)\AutoSlides Extractor\AutoSlidesExtractor.exe</code>
+                <code v-for="p in row.paths" :key="p">{{ p }}</code>
               </div>
-            </div>
-            <div class="extractor-platform-row">
-              <span class="extractor-platform-name">{{ $t('advanced.qtExtractor.platformLinux') }}</span>
-              <span class="extractor-linux-note">{{ $t('advanced.qtExtractor.linuxBuildFromSource') }}</span>
             </div>
           </div>
         </div>
@@ -384,7 +378,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { YANHE2_CAPTION_OFFSET_LIMIT } from '@common/types'
 import { useI18n } from 'vue-i18n'
 import { createLogger } from '@shared/utils/logger';
@@ -395,6 +389,26 @@ const { t } = useI18n()
 const { advanced } = useSettingsContext()
 
 const isMac = navigator.userAgent.includes('Mac')
+
+// Default Executable Locations: the platform this app runs on, the rest on request.
+// Keep in step with DEFAULT_BINARY_PATHS in main/extraction/qtExtractorService.ts.
+const EXTRACTOR_PLATFORMS = [
+  { id: 'mac', labelKey: 'advanced.qtExtractor.platformMacOS', paths: ['/Applications/AutoSlides Extractor.app/Contents/MacOS/AutoSlidesExtractor'] },
+  { id: 'windows', labelKey: 'advanced.qtExtractor.platformWindows', paths: [
+    'C:\\Program Files\\AutoSlides Extractor\\AutoSlidesExtractor.exe',
+    'C:\\Program Files (x86)\\AutoSlides Extractor\\AutoSlidesExtractor.exe',
+  ] },
+  { id: 'linux', labelKey: 'advanced.qtExtractor.platformLinux', paths: [
+    '/opt/autoslides-extractor/bin/AutoSlidesExtractor',
+    '/usr/bin/AutoSlidesExtractor',
+    '~/Applications/AutoSlides-Extractor.AppImage',
+  ] },
+] as const
+const currentExtractorPlatform = isMac ? 'mac' : navigator.userAgent.includes('Windows') ? 'windows' : 'linux'
+const showAllExtractorPlatforms = ref(false)
+const visibleExtractorPlatforms = computed(() => showAllExtractorPlatforms.value
+  ? EXTRACTOR_PLATFORMS
+  : EXTRACTOR_PLATFORMS.filter(row => row.id === currentExtractorPlatform))
 
 // Video-token refresh interval choices (seconds), spanning 10s–10min.
 const videoTokenRefreshOptions = computed(() => [
@@ -645,6 +659,10 @@ const openExtractorRepository = async () => {
 }
 
 .extractor-reference-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
@@ -670,8 +688,7 @@ const openExtractorRepository = async () => {
   font-weight: 600;
 }
 
-.extractor-platform-row code,
-.extractor-linux-note {
+.extractor-platform-row code {
   min-width: 0;
   color: var(--text-primary);
 }

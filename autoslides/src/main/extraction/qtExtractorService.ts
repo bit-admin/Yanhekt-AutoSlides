@@ -7,6 +7,7 @@ import { ConfigService } from '@main/platform/configService';
 import { sharpService } from '@main/infra/sharpService';
 import { qtSupportsWriteTimeline } from '@common/qtExtractorFeatures';
 import { createLogger } from '@main/infra/logger';
+import { linuxAppImageInstallPath } from '@main/infra/extractorAppImagePath';
 import { withPngCopyright } from '@main/infra/pngCopyright';
 const log = createLogger('QtExtractor');
 
@@ -49,7 +50,12 @@ const DEFAULT_BINARY_PATHS: Record<NodeJS.Platform, string[]> = {
     'C:\\Program Files\\AutoSlides Extractor\\AutoSlidesExtractor.exe',
     'C:\\Program Files (x86)\\AutoSlides Extractor\\AutoSlidesExtractor.exe'
   ],
-  linux: [],
+  // .deb (a /usr/bin symlink points at the /opt copy); the AppImage is added at
+  // runtime because its path is under the home folder.
+  linux: [
+    '/opt/autoslides-extractor/bin/AutoSlidesExtractor',
+    '/usr/bin/AutoSlidesExtractor'
+  ],
   aix: [],
   android: [],
   freebsd: [],
@@ -84,7 +90,8 @@ export class QtExtractorService {
       log.debug('Configured AutoSlides Extractor path does not exist');
     }
 
-    const candidates = DEFAULT_BINARY_PATHS[process.platform] ?? [];
+    const candidates = [...(DEFAULT_BINARY_PATHS[process.platform] ?? [])];
+    if (process.platform === 'linux') candidates.push(linuxAppImageInstallPath());
     if (candidates.length === 0) {
       log.debug('No default AutoSlides Extractor paths for platform:', process.platform);
     }

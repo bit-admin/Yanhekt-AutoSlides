@@ -1,10 +1,11 @@
 import { ipcMain, shell } from 'electron';
 import { ExtractorInstallerService } from '@main/download/extractorInstallerService';
 import { fetchGithubRelease, buildGithubReleaseOptions } from '@common/githubRelease';
+import { broadcastConfig } from './broadcastConfig';
 import type { IpcServices } from './types';
 
 export function registerExtractorInstallerIpcHandlers(services: IpcServices): void {
-  const { extractorInstallerService } = services;
+  const { extractorInstallerService, configService } = services;
 
   ipcMain.handle('extractorInstaller:checkLatest', async () => {
     try {
@@ -71,8 +72,13 @@ export function registerExtractorInstallerIpcHandlers(services: IpcServices): vo
 
   ipcMain.handle('extractorInstaller:install', async (_event, filename: string) => {
     try {
-      const filePath = await extractorInstallerService.installInstaller(filename);
-      return { success: true, filePath };
+      const result = await extractorInstallerService.installInstaller(filename);
+      if (result.kind === 'appImage') {
+        // The user just installed this copy, so use it even over a detected .deb.
+        configService.setQtExtractorBinaryPath(result.installedPath);
+        broadcastConfig(configService);
+      }
+      return { success: true, ...result };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
@@ -85,6 +91,10 @@ export function registerExtractorInstallerIpcHandlers(services: IpcServices): vo
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
+  });
+
+  ipcMain.handle('extractorInstaller:revealInstalled', async () => {
+    extractorInstallerService.revealInstalledAppImage();
   });
 
   ipcMain.handle('extractorInstaller:openRepo', async () => {
