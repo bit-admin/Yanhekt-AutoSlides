@@ -393,7 +393,9 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     const duration = video.duration
     const currentTime = video.currentTime
 
-    if (duration > 0 && (currentTime >= duration - 5 || currentTime / duration >= 0.99)) {
+    // Play to the end: the trailing No Signal frames are left to the exclusion
+    // list. The 5 s margin covers a stream that stops just short of `ended`.
+    if (duration > 0 && currentTime >= duration - 5) {
       log.debug('Video completion detected via timeupdate for task:', currentTaskId.value)
       completeCurrentTask()
     }

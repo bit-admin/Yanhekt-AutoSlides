@@ -1,11 +1,18 @@
 // Thin wrapper that adapts the consolidated pHashWorkerClient to the
 // WorkerHelpers / createPostProcessorWorker surface used by the pipeline.
 
-import { createPHashWorkerClient, type PHashWorkerClient } from '@shared/workers/pHashWorkerClient';
+import {
+  createPHashWorkerClient,
+  type GrayImage,
+  type PHashWorkerClient,
+  type SSIMPrepareOptions,
+} from '@shared/workers/pHashWorkerClient';
 
 export interface WorkerHelpers {
   calculatePHash: (imageData: ImageData) => Promise<string>;
   calculateHammingDistance: (hash1: string, hash2: string) => Promise<number>;
+  prepareForSSIM: (imageData: ImageData, options: SSIMPrepareOptions) => Promise<GrayImage>;
+  ssimFromGray: (a: GrayImage, b: GrayImage) => Promise<number>;
 }
 
 export interface PostProcessorWorker {
@@ -19,6 +26,8 @@ export function createPostProcessorWorker(): PostProcessorWorker {
     helpers: {
       calculatePHash: client.calculatePHash,
       calculateHammingDistance: client.calculateHammingDistance,
+      prepareForSSIM: client.prepareForSSIM,
+      ssimFromGray: client.ssimFromGray,
     },
     terminate: () => client.destroy(),
   };

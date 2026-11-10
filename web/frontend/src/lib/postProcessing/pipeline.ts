@@ -121,7 +121,8 @@ export class PostProcessingPipeline {
               progress.phase1.processed = processed
               progress.phase1.duplicatesRemoved = removed
               emit()
-            }
+            },
+            input.config.duplicateSSIMCheck
           )
           for (const f of phase1.duplicatesRemoved) {
             removedDuplicates.push(f)

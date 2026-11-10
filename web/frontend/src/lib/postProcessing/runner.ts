@@ -12,11 +12,11 @@
 import { reactive } from 'vue'
 import { PostProcessingPipeline } from './pipeline'
 import { createSlideStoreDataSource } from './imageSources'
-import { filterEnabledExclusionItems } from './types'
+import { duplicateSSIMCheckFrom, filterEnabledExclusionItems } from './types'
 import type { PostProcessingProgress, TrashReason } from './types'
 import { parseResultError } from './errorModel'
-import { AI_FILTERING_DEFAULTS, POST_PROCESSING_DEFAULTS } from '../extractionDefaults'
-import { listActiveImages, setFolderPostProcessing, setSlideAIDecision } from '../slideStore'
+import { AI_FILTERING_DEFAULTS, EXTRACTION_DEFAULTS, POST_PROCESSING_DEFAULTS } from '../extractionDefaults'
+import { getFolderMetadata, listActiveImages, setFolderPostProcessing, setSlideAIDecision } from '../slideStore'
 import { createClassifier, isAIFilteringActive } from '../ai/aiFilteringClient'
 import { createInPlaceAutoCropper } from '../autoCrop/inPlaceAutoCropper'
 import { authStore } from '../../stores/authStore'
@@ -143,6 +143,9 @@ async function runOnePass(
     // Auto-crop + post-crop dedup always on when AI filtering is active (no web toggles).
     const cropper = aiActive ? createInPlaceAutoCropper(folder) : null
 
+    // Phase-1 pHash matches are confirmed with the threshold this folder was extracted with.
+    const extractionThreshold = (await getFolderMetadata(folder).catch(() => null))?.extraction?.ssimThreshold
+
     try {
       const result = await PostProcessingPipeline.run(
         {
@@ -150,6 +153,7 @@ async function runOnePass(
           imageFiles,
           config: {
             pHashThreshold: POST_PROCESSING_DEFAULTS.pHashThreshold,
+            duplicateSSIMCheck: duplicateSSIMCheckFrom(EXTRACTION_DEFAULTS, extractionThreshold),
             enableDuplicateRemoval: POST_PROCESSING_DEFAULTS.enableDuplicateRemoval,
             enableExclusionList: POST_PROCESSING_DEFAULTS.enableExclusionList,
             enableAIFiltering: aiActive,

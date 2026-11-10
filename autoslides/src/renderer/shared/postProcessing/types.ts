@@ -47,8 +47,42 @@ export function filterEnabledExclusionItems<T extends { isPreset?: boolean; isEn
   return list.filter((item) => !item.isPreset || item.isEnabled !== false)
 }
 
+/**
+ * Pixel check a phase-1 pHash duplicate must also pass. pHash looks at a 64x64
+ * thumbnail, so a progressive-reveal step (one more line of text) can land
+ * within the Hamming threshold of the previous step. A match is trashed only
+ * when the two images are also the same slide by the detector's SSIM test
+ * (same threshold and downsampling). Ported from the Qt extractor 2.1.0.
+ */
+export interface DuplicateSSIMCheck {
+  /** <= 0 turns the check off (pHash alone decides). */
+  ssimThreshold: number
+  enableDownsampling: boolean
+  downsampleWidth: number
+  downsampleHeight: number
+}
+
+/**
+ * Build the phase-1 SSIM check from the extraction settings. `extractionThreshold`
+ * is the threshold the folder was actually extracted with (metadata.json), which
+ * differs from Settings for classroom-adaptive runs; it wins when known.
+ */
+export function duplicateSSIMCheckFrom(
+  slideConfig: Partial<Omit<DuplicateSSIMCheck, 'ssimThreshold'>> & { ssimThreshold?: number } | null | undefined,
+  extractionThreshold?: number | null,
+): DuplicateSSIMCheck {
+  return {
+    ssimThreshold: extractionThreshold ?? slideConfig?.ssimThreshold ?? 0.9987,
+    enableDownsampling: slideConfig?.enableDownsampling !== false,
+    downsampleWidth: slideConfig?.downsampleWidth || 480,
+    downsampleHeight: slideConfig?.downsampleHeight || 270,
+  }
+}
+
 export interface PostProcessingConfig {
   pHashThreshold: number
+  /** Absent = pHash alone decides phase 1. */
+  duplicateSSIMCheck?: DuplicateSSIMCheck
   enableDuplicateRemoval: boolean
   enableExclusionList: boolean
   enableAIFiltering: boolean

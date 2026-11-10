@@ -22,7 +22,8 @@ import type {
   PostProcessingProgress,
   TrashReason
 } from '@shared/postProcessing/types'
-import { filterEnabledExclusionItems } from '@shared/postProcessing/types'
+import { duplicateSSIMCheckFrom, filterEnabledExclusionItems } from '@shared/postProcessing/types'
+import { readExtractionSsimThreshold } from '@shared/services/slideMetadataClient'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('DownloadPostProcessing');
 
@@ -168,7 +169,11 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
   // the pHash phases — used for the re-run pass when pendingAIPhase was set.
   // `auto=true` (per-slide watch trigger) uses batchSize 1 so each new slide gets
   // a snappy single-image verdict; manual runs batch at the configured size.
-  const buildConfig = async (aiOnly: boolean, auto: boolean): Promise<PostProcessingConfig> => {
+  const buildConfig = async (
+    aiOnly: boolean,
+    auto: boolean,
+    outputPath: string,
+  ): Promise<PostProcessingConfig> => {
     const slideConfig = await window.electronAPI.config?.getSlideExtractionConfig?.()
     if (!slideConfig) throw new Error('Failed to get slide extraction configuration')
 
@@ -184,6 +189,9 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
     return {
       pHashThreshold: slideConfig.pHashThreshold || 10,
+      duplicateSSIMCheck: aiOnly
+        ? undefined
+        : duplicateSSIMCheckFrom(slideConfig, await readExtractionSsimThreshold(outputPath)),
       enableDuplicateRemoval: !aiOnly && slideConfig.enableDuplicateRemoval !== false,
       enableExclusionList: !aiOnly && slideConfig.enableExclusionList !== false,
       enableAIFiltering: enableAI,
@@ -232,7 +240,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     }
     if (imageFiles.length === 0) return
 
-    const config = await buildConfig(aiOnly, auto)
+    const config = await buildConfig(aiOnly, auto, outputPath)
     const dataSource = createSlideExtractionDataSource(outputPath)
     const token = tokenManager.getToken() || undefined
     const removedThisPass: string[] = []

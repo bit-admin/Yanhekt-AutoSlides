@@ -3,14 +3,14 @@ import { tokenManager } from './authService'
 import { PostProcessingPipeline } from '@shared/postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '@shared/postProcessing/imageSources'
 import { createInPlaceAutoCropper } from '@shared/autoCrop'
-import { recordPostProcessing } from './slideMetadataClient'
+import { readExtractionSsimThreshold, recordPostProcessing } from './slideMetadataClient'
 import type {
   AIErrorKind,
   ClassifierCallbacks,
   PostProcessingConfig,
   PostProcessingProgress
 } from '@shared/postProcessing/types'
-import { filterEnabledExclusionItems } from '@shared/postProcessing/types'
+import { duplicateSSIMCheckFrom, filterEnabledExclusionItems } from '@shared/postProcessing/types'
 import { resolveRendererAIRequestSettings } from './builtinRequestSettings'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesPostProcessing');
@@ -212,7 +212,7 @@ class PostProcessingServiceClass {
 
     let cropper: ReturnType<typeof createInPlaceAutoCropper> | null = null
     try {
-      const { config, classifierMode } = await this.loadConfig()
+      const { config, classifierMode } = await this.loadConfig(job.outputPath)
       job.classifierMode = classifierMode
       const dataSource = createSlideExtractionDataSource(job.outputPath)
       const token = tokenManager.getToken() || undefined
@@ -339,8 +339,9 @@ class PostProcessingServiceClass {
     }
   }
 
-  private async loadConfig(): Promise<{ config: PostProcessingConfig; classifierMode: 'llm' | 'ml' }> {
+  private async loadConfig(outputPath: string): Promise<{ config: PostProcessingConfig; classifierMode: 'llm' | 'ml' }> {
     const slideConfig = await window.electronAPI.config?.getSlideExtractionConfig?.()
+    const extractionThreshold = await readExtractionSsimThreshold(outputPath)
     const enableAIFiltering = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
     const distinguishMaybeSlide =
       (await window.electronAPI.config?.getDistinguishMaybeSlide?.()) !== false
@@ -355,6 +356,7 @@ class PostProcessingServiceClass {
     return {
       config: {
         pHashThreshold: slideConfig?.pHashThreshold || 10,
+        duplicateSSIMCheck: duplicateSSIMCheckFrom(slideConfig, extractionThreshold),
         enableDuplicateRemoval: slideConfig?.enableDuplicateRemoval !== false,
         enableExclusionList: slideConfig?.enableExclusionList !== false,
         enableAIFiltering,

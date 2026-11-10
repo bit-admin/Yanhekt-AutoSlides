@@ -115,6 +115,18 @@ export async function recordRecordedExtraction(input: RecordRecordedExtractionIn
   }
 }
 
+/** The SSIM threshold a folder was extracted with, or null when its metadata.json does not say. */
+export async function readExtractionSsimThreshold(folderPath: string): Promise<number | null> {
+  try {
+    const meta = await window.electronAPI.slideMetadata.get(folderPath);
+    const value = meta?.extraction?.ssimThreshold;
+    return typeof value === 'number' && value > 0 ? value : null;
+  } catch (error) {
+    log.warn('Failed to read extraction metadata:', error);
+    return null;
+  }
+}
+
 /** Record the post-processing outcome for a folder (no-op if no metadata.json). */
 export async function recordPostProcessing(folderPath: string, pp: SlidePostProcessingMeta): Promise<void> {
   try {

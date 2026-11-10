@@ -1,14 +1,28 @@
 // Ported verbatim from autoslides/src/renderer/shared/workers/postProcessor.worker.ts.
 /**
  * Post-Processing Web Worker
- * Handles post-processing tasks for slide images including pHash calculation
+ * Handles post-processing tasks for slide images: pHash, Hamming distance, and
+ * the SSIM check that confirms a pHash duplicate.
  */
 
 // Worker message types
 interface WorkerMessage {
   id?: string;
-  type: 'calculatePHash' | 'calculateHammingDistance';
+  type: 'calculatePHash' | 'calculateHammingDistance' | 'prepareForSSIM' | 'ssimFromGray';
   data: any;
+}
+
+/** One grayscale byte per pixel, ready for `ssimFromGray`. */
+export interface GrayImage {
+  width: number;
+  height: number;
+  gray: Uint8Array;
+}
+
+export interface SSIMPrepareOptions {
+  enableDownsampling: boolean;
+  downsampleWidth: number;
+  downsampleHeight: number;
 }
 
 interface WorkerResponse {
@@ -164,6 +178,55 @@ function calculateHammingDistance(hash1: string, hash2: string): number {
   return distance;
 }
 
+/**
+ * Downsample (when enabled) and convert to grayscale, in the same order and
+ * with the same weights as the extraction worker (slideProcessor.worker.ts),
+ * so scores here match the detector's.
+ */
+function prepareForSSIM(imageData: ImageData, opts: SSIMPrepareOptions): GrayImage {
+  const src = opts.enableDownsampling
+    ? resizeImageData(imageData, opts.downsampleWidth, opts.downsampleHeight)
+    : imageData;
+  const pixels = src.width * src.height;
+  const gray = new Uint8Array(pixels);
+  for (let p = 0, i = 0; p < pixels; p++, i += 4) {
+    gray[p] = Math.round(0.299 * src.data[i] + 0.587 * src.data[i + 1] + 0.114 * src.data[i + 2]);
+  }
+  return { width: src.width, height: src.height, gray };
+}
+
+/** Global SSIM of two prepared images (the extraction worker's formula). */
+function ssimFromGray(a: GrayImage, b: GrayImage): number {
+  if (a.width !== b.width || a.height !== b.height) {
+    throw new Error('SSIM images differ in size');
+  }
+  const n = a.gray.length;
+  let mean1 = 0, mean2 = 0;
+  for (let i = 0; i < n; i++) {
+    mean1 += a.gray[i];
+    mean2 += b.gray[i];
+  }
+  mean1 /= n;
+  mean2 /= n;
+
+  let var1 = 0, var2 = 0, covar = 0;
+  for (let i = 0; i < n; i++) {
+    const d1 = a.gray[i] - mean1;
+    const d2 = b.gray[i] - mean2;
+    var1 += d1 * d1;
+    var2 += d2 * d2;
+    covar += d1 * d2;
+  }
+  var1 /= n;
+  var2 /= n;
+  covar /= n;
+
+  const C1 = 0.01 * 255 * 0.01 * 255;
+  const C2 = 0.03 * 255 * 0.03 * 255;
+  return ((2 * mean1 * mean2 + C1) * (2 * covar + C2)) /
+    ((mean1 * mean1 + mean2 * mean2 + C1) * (var1 + var2 + C2));
+}
+
 // Message handler
 self.onmessage = async function(e: MessageEvent<WorkerMessage>) {
   const { id, type, data } = e.data;
@@ -181,6 +244,18 @@ self.onmessage = async function(e: MessageEvent<WorkerMessage>) {
       case 'calculateHammingDistance': {
         const { hash1, hash2 } = data;
         result = calculateHammingDistance(hash1, hash2);
+        break;
+      }
+
+      case 'prepareForSSIM': {
+        const { imageData, options } = data;
+        result = prepareForSSIM(imageData, options);
+        break;
+      }
+
+      case 'ssimFromGray': {
+        const { a, b } = data;
+        result = ssimFromGray(a, b);
         break;
       }
 
@@ -207,5 +282,3 @@ self.onmessage = async function(e: MessageEvent<WorkerMessage>) {
   }
 };
 
-// Export for TypeScript (won't be used in worker context but helps with typing)
-export {};

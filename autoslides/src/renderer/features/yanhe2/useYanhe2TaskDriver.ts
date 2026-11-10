@@ -161,7 +161,8 @@ export function useYanhe2TaskDriver(options: UseYanhe2TaskDriverOptions) {
       lastProgress = progress
       TaskQueue.updateTaskProgress(taskId, progress)
     }
-    if (currentTime >= duration - 5 || currentTime / duration >= 0.99) complete()
+    // Play to the end (see useTaskQueue); 5 s margin for a stream that stops short of `ended`.
+    if (currentTime >= duration - 5) complete()
   }
 
   // Follow whichever element is the single stream.
