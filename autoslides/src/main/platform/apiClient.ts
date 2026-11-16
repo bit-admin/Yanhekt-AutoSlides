@@ -76,6 +76,8 @@ interface SessionListApiResponse extends BaseApiResponse {
     day: number;
     started_at: string;
     ended_at: string;
+    /** `/v1` rows only: this account's watch position, an object once played, else `[]`. */
+    user_progress?: unknown;
     videos: Array<{
       id: string;
       duration: string;
@@ -1027,17 +1029,38 @@ export class ApiClient {
    * so Settings → Network "prefer anonymous requests" must not reach it. The raw
    * field is returned untouched — it is `[]` for a session this account has never
    * played and an object afterwards; `@common/watchProgress` does the parsing.
+   *
+   * A session of an expired course refuses by id (`12121028`), but the
+   * signed-in `/v1` session list still carries the same `user_progress` on
+   * each row. So on expiry: course id (the caller's, else the course index on
+   * this computer) → that list → the row with this id. Never cached: it is the
+   * live playhead.
    */
-  async getSessionProgress(sessionId: string, token: string): Promise<unknown> {
+  async getSessionProgress(sessionId: string, token: string, courseId?: string): Promise<unknown> {
     const response = await this.makeRequest('GET', this.sessionDetailUrl(sessionId), token) as BaseApiResponse & {
       data?: { user_progress?: unknown };
     };
 
+    if (isExpiredCode(response.code)) return this.expiredSessionProgress(String(sessionId), token, courseId);
     if (response.code !== 0 && response.code !== "0") {
       throw new Error(`Failed to get session progress: ${response.message}`);
     }
 
     return response.data?.user_progress ?? null;
+  }
+
+  /** {@link getSessionProgress} for an expired course, read off its `/v1` session list row. */
+  private async expiredSessionProgress(sessionId: string, token: string, knownCourseId?: string): Promise<unknown> {
+    let courseId = knownCourseId?.trim() || null;
+    if (!courseId) {
+      const hint = await this.localCourseFacts.courseOfSession(sessionId).catch(() => null);
+      courseId = hint?.id ?? null;
+    }
+    if (!courseId) return null;
+
+    const rows = await this.fetchSessionRows('v1', courseId, token);
+    const row = rows.find((r) => String(r.id) === sessionId);
+    return row?.user_progress ?? null;
   }
 
   /**

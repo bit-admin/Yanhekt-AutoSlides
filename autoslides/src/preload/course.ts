@@ -28,8 +28,8 @@ export const api: ElectronAPI['api'] = {
     invoke('api:getVideoAssets', videoId, token),
   getSessionDownloadInfo: (sessionId: string, token: string) =>
     invoke('api:getSessionDownloadInfo', sessionId, token),
-  getSessionProgress: (sessionId: string, token: string) =>
-    invoke('api:getSessionProgress', sessionId, token),
+  getSessionProgress: (sessionId: string, token: string, courseId?: string) =>
+    invoke('api:getSessionProgress', sessionId, token, courseId),
   reportSessionProgress: (sessionId: string, seconds: number, token: string) =>
     invoke('api:reportSessionProgress', sessionId, seconds, token),
   getAvailableSemesters: () => invoke('api:getAvailableSemesters'),

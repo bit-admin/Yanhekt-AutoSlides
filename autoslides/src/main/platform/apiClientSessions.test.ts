@@ -412,3 +412,54 @@ describe('getCourseDetailOrIndex', () => {
     expect(await c.getCourseDetailOrIndex('70101', '')).toEqual({ course_id: '70101', title: '', professor: '' });
   });
 });
+
+describe('getSessionProgress', () => {
+  const PROGRESS = { session_id: 850101, progress_overall: '5936', progress_current: '2300' };
+
+  function clientFor(detail: unknown, list: unknown) {
+    const client = new ApiClient();
+    const calls: string[] = [];
+    const makeRequest = vi.fn(async (_method: string, url: string) => {
+      calls.push(url);
+      return url.includes('/session/list') ? list : detail;
+    });
+    (client as unknown as { makeRequest: typeof makeRequest }).makeRequest = makeRequest;
+    return { client, calls };
+  }
+
+  it('reads user_progress off the session detail', async () => {
+    const { client, calls } = clientFor({ code: 0, data: { user_progress: PROGRESS } }, { code: 0, data: [] });
+    await expect(client.getSessionProgress('850101', 'tok', '70101')).resolves.toEqual(PROGRESS);
+    expect(calls).toHaveLength(1);
+  });
+
+  it.each([12121028, '12121028'])('on expiry %s reads the row of the /v1 session list', async (code) => {
+    const { client, calls } = clientFor(
+      { code, message: '课程已过期' },
+      { code: 0, data: [{ ...ROW, id: 850100, user_progress: [] }, { ...ROW, user_progress: PROGRESS }] },
+    );
+    await expect(client.getSessionProgress('850101', 'tok', '70101')).resolves.toEqual(PROGRESS);
+    expect(calls[1]).toBe('https://cbiz.yanhekt.cn/v1/course/session/list?course_id=70101');
+  });
+
+  it('on expiry without a course id asks the local course index', async () => {
+    const { client, calls } = clientFor(
+      { code: 12121028, message: '课程已过期' },
+      { code: 0, data: [{ ...ROW, user_progress: PROGRESS }] },
+    );
+    client.setLocalCourseFacts({ courseOfSession: async () => ({ id: '70102', title: 'x' }), course: async () => null });
+    await expect(client.getSessionProgress('850101', 'tok')).resolves.toEqual(PROGRESS);
+    expect(calls[1]).toBe('https://cbiz.yanhekt.cn/v1/course/session/list?course_id=70102');
+  });
+
+  it('on expiry with no course to ask answers null without a list request', async () => {
+    const { client, calls } = clientFor({ code: 12121028, message: '课程已过期' }, { code: 0, data: [] });
+    await expect(client.getSessionProgress('850101', 'tok')).resolves.toBeNull();
+    expect(calls).toHaveLength(1);
+  });
+
+  it('still throws other failures', async () => {
+    const { client } = clientFor({ code: 13001001, message: 'invalid token' }, { code: 0, data: [] });
+    await expect(client.getSessionProgress('850101', 'tok', '70101')).rejects.toThrow('invalid token');
+  });
+});

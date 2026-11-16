@@ -77,8 +77,8 @@ export function registerApiIpcHandlers(services: IpcServices): void {
     }
   });
 
-  ipcMain.handle('api:getSessionProgress', async (_event, sessionId: string, token: string) => {
-    return apiClient.getSessionProgress(sessionId, token);
+  ipcMain.handle('api:getSessionProgress', async (_event, sessionId: string, token: string, courseId?: string) => {
+    return apiClient.getSessionProgress(sessionId, token, courseId);
   });
 
   ipcMain.handle('api:reportSessionProgress', async (_event, sessionId: string, seconds: number, token: string) => {

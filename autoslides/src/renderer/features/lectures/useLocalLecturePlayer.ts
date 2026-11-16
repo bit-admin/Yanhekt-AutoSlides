@@ -43,7 +43,12 @@ function findStreamUrl(
   return match?.url || null
 }
 
-export function useLocalLecturePlayer() {
+export interface LocalLecturePlayerOptions {
+  /** The open course's id; lets a session of an expired course still resume. */
+  courseId?: () => string | undefined
+}
+
+export function useLocalLecturePlayer(options: LocalLecturePlayerOptions = {}) {
   const screenVideoEl = shallowRef<HTMLVideoElement | null>(null)
   const cameraVideoEl = shallowRef<HTMLVideoElement | null>(null)
   const singleVideoEl = shallowRef<HTMLVideoElement | null>(null)
@@ -236,6 +241,7 @@ export function useLocalLecturePlayer() {
    */
   const progressSync = createWatchProgressSync({
     sessionId: () => session.value?.sessionId,
+    courseId: () => options.courseId?.(),
     enabled: () => configStore.resumeFromServerProgressLectures === true,
     getCurrentTime: () => masterVideo()?.currentTime ?? currentTime.value,
     isPlaying: () => isPlaying.value,

@@ -26,7 +26,7 @@ export interface ApiTransport {
   getLiveDetail(liveId: string, token: string): Promise<LiveDetailIds | null>;
   getVideoAssets(videoId: string, token: string): Promise<{ audioUrl?: string }>;
   getSessionDownloadInfo(sessionId: string, token: string): Promise<SessionDownloadInfo>;
-  getSessionProgress(sessionId: string, token: string): Promise<unknown>;
+  getSessionProgress(sessionId: string, token: string, courseId?: string): Promise<unknown>;
   reportSessionProgress(sessionId: string, seconds: number, token: string): Promise<void>;
   getAvailableSemesters(): Promise<SemesterOption[]>;
 }
@@ -44,7 +44,7 @@ const realApiTransport: ApiTransport = {
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
   getVideoAssets: (videoId, token) => window.electronAPI.api.getVideoAssets(videoId, token),
   getSessionDownloadInfo: (sessionId, token) => window.electronAPI.api.getSessionDownloadInfo(sessionId, token),
-  getSessionProgress: (sessionId, token) => window.electronAPI.api.getSessionProgress(sessionId, token),
+  getSessionProgress: (sessionId, token, courseId) => window.electronAPI.api.getSessionProgress(sessionId, token, courseId),
   reportSessionProgress: (sessionId, seconds, token) =>
     window.electronAPI.api.reportSessionProgress(sessionId, seconds, token),
 };
@@ -264,10 +264,11 @@ export class ApiClient {
    *
    * Never throws: an unwatched session, a logged-out account and a network
    * failure are all the same answer to the only caller that asks.
+   * `courseId` is how an expired course's session still finds its position.
    */
-  async getResumePosition(sessionId: string, token: string): Promise<number | null> {
+  async getResumePosition(sessionId: string, token: string, courseId?: string): Promise<number | null> {
     try {
-      const raw = await this.transport.getSessionProgress(sessionId, token);
+      const raw = await this.transport.getSessionProgress(sessionId, token, courseId);
       return resumePositionFor(parseUserProgress(raw));
     } catch (error) {
       log.warn('Failed to read server watch progress:', error);

@@ -200,6 +200,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
   const progressSync = createWatchProgressSync({
     sessionId: () => (mode === "recorded" ? session.value?.session_id : undefined),
+    courseId: () => {
+      const id = course.value?.courseId ?? course.value?.id;
+      return id != null ? String(id) : undefined;
+    },
     enabled: resumeProgressEnabled,
     getCurrentTime: getCurrentPlaybackTime,
     isPlaying: isAnyVideoPlaying,

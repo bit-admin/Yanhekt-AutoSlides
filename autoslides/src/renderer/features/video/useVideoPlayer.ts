@@ -74,6 +74,8 @@ export interface UseVideoPlayerOptions {
    * tab (task tabs must always start from 0) — see PlaybackPage.
    */
   resumeProgressEnabled?: () => boolean
+  /** The recorded session's course id; lets an expired course still resume. */
+  courseId?: () => string | undefined
   /**
    * Whether a stream that cannot be played may be swapped for another. False
    * while a task runs: it needs the screen, and the camera in its place would
@@ -326,6 +328,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
    */
   const progressSync = createWatchProgressSync({
     sessionId: () => (mode === 'recorded' ? session.value?.session_id : undefined),
+    courseId: () => options.courseId?.(),
     enabled: () => options.resumeProgressEnabled?.() === true,
     getCurrentTime: getCurrentPlaybackTime,
     isPlaying: isAnyVideoPlaying,

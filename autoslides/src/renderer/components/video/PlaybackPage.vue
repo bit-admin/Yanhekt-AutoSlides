@@ -815,6 +815,10 @@ const videoPlayerComposable = useVideoPlayer({
     props.mode === 'recorded'
     && configStore.resumeFromServerProgress === true
     && isManualWatchTab(),
+  courseId: () => {
+    const id = props.course?.courseId ?? props.course?.id
+    return id != null ? String(id) : undefined
+  },
   // `taskQueue` is created below; this runs only when a stream fails, long after setup.
   canFallBack: () => !taskQueue.isTaskMode.value,
 })

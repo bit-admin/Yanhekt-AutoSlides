@@ -22,6 +22,11 @@ export interface WatchProgressSync {
 export interface WatchProgressSyncOptions {
   /** Recorded session id, or undefined when there is nothing to sync against. */
   sessionId: () => string | undefined
+  /**
+   * The session's course id, when known. Only used for an expired course,
+   * whose session refuses by id and is read off the course's session list.
+   */
+  courseId?: () => string | undefined
   /** The user's opt-in for this surface, re-read on every call. */
   enabled: () => boolean
   /** Current playhead in seconds. */
@@ -76,7 +81,12 @@ export function createWatchProgressSync(opts: WatchProgressSyncOptions): WatchPr
       const ctx = context()
       if (!ctx) return null
 
-      const position = await apiClient.getResumePosition(ctx.sessionId, ctx.token)
+      const courseId = opts.courseId?.()
+      const position = await apiClient.getResumePosition(
+        ctx.sessionId,
+        ctx.token,
+        courseId != null && courseId !== '' ? String(courseId) : undefined,
+      )
       // The seek we are about to perform is already known to the server; a
       // fresh start clears the slate so the first heartbeat always lands.
       lastReported = position === null

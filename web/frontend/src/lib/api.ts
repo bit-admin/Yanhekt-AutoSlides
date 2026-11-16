@@ -884,17 +884,40 @@ export async function getMicAudioUrl(videoId: string, token: string): Promise<st
  * one field on it that only exists for the account holding the token. Never
  * throws — an unwatched session, a logged-out account and a network failure are
  * all the same answer to the only caller that asks.
+ *
+ * A session of an expired course refuses by id (`12121028`); the signed-in
+ * `/v1` session list still carries `user_progress` on each row, so with the
+ * course id the position is read off that list instead. That read goes
+ * straight to `requestMethod`, past the list's 5-minute memo: a memoized row
+ * would resurrect a stale playhead when the lecture is reopened.
  */
-export async function getResumePosition(sessionId: string, token: string): Promise<number | null> {
+export async function getResumePosition(
+  sessionId: string,
+  token: string,
+  courseId?: string,
+): Promise<number | null> {
   const id = String(sessionId || "").trim();
   if (!id || !token) return null;
 
   try {
-    const data = await request<{ user_progress?: unknown }>(
-      `/v1/course/session?session_id=${encodeURIComponent(id)}&with_video=true`,
-      token,
-    );
-    return resumePositionFor(parseUserProgress(data?.user_progress));
+    let raw: unknown;
+    try {
+      const data = await request<{ user_progress?: unknown }>(
+        `/v1/course/session?session_id=${encodeURIComponent(id)}&with_video=true`,
+        token,
+      );
+      raw = data?.user_progress;
+    } catch (error) {
+      const course = String(courseId ?? "").trim();
+      if (!(error instanceof CourseExpiredError) || !course) throw error;
+      const rows = await requestMethod<Array<{ id: number | string; user_progress?: unknown }>>(
+        "GET",
+        `/v1/course/session/list?course_id=${encodeURIComponent(course)}`,
+        token,
+      );
+      raw = (rows ?? []).find((row) => String(row.id) === id)?.user_progress;
+    }
+    return resumePositionFor(parseUserProgress(raw));
   } catch (error) {
     console.warn("Failed to read server watch progress:", error);
     return null;

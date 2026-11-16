@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getCourseDetail, getCourseInfo, getSessionById, termsThrough, ttlFor } from './api';
+import { getCourseDetail, getCourseInfo, getResumePosition, getSessionById, termsThrough, ttlFor } from './api';
 import { invalidateAll } from './requestCache';
 
 /**
@@ -304,5 +304,44 @@ describe('getCourseInfo session list fallback', () => {
       ['811', '8110', ''],
       ['812', '8120', ''],
     ]);
+  });
+});
+
+describe('getResumePosition', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  beforeEach(() => invalidateAll());
+
+  const progress = { progress_overall: '5936', progress_current: '2300' };
+  const expired = { code: 12121028, message: '课程已过期' };
+
+  it('reads user_progress off the session detail', async () => {
+    stubYanhekt({ '/v1/course/session?': { code: 0, data: { user_progress: progress } } });
+    await expect(getResumePosition('801', 'tok', '701')).resolves.toBe(2300);
+  });
+
+  it('reads the /v1 list row when the course has expired', async () => {
+    stubYanhekt({
+      '/v1/course/session/list?': { code: 0, data: [{ id: 800, user_progress: [] }, { id: 801, user_progress: progress }] },
+      '/v1/course/session?': expired,
+    });
+    await expect(getResumePosition('801', 'tok', '701')).resolves.toBe(2300);
+  });
+
+  it('is fresh on every read, not the list memo', async () => {
+    let current = '2300';
+    vi.stubGlobal('fetch', async (url: string) => {
+      const body = url.includes('/session/list')
+        ? { code: 0, data: [{ id: 801, user_progress: { progress_overall: '5936', progress_current: current } }] }
+        : expired;
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+    await expect(getResumePosition('801', 'tok', '701')).resolves.toBe(2300);
+    current = '3000';
+    await expect(getResumePosition('801', 'tok', '701')).resolves.toBe(3000);
+  });
+
+  it('starts at the beginning when expired and no course id is known', async () => {
+    stubYanhekt({ '/v1/course/session?': expired });
+    await expect(getResumePosition('801', 'tok')).resolves.toBeNull();
   });
 });

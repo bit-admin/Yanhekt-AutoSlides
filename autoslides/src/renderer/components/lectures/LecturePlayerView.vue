@@ -681,7 +681,7 @@ const {
   destroy,
   onTimeUpdate,
   onPlayStateChanged,
-} = useLocalLecturePlayer()
+} = useLocalLecturePlayer({ courseId: () => String(props.course.courseId) })
 
 // Pause local lecture playback whenever leaving the Lectures page (e.g. navigating to Home/Search or opening a tab).
 const isPageActive = computed(

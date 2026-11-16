@@ -55,6 +55,11 @@ const OBSERVE_MS = 5000;
 export interface WatchProgressOptions {
   /** Recorded session id, or undefined when there is nothing to sync against. */
   sessionId: () => string | undefined;
+  /**
+   * The session's course id, when known. Only used for an expired course,
+   * whose session refuses by id and is read off the course's session list.
+   */
+  courseId?: () => string | undefined;
   /** The user's opt-in, re-read on every call. */
   enabled: () => boolean;
   /** Current playhead in seconds (covers single *and* dual playback). */
@@ -130,7 +135,7 @@ export function createWatchProgressSync(opts: WatchProgressOptions): WatchProgre
       const ctx = context();
       if (!ctx) return null;
 
-      const position = await getResumePosition(ctx.sessionId, ctx.token);
+      const position = await getResumePosition(ctx.sessionId, ctx.token, opts.courseId?.());
       // The seek we are about to perform is already known to the server; a
       // fresh start clears the slate so the first report always lands.
       lastReported =

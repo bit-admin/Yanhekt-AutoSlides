@@ -702,8 +702,11 @@ export interface ElectronAPI {
     getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;
     /** Download-by-session-id: session detail + VOD/mic URLs from two anonymous-ok hops. */
     getSessionDownloadInfo: (sessionId: string, token: string) => Promise<SessionDownloadInfo>;
-    /** Raw `user_progress` off GET /v1/course/session — `[]`, an object, or null. Parse with `@common/watchProgress`. */
-    getSessionProgress: (sessionId: string, token: string) => Promise<unknown>;
+    /**
+     * Raw `user_progress` off GET /v1/course/session — `[]`, an object, or null. Parse with `@common/watchProgress`.
+     * `courseId` lets an expired course's session read it off the `/v1` session list instead.
+     */
+    getSessionProgress: (sessionId: string, token: string, courseId?: string) => Promise<unknown>;
     /** PUT the playhead for a recorded session (5-second grid, like the official player). */
     reportSessionProgress: (sessionId: string, seconds: number, token: string) => Promise<void>;
     getAvailableSemesters: () => Promise<SemesterOption[]>;
