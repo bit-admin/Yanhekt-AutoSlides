@@ -151,19 +151,27 @@ jobs:
           echo "Checking with session $newest."
           # Several tries: while Yanhekt is unstable it answers some requests
           # with a server error (code 2002), and one of those must not end the run.
+          # curl reports HTTP 000 when no response arrived (timeout, DNS, TLS,
+          # reset); its stderr then says which, so that is what gets printed.
+          err=$(mktemp)
           for try in 1 2 3 4 5; do
             body=$(curl -sS --max-time 20 "https://cbiz.yanhekt.cn/v1/course/session?session_id=$newest" \
               -H 'Origin: https://www.yanhekt.cn' -H 'Referer: https://www.yanhekt.cn/' -H 'Xdomain-Client: web_user' \
-              -w '\n%{http_code}' || true)
+              -w '\n%{http_code}' 2>"$err" || true)
             code=$(echo "$body" | tail -n1)
             if [ "$code" = "200" ] && echo "$body" | grep -q '"code":0'; then
               echo "Yanhekt reachable."
               exit 0
             fi
-            echo "try $try: HTTP $code $(echo "$body" | head -n1 | head -c 200)"
+            if [ "$code" = "000" ]; then
+              why="no response: $(head -n1 "$err")"
+            else
+              why="HTTP $code $(echo "$body" | head -n1 | head -c 200)"
+            fi
+            echo "try $try: $why"
             sleep 5
           done
-          echo "::error::cbiz.yanhekt.cn is not answering normally from GitHub's network (HTTP $code). Run the indexer locally instead."
+          echo "::error::cbiz.yanhekt.cn is not answering normally from GitHub's network ($why). Run the indexer locally instead."
           exit 1
 
       - name: Crawl
