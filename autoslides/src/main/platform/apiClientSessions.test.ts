@@ -447,7 +447,7 @@ describe('getSessionProgress', () => {
       { code: 12121028, message: '课程已过期' },
       { code: 0, data: [{ ...ROW, user_progress: PROGRESS }] },
     );
-    client.setLocalCourseFacts({ courseOfSession: async () => ({ id: '70102', title: 'x' }), course: async () => null });
+    client.setLocalCourseFacts({ courseOfSession: async () => ({ id: '70102', name: 'x', number: null, teachers: [], term: null }), course: async () => null });
     await expect(client.getSessionProgress('850101', 'tok')).resolves.toEqual(PROGRESS);
     expect(calls[1]).toBe('https://cbiz.yanhekt.cn/v1/course/session/list?course_id=70102');
   });
