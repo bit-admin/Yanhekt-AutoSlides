@@ -152,6 +152,7 @@ export const OWNED_NOTE_METHODS = [
   'groupCreate',
   'groupDelete',
   'uploadImage',
+  'uploadImageFromPath',
 ] as const;
 export type OwnedNoteMethod = (typeof OWNED_NOTE_METHODS)[number];
 

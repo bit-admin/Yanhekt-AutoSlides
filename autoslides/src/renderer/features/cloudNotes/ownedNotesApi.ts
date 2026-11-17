@@ -1,5 +1,10 @@
-import { OWNED_NOTE_METHODS, type NotesResult } from '@common/notesTypes'
+import { OWNED_NOTE_METHODS, type NotesResult, type UploadedImage } from '@common/notesTypes'
 import { overrides, type CloudNotesProvider } from '@shared/overrideRegistry'
+
+/** The provider's calls plus the upload of a file on disk (note import). */
+export interface OwnedNotesApi extends CloudNotesProvider {
+  uploadImageFromPath(filePath: string): Promise<NotesResult<UploadedImage>>
+}
 
 /**
  * The note calls of one account.
@@ -16,8 +21,13 @@ import { overrides, type CloudNotesProvider } from '@shared/overrideRegistry'
  *
  * Demo mode keeps its fabricated provider.
  */
-export function ownedNotesApi(badge: string | null): CloudNotesProvider {
-  if (overrides.cloudNotesProvider) return overrides.cloudNotesProvider
+export function ownedNotesApi(badge: string | null): OwnedNotesApi {
+  if (overrides.cloudNotesProvider) {
+    return {
+      ...overrides.cloudNotesProvider,
+      uploadImageFromPath: (path) => window.electronAPI.cloudNotes.uploadImageFromPath(path),
+    }
+  }
   const plain = window.electronAPI.cloudNotes
   if (!badge) return plain
 
@@ -27,5 +37,5 @@ export function ownedNotesApi(badge: string | null): CloudNotesProvider {
     // params object, image bytes): nothing reactive is passed through here.
     owned[method] = (...args) => plain.asOwner(badge, method, args)
   }
-  return { ...owned, shortenShareUrl: plain.shortenShareUrl } as unknown as CloudNotesProvider
+  return { ...owned, shortenShareUrl: plain.shortenShareUrl } as unknown as OwnedNotesApi
 }

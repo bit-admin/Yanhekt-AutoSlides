@@ -173,6 +173,27 @@ describe('Drive note list loading', () => {
     expect(cn.allNotes.value.map((n) => n.title)).toEqual(['one', 'two'])
     expect(cn.error.value).toBe('network')
     expect(cn.loading.value).toBe(false)
+    // Callers that decide "no such note yet" from the list are told it is not whole.
+    expect(cn.catalog.value).toBe('failed')
+
+    const again = cn.loadAll()
+    await flush()
+    server.lists[3].answer(pageOf([summary(1, 'one')]))
+    await again
+    expect(cn.catalog.value).toBe('complete')
+  })
+
+  it('says so when the account holds more pages than the cap reads', async () => {
+    const cn = useCloudNotes()
+    const load = cn.loadAll()
+    for (let page = 0; page < 20; page += 1) {
+      await flush()
+      server.lists[page].answer(pageOf([summary(page + 1, `n${page}`)], 21))
+    }
+    await load
+    expect(server.lists).toHaveLength(20)
+    expect(cn.allNotes.value).toHaveLength(20)
+    expect(cn.catalog.value).toBe('truncated')
   })
 
   it('a load replaced by a newer one resolves with the newer list in place', async () => {

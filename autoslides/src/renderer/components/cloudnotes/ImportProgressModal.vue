@@ -71,6 +71,7 @@ function errorText(error?: string): string {
   switch (error) {
     case 'empty': return t('cloudNotes.importEmpty')
     case 'not-signed-in': return t('cloudNotes.importNotSignedIn')
+    case 'list-incomplete': return t('cloudNotes.importListIncomplete')
     default: return error ? noteErrorText(error) : t('cloudNotes.importError')
   }
 }

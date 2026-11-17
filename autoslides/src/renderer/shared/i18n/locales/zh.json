@@ -1404,6 +1404,7 @@
     "importClose": "关闭",
     "importEmpty": "未找到图片",
     "importNotSignedIn": "请先登录",
+    "importListIncomplete": "未能读取完整的笔记列表，未导入任何内容，请重试。",
     "exportButton": "导出",
     "exportTip": "将此笔记导出为文件",
     "exportTitle": "导出笔记",

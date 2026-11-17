@@ -44,6 +44,7 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
     groupDelete: (id: number) => run(() => notesService.groupRemove(id)),
     uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) =>
       run(() => notesService.uploadImage(bytes, filename, mime)),
+    uploadImageFromPath: (filePath: string) => run(() => notesService.uploadImageFromPath(filePath)),
   };
   for (const method of OWNED_NOTE_METHODS) {
     const handler = owned[method] as (...args: unknown[]) => Promise<NotesResult<unknown>>;
@@ -61,9 +62,6 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
     handlers: owned,
   });
   ipcMain.handle('cloudNotes:asOwner', (_e, badge: unknown, method: unknown, args: unknown) => asOwner(badge, method, args));
-
-  ipcMain.handle('cloudNotes:uploadImageFromPath', (_e, filePath: string) =>
-    run(() => notesService.uploadImageFromPath(filePath)));
 
   ipcMain.handle('cloudNotes:exportFolderStatus', (_e, displayName: string, identity?: LectureIdentity) =>
     run(() => notesService.exportFolderStatus(displayName, identity)));

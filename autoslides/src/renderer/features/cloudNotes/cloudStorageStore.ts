@@ -300,6 +300,8 @@ async function initialize(): Promise<boolean> {
 }
 
 export const cloudStorageStore = {
+  /** The account the store is bound to, or null when signed out. */
+  boundBadge: (): string | null => userBadge,
   status,
   managedGroupId,
   managedGroupName,

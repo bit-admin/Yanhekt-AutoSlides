@@ -5,6 +5,8 @@ import { useBackgroundQueue } from './useBackgroundQueue'
 import type { useCloudNotes } from './useCloudNotes'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
+/** The calls of the account an export began under; see `ownedNotesApi`. */
+type NotesApi = ReturnType<CloudNotesApi['notesApi']>
 
 export type ExportStatus = 'pending' | 'fetching' | 'downloading' | 'done' | 'conflict' | 'error'
 
@@ -44,9 +46,9 @@ export function useNoteExport(cn: CloudNotesApi) {
   const exporting = computed(() => running.value)
 
   /** Fetch the note, resolve its folder, then download every image in order. */
-  async function processItem(item: ExportItem, mode: 'fresh' | 'create' = 'fresh'): Promise<void> {
+  async function processItem(item: ExportItem, api: NotesApi, mode: 'fresh' | 'create' = 'fresh'): Promise<void> {
     item.status = 'fetching'
-    const detailRes = await window.electronAPI.cloudNotes.get(item.noteId)
+    const detailRes = await api.get(item.noteId)
     if (!detailRes.ok) { item.status = 'error'; item.error = detailRes.error; return }
 
     const urls = noteImageUrls(detailRes.data.content)
@@ -97,6 +99,8 @@ export function useNoteExport(cn: CloudNotesApi) {
     if (running.value) return
     cancelRequested.value = false
     running.value = true
+    // Taken once: after an account switch every call of this run is refused.
+    const api = cn.notesApi()
     try {
       await cn.loadAll()
       const byId = new Map(cn.allNotes.value.map((n) => [n.id, n]))
@@ -131,7 +135,7 @@ export function useNoteExport(cn: CloudNotesApi) {
       for (const item of queue.value) {
         if (cancelRequested.value) break
         if (item.status !== 'pending') continue
-        await processItem(item)
+        await processItem(item, api)
       }
     } finally {
       running.value = false
@@ -147,6 +151,8 @@ export function useNoteExport(cn: CloudNotesApi) {
   async function resolveConflict(item: ExportItem, mode: 'replace' | 'create'): Promise<void> {
     if (running.value) return
     running.value = true
+    // Taken once: after an account switch every call of this run is refused.
+    const api = cn.notesApi()
     try {
       if (mode === 'replace' && item.folderName) {
         const rm = await window.electronAPI.trash.removeFolders([item.folderName])
@@ -155,7 +161,7 @@ export function useNoteExport(cn: CloudNotesApi) {
       }
       item.status = 'pending'
       item.downloaded = 0
-      await processItem(item, mode === 'replace' ? 'fresh' : 'create')
+      await processItem(item, api, mode === 'replace' ? 'fresh' : 'create')
     } finally {
       running.value = false
     }

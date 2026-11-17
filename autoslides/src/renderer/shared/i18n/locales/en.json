@@ -1404,6 +1404,7 @@
     "importClose": "Close",
     "importEmpty": "No Images Found",
     "importNotSignedIn": "Sign In First",
+    "importListIncomplete": "Could not read the full note list, so nothing was imported. Try again.",
     "exportButton": "Export",
     "exportTip": "Export this note to a file",
     "exportTitle": "Export Note",

@@ -7,6 +7,7 @@ import { parseLectureIds } from '@common/lectureNaming'
 import { coalesceConsecutiveSlideCues, deriveCues } from '@common/sidecars'
 import { overrides } from '@shared/overrideRegistry'
 import { getTimeline } from '@shared/services/slideTimelineClient'
+import { createLatest } from '@shared/utils/latest'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LectureSlideChapters')
@@ -103,14 +104,23 @@ export function useLectureSlideChapters(
     }
   }
 
+  // Only the newest load writes: a slow answer for the lecture that was open
+  // before must not put its slides (and their seek times) under this one.
+  const loads = createLatest()
+
+  const show = (folder: string | null, cards: SlideChapterCard[]): void => {
+    folderPath.value = folder
+    chapters.value = cards
+  }
+
   async function loadChapters(): Promise<void> {
     const courseId = toRefValue(courseIdSource)
     const sessionId = toRefValue(sessionIdSource)
-    const duration = toRefValue(durationSource)
+    const current = loads.begin()
 
     if (!courseId || !sessionId) {
-      chapters.value = []
-      folderPath.value = null
+      show(null, [])
+      loading.value = false
       return
     }
 
@@ -134,19 +144,21 @@ export function useLectureSlideChapters(
       // no timeline.json, so the recorded folder wins when both exist.
       const match = matches.find(folder => !parseLectureIds(folder.name).liveId) ?? matches[0]
 
+      if (!current()) return
       if (!match) {
-        chapters.value = []
-        folderPath.value = null
+        show(null, [])
         return
       }
 
-      folderPath.value = match.path
       const timeline = await getTimeline(match.path)
+      if (!current()) return
       if (!timeline) {
-        chapters.value = []
+        show(match.path, [])
         return
       }
 
+      // Read now, not when the load began: the duration often arrives meanwhile.
+      const duration = toRefValue(durationSource)
       const durationArg =
         typeof duration === 'number' && Number.isFinite(duration) && duration > 0
           ? duration
@@ -167,14 +179,14 @@ export function useLectureSlideChapters(
         imagePath: joinFolderFile(match.path, cue.file!),
       }))
 
-      chapters.value = next
+      show(match.path, next)
       prefetchInitialThumbs(next)
     } catch (error) {
+      if (!current()) return
       log.warn('Failed to load lecture slide chapters:', error)
-      chapters.value = []
-      folderPath.value = null
+      show(null, [])
     } finally {
-      loading.value = false
+      if (current()) loading.value = false
     }
   }
 
@@ -182,6 +194,8 @@ export function useLectureSlideChapters(
   watch(
     () => [toRefValue(courseIdSource), toRefValue(sessionIdSource)] as const,
     () => {
+      // The previous lecture's slides go at once, not when the new ones arrive.
+      show(null, [])
       void loadChapters()
     },
     { immediate: true }

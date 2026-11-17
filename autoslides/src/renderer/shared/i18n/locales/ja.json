@@ -1404,6 +1404,7 @@
     "importClose": "閉じる",
     "importEmpty": "画像が見つかりません",
     "importNotSignedIn": "先にサインインしてください",
+    "importListIncomplete": "ノート一覧をすべて読み込めなかったため、インポートしませんでした。もう一度お試しください。",
     "exportButton": "エクスポート",
     "exportTip": "このノートをファイルにエクスポート",
     "exportTitle": "ノートをエクスポート",

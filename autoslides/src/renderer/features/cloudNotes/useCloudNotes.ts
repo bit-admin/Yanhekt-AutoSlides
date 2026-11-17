@@ -87,6 +87,13 @@ export function useCloudNotes() {
   let searchGen = 0
   /** Bumps on every openNote so a stale detail fetch cannot win a rapid A→B→A. */
   let openGen = 0
+  /**
+   * Whether `allNotes` is the whole list as of the last load: `failed` when a
+   * page did not answer (the previous list is kept), `truncated` when the
+   * account holds more notes than the page cap reads. Anything that decides
+   * "this note does not exist yet" from `allNotes` must look here first.
+   */
+  const catalog = ref<'complete' | 'truncated' | 'failed'>('complete')
   /** Bumps on every loadAll: the newest load owns the catalog and the spinner. */
   let listGen = 0
   /** The newest loadAll, for the loads it replaced to wait on. */
@@ -265,6 +272,8 @@ export function useCloudNotes() {
       // the pages before it are not the whole list, and import and export
       // read this set as if it were.
       if (complete) allNotes.value = collected
+      // `truncated`: the server has more pages than the cap reads.
+      catalog.value = !complete ? 'failed' : p <= lastPage ? 'truncated' : 'complete'
       const kw = keyword.value.trim()
       if (kw !== '') {
         // Keep loading true across the keyword re-fetch.
@@ -553,6 +562,7 @@ export function useCloudNotes() {
     }
     groups.value = []
     allNotes.value = []
+    catalog.value = 'complete'
     searchResults.value = null
     notes.value = []
     selectedNote.value = null
@@ -575,6 +585,7 @@ export function useCloudNotes() {
     otherGroups,
     hasManagedStorage,
     allNotes,
+    catalog,
     notes,
     selectedNote,
     selectedNoteId,
@@ -601,6 +612,7 @@ export function useCloudNotes() {
     createNote,
     saveContent,
     noteWriter,
+    notesApi: () => cloudNotesApi,
     bindAccount,
     renameNote,
     deleteNote,

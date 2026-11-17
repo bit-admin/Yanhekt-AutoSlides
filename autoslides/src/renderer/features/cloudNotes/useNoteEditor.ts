@@ -156,7 +156,7 @@ export function useNoteEditor(
             uploader: {
               uploadByFile: async (file: File) => {
                 const buf = await file.arrayBuffer()
-                const res = await window.electronAPI.cloudNotes.uploadImage(buf, file.name, file.type)
+                const res = await cn.notesApi().uploadImage(buf, file.name, file.type)
                 if (res.ok) return { success: 1, file: { url: res.data.url } }
                 cn.error.value = res.error === 'not-signed-in' ? t('cloudNotes.notSignedIn') : noteErrorText(res.error)
                 return { success: 0 }

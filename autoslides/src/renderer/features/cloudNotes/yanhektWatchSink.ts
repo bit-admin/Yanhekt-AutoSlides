@@ -1,7 +1,6 @@
 // Yanhekt Notes watch-notes sink: the ASuser note with a live Editor.js editor.
 // Moved out of watchNotesStore unchanged when watch notes became pluggable.
 import type { OutputData } from '@editorjs/editorjs'
-import { overrides } from '@shared/overrideRegistry'
 import type { CloudNotesProvider } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger'
 import { buildManagedNoteTitle, EDITORJS_DOC_VERSION } from '@common/notesTypes'
@@ -9,6 +8,8 @@ import { NOTE_COPYRIGHT } from '@common/notesContent'
 import type { LectureIdentity } from '@common/lectureNaming'
 import { tabStore } from '@features/course/tabStore'
 import { cloudStorageStore } from './cloudStorageStore'
+import { readNoteContent } from './noteContent'
+import { ownedNotesApi } from './ownedNotesApi'
 import { notesRefreshStore } from './noteOpenRequest'
 import type { KeptSlide, WatchNotesSink, YanhektWatchNoteEntry } from './watchNotesTypes'
 
@@ -37,8 +38,19 @@ const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 // interleave image blocks out of order.
 const appendChains = new Map<string, Promise<void>>()
 
-function api(): CloudNotesProvider {
-  return overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
+// The note calls of the account each tab's note was opened under. Kept per
+// tab so a note found for one account is never written with another's token:
+// after a switch main refuses these calls (see `ownedNotesApi`).
+const apis = new Map<string, CloudNotesProvider>()
+
+/** The calls a tab's watch note is written with. */
+export function watchNoteApi(tabId: string): CloudNotesProvider {
+  let api = apis.get(tabId)
+  if (!api) {
+    api = ownedNotesApi(cloudStorageStore.boundBadge())
+    apis.set(tabId, api)
+  }
+  return api
 }
 
 export function emptyDoc(): OutputData {
@@ -54,6 +66,7 @@ function imageBlock(url: string) {
 
 /** Find an existing ASuser watch note by title, else create one. */
 async function findOrCreateNote(
+  api: CloudNotesProvider,
   displayName: string,
   identity: LectureIdentity,
 ): Promise<{ id: number; content: OutputData; created: boolean } | null> {
@@ -67,7 +80,7 @@ async function findOrCreateNote(
   let lastPage = 1
   let existingId: number | null = null
   do {
-    const res = await api().list({ page, pageSize: FETCH_PAGE_SIZE })
+    const res = await api.list({ page, pageSize: FETCH_PAGE_SIZE })
     if (!res.ok) {
       log.warn('note list failed while resolving watch note', res.error)
       return null
@@ -84,27 +97,35 @@ async function findOrCreateNote(
   } while (page <= lastPage && page <= MAX_FETCH_PAGES)
 
   if (existingId != null) {
-    const detail = await api().get(existingId)
+    const detail = await api.get(existingId)
     if (!detail.ok) return null
-    let content = emptyDoc()
-    try {
-      const parsed = JSON.parse(detail.data.content)
-      if (parsed && Array.isArray(parsed.blocks)) content = parsed as OutputData
-    } catch {
-      /* malformed — start blank */
+    const read = readNoteContent(detail.data.content)
+    // Not an Editor.js document: appending would replace whatever it holds.
+    if (read.kind === 'unreadable') {
+      log.warn('watch note content is unreadable; leaving it untouched', existingId)
+      return null
     }
+    const content = read.kind === 'document' ? (read.data as OutputData) : emptyDoc()
     return { id: existingId, content, created: false }
   }
 
   // Create a fresh note in the ASuser group, titled + seeded with a heading and notice.
-  const created = await api().create()
+  const created = await api.create()
   if (!created.ok) {
     log.warn('failed to create watch note', created.error)
     return null
   }
   const id = created.data
-  const titleRes = await api().updateTitle(id, title, groupId)
-  if (!titleRes.ok) log.warn('failed to title watch note', titleRes.error)
+  // An untitled note outside the group would never be found again, and the
+  // next open would create another: remove it instead of keeping it.
+  const abandon = async (step: string, error: string): Promise<null> => {
+    log.warn(`failed to ${step} watch note`, error)
+    const removed = await api.delete(id)
+    if (!removed.ok) log.warn('could not remove the unfinished watch note', id, removed.error)
+    return null
+  }
+  const titleRes = await api.updateTitle(id, title, groupId)
+  if (!titleRes.ok) return abandon('title', titleRes.error)
   const content: OutputData = {
     time: Date.now(),
     blocks: [
@@ -113,8 +134,19 @@ async function findOrCreateNote(
     ],
     version: EDITORJS_DOC_VERSION,
   } as OutputData
-  await api().updateContent(id, JSON.stringify(content))
+  const seeded = await api.updateContent(id, JSON.stringify(content))
+  if (!seeded.ok) return abandon('seed', seeded.error)
   return { id, content, created: true }
+}
+
+/** One content write. A refused write is logged: the envelope resolves, it does not throw. */
+async function save(tabId: string, noteId: number, content: string): Promise<void> {
+  try {
+    const res = await watchNoteApi(tabId).updateContent(noteId, content)
+    if (!res.ok) log.warn('watch note save failed', res.error)
+  } catch (err) {
+    log.warn('watch note save failed', err)
+  }
 }
 
 /** Debounced persist of an entry's working content (background-tab path). */
@@ -126,9 +158,7 @@ function scheduleSave(entry: YanhektWatchNoteEntry): void {
     setTimeout(() => {
       saveTimers.delete(entry.tabId)
       if (entry.noteId == null) return
-      void api()
-        .updateContent(entry.noteId, JSON.stringify(entry.content))
-        .catch((err) => log.warn('watch note save failed', err))
+      void save(entry.tabId, entry.noteId, JSON.stringify(entry.content))
     }, SAVE_DEBOUNCE_MS),
   )
 }
@@ -140,7 +170,7 @@ async function appendSlide(entry: YanhektWatchNoteEntry, dataUrl: string, pngFil
   let url: string
   try {
     const bytes = await (await fetch(dataUrl)).arrayBuffer()
-    const up = await api().uploadImage(bytes, pngFilename, 'image/png')
+    const up = await watchNoteApi(entry.tabId).uploadImage(bytes, pngFilename, 'image/png')
     if (!up.ok) {
       log.warn('watch slide upload failed', up.error)
       return
@@ -163,7 +193,9 @@ async function appendSlide(entry: YanhektWatchNoteEntry, dataUrl: string, pngFil
 
 export const yanhektWatchSink: WatchNotesSink<YanhektWatchNoteEntry> = {
   async open(entry) {
-    const result = await findOrCreateNote(entry.displayName, entry.identity)
+    // A fresh open binds the tab to whoever is signed in now.
+    apis.delete(entry.tabId)
+    const result = await findOrCreateNote(watchNoteApi(entry.tabId), entry.displayName, entry.identity)
     if (!result) {
       entry.status = 'error'
       return
@@ -196,6 +228,7 @@ export const yanhektWatchSink: WatchNotesSink<YanhektWatchNoteEntry> = {
     if (timer) clearTimeout(timer)
     saveTimers.delete(tabId)
     appendChains.delete(tabId)
+    apis.delete(tabId)
   },
 }
 
@@ -215,8 +248,6 @@ export function commitEditorContent(entry: YanhektWatchNoteEntry, content: Outpu
     const existing = saveTimers.get(entry.tabId)
     if (existing) clearTimeout(existing)
     saveTimers.delete(entry.tabId)
-    void api()
-      .updateContent(entry.noteId, JSON.stringify(content))
-      .catch((err) => log.warn('watch note flush failed', err))
+    void save(entry.tabId, entry.noteId, JSON.stringify(content))
   }
 }
