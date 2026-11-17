@@ -642,6 +642,9 @@
     "sizeSmaller": "Smaller thumbnails",
     "sizeLarger": "Larger thumbnails",
     "prevSlide": "Previous slide",
-    "nextSlide": "Next slide"
+    "nextSlide": "Next slide",
+    "storeOutdatedTitle": "AutoSlides Was Updated in Another Tab",
+    "storeOutdatedMessage": "This tab can no longer save slides. Reload it to continue.",
+    "reload": "Reload"
   }
 }

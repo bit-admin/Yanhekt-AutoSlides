@@ -642,6 +642,9 @@
     "sizeSmaller": "缩小缩略图",
     "sizeLarger": "放大缩略图",
     "prevSlide": "上一张",
-    "nextSlide": "下一张"
+    "nextSlide": "下一张",
+    "storeOutdatedTitle": "AutoSlides 已在另一个标签页中更新",
+    "storeOutdatedMessage": "此标签页无法再保存幻灯片。重新加载后即可继续。",
+    "reload": "重新加载"
   }
 }

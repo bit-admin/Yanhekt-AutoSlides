@@ -109,7 +109,37 @@ function upgradeSchema(db: IDBDatabase, oldVersion: number): void {
   }
 }
 
-const getDb = createConnection((onClosed) => openDatabase(DB_NAME, DB_VERSION, upgradeSchema, onClosed));
+let outdatedListener: (() => void) | null = null;
+let outdated = false;
+
+function markOutdated(): void {
+  if (outdated) return;
+  outdated = true;
+  outdatedListener?.();
+}
+
+/**
+ * Called once when a newer version of the app (in another tab) has taken the
+ * slide store over: this tab's connection was closed for its upgrade, or the
+ * store is already newer than this code. Saving slides fails from then on
+ * until the page is reloaded.
+ */
+export function onSlideStoreOutdated(listener: () => void): void {
+  outdatedListener = listener;
+  if (outdated) listener();
+}
+
+const getDb = createConnection(async (onClosed) => {
+  try {
+    return await openDatabase(DB_NAME, DB_VERSION, upgradeSchema, (reason) => {
+      if (reason === 'versionchange') markOutdated();
+      onClosed(reason);
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'VersionError') markOutdated();
+    throw error;
+  }
+});
 
 export function slideId(folder: string, filename: string): string {
   return `${folder}/${filename}`;

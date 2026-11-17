@@ -31,7 +31,7 @@ export function openDatabase(
   name: string,
   version: number,
   upgrade: (db: IDBDatabase, oldVersion: number) => void,
-  onClosed?: () => void,
+  onClosed?: (reason: 'versionchange' | 'closed') => void,
 ): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     let gaveUp = false;
@@ -46,16 +46,16 @@ export function openDatabase(
         return;
       }
       let closed = false;
-      const close = () => {
+      const close = (reason: 'versionchange' | 'closed') => {
         if (closed) return;
         closed = true;
-        onClosed?.();
+        onClosed?.(reason);
       };
       db.onversionchange = () => {
         db.close();
-        close();
+        close('versionchange');
       };
-      db.onclose = close;
+      db.onclose = () => close('closed');
       resolve(db);
     };
     request.onerror = () => reject(request.error ?? new Error(`Failed to open database ${name}`));
@@ -71,7 +71,7 @@ export function openDatabase(
  * failed open or once the connection was closed (`openDatabase`'s
  * `onClosed`); a closed one is never handed out.
  */
-export function createConnection(open: (onClosed: () => void) => Promise<IDBDatabase>): () => Promise<IDBDatabase> {
+export function createConnection(open: (onClosed: (reason: 'versionchange' | 'closed') => void) => Promise<IDBDatabase>): () => Promise<IDBDatabase> {
   let current: Promise<IDBDatabase> | null = null;
   return () => {
     if (!current) {

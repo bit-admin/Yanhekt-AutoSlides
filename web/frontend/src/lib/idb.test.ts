@@ -35,6 +35,7 @@ describe('openDatabase', () => {
     db.onclose!();
     expect(db.close).toHaveBeenCalledTimes(1);
     expect(onClosed).toHaveBeenCalledTimes(1);
+    expect(onClosed).toHaveBeenCalledWith('versionchange');
   });
 
   it('closes a connection that arrives after the open was reported blocked', async () => {
@@ -47,17 +48,27 @@ describe('openDatabase', () => {
   });
 });
 
+it('says the browser closed it, not an upgrade, when that is what happened', async () => {
+  const { db, request } = fakeOpen();
+  const onClosed = vi.fn();
+  const opening = openDatabase('t', 1, () => {}, onClosed);
+  request.onsuccess!();
+  await opening;
+  db.onclose!();
+  expect(onClosed).toHaveBeenCalledWith('closed');
+});
+
 describe('createConnection', () => {
   it('opens again once the shared connection was closed', async () => {
-    const closers: Array<() => void> = [];
-    const open = vi.fn(async (onClosed: () => void) => {
+    const closers: Array<(reason: 'versionchange' | 'closed') => void> = [];
+    const open = vi.fn(async (onClosed: (reason: 'versionchange' | 'closed') => void) => {
       closers.push(onClosed);
       return { n: closers.length } as unknown as IDBDatabase;
     });
     const get = createConnection(open);
     const first = await get();
     expect(await get()).toBe(first);
-    closers[0]();
+    closers[0]('versionchange');
     const second = await get();
     expect(second).not.toBe(first);
     expect(open).toHaveBeenCalledTimes(2);
@@ -71,16 +82,16 @@ describe('createConnection', () => {
   });
 
   it('does not let a late close of an old connection drop the new one', async () => {
-    const closers: Array<() => void> = [];
-    const open = vi.fn(async (onClosed: () => void) => {
+    const closers: Array<(reason: 'versionchange' | 'closed') => void> = [];
+    const open = vi.fn(async (onClosed: (reason: 'versionchange' | 'closed') => void) => {
       closers.push(onClosed);
       return { n: closers.length } as unknown as IDBDatabase;
     });
     const get = createConnection(open);
     await get();
-    closers[0]();
+    closers[0]('versionchange');
     const second = await get();
-    closers[0]();
+    closers[0]('versionchange');
     expect(await get()).toBe(second);
   });
 });

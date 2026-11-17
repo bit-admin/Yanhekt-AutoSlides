@@ -107,6 +107,9 @@ import MobileMoreSheet from './components/MobileMoreSheet.vue'
 import { noticeStore } from './stores/noticeStore'
 import { playbackStore } from './stores/playbackStore'
 import { navigationStore, type NavTarget } from './stores/navigationStore'
+import { dialogStore } from './stores/dialogStore'
+import { onSlideStoreOutdated } from './lib/slideStore'
+import { i18n } from './i18n'
 
 const { isSidebarCollapsed, activeNav, navigate } = navigationStore
 
@@ -136,6 +139,17 @@ const checkMobile = () => {
 onMounted(() => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
+  // A newer AutoSlides in another tab upgraded the slide store: this one can
+  // no longer save, so ask to reload it.
+  onSlideStoreOutdated(async () => {
+    const t = i18n.global.t
+    const reload = await dialogStore.confirm({
+      title: t('slides.storeOutdatedTitle'),
+      message: t('slides.storeOutdatedMessage'),
+      confirmText: t('slides.reload'),
+    })
+    if (reload) window.location.reload()
+  })
 })
 
 onUnmounted(() => {
