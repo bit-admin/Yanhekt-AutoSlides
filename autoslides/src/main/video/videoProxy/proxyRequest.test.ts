@@ -106,3 +106,31 @@ describe('fetchRecordedWithResign', () => {
     expect(headers.Host).toBe('cvideo.yanhekt.cn');
   });
 });
+
+describe('a player that hangs up', () => {
+  beforeEach(() => axiosGet.mockReset());
+
+  it('ends a 403 retry wait at once and signs nothing more', async () => {
+    const auth = makeAuth();
+    axiosGet.mockResolvedValue(response(403));
+    const controller = new AbortController();
+    const run = fetchRecordedWithResign(auth, 'https://cvideo.yanhekt.cn/a.ts', {
+      ...options(),
+      backoffMs: 60_000,
+      signal: controller.signal,
+    }).then(() => 'answered', (error: Error) => error.name);
+    await vi.waitFor(() => expect(axiosGet).toHaveBeenCalledTimes(1));
+    controller.abort();
+    expect(await run).toBe('AbortError');
+    expect(axiosGet).toHaveBeenCalledTimes(1);
+  });
+
+  it('passes the signal to the upstream request', async () => {
+    const auth = makeAuth();
+    axiosGet.mockResolvedValue(response(200));
+    const controller = new AbortController();
+    await fetchRecordedWithResign(auth, 'https://cvideo.yanhekt.cn/a.ts', { ...options(), signal: controller.signal });
+    expect(axiosGet.mock.calls[0][1].signal).toBe(controller.signal);
+  });
+});
+

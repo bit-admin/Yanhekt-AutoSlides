@@ -54,3 +54,20 @@ export function rewriteM3u8TsUrls(
 
   return result.join('\n');
 }
+
+/**
+ * True for an http(s) address on a Yanhekt host. The Yanhekt media routes are
+ * handed public Yanhekt URLs only (the intranet route maps them later), so
+ * anything else is refused rather than fetched: a signed recorded request
+ * carries the account's video token.
+ */
+export function isYanhektMediaUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.toLowerCase();
+    return (u.protocol === 'https:' || u.protocol === 'http:') && (host === 'yanhekt.cn' || host.endsWith('.yanhekt.cn'));
+  } catch {
+    return false;
+  }
+}
+

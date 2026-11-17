@@ -1,4 +1,5 @@
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { abortableDelay } from './requestLifetime';
 import { intranetRequest, type IntranetAgents } from '@main/infra/intranetTransport';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { ProxyAuth } from './proxyAuth';
@@ -54,13 +55,15 @@ export async function signRecordedUrl(
  */
 export function buildAxiosConfig(
   headers: Record<string, string>,
-  opts: { timeout: number; responseType?: 'stream' }
+  opts: { timeout: number; responseType?: 'stream'; signal?: AbortSignal }
 ): AxiosRequestConfig {
   const config: AxiosRequestConfig = {
     headers,
     timeout: opts.timeout,
     validateStatus: (status: number) => status < 500 // Accept all status codes below 500
   };
+  // The player's request: when it hangs up, so does the upstream one.
+  if (opts.signal) config.signal = opts.signal;
   if (opts.responseType) {
     config.responseType = opts.responseType;
   }
@@ -94,6 +97,8 @@ export interface ResignFetchOptions {
   backoffMs: number;
   maxRetries?: number;
   log?: (message: string) => void;
+  /** The player's request (`requestLifetime`): ends the request and any retry wait. */
+  signal?: AbortSignal;
 }
 
 /** Best-effort teardown of a streamed 403 body so the socket is released before retrying. */
@@ -130,13 +135,14 @@ export async function fetchRecordedWithResign(
   let attempt = 0;
 
   while (true) {
+    if (opts.signal?.aborted) await abortableDelay(0, opts.signal);
     const { requestUrl, headers } = await signRecordedUrl(auth, rawUrl, opts.baseHeaders);
     Object.assign(headers, opts.extraHeaders);
     const response = await getAlongRoute(
       requestUrl,
       opts.intranetMapping,
       opts.agents(),
-      buildAxiosConfig(headers, { timeout: opts.timeout, responseType: opts.responseType })
+      buildAxiosConfig(headers, { timeout: opts.timeout, responseType: opts.responseType, signal: opts.signal })
     );
 
     if (response.status !== 403) {
@@ -148,7 +154,8 @@ export async function fetchRecordedWithResign(
     if (attempt < maxRetries) {
       attempt++;
       opts.log?.(`Recorded request got 403, re-minting token and retrying (${attempt}/${maxRetries}) for: ${rawUrl}`);
-      await new Promise<void>(resolve => setTimeout(resolve, opts.backoffMs * attempt));
+      // A closed player ends the wait instead of signing again for nobody.
+      await abortableDelay(opts.backoffMs * attempt, opts.signal);
       continue;
     }
 
