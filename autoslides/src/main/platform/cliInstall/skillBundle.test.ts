@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { skillDigest, syncSkill } from './skillBundle';
 
 let root: string;
@@ -22,6 +22,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -67,5 +68,38 @@ describe('syncSkill', () => {
 
   it('treats the repo folder itself as current (dev builds)', () => {
     expect(syncSkill(source, source)).toBe('current');
+  });
+
+  it('keeps the old copy when the new one cannot be moved into place', () => {
+    syncSkill(source, target);
+    write(source, 'SKILL.md', '---\nname: autoslides-cli\n---\nnew\n');
+    const rename = fs.renameSync;
+    vi.spyOn(fs, 'renameSync').mockImplementation((from, to) => {
+      if (String(from).includes('.staging-')) throw Object.assign(new Error('busy'), { code: 'EBUSY' });
+      rename(from, to);
+    });
+    expect(() => syncSkill(source, target)).toThrow('busy');
+    expect(fs.readFileSync(path.join(target, 'SKILL.md'), 'utf8')).not.toContain('new');
+    expect(fs.readdirSync(path.dirname(target))).toEqual(['autoslides-cli']);
+  });
+
+  it('puts back a copy an interrupted update left aside', () => {
+    syncSkill(source, target);
+    fs.renameSync(target, `${target}.previous`);
+    write(source, 'SKILL.md', '---\nname: autoslides-cli\n---\nnew\n');
+    expect(syncSkill(source, target)).toBe('copied');
+    expect(fs.readFileSync(path.join(target, 'SKILL.md'), 'utf8')).toContain('new');
+    expect(fs.readdirSync(path.dirname(target))).toEqual(['autoslides-cli']);
+  });
+
+  it('never removes the copy before the new one is complete', () => {
+    syncSkill(source, target);
+    write(source, 'SKILL.md', '---\nname: autoslides-cli\n---\nnew\n');
+    vi.spyOn(fs, 'cpSync').mockImplementation(() => {
+      throw new Error('disk full');
+    });
+    expect(() => syncSkill(source, target)).toThrow('disk full');
+    expect(fs.existsSync(path.join(target, 'SKILL.md'))).toBe(true);
+    expect(fs.readdirSync(path.dirname(target))).toEqual(['autoslides-cli']);
   });
 });
