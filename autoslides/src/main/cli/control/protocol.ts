@@ -19,6 +19,12 @@ export interface ControlRequest {
   json: boolean;
   /** Whether the client's stderr is a terminal, so progress lines are worth sending. */
   tty: boolean;
+  /**
+   * The AutoSlides version the command came from. The app refuses a command
+   * from another version: its command table may differ from the one the
+   * client parsed and described. Absent from commands older than 5.2.3.
+   */
+  appVersion?: string;
 }
 
 export interface SerializedCliError {
@@ -127,6 +133,7 @@ export function parseRequest(line: string): ControlRequest | null {
     options,
     json: r.json === true,
     tty: r.tty === true,
+    ...(typeof r.appVersion === 'string' && r.appVersion.length > 0 && r.appVersion.length <= 64 ? { appVersion: r.appVersion } : {}),
   };
 }
 

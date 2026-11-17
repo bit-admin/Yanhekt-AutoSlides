@@ -480,6 +480,7 @@ const cliControlServer = new CliControlServer({
   enrolledCoursesService,
   renderer: cliControlBridge,
   commands: APP_COMMANDS,
+  version: app.getVersion(),
 });
 
 const windowManager = new WindowManager();

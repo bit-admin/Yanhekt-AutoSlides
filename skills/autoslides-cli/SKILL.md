@@ -35,7 +35,7 @@ Progress and notices go to stderr; ignore them or show them to the user. Branch 
 | 3 | `not_found`, `no_recording`, `expired`, `term_unavailable` | wrong id, the session has no recording yet, an earlier-term session that the course index on this computer or its course's session list cannot supply, or the course index does not hold that term; do not retry unchanged |
 | 4 | `sign_in_required` (autoslides), `auth_required` (yhdl) | ask the user to sign in to Yanhekt in the AutoSlides window, then run it again |
 | 5 | `network` | Yanhekt or the AutoSlides Index could not be reached; check the connection or `connection_mode` |
-| 6 | `app_not_running`, `cli_control_disabled` | the app could not start, or the user turned off Allow Command-Line Control; ask the user |
+| 6 | `app_not_running`, `cli_control_disabled`, `app_version_mismatch` | the app could not start, the user turned off Allow Command-Line Control, or the running app is another version than the command (an update waiting for a restart); ask the user |
 | 130 | `interrupted` | stopped by Ctrl-C. An `autoslides` download keeps going in the app |
 
 `autoslides schema` (or `yhdl schema`) prints every command, option, data shape and code as JSON. Use it as the source of truth if anything here disagrees.

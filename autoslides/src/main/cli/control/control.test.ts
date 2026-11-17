@@ -207,6 +207,7 @@ describe('a command sent to the app', () => {
       enrolledCoursesService: {} as never,
       renderer: {} as never,
       commands: { echo },
+      version: 'test',
     });
     server.applyConfig();
     for (let i = 0; i < 50 && !fs.existsSync(socketPath) && process.platform !== 'win32'; i++) {
@@ -295,6 +296,24 @@ describe('a command sent to the app', () => {
     expect(results).toHaveLength(1);
     return results[0] as Extract<ControlMessage, { type: 'result' }>;
   };
+
+  it('refuses a command from another version of AutoSlides, without running it', async () => {
+    const result = resultOf(await sendRaw([encodeLine(request({ appVersion: '9.9.9' }))]));
+    expect(result.error?.code).toBe('app_version_mismatch');
+    expect(result.error?.message).toContain('9.9.9');
+    expect(result.error?.message).toContain('test');
+    expect(served).toBe(0);
+  });
+
+  it('sends its own version, which the same app accepts', async () => {
+    const result = await runInApp('echo', input(['a']), ctx());
+    expect(result.error).toBeUndefined();
+  });
+
+  it('still serves a request that names no version (an older command)', async () => {
+    const result = resultOf(await sendRaw([encodeLine(request())]));
+    expect(result.error).toBeUndefined();
+  });
 
   it('reads a request whose Chinese arrives split between chunks', async () => {
     const bytes = Buffer.from(encodeLine(request({ positionals: ['合成课程📘'] })));

@@ -32,6 +32,8 @@ export interface CliControlServerDeps {
   enrolledCoursesService: EnrolledCoursesService;
   renderer: RendererBridge;
   commands: Readonly<Record<string, AppCommand>>;
+  /** This app's version; a command sent from another version is refused. */
+  version: string;
 }
 
 export class CliControlServer {
@@ -131,6 +133,15 @@ export class CliControlServer {
     const request = parseRequest(line);
     if (!request) {
       const error = new CliError('usage', 'AutoSlides did not understand the request', 'The command and the app may be from different versions; reinstall the commands in Settings > Add-ons.');
+      this.send(socket, { type: 'result', error: error.toJSON() });
+      return;
+    }
+    if (request.appVersion !== undefined && request.appVersion !== this.deps.version) {
+      const error = new CliError(
+        'app_version_mismatch',
+        `the running AutoSlides is version ${this.deps.version}, but this command is from version ${request.appVersion}`,
+        'Quit AutoSlides and open it again (an update finishes on restart), then run the command again.',
+      );
       this.send(socket, { type: 'result', error: error.toJSON() });
       return;
     }
