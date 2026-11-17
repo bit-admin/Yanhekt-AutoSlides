@@ -1132,7 +1132,14 @@ export interface ElectronAPI {
     ) => Promise<
       | { success: true; mode: 'single'; format: 'pdf' | 'pptx'; path: string }
       | { success: true; mode: 'batch'; format: 'pdf' | 'pptx'; outputDir: string; paths: string[] }
-      | { success: false; error?: string }
+      | {
+          success: false;
+          error?: string;
+          /** Batch only: the folder that failed, and the files made before it (kept). */
+          failedFolder?: string;
+          outputDir?: string;
+          paths?: string[];
+        }
     >;
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
   };

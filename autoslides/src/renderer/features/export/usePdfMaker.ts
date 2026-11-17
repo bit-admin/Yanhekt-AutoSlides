@@ -39,7 +39,7 @@ export interface PdfMakeOptions {
 export type PdfMakeResult =
   | { success: true; mode: 'single'; format: SlidesOutputFormat; path: string }
   | { success: true; mode: 'batch'; format: SlidesOutputFormat; outputDir: string; paths: string[] }
-  | { success: false; error?: string }
+  | { success: false; error?: string; failedFolder?: string; outputDir?: string; paths?: string[] }
 
 const SIZE_OPTIONS_16_9 = ['1920x1080', '1600x900', '1280x720', '960x540', '854x480']
 const SIZE_OPTIONS_4_3 = ['1440x1080', '1200x900', '960x720', '720x540', '640x480']

@@ -446,11 +446,19 @@ export class QtExtractorService {
       stdout.on('line', handle);
       stderr.on('line', handle);
 
+      // Settle once. 'close' (not 'exit') is the finish line: it fires after
+      // stdout and stderr have ended, so the last NDJSON line ("done") has been
+      // read. 'exit' can come first while that line is still in the pipe.
+      let finished = false;
       child.on('error', (err) => {
+        if (finished) return;
+        finished = true;
         reject(err);
       });
 
-      child.on('exit', (code) => {
+      child.on('close', (code) => {
+        if (finished) return;
+        finished = true;
         // A process killed outright (Windows, or one that does not handle the
         // signal) exits without saying "cancelled"; the request itself counts.
         if (cancelled || job.cancelled || code === 130 || code === 143) {
