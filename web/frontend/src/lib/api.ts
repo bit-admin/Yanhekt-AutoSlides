@@ -7,6 +7,7 @@
 import { parseUserProgress, progressBucket, resumePositionFor } from "./watchProgress";
 import { cached, invalidate } from "./requestCache";
 import { indexSessionIds } from "./indexApi";
+import { identityKey } from "./identityKey";
 
 
 export interface UserData {
@@ -321,12 +322,12 @@ export function ttlFor(path: string): number {
 }
 
 /**
- * Cache key for a GET. The token rides in it (truncated — this is a cache key,
- * not a credential) so switching accounts can never be served the previous
- * account's data; sign-out additionally clears the whole cache.
+ * Cache key for a GET. The account rides in it (`identityKey`: a number per
+ * token, never the token's text) so one account can never be served
+ * another's data; sign-out additionally clears the whole cache.
  */
 function cacheKey(path: string, token: string | null): string {
-  return `GET ${path}|${token ? token.slice(0, 8) : "anon"}`;
+  return `GET ${path}|${identityKey(token)}`;
 }
 
 /**
@@ -746,7 +747,7 @@ async function sessionsFromIndex(courseId: string, token: string): Promise<Sessi
 }
 
 function readSessionsFromIndex(courseId: string, token: string): Promise<SessionData[]> {
-  return cached(`INDEX sessions ${courseId}|${token.slice(0, 8)}`, 5 * 60 * 1000, async () => {
+  return cached(`INDEX sessions ${courseId}|${identityKey(token)}`, 5 * 60 * 1000, async () => {
     const ids = await indexSessionIds(courseId);
     const rows: Array<SessionData | null> = new Array(ids.length).fill(null);
     let next = 0;

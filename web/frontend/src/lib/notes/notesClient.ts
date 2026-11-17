@@ -22,6 +22,7 @@ import type {
 } from './notesTypes';
 import { createLogger } from '../logger';
 import { coalesce, invalidate } from '../requestCache';
+import { identityKey } from '../identityKey';
 
 const log = createLogger('NotesClient');
 
@@ -128,7 +129,7 @@ async function request<T>(method: string, path: string, body?: Record<string, un
   }
   // Key on the token so an account switch cannot join another account's read.
   const token = authStore.token.value ?? '';
-  return coalesce(`${NOTE_READ_PREFIX}${path}|${token.slice(0, 8)}`, () =>
+  return coalesce(`${NOTE_READ_PREFIX}${path}|${identityKey(token)}`, () =>
     send<T>(method, path, body),
   );
 }
