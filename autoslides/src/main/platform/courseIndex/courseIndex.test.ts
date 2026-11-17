@@ -161,3 +161,58 @@ describe('ageOpen', () => {
     await expect(openAgeGz(Buffer.from(INDEXER_FILE.file, 'base64'), ME.identity)).rejects.toThrow();
   });
 });
+
+describe('LocalCourseIndex with a damaged copy', () => {
+  // Two copies of one release: `dir` as the download, a second folder as the bundle.
+  async function twoCopies(): Promise<{ manifest: ClientManifest; bundledDir: string }> {
+    const manifest = await writeBundle();
+    const bundledDir = fs.mkdtempSync(path.join(os.tmpdir(), 'course-index-bundled-'));
+    for (const name of fs.readdirSync(dir)) fs.copyFileSync(path.join(dir, name), path.join(bundledDir, name));
+    return { manifest, bundledDir };
+  }
+  const local = async (bundledDir: string) => {
+    const { LocalCourseIndex } = await import('./courseIndex');
+    return new LocalCourseIndex({ downloadedDir: dir, bundledDir, identity: ME.identity, keys: [signer.entry] });
+  };
+  const truncate = (folder: string, asset: string) => {
+    const file = path.join(folder, asset);
+    fs.writeFileSync(file, fs.readFileSync(file).subarray(0, 20));
+  };
+
+  it('reads a term from the good copy when the preferred one is damaged', async () => {
+    const { manifest, bundledDir } = await twoCopies();
+    const entry = manifest.terms.find((t) => t.term === '2024-2025-1')!;
+    truncate(dir, entry.asset);
+    const index = await local(bundledDir);
+    expect(await index.hasTerm(entry.term)).toBe(true);
+    expect((await index.termCourses(entry.term))?.map((c) => c.id)).toEqual(['101', '102']);
+    expect((await index.terms()).find((t) => t.term === entry.term)?.source).toBe('bundled');
+    fs.rmSync(bundledDir, { recursive: true, force: true });
+  });
+
+  it('does not count a term as held when every copy of it is damaged', async () => {
+    const { manifest, bundledDir } = await twoCopies();
+    const entry = manifest.terms.find((t) => t.term === '2024-2025-2')!;
+    truncate(dir, entry.asset);
+    truncate(bundledDir, entry.asset);
+    const index = await local(bundledDir);
+    expect(await index.hasTerm(entry.term)).toBe(false);
+    expect(await index.heldEntry(entry.term)).toBeNull();
+    expect((await index.terms()).map((t) => t.term)).toEqual(['2024-2025-1']);
+    fs.rmSync(bundledDir, { recursive: true, force: true });
+  });
+
+  it('counts the term again once the download is repaired and the index reset', async () => {
+    const { manifest, bundledDir } = await twoCopies();
+    const entry = manifest.terms.find((t) => t.term === '2024-2025-2')!;
+    const good = fs.readFileSync(path.join(dir, entry.asset));
+    truncate(dir, entry.asset);
+    fs.rmSync(path.join(bundledDir, entry.asset));
+    const index = await local(bundledDir);
+    expect(await index.hasTerm(entry.term)).toBe(false);
+    fs.writeFileSync(path.join(dir, entry.asset), good);
+    index.reset();
+    expect(await index.hasTerm(entry.term)).toBe(true);
+    fs.rmSync(bundledDir, { recursive: true, force: true });
+  });
+});

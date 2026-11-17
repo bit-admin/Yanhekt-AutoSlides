@@ -198,6 +198,9 @@ export class CourseIndexUpdater {
 
     // Only a manifest that names something new replaces the one here.
     const before = await fs.readFile(path.join(this.dir, CLIENT_MANIFEST_ASSET), 'utf8').catch(() => null);
+    // A repaired file under an unchanged manifest still needs the index to
+    // forget that the old file failed its check.
+    if (before === text && downloaded.length > 0) index.reset();
     if (before !== text) {
       await writeAtomic(path.join(this.dir, CLIENT_MANIFEST_ASSET), text);
       const keep = new Set(manifest.terms.map((t) => t.asset));
