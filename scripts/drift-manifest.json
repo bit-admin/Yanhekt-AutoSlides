@@ -13,7 +13,7 @@
     "share/src/lib/term.ts": "2fa20d4e649d13e25ca38350e4d4a2bf61942388050020a024d878a0a3df684d",
     "autoslides/src/shared/notesContent.ts": "6dc289058992c21ae56fd3fce2b41694e8f52fb2a47b281a3785765372a8b815",
     "web/frontend/src/lib/notes/notesContent.ts": "b315133cf9ad11be5cf58d82be69c648458d7115f16f1841e1fbf11af69b24a2",
-    "autoslides/src/shared/notesTypes.ts": "001637ae842ca4d1b6aa685363c380fca5608ec00380123ca94d47e0710d376a",
+    "autoslides/src/shared/notesTypes.ts": "7851bf16c64a0cd7773008b7772f799044f86f4e4bdb059f4f93683a245ef208",
     "web/frontend/src/lib/notes/notesTypes.ts": "419c10dff2207befef9f7dd2e77c6005bf5c718e6290c4394980478faf7e8173",
     "autoslides/src/shared/sanitizeFileName.ts": "f80b77c24fd45f1c26ac1d170b47a8026aa276dbd3fa1124931268cd94eef9ca",
     "web/frontend/src/lib/sanitizeFileName.ts": "109eab0819d187eaaad4f14cd099881d4149aede960a040ba64b89b36ed0c484",

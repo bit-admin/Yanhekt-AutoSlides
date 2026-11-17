@@ -92,6 +92,10 @@ const GROUPS = [
 /** [source, copy]: the copy must be byte-identical to the source. */
 const IDENTICAL = [
   ['autoslides/src/renderer/features/video/streamFallback.ts', 'web/frontend/src/composables/video/streamFallback.ts'],
+  // One note's saves in order, and what counts as readable note content: the
+  // web editor must behave as the desktop one does.
+  ['autoslides/src/renderer/features/cloudNotes/noteSaveChain.ts', 'web/frontend/src/lib/notes/noteSaveChain.ts'],
+  ['autoslides/src/renderer/features/cloudNotes/noteContent.ts', 'web/frontend/src/lib/notes/noteContent.ts'],
   // The share Worker's search must split text exactly as the indexer wrote it.
   ['indexer/src/grams.ts', 'share/src/indexer/grams.ts'],
   // The share tests seed D1 through the indexer's own upload statements.

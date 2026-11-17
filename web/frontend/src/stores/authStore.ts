@@ -50,8 +50,40 @@ const isLoggedIn = computed(() => token.value !== null && userData.value !== nul
 const userNickname = computed(() => userData.value?.nickname ?? "");
 const userId = computed(() => userData.value?.badge ?? "");
 
+/**
+ * Counts identity changes: every stored-token change, so every sign-in,
+ * sign-out and account switch, and a sign-in as the same account again. The
+ * check of the stored token takes the number when it starts and may only
+ * commit (user data, clearing the token, telling the listeners) while it is
+ * still the number: an answer about a token that has since been replaced or
+ * signed out says nothing about who is signed in now. Comparing tokens would
+ * not do: A, B, A is three identities.
+ */
+let identityGeneration = 0;
+/**
+ * Sign-in attempts and sign-outs, for `adoptToken`: the newest attempt owns
+ * the outcome, and a sign-out while one is being verified cancels it. Kept
+ * apart from `identityGeneration` so that the stored-token check finishing
+ * (or dropping a dead stored token) does not cancel a sign-in in progress.
+ */
+let adoptAttempts = 0;
+let signOuts = 0;
+/** How many verifications are running; `isVerifyingToken` is true while any is. */
+let verifications = 0;
+
+function beginVerification(): void {
+  verifications += 1;
+  isVerifyingToken.value = true;
+}
+
+function endVerification(): void {
+  verifications -= 1;
+  if (verifications === 0) isVerifyingToken.value = false;
+}
+
 function storeToken(value: string | null) {
   const previous = token.value;
+  identityGeneration += 1;
   token.value = value;
   if (value === null) {
     localStorage.removeItem(STORAGE_KEY);
@@ -96,9 +128,16 @@ function notifyIdentityReady(): void {
 
 /** Verify + adopt a token (from paste Verify, or password login). */
 async function adoptToken(candidate: string): Promise<{ success: boolean; error?: string }> {
-  isVerifyingToken.value = true;
+  // The newest sign-in attempt owns the outcome: a later one, or a sign-out,
+  // while this is being verified makes it a no-op.
+  const attempt = ++adoptAttempts;
+  const signOutsBefore = signOuts;
+  beginVerification();
   try {
     const result = await verifyToken(candidate);
+    if (attempt !== adoptAttempts || signOutsBefore !== signOuts) {
+      return { success: false, error: "Sign-in was replaced by a newer one" };
+    }
     if (result.valid && result.userData) {
       storeToken(candidate);
       userData.value = result.userData;
@@ -110,7 +149,7 @@ async function adoptToken(candidate: string): Promise<{ success: boolean; error?
       error: result.networkError ? "Network error, please try again" : "Invalid token",
     };
   } finally {
-    isVerifyingToken.value = false;
+    endVerification();
   }
 }
 
@@ -159,9 +198,13 @@ async function hydrateStoredSession(): Promise<void> {
   // the stored session so we don't flash the verifying overlay over the form.
   // adoptToken (on Verify) or a later visit will hydrate as usual.
   if (token.value && !pendingToken.value) {
-    isVerifyingToken.value = true;
+    const generation = identityGeneration;
+    beginVerification();
     try {
       const result = await verifyToken(token.value);
+      // Signed out, or signed in as someone else, while the stored token was
+      // being checked: this answer is about a token that is no longer the one.
+      if (generation !== identityGeneration) return;
       if (result.valid && result.userData) {
         userData.value = result.userData;
         notifyIdentityReady();
@@ -172,7 +215,7 @@ async function hydrateStoredSession(): Promise<void> {
         userData.value = null;
       }
     } finally {
-      isVerifyingToken.value = false;
+      endVerification();
     }
   }
 }
@@ -245,6 +288,8 @@ function cancelSmsChallenge() {
 
 function signOut() {
   const current = token.value;
+  // Counts even with no token to drop: it cancels a sign-in still being verified.
+  signOuts += 1;
   storeToken(null);
   userData.value = null;
   smsChallenge.value = null;

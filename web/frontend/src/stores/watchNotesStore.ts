@@ -5,6 +5,7 @@ import { cloudStorageStore } from './cloudStorageStore';
 import { notesClient } from '../lib/notes/notesClient';
 import { buildManagedNoteTitle, EDITORJS_DOC_VERSION } from '../lib/notes/notesTypes';
 import { NOTE_COPYRIGHT } from '../lib/notes/notesContent';
+import { readNoteContent } from '../lib/notes/noteContent';
 import {
   formatToolFolderName,
   parseLectureIds,
@@ -143,13 +144,15 @@ async function findOrCreateNote(
   if (existingId != null) {
     const detail = await notesClient.get(existingId);
     if (!detail.ok) return null;
-    let content = emptyDoc();
-    try {
-      const parsed = JSON.parse(detail.data.content);
-      if (parsed && Array.isArray(parsed.blocks)) content = parsed as OutputData;
-    } catch {
-      /* malformed — start blank */
+    const read = readNoteContent(detail.data.content);
+    // Content this cannot read is not an empty note: appending a slide would
+    // save a fresh document over it. The note is left alone and the watch
+    // note fails for this lecture.
+    if (read.kind === 'unreadable') {
+      log.warn('existing watch note has content that cannot be read; leaving it untouched');
+      return null;
     }
+    const content = read.kind === 'document' ? (read.data as unknown as OutputData) : emptyDoc();
     return { id: existingId, content, created: false };
   }
 
@@ -160,8 +163,6 @@ async function findOrCreateNote(
     return null;
   }
   const id = created.data;
-  const titleRes = await notesClient.updateTitle(id, title, groupId);
-  if (!titleRes.ok) log.warn('failed to title watch note', titleRes.error);
   const content: OutputData = {
     time: Date.now(),
     blocks: [
@@ -170,8 +171,32 @@ async function findOrCreateNote(
     ],
     version: EDITORJS_DOC_VERSION,
   } as OutputData;
-  await notesClient.updateContent(id, JSON.stringify(content));
+  // A note call resolves with `ok: false` on failure; it does not throw. An
+  // untitled or unseeded note is not a watch note (the next run could not find
+  // it by title), so it is removed and the lecture reports the failure.
+  const titleRes = await notesClient.updateTitle(id, title, groupId);
+  const contentRes = titleRes.ok ? await notesClient.updateContent(id, JSON.stringify(content)) : titleRes;
+  if (!contentRes.ok) {
+    log.warn('failed to set up watch note', contentRes.error);
+    const removed = await notesClient.delete(id);
+    if (!removed.ok) log.warn('could not remove the unfinished watch note', removed.error);
+    return null;
+  }
   return { id, content, created: true };
+}
+
+/**
+ * Write a note's whole content. A failure comes back as `ok: false`, not as a
+ * rejection, so it is read here. The working copy still holds everything, and
+ * each save sends the whole document, so the next one carries what this missed.
+ */
+async function saveEntry(noteId: number, content: OutputData): Promise<void> {
+  try {
+    const res = await notesClient.updateContent(noteId, JSON.stringify(content));
+    if (!res.ok) log.warn('watch note save failed', res.error);
+  } catch (err) {
+    log.warn('watch note save failed', err);
+  }
 }
 
 /** Debounced persist of an entry's working content (no-live-editor path). */
@@ -183,9 +208,7 @@ function scheduleSave(entry: WatchNoteEntry): void {
     setTimeout(() => {
       saveTimers.delete(entry.folder);
       if (entry.noteId == null) return;
-      void notesClient
-        .updateContent(entry.noteId, JSON.stringify(entry.content))
-        .catch((err) => log.warn('watch note save failed', err));
+      void saveEntry(entry.noteId, entry.content);
     }, SAVE_DEBOUNCE_MS),
   );
 }
@@ -389,9 +412,7 @@ export function commitEditorContent(folder: string, content: OutputData): void {
     const existing = saveTimers.get(folder);
     if (existing) clearTimeout(existing);
     saveTimers.delete(folder);
-    void notesClient
-      .updateContent(entry.noteId, JSON.stringify(content))
-      .catch((err) => log.warn('watch note flush failed', err));
+    void saveEntry(entry.noteId, content);
   }
 }
 
