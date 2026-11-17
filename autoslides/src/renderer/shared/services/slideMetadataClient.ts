@@ -130,7 +130,8 @@ export async function readExtractionSsimThreshold(folderPath: string): Promise<n
 /** Record the post-processing outcome for a folder (no-op if no metadata.json). */
 export async function recordPostProcessing(folderPath: string, pp: SlidePostProcessingMeta): Promise<void> {
   try {
-    await window.electronAPI.slideMetadata.updatePostProcessing(folderPath, pp);
+    // JSON copy: a caller may hand over reactive state, which IPC cannot clone (Recurring #1).
+    await window.electronAPI.slideMetadata.updatePostProcessing(folderPath, JSON.parse(JSON.stringify(pp)));
   } catch (error) {
     log.warn('Failed to record post-processing metadata:', error);
   }
