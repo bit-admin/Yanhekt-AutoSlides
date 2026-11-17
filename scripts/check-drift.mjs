@@ -101,6 +101,9 @@ const IDENTICAL = [
   ['autoslides/src/shared/noteUngroup.ts', 'web/frontend/src/lib/notes/noteUngroup.ts'],
   // A worker request always ends, the same way on both sides.
   ['autoslides/src/renderer/shared/workers/workerRequests.ts', 'web/frontend/src/workers/workerRequests.ts'],
+  // Behaviour cases both watch-progress copies must pass (each package runs
+  // them against its own copy, so a rule changed on one side fails there).
+  ['autoslides/src/shared/watchProgress.cases.json', 'web/frontend/src/lib/watchProgress.cases.json'],
   // The share Worker's search must split text exactly as the indexer wrote it.
   ['indexer/src/grams.ts', 'share/src/indexer/grams.ts'],
   // The share tests seed D1 through the indexer's own upload statements.

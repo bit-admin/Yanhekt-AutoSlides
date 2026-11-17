@@ -1,0 +1,31 @@
+{
+  "about": "Behaviour both copies of watchProgress must have (desktop @common/watchProgress, web lib/watchProgress). This file is copied byte for byte into web; scripts/check-drift.mjs enforces it, and each package's test runs every case against its own copy. Change a rule here first, then in both copies. Values are made up.",
+  "version": 1,
+  "parseUserProgress": [
+    { "name": "an unwatched session answers []", "raw": [], "expected": null },
+    { "name": "a missing field", "raw": null, "expected": null },
+    { "name": "numbers as strings", "raw": { "progress_current": "125", "progress_overall": "5400" }, "expected": { "current": 125, "overall": 5400 } },
+    { "name": "numbers as numbers", "raw": { "progress_current": 60, "progress_overall": 3600 }, "expected": { "current": 60, "overall": 3600 } },
+    { "name": "no overall reads as 0", "raw": { "progress_current": "30" }, "expected": { "current": 30, "overall": 0 } },
+    { "name": "a current that does not parse", "raw": { "progress_current": "soon", "progress_overall": "3600" }, "expected": null },
+    { "name": "a negative current", "raw": { "progress_current": -5, "progress_overall": 3600 }, "expected": null },
+    { "name": "a negative overall reads as 0", "raw": { "progress_current": 40, "progress_overall": -1 }, "expected": { "current": 40, "overall": 0 } }
+  ],
+  "resumePositionFor": [
+    { "name": "no history", "progress": null, "expected": null },
+    { "name": "under 10 s starts at 0", "progress": { "current": 9, "overall": 3600 }, "expected": null },
+    { "name": "10 s resumes", "progress": { "current": 10, "overall": 3600 }, "expected": 10 },
+    { "name": "within 15 s of the end starts at 0", "progress": { "current": 3585, "overall": 3600 }, "expected": null },
+    { "name": "just before the end margin resumes", "progress": { "current": 3584, "overall": 3600 }, "expected": 3584 },
+    { "name": "unknown length only has the low bound", "progress": { "current": 99999, "overall": 0 }, "expected": 99999 }
+  ],
+  "progressBucket": [
+    { "seconds": 0, "expected": 0 },
+    { "seconds": -3, "expected": 0 },
+    { "seconds": 4.99, "expected": 0 },
+    { "seconds": 5, "expected": 5 },
+    { "seconds": 127.4, "expected": 125 },
+    { "seconds": "NaN", "expected": 0 },
+    { "seconds": "Infinity", "expected": 0 }
+  ]
+}

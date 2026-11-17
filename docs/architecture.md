@@ -19,7 +19,7 @@ Each package has its own `package.json` / lockfile. Commands always run **inside
 ## Table of contents
 
 1. [Repository layout](#1-repository-layout)
-2. [How the four packages fit together](#2-how-the-four-packages-fit-together)
+2. [How the five packages fit together](#2-how-the-five-packages-fit-together)
 3. [Conventions every package shares](#3-conventions-every-package-shares)
 4. [Deliberate copies and the drift checker](#4-deliberate-copies-and-the-drift-checker)
 5. [`autoslides/` — Electron desktop](#5-autoslides--electron-desktop)
@@ -69,7 +69,7 @@ cp wrangler.example.jsonc wrangler.jsonc   # then fill in your zone / ids
 
 ---
 
-## 2. How the four packages fit together
+## 2. How the five packages fit together
 
 ```
                     ┌──────────────────────────────────────┐
@@ -102,6 +102,8 @@ cp wrangler.example.jsonc wrangler.jsonc   # then fill in your zone / ids
                        │              │ signed fetch
                        └──────────────┘
 ```
+
+`indexer/` is not drawn: it runs on its own (your machines or GitHub Actions), reads Yanhekt by id without a sign-in, and writes the D1 database `share/`'s Index API reads plus the encrypted per-term files the desktop app downloads.
 
 ### Playback
 
@@ -179,7 +181,7 @@ Yanhekt managed groups (6-char server limit, lookup by reserved name):
 
 ### Commits and versions
 
-Commit subject: `<NN.NN> <area>: <description>` (e.g. `22.26 ci: …`). Increment the patch for routine work. Desktop `autoslides/package.json` version is independent of that sprint counter (currently `5.2.0`). GitHub release tags are `v*`.
+Commit subject: `<NN.NN> <area>: <description>` (e.g. `22.26 ci: …`). Increment the patch for routine work. Desktop `autoslides/package.json` version is independent of that sprint counter (read it there; this page does not repeat it). GitHub release tags are `v*`.
 
 License: Apache-2.0 (`LICENSE`).
 
@@ -240,7 +242,7 @@ Workers have no Node/WebCrypto MD5. `relay/` ships a pure-JS MD5 (`relay/src/md5
 
 ## 5. `autoslides/` — Electron desktop
 
-**Identity.** `package.json` name `autoslides`, productName `AutoSlides`, version `5.2.0`, `main` `.vite/build/main.js`. Electron Forge + Vite; All installers (macOS DMG, Windows NSIS, Linux AppImage/deb) go through `electron-builder.yml` on top of a Forge `--prepackaged` tree. `make:mac` (release workflow) builds an uncompressed DMG and `scripts/dmg-lzma.mjs` converts it to LZMA (ULMO; electron-builder's `dmg.format` does not offer it). `make:mac:local` is the local Mac build: index-bundle, Forge package, DropDMG `AutoSlides` profile, then signs the DMG with the local update key.
+**Identity.** `package.json` name `autoslides`, productName `AutoSlides`, version as in `package.json`, `main` `.vite/build/main.js`. Electron Forge + Vite; All installers (macOS DMG, Windows NSIS, Linux AppImage/deb) go through `electron-builder.yml` on top of a Forge `--prepackaged` tree. `make:mac` (release workflow) builds an uncompressed DMG and `scripts/dmg-lzma.mjs` converts it to LZMA (ULMO; electron-builder's `dmg.format` does not offer it). `make:mac:local` is the local Mac build: index-bundle, Forge package, DropDMG `AutoSlides` profile, then signs the DMG with the local update key.
 
 ### Commands
 
