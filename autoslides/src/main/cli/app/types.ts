@@ -3,7 +3,7 @@ import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import type { SettingsWriter } from '@main/ipc/settingsWriter';
 import type { ConfigService } from '@main/platform/configService';
 import type { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
-import type { RendererBridge } from '../control/rendererBridge';
+import type { AppRenderer } from '../control/rendererBridge';
 import type { CliCommand, CommandInput, CommandResult } from '../types';
 
 /** The client's terminal, reached over the socket. Same calls as `terminal.ts`. */
@@ -29,7 +29,8 @@ export interface AppCommandContext {
   /** Course index search and lookups (Settings → General → Search). */
   courseLookup: CourseLookup;
   enrolledCoursesService: EnrolledCoursesService;
-  renderer: RendererBridge;
+  /** The renderer, with every request bound to `signal`. */
+  renderer: AppRenderer;
   term: AppTerminal;
   /** Aborted when the client goes away (Ctrl-C); work already handed to the app keeps going. */
   signal: AbortSignal;

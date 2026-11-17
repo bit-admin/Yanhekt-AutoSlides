@@ -94,3 +94,32 @@ describe('autoslides download', () => {
     expect(app.output.out).toEqual([]);
   });
 });
+
+describe('autoslides download when the client goes away', () => {
+  it('queues nothing more once the client has left during a lookup', async () => {
+    const abort = new AbortController();
+    const app = fakeApp({ itemId: 'i1', state: 'queued', progress: 0, added: true });
+    const lookup = app.ctx.apiClient.getSessionDownloadInfo.bind(app.ctx.apiClient);
+    (app.ctx.apiClient as unknown as { getSessionDownloadInfo: typeof lookup }).getSessionDownloadInfo = async (...args) => {
+      abort.abort();
+      return lookup(...args);
+    };
+    (app.ctx as { signal: AbortSignal }).signal = abort.signal;
+    const both: CommandInput = { ...input(true), options: { stream: 'both' } };
+    await appDownloadCommand.serve(both, app.ctx);
+    expect(app.calls).not.toContain('queueDownload');
+  });
+
+  it('does not wait for downloads when the client left before following them', async () => {
+    const abort = new AbortController();
+    const app = fakeApp({ itemId: 'i1', state: 'queued', progress: 0, added: true });
+    (app.ctx.renderer as unknown as { watchDownload: () => () => void }).watchDownload = () => {
+      abort.abort();
+      return () => {};
+    };
+    (app.ctx as { signal: AbortSignal }).signal = abort.signal;
+    const done = appDownloadCommand.serve(input(true), app.ctx);
+    const winner = await Promise.race([done.then(() => 'returned'), new Promise((r) => setTimeout(() => r('stuck'), 200))]);
+    expect(winner).toBe('returned');
+  });
+});

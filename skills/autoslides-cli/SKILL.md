@@ -79,7 +79,7 @@ A finished download's `path` is the absolute path of the `.mp4` (`.aac` for audi
 
 - **Sign-in.** Every `autoslides` command that talks to Yanhekt needs the app signed in. `config` and `downloads` (except `retry`) stay inside the app and work signed out. Never ask the user for a token or password, and never pass one to `autoslides`.
 - **Waiting.** `download` and `downloads wait` block until the downloads end, which can take many minutes per lecture. Use `--no-wait` and then `downloads wait` (or `downloads --json` to poll) when you need to do other work meanwhile.
-- **Stopping.** Ctrl-C on `autoslides` only stops waiting. To stop a download, use `downloads cancel <item or session>`.
+- **Stopping.** Ctrl-C on `autoslides` stops waiting and queues nothing more (lectures and streams not yet added are skipped); what is already queued keeps going in the app. To stop a download, use `downloads cancel <item or session>`.
 - **Changing settings.** `autoslides config <key> <value>` saves at once, as if the user pressed Save in Settings, and the app uses it straight away. Change a setting only when the user asks for that change. For a different folder or route on one run, use `yhdl download … -o <dir>` or `--intranet` instead.
 - **Output folder missing.** If `download` fails with "the AutoSlides output folder is not available", ask the user which folder to use, then run `autoslides config output_dir <absolute path>`. The folder must already exist.
 

@@ -19,7 +19,7 @@ import { CliError } from '../errors';
 import type { CommandInput } from '../types';
 import { checkOptions, checkPositionals } from '../validate';
 import { MAX_REQUEST_BYTES, createLineReader, encodeLine, parseRequest, type ControlMessage } from './protocol';
-import type { RendererBridge } from './rendererBridge';
+import { rendererFor, type RendererBridge } from './rendererBridge';
 
 const log = createLogger('CliControl');
 
@@ -155,7 +155,7 @@ export class CliControlServer {
       apiClient: this.deps.apiClient,
       courseLookup: this.deps.courseLookup,
       enrolledCoursesService: this.deps.enrolledCoursesService,
-      renderer: this.deps.renderer,
+      renderer: rendererFor(this.deps.renderer, signal),
       signal,
       term: {
         info: (text) => this.send(socket, { type: 'info', text }),

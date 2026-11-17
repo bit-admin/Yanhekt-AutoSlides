@@ -386,3 +386,27 @@ describe('autoslides on the command line', () => {
     expect(JSON.parse(stdout).error.message).toBe('unknown option: --token');
   });
 });
+
+describe('RendererBridge requests and a client that leaves', () => {
+  it('ends a request still waiting for the window when its signal aborts', async () => {
+    const { RendererBridge } = await import('./rendererBridge');
+    const bridge = new RendererBridge(() => null, () => {});
+    const abort = new AbortController();
+    const asked = bridge.request('signInState', {} as never, abort.signal).then(
+      () => 'answered',
+      (error: { code?: string }) => error.code,
+    );
+    abort.abort();
+    expect(await asked).toBe('interrupted');
+  });
+
+  it('refuses at once when the signal is already aborted, and opens no window', async () => {
+    const { RendererBridge } = await import('./rendererBridge');
+    const openWindow = vi.fn();
+    const bridge = new RendererBridge(() => null, openWindow);
+    const abort = new AbortController();
+    abort.abort();
+    await expect(bridge.request('signInState', {} as never, abort.signal)).rejects.toMatchObject({ code: 'interrupted' });
+    expect(openWindow).not.toHaveBeenCalled();
+  });
+});

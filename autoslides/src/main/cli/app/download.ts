@@ -106,6 +106,7 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
     try {
       lecture = await resolveLecture(target, ctx.apiClient, token);
     } catch (error) {
+      if (ctx.signal.aborted) break;
       const item = unresolvedItem(target.sessionId, error);
       ctx.term.info(`${target.sessionId}: ${item.error?.message}`);
       items.push(item);
@@ -115,6 +116,9 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
     ctx.term.info(`${many ? `[${index + 1}/${targets.length}] ` : ''}${lecture.course.title} · ${lecture.session.title}`);
 
     for (const stream of streams) {
+      // Each stream queues something new: nothing more once the client has left.
+      // What is already queued keeps going in the app.
+      if (ctx.signal.aborted) break;
       const base = itemBase(target, lecture, stream);
       if (!streamUrl(lecture, stream)) {
         const message = `this session has no ${stream} recording`;
