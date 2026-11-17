@@ -72,10 +72,11 @@
       </aside>
 
       <div class="work-pane custom-scrollbar">
-        <p v-if="preset" class="preset-note">
-          <span class="tag">{{ preset.auth === 'auth' ? $t('developer.api.needsToken') : $t('developer.api.anonymous') }}</span>
-          <span v-if="preset.write" class="tag tag--write">{{ $t('developer.api.writes') }}</span>
-          <span class="preset-note-text">{{ preset.note }}</span>
+        <p v-if="preset || writes" class="preset-note">
+          <span v-if="preset" class="tag">{{ preset.auth === 'auth' ? $t('developer.api.needsToken') : $t('developer.api.anonymous') }}</span>
+          <!-- From the request as edited, not from the preset it started as. -->
+          <span v-if="writes" class="tag tag--write">{{ $t('developer.api.writes') }}</span>
+          <span v-if="preset" class="preset-note-text">{{ preset.note }}</span>
         </p>
 
         <section class="panel request-editor">
@@ -233,6 +234,7 @@ const {
   filteredPresets,
   filter,
   preset,
+  writes,
   presetId,
   method,
   urlText,

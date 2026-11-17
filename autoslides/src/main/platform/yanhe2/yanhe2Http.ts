@@ -56,12 +56,12 @@ export type Yanhe2Fetched<T> =
   | { kind: 'failed'; detail?: string };
 
 /** Sends one request; `config.url` is the public URL. */
-export type Yanhe2Send = (config: AxiosRequestConfig & { url: string }) => Promise<AxiosResponse>;
+export type Yanhe2Send = (config: AxiosRequestConfig & { url: string; effect?: 'read' | 'write' }) => Promise<AxiosResponse>;
 
 // Straight to the public host until main installs the shared API transport
 // (`routeYanhe2Through`). Kept as a plain function so this module, and the
 // parsers that import it, load without Electron in unit tests.
-let send: Yanhe2Send = (config) => httpClient.request(config);
+let send: Yanhe2Send = ({ effect: _effect, ...config }) => httpClient.request(config);
 
 /**
  * Send every Yanhe 2.0 JSON request through `sender` from now on. Main passes
@@ -77,10 +77,16 @@ export function routeYanhe2Through(sender: Yanhe2Send): void {
  * aita goes through here, so a new endpoint takes the intranet route without
  * doing anything for it. Returns null when no answer came back.
  */
-export async function getYanhe2Json(jwt: string, url: string): Promise<{ status: number; data: unknown } | null> {
+export async function getYanhe2Json(
+  jwt: string,
+  url: string,
+  effect: 'read' | 'write' = 'read',
+): Promise<{ status: number; data: unknown } | null> {
   try {
     const response = await send({
       method: 'GET',
+      // A write GET is never resent once it may have arrived (see IntranetApiTransport).
+      effect,
       url,
       headers: {
         Authorization: `Bearer ${jwt}`,
@@ -104,26 +110,31 @@ export function readYanhe2(
   path: Yanhe2ReadPath,
   params: Record<string, string>,
 ): Promise<Yanhe2Fetched<unknown>> {
-  return requestYanhe2(jwt, path, params);
+  return requestYanhe2(jwt, path, params, 'read');
 }
 
-/** One call that changes the account (`YANHE2_WRITE_PATHS`), judged like a read. */
+/**
+ * One call that changes the account (`YANHE2_WRITE_PATHS`). Its answer is
+ * judged like a read's; it is sent as a write, so a reply that never came is
+ * not followed by a second request on the public host.
+ */
 export function writeYanhe2(
   jwt: string,
   path: Yanhe2WritePath,
   params: Record<string, string>,
 ): Promise<Yanhe2Fetched<unknown>> {
-  return requestYanhe2(jwt, path, params);
+  return requestYanhe2(jwt, path, params, 'write');
 }
 
 async function requestYanhe2(
   jwt: string,
   path: Yanhe2ReadPath | Yanhe2WritePath,
   params: Record<string, string>,
+  effect: 'read' | 'write',
 ): Promise<Yanhe2Fetched<unknown>> {
   const url = new URL(path, YANHE2_ORIGIN);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-  const response = await getYanhe2Json(jwt, url.toString());
+  const response = await getYanhe2Json(jwt, url.toString(), effect);
   if (!response) return { kind: 'network' };
   // A bad or expired token is a bare 403 with an empty body.
   if (response.status === 401 || response.status === 403) return { kind: 'rejected' };

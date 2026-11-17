@@ -140,6 +140,29 @@ describe('IntranetApiTransport on the intranet route', () => {
     expect(pub.seen.map((r) => r.method)).toEqual(['GET']);
   });
 
+  it('never resends a GET that is declared a write once it may have arrived', async () => {
+    const pub = await serve();
+    const stalled = await serve(true);
+    const transport = new IntranetApiTransport(mappingTo(pub.port, stalled.port));
+
+    await expect(
+      transport.send({ method: 'GET', effect: 'write', url: `${pub.origin}/courseapi/v3/course-collect/down?course_id=1`, timeout: 150 })
+    ).rejects.toMatchObject({ code: 'ECONNABORTED' });
+    expect(stalled.seen.map((r) => r.method)).toEqual(['GET']);
+    expect(pub.seen).toHaveLength(0);
+  });
+
+  it('still retries a write GET whose connection was refused, and waits for the route first', async () => {
+    const pub = await serve();
+    const refused = await closedPort();
+    const mapping = mappingTo(pub.port, refused);
+    const transport = new IntranetApiTransport(mapping);
+    const response = await transport.send({ method: 'GET', effect: 'write', url: `${pub.origin}/courseapi/v3/course-collect/down?course_id=1` });
+    expect(response.status).toBe(200);
+    expect(pub.seen.map((r) => r.method)).toEqual(['GET']);
+    expect(mapping.ensureFresh).toHaveBeenCalled();
+  });
+
   it('waits for a current route before a write, not before a read', async () => {
     const pub = await serve();
     const intranet = await serve();
