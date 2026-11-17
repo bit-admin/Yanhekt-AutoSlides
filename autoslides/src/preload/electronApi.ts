@@ -975,9 +975,11 @@ export interface ElectronAPI {
       success: boolean;
       error?: string;
     }>;
+    /** `notRemoved`: what the reset could not delete; the app must restart either way. */
     resetAllData: () => Promise<{
       success: boolean;
       error?: string;
+      notRemoved?: string[];
     }>;
   };
 
