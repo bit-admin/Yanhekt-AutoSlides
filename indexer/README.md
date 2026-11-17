@@ -389,6 +389,7 @@ npm install && npm run typecheck
 | `src/crawler.ts` | lanes, probes, rounds |
 | `src/store.ts` | SQLite |
 | `src/schema.ts` | local database: every column, listed once; `merge` rules |
+| `src/migrations.ts` | the local database's schema version (`PRAGMA user_version`): one step per change, run once in a transaction; a database from a newer indexer is refused |
 | `src/d1model.ts` | D1 layout, conversion from local rows, D1 merge rules |
 | `src/grams.ts` | search keys; also imported by the share Worker |
 | `src/remote.ts` | D1 HTTP client and upload |
