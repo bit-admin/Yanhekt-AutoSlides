@@ -13,6 +13,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { BODY_LIMITS, readRequestLimited, tooLarge } from "../lib/body";
+import { UPSTREAM_TIMEOUTS_MS, fetchUpstream } from "../lib/upstream";
 
 export const aiProxyRouter = new Hono<{ Bindings: Env }>();
 
@@ -74,5 +75,8 @@ aiProxyRouter.all("/*", async (c) => {
     if (read === null) return tooLarge(BODY_LIMITS.ai);
     body = read;
   }
-  return fetch(targetUrl(origin, new URL(c.req.url)), { method, headers, body });
+  return fetchUpstream(
+    (signal) => fetch(targetUrl(origin, new URL(c.req.url)), { method, headers, body, signal }),
+    { caller: c.req.raw.signal, timeoutMs: UPSTREAM_TIMEOUTS_MS.ai },
+  );
 });

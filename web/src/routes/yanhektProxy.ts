@@ -15,6 +15,7 @@ import type { Context } from "hono";
 import type { Env } from "../env";
 import { upstreamHeaders } from "../lib/yanhekt";
 import { BODY_LIMITS, readRequestLimited, tooLarge } from "../lib/body";
+import { UPSTREAM_TIMEOUTS_MS, fetchUpstream, isUpstreamFailure } from "../lib/upstream";
 
 const UPSTREAM_BASE = "https://cbiz.yanhekt.cn";
 
@@ -143,11 +144,12 @@ async function forward(c: Context<{ Bindings: Env }>): Promise<Response> {
 
   // Forward url.search verbatim — query keys like `semesters[]=` must reach
   // the upstream unre-serialized.
-  const upstreamResponse = await fetch(`${UPSTREAM_BASE}${upstreamPath}${url.search}`, {
-    method,
-    headers,
-    body,
-  });
+  const upstreamResponse = await fetchUpstream(
+    (signal) => fetch(`${UPSTREAM_BASE}${upstreamPath}${url.search}`, { method, headers, body, signal }),
+    { caller: c.req.raw.signal, timeoutMs: UPSTREAM_TIMEOUTS_MS.yanhekt },
+  );
+  // No answer from Yanhekt: fetchUpstream's own 502/504, passed on as is.
+  if (isUpstreamFailure(upstreamResponse)) return upstreamResponse;
 
   return new Response(upstreamResponse.body, {
     status: upstreamResponse.status,

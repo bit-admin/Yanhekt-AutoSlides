@@ -145,6 +145,19 @@ describe("/api/yanhekt proxy", () => {
     expect(upstreamCall(2).headers["Content-Type"]).toBe("application/json");
   });
 
+  it("answers a stable 502 when Yanhekt cannot be reached", async () => {
+    fetchSpy.mockRejectedValueOnce(new TypeError("fetch failed"));
+    const res = await app.request("/api/yanhekt/v2/course/list", { headers: { Authorization: `Bearer ${TOKEN}` } }, env());
+    expect(res.status).toBe(502);
+    expect(await res.json()).toMatchObject({ success: false, reason: "unreachable" });
+  });
+
+  it("gives the upstream request a signal, so a caller hanging up cancels it", async () => {
+    await app.request("/api/yanhekt/v2/course/list", { headers: { Authorization: `Bearer ${TOKEN}` } }, env());
+    const init = (fetchSpy.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
   it("refuses a write body over the limit before any upstream fetch", async () => {
     const res = await app.request(
       "/api/yanhekt/v1/note",
