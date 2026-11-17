@@ -1228,6 +1228,17 @@ export interface ElectronAPI {
     groupCreate: (name: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     groupDelete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
     uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
+    /**
+     * One of the calls above, made for the account with this badge: when that
+     * account is no longer the active one nothing is sent and the answer is
+     * `account-changed` (`@common/notesTypes`). `args` are that call's
+     * arguments, as plain values. Use through `ownedNotesApi` in the renderer.
+     */
+    asOwner: (
+      badge: string,
+      method: import('@common/notesTypes').OwnedNoteMethod,
+      args: unknown[],
+    ) => Promise<import('@common/notesTypes').NotesResult<unknown>>;
     uploadImageFromPath: (filePath: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
     exportFolderStatus: (displayName: string, identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;

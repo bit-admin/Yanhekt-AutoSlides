@@ -232,3 +232,73 @@ describe('cloudStorageStore.initialize', () => {
     expect(srv.groupCreate).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('cloudStorageStore across an account switch', () => {
+  const managed = (): NoteGroup[] => [
+    { id: 1, name: MANAGED_GROUP_NAME },
+    { id: 2, name: USER_GROUP_NAME },
+  ]
+
+  /** A server whose group list answers only when the test says so. */
+  function slowServer() {
+    const srv = makeServer()
+    const listCalls: Array<(groups: NoteGroup[]) => void> = []
+    srv.provider.groupList = () =>
+      new Promise((resolve) => listCalls.push((groups) => resolve({ ok: true, data: groups })))
+    overrides.cloudNotesProvider = srv.provider
+    return { srv, listCalls }
+  }
+
+  it("the new account's check is its own, not a join of the one still running", async () => {
+    const { listCalls } = slowServer()
+    cloudStorageStore.setUser('badgeA')
+    const checkA = cloudStorageStore.refresh()
+    cloudStorageStore.setUser('badgeB')
+    const checkB = cloudStorageStore.refresh()
+    expect(listCalls).toHaveLength(2)
+
+    // A's answer (initialized) lands after the switch: it is not B's state.
+    listCalls[0](managed())
+    await checkA
+    expect(cloudStorageStore.status.value).toBe('checking')
+    expect(cloudStorageStore.managedGroupId.value).toBeNull()
+    expect(setFlagMock).not.toHaveBeenCalled()
+
+    listCalls[1]([])
+    expect(await checkB).toBe('uninitialized')
+    expect(cloudStorageStore.managedGroupId.value).toBeNull()
+    expect(configStore.cloudStorageInitializedUsers).toEqual([])
+  })
+
+  it('a provision cut short by a switch makes no further groups and sets no flag', async () => {
+    const { srv, listCalls } = slowServer()
+    cloudStorageStore.setUser('badgeA')
+    const init = cloudStorageStore.initialize()
+    await Promise.resolve()
+    expect(listCalls).toHaveLength(1)
+
+    cloudStorageStore.setUser('badgeB')
+    listCalls[0]([])
+    expect(await init).toBe(false)
+    expect(srv.groupCreate).not.toHaveBeenCalled()
+    expect(setFlagMock).not.toHaveBeenCalled()
+    expect(cloudStorageStore.status.value).toBe('unknown')
+  })
+
+  it('a check finished for the old account does not end the lock of the new one', async () => {
+    const { listCalls } = slowServer()
+    cloudStorageStore.setUser('badgeA')
+    const checkA = cloudStorageStore.refresh()
+    cloudStorageStore.setUser('badgeB')
+    const checkB = cloudStorageStore.refresh()
+    listCalls[0]([])
+    await checkA
+    // B's check is still the one in flight: a second caller joins it instead of asking again.
+    const joined = cloudStorageStore.refresh()
+    expect(listCalls).toHaveLength(2)
+    listCalls[1](managed())
+    expect(await checkB).toBe('ready')
+    expect(await joined).toBe('ready')
+    expect(configStore.cloudStorageInitializedUsers).toEqual(['badgeB'])
+  })
+})

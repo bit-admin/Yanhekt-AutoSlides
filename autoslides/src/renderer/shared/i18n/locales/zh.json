@@ -1316,6 +1316,7 @@
     "idle": "空闲",
     "delete": "删除",
     "editorPlaceholder": "开始输入…",
+    "unreadableContent": "这篇笔记的内容格式 AutoSlides 无法读取，因此显示为空并已锁定。延河课堂上的原文未被改动。",
     "watchNotes": {
       "creating": "正在创建笔记…",
       "error": "无法创建笔记。请检查网络后重试。",

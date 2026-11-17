@@ -8,10 +8,11 @@ import {
   USER_GROUP_NAME,
   README_NOTE_TITLE,
 } from '@common/notesTypes'
-import { overrides } from '@shared/overrideRegistry'
 import type { CloudNotesProvider } from '@shared/overrideRegistry'
 import { configStore } from '@shared/services/configStore'
+import { createLatest } from '@shared/utils/latest'
 import { createLogger } from '@shared/utils/logger'
+import { ownedNotesApi } from './ownedNotesApi'
 import { buildReadmeContent } from './readmeContent'
 
 const log = createLogger('CloudStorage')
@@ -60,21 +61,38 @@ const blocked = computed(() => status.value === 'uninitialized' || status.value 
 
 let userBadge: string | null = null
 /** Single in-flight check/provision — the actual guarantee that two surfaces
- * triggering concurrently can never double-create the managed group. */
+ * triggering concurrently can never double-create the managed group. Belongs
+ * to the account bound when it started: `setUser` drops it, so the next
+ * account's check is its own and never a join of the previous account's. */
 let inFlight: Promise<CloudStorageStatus> | null = null
 
-// Resolved lazily per call so the demo bootstrap's override lands first.
-function api(): CloudNotesProvider {
-  return overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
+// Which account the state above describes. `setUser` starts a new binding;
+// a check or provision keeps the one it started under (`Run`) and, once that
+// is no longer current, writes nothing: no status, no group ids, no flag.
+const binding = createLatest()
+let boundLive = binding.begin()
+
+/** What one check or provision works with, fixed when it starts. */
+interface Run {
+  badge: string | null
+  /** The note calls of that account: main refuses them once another is active. */
+  api: CloudNotesProvider
+  live: () => boolean
 }
 
-function hasFlag(): boolean {
-  return userBadge != null && (configStore.cloudStorageInitializedUsers ?? []).includes(userBadge)
+// The provider is resolved per run, so the demo bootstrap's override lands first.
+function startRun(): Run {
+  return { badge: userBadge, api: ownedNotesApi(userBadge), live: boundLive }
 }
 
-async function persistFlag(initialized: boolean): Promise<void> {
-  if (!userBadge) return
-  await window.electronAPI.config.setCloudStorageInitialized(userBadge, initialized)
+function hasFlag(run: Run): boolean {
+  return run.badge != null && (configStore.cloudStorageInitializedUsers ?? []).includes(run.badge)
+}
+
+/** The flag of the account the run was started for, never of whoever is signed in by now. */
+async function persistFlag(run: Run, initialized: boolean): Promise<void> {
+  if (!run.badge || !run.live()) return
+  await window.electronAPI.config.setCloudStorageInitialized(run.badge, initialized)
 }
 
 /** Adopt whichever managed groups are present in a fresh group list. */
@@ -90,6 +108,8 @@ function adoptGroups(groups: NoteGroup[]): void {
 /** Set the account the store tracks (null on sign-out). Resets to 'unknown'. */
 function setUser(badge: string | null): void {
   userBadge = badge
+  boundLive = binding.begin()
+  inFlight = null
   status.value = 'unknown'
   managedGroupId.value = null
   managedGroupName.value = ''
@@ -100,16 +120,20 @@ function setUser(badge: string | null): void {
 }
 
 /** Queue `task` behind any in-flight check/provision, tracking it as in-flight. */
-async function withLock(task: () => Promise<CloudStorageStatus>): Promise<CloudStorageStatus> {
+async function withLock(task: (run: Run) => Promise<CloudStorageStatus>): Promise<CloudStorageStatus> {
+  const live = boundLive
   while (inFlight) {
     try { await inFlight } catch { /* previous op's failure is its caller's problem */ }
   }
-  const run = task()
+  // The account changed while this waited its turn: it is no longer wanted.
+  if (!live()) return status.value
+  const run = task(startRun())
   inFlight = run
   try {
     return await run
   } finally {
-    inFlight = null
+    // Only its own slot: after an account change the slot is the next account's.
+    if (inFlight === run) inFlight = null
   }
 }
 
@@ -117,14 +141,21 @@ function failureStatus(): CloudStorageStatus {
   return lastError.value === 'not-signed-in' ? 'not-signed-in' : 'error'
 }
 
+/** Record why a step failed, unless the run is no longer the bound account's. */
+function fail(run: Run, error: string): false {
+  if (run.live()) lastError.value = noteErrorText(error)
+  return false
+}
+
 /** Scan the full note list (paged, capped) for the README note's title. */
-async function readmeExists(): Promise<boolean | null> {
+async function readmeExists(run: Run): Promise<boolean | null> {
   let p = 1
   let lastPage = 1
   do {
-    const res = await api().list({ page: p, pageSize: FETCH_PAGE_SIZE })
+    const res = await run.api.list({ page: p, pageSize: FETCH_PAGE_SIZE })
+    if (!run.live()) return null
     if (!res.ok) {
-      lastError.value = noteErrorText(res.error)
+      fail(run, res.error)
       return null
     }
     if (res.data.data.some((n) => n.title === README_NOTE_TITLE)) return true
@@ -134,25 +165,24 @@ async function readmeExists(): Promise<boolean | null> {
   return false
 }
 
-async function ensureReadme(): Promise<boolean> {
-  const exists = await readmeExists()
+async function ensureReadme(run: Run): Promise<boolean> {
+  const exists = await readmeExists(run)
   if (exists == null) return false
   if (exists) return true
-  const createRes = await api().create()
-  if (!createRes.ok) {
-    lastError.value = noteErrorText(createRes.error)
-    return false
-  }
+  const createRes = await run.api.create()
+  if (!run.live()) return false
+  if (!createRes.ok) return fail(run, createRes.error)
   const id = createRes.data
-  const titleRes = await api().updateTitle(id, README_NOTE_TITLE)
-  const contentRes = titleRes.ok ? await api().updateContent(id, buildReadmeContent()) : titleRes
+  const titleRes = await run.api.updateTitle(id, README_NOTE_TITLE)
+  const contentRes = titleRes.ok ? await run.api.updateContent(id, buildReadmeContent()) : titleRes
   if (!contentRes.ok) {
     // Do not leave a blank note behind; the next check retries the README.
-    await api().delete(id)
-    lastError.value = noteErrorText(contentRes.error)
-    return false
+    // (After an account change this delete is refused like the rest: the
+    // blank note stays with the account it was made for.)
+    await run.api.delete(id)
+    return fail(run, contentRes.error)
   }
-  return true
+  return run.live()
 }
 
 /**
@@ -160,44 +190,42 @@ async function ensureReadme(): Promise<boolean> {
  * target, ASuser watch-mode captures) if a fresh server read shows it missing,
  * ensure the README note exists, and adopt both. groupCreate returns no id, so
  * the group list is re-fetched after any creation.
+ *
+ * Every step is a call of the run's account. If the account changes part-way,
+ * the steps already made stay with that account (its next check finds the
+ * groups by name and carries on) and the rest are not sent.
  */
-async function provision(): Promise<boolean> {
-  const listRes = await api().groupList()
-  if (!listRes.ok) {
-    lastError.value = noteErrorText(listRes.error)
-    return false
-  }
+async function provision(run: Run): Promise<boolean> {
+  const listRes = await run.api.groupList()
+  if (!run.live()) return false
+  if (!listRes.ok) return fail(run, listRes.error)
   let groups = listRes.data
   const missing: string[] = []
   if (!groups.some((g) => isManagedGroupName(g.name))) missing.push(MANAGED_GROUP_NAME)
   if (!groups.some((g) => isUserGroupName(g.name))) missing.push(USER_GROUP_NAME)
   if (missing.length > 0) {
     for (const name of missing) {
-      const createRes = await api().groupCreate(name)
-      if (!createRes.ok) {
-        lastError.value = noteErrorText(createRes.error)
-        return false
-      }
+      const createRes = await run.api.groupCreate(name)
+      if (!run.live()) return false
+      if (!createRes.ok) return fail(run, createRes.error)
     }
-    const relist = await api().groupList()
-    if (!relist.ok) {
-      lastError.value = noteErrorText(relist.error)
-      return false
-    }
+    const relist = await run.api.groupList()
+    if (!run.live()) return false
+    if (!relist.ok) return fail(run, relist.error)
     groups = relist.data
     if (!groups.some((g) => isManagedGroupName(g.name)) || !groups.some((g) => isUserGroupName(g.name))) {
-      lastError.value = 'managed-group-missing'
-      return false
+      return fail(run, 'managed-group-missing')
     }
   }
   adoptGroups(groups)
-  return ensureReadme()
+  return ensureReadme(run)
 }
 
-async function doRefresh(): Promise<CloudStorageStatus> {
+async function doRefresh(run: Run): Promise<CloudStorageStatus> {
   status.value = 'checking'
   lastError.value = ''
-  const res = await api().groupList()
+  const res = await run.api.groupList()
+  if (!run.live()) return status.value
   if (!res.ok) {
     // Transient failures never provision or reclassify to 'uninitialized'.
     lastError.value = noteErrorText(res.error)
@@ -210,14 +238,16 @@ async function doRefresh(): Promise<CloudStorageStatus> {
   if (hasNote && hasUser) {
     adoptGroups(res.data)
     // Initialized on another machine / before the flag existed — self-heal it.
-    if (!hasFlag()) void persistFlag(true).catch((err) => log.warn('flag self-heal failed', err))
+    if (!hasFlag(run)) void persistFlag(run, true).catch((err) => log.warn('flag self-heal failed', err))
     status.value = 'ready'
-  } else if (hasFlag()) {
+  } else if (hasFlag(run)) {
     // Initialized before but a managed group is gone (deleted server-side, or
     // ASuser predates this feature): re-provision the missing one(s).
     log.info('a managed group is missing for an initialized account — re-provisioning')
     status.value = 'repairing'
-    status.value = (await provision()) ? 'ready' : failureStatus()
+    const ok = await provision(run)
+    if (!run.live()) return status.value
+    status.value = ok ? 'ready' : failureStatus()
   } else {
     adoptGroups(res.data)
     status.value = 'uninitialized'
@@ -246,12 +276,16 @@ function ensureReady(): Promise<CloudStorageStatus> {
  * path that provisions for a never-initialized account; sets the persisted flag.
  */
 async function initialize(): Promise<boolean> {
-  const result = await withLock(async () => {
+  let started: Run | null = null
+  const result = await withLock(async (run) => {
+    started = run
     status.value = 'repairing'
     lastError.value = ''
-    const ok = await provision()
+    const ok = await provision(run)
+    if (!run.live()) return status.value
     if (ok) {
-      await persistFlag(true).catch((err) => log.warn('persisting init flag failed', err))
+      await persistFlag(run, true).catch((err) => log.warn('persisting init flag failed', err))
+      if (!run.live()) return status.value
       status.value = 'ready'
     } else {
       status.value = failureStatus()
@@ -259,7 +293,10 @@ async function initialize(): Promise<boolean> {
     lastCheckedAt.value = Date.now()
     return status.value
   })
-  return result === 'ready'
+  // True only for the account it was asked for: after a switch the status read
+  // back here is the next account's.
+  const run = started as Run | null
+  return run !== null && run.live() && result === 'ready'
 }
 
 export const cloudStorageStore = {

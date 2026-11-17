@@ -1316,6 +1316,7 @@
     "idle": "대기",
     "delete": "삭제",
     "editorPlaceholder": "입력 시작…",
+    "unreadableContent": "이 노트의 내용은 AutoSlides가 읽을 수 없는 형식이라 빈 상태로 잠겨 표시됩니다. 옌허커탕의 원본은 변경되지 않았습니다.",
     "watchNotes": {
       "creating": "노트를 만드는 중…",
       "error": "노트를 만들 수 없습니다. 연결을 확인한 후 다시 시도하세요.",

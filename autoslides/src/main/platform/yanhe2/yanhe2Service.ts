@@ -99,6 +99,9 @@ export class Yanhe2Service {
 
     const checked = await fetchYanhe2Profile(stored.jwt);
     if (checked.kind === 'network') return 'network';
+    // The answer is about the token that was sent. If the account signed out
+    // or signed in again meanwhile, it says nothing about the row there now.
+    if (!this.stillHolds(account, stored.jwt)) return this.storedState(account);
     if (checked.kind === 'rejected') {
       this.configService.expireYanhe2Session(account);
       return 'expired';
@@ -112,6 +115,21 @@ export class Yanhe2Service {
       this.configService.setYanhe2Session(account, { ...stored, userId, tenantId, playSigningPhone });
     }
     return 'signed_in';
+  }
+
+  /**
+   * Whether the account's row still holds the token a request was sent with.
+   * Every write that follows an await is behind this: main is one thread, so
+   * the check and the write that follows it cannot be interleaved.
+   */
+  private stillHolds(account: string, jwt: string): boolean {
+    return this.configService.getYanhe2Session(account)?.jwt === jwt;
+  }
+
+  /** What the store says now, without asking Yanhe 2.0. */
+  private storedState(account: string): Yanhe2SessionState {
+    if (!this.configService.getYanhe2Session(account)) return 'none';
+    return this.liveSession(account) ? 'signed_in' : 'expired';
   }
 
   /** Local only: aita has no revocation, and its logout would also end the browser's CAS session. */
@@ -145,7 +163,7 @@ export class Yanhe2Service {
     if (periodId !== undefined && !Number.isInteger(periodId)) return { kind: 'failed' };
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2Day(stored.jwt, {
+    return this.settle(account, stored.jwt, await fetchYanhe2Day(stored.jwt, {
       date,
       keyword: typeof keyword === 'string' ? keyword.trim().slice(0, 64) : '',
       periodId: periodId as number | undefined,
@@ -160,7 +178,7 @@ export class Yanhe2Service {
     if (endDate > shiftDate(startDate, 31)) return { kind: 'failed' };
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2Week(stored.jwt, {
+    return this.settle(account, stored.jwt, await fetchYanhe2Week(stored.jwt, {
       userId: stored.userId,
       tenantId: stored.tenantId,
       startDate,
@@ -172,7 +190,7 @@ export class Yanhe2Service {
   async getMyCourses(account: string): Promise<Yanhe2ReadResult<Yanhe2Course[]>> {
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2Courses(stored.jwt));
+    return this.settle(account, stored.jwt, await fetchYanhe2Courses(stored.jwt));
   }
 
   /** Curriculum: one course and its sessions. */
@@ -181,14 +199,14 @@ export class Yanhe2Service {
     if (typeof courseId !== 'string' || !/^\d{1,12}$/.test(courseId)) return { kind: 'failed' };
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2CourseDetail(stored.jwt, courseId));
+    return this.settle(account, stored.jwt, await fetchYanhe2CourseDetail(stored.jwt, courseId));
   }
 
   /** Search: the terms the catalogue can be filtered by, newest first as aita sends them. */
   async getTerms(account: string): Promise<Yanhe2ReadResult<Yanhe2Term[]>> {
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2Terms(stored.jwt));
+    return this.settle(account, stored.jwt, await fetchYanhe2Terms(stored.jwt));
   }
 
   /** Search: one page of the catalogue matching a keyword, in one term or all of them. */
@@ -199,7 +217,7 @@ export class Yanhe2Service {
     if (!Number.isInteger(page) || (page as number) < 1 || (page as number) > 10_000) return { kind: 'failed' };
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2CourseSearch(stored.jwt, {
+    return this.settle(account, stored.jwt, await fetchYanhe2CourseSearch(stored.jwt, {
       keyword: keyword.trim().slice(0, 64),
       termId: termId as number | null,
       page: page as number,
@@ -213,7 +231,7 @@ export class Yanhe2Service {
   async findCourseByCode(account: string, key: Yanhe2CourseKey): Promise<Yanhe2ReadResult<Yanhe2Course | null>> {
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2CourseByCode(stored.jwt, key));
+    return this.settle(account, stored.jwt, await fetchYanhe2CourseByCode(stored.jwt, key));
   }
 
   /**
@@ -227,7 +245,7 @@ export class Yanhe2Service {
     if (!/^\d{1,12}$/.test(courseId) || !/^\d{1,12}$/.test(subId)) return { kind: 'failed' };
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2SubInfo(stored.jwt, { courseId, subId }));
+    return this.settle(account, stored.jwt, await fetchYanhe2SubInfo(stored.jwt, { courseId, subId }));
   }
 
   /**
@@ -241,7 +259,7 @@ export class Yanhe2Service {
     if (!/^\d{1,12}$/.test(courseId) || !/^\d{1,12}$/.test(subId)) return { kind: 'failed' };
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2Slides(stored.jwt, { courseId, subId }));
+    return this.settle(account, stored.jwt, await fetchYanhe2Slides(stored.jwt, { courseId, subId }));
   }
 
   /**
@@ -257,7 +275,7 @@ export class Yanhe2Service {
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
 
-    const detail = this.settle(account, await fetchYanhe2CourseDetail(stored.jwt, courseId));
+    const detail = this.settle(account, stored.jwt, await fetchYanhe2CourseDetail(stored.jwt, courseId));
     if (detail.kind !== 'ok') return detail;
     const courseCode = detail.data.courseCode;
     const row = detail.data.sessions.find((candidate) => candidate.subId === subId);
@@ -265,7 +283,7 @@ export class Yanhe2Service {
     let subTitle = row?.subTitle ?? '';
     let courseTitle = detail.data.title;
     if (!startAt) {
-      const sub = this.settle(account, await fetchYanhe2SubInfo(stored.jwt, { courseId, subId }));
+      const sub = this.settle(account, stored.jwt, await fetchYanhe2SubInfo(stored.jwt, { courseId, subId }));
       if (sub.kind !== 'ok') return sub;
       startAt = sub.data.startAt;
       subTitle = subTitle || sub.data.subTitle;
@@ -279,7 +297,7 @@ export class Yanhe2Service {
   async getBookmarks(account: string): Promise<Yanhe2ReadResult<Yanhe2Bookmark[]>> {
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2Bookmarks(stored.jwt));
+    return this.settle(account, stored.jwt, await fetchYanhe2Bookmarks(stored.jwt));
   }
 
   /** Bookmark a course or remove its bookmark. Main only: pin sync. */
@@ -287,7 +305,7 @@ export class Yanhe2Service {
     if (!/^\d{1,12}$/.test(courseId)) return { kind: 'failed' };
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await setYanhe2Bookmark(stored.jwt, courseId, on));
+    return this.settle(account, stored.jwt, await setYanhe2Bookmark(stored.jwt, courseId, on));
   }
 
   /** Whether the account has a live Yanhe 2.0 session. */
@@ -300,7 +318,7 @@ export class Yanhe2Service {
     if (typeof subId !== 'string' || !/^\d{1,12}$/.test(subId)) return { kind: 'failed' };
     const stored = this.liveSession(account);
     if (!stored) return { kind: 'signed_out' };
-    return this.settle(account, await fetchYanhe2Transcript(stored.jwt, subId));
+    return this.settle(account, stored.jwt, await fetchYanhe2Transcript(stored.jwt, subId));
   }
 
   /**
@@ -318,16 +336,21 @@ export class Yanhe2Service {
     return stored?.jwt && stored.userId && stored.expiresAt > Date.now() ? stored : null;
   }
 
-  /** A refused token becomes the expired marker, same as `check`. */
-  private settle<T>(account: string, fetched: Yanhe2Fetched<T>): Yanhe2ReadResult<T> {
+  /**
+   * A refused token becomes the expired marker, same as `check`. `jwt` is the
+   * token the read was sent with: a refusal expires that token only. When the
+   * account has signed in again since, the new session stays and this one
+   * read is a failure the page can retry.
+   */
+  private settle<T>(account: string, jwt: string, fetched: Yanhe2Fetched<T>): Yanhe2ReadResult<T> {
     if (fetched.kind === 'failed') {
       // Otherwise the page's "did not return" banner is all anyone sees.
       log.warn('Yanhe 2.0 read failed:', fetched.detail ?? 'unexpected answer');
       return { kind: 'failed' };
     }
     if (fetched.kind !== 'rejected') return fetched;
-    this.configService.expireYanhe2Session(account);
-    return { kind: 'signed_out' };
+    if (this.stillHolds(account, jwt)) this.configService.expireYanhe2Session(account);
+    return this.liveSession(account) ? { kind: 'failed' } : { kind: 'signed_out' };
   }
 
   /** Settings' paste field: a bare JWT, the `_token` cookie, or a whole Cookie header. */

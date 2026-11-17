@@ -1316,6 +1316,7 @@
     "idle": "Idle",
     "delete": "Delete",
     "editorPlaceholder": "Start writing…",
+    "unreadableContent": "This note's content is in a format AutoSlides cannot read, so it is shown empty and locked. The original is unchanged on Yanhekt.",
     "watchNotes": {
       "creating": "Creating your note…",
       "error": "Couldn't create the note. Check your connection and try again.",

@@ -1,7 +1,8 @@
 import { ipcMain } from 'electron';
 import { NotesAuthError } from '@main/platform/notesService';
 import type { IpcServices } from './types';
-import type { NotesResult, NoteListParams } from '@common/notesTypes';
+import { OWNED_NOTE_METHODS, type NotesResult, type NoteListParams } from '@common/notesTypes';
+import { createOwnedNotesDispatch, type OwnedNotesDeps } from './notesOwner';
 import type { LectureIdentity } from '@common/lectureNaming';
 import { createLogger } from '@main/infra/logger';
 
@@ -26,43 +27,40 @@ async function run<T>(fn: () => Promise<T>): Promise<NotesResult<T>> {
 }
 
 export function registerNotesIpcHandlers(services: IpcServices): void {
-  const { notesService } = services;
+  const { notesService, configService } = services;
 
-  ipcMain.handle('cloudNotes:list', (_e, params: NoteListParams) =>
-    run(() => notesService.list(params)));
-
-  ipcMain.handle('cloudNotes:get', (_e, id: number) =>
-    run(() => notesService.get(id)));
-
-  ipcMain.handle('cloudNotes:create', () =>
-    run(() => notesService.create()));
-
-  ipcMain.handle('cloudNotes:updateTitle', (_e, id: number, title: string, groupId?: number) =>
-    run(() => notesService.updateTitle(id, title, groupId)));
-
-  ipcMain.handle('cloudNotes:updateContent', (_e, id: number, content: string) =>
-    run(() => notesService.updateContent(id, content)));
-
-  ipcMain.handle(
-    'cloudNotes:moveToGroup',
-    (_e, id: number, groupId: number, title: string, content?: string) =>
+  // The calls that can also be made for a named account (`cloudNotes:asOwner`).
+  const owned: OwnedNotesDeps['handlers'] = {
+    list: (params: NoteListParams) => run(() => notesService.list(params)),
+    get: (id: number) => run(() => notesService.get(id)),
+    create: () => run(() => notesService.create()),
+    updateTitle: (id: number, title: string, groupId?: number) => run(() => notesService.updateTitle(id, title, groupId)),
+    updateContent: (id: number, content: string) => run(() => notesService.updateContent(id, content)),
+    moveToGroup: (id: number, groupId: number, title: string, content?: string) =>
       run(() => notesService.moveToGroup(id, groupId, title, content)),
-  );
+    delete: (id: number) => run(() => notesService.remove(id)),
+    groupList: () => run(() => notesService.groupList()),
+    groupCreate: (name: string) => run(() => notesService.groupCreate(name)),
+    groupDelete: (id: number) => run(() => notesService.groupRemove(id)),
+    uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) =>
+      run(() => notesService.uploadImage(bytes, filename, mime)),
+  };
+  for (const method of OWNED_NOTE_METHODS) {
+    const handler = owned[method] as (...args: unknown[]) => Promise<NotesResult<unknown>>;
+    ipcMain.handle(`cloudNotes:${method}`, (_e, ...args: unknown[]) => handler(...args));
+  }
 
-  ipcMain.handle('cloudNotes:delete', (_e, id: number) =>
-    run(() => notesService.remove(id)));
-
-  ipcMain.handle('cloudNotes:groupList', () =>
-    run(() => notesService.groupList()));
-
-  ipcMain.handle('cloudNotes:groupCreate', (_e, name: string) =>
-    run(() => notesService.groupCreate(name)));
-
-  ipcMain.handle('cloudNotes:groupDelete', (_e, id: number) =>
-    run(() => notesService.groupRemove(id)));
-
-  ipcMain.handle('cloudNotes:uploadImage', (_e, bytes: ArrayBuffer, filename: string, mime: string) =>
-    run(() => notesService.uploadImage(bytes, filename, mime)));
+  const asOwner = createOwnedNotesDispatch({
+    activeAccount: () => {
+      const token = configService.getAuthToken();
+      if (!token) return null;
+      const badge = configService.getConfig().accounts.find((account) => account.token === token)?.badge;
+      return badge ? { token, badge } : null;
+    },
+    withToken: (token, fn) => notesService.withToken(token, fn),
+    handlers: owned,
+  });
+  ipcMain.handle('cloudNotes:asOwner', (_e, badge: unknown, method: unknown, args: unknown) => asOwner(badge, method, args));
 
   ipcMain.handle('cloudNotes:uploadImageFromPath', (_e, filePath: string) =>
     run(() => notesService.uploadImageFromPath(filePath)));

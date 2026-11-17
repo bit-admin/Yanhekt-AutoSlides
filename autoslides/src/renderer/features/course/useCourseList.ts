@@ -6,6 +6,7 @@ import { openCourse } from './courseSelection'
 import { hydrateLiveTitles } from './liveCourseTitles'
 import { enrolledCoursesOf, refreshEnrolledCourses } from './enrolledCourses'
 import { isDemoMode } from '@shared/services/runtimeEnv'
+import { createLatest } from '@shared/utils/latest'
 import { createLogger } from '@shared/utils/logger';
 import { localeTag, getCurrentLocale } from '@shared/i18n'
 const log = createLogger('CourseList');
@@ -218,16 +219,34 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     if (mode.value === 'live') void hydrateLiveTitles(courses.value)
   })
 
-  const fetchPersonalCourses = async (resetPage = true) => {
-    // Re-entrancy guard: infinite scroll and the activeNav watcher can both land
-    // while a fetch is running, and two overlapping runs would append the same
-    // page twice. loadMore has its own guard; this covers everyone else.
-    if (isLoading.value) return
+  // The grid belongs to its newest fetch. A fetch for another account, mode or
+  // page takes over at once (a switch during a slow load must not be skipped,
+  // or the old account's rows are what arrives); the one it replaced then
+  // writes nothing. The same fetch asked again while it runs is that run:
+  // navigation and the account watcher can both land during one load.
+  const fetches = createLatest()
+  let running: { key: string; done: Promise<void> } | null = null
 
+  const cancelFetch = () => {
+    fetches.cancel()
+    running = null
+    isLoading.value = false
+  }
+
+  // Another account (or none): what is loading or shown is no longer this
+  // grid's. Recorded follows the stored list by itself (`allRecorded`).
+  watch(() => owner?.value, () => {
+    cancelFetch()
+    errorMessage.value = ''
+    if (!storedRecorded()) courses.value = []
+  })
+
+  const fetchPersonalCourses = (resetPage = true): Promise<void> => {
     const token = tokenManager.getToken()
     if (!token) {
+      cancelFetch()
       errorMessage.value = ''
-      return
+      return Promise.resolve()
     }
 
     // Reset to page 1 for new fetches, but not when navigating pages
@@ -235,6 +254,18 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
       currentPage.value = 1
     }
 
+    const key = [token, owner?.value ?? '', mode.value, currentPage.value].join('\n')
+    if (running?.key === key) return running.done
+
+    const current = fetches.begin()
+    const done = runFetch(token, current).finally(() => {
+      if (current()) running = null
+    })
+    running = { key, done }
+    return done
+  }
+
+  const runFetch = async (token: string, current: () => boolean): Promise<void> => {
     if (storedRecorded()) {
       const who = owner!.value
       errorMessage.value = ''
@@ -243,14 +274,16 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
       isLoading.value = courses.value.length === 0
       try {
         const result = await refreshEnrolledCourses(who)
-        if (result.kind === 'failed' && enrolledCoursesOf(who).length === 0) {
+        if (current() && result.kind === 'failed' && enrolledCoursesOf(who).length === 0) {
           errorMessage.value = result.message || 'Failed to fetch personal courses'
         }
       } catch (error: unknown) {
         log.error('Failed to refresh enrolled courses:', error)
       } finally {
-        isLoading.value = false
-        showRecordedPage()
+        if (current()) {
+          isLoading.value = false
+          showRecordedPage()
+        }
       }
       return
     }
@@ -261,6 +294,7 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     try {
       if (mode.value === 'live') {
         const response: LiveListResponse = await apiClient.getPersonalLiveList(token, currentPage.value, coursesPerPage)
+        if (!current()) return
         courses.value = response.data.map(transformLiveStreamToCourse)
         totalPages.value = response.last_page
         currentPage.value = response.current_page
@@ -273,16 +307,18 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
           pageSize: coursesPerPage
         }
         const response: CourseListResponse = await apiClient.getPersonalCourseList(token, requestOptions)
+        if (!current()) return
         courses.value = response.data.map(transformCourseDataToCourse)
         totalPages.value = response.last_page
         currentPage.value = response.current_page
       }
     } catch (error: unknown) {
       log.error('Failed to fetch personal courses:', error)
+      if (!current()) return
       errorMessage.value = (error instanceof Error && error.message) || 'Failed to fetch personal courses'
       courses.value = []
     } finally {
-      isLoading.value = false
+      if (current()) isLoading.value = false
     }
   }
 

@@ -1316,6 +1316,7 @@
     "idle": "アイドル",
     "delete": "削除",
     "editorPlaceholder": "入力を開始…",
+    "unreadableContent": "このノートの内容は AutoSlides が読み取れない形式のため、空の状態でロックして表示しています。延河課堂上の元の内容は変更されていません。",
     "watchNotes": {
       "creating": "ノートを作成中…",
       "error": "ノートを作成できませんでした。接続を確認して再試行してください。",

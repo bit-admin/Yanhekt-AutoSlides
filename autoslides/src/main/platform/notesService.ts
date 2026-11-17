@@ -10,6 +10,7 @@
  * xclient signing headers are NOT enforced by this API.
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
@@ -75,14 +76,32 @@ function envelopeError(payload: { code: number; message?: string; displayable?: 
 }
 
 export class NotesService {
+  /** The token `withToken` pinned for the call in progress, if any. */
+  private readonly pinnedToken = new AsyncLocalStorage<string>();
+
   constructor(
     private readonly configService: ConfigService,
     private readonly cbiz: IntranetApiTransport = new IntranetApiTransport(),
   ) {}
 
+  /**
+   * Run `fn` as the account `token` belongs to, whatever account is active by
+   * the time its later requests go out. A call that makes several requests
+   * (moving a note, an import) otherwise reads the token again for each one,
+   * and an account switch in between would split it across two accounts.
+   */
+  withToken<T>(token: string, fn: () => Promise<T>): Promise<T> {
+    return this.pinnedToken.run(token, fn);
+  }
+
+  /** The pinned token inside `withToken`, else the active account's. */
+  private authToken(): string | null {
+    return this.pinnedToken.getStore() ?? this.configService.getAuthToken();
+  }
+
   /** Verified minimal header set. `Xdomain-Client: web_user` is the critical gate. */
   private jsonHeaders(): Record<string, string> {
-    const token = this.configService.getAuthToken();
+    const token = this.authToken();
     if (!token) throw new NotesAuthError();
     return {
       Authorization: `Bearer ${token}`,
@@ -96,7 +115,7 @@ export class NotesService {
 
   /** Headers for multipart upload — no manual Content-Type (FormData sets the boundary). */
   private uploadHeaders(): Record<string, string> {
-    const token = this.configService.getAuthToken();
+    const token = this.authToken();
     if (!token) throw new NotesAuthError();
     return {
       Authorization: `Bearer ${token}`,
@@ -431,7 +450,7 @@ export class NotesService {
    */
   private shareHeaders(extra: Record<string, string> = {}): Record<string, string> {
     const headers: Record<string, string> = { ...extra, 'User-Agent': appUserAgent() };
-    const token = this.configService.getAuthToken();
+    const token = this.authToken();
     if (token) headers.Authorization = `Bearer ${token}`;
     return headers;
   }

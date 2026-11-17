@@ -46,6 +46,8 @@ export const cloudNotes: ElectronAPI['cloudNotes'] = {
     invoke('cloudNotes:groupDelete', id),
   uploadImage: (bytes: ArrayBuffer, filename: string, mime: string): Promise<NotesResult<UploadedImage>> =>
     invoke('cloudNotes:uploadImage', bytes, filename, mime),
+  asOwner: (badge, method, args) =>
+    invoke('cloudNotes:asOwner', badge, method, args),
   uploadImageFromPath: (filePath: string): Promise<NotesResult<UploadedImage>> =>
     invoke('cloudNotes:uploadImageFromPath', filePath),
   // `identity` must be a plain object — a Vue reactive/ref would throw an

@@ -6,9 +6,16 @@ import type {
   NoteGroup,
   NotesResult,
 } from '@common/notesTypes'
-import { isManagedGroupName, isUserGroupName, isAutoSlidesGroupName, README_NOTE_TITLE } from '@common/notesTypes'
-import { overrides } from '@shared/overrideRegistry'
+import {
+  isManagedGroupName,
+  isUserGroupName,
+  isAutoSlidesGroupName,
+  README_NOTE_TITLE,
+  NOTES_ACCOUNT_CHANGED,
+} from '@common/notesTypes'
+import { createLatest } from '@shared/utils/latest'
 import { withNoteReadCoalescing } from './noteReadCoalescing'
+import { ownedNotesApi } from './ownedNotesApi'
 
 const PAGE_SIZE = 20
 /** Page size used when fetching the full note set (server honours large sizes). */
@@ -40,9 +47,15 @@ export function useCloudNotes() {
   // a cached body could show them content they have already changed. With no
   // memo there is nothing to go stale, which is also why writes from other
   // surfaces (watch notes, import/export) need no invalidation hook here.
-  const cloudNotesApi = withNoteReadCoalescing(
-    overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes,
-  )
+  //
+  // The provider and everything loaded through it belong to one account
+  // (`bindAccount`). Each action takes `cloudNotesApi` and `live` once, at its
+  // start: after an account change the old provider answers `account-changed`
+  // without sending, and `live()` is false, so an action still running writes
+  // no state and starts no further request.
+  let cloudNotesApi = withNoteReadCoalescing(ownedNotesApi(null))
+  const account = createLatest()
+  let live = account.begin()
 
   const groups = ref<NoteGroup[]>([])
   /** Complete note set (all groups), loaded via loadAll(). */
@@ -74,6 +87,12 @@ export function useCloudNotes() {
   let searchGen = 0
   /** Bumps on every openNote so a stale detail fetch cannot win a rapid A→B→A. */
   let openGen = 0
+  /** Bumps on every loadAll: the newest load owns the catalog and the spinner. */
+  let listGen = 0
+  /** The newest loadAll, for the loads it replaced to wait on. */
+  let listRun: Promise<void> | null = null
+  /** True while the spinner was turned on by a keyword search (not by loadAll). */
+  let searchOwnsLoading = false
   /** The note whose detail is being fetched; dims its sidebar row. */
   const openingNoteId = ref<number | null>(null)
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -98,6 +117,8 @@ export function useCloudNotes() {
       notSignedIn.value = false
       return res.data
     }
+    // The call was for the account just left: nothing was sent, nothing to show.
+    if (res.error === NOTES_ACCOUNT_CHANGED) return null
     if (res.error === 'not-signed-in') {
       notSignedIn.value = true
     } else {
@@ -149,7 +170,9 @@ export function useCloudNotes() {
   }
 
   async function refreshGroups(): Promise<void> {
+    const alive = live
     const res = await cloudNotesApi.groupList()
+    if (!alive()) return
     const data = unwrap(res)
     if (data) groups.value = data
   }
@@ -159,16 +182,22 @@ export function useCloudNotes() {
    * (superseded by a newer searchGen) are discarded. Does not touch allNotes.
    */
   async function fetchKeywordMatches(kw: string): Promise<void> {
+    const api = cloudNotesApi
     const gen = ++searchGen
-    const ownLoading = !loading.value
-    if (ownLoading) loading.value = true
+    // The spinner is this search's when nothing else is loading, or when the
+    // search it replaces had it (that one can no longer end it).
+    const ownLoading = !loading.value || searchOwnsLoading
+    if (ownLoading) {
+      loading.value = true
+      searchOwnsLoading = true
+    }
     error.value = ''
     try {
       const collected: NoteSummary[] = []
       let p = 1
       let lastPage = 1
       do {
-        const res = await cloudNotesApi.list({ page: p, pageSize: FETCH_PAGE_SIZE, keyword: kw })
+        const res = await api.list({ page: p, pageSize: FETCH_PAGE_SIZE, keyword: kw })
         if (gen !== searchGen) return
         const data = unwrap(res)
         if (!data) break
@@ -180,14 +209,35 @@ export function useCloudNotes() {
       searchResults.value = collected
       applyView()
     } finally {
-      if (ownLoading && gen === searchGen) loading.value = false
+      if (ownLoading && gen === searchGen) endSearchLoading()
     }
   }
 
-  /** Load the complete note set by paging note/list (empty keyword), then recompute the view. */
-  async function loadAll(): Promise<void> {
+  /** Give back the spinner a keyword search took, when it ends or is cancelled. */
+  function endSearchLoading(): void {
+    if (!searchOwnsLoading) return
+    searchOwnsLoading = false
+    loading.value = false
+  }
+
+  /**
+   * Load the complete note set by paging note/list (empty keyword), then
+   * recompute the view. The newest load owns the catalog: one it replaced
+   * writes nothing and resolves when the newest has finished, so a caller that
+   * awaits any of them reads the list that is current.
+   */
+  function loadAll(): Promise<void> {
+    const run = runLoadAll(++listGen)
+    listRun = run
+    return run
+  }
+
+  async function runLoadAll(gen: number): Promise<void> {
+    const api = cloudNotesApi
+    const replaced = (): boolean => gen !== listGen
     // Invalidate any in-flight keyword search; loadAll owns the next view update.
     searchGen += 1
+    searchOwnsLoading = false
     if (searchDebounceTimer != null) {
       clearTimeout(searchDebounceTimer)
       searchDebounceTimer = null
@@ -198,25 +248,34 @@ export function useCloudNotes() {
       const collected: NoteSummary[] = []
       let p = 1
       let lastPage = 1
+      let complete = true
       do {
-        const res = await cloudNotesApi.list({ page: p, pageSize: FETCH_PAGE_SIZE })
+        const res = await api.list({ page: p, pageSize: FETCH_PAGE_SIZE })
+        if (replaced()) return await (listRun ?? Promise.resolve())
         const data = unwrap(res)
-        if (!data) break
+        if (!data) {
+          complete = false
+          break
+        }
         collected.push(...data.data)
         lastPage = Math.max(1, data.last_page)
         p += 1
       } while (p <= lastPage && p <= MAX_FETCH_PAGES)
-      allNotes.value = collected
+      // A page that failed leaves the catalog as it was (the error is shown):
+      // the pages before it are not the whole list, and import and export
+      // read this set as if it were.
+      if (complete) allNotes.value = collected
       const kw = keyword.value.trim()
       if (kw !== '') {
         // Keep loading true across the keyword re-fetch.
         await fetchKeywordMatches(kw)
+        if (replaced()) return await (listRun ?? Promise.resolve())
       } else {
         searchResults.value = null
         applyView()
       }
     } finally {
-      loading.value = false
+      if (!replaced()) loading.value = false
     }
   }
 
@@ -233,6 +292,8 @@ export function useCloudNotes() {
     const kw = keyword.value.trim()
     if (kw === '') {
       searchGen += 1
+      // The search just cancelled can no longer end its own spinner.
+      endSearchLoading()
       searchResults.value = null
       applyView()
       return
@@ -264,11 +325,14 @@ export function useCloudNotes() {
    * just no longer owns `selectedNote`.
    */
   async function openNote(id: number): Promise<NoteDetail | null> {
+    const alive = live
     error.value = ''
     const gen = ++openGen
     openingNoteId.value = id
     try {
       const res = await cloudNotesApi.get(id)
+      // Another account's note is nobody's to mount, not even its own caller's.
+      if (!alive()) return null
       const data = unwrap(res)
       if (data && gen === openGen) selectedNote.value = data
       return data
@@ -278,12 +342,17 @@ export function useCloudNotes() {
   }
 
   function closeNote(): void {
+    // A detail still on its way must not reopen what was just closed.
+    openGen += 1
+    openingNoteId.value = null
     selectedNote.value = null
   }
 
   async function createNote(): Promise<number | null> {
+    const alive = live
     error.value = ''
     const res = await cloudNotesApi.create()
+    if (!alive()) return null
     const id = unwrap(res)
     if (id != null) {
       // Refetch so the new (blank) note appears with proper metadata.
@@ -292,21 +361,38 @@ export function useCloudNotes() {
     return id
   }
 
-  async function saveContent(id: number, content: string): Promise<boolean> {
-    saving.value = true
-    error.value = ''
-    try {
-      const res = await cloudNotesApi.updateContent(id, content)
-      if (!res.ok) unwrap(res)
-      return res.ok
-    } finally {
-      saving.value = false
+  /**
+   * The write of one note's content, for the account bound now. Kept by the
+   * editor's save chain for as long as that note is open: after an account
+   * change it sends nothing and answers false.
+   */
+  function noteWriter(id: number): (content: string) => Promise<boolean> {
+    const api = cloudNotesApi
+    const alive = live
+    return async (content) => {
+      if (!alive()) return false
+      saving.value = true
+      error.value = ''
+      try {
+        const res = await api.updateContent(id, content)
+        if (!alive()) return false
+        if (!res.ok) unwrap(res)
+        return res.ok
+      } finally {
+        if (alive()) saving.value = false
+      }
     }
   }
 
+  function saveContent(id: number, content: string): Promise<boolean> {
+    return noteWriter(id)(content)
+  }
+
   async function renameNote(id: number, title: string): Promise<boolean> {
+    const alive = live
     error.value = ''
     const res = await cloudNotesApi.updateTitle(id, title)
+    if (!alive()) return false
     if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value.title = title
       patchTitle(id, title)
@@ -318,8 +404,10 @@ export function useCloudNotes() {
   }
 
   async function deleteNote(id: number): Promise<boolean> {
+    const alive = live
     error.value = ''
     const res = await cloudNotesApi.delete(id)
+    if (!alive()) return false
     if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value = null
       removeFromBuffers(id)
@@ -340,10 +428,12 @@ export function useCloudNotes() {
     groupId: number,
     content?: string,
   ): Promise<number | null> {
+    const alive = live
     error.value = ''
     const row = allNotes.value.find((n) => n.id === id)
     const title = row?.title ?? selectedNote.value?.title ?? ''
     const res = await cloudNotesApi.moveToGroup(id, groupId, title, content)
+    if (!alive()) return null
     const newId = unwrap(res)
     if (newId == null) return null
 
@@ -362,8 +452,10 @@ export function useCloudNotes() {
   }
 
   async function createGroup(name: string): Promise<boolean> {
+    const alive = live
     error.value = ''
     const res = await cloudNotesApi.groupCreate(name)
+    if (!alive()) return false
     if (res.ok) {
       await refreshGroups()
     } else {
@@ -373,8 +465,10 @@ export function useCloudNotes() {
   }
 
   async function deleteGroup(id: number): Promise<boolean> {
+    const alive = live
     error.value = ''
     const res = await cloudNotesApi.groupDelete(id)
+    if (!alive()) return false
     if (res.ok) {
       // Server reassigns the group's notes to the default group (0).
       for (const n of allNotes.value) {
@@ -406,21 +500,30 @@ export function useCloudNotes() {
    * freshly-built Editor.js document from the caller. Reloads to reflect the new order.
    */
   async function recreateReadme(content: string): Promise<void> {
+    // Every step goes through the provider taken here. If the account changes
+    // part-way, the remaining steps answer `account-changed` and send nothing,
+    // so the steps already made stay with the account they were made for: at
+    // worst that account keeps a second README, which its next Drive open finds
+    // by title and replaces.
+    const api = cloudNotesApi
+    const alive = live
     const existing = allNotes.value.find((n) => n.title === README_NOTE_TITLE)
     if (!existing) return
-    const createRes = await cloudNotesApi.create()
+    const createRes = await api.create()
+    if (!alive()) return
     const id = unwrap(createRes)
     if (id == null) return
     // A failed title/content write would leave a blank "Untitled" note behind on
     // every Drive open; drop the replacement and keep the old README instead.
-    const titleRes = await cloudNotesApi.updateTitle(id, README_NOTE_TITLE)
-    const contentRes = titleRes.ok ? await cloudNotesApi.updateContent(id, content) : titleRes
+    const titleRes = await api.updateTitle(id, README_NOTE_TITLE)
+    const contentRes = titleRes.ok ? await api.updateContent(id, content) : titleRes
     if (!contentRes.ok) {
-      await cloudNotesApi.delete(id)
-      unwrap(contentRes)
+      await api.delete(id)
+      if (alive()) unwrap(contentRes)
       return
     }
-    const delRes = await cloudNotesApi.delete(existing.id)
+    const delRes = await api.delete(existing.id)
+    if (!alive()) return
     if (!delRes.ok) unwrap(delRes)
     await loadAll()
   }
@@ -428,6 +531,41 @@ export function useCloudNotes() {
   /** Initial load — groups + the complete note set. */
   async function init(): Promise<void> {
     await Promise.all([refreshGroups(), loadAll()])
+  }
+
+  /**
+   * Whose notes this instance shows: the signed-in account's badge, or null.
+   * Everything loaded for the account before is dropped at once (its ids mean
+   * nothing under another account), and whatever is still on its way for it
+   * arrives to nothing. The caller loads again (`init`).
+   */
+  function bindAccount(badge: string | null): void {
+    live = account.begin()
+    cloudNotesApi = withNoteReadCoalescing(ownedNotesApi(badge), badge ?? '')
+    searchGen += 1
+    openGen += 1
+    listGen += 1
+    listRun = null
+    searchOwnsLoading = false
+    if (searchDebounceTimer != null) {
+      clearTimeout(searchDebounceTimer)
+      searchDebounceTimer = null
+    }
+    groups.value = []
+    allNotes.value = []
+    searchResults.value = null
+    notes.value = []
+    selectedNote.value = null
+    openingNoteId.value = null
+    keyword.value = ''
+    activeGroupId.value = ''
+    page.value = 1
+    totalPages.value = 1
+    filteredCount.value = 0
+    loading.value = false
+    saving.value = false
+    error.value = ''
+    notSignedIn.value = false
   }
 
   return {
@@ -462,6 +600,8 @@ export function useCloudNotes() {
     closeNote,
     createNote,
     saveContent,
+    noteWriter,
+    bindAccount,
     renameNote,
     deleteNote,
     moveNoteToGroup,

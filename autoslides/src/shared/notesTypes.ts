@@ -132,6 +132,29 @@ export interface NoteListParams {
 /** Uniform IPC envelope so the renderer can surface auth/network failures. */
 export type NotesResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
+/**
+ * The error of a note call made for an account that is no longer the active
+ * one (`cloudNotes.asOwner`). Nothing was sent. It is not a failure to show:
+ * the operation belonged to the account the user just left.
+ */
+export const NOTES_ACCOUNT_CHANGED = 'account-changed';
+
+/** The note calls that can be made for a named account. */
+export const OWNED_NOTE_METHODS = [
+  'list',
+  'get',
+  'create',
+  'updateTitle',
+  'updateContent',
+  'moveToGroup',
+  'delete',
+  'groupList',
+  'groupCreate',
+  'groupDelete',
+  'uploadImage',
+] as const;
+export type OwnedNoteMethod = (typeof OWNED_NOTE_METHODS)[number];
+
 /** Max length of a note group name enforced by the server. */
 export const NOTE_GROUP_NAME_MAX = 6;
 
