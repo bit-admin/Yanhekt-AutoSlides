@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker, {
   LOGIN_TOKEN_RE,
+  MAX_PLAYLIST_BYTES,
   fetchSignedMedia,
+  readPlaylist,
   isAllowedUpstream,
   parseSeconds,
   parseSessionId,
@@ -315,5 +317,71 @@ describe('watch progress', () => {
     // Only the progress PUT went upstream — no token mint, no media fetch.
     expect(fetchSpy.mock.calls).toHaveLength(1);
     expect(progressCalls()).toHaveLength(1);
+  });
+});
+
+describe('readPlaylist', () => {
+  const chunked = (parts: number, size: number) =>
+    new Response(
+      new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < parts; i++) controller.enqueue(new Uint8Array(size).fill(0x23));
+          controller.close();
+        },
+      }),
+      { status: 200 },
+    );
+
+  it('reads a playlist of ordinary size', async () => {
+    expect(await readPlaylist(new Response('#EXTM3U\n0001.ts\n'))).toEqual({ status: 200, body: '#EXTM3U\n0001.ts\n' });
+  });
+
+  it('refuses a declared or streamed body over the limit, reading no further', async () => {
+    const declared = new Response('x', { headers: { 'Content-Length': String(MAX_PLAYLIST_BYTES + 1) } });
+    expect(await readPlaylist(declared)).toBeNull();
+    expect(await readPlaylist(chunked(5, 1024 * 1024))).toBeNull();
+  });
+
+  it('answers a failed upstream with its status and never reads the error body', async () => {
+    const res = new Response('a large error page', { status: 404 });
+    expect(await readPlaylist(res)).toEqual({ status: 404, body: 'Upstream answered HTTP 404' });
+  });
+});
+
+describe('a rejected video token', () => {
+  it('mints a new one on the retry even while the old cache entry is still being deleted', async () => {
+    // The cache delete never finishes during the retry: a read would still find tok1.
+    cache.delete.mockImplementation(() => new Promise(() => {}));
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse('tok1'))
+      .mockResolvedValueOnce(new Response('denied', { status: 403 }))
+      .mockResolvedValueOnce(tokenResponse('tok2'))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+    const ctx = fakeCtx();
+    // Seed the cache with tok1, as an earlier request would have.
+    await cache.put(new Request('https://yanhekt-proxy.cache/token/anon'), new Response(JSON.stringify({ token: 'tok1' })));
+    fetchSpy.mockReset();
+    fetchSpy
+      .mockResolvedValueOnce(new Response('denied', { status: 403 }))
+      .mockResolvedValueOnce(tokenResponse('tok2'))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+    const res = await fetchSignedMedia(MEDIA, ctx, null);
+    expect(res.status).toBe(200);
+    const urls = fetchSpy.mock.calls.map((c) => c[0]);
+    expect(urls[0]).toContain('Xvideo_Token=tok1');
+    expect(urls[2]).toContain('Xvideo_Token=tok2');
+  });
+
+  it('does not let a token minted before the rejection be cached after it', async () => {
+    let releaseMint!: (r: Response) => void;
+    fetchSpy.mockImplementationOnce(() => new Promise<Response>((resolve) => { releaseMint = resolve; }));
+    const ctx = fakeCtx();
+    const { getVideoTokenForTest, invalidateTokenForTest } = await import('./index');
+    const old = getVideoTokenForTest(ctx);
+    await invalidateTokenForTest(ctx);
+    releaseMint(tokenResponse('stale'));
+    expect(await old).toBe('stale');
+    await Promise.all(ctx.pending);
+    expect(cache.store.has('https://yanhekt-proxy.cache/token/anon')).toBe(false);
   });
 });

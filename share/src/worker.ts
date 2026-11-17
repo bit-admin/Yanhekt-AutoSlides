@@ -32,15 +32,21 @@ import {
   type ExecutionContext,
 } from './lib/runtime';
 import { fetchLectureMeta } from './lib/yanhekt';
+import { readBodyLimited } from './lib/body';
 import { routeApi } from './api/router';
 
 async function handleShorten(req: Request, env: Env, origin: string): Promise<Response> {
+  // The whole body is capped, not just the fragment inside it: room for the
+  // longest fragment plus the JSON around it.
+  const raw = await readBodyLimited(req, MAX_FRAGMENT_BYTES * 2);
+  if (!raw) return json({ error: 'too-large' }, 413);
   let body: { fragment?: unknown };
   try {
-    body = (await req.json()) as { fragment?: unknown };
+    body = JSON.parse(new TextDecoder().decode(raw)) as { fragment?: unknown };
   } catch {
     return json({ error: 'bad-json' }, 400);
   }
+  if (!body || typeof body !== 'object') return json({ error: 'bad-json' }, 400);
   const fragment = body.fragment;
   if (typeof fragment !== 'string' || fragment.length === 0) {
     return json({ error: 'missing-fragment' }, 400);

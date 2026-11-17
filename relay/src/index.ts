@@ -101,6 +101,9 @@ const CORS: Record<string, string> = {
 // ---- Video token: Cache API + in-isolate coalescing -----------------------
 
 const inflight = new Map<string, Promise<string>>();
+// Moves on every rejection. A mint begun before it may finish after it, and
+// must then not put its (already rejected) token back in the cache.
+let tokenGeneration = 0;
 
 function tokenCacheKey(): { url: string; req: Request } {
   // Shared: Yanhekt mints Xvideo_Token without a login Bearer, so one cache
@@ -109,14 +112,24 @@ function tokenCacheKey(): { url: string; req: Request } {
   return { url, req: new Request(url) };
 }
 
-async function getVideoToken(ctx: ExecutionContext): Promise<string> {
+/**
+ * The shared video token. `fresh` skips the cache: the retry after a CDN 403
+ * must mint a new token, and the delete of the rejected one may still be on
+ * its way (Cache API deletes are not instant), so reading would hand the same
+ * token back.
+ */
+async function getVideoToken(ctx: ExecutionContext, fresh = false): Promise<string> {
   const { url, req } = tokenCacheKey();
   const cache = caches.default;
+  // Taken before any await: a rejection during the cache read counts too.
+  const generation = tokenGeneration;
 
-  const cached = await cache.match(req);
-  if (cached) {
-    const { token } = (await cached.json()) as { token?: string };
-    if (token) return token;
+  if (!fresh) {
+    const cached = await cache.match(req);
+    if (cached) {
+      const { token } = (await cached.json()) as { token?: string };
+      if (token) return token;
+    }
   }
 
   const existing = inflight.get(url);
@@ -136,6 +149,8 @@ async function getVideoToken(ctx: ExecutionContext): Promise<string> {
     const now = data.data.now ?? Math.floor(Date.now() / 1000);
     const expiredAt = data.data.expired_at ?? now + 600;
     const ttl = Math.max(60, expiredAt - now - 30); // honor server expiry, 30s safety
+    // Rejected while this mint was out: use it for this request at most, never cache it.
+    if (generation !== tokenGeneration) return token;
     ctx.waitUntil(
       cache.put(
         req,
@@ -153,9 +168,15 @@ async function getVideoToken(ctx: ExecutionContext): Promise<string> {
 
 function invalidateToken(ctx: ExecutionContext): void {
   const { url, req } = tokenCacheKey();
+  tokenGeneration += 1;
   inflight.delete(url);
   ctx.waitUntil(caches.default.delete(req));
 }
+
+/** For tests only. */
+export const getVideoTokenForTest = (ctx: ExecutionContext, fresh = false): Promise<string> => getVideoToken(ctx, fresh);
+/** For tests only. */
+export const invalidateTokenForTest = async (ctx: ExecutionContext): Promise<void> => invalidateToken(ctx);
 
 // ---- Raw m3u8 cache -------------------------------------------------------
 // Recorded (VOD) playlists are immutable, and the raw upstream body is
@@ -169,6 +190,48 @@ const VOD_TTL = 21600; // 6h — recorded lectures never change once processed
 
 const inflightM3u8 = new Map<string, Promise<string>>();
 
+/**
+ * The largest playlist read into memory. A two-hour recording's playlist is a
+ * few hundred KB; anything near this is not a playlist.
+ */
+export const MAX_PLAYLIST_BYTES = 4 * 1024 * 1024;
+/** Segments declared larger than this stream through uncached. */
+export const MAX_CACHED_SEGMENT_BYTES = 64 * 1024 * 1024;
+
+/**
+ * A playlist body as text, or null when it is longer than `MAX_PLAYLIST_BYTES`
+ * (read only that far). A non-200 body is never read: its status is enough.
+ */
+export async function readPlaylist(res: Response): Promise<{ status: number; body: string } | null> {
+  if (res.status !== 200) {
+    await res.body?.cancel().catch(() => undefined);
+    return { status: res.status, body: `Upstream answered HTTP ${res.status}` };
+  }
+  const declared = Number(res.headers.get('Content-Length') ?? '');
+  if (Number.isFinite(declared) && declared > MAX_PLAYLIST_BYTES) {
+    await res.body?.cancel().catch(() => undefined);
+    return null;
+  }
+  if (!res.body) return { status: 200, body: '' };
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let total = 0;
+  let text = '';
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_PLAYLIST_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return { status: 200, body: text + decoder.decode() };
+}
+
+const TOO_LARGE = { status: 502, body: 'The upstream playlist is too large' };
+
 function m3u8CacheKey(rawUrl: string): { url: string; req: Request } {
   const url = `https://yanhekt-proxy.cache/m3u8/${md5(rawUrl)}`;
   return { url, req: new Request(url) };
@@ -181,7 +244,7 @@ async function getRawPlaylist(
 ): Promise<{ status: number; body: string }> {
   if (noCache) {
     const res = await fetchSignedMedia(rawUrl, ctx, null);
-    return { status: res.status, body: await res.text() };
+    return (await readPlaylist(res)) ?? TOO_LARGE;
   }
 
   const { url, req } = m3u8CacheKey(rawUrl);
@@ -197,11 +260,12 @@ async function getRawPlaylist(
 
   const p = (async () => {
     const res = await fetchSignedMedia(rawUrl, ctx, null);
-    const body = await res.text();
-    if (res.status !== 200) {
+    const read = (await readPlaylist(res)) ?? TOO_LARGE;
+    if (read.status !== 200) {
       // Surface upstream failures without caching them or joining coalesced waiters.
-      throw { status: res.status, body } as { status: number; body: string };
+      throw read;
     }
+    const body = read.body;
     ctx.waitUntil(
       cache.put(
         req,
@@ -261,6 +325,10 @@ async function getSegment(
 
   const res = await fetchSignedMedia(rawUrl, ctx, range);
   if (noCache || res.status !== 200 || !res.body) return res;
+  // A body declared larger than any segment streams through uncached. (One
+  // without a length is still cached: the CDN serves static files.)
+  const length = Number(res.headers.get('Content-Length') ?? '');
+  if (Number.isFinite(length) && length > MAX_CACHED_SEGMENT_BYTES) return res;
 
   // Stream to the client and the cache simultaneously; put() finishes in the
   // background even if the client disconnects mid-segment.
@@ -293,7 +361,7 @@ export async function fetchSignedMedia(
     if (attempt > 0) {
       // Previous attempt was a 403: re-mint a fresh token, then re-sign.
       invalidateToken(ctx);
-      token = await getVideoToken(ctx);
+      token = await getVideoToken(ctx, true);
     }
     const signed = signMediaUrl(rawUrl, token); // fresh timestamp+signature each call
     const headers: Record<string, string> = { ...MEDIA_HEADERS };
