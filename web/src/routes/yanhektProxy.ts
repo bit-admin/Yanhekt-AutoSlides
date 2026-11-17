@@ -14,6 +14,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { Env } from "../env";
 import { upstreamHeaders } from "../lib/yanhekt";
+import { BODY_LIMITS, readRequestLimited, tooLarge } from "../lib/body";
 
 const UPSTREAM_BASE = "https://cbiz.yanhekt.cn";
 
@@ -127,11 +128,13 @@ async function forward(c: Context<{ Bindings: Env }>): Promise<Response> {
   const headers = upstreamHeaders(
     isAnonymousUpstream(method, upstreamPath, url.searchParams) ? null : token,
   );
-  let body: ArrayBuffer | undefined;
+  let body: Uint8Array | undefined;
   if (method !== "GET") {
     // Forward the caller's body bytes and Content-Type verbatim — for
     // multipart uploads the incoming header carries the form boundary.
-    body = await c.req.arrayBuffer();
+    const read = await readRequestLimited(c.req.raw, BODY_LIMITS.yanhekt);
+    if (read === null) return tooLarge(BODY_LIMITS.yanhekt);
+    body = read;
     const contentType = c.req.header("Content-Type");
     if (contentType) {
       headers["Content-Type"] = contentType;

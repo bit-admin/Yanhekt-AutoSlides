@@ -36,6 +36,7 @@ import {
   Sealer,
   randomNonce,
 } from "../lib/resumeSeal";
+import { BODY_LIMITS, readRequestLimited } from "../lib/body";
 
 export const loginRouter = new Hono<{ Bindings: Env }>();
 
@@ -169,7 +170,10 @@ loginRouter.post("/login/sms", async (c) => {
 
 async function readJsonBody<T>(request: Request): Promise<T | null> {
   try {
-    return (await request.json()) as T;
+    // Bounded: a sign-in body is a few fields; anything larger is not one.
+    const bytes = await readRequestLimited(request, BODY_LIMITS.login);
+    if (bytes === null) return null;
+    return JSON.parse(new TextDecoder().decode(bytes)) as T;
   } catch {
     return null;
   }

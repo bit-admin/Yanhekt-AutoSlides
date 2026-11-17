@@ -12,6 +12,7 @@
  */
 import { Hono } from "hono";
 import type { Env } from "../env";
+import { BODY_LIMITS, readRequestLimited, tooLarge } from "../lib/body";
 
 export const aiProxyRouter = new Hono<{ Bindings: Env }>();
 
@@ -67,6 +68,11 @@ aiProxyRouter.all("/*", async (c) => {
   headers.set("User-Agent", OUTBOUND_UA);
 
   const method = c.req.method;
-  const body = method === "GET" || method === "HEAD" ? undefined : await c.req.arrayBuffer();
+  let body: Uint8Array | undefined;
+  if (method !== "GET" && method !== "HEAD") {
+    const read = await readRequestLimited(c.req.raw, BODY_LIMITS.ai);
+    if (read === null) return tooLarge(BODY_LIMITS.ai);
+    body = read;
+  }
   return fetch(targetUrl(origin, new URL(c.req.url)), { method, headers, body });
 });

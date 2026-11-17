@@ -19,6 +19,7 @@
  */
 import { Hono, type Context } from "hono";
 import type { Env } from "../env";
+import { BODY_LIMITS, readRequestLimited, tooLarge } from "../lib/body";
 
 export const copilotProxyRouter = new Hono<{ Bindings: Env }>();
 
@@ -42,7 +43,12 @@ async function forward(c: Context<{ Bindings: Env }>, upstreamPath: string): Pro
     if (value) headers.set(name, value);
   }
   const method = c.req.method;
-  const body = method === "GET" || method === "HEAD" ? undefined : await c.req.arrayBuffer();
+  let body: Uint8Array | undefined;
+  if (method !== "GET" && method !== "HEAD") {
+    const read = await readRequestLimited(c.req.raw, BODY_LIMITS.ai);
+    if (read === null) return tooLarge(BODY_LIMITS.ai);
+    body = read;
+  }
   // A service binding ignores the hostname; only method, path and headers reach the callee.
   return c.env.COPILOT.fetch(new Request(`https://copilot.internal${upstreamPath}`, { method, headers, body }));
 }

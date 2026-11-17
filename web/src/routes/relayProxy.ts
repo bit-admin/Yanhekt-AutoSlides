@@ -19,6 +19,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { resolveRelayPolicy } from "../lib/relayPolicy";
+import { BODY_LIMITS, readTextLimited } from "../lib/body";
 
 export const relayProxyRouter = new Hono<{ Bindings: Env }>();
 
@@ -51,7 +52,9 @@ relayProxyRouter.all("/playlist", async (c) => {
   if (res.status !== 200 || (!type.includes("mpegurl") && !type.includes("m3u8"))) {
     return res;
   }
-  const body = relativizeProxyUrls(await res.text());
+  const text = await readTextLimited(res, BODY_LIMITS.playlist);
+  if (text === null) return new Response("Playlist too large", { status: 502 });
+  const body = relativizeProxyUrls(text);
   const headers = new Headers(res.headers);
   headers.delete("Content-Length");
   return new Response(body, { status: res.status, headers });

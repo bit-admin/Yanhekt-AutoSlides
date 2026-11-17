@@ -145,6 +145,20 @@ describe("/api/yanhekt proxy", () => {
     expect(upstreamCall(2).headers["Content-Type"]).toBe("application/json");
   });
 
+  it("refuses a write body over the limit before any upstream fetch", async () => {
+    const res = await app.request(
+      "/api/yanhekt/v1/note",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json", "Content-Length": String(26 * 1024 * 1024) },
+        body: "{}",
+      },
+      env(),
+    );
+    expect(res.status).toBe(413);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("keeps the Bearer on session detail, the hop that carries user_progress", async () => {
     await app.request(
       "/api/yanhekt/v1/course/session?session_id=850201&with_video=true",
