@@ -4,6 +4,7 @@
 import { credentialsJson, readCredentials } from '../auth';
 import { TOKEN_SOURCE_TEXT } from '../credentials';
 import type { CliCommand, CliContext, CommandInput, CommandResult } from '../types';
+import { WHOAMI_SCHEMA_TERMINAL } from '../dataSchemas';
 
 async function run(input: CommandInput, ctx: CliContext): Promise<CommandResult> {
   const credentials = readCredentials(input, ctx);
@@ -28,5 +29,6 @@ export const whoamiCommand: CliCommand = {
   network: false,
   tokenUse: 'Reads it to report where it comes from; sends nothing',
   data: '{ source: "flag"|"account"|"env"|"app", account: string|null, badge: string|null }',
+  dataSchema: WHOAMI_SCHEMA_TERMINAL,
   run,
 };

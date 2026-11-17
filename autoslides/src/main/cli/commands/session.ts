@@ -6,6 +6,7 @@ import { englishTitle, formatDuration, formatTime } from '../format';
 import { parseSessionTarget } from '../targets';
 import { termKey } from '../terms';
 import type { CliCommand, CliContext, CommandInput, CommandResult } from '../types';
+import { SESSION_SCHEMA } from '../dataSchemas';
 
 const ANONYMOUS = '';
 
@@ -88,5 +89,6 @@ export const sessionCommand: CliCommand = {
   network: true,
   tokenUse: 'Only for a session of an earlier term\'s course, to list its course\'s sessions',
   data: SESSION_DATA,
+  dataSchema: SESSION_SCHEMA,
   run,
 };

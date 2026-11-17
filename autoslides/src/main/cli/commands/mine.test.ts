@@ -5,6 +5,7 @@ import { appMineCommand } from '../app/lookups';
 import type { AppCommandContext } from '../app/types';
 import type { CliContext, CommandInput } from '../types';
 import { mineCommand } from './mine';
+import { expectMatchesSchema } from '../dataSchemas.testkit';
 
 vi.mock('../terminal', () => ({ info: vi.fn() }));
 
@@ -72,6 +73,7 @@ describe('yhdl mine', () => {
   it('reads only the selected account cache, without requests or writes', async () => {
     const w = world([current, earlier, other]);
     const result = await mineCommand.run(input('yhdl', { account: 'Alice' }), w.terminal);
+    expectMatchesSchema(mineCommand.dataSchema, result.data);
     expect(result.data).toEqual({
       page: 1, last_page: 1, total: 2,
       courses: [
@@ -147,6 +149,7 @@ describe('autoslides mine', () => {
     const pending = deferred<EnrolledRefreshResult>();
     w.refresh.mockReturnValue(pending.promise);
     const result = await appMineCommand.serve(input('autoslides'), w.app);
+    expectMatchesSchema(appMineCommand.dataSchema, result.data);
     expect(result.data).toMatchObject({
       total: 2, courses: [{ id: current.id }, { id: earlier.id }], account: { name: 'Alice', badge: OWNER },
     });

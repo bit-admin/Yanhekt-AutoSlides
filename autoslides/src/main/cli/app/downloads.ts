@@ -15,6 +15,7 @@ import type { CommandInput, CommandResult } from '../types';
 import { followDownloads } from './followDownloads';
 import { requireSignIn } from './signIn';
 import type { AppCommand, AppCommandContext } from './types';
+import { DOWNLOADS_SCHEMA } from '../dataSchemas';
 
 const ACTIONS = ['list', 'wait', 'cancel', 'retry', 'clear'] as const;
 type Action = (typeof ACTIONS)[number];
@@ -274,6 +275,7 @@ export const appDownloadsCommand: AppCommand = {
   data:
     `list / wait: { output_dir, items: [${ROW_SHAPE}] }; cancel / retry: { action, items: [Row & { changed: boolean }] }; clear: { removed: number }; ` +
     'RowStatus: "queued"|"downloading"|"processing"|"completed"|"failed"|"cancelled"|"removed"',
+  dataSchema: DOWNLOADS_SCHEMA,
   serve,
 };
 

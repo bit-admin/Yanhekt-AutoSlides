@@ -1,6 +1,6 @@
 # Command reference
 
-Every command takes `--json` and `-h/--help`. `autoslides schema` and `yhdl schema` print this as JSON from the code itself; when the two disagree, trust `schema`.
+Every command takes `--json` and `-h/--help`. `autoslides schema` and `yhdl schema` print this as JSON from the code itself; when the two disagree, trust `schema`. Each command there also has `data_schema`, the JSON Schema of its `data` (`data_schema_version` 1): fields may be added within a version, never removed or retyped.
 
 ## `autoslides` (drives the app)
 

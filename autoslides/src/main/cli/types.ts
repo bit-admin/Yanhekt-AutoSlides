@@ -5,6 +5,7 @@ import type { IntranetMappingService } from '@main/platform/intranetMappingServi
 import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
 import type { OptionSpec } from './args';
 import type { CliError } from './errors';
+import type { JsonSchema } from './dataSchemas';
 
 /** What a command may use in the terminal process. Only the services a headless run actually needs. */
 export interface CliContext {
@@ -63,8 +64,10 @@ export interface CliCommand {
   runsInApp?: boolean;
   /** When the command uses a login token, in a sentence; absent = never. Adds `--token` / `--account`. */
   tokenUse?: string;
-  /** The shape of `data` in the JSON answer, for `schema`. */
+  /** The shape of `data` in the JSON answer, for `schema`, in words. */
   data: string;
+  /** The same as JSON Schema (`dataSchemas.ts`), published as `data_schema`. */
+  dataSchema: JsonSchema;
   /** Resolves with the result; a failure is a thrown CliError (or any error, classified). */
   run: (input: CommandInput, ctx: CliContext) => Promise<CommandResult>;
 }

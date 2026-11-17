@@ -31,6 +31,7 @@ import type { CommandInput, CommandResult } from '../types';
 import { followDownloads, type Followed } from './followDownloads';
 import { requireSignIn } from './signIn';
 import type { AppCommand, AppCommandContext } from './types';
+import { DOWNLOAD_SCHEMA_APP } from '../dataSchemas';
 
 /** An item the app is downloading for this command. */
 interface Following extends Followed {
@@ -200,5 +201,6 @@ export const appDownloadCommand: AppCommand = {
   ],
   positionals: { min: 0, max: Infinity },
   data: `{ output_dir, dry_run, waited, items: [${ITEM_SHAPE}] }; ItemStatus: "downloaded"|"skipped"|"planned"|"queued"|"failed"`,
+  dataSchema: DOWNLOAD_SCHEMA_APP,
   serve,
 };

@@ -13,6 +13,7 @@ import { termKey } from '../terms';
 import { info } from '../terminal';
 import type { CliCommand, CliContext, CommandInput, CommandResult } from '../types';
 import { DEFAULT_LIMIT, MAX_LIMIT, courseRowJson, type CliCourseRow } from './search';
+import { MINE_SCHEMA_TERMINAL } from '../dataSchemas';
 
 const EMPTY_NOTE =
   'Yanhekt listed no courses: this account is enrolled in none, or the token is no longer valid.';
@@ -118,5 +119,6 @@ export const mineCommand: CliCommand = {
   network: true,
   tokenUse: 'To read the account\'s course list',
   data: `${MINE_DATA}, auth: { source, account } }`,
+  dataSchema: MINE_SCHEMA_TERMINAL,
   run,
 };

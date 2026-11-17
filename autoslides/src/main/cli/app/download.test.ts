@@ -6,6 +6,7 @@ import type { CliControlMethods, CliDownloadUpdate } from '@common/cliControl';
 import type { CommandInput } from '../types';
 import { appDownloadCommand } from './download';
 import type { AppCommandContext } from './types';
+import { expectMatchesSchema } from '../dataSchemas.testkit';
 
 vi.mock('@main/infra/logger', () => ({
   createLogger: () => ({ debug() {}, info() {}, warn() {}, error() {} }),
@@ -72,6 +73,7 @@ describe('autoslides download', () => {
     const app = fakeApp({ itemId: 'i1', state: 'queued', progress: 0, added: true });
     const result = await appDownloadCommand.serve(input(false), app.ctx);
     const file = path.join(outputDir, 'screen_课程_第1讲__c70101s850101.mp4');
+    expectMatchesSchema(appDownloadCommand.dataSchema, result.data);
     expect(app.watched).toEqual(['i1']);
     expect((result.data as Data).items).toMatchObject([{ status: 'downloaded', path: file }]);
     expect(app.output.out).toEqual([file]);

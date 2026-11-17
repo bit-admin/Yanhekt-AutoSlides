@@ -34,6 +34,7 @@ import {
 import { CliError } from '../errors';
 import { endStatusLine, info, out, status } from '../terminal';
 import type { CliCommand, CliContext, CommandInput, CommandResult } from '../types';
+import { DOWNLOAD_SCHEMA_TERMINAL } from '../dataSchemas';
 
 const ANONYMOUS = '';
 
@@ -248,5 +249,6 @@ export const downloadCommand: CliCommand = {
   network: true,
   tokenUse: 'With --course, or for a session of an earlier term\'s course, to list the course\'s sessions; the videos are always fetched anonymously',
   data: `{ output_dir, dry_run, items: [${ITEM_SHAPE}] }; ItemStatus: "downloaded"|"skipped"|"planned"|"failed"|"interrupted"`,
+  dataSchema: DOWNLOAD_SCHEMA_TERMINAL,
   run,
 };

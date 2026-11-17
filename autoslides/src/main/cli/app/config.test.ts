@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { CommandInput } from '../types';
 import { appConfigCommand } from './config';
 import type { AppCommandContext } from './types';
+import { expectMatchesSchema } from '../dataSchemas.testkit';
 
 const TOKEN = '0123456789abcdef0123456789abcdef';
 
@@ -70,6 +71,7 @@ const input = (positionals: string[]): CommandInput => ({ program: 'autoslides',
 describe('autoslides config', () => {
   it('shows the listed settings under their command-line names', async () => {
     const { data } = await appConfigCommand.serve(input([]), context());
+    expectMatchesSchema(appConfigCommand.dataSchema, data);
     expect(data).toEqual({
       settings: {
         output_dir: '/Users/someone/Lectures',
@@ -100,6 +102,7 @@ describe('autoslides config', () => {
 
   it('prints one value bare, for scripts', async () => {
     const result = await appConfigCommand.serve(input(['output_dir']), context());
+    expectMatchesSchema(appConfigCommand.dataSchema, result.data);
     expect(result.text).toBe('/Users/someone/Lectures');
     expect(result.data).toEqual({ key: 'output_dir', value: '/Users/someone/Lectures', setting: 'General > Output Directory' });
     expect((await appConfigCommand.serve(input(['intranet_interface']), context())).text).toBe('');
@@ -116,6 +119,7 @@ describe('autoslides config', () => {
 
   it('sets the connection mode through the app, as Save in Settings would', async () => {
     const result = await appConfigCommand.serve(input(['connection_mode', 'internal']), context(false));
+    expectMatchesSchema(appConfigCommand.dataSchema, result.data);
     expect(applied).toEqual([['setConnectionMode', 'internal']]);
     expect(result.data).toEqual({
       key: 'connection_mode',

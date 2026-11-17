@@ -29,6 +29,7 @@ import { pinRoute } from './route';
 import { fail, info, out, separate } from './terminal';
 import type { CliCommand, CliContext, CommandResult } from './types';
 import { checkPositionals } from './validate';
+import { SCHEMA_SCHEMA } from './dataSchemas';
 
 export { parseCliInvocation, type CliInvocation } from './invocation';
 export { createCliInterrupts } from './interrupts';
@@ -50,6 +51,7 @@ function schemaCommand(mode: CliMode): CliCommand {
     positionals: { min: 0, max: 0 },
     network: false,
     data: 'This document',
+    dataSchema: SCHEMA_SCHEMA,
     run: async (input, ctx) => {
       const schema = buildSchema(TABLES[mode], input.program, ctx.version, mode);
       return { data: schema, text: JSON.stringify(schema, null, 2) };

@@ -4,6 +4,7 @@ import { optionLabel, type OptionSpec } from './args';
 import { TOKEN_ENV } from './credentials';
 import { CLI_ERROR_CODES, EXIT } from './errors';
 import type { CliCommand } from './types';
+import { DATA_SCHEMA_VERSION } from './dataSchemas';
 
 export const JSON_OPTION: OptionSpec = {
   long: 'json',
@@ -116,6 +117,9 @@ export function buildSchema(commands: CommandTable, program: string, version: st
     program,
     version,
     runs_in: mode === 'app' ? 'the AutoSlides app' : 'this terminal process',
+    // Version of the commands' `data_schema` (JSON Schema). Fields may be added
+    // within a version; one is removed or retyped only with a new version.
+    data_schema_version: DATA_SCHEMA_VERSION,
     output: {
       json: 'With --json, stdout is exactly one JSON object: {"ok":true,"data":…} or {"ok":false,"error":{"code","message","hint"?},"data"?}. Progress and notices go to stderr.',
       text: 'Without --json, stdout carries only results (tables, or the path of each downloaded file).',
@@ -149,6 +153,7 @@ export function buildSchema(commands: CommandTable, program: string, version: st
           })),
         examples: c.examples.map((e) => `${program} ${fill(e, program)}`),
         data: c.data,
+        data_schema: c.dataSchema,
       };
     }),
   };

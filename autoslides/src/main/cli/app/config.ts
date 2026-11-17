@@ -23,6 +23,7 @@ import { table } from '../format';
 import { resolveCliInterface } from '../networkInterface';
 import type { CommandInput, CommandResult } from '../types';
 import type { AppCommand, AppCommandContext } from './types';
+import { CONFIG_SCHEMA } from '../dataSchemas';
 
 type Value = string | number | boolean | null;
 
@@ -292,5 +293,6 @@ export const appConfigCommand: AppCommand = {
   data:
     `{ settings: { ${SETTINGS.map((s) => `${s.key}: ${s.type}`).join(', ')} } }; ` +
     'with a key: { key, value, setting }; with a key and value: { key, value, previous, changed: boolean, setting }',
+  dataSchema: CONFIG_SCHEMA,
   serve,
 };

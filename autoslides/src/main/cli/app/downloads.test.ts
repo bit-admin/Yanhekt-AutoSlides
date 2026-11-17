@@ -5,6 +5,7 @@ import { CliError } from '../errors';
 import type { CommandInput } from '../types';
 import { appDownloadsCommand } from './downloads';
 import type { AppCommandContext } from './types';
+import { expectMatchesSchema } from '../dataSchemas.testkit';
 
 const OUT = path.join(path.sep, 'out');
 
@@ -110,6 +111,7 @@ describe('autoslides downloads', () => {
   it('lists the panel with the files written and the app\'s words for each state', async () => {
     const app = fakeApp(queue());
     const { data } = await serve([], app);
+    expectMatchesSchema(appDownloadsCommand.dataSchema, data);
     const items = (data as { items: Array<Record<string, unknown>> }).items;
     expect(items.map((i) => [i.item_id, i.status])).toEqual([
       ['a', 'completed'],
@@ -187,6 +189,7 @@ describe('autoslides downloads', () => {
   it('cancels named rows and says which had already finished', async () => {
     const app = fakeApp(queue());
     const result = await serve(['cancel', '850101'], app);
+    expectMatchesSchema(appDownloadsCommand.dataSchema, result.data);
     expect(app.calls.find((c) => c.method === 'changeDownloads')?.params).toEqual({ action: 'cancel', itemIds: ['a', 'b'] });
     const items = (result.data as { items: Array<{ item_id: string; status: string; changed: boolean }> }).items;
     expect(items.map((i) => [i.item_id, i.status, i.changed])).toEqual([
@@ -214,6 +217,7 @@ describe('autoslides downloads', () => {
 
   it('clears finished and failed rows', async () => {
     const result = await serve(['clear'], fakeApp(queue()));
+    expectMatchesSchema(appDownloadsCommand.dataSchema, result.data);
     expect(result.data).toEqual({ removed: 3 });
   });
 });

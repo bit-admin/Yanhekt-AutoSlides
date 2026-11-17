@@ -169,6 +169,7 @@ describe('a command sent to the app', () => {
     ],
     positionals: { min: 0, max: 3 },
     data: '',
+    dataSchema: { type: 'object' },
     serve: async (input, ctx) => {
       served += 1;
       ctx.term.info('working');
