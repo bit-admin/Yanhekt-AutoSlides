@@ -344,6 +344,9 @@ export class ExtractionOrchestrator {
       return
     }
 
+    // Cancelled while the folder was being listed: queue nothing.
+    if (this.isCancelled(item)) return
+
     if (imageFiles.length === 0) {
       // No slides to post-process — treat as completed
       this.apply(item, { type: 'FINISH' })
@@ -413,6 +416,9 @@ export class ExtractionOrchestrator {
       // and post-processing run in our own JS — just flip the flag; they will
       // finish or error out shortly.
       this.apply(item, { type: 'CANCEL' })
+      // A post-processing job that has not started is removed; a running one
+      // stops at its next safe point. What it already moved stays moved.
+      if (item.postProcessJobId) PostProcessingService.abortJob(item.postProcessJobId)
       try {
         await window.electronAPI.qtExtractor.cancelExtraction(itemId)
       } catch (err) {

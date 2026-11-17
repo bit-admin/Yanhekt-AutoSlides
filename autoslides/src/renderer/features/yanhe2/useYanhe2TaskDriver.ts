@@ -81,13 +81,18 @@ export function useYanhe2TaskDriver(options: UseYanhe2TaskDriverOptions) {
     options.setPlaybackRate(speed)
     const refused = await options.startExtraction()
     if (refused) throw new Error(refused)
+    // Paused or removed while extraction was starting: stop it and play nothing.
+    if (!isTaskMode.value) {
+      options.stopExtraction()
+      throw new Error('Task stopped')
+    }
 
     const video = videoPlayer.value
     if (video?.paused) await video.play()
     lastProgress = -1
   }
 
-  const start = async (task: TaskContext): Promise<void> => {
+  const start = async (task: TaskContext, signal?: AbortSignal): Promise<void> => {
     if (currentTaskId.value === task.taskId && isTaskMode.value) return
     currentTaskId.value = task.taskId
     isTaskMode.value = true
@@ -99,7 +104,7 @@ export function useYanhe2TaskDriver(options: UseYanhe2TaskDriverOptions) {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         // Paused or removed while starting: nothing to report.
-        if (!isTaskMode.value || currentTaskId.value !== task.taskId) return
+        if (signal?.aborted || !isTaskMode.value || currentTaskId.value !== task.taskId) return
         const retry = attempt < ATTEMPTS && /timeout/i.test(message)
         log.warn(`Yanhe 2.0 task start failed (attempt ${attempt}/${ATTEMPTS}):`, message)
         if (!retry) {

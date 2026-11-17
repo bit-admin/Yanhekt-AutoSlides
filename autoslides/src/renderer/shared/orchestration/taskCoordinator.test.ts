@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { TaskCoordinator, type TaskContext, type TaskDriver } from './taskCoordinator'
+import { isTaskCancelled, TaskCoordinator, type TaskContext, type TaskDriver } from './taskCoordinator'
 
 // TaskCoordinator is a module singleton, so every registration must be torn down
 // between tests. We collect unregister handles (including ones created inside a
@@ -44,7 +44,7 @@ describe('TaskCoordinator', () => {
     await TaskCoordinator.runTask(task)
 
     expect(navigator).toHaveBeenCalledWith(task)
-    expect(driver.start).toHaveBeenCalledWith(task)
+    expect(driver.start).toHaveBeenCalledWith(task, expect.any(AbortSignal))
   })
 
   it('waits for a driver that registers during navigation, then starts it', async () => {
@@ -99,13 +99,66 @@ describe('TaskCoordinator', () => {
     const session = { subId: 'sub-2' } as never
     const task = ctx({ sessionId: '', yanhe2: { account: 'a', session } })
     await TaskCoordinator.runTask(task, { driverTimeoutMs: 50 })
-    expect(yanhe2.start).toHaveBeenCalledWith(task)
+    expect(yanhe2.start).toHaveBeenCalledWith(task, expect.any(AbortSignal))
     expect(yanhekt.start).not.toHaveBeenCalled()
     expect(other.start).not.toHaveBeenCalled()
 
     // And a Yanhekt task never lands on a Yanhe 2.0 player.
     const plain = ctx({ taskId: 't2', sessionId: '' })
     await TaskCoordinator.runTask(plain, { driverTimeoutMs: 50 })
-    expect(yanhekt.start).toHaveBeenCalledWith(plain)
+    expect(yanhekt.start).toHaveBeenCalledWith(plain, expect.any(AbortSignal))
+  })
+})
+
+describe('TaskCoordinator: pausing or removing a task that is still starting', () => {
+  it('does not start a driver that registers after the task was paused', async () => {
+    const driver = makeDriver()
+    const run = TaskCoordinator.runTask(ctx(), { driverTimeoutMs: 1000 })
+    const outcome = run.then(() => 'started', (error: unknown) => (isTaskCancelled(error) ? 'cancelled' : 'failed'))
+
+    TaskCoordinator.pauseTask(ctx())
+    track(TaskCoordinator.registerDriver(driver))
+
+    expect(await outcome).toBe('cancelled')
+    expect(driver.start).not.toHaveBeenCalled()
+  })
+
+  it('aborts the signal a starting driver was given, and still tells it to pause', async () => {
+    let seen: AbortSignal | undefined
+    let release!: () => void
+    const driver = makeDriver({
+      start: vi.fn((_task: TaskContext, signal?: AbortSignal) => {
+        seen = signal
+        return new Promise<void>((resolve) => { release = resolve })
+      }),
+    })
+    track(TaskCoordinator.registerDriver(driver))
+    const run = TaskCoordinator.runTask(ctx())
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(seen?.aborted).toBe(false)
+
+    TaskCoordinator.pauseTask(ctx())
+    expect(seen?.aborted).toBe(true)
+    expect(driver.pause).toHaveBeenCalledTimes(1)
+    release()
+    await run
+  })
+
+  it('leaves another task waiting when one is cancelled, and a re-queued task starts under its new run only', async () => {
+    const other = makeDriver({ sessionId: 's2' })
+    const otherRun = TaskCoordinator.runTask(ctx({ taskId: 't2', sessionId: 's2' }), { driverTimeoutMs: 1000 })
+    const first = TaskCoordinator.runTask(ctx(), { driverTimeoutMs: 1000 }).catch((error: unknown) => isTaskCancelled(error))
+    TaskCoordinator.pauseTask(ctx())
+    expect(await first).toBe(true)
+
+    const driver = makeDriver()
+    const second = TaskCoordinator.runTask(ctx(), { driverTimeoutMs: 1000 })
+    track(TaskCoordinator.registerDriver(driver))
+    track(TaskCoordinator.registerDriver(other))
+    await second
+    await otherRun
+    expect(driver.start).toHaveBeenCalledTimes(1)
+    expect(other.start).toHaveBeenCalledTimes(1)
   })
 })

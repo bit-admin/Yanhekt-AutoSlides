@@ -40,8 +40,12 @@ export interface TaskDriver {
   sessionId?: string
   /** Set by a Yanhe 2.0 player: the aita session it plays. Such a driver only runs Yanhe 2.0 tasks. */
   yanhe2SubId?: string
-  /** Begin playback + slide extraction; resolves once running, rejects on failure. */
-  start(task: TaskContext): Promise<void>
+  /**
+   * Begin playback + slide extraction; resolves once running, rejects on failure.
+   * `signal` aborts when the task is paused or removed while still starting:
+   * the driver checks it after each wait and goes no further.
+   */
+  start(task: TaskContext, signal?: AbortSignal): Promise<void>
   /** Stop playback + slide extraction (queue paused / current task removed). */
   pause(task: TaskContext): void
   /** Resume a previously-paused task (currently unused — kept for parity). */
@@ -52,10 +56,20 @@ export type TaskNavigator = (task: TaskContext) => void
 
 const DEFAULT_DRIVER_TIMEOUT_MS = 15000
 
+const CANCELLED = 'Task start cancelled'
+
+/** True for the rejection of a `runTask` whose task was paused or removed while starting. */
+export function isTaskCancelled(error: unknown): boolean {
+  return error instanceof Error && error.message === CANCELLED
+}
+
 class TaskCoordinatorClass {
   private drivers = new Set<TaskDriver>()
   private navigator: TaskNavigator | null = null
   private driverWaiters = new Set<() => void>()
+  // One entry per task that is still starting (navigating, waiting for its
+  // driver, or inside driver.start). Pausing or removing the task aborts it.
+  private starting = new Map<string, AbortController>()
 
   /** Register a playback driver (PlaybackPage on mount). Returns an unregister fn. */
   registerDriver(driver: TaskDriver): () => void {
@@ -94,7 +108,8 @@ class TaskCoordinatorClass {
     )
   }
 
-  private waitForDriver(task: TaskContext, timeoutMs: number): Promise<TaskDriver> {
+  private waitForDriver(task: TaskContext, timeoutMs: number, signal: AbortSignal): Promise<TaskDriver> {
+    if (signal.aborted) return Promise.reject(new Error(CANCELLED))
     const existing = this.findDriver(task)
     if (existing) return Promise.resolve(existing)
 
@@ -103,6 +118,13 @@ class TaskCoordinatorClass {
       const cleanup = () => {
         clearTimeout(timer)
         this.driverWaiters.delete(onChange)
+        signal.removeEventListener('abort', onAbort)
+      }
+      const onAbort = () => {
+        if (settled) return
+        settled = true
+        cleanup()
+        reject(new Error(CANCELLED))
       }
       const onChange = () => {
         const driver = this.findDriver(task)
@@ -120,22 +142,38 @@ class TaskCoordinatorClass {
         }
       }, timeoutMs)
       this.driverWaiters.add(onChange)
+      signal.addEventListener('abort', onAbort, { once: true })
     })
   }
 
   /**
    * Drive one task: navigate to its session (mounts the PlaybackPage, which
    * registers its driver), wait for that driver, then start it. Resolves once
-   * the task is running; rejects if no driver registers in time or start fails.
+   * the task is running; rejects if no driver registers in time, start fails,
+   * or the task was paused or removed meanwhile (`isTaskCancelled`).
    */
   async runTask(task: TaskContext, opts?: { driverTimeoutMs?: number }): Promise<void> {
-    this.navigator?.(task)
-    const driver = await this.waitForDriver(task, opts?.driverTimeoutMs ?? DEFAULT_DRIVER_TIMEOUT_MS)
-    await driver.start(task)
+    // A task queued again while its last start is still unwinding gets a run of
+    // its own; the old one stays cancelled.
+    this.starting.get(task.taskId)?.abort()
+    const run = new AbortController()
+    this.starting.set(task.taskId, run)
+    try {
+      this.navigator?.(task)
+      const driver = await this.waitForDriver(task, opts?.driverTimeoutMs ?? DEFAULT_DRIVER_TIMEOUT_MS, run.signal)
+      if (run.signal.aborted) throw new Error(CANCELLED)
+      await driver.start(task, run.signal)
+    } finally {
+      if (this.starting.get(task.taskId) === run) this.starting.delete(task.taskId)
+    }
   }
 
-  /** Pause the task on its matching driver (no-op if none registered). */
+  /**
+   * Pause the task: cancel its start if it is still starting (so a driver that
+   * registers later is not started), and stop its matching driver if there is one.
+   */
   pauseTask(task: TaskContext): void {
+    this.starting.get(task.taskId)?.abort()
     this.findDriver(task)?.pause(task)
   }
 }
