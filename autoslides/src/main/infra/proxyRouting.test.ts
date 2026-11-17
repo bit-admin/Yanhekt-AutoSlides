@@ -108,9 +108,18 @@ describe('proxyForUrl', () => {
     expect(await proxyForUrl('https://github.com/a')).toBe('http://127.0.0.1:7890');
     expect(await proxyForUrl('https://openai.ruc.edu.kg/v1')).toBe('http://env-proxy:3128');
     expect(await proxyForUrl('https://api.notion.com/v1')).toBeNull();
-    // A second request to the same host is answered from the short cache.
+    // A second request to the same folder is answered from the short cache.
     await proxyForUrl('https://github.com/b');
     expect(asked.filter((u) => u.includes('github'))).toHaveLength(1);
+  });
+
+  it('system mode keeps a PAC answer per folder, not per host', async () => {
+    configureProxy({ campus: 'system', other: 'system', customUrl: '' });
+    setSystemProxyResolver(async (url) => (url.includes('/private/') ? 'PROXY 127.0.0.1:7890' : 'DIRECT'));
+    delete process.env.HTTPS_PROXY;
+    expect(await proxyForUrl('https://example.org/public/a.ts')).toBeNull();
+    expect(await proxyForUrl('https://example.org/private/a.ts')).toBe('http://127.0.0.1:7890');
+    expect(await proxyForUrl('https://example.org/public/b.ts?sig=1')).toBeNull();
   });
 
   it('system mode with no resolver reads the environment only', async () => {

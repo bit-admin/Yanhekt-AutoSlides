@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
 import { PassThrough } from 'stream';
 import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@main/infra/logger', () => ({ createLogger: () => ({ debug() {}, info() {}, warn() {}, error() {} }) }));
 import { abortableDelay, isAbortError, pipeToClient, requestLifetime } from './requestLifetime';
 import { isYanhektMediaUrl } from './urlHelpers';
 import type * as http from 'http';
