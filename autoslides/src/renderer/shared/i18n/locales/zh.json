@@ -1452,7 +1452,8 @@
     "noteMeta": "由 AutoSlides 导入 · {count} 张幻灯片 · {date}",
     "noteSlideCaption": "幻灯片 {n}",
     "cancel": "取消",
-    "yanhektError": "延河课堂笔记服务出错（错误码 {code}），这是延河课堂服务器的问题，请稍后再试。"
+    "yanhektError": "延河课堂笔记服务出错（错误码 {code}），这是延河课堂服务器的问题，请稍后再试。",
+    "ungroupKeptBoth": "笔记已复制到未分组，但原笔记未能删除。两份笔记均已保留，请删除不需要的一份。"
   },
   "webCapture": {
     "back": "后退",

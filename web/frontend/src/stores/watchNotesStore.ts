@@ -35,6 +35,10 @@ export interface WatchNoteEntry {
   status: EntryStatus;
   /** Working copy of the note's Editor.js document (source of truth when no live editor). */
   content: OutputData;
+  /** The last content save was refused; the next one carries the whole document. */
+  unsaved: boolean;
+  /** Kept slides that could not be uploaded, so are not in the note. */
+  missedSlides: number;
 }
 
 /**
@@ -69,6 +73,10 @@ const pendingSlides = new Map<string, Set<string>>();
 // Per-folder promise chain serializing note appends so overlapping pass events
 // can't interleave image blocks out of order.
 const flushChains = new Map<string, Promise<void>>();
+// Settles when a folder's note has been found or created (true) or could not
+// be (false). Appends wait on this, however long creation takes: a slow
+// creation used to be given five seconds, after which the slide was dropped.
+const readiness = new Map<string, Promise<boolean>>();
 
 /** Bumped when extraction starts so the playback sidebar switches to Notes. */
 export const notesTabRequest = ref(0);
@@ -190,13 +198,18 @@ async function findOrCreateNote(
  * rejection, so it is read here. The working copy still holds everything, and
  * each save sends the whole document, so the next one carries what this missed.
  */
-async function saveEntry(noteId: number, content: OutputData): Promise<void> {
+async function saveEntry(folder: string, noteId: number, content: OutputData): Promise<void> {
+  let saved = false;
   try {
     const res = await notesClient.updateContent(noteId, JSON.stringify(content));
+    saved = res.ok;
     if (!res.ok) log.warn('watch note save failed', res.error);
   } catch (err) {
     log.warn('watch note save failed', err);
   }
+  // Through the reactive entry, so the panel shows it.
+  const entry = state.entries[folder];
+  if (entry && entry.noteId === noteId) entry.unsaved = !saved;
 }
 
 /** Debounced persist of an entry's working content (no-live-editor path). */
@@ -208,7 +221,7 @@ function scheduleSave(entry: WatchNoteEntry): void {
     setTimeout(() => {
       saveTimers.delete(entry.folder);
       if (entry.noteId == null) return;
-      void saveEntry(entry.noteId, entry.content);
+      void saveEntry(entry.folder, entry.noteId, entry.content);
     }, SAVE_DEBOUNCE_MS),
   );
 }
@@ -222,6 +235,7 @@ function pruneOtherFolders(folder: string): void {
     saveTimers.delete(key);
     pendingSlides.delete(key);
     flushChains.delete(key);
+    readiness.delete(key);
     delete state.entries[key];
   }
 }
@@ -259,6 +273,8 @@ export async function onExtractionStarted(folder: string, instanceId: string): P
     displayName,
     status: 'creating',
     content: emptyDoc(),
+    unsaved: false,
+    missedSlides: 0,
   };
   // Mutate through the reactive proxy, not a raw local — writes to the raw
   // target bypass the proxy's set trap and the panel never sees 'ready'.
@@ -267,19 +283,26 @@ export async function onExtractionStarted(folder: string, instanceId: string): P
   // Reveal the Notes view immediately; the note fills in when creation resolves.
   notesTabRequest.value += 1;
 
+  const ready = openNote(stored, displayName, identity);
+  readiness.set(folder, ready);
+  await ready;
+}
+
+/** Find or create the entry's note; resolves to whether it is usable. */
+async function openNote(stored: WatchNoteEntry, displayName: string, identity: LectureIdentity): Promise<boolean> {
   // Ready-guard (TTL short-circuit when already provisioned). Does not
   // first-time-init — that happens via Settings Init / hybrid watch-sync
   // enable. Flag-set accounts self-heal missing groups here.
   await cloudStorageStore.ensureReady();
   if (!watchSyncActive()) {
     stored.status = 'error';
-    return;
+    return false;
   }
 
   const result = await findOrCreateNote(displayName, identity);
   if (!result) {
     stored.status = 'error';
-    return;
+    return false;
   }
   stored.noteId = result.id;
   stored.content = result.content;
@@ -287,19 +310,12 @@ export async function onExtractionStarted(folder: string, instanceId: string): P
   // Surface the new note on the Notes page (which uses a separate useCloudNotes
   // instance) on its next activation.
   if (result.created) requestNotesRefresh();
+  return true;
 }
 
 /** Wait out note creation so we don't append into content that findOrCreate will replace. */
 async function waitUntilReady(entry: WatchNoteEntry): Promise<boolean> {
-  // Poll briefly; creation is a few network round-trips. Read status each loop
-  // so TS doesn't narrow the union away across the await.
-  for (let i = 0; i < 100; i += 1) {
-    const status = entry.status;
-    if (status === 'ready') return true;
-    if (status === 'error') return false;
-    await new Promise((r) => setTimeout(r, 50));
-  }
-  return entry.status === 'ready';
+  return (await readiness.get(entry.folder)) ?? entry.status === 'ready';
 }
 
 /** Upload a slide's stored bytes and append it to the entry's note. */
@@ -311,16 +327,19 @@ async function appendSlide(entry: WatchNoteEntry, pngFilename: string): Promise<
     const blob = await getSlideBlob(slideId(entry.folder, pngFilename));
     if (!blob) {
       log.warn('watch slide missing from store', pngFilename);
+      entry.missedSlides += 1;
       return;
     }
     const up = await notesClient.uploadImage(await blob.arrayBuffer(), pngFilename, 'image/png');
     if (!up.ok) {
       log.warn('watch slide upload failed', up.error);
+      entry.missedSlides += 1;
       return;
     }
     url = up.data.url;
   } catch (err) {
     log.warn('watch slide upload threw', err);
+    entry.missedSlides += 1;
     return;
   }
 
@@ -412,7 +431,7 @@ export function commitEditorContent(folder: string, content: OutputData): void {
     const existing = saveTimers.get(folder);
     if (existing) clearTimeout(existing);
     saveTimers.delete(folder);
-    void saveEntry(entry.noteId, content);
+    void saveEntry(folder, entry.noteId, content);
   }
 }
 

@@ -15,6 +15,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
 import { buildSlideFolderName, type LectureIdentity } from '@common/lectureNaming';
+import { ungroupByRecreate } from '@common/noteUngroup';
 import type { ConfigService } from './configService';
 import { IntranetApiTransport } from './intranetApiTransport';
 import { sharpService } from '@main/infra/sharpService';
@@ -236,11 +237,17 @@ export class NotesService {
       return id;
     }
 
-    const body = content ?? detail.content ?? '';
-    const newId = await this.create();
-    await this.updateTitle(newId, title);
-    if (body) await this.updateContent(newId, body);
-    await this.remove(id);
+    const newId = await ungroupByRecreate(
+      {
+        create: () => this.create(),
+        setTitle: (noteId, text) => this.updateTitle(noteId, text),
+        setContent: (noteId, text) => this.updateContent(noteId, text),
+        readContent: async (noteId) => (await this.get(noteId)).content ?? '',
+        remove: (noteId) => this.remove(noteId),
+        warn: (message, error) => log.warn(message, error instanceof Error ? error.message : error),
+      },
+      { id, title, content: content ?? detail.content ?? '' },
+    );
     log.info('ungrouped note via recreate', { from: id, to: newId });
     return newId;
   }

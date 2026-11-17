@@ -1452,7 +1452,8 @@
     "noteMeta": "Imported by AutoSlides · {count} slides · {date}",
     "noteSlideCaption": "Slide {n}",
     "cancel": "Cancel",
-    "yanhektError": "Yanhekt's note service failed (error code {code}). This is a problem on Yanhekt's side; try again later."
+    "yanhektError": "Yanhekt's note service failed (error code {code}). This is a problem on Yanhekt's side; try again later.",
+    "ungroupKeptBoth": "The note was copied to Ungrouped, but the original could not be deleted. Both notes are kept; delete the one you do not need."
   },
   "webCapture": {
     "back": "Back",

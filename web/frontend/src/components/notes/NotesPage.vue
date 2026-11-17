@@ -296,16 +296,16 @@ onBeforeUnmount(() => {
   if (id != null) void ed.flushSave(id)
 })
 
-// Signing in while the page is visible: load immediately.
-// Signing out: flip the gate so the canvas shows Sign In without waiting on a failed API call.
+// The page is KeepAlive-cached, so it outlives a sign-out and a sign-in as
+// someone else. Any change of token empties it (the editor first: its note
+// belongs to the previous identity) and, when signed in, loads the new one's.
 watch(
-  () => authStore.isLoggedIn.value,
-  (loggedIn) => {
-    if (loggedIn && cn.notSignedIn.value) {
-      void cn.init().then(() => syncFromRoute())
-    } else if (!loggedIn) {
-      cn.notSignedIn.value = true
-    }
+  () => authStore.token.value,
+  (token) => {
+    void ed.destroyEditor()
+    cn.resetForIdentity()
+    if (token) void cn.init().then(() => syncFromRoute())
+    else cn.notSignedIn.value = true
   },
 )
 

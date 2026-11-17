@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { noteErrorText } from './noteErrors'
+import { UNGROUP_KEPT_BOTH } from '@common/noteUngroup'
 import type {
   NoteSummary,
   NoteDetail,
@@ -444,7 +445,16 @@ export function useCloudNotes() {
     const res = await cloudNotesApi.moveToGroup(id, groupId, title, content)
     if (!alive()) return null
     const newId = unwrap(res)
-    if (newId == null) return null
+    if (newId == null) {
+      // The copy exists and the original stayed: show both.
+      if (!res.ok && res.error === UNGROUP_KEPT_BOTH) {
+        // A reload clears the error line; this one has to stay up.
+        const message = error.value
+        await loadAll()
+        error.value = message
+      }
+      return null
+    }
 
     if (newId !== id) {
       // Ungroup recreated the note under a new id — drop the old row and reload.

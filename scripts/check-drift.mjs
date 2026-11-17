@@ -96,6 +96,9 @@ const IDENTICAL = [
   // web editor must behave as the desktop one does.
   ['autoslides/src/renderer/features/cloudNotes/noteSaveChain.ts', 'web/frontend/src/lib/notes/noteSaveChain.ts'],
   ['autoslides/src/renderer/features/cloudNotes/noteContent.ts', 'web/frontend/src/lib/notes/noteContent.ts'],
+  // Ungrouping recreates the note: the same order of writes and the same
+  // outcome on a failure, on both sides.
+  ['autoslides/src/shared/noteUngroup.ts', 'web/frontend/src/lib/notes/noteUngroup.ts'],
   // The share Worker's search must split text exactly as the indexer wrote it.
   ['indexer/src/grams.ts', 'share/src/indexer/grams.ts'],
   // The share tests seed D1 through the indexer's own upload statements.

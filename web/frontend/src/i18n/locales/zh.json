@@ -506,6 +506,7 @@
   "cloudNotes": {
     "notSignedIn": "请登录后使用笔记。",
     "yanhektError": "延河课堂笔记服务出错（错误码 {code}），这是延河课堂服务器的问题，请稍后再试。",
+    "ungroupKeptBoth": "笔记已复制到未分组，但原笔记未能删除。两份笔记均已保留，请删除不需要的一份。",
     "workspaceTitle": "AutoSlides 笔记",
     "workspaceBrand": "AutoSlides",
     "workspaceProduct": "笔记",
@@ -556,6 +557,8 @@
     "unreadableContent": "这篇笔记的内容格式 AutoSlides 无法读取，因此显示为空并已锁定。延河课堂上的原文未被改动。",
     "watchNotes": {
       "creating": "正在创建笔记…",
+      "unsaved": "未保存，下次更改时重试",
+      "missedSlides": "{count} 张幻灯片未添加",
       "error": "无法创建笔记。请检查网络后重试。",
       "hint": "观看时开始提取幻灯片即可在此创建笔记，捕获的幻灯片会自动追加。"
     },

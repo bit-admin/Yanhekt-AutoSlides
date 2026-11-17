@@ -506,6 +506,7 @@
   "cloudNotes": {
     "notSignedIn": "Sign in to use Notes.",
     "yanhektError": "Yanhekt's note service failed (error code {code}). This is a problem on Yanhekt's side; try again later.",
+    "ungroupKeptBoth": "The note was copied to Ungrouped, but the original could not be deleted. Both notes are kept; delete the one you do not need.",
     "workspaceTitle": "AutoSlides Notes",
     "workspaceBrand": "AutoSlides",
     "workspaceProduct": "Notes",
@@ -556,6 +557,8 @@
     "unreadableContent": "This note's content is in a format AutoSlides cannot read, so it is shown empty and locked. The original is unchanged on Yanhekt.",
     "watchNotes": {
       "creating": "Creating your note…",
+      "unsaved": "Not saved; will retry with the next change",
+      "missedSlides": "{count} slide(s) not added",
       "error": "Couldn't create the note. Check your connection and try again.",
       "hint": "Start slide extraction while watching to create a note here. Captured slides are appended automatically."
     },

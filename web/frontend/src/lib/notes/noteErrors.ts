@@ -1,4 +1,5 @@
 import { i18n } from '../../i18n';
+import { UNGROUP_KEPT_BOTH } from './noteUngroup';
 
 const YANHEKT_ERROR = /^yanhekt-error:(\S+)$/;
 
@@ -11,6 +12,7 @@ const YANHEKT_ERROR = /^yanhekt-error:(\S+)$/;
  * Port of the desktop app's `features/cloudNotes/noteErrors.ts`.
  */
 export function noteErrorText(error: string): string {
+  if (error === UNGROUP_KEPT_BOTH) return i18n.global.t('cloudNotes.ungroupKeptBoth');
   const m = YANHEKT_ERROR.exec(error);
   return m ? i18n.global.t('cloudNotes.yanhektError', { code: m[1] }) : error;
 }
