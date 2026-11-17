@@ -1,4 +1,6 @@
 import fs from 'fs';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
+import { expandTilde } from '@main/infra/pathUtils';
 import path from 'path';
 import type { AxiosInstance } from 'axios';
 import { isHttpCancel } from '@main/infra/http';
@@ -199,7 +201,11 @@ export class M3u8DownloadService {
       throw new Error('Download already in progress');
     }
 
+    const configured = expandTilde(this.configService.getConfig().outputDirectory);
     const outputDir = overrides.outputDir ?? this.configService.getConfig().outputDirectory;
+    // The configured output folder is not recreated when its drive is away; a
+    // folder named on the command line is created as asked.
+    await ensureWritableOutputDir(configured, expandTilde(outputDir));
     // A command line run names its route outright and means it. The app asks
     // the route service, whose Auto mode may fall back to the public network.
     let route: IntranetRoute;
@@ -332,8 +338,11 @@ class M3u8Downloader {
       log.debug(`Save path: ${this.filePath}`);
 
       // Create directory for TS files
+      // Not recursive: the output folder was checked when the download was
+      // accepted, and if it has gone since (drive unplugged) this must fail
+      // rather than rebuild the path on the system disk.
       if (!fs.existsSync(this.workDir)) {
-        fs.mkdirSync(this.workDir, { recursive: true });
+        fs.mkdirSync(this.workDir);
       }
 
       // Download all TS files

@@ -11,6 +11,7 @@
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
@@ -396,7 +397,7 @@ export class NotesService {
         n += 1;
       }
     }
-    await fs.mkdir(dir, { recursive: true });
+    await ensureWritableOutputDir(this.exportBaseDir(), dir);
     return { exists: true, dir, folderName: path.basename(dir) };
   }
 

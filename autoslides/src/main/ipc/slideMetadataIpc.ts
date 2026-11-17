@@ -15,7 +15,9 @@ export function registerSlideMetadataIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('slideMetadata:get', async (_event, folderPath: string) => {
     try {
-      return await slideMetadataService.read(folderPath);
+      // After the writes already queued: a reader that follows an extraction's
+      // write (post-processing reading its thresholds) must see it.
+      return await slideMetadataService.read(folderPath, { afterWrites: true });
     } catch (error) {
       log.error('Failed to read slide metadata:', error);
       return null;

@@ -121,3 +121,41 @@ export function ensureOutputDirSync(dir: string): 'exists' | 'created' | 'unreac
     return codeOf(error) === 'EEXIST' ? 'exists' : 'failed';
   }
 }
+
+/**
+ * Create `dir` for a writer (a download, an extraction, an export), under the
+ * same rule the launch and "create it again" paths follow.
+ *
+ * `root` is the configured output folder. A `dir` inside it (or the root
+ * itself) is created only once the root is known to be there: an existing
+ * root is used as is, and a missing one is created only when its parent
+ * exists or it lies under home. A missing parent outside home is most likely
+ * an unplugged drive; creating the path would plant an ordinary folder where
+ * the drive mounts and send the files to the system disk. That case throws
+ * the `unreachable` marker, a refused one `denied`.
+ *
+ * A `dir` outside the root is not this rule's business (a folder named on the
+ * command line, a location the user picked in a dialog): it is created
+ * recursively, as asked.
+ */
+export async function ensureWritableOutputDir(root: string, dir: string = root): Promise<void> {
+  if (!isPathInsideRoot(root, dir)) {
+    await fs.promises.mkdir(dir, { recursive: true });
+    return;
+  }
+  let rootIsThere = false;
+  try {
+    rootIsThere = (await fs.promises.stat(root)).isDirectory();
+  } catch (error) {
+    // Unreadable (macOS privacy protection): let the mkdir below report it.
+    if (!isNotFound(error)) rootIsThere = true;
+  }
+  if (!rootIsThere) await recreateOutputDir(root);
+  if (path.resolve(dir) === path.resolve(root)) return;
+  try {
+    await fs.promises.mkdir(dir, { recursive: true });
+  } catch (error) {
+    if (isAccessDenied(error)) throw new Error(formatOutputDirProblem('denied', root));
+    throw error;
+  }
+}

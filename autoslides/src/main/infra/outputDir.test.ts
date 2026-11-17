@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseOutputDirProblem } from '@common/outputDirAccess';
-import { ensureOutputDirSync, probeOutputDir, readOutputDir, recreateOutputDir } from './outputDir';
+import { ensureOutputDirSync, ensureWritableOutputDir, probeOutputDir, readOutputDir, recreateOutputDir } from './outputDir';
 
 // Temp folders stand in for both "home" and "a drive": homedir is pointed at a
 // sibling folder, so paths under `root` count as outside home.
@@ -106,5 +106,43 @@ describe('ensureOutputDirSync', () => {
   it('creates the default under home even without ~/Downloads', () => {
     const dir = path.join(fakeHome, 'Downloads', 'AutoSlides');
     expect(ensureOutputDirSync(dir)).toBe('created');
+  });
+});
+
+describe('ensureWritableOutputDir', () => {
+  it('creates a subfolder of an existing output folder', async () => {
+    const dir = path.join(root, 'slides_a', 'nested');
+    await ensureWritableOutputDir(root, dir);
+    expect(fs.statSync(dir).isDirectory()).toBe(true);
+  });
+
+  it('creates a missing output folder whose parent exists, then the subfolder', async () => {
+    const out = path.join(root, 'AutoSlides');
+    await ensureWritableOutputDir(out, path.join(out, 'slides_a'));
+    expect(fs.statSync(path.join(out, 'slides_a')).isDirectory()).toBe(true);
+  });
+
+  it('plants nothing where a disconnected drive would mount', async () => {
+    const out = path.join(root, 'SN5000', 'Downloads', 'AutoSlides');
+    expect(await problemOf(ensureWritableOutputDir(out))).toEqual({ kind: 'unreachable', dir: out });
+    expect(await problemOf(ensureWritableOutputDir(out, path.join(out, 'slides_a')))).toEqual({
+      kind: 'unreachable',
+      dir: out,
+    });
+    expect(fs.existsSync(path.join(root, 'SN5000'))).toBe(false);
+  });
+
+  it('creates the whole path under home', async () => {
+    const out = path.join(fakeHome, 'Downloads', 'AutoSlides');
+    await ensureWritableOutputDir(out, path.join(out, 'slides_a'));
+    expect(fs.statSync(path.join(out, 'slides_a')).isDirectory()).toBe(true);
+  });
+
+  it('creates a folder outside the output folder as asked', async () => {
+    const out = path.join(root, 'SN5000', 'AutoSlides');
+    const elsewhere = path.join(root, 'picked', 'by', 'hand');
+    await ensureWritableOutputDir(out, elsewhere);
+    expect(fs.statSync(elsewhere).isDirectory()).toBe(true);
+    expect(fs.existsSync(path.join(root, 'SN5000'))).toBe(false);
   });
 });

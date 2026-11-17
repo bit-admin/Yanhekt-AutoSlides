@@ -16,14 +16,28 @@ import {
   isPathInside as isPathInsideHelper,
   pathExists as pathExistsHelper
 } from './slideExtraction/pathHelpers';
+import { appendManifest, readManifest, withFolderLock, writeManifest } from './slideExtraction/manifestFile';
 import { createLogger } from '@main/infra/logger';
 import { withPngCopyright } from '@main/infra/pngCopyright';
 import { ensureCopyrightNotice } from '@main/infra/copyrightNoticeFile';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
 const log = createLogger('SlideExtraction');
 
 export type { TrashEntry, TrashMetadata, CropEntry, CropRect };
 
+const TRASH_MANIFEST = 'trash-manifest.jsonl';
+const CROP_MANIFEST = 'crop-manifest.jsonl';
+
 export class SlideExtractionService {
+  // The configured output folder, read when a directory is created. Set once
+  // at startup (`setOutputRoot`); without it directories are created as asked.
+  private outputRoot: (() => string) | null = null;
+
+  /** Tell the service where the configured output folder is. */
+  setOutputRoot(read: () => string): void {
+    this.outputRoot = read;
+  }
+
   /**
    * Reduce PNG colors to 128 using palette quantization
    * @param imageBuffer Original PNG image buffer
@@ -88,7 +102,12 @@ export class SlideExtractionService {
     try {
       const expandedPath = expandTilde(dirPath);
 
-      await fs.mkdir(expandedPath, { recursive: true });
+      // Inside the output folder this refuses to recreate a path whose drive
+      // is not connected (see `ensureWritableOutputDir`); elsewhere it is a
+      // plain recursive create.
+      const root = this.outputRoot ? expandTilde(this.outputRoot()) : null;
+      if (root) await ensureWritableOutputDir(root, expandedPath);
+      else await fs.mkdir(expandedPath, { recursive: true });
       log.debug(`Directory ensured: ${expandedPath}`);
     } catch (error) {
       log.error('Failed to ensure directory:', error);
@@ -246,13 +265,6 @@ export class SlideExtractionService {
       const trashFilePath = path.join(trashDir, relativePath);
       const trashFileDir = path.dirname(trashFilePath);
 
-      // Ensure trash directory structure exists (mirrors original structure)
-      await this.ensureDirectory(trashFileDir);
-
-      // Move file to trash location
-      await fs.rename(resolvedFilePath, trashFilePath);
-
-      // Create trash entry metadata
       const trashEntry: TrashEntry = {
         id: `trash_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         filename,
@@ -265,8 +277,29 @@ export class SlideExtractionService {
         trashedAt: new Date().toISOString()
       };
 
-      // Append to trash manifest
-      await this.appendTrashMetadata(trashDir, trashEntry);
+      // The entry is written before the file moves. If the app stops between
+      // the two, the entry names a trash file that is not there, which every
+      // reader skips, and the slide is still in its folder. The other order
+      // could leave a trashed file that nothing lists.
+      await withFolderLock(trashDir, async () => {
+        // Inside the lock: a restore or clear ahead of this removes the
+        // mirrored folders it emptied.
+        await this.ensureDirectory(trashFileDir);
+        const manifestPath = path.join(trashDir, TRASH_MANIFEST);
+        await appendManifest(manifestPath, trashEntry);
+        try {
+          await fs.rename(resolvedFilePath, trashFilePath);
+        } catch (moveError) {
+          // Take the entry back; if that fails too it stays harmless (see above).
+          try {
+            const entries = await readManifest<TrashEntry>(manifestPath);
+            await writeManifest(manifestPath, entries.filter(entry => entry.id !== trashEntry.id));
+          } catch (undoError) {
+            log.warn('Could not remove the entry of a slide that was not moved:', undoError);
+          }
+          throw moveError;
+        }
+      });
 
       log.debug(`Slide moved to in-app trash: ${trashFilePath}`);
     } catch (error) {
@@ -275,24 +308,6 @@ export class SlideExtractionService {
     }
   }
 
-  /**
-   * Append a trash entry to the JSONL manifest file
-   */
-  private async appendTrashMetadata(trashDir: string, entry: TrashEntry): Promise<void> {
-    try {
-      const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
-      const jsonLine = JSON.stringify(entry) + '\n';
-      await fs.appendFile(manifestPath, jsonLine, 'utf8');
-      log.debug(`Trash metadata appended to manifest: ${entry.filename}`);
-    } catch (error) {
-      log.error('Failed to append trash metadata:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Load slide image from file system
-   */
   async loadSlideImage(filePath: string): Promise<Uint8Array> {
     try {
       const expandedPath = expandTilde(filePath);
@@ -570,43 +585,47 @@ export class SlideExtractionService {
       const cropFilePath = path.join(cropDir, relativePath);
       const cropFileDir = path.dirname(cropFilePath);
 
-      const allEntries = await this.getCropEntries(resolvedOutputDir);
-      const existingEntry = allEntries.find(entry => entry.originalPath === resolvedImagePath);
+      // One crop change at a time per output folder: the backup, the cropped
+      // file and the manifest line are read and written together.
+      await withFolderLock(cropDir, async () => {
+        const allEntries = await this.getCropEntries(resolvedOutputDir);
+        const existingEntry = allEntries.find(entry => entry.originalPath === resolvedImagePath);
 
-      if (!existingEntry) {
-        await this.ensureDirectory(cropFileDir);
-        await fs.copyFile(resolvedImagePath, cropFilePath);
-      }
+        if (!existingEntry) {
+          await this.ensureDirectory(cropFileDir);
+          await fs.copyFile(resolvedImagePath, cropFilePath);
+        }
 
-      const sourcePath = existingEntry?.cropPath || cropFilePath;
-      const sourceBuffer = await fs.readFile(sourcePath);
-      const normalizedRect = {
-        x: Math.round(rect.x),
-        y: Math.round(rect.y),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-      };
+        const sourcePath = existingEntry?.cropPath || cropFilePath;
+        const sourceBuffer = await fs.readFile(sourcePath);
+        const normalizedRect = {
+          x: Math.round(rect.x),
+          y: Math.round(rect.y),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        };
 
-      const croppedBuffer = await sharpService.crop(new Uint8Array(sourceBuffer), normalizedRect);
-      if (!croppedBuffer) {
-        throw new Error('Failed to crop image');
-      }
+        const croppedBuffer = await sharpService.crop(new Uint8Array(sourceBuffer), normalizedRect);
+        if (!croppedBuffer) {
+          throw new Error('Failed to crop image');
+        }
 
-      await fs.writeFile(resolvedImagePath, withPngCopyright(croppedBuffer));
+        await fs.writeFile(resolvedImagePath, withPngCopyright(croppedBuffer));
 
-      const updatedEntry: CropEntry = {
-        filename,
-        originalPath: resolvedImagePath,
-        originalParentFolder: path.basename(path.dirname(resolvedImagePath)),
-        cropPath: sourcePath,
-        rect: normalizedRect,
-        croppedAt: new Date().toISOString(),
-        autoCropped: autoCropped ?? false,
-      };
+        const updatedEntry: CropEntry = {
+          filename,
+          originalPath: resolvedImagePath,
+          originalParentFolder: path.basename(path.dirname(resolvedImagePath)),
+          cropPath: sourcePath,
+          rect: normalizedRect,
+          croppedAt: new Date().toISOString(),
+          autoCropped: autoCropped ?? false,
+        };
 
-      const entriesToKeep = allEntries.filter(entry => entry.originalPath !== resolvedImagePath);
-      entriesToKeep.push(updatedEntry);
-      await this.rewriteCropManifest(cropDir, entriesToKeep);
+        const entriesToKeep = allEntries.filter(entry => entry.originalPath !== resolvedImagePath);
+        entriesToKeep.push(updatedEntry);
+        await this.rewriteCropManifest(cropDir, entriesToKeep);
+      });
     } catch (error) {
       log.error('Failed to apply crop:', error);
       throw error;
@@ -627,18 +646,19 @@ export class SlideExtractionService {
       }
 
       const cropDir = this.getCropDirectory(resolvedOutputDir);
-      const allEntries = await this.getCropEntries(resolvedOutputDir);
-      const entry = allEntries.find(item => item.originalPath === resolvedImagePath);
+      await withFolderLock(cropDir, async () => {
+        const allEntries = await this.getCropEntries(resolvedOutputDir);
+        const entry = allEntries.find(item => item.originalPath === resolvedImagePath);
 
-      if (!entry) {
-        throw new Error('Crop backup not found');
-      }
+        if (!entry) {
+          throw new Error('Crop backup not found');
+        }
 
-      await this.ensureDirectory(path.dirname(resolvedImagePath));
-      await fs.copyFile(entry.cropPath, resolvedImagePath);
+        await this.ensureDirectory(path.dirname(resolvedImagePath));
+        await fs.copyFile(entry.cropPath, resolvedImagePath);
 
-      await this.removeCropEntriesByOriginalPaths([resolvedImagePath], resolvedOutputDir);
-      await this.cleanupEmptyCropDirs(cropDir);
+        await this.pruneCropEntries([resolvedImagePath], resolvedOutputDir);
+      });
     } catch (error) {
       log.error('Failed to restore crop:', error);
       throw error;
@@ -683,38 +703,7 @@ export class SlideExtractionService {
    */
   async getTrashEntries(outputDir: string): Promise<TrashEntry[]> {
     try {
-      const trashDir = this.getTrashDirectory(outputDir);
-      const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
-
-      // Check if manifest exists
-      try {
-        await fs.access(manifestPath);
-      } catch {
-        // No manifest means no trash entries
-        return [];
-      }
-
-      // Read and parse JSONL file
-      const content = await fs.readFile(manifestPath, 'utf8');
-      const lines = content.trim().split('\n').filter(line => line.trim());
-
-      const entries: TrashEntry[] = [];
-      for (const line of lines) {
-        try {
-          const entry = JSON.parse(line) as TrashEntry;
-          // Verify the trash file still exists
-          try {
-            await fs.access(entry.trashPath);
-            entries.push(entry);
-          } catch {
-            // File no longer exists, skip this entry
-            log.debug(`Trash file no longer exists: ${entry.trashPath}`);
-          }
-        } catch (parseError) {
-          log.warn('Failed to parse trash entry:', parseError);
-        }
-      }
-
+      const entries = await this.liveTrashEntries(this.getTrashDirectory(outputDir));
       log.debug(`Found ${entries.length} trash entries`);
       return entries;
     } catch (error) {
@@ -724,44 +713,78 @@ export class SlideExtractionService {
   }
 
   /**
+   * The manifest's entries whose trash file exists, one per trash file (the
+   * newest line wins). A line without its file is one of: a move that never
+   * happened, a restore or clear whose manifest rewrite did not complete, or
+   * a file removed outside the app. None of them is in the trash.
+   */
+  private async liveTrashEntries(trashDir: string): Promise<TrashEntry[]> {
+    const raw = await readManifest<TrashEntry>(path.join(trashDir, TRASH_MANIFEST), parseError =>
+      log.warn('Failed to parse trash entry:', parseError),
+    );
+    const byFile = new Map<string, TrashEntry>();
+    for (const entry of raw) {
+      if (!entry || typeof entry.trashPath !== 'string') continue;
+      if (await this.pathExists(entry.trashPath)) {
+        // Re-inserted so the entry keeps the position of its newest line.
+        byFile.delete(entry.trashPath);
+        byFile.set(entry.trashPath, entry);
+      } else {
+        log.debug(`Trash file no longer exists: ${entry.trashPath}`);
+      }
+    }
+    return [...byFile.values()];
+  }
+
+  /**
    * Restore files from trash to their original locations
    */
   async restoreFromTrash(ids: string[], outputDir: string): Promise<{ restored: number; failed: number }> {
-    const result = { restored: 0, failed: 0 };
+    const outcome = await this.restoreTrashEntries(ids, outputDir);
+    return { restored: outcome.restored.length, failed: outcome.failed.length };
+  }
 
+  /**
+   * Restore files from trash, saying which entries came back and which did
+   * not. Callers that record the restore elsewhere (timeline, `edited`) must
+   * do so for `restored` only. A file is never restored over one that exists
+   * at its original path.
+   */
+  async restoreTrashEntries(
+    ids: string[],
+    outputDir: string,
+  ): Promise<{ restored: TrashEntry[]; failed: TrashEntry[] }> {
+    const trashDir = this.getTrashDirectory(outputDir);
     try {
-      const trashDir = this.getTrashDirectory(outputDir);
+      return await withFolderLock(trashDir, async () => {
+        const restored: TrashEntry[] = [];
+        const failed: TrashEntry[] = [];
+        const wanted = new Set(ids);
+        const allEntries = await this.liveTrashEntries(trashDir);
 
-      // Get all entries
-      const allEntries = await this.getTrashEntries(outputDir);
-      const entriesToRestore = allEntries.filter(e => ids.includes(e.id));
-      const restoredIds = new Set<string>();
-
-      // Restore each file
-      for (const entry of entriesToRestore) {
-        try {
-          // Ensure original directory exists
-          const originalDir = path.dirname(entry.originalPath);
-          await this.ensureDirectory(originalDir);
-
-          // Move file back to original location
-          await fs.rename(entry.trashPath, entry.originalPath);
-          result.restored++;
-          restoredIds.add(entry.id);
-          log.debug(`Restored: ${entry.filename} to ${entry.originalPath}`);
-        } catch (restoreError) {
-          log.error(`Failed to restore ${entry.filename}:`, restoreError);
-          result.failed++;
+        for (const entry of allEntries) {
+          if (!wanted.has(entry.id)) continue;
+          try {
+            await this.ensureDirectory(path.dirname(entry.originalPath));
+            if (await this.pathExists(entry.originalPath)) {
+              throw new Error('a file already exists at the original path');
+            }
+            await fs.rename(entry.trashPath, entry.originalPath);
+            restored.push(entry);
+            log.debug(`Restored: ${entry.filename} to ${entry.originalPath}`);
+          } catch (restoreError) {
+            log.error(`Failed to restore ${entry.filename}:`, restoreError);
+            failed.push(entry);
+          }
         }
-      }
 
-      const entriesToKeep = allEntries.filter(e => !restoredIds.has(e.id));
-      await this.rewriteTrashManifest(trashDir, entriesToKeep);
-
-      // Clean up empty directories in trash
-      await this.cleanupEmptyTrashDirs(trashDir);
-
-      return result;
+        if (restored.length > 0) {
+          const gone = new Set(restored.map(entry => entry.id));
+          await writeManifest(path.join(trashDir, TRASH_MANIFEST), allEntries.filter(entry => !gone.has(entry.id)));
+          await this.cleanupEmptyTrashDirs(trashDir);
+        }
+        return { restored, failed };
+      });
     } catch (error) {
       log.error('Failed to restore from trash:', error);
       throw error;
@@ -772,53 +795,38 @@ export class SlideExtractionService {
    * Clear all trash by moving contents to system trash
    */
   async clearTrash(outputDir: string): Promise<{ cleared: number; failed: number }> {
-    const result = { cleared: 0, failed: 0 };
-
+    const trashDir = this.getTrashDirectory(outputDir);
     try {
-      const trashDir = this.getTrashDirectory(outputDir);
-      const allEntries = await this.getTrashEntries(outputDir);
+      const { result, clearedOriginalPaths } = await withFolderLock(trashDir, async () => {
+        const result = { cleared: 0, failed: 0 };
+        if (!(await this.pathExists(trashDir))) return { result, clearedOriginalPaths: [] as string[] };
 
-      // Check if trash directory exists
-      try {
-        await fs.access(trashDir);
-      } catch {
-        // No trash directory
-        return result;
-      }
+        const allEntries = await this.liveTrashEntries(trashDir);
+        for (const item of await fs.readdir(trashDir)) {
+          // The manifest, and a replacement of it left by an interrupted write.
+          if (item === TRASH_MANIFEST || item.startsWith(`${TRASH_MANIFEST}.`)) continue;
 
-      // Get all files and directories in trash (except manifest)
-      const items = await fs.readdir(trashDir);
-
-      for (const item of items) {
-        if (item === 'trash-manifest.jsonl') {
-          continue; // Skip manifest, will be deleted after
+          const itemPath = path.join(trashDir, item);
+          try {
+            await shell.trashItem(itemPath);
+            result.cleared++;
+            log.debug(`Moved to system trash: ${itemPath}`);
+          } catch (trashError) {
+            log.error(`Failed to move to system trash: ${itemPath}`, trashError);
+            result.failed++;
+          }
         }
 
-        const itemPath = path.join(trashDir, item);
-        try {
-          await shell.trashItem(itemPath);
-          result.cleared++;
-          log.debug(`Moved to system trash: ${itemPath}`);
-        } catch (trashError) {
-          log.error(`Failed to move to system trash: ${itemPath}`, trashError);
-          result.failed++;
+        // What could not be moved is still in the trash, so it stays listed.
+        const remaining: TrashEntry[] = [];
+        const clearedOriginalPaths: string[] = [];
+        for (const entry of allEntries) {
+          if (await this.pathExists(entry.trashPath)) remaining.push(entry);
+          else clearedOriginalPaths.push(entry.originalPath);
         }
-      }
-
-      // Delete manifest file
-      const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
-      try {
-        await fs.unlink(manifestPath);
-      } catch {
-        // Ignore if already deleted
-      }
-
-      const clearedOriginalPaths: string[] = [];
-      for (const entry of allEntries) {
-        if (!(await this.pathExists(entry.trashPath))) {
-          clearedOriginalPaths.push(entry.originalPath);
-        }
-      }
+        await writeManifest(path.join(trashDir, TRASH_MANIFEST), remaining);
+        return { result, clearedOriginalPaths };
+      });
 
       if (clearedOriginalPaths.length > 0) {
         await this.removeCropEntriesByOriginalPaths(clearedOriginalPaths, outputDir);
@@ -837,36 +845,39 @@ export class SlideExtractionService {
    */
   async clearTrashEntries(ids: string[], outputDir: string): Promise<{ cleared: number; failed: number }> {
     const result = { cleared: 0, failed: 0 };
+    if (ids.length === 0) return result;
 
+    const trashDir = this.getTrashDirectory(outputDir);
     try {
-      if (ids.length === 0) {
-        return result;
-      }
+      const clearedOriginalPaths = await withFolderLock(trashDir, async () => {
+        const wanted = new Set(ids);
+        const allEntries = await this.liveTrashEntries(trashDir);
+        const clearedIds = new Set<string>();
+        const paths: string[] = [];
 
-      const trashDir = this.getTrashDirectory(outputDir);
-      const allEntries = await this.getTrashEntries(outputDir);
-      const entriesToClear = allEntries.filter(entry => ids.includes(entry.id));
-      const clearedIds = new Set<string>();
-
-      for (const entry of entriesToClear) {
-        try {
-          await shell.trashItem(entry.trashPath);
-          result.cleared++;
-          clearedIds.add(entry.id);
-          log.debug(`Moved selected trash item to system trash: ${entry.trashPath}`);
-        } catch (trashError) {
-          log.error(`Failed to move selected trash item to system trash: ${entry.trashPath}`, trashError);
-          result.failed++;
+        for (const entry of allEntries) {
+          if (!wanted.has(entry.id)) continue;
+          try {
+            await shell.trashItem(entry.trashPath);
+            result.cleared++;
+            clearedIds.add(entry.id);
+            paths.push(entry.originalPath);
+            log.debug(`Moved selected trash item to system trash: ${entry.trashPath}`);
+          } catch (trashError) {
+            log.error(`Failed to move selected trash item to system trash: ${entry.trashPath}`, trashError);
+            result.failed++;
+          }
         }
-      }
 
-      const entriesToKeep = allEntries.filter(entry => !clearedIds.has(entry.id));
-      await this.rewriteTrashManifest(trashDir, entriesToKeep);
-      await this.cleanupEmptyTrashDirs(trashDir);
-
-      const clearedOriginalPaths = entriesToClear
-        .filter(entry => clearedIds.has(entry.id))
-        .map(entry => entry.originalPath);
+        if (clearedIds.size > 0) {
+          await writeManifest(
+            path.join(trashDir, TRASH_MANIFEST),
+            allEntries.filter(entry => !clearedIds.has(entry.id)),
+          );
+          await this.cleanupEmptyTrashDirs(trashDir);
+        }
+        return paths;
+      });
 
       if (clearedOriginalPaths.length > 0) {
         await this.removeCropEntriesByOriginalPaths(clearedOriginalPaths, outputDir);
@@ -898,12 +909,6 @@ export class SlideExtractionService {
       const resolvedOutputDir = path.resolve(expandedOutputDir);
       const trashDir = this.getTrashDirectory(resolvedOutputDir);
       const cropDir = this.getCropDirectory(resolvedOutputDir);
-
-      // Snapshot manifests before moving anything to system trash. The getters
-      // skip entries whose backing files are gone, so reading after the move
-      // would hide the very entries we need to prune.
-      const initialTrashEntries = await this.getTrashEntries(resolvedOutputDir);
-      const initialCropEntries = await this.getCropEntries(resolvedOutputDir);
 
       const cleanedNames: string[] = [];
 
@@ -945,17 +950,28 @@ export class SlideExtractionService {
       if (cleanedNames.length > 0) {
         const nameSet = new Set(cleanedNames);
 
-        const trashKeep = initialTrashEntries.filter(entry => !nameSet.has(entry.originalParentFolder));
-        if (trashKeep.length !== initialTrashEntries.length) {
-          await this.rewriteTrashManifest(trashDir, trashKeep);
-          await this.cleanupEmptyTrashDirs(trashDir);
-        }
+        // Read under the lock, after the folders went: the manifests are read
+        // raw here (the listing getters would already hide these entries), and
+        // an entry appended for another folder meanwhile is kept.
+        await withFolderLock(trashDir, async () => {
+          const manifestPath = path.join(trashDir, TRASH_MANIFEST);
+          const entries = await readManifest<TrashEntry>(manifestPath);
+          const keep = entries.filter(entry => !nameSet.has(entry.originalParentFolder));
+          if (keep.length !== entries.length) {
+            await writeManifest(manifestPath, keep);
+            await this.cleanupEmptyTrashDirs(trashDir);
+          }
+        });
 
-        const cropKeep = initialCropEntries.filter(entry => !nameSet.has(entry.originalParentFolder));
-        if (cropKeep.length !== initialCropEntries.length) {
-          await this.rewriteCropManifest(cropDir, cropKeep);
-          await this.cleanupEmptyCropDirs(cropDir);
-        }
+        await withFolderLock(cropDir, async () => {
+          const manifestPath = path.join(cropDir, CROP_MANIFEST);
+          const entries = await readManifest<CropEntry>(manifestPath);
+          const keep = entries.filter(entry => !nameSet.has(entry.originalParentFolder));
+          if (keep.length !== entries.length) {
+            await writeManifest(manifestPath, keep);
+            await this.cleanupEmptyCropDirs(cropDir);
+          }
+        });
       }
 
       return result;
@@ -998,7 +1014,7 @@ export class SlideExtractionService {
       const items = await fs.readdir(trashDir);
 
       for (const item of items) {
-        if (item === 'trash-manifest.jsonl') continue;
+        if (item === TRASH_MANIFEST || item.startsWith(`${TRASH_MANIFEST}.`)) continue;
 
         const itemPath = path.join(trashDir, item);
         const stats = await fs.stat(itemPath);
@@ -1013,25 +1029,6 @@ export class SlideExtractionService {
   }
 
   /**
-   * Rewrite the trash manifest with the provided entries, or remove it if empty
-   */
-  private async rewriteTrashManifest(trashDir: string, entries: TrashEntry[]): Promise<void> {
-    const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
-
-    if (entries.length === 0) {
-      try {
-        await fs.unlink(manifestPath);
-      } catch {
-        // Ignore if already deleted
-      }
-      return;
-    }
-
-    const newContent = entries.map(entry => JSON.stringify(entry)).join('\n') + '\n';
-    await fs.writeFile(manifestPath, newContent, 'utf8');
-  }
-
-  /**
    * Clean up empty directories in crop folder
    */
   private async cleanupEmptyCropDirs(cropDir: string): Promise<void> {
@@ -1039,7 +1036,7 @@ export class SlideExtractionService {
       const items = await fs.readdir(cropDir);
 
       for (const item of items) {
-        if (item === 'crop-manifest.jsonl') continue;
+        if (item === CROP_MANIFEST || item.startsWith(`${CROP_MANIFEST}.`)) continue;
 
         const itemPath = path.join(cropDir, item);
         const stats = await fs.stat(itemPath);
@@ -1057,19 +1054,7 @@ export class SlideExtractionService {
    * Rewrite the crop manifest with the provided entries, or remove it if empty
    */
   private async rewriteCropManifest(cropDir: string, entries: CropEntry[]): Promise<void> {
-    const manifestPath = path.join(cropDir, 'crop-manifest.jsonl');
-
-    if (entries.length === 0) {
-      try {
-        await fs.unlink(manifestPath);
-      } catch {
-        // Ignore if already deleted
-      }
-      return;
-    }
-
-    const newContent = entries.map(entry => JSON.stringify(entry)).join('\n') + '\n';
-    await fs.writeFile(manifestPath, newContent, 'utf8');
+    await writeManifest(path.join(cropDir, CROP_MANIFEST), entries);
   }
 
   /**
@@ -1079,6 +1064,11 @@ export class SlideExtractionService {
     if (originalPaths.length === 0) {
       return;
     }
+    await withFolderLock(this.getCropDirectory(outputDir), () => this.pruneCropEntries(originalPaths, outputDir));
+  }
+
+  /** The body of `removeCropEntriesByOriginalPaths`, for callers that hold the crop folder's lock. */
+  private async pruneCropEntries(originalPaths: string[], outputDir: string): Promise<void> {
 
     const cropDir = this.getCropDirectory(outputDir);
     const pathSet = new Set(originalPaths.map(item => path.resolve(item)));

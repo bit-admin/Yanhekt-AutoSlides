@@ -1,4 +1,6 @@
 import { spawn, type ChildProcess } from 'child_process';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
+import { expandTilde } from '@main/infra/pathUtils';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
@@ -318,9 +320,7 @@ export class QtExtractorService {
     log.debug('AutoSlides Extractor input video:', videoPath);
     log.debug('AutoSlides Extractor output directory:', outputDir);
 
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
+    await ensureWritableOutputDir(expandTilde(this.configService.getConfig().outputDirectory), outputDir);
 
     // --compatible: Slide_*.png + no Qt-side post-process (Electron runs p-p).
     // --write-timeline only when binary is >= 2.0.0 (unknown flag aborts older builds).

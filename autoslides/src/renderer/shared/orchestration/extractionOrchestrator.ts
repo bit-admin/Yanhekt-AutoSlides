@@ -276,8 +276,10 @@ export class ExtractionOrchestrator {
     // kick off color-reduction / post-processing the user no longer wants.
     if (this.isCancelled(item)) return
 
-    // Record per-folder metadata for this recorded extraction (best-effort).
-    void recordRecordedExtraction({
+    // Record per-folder metadata for this recorded extraction. Best-effort,
+    // but awaited: post-processing reads its thresholds from this file and
+    // relinks the timeline stamped below, so both must be on disk first.
+    await recordRecordedExtraction({
       folderPath: slidesDir,
       extractor: 'qt',
       trigger: 'auto',
@@ -295,7 +297,8 @@ export class ExtractionOrchestrator {
     // Qt --write-timeline emits extractor:"qt" without kind; stamp kind:"recorded"
     // so host consumers match builtin timelines. Post-processing then mutates
     // resolutions via moveToInAppTrash → applyTrashOutcome (same as builtin).
-    void ensureRecordedHostFields(slidesDir)
+    await ensureRecordedHostFields(slidesDir)
+    if (this.isCancelled(item)) return
 
     // Optional PNG-8 palette quantization (only when the user enabled it).
     // Qt extractor `--compatible` mode produces lossless 8-bit RGB PNG; this

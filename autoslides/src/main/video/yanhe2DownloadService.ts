@@ -18,6 +18,7 @@
  * no signature, only the Referer.
  */
 import fs from 'node:fs';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
 import path from 'node:path';
 import type { Readable, Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -194,7 +195,7 @@ export class Yanhe2DownloadService {
     progress: (progress: DownloadProgress) => void,
   ): Promise<void> {
     const outputDir = expandTilde(this.configService.getConfig().outputDirectory);
-    await fs.promises.mkdir(outputDir, { recursive: true });
+    await ensureWritableOutputDir(outputDir);
     void ensureCopyrightNotice(outputDir);
     const finalPath = path.join(outputDir, `${outputName}${extension}`);
     const partPath = path.join(outputDir, `${outputName}${partSuffix}`);

@@ -1,3 +1,5 @@
+import { parseOutputDirProblem } from './outputDirAccess'
+
 // Recorded streams that Yanhekt serves "successfully" but that hold no video.
 //
 // A failed server-side transcode does not surface as an HTTP error: the
@@ -53,10 +55,19 @@ export function parseRecordingProblem(error: unknown): RecordingProblem | null {
 }
 
 /**
- * Queue display text: a recording problem as a plain English sentence (the
- * marker is not for people), anything else unchanged.
+ * Queue display text: a recording problem, or an output folder that cannot
+ * be written to, as a plain English sentence (the markers are not for
+ * people); anything else unchanged.
  */
 export function queueErrorText(error: string | undefined): string | undefined {
+  const folder = error ? parseOutputDirProblem(error) : null
+  if (folder) {
+    if (folder.kind === 'unreachable') {
+      return `The output folder ${folder.dir} can't be found. The drive it's on may be disconnected.`
+    }
+    if (folder.kind === 'denied') return `AutoSlides doesn't have permission to write to the output folder ${folder.dir}.`
+    return `The output folder ${folder.dir} doesn't exist.`
+  }
   const problem = error ? parseRecordingProblem(error) : null
   if (!problem) return error
   if (problem.kind === 'empty') {

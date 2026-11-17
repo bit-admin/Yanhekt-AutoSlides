@@ -12,6 +12,7 @@
 // `.aac` lives on the same cvideo host as the video and must follow the same
 // NIC binding and Host-preserving rewrite.
 import fs from 'node:fs';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import type { Readable } from 'node:stream';
@@ -71,7 +72,7 @@ export class AudioDownloadService {
     await this.intranetMapping.ensureFresh();
     const route = this.intranetMapping.route();
 
-    await fs.promises.mkdir(outputDir, { recursive: true });
+    await ensureWritableOutputDir(outputDir);
     void ensureCopyrightNotice(outputDir);
 
     const finalPath = path.join(outputDir, `${outputName}.aac`);

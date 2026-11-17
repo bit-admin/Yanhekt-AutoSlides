@@ -140,6 +140,7 @@ if (!cliRun && app.isPackaged && !app.requestSingleInstanceLock()) {
 const cliSocketPath = controlSocketPath(app.getPath('userData'), { dev: !app.isPackaged });
 
 const configService = new ConfigService();
+slideExtractionService.setOutputRoot(() => configService.getConfig().outputDirectory);
 
 // Proxy settings: main-process requests follow them from here on. The app also
 // applies them to its Chromium sessions; a command-line run uses no windows and

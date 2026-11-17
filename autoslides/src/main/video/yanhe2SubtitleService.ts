@@ -12,6 +12,7 @@
  * captions use for this lecture (measured, or the fixed one from Settings).
  */
 import * as fs from 'fs/promises';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
 import * as path from 'path';
 import { buildDownloadFileName } from '@common/downloadNaming';
 import { lectureLabel } from '@common/lectureNaming';
@@ -76,7 +77,7 @@ export class Yanhe2SubtitleService {
     const filePath = path.join(outputDir, `${yanhe2SubtitleStem(twin.data.target)}.srt`);
     const partPath = `${filePath}.part`;
     try {
-      await fs.mkdir(outputDir, { recursive: true });
+      await ensureWritableOutputDir(outputDir);
       void ensureCopyrightNotice(outputDir);
       // Whole or not at all, like the other downloads.
       await fs.writeFile(partPath, UTF8_BOM + srt, 'utf8');
