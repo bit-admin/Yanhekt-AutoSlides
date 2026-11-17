@@ -104,7 +104,7 @@ const AUTH: Record<CliMode, object> = {
   terminal: {
     env: TOKEN_ENV,
     order: ['--token', '--account', TOKEN_ENV, 'the account signed in to AutoSlides'],
-    note: 'Only the personal lists send a token: a course\'s sessions (course, download --course) and the account\'s courses (mine). Search, course details, session lookups and video downloads are anonymous.',
+    note: 'A token is read only when a request needs one: the personal lists (a course\'s sessions for course and download --course, the account\'s courses for mine), search when it reads the AutoSlides Index online, and session or download for an earlier term\'s session, which Yanhekt no longer serves by id (it is taken from its course\'s session list). Without a token those fail with auth_required. Everything else is anonymous: current-term session lookups, course details, search on Yanhekt or the course index on this computer, and video downloads.',
   },
   app: {
     note: 'Every command runs inside AutoSlides (started if it is not running) as the account it is signed in with. A command that talks to Yanhekt fails with sign_in_required while the app is signed out; config, and downloads other than retry, stay inside the app and work signed out. Requests follow its Settings > Network (route, prefer anonymous requests). Command-line control can be turned off in Settings > Add-ons > Command Line (error cli_control_disabled).',
