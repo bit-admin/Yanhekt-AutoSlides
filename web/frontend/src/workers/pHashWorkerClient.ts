@@ -4,9 +4,13 @@
 // the Uint8Array round-trip of `bufferToImageData` is unnecessary there.
 
 import PostProcessorWorker from './postProcessor.worker?worker';
+import { createWorkerRequests } from './workerRequests';
+import { createLogger } from '../lib/logger';
 import type { GrayImage, SSIMPrepareOptions } from './postProcessor.worker';
 
 export type { GrayImage, SSIMPrepareOptions };
+
+const log = createLogger('PHashWorker');
 
 export interface PHashWorkerClient {
   calculatePHash: (imageData: ImageData) => Promise<string>;
@@ -45,22 +49,27 @@ function decodeBlobToImageData(blob: Blob): Promise<ImageData> {
   });
 }
 
-export function createPHashWorkerClient(): PHashWorkerClient {
-  const worker = new PostProcessorWorker();
+interface PHashResponse {
+  id: string;
+  success: boolean;
+  result?: unknown;
+  error?: string;
+}
 
-  const request = <T>(type: string, data: Record<string, unknown>): Promise<T> => {
-    return new Promise((resolve, reject) => {
-      const messageId = `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-      const handler = (event: MessageEvent) => {
-        const { id, success, result, error } = event.data;
-        if (id !== messageId) return;
-        worker.removeEventListener('message', handler);
-        if (success) resolve(result as T);
-        else reject(new Error(error || `${type} failed`));
-      };
-      worker.addEventListener('message', handler);
-      worker.postMessage({ id: messageId, type, data });
-    });
+export function createPHashWorkerClient(): PHashWorkerClient {
+  // Every request ends (see `workerRequests.ts`): a crashed or stopped worker
+  // rejects what was waiting on it instead of leaving it pending. No time
+  // limit: hashes are requested in bulk, so a request mostly waits its turn.
+  const client = createWorkerRequests<PHashResponse>({
+    createWorker: () => new PostProcessorWorker(),
+    name: 'postProcessor',
+    onProblem: (message, detail) => log.error(message, detail),
+  });
+
+  const request = async <T>(type: string, data: Record<string, unknown>): Promise<T> => {
+    const response = await client.request({ type, data });
+    if (!response.success) throw new Error(response.error || `${type} failed`);
+    return response.result as T;
   };
 
   const calculatePHash = (imageData: ImageData) =>
@@ -85,6 +94,6 @@ export function createPHashWorkerClient(): PHashWorkerClient {
     ssimFromGray,
     bufferToImageData,
     blobToImageData: decodeBlobToImageData,
-    destroy: () => worker.terminate(),
+    destroy: () => client.destroy(),
   };
 }

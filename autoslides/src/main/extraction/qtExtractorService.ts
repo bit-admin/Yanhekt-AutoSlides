@@ -70,7 +70,10 @@ const DEFAULT_BINARY_PATHS: Record<NodeJS.Platform, string[]> = {
 
 export class QtExtractorService {
   private configService: ConfigService;
-  private active: Map<string, ChildProcess> = new Map();
+  // One entry per extraction from the moment it is asked for, not from the
+  // moment its process exists: the output folder check and the version probe
+  // come first, and a cancel that arrives during them must still stop the run.
+  private jobs: Map<string, { cancelled: boolean; child: ChildProcess | null }> = new Map();
 
   constructor(configService: ConfigService) {
     this.configService = configService;
@@ -284,14 +287,21 @@ export class QtExtractorService {
   }
 
   isExtractionActive(extractionId: string): boolean {
-    return this.active.has(extractionId);
+    return this.jobs.has(extractionId);
   }
 
+  /**
+   * Cancel an extraction, whether or not its process has started. Before the
+   * process exists the run ends at its next step without starting one; after,
+   * the process gets SIGTERM. Asking twice is harmless. False when there is no
+   * such extraction. Slides already written stay.
+   */
   cancelExtraction(extractionId: string): boolean {
-    const child = this.active.get(extractionId);
-    if (!child) return false;
+    const job = this.jobs.get(extractionId);
+    if (!job) return false;
+    job.cancelled = true;
     try {
-      child.kill('SIGTERM');
+      job.child?.kill('SIGTERM');
     } catch (err) {
       log.error('[QtExtractor] Failed to send SIGTERM:', err);
     }
@@ -299,10 +309,10 @@ export class QtExtractorService {
   }
 
   cancelAll(): void {
-    for (const child of this.active.values()) {
-      try { child.kill('SIGTERM'); } catch { /* noop */ }
+    for (const job of this.jobs.values()) {
+      job.cancelled = true;
+      try { job.child?.kill('SIGTERM'); } catch { /* noop */ }
     }
-    this.active.clear();
   }
 
   async runExtraction(
@@ -312,6 +322,28 @@ export class QtExtractorService {
     params: QtExtractorRunParams,
     handlers: QtExtractorEventHandlers
   ): Promise<{ slidesDir: string; slideCount: number }> {
+    if (this.jobs.has(extractionId)) throw new Error(`Extraction ${extractionId} is already running`);
+    const job: { cancelled: boolean; child: ChildProcess | null } = { cancelled: false, child: null };
+    this.jobs.set(extractionId, job);
+    try {
+      return await this.runJob(job, videoPath, outputDir, params, handlers);
+    } finally {
+      this.jobs.delete(extractionId);
+    }
+  }
+
+  private async runJob(
+    job: { cancelled: boolean; child: ChildProcess | null },
+    videoPath: string,
+    outputDir: string,
+    params: QtExtractorRunParams,
+    handlers: QtExtractorEventHandlers
+  ): Promise<{ slidesDir: string; slideCount: number }> {
+    const stopIfCancelled = (): void => {
+      if (!job.cancelled) return;
+      handlers.onCancelled?.();
+      throw new Error('cancelled');
+    };
     const binary = this.resolveBinaryPath();
     if (!binary) throw new Error('AutoSlides Extractor binary is not configured.');
     if (!fs.existsSync(binary)) throw new Error(`AutoSlides Extractor binary not found at ${binary}`);
@@ -321,6 +353,7 @@ export class QtExtractorService {
     log.debug('AutoSlides Extractor output directory:', outputDir);
 
     await ensureWritableOutputDir(expandTilde(this.configService.getConfig().outputDirectory), outputDir);
+    stopIfCancelled();
 
     // --compatible: Slide_*.png + no Qt-side post-process (Electron runs p-p).
     // --write-timeline only when binary is >= 2.0.0 (unknown flag aborts older builds).
@@ -336,6 +369,8 @@ export class QtExtractorService {
     } catch (error) {
       log.warn('Could not verify extractor version before spawn; omitting --write-timeline:', error);
     }
+    // Cancelled while the version was being read: no process is started.
+    stopIfCancelled();
 
     const args = [
       '--json',
@@ -352,7 +387,7 @@ export class QtExtractorService {
 
     return await new Promise<{ slidesDir: string; slideCount: number }>((resolve, reject) => {
       const child = spawn(binary, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-      this.active.set(extractionId, child);
+      job.child = child;
 
       child.stdout.setEncoding('utf8');
       child.stderr.setEncoding('utf8');
@@ -412,13 +447,13 @@ export class QtExtractorService {
       stderr.on('line', handle);
 
       child.on('error', (err) => {
-        this.active.delete(extractionId);
         reject(err);
       });
 
       child.on('exit', (code) => {
-        this.active.delete(extractionId);
-        if (cancelled || code === 130 || code === 143) {
+        // A process killed outright (Windows, or one that does not handle the
+        // signal) exits without saying "cancelled"; the request itself counts.
+        if (cancelled || job.cancelled || code === 130 || code === 143) {
           handlers.onCancelled?.();
           reject(new Error('cancelled'));
           return;

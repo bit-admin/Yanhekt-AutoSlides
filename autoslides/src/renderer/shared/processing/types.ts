@@ -81,7 +81,10 @@ export interface SlideExtractionAdapter {
 export interface SlideExtractionHandle {
   readonly instanceId: string;
   readonly mode: SlideExtractionMode;
+  /** Ends capturing at once; the last frame may still finish (see `settled`). */
   stop(): void;
+  /** Resolves once a stopped run has finished its last slide and `onStopped`. */
+  settled(): Promise<void>;
   pushFrame(imageData: ImageData): Promise<void>;
   setPlaybackRate(rate: number): void;
   pauseForBuffering(): void;

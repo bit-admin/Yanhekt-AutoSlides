@@ -1,13 +1,13 @@
 import { createLogger } from '@shared/utils/logger';
+import { createWorkerRequests } from './workerRequests';
 const log = createLogger('WorkerClientFactory');
 /**
- * Generic Web Worker request/response client. Replaces the duplicated
- * lazy-init/pending-map/ID-counter scaffolding shared by mlClassifierClient
- * and autoCropWorkerClient.
+ * Generic Web Worker request/response client for mlClassifierClient,
+ * autoCropWorkerClient and pHashWorkerClient. The request lifecycle (every
+ * request ends: answer, worker error, failed send, timeout or destroy) lives
+ * in `workerRequests.ts`; this adds the logger and the app's time limits.
  *
  * Out of scope (different pattern, not unified):
- *   - pHashWorkerClient: per-request addEventListener/removeEventListener
- *     with string IDs (no shared pending map).
  *   - processing/workerHelpers.ts (SlideProcessorService): class-based with
  *     self-healing (auto-restart on error) and per-request 30s timeouts.
  */
@@ -24,12 +24,19 @@ export interface WorkerResponseBase {
 }
 
 export interface WorkerClient<TResponse extends WorkerResponseBase = WorkerResponseBase> {
+  /** Rejects with a `WorkerRequestError` when the worker cannot answer; never stays pending. */
   request<R extends TResponse = TResponse>(
     message: Omit<WorkerMessageBase, 'id'> & Record<string, unknown>,
     transferables?: Transferable[],
+    options?: { timeoutMs?: number },
   ): Promise<R>;
   destroy(): void;
 }
+
+/** Long enough for one image on a slow machine; a worker that takes longer is stuck. */
+export const WORKER_REQUEST_TIMEOUT_MS = 60_000;
+/** Loading an ONNX model, the slowest thing a worker is asked to do. */
+export const WORKER_INIT_TIMEOUT_MS = 180_000;
 
 export interface CreateWorkerClientOptions<TResponse extends WorkerResponseBase = WorkerResponseBase> {
   /**
@@ -48,69 +55,22 @@ export interface CreateWorkerClientOptions<TResponse extends WorkerResponseBase 
    * through the pending map; `false` to ignore it.
    */
   isResponse?: (data: unknown) => data is TResponse;
+  /**
+   * Time limit per request; defaults to `WORKER_REQUEST_TIMEOUT_MS`. `null` for
+   * none: a client whose callers send many requests at once, where a request's
+   * wait is mostly the queue ahead of it and says nothing about a stuck worker.
+   */
+  timeoutMs?: number | null;
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
-
-const defaultIsResponse = <T extends WorkerResponseBase>(data: unknown): data is T => {
-  if (!isObject(data)) return false;
-  if (typeof data.id !== 'string') return false;
-  // Treat anything with type === 'log' as a log frame, not a response.
-  if (data.type === 'log') return false;
-  return true;
-};
 
 export function createWorkerClient<TResponse extends WorkerResponseBase = WorkerResponseBase>(
   options: CreateWorkerClientOptions<TResponse>,
 ): WorkerClient<TResponse> {
-  const { createWorker, workerName, isResponse = defaultIsResponse } = options;
-
-  let worker: Worker | null = null;
-  let nextId = 0;
-  const pending = new Map<string, (response: TResponse) => void>();
-
-  const ensureWorker = (): Worker => {
-    if (worker) return worker;
-    worker = createWorker();
-    worker.addEventListener('message', (event: MessageEvent<unknown>) => {
-      const data = event.data;
-      if (!isResponse(data)) return;
-      const resolver = pending.get(data.id);
-      if (!resolver) return;
-      pending.delete(data.id);
-      resolver(data);
-    });
-    worker.addEventListener('error', (event) => {
-      log.error(`[${workerName} worker error]`, event);
-    });
-    return worker;
-  };
-
-  const request = <R extends TResponse = TResponse>(
-    message: Omit<WorkerMessageBase, 'id'> & Record<string, unknown>,
-    transferables?: Transferable[],
-  ): Promise<R> => {
-    const w = ensureWorker();
-    const id = String(++nextId);
-    return new Promise<R>((resolve) => {
-      pending.set(id, resolve as (response: TResponse) => void);
-      if (transferables && transferables.length > 0) {
-        w.postMessage({ ...message, id }, transferables);
-      } else {
-        w.postMessage({ ...message, id });
-      }
-    });
-  };
-
-  const destroy = (): void => {
-    pending.clear();
-    if (worker) {
-      worker.terminate();
-      worker = null;
-    }
-    nextId = 0;
-  };
-
-  return { request, destroy };
+  return createWorkerRequests<TResponse>({
+    createWorker: options.createWorker,
+    name: options.workerName,
+    isResponse: options.isResponse,
+    timeoutMs: options.timeoutMs === null ? undefined : (options.timeoutMs ?? WORKER_REQUEST_TIMEOUT_MS),
+    onProblem: (message, detail) => log.error(`[${message}]`, detail),
+  });
 }

@@ -421,6 +421,20 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     taskCompletionInProgress.value = taskId
     log.debug('Completing task:', taskId)
 
+    // Stop extraction and wait for its last slide before listing the files: a
+    // slide still being written when the video ended would otherwise miss
+    // post-processing.
+    const extractor = slideExtractorInstance.value
+    if (extractor) {
+      extractor.stop()
+      await extractor.settled()
+      if (currentTaskId.value !== taskId) {
+        // Paused or removed while the last slide was being written.
+        taskCompletionInProgress.value = null
+        return
+      }
+    }
+
     // Get slide extraction info for post-processing (non-blocking)
     // Check config directly to ensure we respect the latest setting value
     const config = configStore
