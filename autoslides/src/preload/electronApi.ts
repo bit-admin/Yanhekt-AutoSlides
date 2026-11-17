@@ -801,7 +801,8 @@ export interface ElectronAPI {
     cancel: (downloadId: string) => Promise<void>;
     cleanupTempFiles: (outputName: string) => Promise<void>;
     onProgress: (callback: (downloadId: string, progress: DownloadProgress) => void) => () => void;
-    onCompleted: (callback: (downloadId: string) => void) => () => void;
+    /** `filePath` is the finished file, in the folder fixed when the download started. */
+    onCompleted: (callback: (downloadId: string, filePath?: string) => void) => () => void;
     onError: (callback: (downloadId: string, error: string) => void) => () => void;
   };
 

@@ -90,6 +90,8 @@ export interface CliDownloadUpdate {
   /** 0–100, as the panel shows it (the merge is the last tenth). */
   progress: number;
   error?: string;
+  /** The file a completed download wrote, as main reported it; absent until then. */
+  filePath?: string;
 }
 
 export const isFinalDownloadState = (state: CliDownloadState): boolean =>

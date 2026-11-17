@@ -49,7 +49,7 @@ Name rows by `item_id` (from `downloads --json`) or by a session id or link, whi
 
 `Row = { item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", status, progress: 0-100, path, error?, added_at, completed_at, extraction: { state, progress, error? } | null }`
 
-Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `cancelled` or `removed`.
+Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `cancelled` or `removed`. A row's `path` is the file the download wrote, in the folder it started with (a later change of `output_dir` does not move it); it is `null` until the row is `completed`.
 
 ### `config`
 

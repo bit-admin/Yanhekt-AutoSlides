@@ -22,7 +22,7 @@ afterEach(() => {
 });
 
 /** The app as `download` uses it: one resolvable session, and a panel that answers `queueDownload`. */
-function fakeApp(queueAnswer: CliControlMethods['queueDownload']['result']) {
+function fakeApp(queueAnswer: CliControlMethods['queueDownload']['result'], writtenTo?: string) {
   const calls: string[] = [];
   const output = { out: [] as string[], info: [] as string[] };
   const watched: string[] = [];
@@ -47,7 +47,7 @@ function fakeApp(queueAnswer: CliControlMethods['queueDownload']['result']) {
       seedDownload: () => {},
       watchDownload: (itemId: string, onUpdate: (update: CliDownloadUpdate) => void) => {
         watched.push(itemId);
-        onUpdate({ itemId, state: 'completed', progress: 100 });
+        onUpdate({ itemId, state: 'completed', progress: 100, ...(writtenTo ? { filePath: writtenTo } : {}) });
         return () => {};
       },
       onReset: () => () => {},
@@ -76,6 +76,14 @@ describe('autoslides download', () => {
     expect((result.data as Data).items).toMatchObject([{ status: 'downloaded', path: file }]);
     expect(app.output.out).toEqual([file]);
     expect(result.error).toBeUndefined();
+  });
+
+  it('reports the file the app says it wrote, even when the folder changed meanwhile', async () => {
+    const elsewhere = path.join(path.sep, 'earlier', 'screen_课程_第1讲__c70101s850101.mp4');
+    const app = fakeApp({ itemId: 'i1', state: 'queued', progress: 0, added: true }, elsewhere);
+    const result = await appDownloadCommand.serve(input(false), app.ctx);
+    expect((result.data as Data).items).toMatchObject([{ status: 'downloaded', path: elsewhere }]);
+    expect(app.output.out).toEqual([elsewhere]);
   });
 
   it('keeps stdout for the one JSON answer with --json', async () => {

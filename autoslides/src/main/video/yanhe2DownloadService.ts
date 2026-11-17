@@ -114,8 +114,9 @@ export class Yanhe2DownloadService {
   }
 
   /**
-   * Download one stream as `<outputName>.mp4` (or `.aac`). Throws with the
-   * row's error text; reports on the same progress shape as every download.
+   * Download one stream as `<outputName>.mp4` (or `.aac`) and answer the
+   * file's path. Throws with the row's error text; reports on the same
+   * progress shape as every download.
    */
   async start(
     downloadId: string,
@@ -124,7 +125,7 @@ export class Yanhe2DownloadService {
     kind: unknown,
     outputName: unknown,
     progress: (progress: DownloadProgress) => void,
-  ): Promise<void> {
+  ): Promise<string> {
     if (!isKind(kind) || !isPlainStem(outputName)) throw new Error('Bad Yanhe 2.0 download request');
     if (this.active.has(downloadId)) throw new Error('Download already in progress');
     const controller = new AbortController();
@@ -141,8 +142,7 @@ export class Yanhe2DownloadService {
 
       if (kind === 'audio') {
         if (!info.data.audioUrl || !isYanhe2PlayUrl(info.data.audioUrl)) throw new Error('This recording has no classroom mic audio.');
-        await this.fetchFile(info.data.audioUrl, null, outputName, '.aac', AUDIO_PART_SUFFIX, controller.signal, progress);
-        return;
+        return await this.fetchFile(info.data.audioUrl, null, outputName, '.aac', AUDIO_PART_SUFFIX, controller.signal, progress);
       }
 
       const source = info.data.sources.find((candidate) => candidate.type === kind);
@@ -151,13 +151,13 @@ export class Yanhe2DownloadService {
       }
       if (source.format === 'hls') {
         // The m3u8 service owns this id from here; a cancel reaches it through `cancel`.
-        await this.m3u8DownloadService.startSignedDownload(
+        const filePath = await this.m3u8DownloadService.startSignedDownload(
           downloadId, source.url, outputName, progress, new Yanhe2HlsSigner(identity),
         );
         if (controller.signal.aborted) throw new Error(CANCELLED);
-      } else {
-        await this.fetchFile(source.url, identity, outputName, '.mp4', YANHE2_MP4_PART_SUFFIX, controller.signal, progress);
+        return filePath;
       }
+      return await this.fetchFile(source.url, identity, outputName, '.mp4', YANHE2_MP4_PART_SUFFIX, controller.signal, progress);
     } finally {
       this.active.delete(downloadId);
     }
@@ -193,7 +193,7 @@ export class Yanhe2DownloadService {
     partSuffix: string,
     signal: AbortSignal,
     progress: (progress: DownloadProgress) => void,
-  ): Promise<void> {
+  ): Promise<string> {
     const outputDir = expandTilde(this.configService.getConfig().outputDirectory);
     await ensureWritableOutputDir(outputDir);
     void ensureCopyrightNotice(outputDir);
@@ -284,6 +284,7 @@ export class Yanhe2DownloadService {
       await fs.promises.rename(partPath, finalPath);
       // No remux, so no processing stage.
       progress({ current: received, total: received || 1, phase: 2 });
+      return finalPath;
     } catch (error) {
       await fs.promises.rm(partPath, { force: true }).catch(() => { /* best effort */ });
       throw error;

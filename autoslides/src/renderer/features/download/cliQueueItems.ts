@@ -9,7 +9,13 @@ import type { DownloadItem } from '@shared/services/downloadService'
 export function snapshot(itemId: string, item: DownloadItem | undefined): CliDownloadUpdate {
   if (!item) return { itemId, state: 'removed', progress: 0 }
   const state: CliDownloadState = item.status
-  return item.error ? { itemId, state, progress: item.progress, error: item.error } : { itemId, state, progress: item.progress }
+  return {
+    itemId,
+    state,
+    progress: item.progress,
+    ...(item.error ? { error: item.error } : {}),
+    ...(state === 'completed' && item.filePath ? { filePath: String(item.filePath) } : {}),
+  }
 }
 
 export type CliItem = DownloadItem & { videoType: CliQueueItem['kind'] }

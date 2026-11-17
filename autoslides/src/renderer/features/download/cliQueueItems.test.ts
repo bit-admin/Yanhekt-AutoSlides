@@ -54,6 +54,13 @@ describe('the Download panel rows the command line sees', () => {
     })
   })
 
+  it('tell the file a finished download wrote, and only then', () => {
+    expect(snapshot('a', item({ id: 'a', videoType: 'screen', status: 'completed', progress: 100, filePath: '/then/a.mp4' }))).toEqual({
+      itemId: 'a', state: 'completed', progress: 100, filePath: '/then/a.mp4',
+    })
+    expect(snapshot('a', item({ id: 'a', videoType: 'screen', status: 'downloading', filePath: '/then/a.mp4' })).filePath).toBeUndefined()
+  })
+
   it('reads a row that left the list as removed', () => {
     expect(snapshot('gone', undefined)).toEqual({ itemId: 'gone', state: 'removed', progress: 0 })
   })

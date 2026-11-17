@@ -63,7 +63,7 @@ export class AudioDownloadService {
     audioUrl: string,
     outputName: string,
     progressCallback: (progress: DownloadProgress) => void,
-  ): Promise<void> {
+  ): Promise<string> {
     if (this.activeDownloads.has(downloadId)) {
       throw new Error('Download already in progress');
     }
@@ -126,6 +126,7 @@ export class AudioDownloadService {
 
       // No processing stage: phase 1 exists only for the FFmpeg remux.
       progressCallback({ current: total || received, total: total || received, phase: 2 });
+      return finalPath;
     } catch (error) {
       await fs.promises.rm(partPath, { force: true }).catch(() => { /* best effort */ });
 

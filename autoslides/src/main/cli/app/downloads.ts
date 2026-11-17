@@ -7,9 +7,7 @@
 // which takes every row of that session. An app-only command: `yhdl` has no
 // queue. Yanhekt rows only: the renderer leaves Yanhe 2.0 transcripts out.
 // Works while signed out, except `retry`, which downloads again.
-import path from 'node:path';
 import type { CliDownloadUpdate, CliQueueItem } from '@common/cliControl';
-import { buildDownloadFileName } from '@common/downloadNaming';
 import { parseSessionInput } from '@common/sessionInput';
 import { CliError } from '../errors';
 import { table } from '../format';
@@ -45,23 +43,19 @@ interface Row {
 }
 
 const ROW_SHAPE =
-  '{ item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", status: RowStatus, progress: 0-100, path: string|null, error?, added_at, completed_at: string|null, extraction: { state, progress, error? }|null }';
+  '{ item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", status: RowStatus, progress: 0-100, path: string|null (the file written; null until completed), error?, added_at, completed_at: string|null, extraction: { state, progress, error? }|null }';
 
 function statusOf(update: Pick<CliDownloadUpdate, 'state' | 'error'>): Status {
   if (update.state === 'error') return update.error === CANCELLED ? 'cancelled' : 'failed';
   return update.state;
 }
 
-const EXTENSIONS: Record<CliQueueItem['kind'], string> = {
-  screen: '.mp4',
-  camera: '.mp4',
-  audio: '.aac',
-};
-
-function rowOf(item: CliQueueItem, outputDir: string): Row {
-  const fileName = outputDir
-    ? `${buildDownloadFileName({ name: item.name, courseId: item.courseId ?? undefined, sessionId: item.sessionId })}${EXTENSIONS[item.kind]}`
-    : null;
+/**
+ * A row's file is the one the download wrote, as the app reported it when it
+ * finished. Until then it is null: the folder is fixed when the download
+ * starts, and guessing it from today's setting can name the wrong one.
+ */
+function rowOf(item: CliQueueItem): Row {
   const status = statusOf(item);
   return {
     item_id: item.itemId,
@@ -72,7 +66,7 @@ function rowOf(item: CliQueueItem, outputDir: string): Row {
     kind: item.kind,
     status,
     progress: item.progress,
-    path: fileName ? path.join(outputDir, fileName) : null,
+    path: item.state === 'completed' ? (item.filePath ?? null) : null,
     ...(item.error && status !== 'cancelled' ? { error: item.error } : {}),
     added_at: new Date(item.addedAt).toISOString(),
     completed_at: item.completedAt ? new Date(item.completedAt).toISOString() : null,
@@ -118,9 +112,8 @@ function select(rows: readonly Row[], selectors: readonly string[], program: str
 }
 
 async function listRows(ctx: AppCommandContext): Promise<Row[]> {
-  const outputDir = ctx.configService.getConfig().outputDirectory || '';
   const { items } = await ctx.renderer.request('listDownloads', {});
-  return items.map((item) => rowOf(item, outputDir));
+  return items.map(rowOf);
 }
 
 const isUnfinished = (r: Row): boolean => r.status === 'queued' || r.status === 'downloading' || r.status === 'processing';
@@ -142,11 +135,12 @@ async function waitFor(rows: Row[], input: CommandInput, ctx: AppCommandContext)
     onEnd: (f, end) => {
       const status = statusOf(end);
       const error = status === 'failed' ? end.error || 'download failed' : undefined;
-      update(f.itemId, { status, progress: end.progress, ...(error ? { error } : {}) });
+      const filePath = status === 'completed' ? (end.filePath ?? null) : null;
+      update(f.itemId, { status, progress: end.progress, path: filePath, ...(error ? { error } : {}) });
       const label = `${f.row.session_title} (${f.row.kind})`;
       if (status === 'completed') {
         // With --json stdout is the one answer; the path is in its rows.
-        if (f.row.path && !input.json) ctx.term.out(f.row.path);
+        if (filePath && !input.json) ctx.term.out(filePath);
       } else {
         ctx.term.info(`${label}: ${status === 'failed' ? error : status === 'removed' ? 'removed from the download list' : 'cancelled'}`);
       }

@@ -73,7 +73,7 @@ autoslides config output_dir ~/Lectures
 autoslides config connection_mode internal
 ```
 
-A finished download's `path` is the absolute path of the `.mp4` (`.aac` for audio rows) in the app's output folder. Files that already exist are `skipped`, not downloaded again, unless you pass `--force`.
+A finished download's `path` is the absolute path of the `.mp4` (`.aac` for audio rows) in the output folder it started with; in `downloads` it is `null` until the row is `completed`. Files that already exist are `skipped`, not downloaded again, unless you pass `--force`.
 
 ## Rules
 

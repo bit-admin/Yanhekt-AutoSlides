@@ -83,8 +83,9 @@ export const download: ElectronAPI['download'] = {
     ipcRenderer.on('download:progress', handler);
     return () => ipcRenderer.removeListener('download:progress', handler);
   },
-  onCompleted: (callback: (downloadId: string) => void) => {
-    const handler = (_e: Electron.IpcRendererEvent, downloadId: string) => callback(downloadId);
+  onCompleted: (callback: (downloadId: string, filePath?: string) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, downloadId: string, filePath?: string) =>
+      callback(downloadId, typeof filePath === 'string' ? filePath : undefined);
     ipcRenderer.on('download:completed', handler);
     return () => ipcRenderer.removeListener('download:completed', handler);
   },
