@@ -160,6 +160,33 @@ describe('autoslides config', () => {
     expect((result.data as { changed: boolean }).changed).toBe(false);
   });
 
+  it('never repeats a proxy address it refuses: it may hold a password', async () => {
+    const wrong = ['http://user:hunter2@127.0.0.1:7890/path', 'ftp://user:hunter2@127.0.0.1:21', 'http://user:hunter2@:7890'];
+    for (const raw of wrong) {
+      const error = await appConfigCommand.serve(input(['proxy_url', raw]), context()).then(
+        () => null,
+        (e: unknown) => e as { code: string; message: string; hint?: string },
+      );
+      expect(error?.code, raw).toBe('usage');
+      expect(`${error?.message} ${error?.hint ?? ''}`, raw).not.toContain('hunter2');
+    }
+    expect(applied).toEqual([]);
+  });
+
+  it('reports a changed proxy password as a change, still masked', async () => {
+    const result = await appConfigCommand.serve(input(['proxy_url', 'http://user:hunter2@127.0.0.1:7890']), context());
+    expect(applied).toEqual([['setProxySettings', { customUrl: 'http://user:hunter2@127.0.0.1:7890' }]]);
+    expect(result.data).toMatchObject({
+      changed: true,
+      previous: 'http://user:***@127.0.0.1:7890',
+      value: 'http://user:***@127.0.0.1:7890',
+    });
+    expect(JSON.stringify(result)).not.toMatch(/hunter2|secret/);
+
+    const same = await appConfigCommand.serve(input(['proxy_url', 'http://user:hunter2@127.0.0.1:7890']), context());
+    expect((same.data as { changed: boolean }).changed).toBe(false);
+  });
+
   it('refuses a wrong value without changing anything', async () => {
     const wrong: Array<[string, string]> = [
       ['connection_mode', 'intranet'],

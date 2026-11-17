@@ -28,6 +28,7 @@ import type { CliInvocation } from './invocation';
 import { pinRoute } from './route';
 import { fail, info, out, separate } from './terminal';
 import type { CliCommand, CliContext, CommandResult } from './types';
+import { checkPositionals } from './validate';
 
 export { parseCliInvocation, type CliInvocation } from './invocation';
 export { createCliInterrupts } from './interrupts';
@@ -157,12 +158,7 @@ async function runCommand(
   if (options.verbose === true) ctx.setVerbose();
 
   try {
-    if (positionals.length > command.positionals.max) {
-      throw new CliError('usage', command.positionals.max === 0 ? `${id} takes no arguments` : `too many arguments: ${positionals.join(' ')}`);
-    }
-    if (positionals.length < command.positionals.min) {
-      throw new CliError('usage', `missing ${command.args}`);
-    }
+    checkPositionals(id, command, positionals);
     if (command.network) {
       // Only intranet traffic is ever bound to an interface, in the app as here.
       if (options.interface !== undefined && options.intranet !== true) {

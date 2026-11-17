@@ -1558,7 +1558,7 @@ CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each 
 
 | File | Trigger | Jobs |
 |---|---|---|
-| `.github/workflows/ci.yml` | push `main` + **all PRs** | `autoslides` (lint, tsc, vue-tsc, vitest, **drift**); `workers` matrix `web|share|relay` (typecheck, test, web also `typecheck:web`); `security` matrix all four (`npm audit --json` through `scripts/audit-gate.mjs`: moderate and above fails, except per-package allowances in the matrix, each with its reason and a major-version ceiling); `package` Windows `npm run package` (retry loop for transient Electron downloads) |
+| `.github/workflows/ci.yml` | push `main` + **all PRs** | `autoslides` (lint, tsc, vue-tsc, vitest, **drift**); `workers` matrix `web|share|relay` (typecheck, test, web also `typecheck:web`); `indexer` (typecheck, `node --test`; no crawl, upload or release); `security` matrix all four (`npm audit --json` through `scripts/audit-gate.mjs`: moderate and above fails, except per-package allowances in the matrix, each with its reason and a major-version ceiling); `package` Windows `npm run package` (retry loop for transient Electron downloads) |
 | `release.yml` | tag `v*` | Windows NSIS (`make:win`), Linux AppImage/deb (`make:linux`) and macOS arm64 DMG (`make:mac` on `macos-15`: Forge package + ad-hoc re-sign hook + electron-builder DMG with `resources/dmg-background.png` (+ `@2x`, source `dmg-background.html`), converted to LZMA; users strip quarantine themselves in Terminal per README), each after `index-bundle`; signs every installer and creates a draft release |
 
 Node 22 everywhere. Web CI generates types with `npx wrangler types -c wrangler.example.jsonc --strict-vars false` so `SSO_RESUME_KEY` stays `string`.
@@ -1566,7 +1566,7 @@ Node 22 everywhere. Web CI generates types with `npx wrangler types -c wrangler.
 ### Local checklist (match CI)
 
 1. `cd autoslides && npx tsc --noEmit && npx vue-tsc --noEmit && npm run lint && npm test`
-2. Touched a Worker: `cd web|share|relay && npm run typecheck && npm test` (web also `npm run typecheck:web`)
+2. Touched a Worker: `cd web|share|relay && npm run typecheck && npm test` (web also `npm run typecheck:web`). Touched the indexer: `cd indexer && npm run typecheck && npm test`
 3. Touched an Electron↔web copied file: `node scripts/check-drift.mjs` (re-stamp with `--update` after porting)
 4. `npm audit --audit-level=moderate` in each touched package — must report 0
 5. Smoke the domain you changed (`npm start` / `wrangler dev`). Screenshot-driven UI review is a human pass; do not drive the live app unless asked.

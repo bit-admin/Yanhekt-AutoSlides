@@ -140,6 +140,13 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
         lecture: { session: lecture.session, course: lecture.course },
         stream,
       });
+      if ('blocked' in queued) {
+        // The row belongs to the app, not to this command: reported, never followed.
+        const message = 'AutoSlides is already downloading this recording itself; it cannot be followed from the command line';
+        ctx.term.info(message);
+        items.push({ ...base, status: 'failed', path: null, error: { code: 'failed', message } });
+        continue;
+      }
       if (!queued.added) ctx.term.info('Already in the download list in AutoSlides; following that one.');
       if (queued.state === 'completed') {
         items.push({ ...base, status: 'downloaded', path: filePath });

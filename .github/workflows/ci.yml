@@ -82,6 +82,26 @@ jobs:
         if: matrix.dir == 'web'
         run: npm run typecheck:web
 
+  indexer:
+    name: indexer (typecheck, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: indexer
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22' # latest 22.x; the indexer needs >= 22.18
+          cache: npm
+          cache-dependency-path: indexer/package-lock.json
+
+      - run: npm ci
+      # Unit tests only: synthetic fixtures, no crawl, upload or release.
+      - run: npm run typecheck
+      - run: npm test
+
   security:
     name: audit ${{ matrix.dir }}
     runs-on: ubuntu-latest

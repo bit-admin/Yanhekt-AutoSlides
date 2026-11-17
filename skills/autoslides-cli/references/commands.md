@@ -43,7 +43,7 @@ Both commands read the selected saved account's cached enrolled courses (all kno
 
 Name rows by `item_id` (from `downloads --json`) or by a session id or link, which takes every row of that session. A session with no rows is `not_found`.
 
-- `list` and `wait`: `{ output_dir, items: [Row] }`. `wait` with no rows named waits for everything unfinished; if nothing is running it answers at once with "Nothing is downloading." It exits 1 if a row it waited for failed.
+- `list` and `wait`: `{ output_dir, items: [Row] }`. `wait` with no rows named waits for everything unfinished; if nothing is running it answers at once with "Nothing is downloading." It exits 1 if a row it waited for failed. Without `--json`, `wait` prints each finished file's path on stdout; with `--json`, stdout is the one JSON answer and the paths are in `items[].path`.
 - `cancel` and `retry`: `{ action, items: [Row & { changed: boolean }] }`. `changed: false` means the row was already finished (cancel) or was not failed or cancelled (retry). One of `--all` or a row is required.
 - `clear`: `{ removed }`. It removes every finished and failed row, like the panel's Clear Completed.
 

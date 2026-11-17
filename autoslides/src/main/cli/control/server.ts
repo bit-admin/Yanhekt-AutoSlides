@@ -17,6 +17,7 @@ import type { AppCommand, AppCommandContext, AppSettingsWriter } from '../app/ty
 import { toCliError } from '../classifyError';
 import { CliError } from '../errors';
 import type { CommandInput } from '../types';
+import { checkOptions, checkPositionals } from '../validate';
 import { MAX_REQUEST_BYTES, createLineReader, encodeLine, parseRequest, type ControlMessage } from './protocol';
 import type { RendererBridge } from './rendererBridge';
 
@@ -94,16 +95,30 @@ export class CliControlServer {
     const abort = new AbortController();
     let started = false;
 
-    const read = createLineReader((line) => {
-      if (started) return;
-      started = true;
-      void this.run(socket, line, abort.signal).finally(() => {
-        this.connections.delete(socket);
-        socket.end();
-      });
-    });
+    // One request per connection: the first line. It is refused, not run, when
+    // it is over the limit, and whatever follows it is dropped unread.
+    const read = createLineReader(
+      (line) => {
+        if (started) return;
+        started = true;
+        void this.run(socket, line, abort.signal).finally(() => {
+          this.connections.delete(socket);
+          socket.end();
+        });
+      },
+      {
+        maxLineBytes: MAX_REQUEST_BYTES,
+        onOverflow: () => {
+          if (started) return;
+          started = true;
+          this.send(socket, { type: 'result', error: new CliError('usage', 'the request is too large').toJSON() });
+          this.connections.delete(socket);
+          socket.end();
+        },
+      },
+    );
     socket.on('data', (chunk) => {
-      if (read(chunk) > MAX_REQUEST_BYTES) socket.destroy();
+      if (!started) read(chunk);
     });
     socket.on('error', (error) => log.debug('Command-line control connection error:', error));
     socket.on('close', () => {
@@ -122,6 +137,15 @@ export class CliControlServer {
     const command = this.deps.commands[request.command];
     if (!command) {
       this.send(socket, { type: 'result', error: new CliError('usage', `unknown command: ${request.command}`).toJSON() });
+      return;
+    }
+
+    // Checked here as in the terminal: nothing runs on arguments the command does not take.
+    try {
+      checkOptions(request.options, command.options);
+      checkPositionals(request.command, command, request.positionals);
+    } catch (error) {
+      this.send(socket, { type: 'result', error: toCliError(error).toJSON() });
       return;
     }
 

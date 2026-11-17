@@ -126,7 +126,7 @@ async function listRows(ctx: AppCommandContext): Promise<Row[]> {
 const isUnfinished = (r: Row): boolean => r.status === 'queued' || r.status === 'downloading' || r.status === 'processing';
 
 /** Wait for the unfinished ones among `rows`; each row ends up with how it ended. */
-async function waitFor(rows: Row[], ctx: AppCommandContext): Promise<void> {
+async function waitFor(rows: Row[], input: CommandInput, ctx: AppCommandContext): Promise<void> {
   const unfinished = rows.filter(isUnfinished);
   if (unfinished.length === 0) return;
   const states = await ctx.renderer.request('followDownloads', { itemIds: unfinished.map((r) => r.item_id) });
@@ -145,7 +145,8 @@ async function waitFor(rows: Row[], ctx: AppCommandContext): Promise<void> {
       update(f.itemId, { status, progress: end.progress, ...(error ? { error } : {}) });
       const label = `${f.row.session_title} (${f.row.kind})`;
       if (status === 'completed') {
-        if (f.row.path) ctx.term.out(f.row.path);
+        // With --json stdout is the one answer; the path is in its rows.
+        if (f.row.path && !input.json) ctx.term.out(f.row.path);
       } else {
         ctx.term.info(`${label}: ${status === 'failed' ? error : status === 'removed' ? 'removed from the download list' : 'cancelled'}`);
       }
@@ -210,7 +211,7 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
       if (picked.length === 0) {
         return { data: { output_dir: outputDir, items: [] }, text: 'Nothing is downloading.' };
       }
-      await waitFor(picked, ctx);
+      await waitFor(picked, input, ctx);
       if (ctx.signal.aborted) throw new CliError('interrupted', 'stopped waiting; the downloads keep going');
       return { data: { output_dir: outputDir, items: picked }, error: failureOf(picked) };
     }

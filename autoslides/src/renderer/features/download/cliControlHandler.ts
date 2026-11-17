@@ -1,62 +1,20 @@
 import { watch } from 'vue'
-import {
-  isFinalDownloadState,
-  type CliControlRequest,
-  type CliDownloadState,
-  type CliDownloadUpdate,
-  type CliQueueChange,
-  type CliQueueItem,
-} from '@common/cliControl'
+import { isFinalDownloadState, type CliControlRequest, type CliQueueChange } from '@common/cliControl'
 import { tokenManager, whenStartupAuthSettled } from '@shared/services/authService'
 import { DownloadService, type DownloadItem } from '@shared/services/downloadService'
 import { createLogger } from '@shared/utils/logger'
+import { isCliItem, listed, snapshot, type CliItem } from './cliQueueItems'
 import { queueSessionDownload } from './queueSessionDownload'
 
 const log = createLogger('CliControl')
 
-// Read off the queue's reactive item into a fresh object of primitives: it
-// crosses IPC (Recurring #1).
-function snapshot(itemId: string, item: DownloadItem | undefined): CliDownloadUpdate {
-  if (!item) return { itemId, state: 'removed', progress: 0 }
-  const state: CliDownloadState = item.status
-  return item.error ? { itemId, state, progress: item.progress, error: item.error } : { itemId, state, progress: item.progress }
-}
-
 const findItem = (itemId: string): DownloadItem | undefined =>
   DownloadService.downloadItems.find((item) => item.id === itemId)
 
-// The command line covers Yanhekt only (Yanhe 2.0 is in beta): its transcript
-// rows are never listed or changed from there. Clear Completed is the panel's
-// own button and clears every finished row.
-type CliItem = DownloadItem & { videoType: CliQueueItem['kind'] }
-const isCliItem = (item: DownloadItem): item is CliItem => item.videoType !== 'subtitles'
+// Only the rows the command line may see (`isCliItem`).
 const findCliItem = (itemId: string): CliItem | undefined => {
   const item = findItem(itemId)
   return item && isCliItem(item) ? item : undefined
-}
-
-// A whole row, again as primitives only.
-function listed(item: CliItem): CliQueueItem {
-  const extraction =
-    item.extractionStatus && item.extractionStatus !== 'none'
-      ? {
-          state: item.extractionStatus,
-          progress: item.extractionProgress ?? 0,
-          ...(item.extractionError ? { error: item.extractionError } : {}),
-        }
-      : null
-  return {
-    ...snapshot(item.id, item),
-    kind: item.videoType,
-    name: item.name,
-    sessionId: String(item.sessionId),
-    courseId: item.courseId != null ? String(item.courseId) : null,
-    courseTitle: item.courseTitle,
-    sessionTitle: item.sessionTitle,
-    addedAt: item.addedAt,
-    completedAt: item.completedAt ?? null,
-    extraction,
-  }
 }
 
 // The panel's per-row buttons, applied to one item.
@@ -108,6 +66,9 @@ export function installCliControlHandler(): () => void {
         const { lecture, stream } = request.params as CliControlRequest<'queueDownload'>['params']
         const result = queueSessionDownload(lecture, lecture.course.title, stream)
         const queued = result.added ? result.item : result.existingItem
+        // The panel dedupes by lecture and stream, so the row already there may
+        // be a Yanhe 2.0 recording of the same lecture: not the command line's to follow.
+        if (!isCliItem(queued)) return { blocked: true }
         const current = snapshot(queued.id, findItem(queued.id) ?? queued)
         if (!isFinalDownloadState(current.state)) follow(queued.id)
         return { ...current, added: result.added }

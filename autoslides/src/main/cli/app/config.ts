@@ -31,6 +31,11 @@ interface Setting {
   /** Where it is in the app, as the English UI names it. */
   setting: string;
   read: (config: AppConfig) => Value;
+  /**
+   * The value as stored, when `read` hides part of it: what tells a change
+   * from no change. Never shown.
+   */
+  stored?: (config: AppConfig) => Value;
   /** The JSON type, for `schema`. */
   type: string;
   /** What `config <key> <value>` takes, for help and errors. */
@@ -81,11 +86,14 @@ function parseProxyMode(key: string, raw: string): ProxyMode {
   return mode;
 }
 
-/** A proxy address (`none` clears it). The password, if any, is never printed back. */
+/**
+ * A proxy address (`none` clears it). Never printed back, not even when it is
+ * refused: what was typed may hold a password.
+ */
 function parseProxyAddress(raw: string): string {
   if (['none', ''].includes(raw.toLowerCase())) return '';
   if (!parseProxyUrl(raw)) {
-    throw new CliError('usage', `proxy_url is http://, https:// or socks5:// with a host and port, not ${raw}`);
+    throw new CliError('usage', 'proxy_url is http://, https:// or socks5:// with a host and port (no path), or none');
   }
   return raw.trim();
 }
@@ -164,6 +172,7 @@ export const SETTINGS: readonly Setting[] = [
     type: 'string|null',
     accepts: 'http://, https:// or socks5:// host:port, or none',
     read: (c) => (c.proxyCustomUrl ? maskProxyPassword(c.proxyCustomUrl) : null),
+    stored: (c) => c.proxyCustomUrl || null,
     write: (raw, ctx) => ctx.settings.setProxySettings({ customUrl: parseProxyAddress(raw) }),
   },
   {
@@ -221,15 +230,21 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
   const config = ctx.configService.getConfig();
 
   if (wanted && raw !== undefined) {
+    const stored = wanted.stored ?? wanted.read;
     const previous = wanted.read(config);
+    const storedBefore = stored(config);
     wanted.write(raw, ctx);
     // As saved: ConfigService may have normalized it.
-    const value = wanted.read(ctx.configService.getConfig());
-    const changed = value !== previous;
-    return {
-      data: { key: wanted.key, value, previous, changed, setting: wanted.setting },
-      text: changed ? `${wanted.key}: ${shown(previous)} -> ${shown(value)}` : `${wanted.key} is already ${shown(value)}.`,
-    };
+    const saved = ctx.configService.getConfig();
+    const value = wanted.read(saved);
+    // Told from what is stored: two addresses that differ only in the password are shown alike.
+    const changed = stored(saved) !== storedBefore;
+    const text = !changed
+      ? `${wanted.key} is already ${shown(value)}.`
+      : value === previous
+        ? `${wanted.key}: updated (${shown(value)})`
+        : `${wanted.key}: ${shown(previous)} -> ${shown(value)}`;
+    return { data: { key: wanted.key, value, previous, changed, setting: wanted.setting }, text };
   }
 
   if (wanted) {

@@ -14,10 +14,11 @@ import type { SessionDownloadInfo } from './apiTypes';
 export type CliDownloadStream = 'screen' | 'camera';
 
 /**
- * The rows the command line sees: the two streams and the mic stem. Yanhe 2.0
- * rows (transcripts) are not listed or changed, since the command line covers
- * Yanhekt only while Yanhe 2.0 is in beta; `clearDownloads` is the panel's
- * button and clears them like any finished row.
+ * The rows the command line sees: the two streams and the mic stem, when they
+ * are Yanhekt downloads. Yanhe 2.0 rows (its recordings and transcripts) are
+ * not listed, followed or changed, since the command line covers Yanhekt only
+ * while Yanhe 2.0 is in beta; `clearDownloads` is the panel's button and
+ * clears them like any finished row.
  */
 export type CliQueueKind = CliDownloadStream | 'audio';
 
@@ -49,7 +50,11 @@ export interface CliControlMethods {
   /** Add one stream of a resolved session to the Download panel, as its session-id row does. */
   queueDownload: {
     params: { lecture: Pick<SessionDownloadInfo, 'session' | 'course'>; stream: CliDownloadStream };
-    result: CliDownloadUpdate & { added: boolean };
+    /**
+     * `blocked`: the panel already holds this lecture's stream as a row the
+     * command line does not see, so nothing was added and nothing is followed.
+     */
+    result: (CliDownloadUpdate & { added: boolean }) | { blocked: true };
   };
   /** The Download panel's Yanhekt rows, in order. */
   listDownloads: { params: Record<string, never>; result: { items: CliQueueItem[] } };

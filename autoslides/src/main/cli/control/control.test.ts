@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,7 +8,7 @@ import type { AppCommand } from '../app/types';
 import { CliError } from '../errors';
 import type { CliContext } from '../types';
 import { runInApp } from './client';
-import { PROTOCOL_VERSION, controlSocketPath, createLineReader, parseRequest } from './protocol';
+import { MAX_REQUEST_BYTES, PROTOCOL_VERSION, controlSocketPath, createLineReader, encodeLine, parseRequest, type ControlMessage } from './protocol';
 import { CliControlServer } from './server';
 
 vi.mock('@main/infra/logger', () => ({
@@ -71,6 +72,72 @@ describe('protocol', () => {
     read(':2}\n\n');
     expect(lines).toEqual(['{"a":1}', '{"b":2}']);
   });
+
+  it('keeps Chinese and emoji whole however the bytes are split', () => {
+    const text = JSON.stringify({ q: '合成课程📘' });
+    const lines: string[] = [];
+    const read = createLineReader((line) => lines.push(line));
+    for (const byte of Buffer.from(`${text}\n${text}\n`)) read(Buffer.from([byte]));
+    expect(lines).toEqual([text, text]);
+  });
+
+  it('never delivers half a character left at the end of a connection', () => {
+    const lines: string[] = [];
+    const read = createLineReader((line) => lines.push(line));
+    expect(read(Buffer.from('课').subarray(0, 2))).toBe(2);
+    expect(lines).toEqual([]);
+  });
+
+  describe('with a line limit', () => {
+    const reader = (max: number) => {
+      const lines: string[] = [];
+      let overflows = 0;
+      const read = createLineReader((line) => lines.push(line), { maxLineBytes: max, onOverflow: () => overflows++ });
+      return { lines, read, overflows: () => overflows };
+    };
+
+    it('refuses a whole line over the limit before handing it over', () => {
+      const r = reader(MAX_REQUEST_BYTES);
+      r.read(Buffer.from(`${'x'.repeat(MAX_REQUEST_BYTES + 1)}\n`));
+      expect(r.lines).toEqual([]);
+      expect(r.overflows()).toBe(1);
+    });
+
+    it('takes a line of exactly the limit', () => {
+      const r = reader(16);
+      r.read(`${'x'.repeat(16)}\n`);
+      expect(r.lines).toEqual(['x'.repeat(16)]);
+      expect(r.overflows()).toBe(0);
+    });
+
+    it('counts bytes, not characters', () => {
+      const r = reader(16);
+      // 6 characters, 18 bytes.
+      r.read(`${'课'.repeat(6)}\n`);
+      expect(r.lines).toEqual([]);
+      expect(r.overflows()).toBe(1);
+    });
+
+    it('refuses an unfinished line once it passes the limit, across chunks', () => {
+      const r = reader(16);
+      r.read('x'.repeat(10));
+      expect(r.overflows()).toBe(0);
+      r.read('x'.repeat(7));
+      expect(r.overflows()).toBe(1);
+      // Nothing after that is read.
+      r.read('\n{"a":1}\n');
+      expect(r.lines).toEqual([]);
+      expect(r.overflows()).toBe(1);
+    });
+
+    it('is not filled up by blank lines', () => {
+      const r = reader(16);
+      r.read('\n'.repeat(1000));
+      r.read('{"a":1}\n');
+      expect(r.lines).toEqual(['{"a":1}']);
+      expect(r.overflows()).toBe(0);
+    });
+  });
 });
 
 describe('a command sent to the app', () => {
@@ -81,16 +148,22 @@ describe('a command sent to the app', () => {
   let stdout: string[];
   let stderr: string[];
   let interruptHandler: (() => void) | null;
+  let served: number;
 
   const echo: AppCommand = {
     summary: '',
     args: '',
     description: [],
     examples: [],
-    options: [],
-    positionals: { min: 0, max: Infinity },
+    options: [
+      { long: 'page', value: 'n', description: '' },
+      { long: 'stream', value: 'stream', choices: ['screen', 'camera'], description: '' },
+      { long: 'force', description: '' },
+    ],
+    positionals: { min: 0, max: 3 },
     data: '',
     serve: async (input, ctx) => {
+      served += 1;
       ctx.term.info('working');
       if (!input.json) ctx.term.out('/out/file.mp4');
       if (input.positionals[0] === 'fail') throw new CliError('sign_in_required', 'not signed in', 'Sign in.');
@@ -122,6 +195,7 @@ describe('a command sent to the app', () => {
     stdout = [];
     stderr = [];
     interruptHandler = null;
+    served = 0;
     vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => (stdout.push(String(chunk)), true));
     vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => (stderr.push(String(chunk)), true));
     server = new CliControlServer({
@@ -188,6 +262,79 @@ describe('a command sent to the app', () => {
     interruptHandler!();
     const result = await pending;
     expect(result.error?.code).toBe('interrupted');
+  });
+
+  /** Talk to the socket directly, as something other than the wrapper could. */
+  const sendRaw = (chunks: Array<Buffer | string>): Promise<ControlMessage[]> =>
+    new Promise((resolve, reject) => {
+      const messages: ControlMessage[] = [];
+      const read = createLineReader((line) => messages.push(JSON.parse(line) as ControlMessage));
+      const socket = net.createConnection(socketPath);
+      socket.on('data', read);
+      socket.on('error', reject);
+      socket.on('close', () => resolve(messages));
+      socket.on('connect', () => {
+        // A refused request may close the connection while the rest is still being written.
+        for (const chunk of chunks) if (!socket.destroyed) socket.write(chunk);
+      });
+    });
+
+  const request = (over: Record<string, unknown> = {}) => ({
+    v: PROTOCOL_VERSION,
+    command: 'echo',
+    program: 'autoslides',
+    positionals: [] as string[],
+    options: {},
+    json: true,
+    tty: false,
+    ...over,
+  });
+
+  const resultOf = (messages: ControlMessage[]) => {
+    const results = messages.filter((m) => m.type === 'result');
+    expect(results).toHaveLength(1);
+    return results[0] as Extract<ControlMessage, { type: 'result' }>;
+  };
+
+  it('reads a request whose Chinese arrives split between chunks', async () => {
+    const bytes = Buffer.from(encodeLine(request({ positionals: ['合成课程📘'] })));
+    const result = resultOf(await sendRaw([...bytes].map((byte) => Buffer.from([byte]))));
+    expect(result.data).toEqual({ got: ['合成课程📘'], options: {} });
+  });
+
+  it('refuses an option the command does not take, without running it', async () => {
+    const wrong: Array<Record<string, string | true>> = [
+      { output: '/tmp' },
+      { page: true },
+      { force: 'yes' },
+      { stream: 'both' },
+      { page: '' },
+    ];
+    for (const options of wrong) {
+      const result = resultOf(await sendRaw([encodeLine(request({ options }))]));
+      expect(result.error?.code, JSON.stringify(options)).toBe('usage');
+    }
+    expect(served).toBe(0);
+  });
+
+  it('refuses more arguments than the command takes, without running it', async () => {
+    const result = resultOf(await sendRaw([encodeLine(request({ positionals: ['a', 'b', 'c', 'd'] }))]));
+    expect(result.error?.code).toBe('usage');
+    expect(served).toBe(0);
+  });
+
+  it('refuses a request over the size limit, without running it', async () => {
+    const line = encodeLine(request({ positionals: ['x'.repeat(MAX_REQUEST_BYTES)] }));
+    const result = resultOf(await sendRaw([line]));
+    expect(result.error?.code).toBe('usage');
+    expect(result.error?.message).toMatch(/too large/);
+    expect(served).toBe(0);
+  });
+
+  it('runs only the first request of a connection', async () => {
+    const result = resultOf(await sendRaw([encodeLine(request({ positionals: ['a'] })) + encodeLine(request({ positionals: ['b'] }))]));
+    expect(result.data).toEqual({ got: ['a'], options: {} });
+    expect(served).toBe(1);
   });
 });
 

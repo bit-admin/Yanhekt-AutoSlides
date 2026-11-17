@@ -89,15 +89,15 @@ function fakeApp(items: CliQueueItem[], signedIn = true) {
   return { ctx, calls, output, emit, abort, listeners };
 }
 
-const input = (positionals: string[], options: Record<string, string | true> = {}): CommandInput => ({
+const input = (positionals: string[], options: Record<string, string | true> = {}, json = true): CommandInput => ({
   program: 'autoslides',
   positionals,
   options,
-  json: true,
+  json,
 });
 
-const serve = (positionals: string[], app: ReturnType<typeof fakeApp>, options: Record<string, string | true> = {}) =>
-  appDownloadsCommand.serve(input(positionals, options), app.ctx);
+const serve = (positionals: string[], app: ReturnType<typeof fakeApp>, options: Record<string, string | true> = {}, json = true) =>
+  appDownloadsCommand.serve(input(positionals, options, json), app.ctx);
 
 describe('autoslides downloads', () => {
   const queue = (): CliQueueItem[] => [
@@ -141,9 +141,21 @@ describe('autoslides downloads', () => {
     await expect(serve(['retry', 'c'], app)).rejects.toMatchObject({ code: 'sign_in_required' });
   });
 
-  it('waits for what is unfinished and prints the finished file', async () => {
+  it('keeps stdout for the one JSON answer when waiting with --json', async () => {
     const app = fakeApp(queue());
     const pending = serve(['wait'], app);
+    for (let i = 0; i < 20 && !app.listeners.has('b'); i++) await Promise.resolve();
+    app.emit({ itemId: 'b', state: 'completed', progress: 100 });
+    const result = await pending;
+    expect(app.output.out).toEqual([]);
+    expect((result.data as { items: Array<{ status: string; path: string }> }).items).toMatchObject([
+      { status: 'completed', path: path.join(OUT, 'camera_课程-第1讲__c70101s850101.mp4') },
+    ]);
+  });
+
+  it('waits for what is unfinished and prints the finished file', async () => {
+    const app = fakeApp(queue());
+    const pending = serve(['wait'], app, {}, false);
     for (let i = 0; i < 20 && !app.listeners.has('b'); i++) await Promise.resolve();
     app.emit({ itemId: 'b', state: 'downloading', progress: 80 });
     app.emit({ itemId: 'b', state: 'completed', progress: 100 });
