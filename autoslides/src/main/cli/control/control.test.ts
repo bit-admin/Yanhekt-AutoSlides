@@ -38,6 +38,13 @@ describe('controlSocketPath', () => {
     expect(controlSocketPath(long, { platform: 'linux', tmpdir: '/tmp' })).toBe(socket);
   });
 
+  it('measures the limit in bytes, so a Chinese folder name moves it too', () => {
+    // 40 characters, 120 bytes in UTF-8: short by length, too long for sun_path.
+    const chinese = `/home/a/${'课'.repeat(40)}/AutoSlides`;
+    expect(chinese.length).toBeLessThan(100);
+    expect(controlSocketPath(chinese, { platform: 'linux', tmpdir: '/tmp' })).toMatch(/^\/tmp\/autoslides-cli-/);
+  });
+
   it('is a named pipe per user data folder on Windows', () => {
     const a = controlSocketPath('C:\\Users\\a\\AppData\\Roaming\\AutoSlides', { platform: 'win32' });
     const demo = controlSocketPath('C:\\Users\\a\\AppData\\Roaming\\AutoSlides-Demo', { platform: 'win32' });
@@ -247,6 +254,31 @@ describe('a command sent to the app', () => {
   it('says the app is not running when nothing listens and it cannot be started', async () => {
     server.stop();
     await expect(runInApp('echo', input([]), ctx())).rejects.toMatchObject({ code: 'app_not_running' });
+  });
+
+  it('does not stay open when the socket cannot be made private', async () => {
+    if (process.platform === 'win32') return;
+    server.stop();
+    const chmod = vi.spyOn(fs, 'chmodSync').mockImplementation(() => {
+      throw new Error('EPERM');
+    });
+    server.applyConfig();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    chmod.mockRestore();
+    await expect(runInApp('echo', input([]), ctx())).rejects.toMatchObject({ code: 'app_not_running' });
+  });
+
+  it('creates the socket private, with no window before the chmod', async () => {
+    if (process.platform === 'win32') return;
+    server.stop();
+    const modes: number[] = [];
+    const chmod = vi.spyOn(fs, 'chmodSync').mockImplementation((target) => {
+      modes.push(fs.statSync(target).mode & 0o777);
+    });
+    server.applyConfig();
+    for (let i = 0; i < 50 && modes.length === 0; i++) await new Promise((resolve) => setTimeout(resolve, 10));
+    chmod.mockRestore();
+    expect(modes).toEqual([0o600]);
   });
 
   it('stops listening when the setting is turned off', async () => {

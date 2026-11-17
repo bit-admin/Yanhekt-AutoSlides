@@ -59,17 +59,31 @@ export class CliControlServer {
       log.error('Command-line control socket failed:', error);
       if (this.server === server) this.server = null;
     });
-    server.listen(socketPath, () => {
-      if (!isPipe) {
-        try {
-          fs.chmodSync(socketPath, 0o600);
-        } catch (error) {
-          log.warn('Could not restrict the command-line control socket:', error);
-        }
-      }
-      log.info(`Command-line control listening on ${socketPath}`);
-    });
     this.server = server;
+    // A Unix socket is created by bind, inside listen(), with the umask's
+    // mode; a private umask for that one synchronous call means it never
+    // exists readable by others. The chmod after is the check: a socket that
+    // cannot be made private is closed, not left open with a warning.
+    // A Windows named pipe keeps the system's default access rules, which
+    // this code neither sets nor checks (audit CLI-15, open).
+    const umask = isPipe ? null : process.umask(0o177);
+    try {
+      server.listen(socketPath, () => {
+        if (!isPipe) {
+          try {
+            fs.chmodSync(socketPath, 0o600);
+          } catch (error) {
+            log.error('Could not make the command-line control socket private; closing it:', error);
+            if (this.server === server) this.stop();
+            else server.close();
+            return;
+          }
+        }
+        log.info(`Command-line control listening on ${socketPath}`);
+      });
+    } finally {
+      if (umask !== null) process.umask(umask);
+    }
   }
 
   stop(): void {

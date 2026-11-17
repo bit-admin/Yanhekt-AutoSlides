@@ -161,5 +161,6 @@ export function controlSocketPath(userData: string, options: SocketPathOptions =
   const key = crypto.createHash('sha256').update(userData).digest('hex').slice(0, 16);
   if (platform === 'win32') return `\\\\.\\pipe\\autoslides-${name}-${key}`;
   const inUserData = path.join(userData, `${name}.sock`);
-  return inUserData.length <= MAX_SOCKET_PATH ? inUserData : path.join(tmpdir, `autoslides-${name}-${key}.sock`);
+  // sun_path counts bytes: a Chinese folder name is three per character.
+  return Buffer.byteLength(inUserData, 'utf8') <= MAX_SOCKET_PATH ? inUserData : path.join(tmpdir, `autoslides-${name}-${key}.sock`);
 }
