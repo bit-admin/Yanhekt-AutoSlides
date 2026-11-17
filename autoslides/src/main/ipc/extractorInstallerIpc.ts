@@ -16,6 +16,7 @@ export function registerExtractorInstallerIpcHandlers(services: IpcServices): vo
       if (result.success && result.data) {
         const release = JSON.parse(result.data);
         const platformAssets = extractorInstallerService.getAssetsForPlatform(release.assets || []);
+        extractorInstallerService.rememberOffered(platformAssets);
         return {
           success: true,
           tagName: release.tag_name,
