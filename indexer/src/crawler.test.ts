@@ -252,3 +252,20 @@ test('a refresh that meets expiry keeps the session (not gone)', async () => {
   assert.equal(row.gone_at, null);
   assert.equal(row.refreshed_at, 1_000_000);
 });
+
+test('a probe point that keeps answering an error code is not taken as a hole', async () => {
+  // A backward range over a hole. The probe from 389 lands on 239, which exists
+  // but answers 2002 every time: it must be recorded for a retry, and the lane
+  // must not skip 389..139 on the strength of probes it could not read.
+  const ids = [...[...Array(10).keys()].map((i) => i + 1), 239, ...[...Array(11).keys()].map((i) => 400 + i)];
+  const api = new FakeApi(ids);
+  api.errorOn.add(239);
+  const { crawler, store } = make(api, [rangeLane(410, 1)], undefined, { ...config, retryPerRound: 0 });
+  assert.equal(await drain(crawler), 'idle');
+  assert.equal(count(store, 'SELECT COUNT(*) FROM failures WHERE id = 239'), 1);
+  const gaps = store.db.prepare('SELECT from_id FROM gaps').all() as Array<{ from_id: number }>;
+  assert.ok(!gaps.some((g) => g.from_id === 389), 'skipped on the strength of an unreadable probe');
+  // The lane still reaches its end.
+  assert.equal(crawler.progress()[0].state.done, true);
+});
+
