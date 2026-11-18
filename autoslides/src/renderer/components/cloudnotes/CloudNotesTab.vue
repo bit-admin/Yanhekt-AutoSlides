@@ -373,7 +373,10 @@ function noteListTitle(note: { title: string; note_group_id: number }): string {
   const managed = cn.managedGroups.value.some((g) => g.id === note.note_group_id)
   return formatNoteDisplayTitle(note.title, managed) || t('cloudNotes.untitled')
 }
-const { userId } = useAuth()
+const { userId, isLoggedIn } = useAuth()
+// Whose notes this page shows. Signed out: no account (the calls answer not-signed-in).
+const boundAccount = (): string | null => (isLoggedIn.value ? userId.value : null)
+cn.bindAccount(boundAccount())
 
 const imp = useNoteImport(cn, {
   meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
@@ -699,15 +702,17 @@ onUnmounted(() => {
   window.removeEventListener('resize', syncGroupErrorPos)
 })
 
-// Account switch: the note list, groups, and any open note belong to the previous
-// account. Tear down the editor first (cancels the debounced auto-save so it can't
-// write the old note's content under the new account's token), drop the selection,
-// then reload for the switched account. cloudStorageStore is rebound separately by
+// Account switch or sign-out: the note list, groups, and any open note belong to
+// the previous account. Tear down the editor first (it stops saving the old
+// note), then rebind: that empties everything loaded for the old account at
+// once and leaves whatever is still on its way for it with nothing to write
+// to, and main refuses any call still made in its name. Then load for the
+// account now signed in. cloudStorageStore is rebound separately by
 // LeftPanel's [isLoggedIn, userId] watch.
-watch(() => userId.value, () => {
+watch([isLoggedIn, userId], () => {
   void ed.destroyEditor()
-  cn.selectedNote.value = null
-  void cn.init()
+  cn.bindAccount(boundAccount())
+  if (isLoggedIn.value) void cn.init()
 })
 
 // Live search — debounced server keyword (group filter still local).

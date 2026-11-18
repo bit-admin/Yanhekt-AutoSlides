@@ -13,6 +13,7 @@
  */
 import { Hono, type Context } from "hono";
 import type { Env } from "../env";
+import { UPSTREAM_TIMEOUTS_MS, fetchUpstream } from "../lib/upstream";
 
 export const indexProxyRouter = new Hono<{ Bindings: Env }>();
 
@@ -27,7 +28,11 @@ function forward(c: Context<{ Bindings: Env }>, upstreamPath: string): Promise<R
   if (!c.env.SHARE) return unbound();
   const search = new URL(c.req.url).search;
   // A service binding ignores the hostname; only the path and query reach the callee.
-  return c.env.SHARE.fetch(new Request(`https://share.internal${upstreamPath}${search}`, { method: "GET" }));
+  const share = c.env.SHARE;
+  return fetchUpstream(
+    (signal) => share.fetch(new Request(`https://share.internal${upstreamPath}${search}`, { method: "GET", signal })),
+    { caller: c.req.raw.signal, timeoutMs: UPSTREAM_TIMEOUTS_MS.index },
+  );
 }
 
 indexProxyRouter.get("/search", (c) => forward(c, "/api/search"));

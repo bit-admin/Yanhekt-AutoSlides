@@ -19,9 +19,9 @@ export function registerDownloadIpcHandlers(services: IpcServices): void {
         throw new Error('Authentication token not found. Please sign in again.');
       }
 
-      await m3u8DownloadService.startDownload(downloadId, m3u8Url, outputName, progressCallback, effectiveLoginToken);
+      const filePath = await m3u8DownloadService.startDownload(downloadId, m3u8Url, outputName, progressCallback, effectiveLoginToken);
       if (!event.sender.isDestroyed()) {
-        event.sender.send('download:completed', downloadId);
+        event.sender.send('download:completed', downloadId, filePath);
       }
     } catch (error) {
       log.error(`Download failed for ${downloadId}:`, error);
@@ -51,9 +51,9 @@ export function registerDownloadIpcHandlers(services: IpcServices): void {
         throw new Error('Authentication token not found. Please sign in again.');
       }
 
-      await audioDownloadService.startDownload(downloadId, audioUrl, outputName, progressCallback);
+      const filePath = await audioDownloadService.startDownload(downloadId, audioUrl, outputName, progressCallback);
       if (!event.sender.isDestroyed()) {
-        event.sender.send('download:completed', downloadId);
+        event.sender.send('download:completed', downloadId, filePath);
       }
     } catch (error) {
       log.error(`Audio download failed for ${downloadId}:`, error);
@@ -77,9 +77,9 @@ export function registerDownloadIpcHandlers(services: IpcServices): void {
     };
 
     try {
-      await yanhe2DownloadService.start(downloadId, typeof account === 'string' ? account.trim() : '', query, kind, outputName, progressCallback);
+      const filePath = await yanhe2DownloadService.start(downloadId, typeof account === 'string' ? account.trim() : '', query, kind, outputName, progressCallback);
       if (!event.sender.isDestroyed()) {
-        event.sender.send('download:completed', downloadId);
+        event.sender.send('download:completed', downloadId, filePath);
       }
     } catch (error) {
       log.error(`Yanhe 2.0 download failed for ${downloadId}:`, error instanceof Error ? error.message : error);

@@ -1,7 +1,8 @@
 import * as http from 'http';
+import { createLocalAccessSecret, hasLocalAccess, isLoopbackHost, LOCAL_ACCESS_HEADER } from './videoProxy/localAccess';
 import * as url from 'url';
 import type { AxiosResponse } from 'axios';
-import { httpClient, isHttpError } from '@main/infra/http';
+import { httpClient, isHttpCancel, isHttpError } from '@main/infra/http';
 import { ApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
@@ -13,6 +14,8 @@ import {
 } from './videoProxy/urlHelpers';
 import { ProxyAuth } from './videoProxy/proxyAuth';
 import { buildAxiosConfig, fetchRecordedWithResign, getAlongRoute } from './videoProxy/proxyRequest';
+import { abortableDelay, isAbortError, pipeToClient, requestLifetime } from './videoProxy/requestLifetime';
+import { isYanhektMediaUrl } from './videoProxy/urlHelpers';
 import { applyNoStoreHeaders, shouldForwardUpstreamHeader } from './videoProxy/httpHeaders';
 import { handleYanhe2PlayRequest } from './videoProxy/yanhe2Play';
 import { handleYanhe2SlideImageRequest } from './videoProxy/yanhe2SlideImage';
@@ -94,6 +97,8 @@ export class VideoProxyService {
 
   private proxyServer: http.Server | null = null;
   private proxyPort = 0;
+  /** This launch's secret; requests without it are refused (`localAccess.ts`). */
+  readonly localAccessSecret = createLocalAccessSecret();
   // In-flight start promise. Dedupes concurrent startVideoProxy() calls so that
   // parallel tasks/playback tabs don't race: the server is created synchronously
   // (making proxyServer truthy) while listen() resolves the port asynchronously,
@@ -167,6 +172,16 @@ export class VideoProxyService {
   /**
    * Register a new client and return client ID for reference counting
    */
+  /** The proxy's port, 0 while it is not listening. */
+  get port(): number {
+    return this.proxyPort;
+  }
+
+  /** FFmpeg `-headers` lines that let it read proxy URLs. */
+  localAccessHeaderLines(): string {
+    return `${LOCAL_ACCESS_HEADER}: ${this.localAccessSecret}\r\n`;
+  }
+
   registerClient(): string {
     const clientId = `client_${++this.clientIdCounter}_${Date.now()}`;
     this.activeClients.add(clientId);
@@ -406,13 +421,23 @@ export class VideoProxyService {
         // The mic-audio probe reads a file's size off a ranged answer.
         res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
 
-        // Handle CORS preflight requests
+        // Handle CORS preflight requests (they never carry the access header)
         if (req.method === 'OPTIONS') {
           res.writeHead(200);
           res.end();
           return;
         }
 
+        // Only the app's own pages and its FFmpeg runs (see localAccess.ts).
+        if (!isLoopbackHost(req.headers.host, this.proxyPort) || !hasLocalAccess(req.headers, this.localAccessSecret)) {
+          res.writeHead(403, { 'Content-Type': 'text/plain' });
+          res.end('Forbidden');
+          return;
+        }
+
+        // Every Yanhekt route ties its upstream requests to this: a seek or a
+        // closed player ends them (the Yanhe 2.0 routes do the same themselves).
+        const signal = requestLifetime(res);
         try {
           const parsedUrl = url.parse(req.url || '', true);
           const pathname = parsedUrl.pathname || '';
@@ -421,10 +446,10 @@ export class VideoProxyService {
           // Handle different types of requests
           if (pathname === '/recorded') {
             // Initial m3u8 request with query parameters (recorded video)
-            await this.handleM3u8Request(req, res, parsedUrl);
+            await this.handleM3u8Request(req, res, parsedUrl, signal);
           } else if (pathname === '/live') {
             // Live stream m3u8 request
-            await this.handleLiveM3u8Request(req, res, parsedUrl);
+            await this.handleLiveM3u8Request(req, res, parsedUrl, signal);
           } else if (pathname === YANHE2_PLAY_ROUTE) {
             // Yanhe 2.0 recording: playlist, segment or MP4, signed per request.
             await handleYanhe2PlayRequest(req, res, parsedUrl.query, {
@@ -443,13 +468,22 @@ export class VideoProxyService {
             // Classroom mic sidecar. Guarded on originalUrl so a bare /audio
             // still falls through to the TS handler, whose fallback branch
             // treats any unmatched path as a segment filename.
-            await this.handleAudioRequest(req, res, parsedUrl);
+            await this.handleAudioRequest(req, res, parsedUrl, signal);
           } else {
             // Direct TS file request (from HLS.js)
-            await this.handleTsRequest(req, res, parsedUrl);
+            await this.handleTsRequest(req, res, parsedUrl, signal);
           }
 
         } catch (error: unknown) {
+          // The player went away: not an error, and nobody to answer.
+          if (signal.aborted || isHttpCancel(error) || isAbortError(error)) {
+            if (!res.destroyed) res.destroy();
+            return;
+          }
+          if (res.headersSent) {
+            res.destroy();
+            return;
+          }
           const httpError = asHttpError(error);
           log.error('Proxy error details:', {
             message: httpError.message,
@@ -502,10 +536,6 @@ export class VideoProxyService {
     }
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
   /**
    * Discard an undrained upstream body. With keep-alive agents an unconsumed
    * stream (e.g. a 403 we are about to retry or surface) would otherwise pin the
@@ -528,10 +558,11 @@ export class VideoProxyService {
    */
   private getRecordedWithResign(
     rawUrl: string,
-    opts: { timeout: number; responseType?: 'stream' },
+    opts: { timeout: number; responseType?: 'stream'; signal?: AbortSignal },
     auth: ProxyAuth
   ): Promise<AxiosResponse> {
     return fetchRecordedWithResign(auth, rawUrl, {
+      signal: opts.signal,
       intranetMapping: this.intranetMapping,
       agents: () => this.agentPool.resolve(),
       baseHeaders: this.BASE_HEADERS,
@@ -553,7 +584,7 @@ export class VideoProxyService {
   private async getLiveWithFailover(
     rawUrl: string,
     headers: Record<string, string>,
-    opts: { timeout: number; responseType?: 'stream' }
+    opts: { timeout: number; responseType?: 'stream'; signal?: AbortSignal }
   ): Promise<AxiosResponse> {
     const maxRetries = 3;
     let attempt = 0;
@@ -583,6 +614,8 @@ export class VideoProxyService {
         }
         return response;
       } catch (error: unknown) {
+        // The player hung up: not a dead address, and nothing to retry for.
+        if (opts.signal?.aborted || isHttpCancel(error)) throw error;
         if (viaIntranet) {
           this.markIpFailedForUrl(requestUrl, rawUrl);
           this.intranetMapping.reportFailure();
@@ -590,7 +623,7 @@ export class VideoProxyService {
         if (attempt < maxRetries) {
           attempt++;
           log.debug(`Live request failed, trying next IP (${attempt}/${maxRetries}):`, asHttpError(error).message);
-          await this.delay(500);
+          await abortableDelay(500, opts.signal);
           continue;
         }
         if (viaIntranet && this.intranetMapping.allowsPublicFallback() && isConnectionFailure(error)) {
@@ -618,7 +651,7 @@ export class VideoProxyService {
    * video, and only the main process can rewrite the host to a campus IP while
    * preserving the original Host header.
    */
-  private async handleAudioRequest(req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
+  private async handleAudioRequest(req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery, signal: AbortSignal): Promise<void> {
     const { originalUrl } = parsedUrl.query;
 
     if (!originalUrl || typeof originalUrl !== 'string') {
@@ -628,6 +661,11 @@ export class VideoProxyService {
     }
 
     const audioUrl = this.fixUrlEscaping(originalUrl);
+    if (!isYanhektMediaUrl(audioUrl)) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Not a Yanhekt address');
+      return;
+    }
     const headers: Record<string, string> = {
       ...this.BASE_HEADERS,
       "Host": this.extractHostFromUrl(audioUrl)
@@ -643,7 +681,7 @@ export class VideoProxyService {
       audioUrl,
       this.intranetMapping,
       this.agentPool.resolve(),
-      buildAxiosConfig(headers, { timeout: 30000, responseType: 'stream' }),
+      buildAxiosConfig(headers, { timeout: 30000, responseType: 'stream', signal }),
     );
 
     // 206 is the normal answer to a Range request, so this cannot reuse
@@ -669,7 +707,7 @@ export class VideoProxyService {
     applyNoStoreHeaders(res);
 
     res.writeHead(response.status);
-    response.data.pipe(res);
+    pipeToClient(res, response.data);
   }
 
   private pipeUpstream(res: http.ServerResponse, response: AxiosResponse): void {
@@ -690,19 +728,24 @@ export class VideoProxyService {
     applyNoStoreHeaders(res);
 
     res.writeHead(response.status);
-    response.data.pipe(res);
+    pipeToClient(res, response.data);
   }
 
   /**
    * Handle live stream m3u8 requests
    */
-  private async handleLiveM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
+  private async handleLiveM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery, signal: AbortSignal): Promise<void> {
     const { originalUrl, loginToken } = parsedUrl.query;
 
     if (!originalUrl || !loginToken) {
       log.error('Missing required parameters for live m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Missing required parameters');
+      return;
+    }
+    if (!isYanhektMediaUrl(originalUrl as string)) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Not a Yanhekt address');
       return;
     }
 
@@ -723,7 +766,8 @@ export class VideoProxyService {
     let response: AxiosResponse;
     try {
       response = await this.getLiveWithFailover(originalUrl as string, liveHeaders, {
-        timeout: this.intranetMapping.isEnabled() ? 8000 : 30000 // 8s for intranet, 30s for external
+        timeout: this.intranetMapping.isEnabled() ? 8000 : 30000, // 8s for intranet, 30s for external
+        signal,
       });
     } catch (error: unknown) {
       const httpError = asHttpError(error);
@@ -755,7 +799,7 @@ export class VideoProxyService {
   /**
    * Handle m3u8 requests with query parameters (recorded videos)
    */
-  private async handleM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
+  private async handleM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery, signal: AbortSignal): Promise<void> {
     const { originalUrl, loginToken } = parsedUrl.query;
 
     if (!originalUrl || !loginToken) {
@@ -764,13 +808,19 @@ export class VideoProxyService {
       res.end('Missing required parameters');
       return;
     }
+    // The signed request carries the account's video token: never to another host.
+    if (!isYanhektMediaUrl(originalUrl as string)) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Not a Yanhekt address');
+      return;
+    }
 
     // Resolve this account's ProxyAuth so recorded signing uses its own token.
     const auth = this.getAuth(loginToken as string);
 
     let response: AxiosResponse;
     try {
-      response = await this.getRecordedWithResign(originalUrl as string, { timeout: 30000 }, auth);
+      response = await this.getRecordedWithResign(originalUrl as string, { timeout: 30000, signal }, auth);
     } catch (error: unknown) {
       const httpError = asHttpError(error);
       log.error('M3U8 request failed:', {
@@ -801,7 +851,7 @@ export class VideoProxyService {
   /**
    * Handle direct TS file requests (from HLS.js)
    */
-  private async handleTsRequest(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
+  private async handleTsRequest(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery, signal: AbortSignal): Promise<void> {
     const pathname = parsedUrl.pathname || '';
     const { baseUrl, loginToken } = parsedUrl.query;
 
@@ -828,6 +878,12 @@ export class VideoProxyService {
     }
 
     const tsUrl = this.resolveUrl(baseUrl as string, tsFileName);
+    // Checked after resolving: a playlist line can name an absolute URL.
+    if (!isYanhektMediaUrl(tsUrl)) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Not a Yanhekt address');
+      return;
+    }
 
     if (isLiveStream) {
       // Live stream — no signing; round-robin IP failover only.
@@ -845,7 +901,7 @@ export class VideoProxyService {
 
       let response: AxiosResponse;
       try {
-        response = await this.getLiveWithFailover(tsUrl, headers, { timeout: 30000, responseType: 'stream' });
+        response = await this.getLiveWithFailover(tsUrl, headers, { timeout: 30000, responseType: 'stream', signal });
       } catch (error: unknown) {
         const httpError = asHttpError(error);
         log.error('Live TS request failed after retries:', {
@@ -865,7 +921,7 @@ export class VideoProxyService {
     const auth = this.getAuth((loginToken as string) ?? '');
     let response: AxiosResponse;
     try {
-      response = await this.getRecordedWithResign(tsUrl, { timeout: 30000, responseType: 'stream' }, auth);
+      response = await this.getRecordedWithResign(tsUrl, { timeout: 30000, responseType: 'stream', signal }, auth);
     } catch (error: unknown) {
       const httpError = asHttpError(error);
       log.error('Recorded TS request failed:', {

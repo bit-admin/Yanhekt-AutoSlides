@@ -4,7 +4,7 @@ import type {
   WorkerResponse,
 } from '../workers/autoCrop.worker';
 import AutoCropWorker from '../workers/autoCrop.worker?worker';
-import { createWorkerClient } from '../workers/workerClientFactory';
+import { createWorkerClient, WORKER_INIT_TIMEOUT_MS } from '../workers/workerClientFactory';
 
 export interface AutoCropWorkerClient {
   detectBbox(
@@ -28,6 +28,9 @@ export function createAutoCropWorkerClient(): AutoCropWorkerClient {
 
   let ensureYoloInitPromise: Promise<void> | null = null;
   let yoloInitialized = false;
+  // Bumped by a reset: a start begun before it must not mark the backend ready
+  // nor clear the start that replaced it.
+  let generation = 0;
 
   const ensureYoloReady = async (mode: DetectorMode): Promise<void> => {
     if (!modeNeedsYolo(mode)) return;
@@ -36,26 +39,32 @@ export function createAutoCropWorkerClient(): AutoCropWorkerClient {
       await ensureYoloInitPromise;
       return;
     }
-    ensureYoloInitPromise = (async () => {
+    const mine = generation;
+    const init = (async () => {
       const modelBuffer = await window.electronAPI.autoCrop.getModelBuffer();
+      if (mine !== generation) throw new Error('The YOLO backend was reset while it was starting');
       const response = await client.request(
         { type: 'init', modelBuffer },
         [modelBuffer],
+        { timeoutMs: WORKER_INIT_TIMEOUT_MS },
       );
       if (!response.success) {
         throw new Error(response.error || 'Failed to initialize YOLO backend');
       }
+      if (mine !== generation) throw new Error('The YOLO backend was reset while it was starting');
       yoloInitialized = true;
     })();
+    ensureYoloInitPromise = init;
     try {
-      await ensureYoloInitPromise;
+      await init;
     } catch (err) {
-      ensureYoloInitPromise = null;
+      if (ensureYoloInitPromise === init) ensureYoloInitPromise = null;
       throw err;
     }
   };
 
   const resetYoloInit = (): void => {
+    generation += 1;
     yoloInitialized = false;
     ensureYoloInitPromise = null;
   };

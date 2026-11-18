@@ -51,7 +51,19 @@ let systemResolver: SystemProxyResolver | null = null;
 
 /** System answers, per scheme + host, for a short while: one lookup per page of requests, not per request. */
 const SYSTEM_CACHE_MS = 30_000;
+const SYSTEM_CACHE_MAX = 256;
 const systemCache = new Map<string, { proxy: string | null; at: number }>();
+
+/**
+ * The cache key for a system (PAC) answer: scheme, host and the URL's folder.
+ * A PAC script sees the whole URL and may answer by path, so the host alone is
+ * not enough; the last path part and the query are left out so HLS segments of
+ * one playlist share an answer and signatures never end up in a key.
+ */
+function systemCacheKey(url: URL): string {
+  const folder = url.pathname.slice(0, url.pathname.lastIndexOf('/') + 1) || '/';
+  return `${url.protocol}//${url.host}${folder}`;
+}
 
 export interface ProxyAgents {
   httpAgent: http.Agent;
@@ -140,7 +152,7 @@ export function environmentProxy(url: string): string | null {
 }
 
 async function systemProxy(url: URL): Promise<string | null> {
-  const key = `${url.protocol}//${url.host}`;
+  const key = systemCacheKey(url);
   const hit = systemCache.get(key);
   if (hit && Date.now() - hit.at < SYSTEM_CACHE_MS) return hit.proxy;
   let proxy: string | null = null;
@@ -152,7 +164,10 @@ async function systemProxy(url: URL): Promise<string | null> {
     }
   }
   proxy ??= environmentProxy(url.href);
+  systemCache.delete(key);
   systemCache.set(key, { proxy, at: Date.now() });
+  // Oldest first in a Map: keep it bounded.
+  while (systemCache.size > SYSTEM_CACHE_MAX) systemCache.delete(systemCache.keys().next().value as string);
   return proxy;
 }
 

@@ -11,6 +11,7 @@ import { parseCourseTarget } from '../targets';
 import { termKey } from '../terms';
 import { info } from '../terminal';
 import type { CliCommand, CliContext, CommandInput, CommandResult } from '../types';
+import { COURSE_SCHEMA_TERMINAL } from '../dataSchemas';
 
 const ANONYMOUS = '';
 const EMPTY_NOTE =
@@ -126,5 +127,6 @@ export const courseCommand: CliCommand = {
   network: true,
   tokenUse: 'To list the sessions (skipped with --no-sessions)',
   data: `${COURSE_DATA}, auth: { source, account } | null }`,
+  dataSchema: COURSE_SCHEMA_TERMINAL,
   run,
 };

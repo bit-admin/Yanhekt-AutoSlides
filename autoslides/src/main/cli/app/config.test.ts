@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { CommandInput } from '../types';
 import { appConfigCommand } from './config';
 import type { AppCommandContext } from './types';
+import { expectMatchesSchema } from '../dataSchemas.testkit';
 
 const TOKEN = '0123456789abcdef0123456789abcdef';
 
@@ -70,6 +71,7 @@ const input = (positionals: string[]): CommandInput => ({ program: 'autoslides',
 describe('autoslides config', () => {
   it('shows the listed settings under their command-line names', async () => {
     const { data } = await appConfigCommand.serve(input([]), context());
+    expectMatchesSchema(appConfigCommand.dataSchema, data);
     expect(data).toEqual({
       settings: {
         output_dir: '/Users/someone/Lectures',
@@ -100,6 +102,7 @@ describe('autoslides config', () => {
 
   it('prints one value bare, for scripts', async () => {
     const result = await appConfigCommand.serve(input(['output_dir']), context());
+    expectMatchesSchema(appConfigCommand.dataSchema, result.data);
     expect(result.text).toBe('/Users/someone/Lectures');
     expect(result.data).toEqual({ key: 'output_dir', value: '/Users/someone/Lectures', setting: 'General > Output Directory' });
     expect((await appConfigCommand.serve(input(['intranet_interface']), context())).text).toBe('');
@@ -116,6 +119,7 @@ describe('autoslides config', () => {
 
   it('sets the connection mode through the app, as Save in Settings would', async () => {
     const result = await appConfigCommand.serve(input(['connection_mode', 'internal']), context(false));
+    expectMatchesSchema(appConfigCommand.dataSchema, result.data);
     expect(applied).toEqual([['setConnectionMode', 'internal']]);
     expect(result.data).toEqual({
       key: 'connection_mode',
@@ -160,6 +164,33 @@ describe('autoslides config', () => {
     expect((result.data as { changed: boolean }).changed).toBe(false);
   });
 
+  it('never repeats a proxy address it refuses: it may hold a password', async () => {
+    const wrong = ['http://user:hunter2@127.0.0.1:7890/path', 'ftp://user:hunter2@127.0.0.1:21', 'http://user:hunter2@:7890'];
+    for (const raw of wrong) {
+      const error = await appConfigCommand.serve(input(['proxy_url', raw]), context()).then(
+        () => null,
+        (e: unknown) => e as { code: string; message: string; hint?: string },
+      );
+      expect(error?.code, raw).toBe('usage');
+      expect(`${error?.message} ${error?.hint ?? ''}`, raw).not.toContain('hunter2');
+    }
+    expect(applied).toEqual([]);
+  });
+
+  it('reports a changed proxy password as a change, still masked', async () => {
+    const result = await appConfigCommand.serve(input(['proxy_url', 'http://user:hunter2@127.0.0.1:7890']), context());
+    expect(applied).toEqual([['setProxySettings', { customUrl: 'http://user:hunter2@127.0.0.1:7890' }]]);
+    expect(result.data).toMatchObject({
+      changed: true,
+      previous: 'http://user:***@127.0.0.1:7890',
+      value: 'http://user:***@127.0.0.1:7890',
+    });
+    expect(JSON.stringify(result)).not.toMatch(/hunter2|secret/);
+
+    const same = await appConfigCommand.serve(input(['proxy_url', 'http://user:hunter2@127.0.0.1:7890']), context());
+    expect((same.data as { changed: boolean }).changed).toBe(false);
+  });
+
   it('refuses a wrong value without changing anything', async () => {
     const wrong: Array<[string, string]> = [
       ['connection_mode', 'intranet'],
@@ -178,5 +209,31 @@ describe('autoslides config', () => {
       await expect(appConfigCommand.serve(input([key, raw]), context()), `${key} ${raw}`).rejects.toMatchObject({ code: 'usage' });
     }
     expect(applied).toEqual([]);
+  });
+});
+
+describe('output_dir while the app is busy', () => {
+  it('answers output_folder_busy and changes nothing', async () => {
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'as-config-'));
+    try {
+      const { OutputFolderBusyError } = await import('@common/outputFolderWork');
+      const busy = {
+        ...context(),
+        settings: {
+          setOutputDirectory: async () => {
+            throw new OutputFolderBusyError({ downloads: 2, extractions: 0, tasks: 1, postProcessing: 0 });
+          },
+        },
+      } as unknown as AppCommandContext;
+      const error = await appConfigCommand.serve(input(['output_dir', folder]), busy).then(
+        () => null,
+        (e: unknown) => e as { code: string; message: string; hint?: string },
+      );
+      expect(error?.code).toBe('output_folder_busy');
+      expect(error?.message).toContain('2 downloads and 1 task');
+      expect(current.outputDirectory).toBe(storedConfig.outputDirectory);
+    } finally {
+      fs.rmSync(folder, { recursive: true, force: true });
+    }
   });
 });

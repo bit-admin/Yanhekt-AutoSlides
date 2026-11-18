@@ -19,8 +19,12 @@ const READ_METHODS = ['get', 'list', 'groupList'] as const
 /**
  * Generic over the provider so it accepts both the full preload namespace and
  * the narrower demo `CloudNotesProvider`, returning the same shape it was given.
+ *
+ * `scope` is whose notes these are (the account's badge): a read is only ever
+ * joined by a read of the same account, never by one that asks for the same
+ * note id under another.
  */
-export function withNoteReadCoalescing<T extends object>(provider: T): T {
+export function withNoteReadCoalescing<T extends object>(provider: T, scope = ''): T {
   const source = provider as unknown as Record<string, unknown>
   const wrapped: Record<string, unknown> = { ...source }
 
@@ -29,7 +33,7 @@ export function withNoteReadCoalescing<T extends object>(provider: T): T {
     if (typeof fn !== 'function') continue
     const call = fn as (...args: unknown[]) => Promise<unknown>
     wrapped[name] = (...args: unknown[]) =>
-      coalesce(`notes ${name}|${JSON.stringify(args)}`, () => call.apply(provider, args))
+      coalesce(`notes ${scope} ${name}|${JSON.stringify(args)}`, () => call.apply(provider, args))
   }
 
   return wrapped as unknown as T

@@ -12,6 +12,8 @@ import { cloudStorageStore } from './cloudStorageStore'
 import { useBackgroundQueue } from './useBackgroundQueue'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
+/** The calls of the account an import began under; see `ownedNotesApi`. */
+type NotesApi = ReturnType<CloudNotesApi['notesApi']>
 
 export type ImportStatus =
   | 'pending' | 'uploading' | 'building' | 'done' | 'conflict' | 'error'
@@ -131,7 +133,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   }
 
   /** Create the note, upload every slide in order, then save the content. */
-  async function processItem(item: ImportItem): Promise<void> {
+  async function processItem(item: ImportItem, api: NotesApi): Promise<void> {
     const images = (await window.electronAPI.pdfmaker.getImages(item.path)) as PdfImage[]
     const sorted = [...images].sort((a, b) => compareToolImages(a.name, b.name))
     item.total = sorted.length
@@ -141,21 +143,21 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       return
     }
 
-    const createRes = await window.electronAPI.cloudNotes.create()
+    const createRes = await api.create()
     if (!createRes.ok) { item.status = 'error'; item.error = createRes.error; return }
     const noteId = createRes.data
     item.noteId = noteId
 
     const title = buildManagedNoteTitle(item.displayName, parseLectureIds(item.folderName))
     const groupId = cloudStorageStore.managedGroupId.value ?? cn.managedGroups.value[0]?.id
-    const titleRes = await window.electronAPI.cloudNotes.updateTitle(noteId, title, groupId)
+    const titleRes = await api.updateTitle(noteId, title, groupId)
     if (!titleRes.ok) { item.status = 'error'; item.error = titleRes.error; return }
 
     item.status = 'uploading'
     const urls: string[] = []
     for (const img of sorted) {
       if (cancelRequested.value) { item.status = 'error'; item.error = 'cancelled'; return }
-      const up = await window.electronAPI.cloudNotes.uploadImageFromPath(img.path)
+      const up = await api.uploadImageFromPath(img.path)
       if (!up.ok) { item.status = 'error'; item.error = up.error; return }
       urls.push(up.data.url)
       item.uploaded += 1
@@ -167,7 +169,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       window.electronAPI.slideMetadata.get(item.path),
       window.electronAPI.slideTimeline.get(item.path),
     ])
-    const contentRes = await window.electronAPI.cloudNotes.updateContent(
+    const contentRes = await api.updateContent(
       noteId,
       buildContent(item.displayName, urls, slidesMeta, timeline),
     )
@@ -184,10 +186,15 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     if (running.value) return
     cancelRequested.value = false
     running.value = true
+    // Taken once: after an account switch every call of this run is refused.
+    const api = cn.notesApi()
     try {
       await cn.loadAll()
       const folders = (await window.electronAPI.pdfmaker.getFolders()) as PdfFolder[]
       const byName = new Map(folders.map((f) => [f.name, f]))
+      // The conflict check below reads the note list. If it could not be read
+      // in full, "no note yet" is unknown, and importing would duplicate notes.
+      const listRead = cn.catalog.value !== 'failed'
 
       queue.value = folderNames.map((folderName) => {
         const f = byName.get(folderName)
@@ -195,11 +202,13 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
           folderName,
           displayName: formatToolFolderName(folderName),
           path: f?.path ?? '',
-          status: 'pending' as ImportStatus,
+          status: (listRead ? 'pending' : 'error') as ImportStatus,
+          error: listRead ? undefined : 'list-incomplete',
           uploaded: 0,
           total: f?.imageCount ?? 0,
         }
       })
+      if (!listRead) return
 
       // Pre-flag folders that already have a managed note; these await a user
       // decision (replace / create / skip).
@@ -213,7 +222,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       for (const item of queue.value) {
         if (cancelRequested.value) break
         if (item.status !== 'pending') continue
-        await processItem(item)
+        await processItem(item, api)
       }
 
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
@@ -242,17 +251,19 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   async function resolveConflict(item: ImportItem, mode: 'replace' | 'create'): Promise<void> {
     if (running.value) return
     running.value = true
+    // Taken once: after an account switch every call of this run is refused.
+    const api = cn.notesApi()
     try {
       if (mode === 'replace') {
         for (const id of sameLectureNoteIds(item)) {
-          const del = await window.electronAPI.cloudNotes.delete(id)
+          const del = await api.delete(id)
           if (!del.ok) { item.status = 'error'; item.error = del.error; return }
         }
       }
       item.status = 'pending'
       item.uploaded = 0
       item.conflictNoteIds = undefined
-      await processItem(item)
+      await processItem(item, api)
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
     } finally {
       running.value = false
@@ -274,8 +285,13 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     if (running.value) return 'skipped'
     cancelRequested.value = false
     running.value = true
+    // Taken once: after an account switch every call of this run is refused.
+    const api = cn.notesApi()
     try {
       await cn.loadAll()
+      // Without the full note list neither "already imported" nor "which notes
+      // to replace" is known.
+      if (cn.catalog.value === 'failed') return 'error'
       const displayName = formatToolFolderName(folderName)
       // Already imported → skip (no overwrite, no prompt).
       if (sameLectureNoteIds({ folderName, displayName }).length > 0) return 'skipped'
@@ -296,7 +312,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
         uploaded: 0,
         total: folder.imageCount,
       }
-      await processItem(item)
+      await processItem(item, api)
 
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
       return item.status === 'done' ? 'synced' : 'error'
@@ -317,8 +333,13 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     if (running.value) return 'skipped'
     cancelRequested.value = false
     running.value = true
+    // Taken once: after an account switch every call of this run is refused.
+    const api = cn.notesApi()
     try {
       await cn.loadAll()
+      // Without the full note list neither "already imported" nor "which notes
+      // to replace" is known.
+      if (cn.catalog.value === 'failed') return 'error'
       const displayName = formatToolFolderName(folderName)
       const ids = sameLectureNoteIds({ folderName, displayName })
       // No existing note → nothing to resync (creating is syncFolder's job).
@@ -334,7 +355,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
 
       // Replace = delete existing managed note(s), then import fresh.
       for (const id of ids) {
-        const del = await window.electronAPI.cloudNotes.delete(id)
+        const del = await api.delete(id)
         if (!del.ok) return 'error'
       }
 
@@ -346,7 +367,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
         uploaded: 0,
         total: folder.imageCount,
       }
-      await processItem(item)
+      await processItem(item, api)
 
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
       return item.status === 'done' ? 'resynced' : 'error'

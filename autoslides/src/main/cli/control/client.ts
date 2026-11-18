@@ -85,6 +85,7 @@ export async function runInApp(command: string, input: CommandInput, ctx: CliCon
     options: Object.fromEntries(Object.entries(input.options).filter(([key]) => !CLIENT_OPTIONS.has(key))),
     json: input.json,
     tty: process.stderr.isTTY === true,
+    appVersion: ctx.version,
   };
 
   const socket = await connectOrLaunch(ctx);

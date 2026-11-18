@@ -45,6 +45,15 @@ const DEFAULT_CONFIG: SlideExtractionConfig = {
   downsampleHeight: 270,
 };
 
+/** The run a frame was taken for; a frame finishes against this, not against whatever runs now. */
+interface FrameRun {
+  generation: number;
+  adapter: SlideExtractionAdapter;
+  outputPath: string | null;
+  courseInfo: CourseInfo | null;
+  recordTimeline: boolean;
+}
+
 export class SlideExtractionPipeline implements SlideExtractionHandle {
   readonly instanceId: string;
   readonly mode: SlideExtractionMode;
@@ -52,7 +61,28 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   private adapter: SlideExtractionAdapter = {};
   private signalListener: (() => void) | null = null;
 
-  private isRunning = false;
+  // Lifecycle. `generation` moves on every start, stop and destroy; work begun
+  // under an older value is not allowed to start timers or change this run.
+  private phase: 'idle' | 'starting' | 'running' = 'idle';
+  private generation = 0;
+  // The one frame being compared or saved (at most one at a time), and the
+  // generation whose frame may still be finished after its run stopped: a
+  // slide whose file is already being written is kept, anything earlier in
+  // the frame's life is dropped.
+  private inFlight: Promise<void> | null = null;
+  private drainingGeneration = -1;
+  private skippedFrames = 0;
+  // Resolves once a stopped run has nothing left in flight and `onStopped` ran.
+  private settling: Promise<void> = Promise.resolve();
+
+  /** Starting or running: a run that may still write slides. */
+  get isActive(): boolean {
+    return this.phase !== 'idle';
+  }
+
+  private get isRunning(): boolean {
+    return this.phase === 'running';
+  }
   private captureInterval: ReturnType<typeof setInterval> | null = null;
   private sourceMode: SlideSourceMode = 'video';
   private videoSelector: string;
@@ -91,14 +121,28 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
    * <video> element is available (for source mode `video`).
    */
   async run(input: SlideExtractionInput, adapter: SlideExtractionAdapter = {}): Promise<boolean> {
-    if (this.isRunning) {
-      log.warn(`SlideExtractionPipeline ${this.instanceId}: already running`);
+    if (this.phase !== 'idle') {
+      log.warn(`SlideExtractionPipeline ${this.instanceId}: already ${this.phase}`);
       return false;
     }
+    if (adapter.signal?.aborted) return false;
+
+    this.phase = 'starting';
+    const generation = (this.generation += 1);
+    // After every await below: a stop, destroy or abort that arrived meanwhile
+    // moved the generation on, and this start must not go further.
+    const superseded = (): boolean => this.generation !== generation;
 
     this.detachSignal();
+    this.attachSignal(adapter.signal);
+
+    // The previous run on this pipeline may still be finishing its last frame;
+    // it does so with its own folder and callbacks before this one takes over.
+    await this.settling;
+    if (superseded()) return false;
+
     this.adapter = adapter;
-    this.attachSignal();
+    this.skippedFrames = 0;
 
     this.outputPath = input.outputPath;
     this.courseInfo = { ...(input.courseInfo ?? {}), mode: input.courseInfo?.mode ?? this.mode };
@@ -107,6 +151,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     this.warnedVideoUnavailable = false;
 
     await this.loadConfigFromService();
+    if (superseded()) return false;
 
     if (input.configOverrides) {
       this.config = { ...this.config, ...input.configOverrides };
@@ -128,6 +173,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     }
 
     await this.syncWorkerConfig();
+    if (superseded()) return false;
     this.detector.setWorkerConfig(this.currentWorkerConfig());
     this.detector.updateConfig({
       enableDoubleVerification: this.config.enableDoubleVerification,
@@ -139,12 +185,14 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
       const video = this.resolveVideoElement();
       if (!video) {
         log.error(`SlideExtractionPipeline ${this.instanceId}: video element not found`);
+        this.phase = 'idle';
+        this.detachSignal();
         this.adapter.onError?.(new Error('Video element not found'));
         return false;
       }
     }
 
-    this.isRunning = true;
+    this.phase = 'running';
     log.debug(`SlideExtractionPipeline ${this.instanceId}: starting (source=${this.sourceMode})`, this.config);
 
     if (this.sourceMode === 'video') {
@@ -155,29 +203,71 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     return true;
   }
 
+  /**
+   * Stop the run. Capturing ends at once. A frame still being compared is
+   * dropped; a slide whose file is already being written is kept and reported
+   * as usual. `onStopped` is called after that, with the final list, so the
+   * list it receives is complete. `settled()` resolves when all of it is done.
+   *
+   * Stopping a run that is still starting cancels the start (`run` resolves
+   * false; no `onStopped`, since nothing ran).
+   */
   stop(): void {
-    if (!this.isRunning) return;
-    this.isRunning = false;
+    this.halt(true);
+  }
+
+  /** Resolves once a stopped run has finished its last frame and `onStopped`. */
+  settled(): Promise<void> {
+    return this.settling;
+  }
+
+  private halt(keepLastSlide: boolean): void {
+    if (this.phase === 'idle') return;
+    const wasRunning = this.phase === 'running';
+    const stopped = this.generation;
+    this.generation += 1;
+    this.phase = 'idle';
+    this.detachSignal();
 
     if (this.captureInterval) {
       clearInterval(this.captureInterval);
       this.captureInterval = null;
     }
+    if (!wasRunning) return;
 
-    this.detector.reset();
-    this.cleanupMemory();
-
-    const finalSlides = [...this.extractedSlides];
     const onStopped = this.adapter.onStopped;
-    this.detachSignal();
+    const finish = (): void => {
+      if (this.drainingGeneration === stopped) this.drainingGeneration = -1;
+      this.detector.reset();
+      this.cleanupMemory();
+      if (this.skippedFrames > 0) {
+        log.debug(`SlideExtractionPipeline ${this.instanceId}: skipped ${this.skippedFrames} frames while busy`);
+      }
+      const finalSlides = [...this.extractedSlides];
+      if (onStopped) {
+        const failed = (err: unknown): void => {
+          log.error(`onStopped callback failed for ${this.instanceId}:`, err);
+        };
+        try {
+          Promise.resolve(onStopped(finalSlides)).catch(failed);
+        } catch (err) {
+          failed(err);
+        }
+      }
+    };
 
     log.debug(`SlideExtractionPipeline ${this.instanceId}: stopped`);
     this.emitStatus();
 
-    if (onStopped) {
-      Promise.resolve(onStopped(finalSlides)).catch(err => {
-        log.error(`onStopped callback failed for ${this.instanceId}:`, err);
-      });
+    const last = this.inFlight;
+    if (keepLastSlide && last) {
+      this.drainingGeneration = stopped;
+      this.settling = last.then(finish, finish);
+    } else {
+      // Nothing in flight, or the pipeline is being destroyed: the frame in
+      // flight (if any) is abandoned and `settled()` only waits for it to end.
+      finish();
+      this.settling = last ? last.then(() => undefined, () => undefined) : Promise.resolve();
     }
   }
 
@@ -189,6 +279,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
       await this.handleFrame(imageData);
     } catch (err) {
       log.error('Error processing pushed frame:', err);
+      if (!this.isRunning) return;
       this.adapter.onError?.(err);
       if (this.detector.getState().verificationState === 'verifying') {
         this.detector.reset();
@@ -284,7 +375,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   }
 
   destroy(): void {
-    this.stop();
+    this.halt(false);
     this.extractedSlides = [];
     this.detector.clear();
     this.adapter = {};
@@ -307,14 +398,8 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     return getVideoElement(this.videoSelector, this.instanceId);
   }
 
-  private attachSignal(): void {
-    const signal = this.adapter.signal;
+  private attachSignal(signal: AbortSignal | undefined): void {
     if (!signal) return;
-    if (signal.aborted) {
-      // Defer to next tick so callers see `run` returning true first.
-      queueMicrotask(() => this.stop());
-      return;
-    }
     const listener = () => this.stop();
     signal.addEventListener('abort', listener, { once: true });
     this.signalListener = () => signal.removeEventListener('abort', listener);
@@ -333,13 +418,20 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
       this.captureInterval = null;
     }
     this.captureInterval = setInterval(() => {
-      this.captureAndCompare();
+      void this.captureAndCompare();
     }, this.config.checkInterval);
   }
 
   private async captureAndCompare(): Promise<void> {
     try {
       if (this.isPausedDueToBuffering) {
+        return;
+      }
+      // One frame at a time: while the last one is still being compared or
+      // saved, this tick is skipped before a frame is even captured, so slow
+      // comparisons cannot pile frames up or reach the detector out of order.
+      if (this.inFlight) {
+        this.skippedFrames += 1;
         return;
       }
       const video = this.resolveVideoElement();
@@ -362,6 +454,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
       await this.handleFrame(imageData);
     } catch (error) {
       log.error('Error in captureAndCompare:', error);
+      if (!this.isRunning) return;
       this.adapter.onError?.(error);
       if (this.detector.getState().verificationState === 'verifying') {
         this.detector.reset();
@@ -370,18 +463,49 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     }
   }
 
-  private async handleFrame(imageData: ImageData): Promise<void> {
-    if (!this.isRunning) return;
+  /**
+   * Hand one frame to the detector, unless one is already in flight (the new
+   * frame is then dropped; pushed frames follow the same rule as sampled ones).
+   */
+  private handleFrame(imageData: ImageData): Promise<void> {
+    if (!this.isRunning) return Promise.resolve();
+    if (this.inFlight) {
+      this.skippedFrames += 1;
+      return Promise.resolve();
+    }
+    const work = this.processFrame(imageData);
+    const tracked = work.then(
+      () => undefined,
+      () => undefined,
+    ).then(() => {
+      if (this.inFlight === tracked) this.inFlight = null;
+    });
+    this.inFlight = tracked;
+    return work;
+  }
+
+  private async processFrame(imageData: ImageData): Promise<void> {
+    // What this frame belongs to, fixed now: a later run on this pipeline has
+    // another folder and other callbacks.
+    const run = {
+      generation: this.generation,
+      adapter: this.adapter,
+      outputPath: this.outputPath,
+      courseInfo: this.courseInfo,
+      recordTimeline: this.shouldRecordTimeline(),
+    };
 
     const mediaTime = this.readMediaTime();
     const decision = await this.detector.process(imageData, mediaTime);
+    // Stopped while the frame was being compared: the frame is dropped.
+    if (this.generation !== run.generation) return;
     this.emitStatus();
 
-    if (decision.unstableAbort && this.shouldRecordTimeline()) {
+    if (decision.unstableAbort && run.recordTimeline) {
       const changeAt = decision.changeAt ?? mediaTime;
       const confirmedAt = decision.confirmedAt ?? mediaTime;
-      if (typeof changeAt === 'number' && typeof confirmedAt === 'number' && this.outputPath) {
-        void recordGapBoundary(this.outputPath, {
+      if (typeof changeAt === 'number' && typeof confirmedAt === 'number' && run.outputPath) {
+        void recordGapBoundary(run.outputPath, {
           changeAt,
           confirmedAt,
           reason: 'unstable',
@@ -390,7 +514,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     }
 
     if (decision.acceptedImage) {
-      await this.persistSlide(decision.acceptedImage, decision.changeAt, decision.confirmedAt ?? mediaTime);
+      await this.persistSlide(run, decision.acceptedImage, decision.changeAt, decision.confirmedAt ?? mediaTime);
     }
   }
 
@@ -408,24 +532,29 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   }
 
   private async persistSlide(
+    run: FrameRun,
     imageData: ImageData,
     changeAt?: number,
     confirmedAt?: number
   ): Promise<void> {
     const result = await saveSlide(imageData, {
-      outputPath: this.outputPath,
-      courseInfo: this.courseInfo,
+      outputPath: run.outputPath,
+      courseInfo: run.courseInfo,
     });
     if (!result) return;
+    // The file is written. It belongs to its run if that run is still going or
+    // stopped while this slide was being saved; after a destroy (or once the
+    // run has been handed off) it stays on disk and is announced to nobody.
+    if (this.generation !== run.generation && this.drainingGeneration !== run.generation) return;
 
     this.extractedSlides.push(result.slide);
 
-    if (this.shouldRecordTimeline() && this.outputPath && result.fileWritten) {
+    if (run.recordTimeline && run.outputPath && result.fileWritten) {
       const file = `${result.slide.title}.png`;
       const cAt = typeof changeAt === 'number' ? changeAt : confirmedAt;
       const confAt = typeof confirmedAt === 'number' ? confirmedAt : changeAt;
       if (typeof cAt === 'number' && typeof confAt === 'number') {
-        void recordCaptureConfirmed(this.outputPath, {
+        void recordCaptureConfirmed(run.outputPath, {
           changeAt: cAt,
           confirmedAt: confAt,
           file,
@@ -442,8 +571,8 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
       },
     });
     window.dispatchEvent(event);
-    this.adapter.onSlideExtracted?.(result.slide);
-    this.emitStatus();
+    run.adapter.onSlideExtracted?.(result.slide);
+    if (this.generation === run.generation) this.emitStatus();
   }
 
   private async loadConfigFromService(): Promise<void> {

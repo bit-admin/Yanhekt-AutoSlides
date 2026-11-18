@@ -18,7 +18,6 @@
  * Writes for a given folder are serialized through a per-path promise chain so
  * concurrent read-modify-write calls cannot clobber each other.
  */
-import { promises as fs } from 'fs';
 import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
 import {
@@ -31,6 +30,7 @@ import {
   type SlidePostProcessingMeta,
   type SlideReviewMeta,
 } from '@common/slideMetadataTypes';
+import { SidecarFile, type SidecarRead, type SidecarWrite } from './slideExtraction/sidecarFile';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('SlideMetadata');
 
@@ -45,8 +45,8 @@ function keepCourseNumber(next: SlideMetadataSource, stored: SlideMetadataSource
 }
 
 export class SlideMetadataService {
-  // Per-folder write serialization. Keyed by the resolved metadata file path.
-  private writeChains = new Map<string, Promise<unknown>>();
+  // Per-folder write serialization, atomic replacement and damaged-file handling.
+  private file = new SidecarFile<SlideMetadata>('metadata', log);
 
   // Human edits staged during a folder-review session, keyed by resolved
   // folder path, awaiting commitEdited(). In-memory only.
@@ -60,48 +60,40 @@ export class SlideMetadataService {
     return path.resolve(expandTilde(folderPath));
   }
 
-  /** Read and parse a folder's metadata, or null if absent/unreadable. */
-  async read(folderPath: string): Promise<SlideMetadata | null> {
+  /**
+   * A folder's metadata, or null if absent, damaged or unreadable (use
+   * `readState` to tell those apart). With `afterWrites`, waits for the writes
+   * already queued for this folder first: a reader that runs right after an
+   * extraction recorded its thresholds would otherwise see the file from
+   * before that write and fall back to the settings.
+   */
+  async read(folderPath: string, opts?: { afterWrites?: boolean }): Promise<SlideMetadata | null> {
+    const state = await this.readState(folderPath, opts);
+    return state.state === 'ok' ? state.value : null;
+  }
+
+  /** As `read`, saying whether the file is missing, damaged or unreadable. */
+  async readState(folderPath: string, opts?: { afterWrites?: boolean }): Promise<SidecarRead<SlideMetadata>> {
     const filePath = this.metadataPath(folderPath);
-    try {
-      const content = await fs.readFile(filePath, 'utf8');
-      return JSON.parse(content) as SlideMetadata;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        log.warn(`Failed to read metadata at ${filePath}:`, error);
-      }
-      return null;
-    }
+    if (opts?.afterWrites) await this.file.settled(filePath);
+    return this.file.read(filePath);
   }
 
   /**
    * Serialize a read-modify-write against one folder. `mutate` receives the
    * current metadata (or null) and returns the next state, or null to skip the
-   * write entirely (used by the no-op-if-absent updaters).
+   * write entirely (used by the no-op-if-absent updaters). Resolves to what
+   * happened; it does not reject.
    */
-  private async mutate(
+  private mutate(
     folderPath: string,
     mutate: (current: SlideMetadata | null) => SlideMetadata | null
-  ): Promise<void> {
-    const filePath = this.metadataPath(folderPath);
-    const prior = this.writeChains.get(filePath) ?? Promise.resolve();
-
-    const next = prior.then(async () => {
-      const current = await this.read(folderPath);
+  ): Promise<SidecarWrite> {
+    return this.file.mutate(this.metadataPath(folderPath), (current) => {
       const updated = mutate(current);
-      if (!updated) return;
-      updated.updatedAt = new Date().toISOString();
-      try {
-        await fs.mkdir(path.dirname(filePath), { recursive: true });
-        await fs.writeFile(filePath, JSON.stringify(updated, null, 2), 'utf8');
-      } catch (error) {
-        log.error(`Failed to write metadata at ${filePath}:`, error);
-      }
+      if (updated) updated.updatedAt = new Date().toISOString();
+      return updated;
     });
-
-    // Keep the chain alive but don't let a rejection wedge future writes.
-    this.writeChains.set(filePath, next.catch(() => undefined));
-    await next;
   }
 
   /**
@@ -114,9 +106,9 @@ export class SlideMetadataService {
   async writeExtraction(
     folderPath: string,
     data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }
-  ): Promise<void> {
+  ): Promise<SidecarWrite> {
     const now = new Date().toISOString();
-    await this.mutate(folderPath, (current) => ({
+    return this.mutate(folderPath, (current) => ({
       version: SLIDE_METADATA_VERSION,
       kind: data.kind ?? 'recorded',
       source: keepCourseNumber(data.source, current?.source),
@@ -133,24 +125,24 @@ export class SlideMetadataService {
    * a managed cloud note is exported back into a local `slides_*` folder).
    * Preserves the snapshot's `createdAt`; `updatedAt` is refreshed by `mutate`.
    */
-  async write(folderPath: string, metadata: SlideMetadata): Promise<void> {
-    await this.mutate(folderPath, () => ({
+  async write(folderPath: string, metadata: SlideMetadata): Promise<SidecarWrite> {
+    return this.mutate(folderPath, () => ({
       ...metadata,
       createdAt: metadata.createdAt ?? new Date().toISOString(),
     }));
   }
 
   /** Merge the post-processing block. No-op if the folder has no metadata. */
-  async updatePostProcessing(folderPath: string, pp: SlidePostProcessingMeta): Promise<void> {
-    await this.mutate(folderPath, (current) => {
+  async updatePostProcessing(folderPath: string, pp: SlidePostProcessingMeta): Promise<SidecarWrite> {
+    return this.mutate(folderPath, (current) => {
       if (!current) return null;
       return { ...current, postProcessing: pp };
     });
   }
 
   /** Mark the folder reviewed (implicit, on dwell). No-op if no metadata. */
-  async markReviewed(folderPath: string): Promise<void> {
-    await this.mutate(folderPath, (current) => {
+  async markReviewed(folderPath: string): Promise<SidecarWrite> {
+    return this.mutate(folderPath, (current) => {
       if (!current) return null;
       if (current.review.reviewed) return null; // already reviewed — avoid churn
       return {
@@ -186,7 +178,7 @@ export class SlideMetadataService {
     this.pendingEdits.delete(key);
 
     let applied: { cropped?: boolean } | null = null;
-    await this.mutate(folderPath, (current) => {
+    const outcome = await this.mutate(folderPath, (current) => {
       if (!current) return null;
       const review = { ...current.review };
       if (!review.edited) {
@@ -199,12 +191,18 @@ export class SlideMetadataService {
       applied = staged;
       return { ...current, review };
     });
+    if (outcome === 'failed' || outcome === 'blocked') {
+      // Not on disk: keep the edit staged (under anything staged meanwhile) so
+      // the next commit carries it.
+      this.pendingEdits.set(key, { ...staged, ...this.pendingEdits.get(key) });
+      return null;
+    }
     return applied;
   }
 
   /** Set the current `cropped` state without touching the edited latch. */
-  async setCropped(folderPath: string, cropped: boolean): Promise<void> {
-    await this.mutate(folderPath, (current) => {
+  async setCropped(folderPath: string, cropped: boolean): Promise<SidecarWrite> {
+    return this.mutate(folderPath, (current) => {
       if (!current) return null;
       if (current.review.cropped === cropped) return null;
       return { ...current, review: { ...current.review, cropped } };

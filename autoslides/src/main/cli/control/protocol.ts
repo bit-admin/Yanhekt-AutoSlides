@@ -19,6 +19,12 @@ export interface ControlRequest {
   json: boolean;
   /** Whether the client's stderr is a terminal, so progress lines are worth sending. */
   tty: boolean;
+  /**
+   * The AutoSlides version the command came from. The app refuses a command
+   * from another version: its command table may differ from the one the
+   * client parsed and described. Absent from commands older than 5.2.3.
+   */
+  appVersion?: string;
 }
 
 export interface SerializedCliError {
@@ -41,24 +47,64 @@ export type ControlMessage =
       error?: SerializedCliError;
     };
 
-/** A request line longer than this is not one of ours. */
+/** A request line longer than this (in bytes, without its newline) is not one of ours. */
 export const MAX_REQUEST_BYTES = 1024 * 1024;
 
 export const encodeLine = (value: unknown): string => `${JSON.stringify(value)}\n`;
 
-/** Feed socket chunks in; get whole lines out. */
-export function createLineReader(onLine: (line: string) => void): (chunk: Buffer | string) => number {
-  let buffered = '';
+export interface LineReaderOptions {
+  /** The longest line taken, in bytes without its newline. No limit when absent. */
+  maxLineBytes?: number;
+  /** A line passed the limit. It was not handed over, and nothing after it is read. */
+  onOverflow?: () => void;
+}
+
+const NEWLINE = 0x0a;
+
+/**
+ * Feed socket chunks in; get whole lines out. Returns the bytes held for an
+ * unfinished line.
+ *
+ * Lines are cut on the raw bytes and decoded whole: a socket splits chunks
+ * anywhere, including inside a character, and a newline byte never occurs
+ * inside a UTF-8 sequence. An unfinished line is never handed over, so half a
+ * character left when the connection ends goes nowhere.
+ */
+export function createLineReader(
+  onLine: (line: string) => void,
+  options: LineReaderOptions = {},
+): (chunk: Buffer | string) => number {
+  const max = options.maxLineBytes ?? Infinity;
+  let held: Buffer[] = [];
+  let heldBytes = 0;
+  let overflowed = false;
+
+  const overflow = (): number => {
+    overflowed = true;
+    held = [];
+    heldBytes = 0;
+    options.onOverflow?.();
+    return 0;
+  };
+
   return (chunk) => {
-    buffered += chunk.toString();
-    let newline = buffered.indexOf('\n');
-    while (newline !== -1) {
-      const line = buffered.slice(0, newline);
-      buffered = buffered.slice(newline + 1);
+    if (overflowed) return 0;
+    let rest = typeof chunk === 'string' ? Buffer.from(chunk, 'utf8') : chunk;
+    for (let newline = rest.indexOf(NEWLINE); newline !== -1; newline = rest.indexOf(NEWLINE)) {
+      // Checked before the line is handed over: the caller must never run an oversized one.
+      if (heldBytes + newline > max) return overflow();
+      const line = Buffer.concat([...held, rest.subarray(0, newline)]).toString('utf8');
+      held = [];
+      heldBytes = 0;
+      rest = rest.subarray(newline + 1);
       if (line.trim()) onLine(line);
-      newline = buffered.indexOf('\n');
     }
-    return buffered.length;
+    if (rest.length > 0) {
+      held.push(rest);
+      heldBytes += rest.length;
+    }
+    if (heldBytes > max) return overflow();
+    return heldBytes;
   };
 }
 
@@ -87,6 +133,7 @@ export function parseRequest(line: string): ControlRequest | null {
     options,
     json: r.json === true,
     tty: r.tty === true,
+    ...(typeof r.appVersion === 'string' && r.appVersion.length > 0 && r.appVersion.length <= 64 ? { appVersion: r.appVersion } : {}),
   };
 }
 
@@ -114,5 +161,6 @@ export function controlSocketPath(userData: string, options: SocketPathOptions =
   const key = crypto.createHash('sha256').update(userData).digest('hex').slice(0, 16);
   if (platform === 'win32') return `\\\\.\\pipe\\autoslides-${name}-${key}`;
   const inUserData = path.join(userData, `${name}.sock`);
-  return inUserData.length <= MAX_SOCKET_PATH ? inUserData : path.join(tmpdir, `autoslides-${name}-${key}.sock`);
+  // sun_path counts bytes: a Chinese folder name is three per character.
+  return Buffer.byteLength(inUserData, 'utf8') <= MAX_SOCKET_PATH ? inUserData : path.join(tmpdir, `autoslides-${name}-${key}.sock`);
 }

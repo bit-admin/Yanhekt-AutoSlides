@@ -3,7 +3,8 @@
     <template v-if="entry && entry.status === 'ready'">
       <div class="wn-header">
         <span class="wn-title" :title="entry.displayName">{{ entry.displayName }}</span>
-        <span class="wn-status" :class="ed.saveStatus.value">{{ statusLabel }}</span>
+        <span v-if="problem" class="wn-status wn-status--problem" role="status">{{ problem }}</span>
+        <span v-else class="wn-status" :class="ed.saveStatus.value">{{ statusLabel }}</span>
       </div>
       <div class="wn-editor-holder custom-scrollbar">
         <div
@@ -55,6 +56,15 @@ const statusLabel = computed(() => {
     default:
       return '';
   }
+});
+
+/** What did not reach the note: a refused save outranks slides that were skipped. */
+const problem = computed(() => {
+  const e = entry.value;
+  if (!e) return '';
+  if (e.unsaved) return t('cloudNotes.watchNotes.unsaved');
+  if (e.missedSlides > 0) return t('cloudNotes.watchNotes.missedSlides', { count: e.missedSlides });
+  return '';
 });
 
 /** Key that changes whenever we need to (re)mount: folder identity or readiness. */
@@ -131,6 +141,9 @@ onBeforeUnmount(async () => {
 }
 .wn-status.saved {
   color: var(--success);
+}
+.wn-status--problem {
+  color: var(--danger);
 }
 
 .wn-editor-holder {

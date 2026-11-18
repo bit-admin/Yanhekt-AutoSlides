@@ -18,6 +18,24 @@ import { CliError } from '../errors';
 
 const READY_TIMEOUT_MS = 60_000;
 
+const interrupted = (): CliError => new CliError('interrupted', 'the command was stopped');
+
+/** What a command running in the app may ask of the renderer. */
+export type AppRenderer = Pick<RendererBridge, 'request' | 'seedDownload' | 'watchDownload' | 'onReset'>;
+
+/**
+ * The bridge as one command sees it: every request carries the command's
+ * signal, so a client that leaves (Ctrl-C, closed socket) ends its waits.
+ */
+export function rendererFor(bridge: RendererBridge, signal: AbortSignal): AppRenderer {
+  return {
+    request: (method, params, own) => bridge.request(method, params, own ?? signal),
+    seedDownload: (update) => bridge.seedDownload(update),
+    watchDownload: (itemId, onUpdate) => bridge.watchDownload(itemId, onUpdate),
+    onReset: (listener) => bridge.onReset(listener),
+  };
+}
+
 type Waiter = { resolve: () => void; reject: (error: Error) => void };
 type Pending = { resolve: (value: unknown) => void; reject: (error: Error) => void };
 type DownloadListener = (update: CliDownloadUpdate) => void;
@@ -67,34 +85,89 @@ export class RendererBridge {
     for (const listener of [...this.resetListeners]) listener(reason);
   }
 
-  private whenReady(): Promise<void> {
+  private whenReady(signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) return Promise.reject(interrupted());
     if (this.readyContents && !this.readyContents.isDestroyed()) return Promise.resolve();
     if (!this.getWindow()) this.openWindow();
     return new Promise((resolve, reject) => {
-      const waiter: Waiter = { resolve, reject };
-      this.readyWaiters.push(waiter);
-      setTimeout(() => {
+      const drop = (): boolean => {
         const index = this.readyWaiters.indexOf(waiter);
-        if (index === -1) return;
+        if (index === -1) return false;
         this.readyWaiters.splice(index, 1);
-        reject(new CliError('app_not_running', 'AutoSlides started but its window did not get ready in time'));
+        return true;
+      };
+      const finish = (): void => {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', onAbort);
+      };
+      const waiter: Waiter = {
+        resolve: () => {
+          finish();
+          resolve();
+        },
+        reject: (error) => {
+          finish();
+          reject(error);
+        },
+      };
+      const onAbort = (): void => {
+        if (drop()) waiter.reject(interrupted());
+      };
+      this.readyWaiters.push(waiter);
+      const timer = setTimeout(() => {
+        if (drop()) waiter.reject(new CliError('app_not_running', 'AutoSlides started but its window did not get ready in time'));
       }, READY_TIMEOUT_MS);
+      signal?.addEventListener('abort', onAbort, { once: true });
     });
   }
 
+  /**
+   * Ask the renderer. `signal` ends the wait when the client leaves: before
+   * the request is sent nothing is sent; after, the renderer may still carry
+   * it out (nothing is rolled back), but its answer goes nowhere.
+   */
   async request<M extends CliControlMethod>(
     method: M,
     params: CliControlMethods[M]['params'],
+    signal?: AbortSignal,
   ): Promise<CliControlMethods[M]['result']> {
-    await this.whenReady();
+    await this.whenReady(signal);
+    if (signal?.aborted) throw interrupted();
     const contents = this.readyContents;
     if (!contents) throw new CliError('app_not_running', 'AutoSlides has no window to run the command in');
     const id = this.nextId++;
     const request: CliControlRequest<M> = { id, method, params };
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve: resolve as (value: unknown) => void, reject });
+      const onAbort = (): void => {
+        if (!this.pending.delete(id)) return;
+        reject(interrupted());
+      };
+      this.pending.set(id, {
+        resolve: (value) => {
+          signal?.removeEventListener('abort', onAbort);
+          (resolve as (value: unknown) => void)(value);
+        },
+        reject: (error) => {
+          signal?.removeEventListener('abort', onAbort);
+          reject(error);
+        },
+      });
+      signal?.addEventListener('abort', onAbort, { once: true });
       contents.send('cli:controlRequest', request);
     });
+  }
+
+  /**
+   * Ask only a renderer that is up: null when none is (no window, or a reload
+   * in progress), never opening a window for it. For questions whose answer
+   * with no renderer is known, such as what work it is running (none).
+   */
+  async requestIfReady<M extends CliControlMethod>(
+    method: M,
+    params: CliControlMethods[M]['params'],
+  ): Promise<CliControlMethods[M]['result'] | null> {
+    if (!this.readyContents || this.readyContents.isDestroyed()) return null;
+    return this.request(method, params);
   }
 
   handleResponse(sender: WebContents, response: CliControlResponse): void {

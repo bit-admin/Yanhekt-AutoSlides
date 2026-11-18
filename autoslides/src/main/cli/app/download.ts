@@ -31,6 +31,7 @@ import type { CommandInput, CommandResult } from '../types';
 import { followDownloads, type Followed } from './followDownloads';
 import { requireSignIn } from './signIn';
 import type { AppCommand, AppCommandContext } from './types';
+import { DOWNLOAD_SCHEMA_APP } from '../dataSchemas';
 
 /** An item the app is downloading for this command. */
 interface Following extends Followed {
@@ -54,7 +55,8 @@ function outputDirOf(ctx: AppCommandContext): string {
 }
 
 function finalItem(item: Item, follow: Following, update: CliDownloadUpdate): Item {
-  if (update.state === 'completed') return { ...item, status: 'downloaded', path: follow.filePath };
+  // The app's own word for where the file went; the planned path only if it gave none.
+  if (update.state === 'completed') return { ...item, status: 'downloaded', path: update.filePath ?? follow.filePath };
   const message =
     update.state === 'removed' ? 'removed from the download list in AutoSlides' : update.error || 'download failed';
   return { ...item, status: 'failed', path: null, error: { code: 'failed', message } };
@@ -67,7 +69,7 @@ function follow(following: Following[], items: Item[], input: CommandInput, ctx:
       const item = finalItem(items[f.index], f, update);
       items[f.index] = item;
       if (item.status === 'downloaded') {
-        if (!input.json) ctx.term.out(f.filePath);
+        if (!input.json && item.path) ctx.term.out(item.path);
       } else {
         ctx.term.info(`${item.session_title ?? item.session_id} (${f.stream}): ${item.error?.message}`);
       }
@@ -106,6 +108,7 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
     try {
       lecture = await resolveLecture(target, ctx.apiClient, token);
     } catch (error) {
+      if (ctx.signal.aborted) break;
       const item = unresolvedItem(target.sessionId, error);
       ctx.term.info(`${target.sessionId}: ${item.error?.message}`);
       items.push(item);
@@ -115,6 +118,9 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
     ctx.term.info(`${many ? `[${index + 1}/${targets.length}] ` : ''}${lecture.course.title} · ${lecture.session.title}`);
 
     for (const stream of streams) {
+      // Each stream queues something new: nothing more once the client has left.
+      // What is already queued keeps going in the app.
+      if (ctx.signal.aborted) break;
       const base = itemBase(target, lecture, stream);
       if (!streamUrl(lecture, stream)) {
         const message = `this session has no ${stream} recording`;
@@ -140,6 +146,13 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
         lecture: { session: lecture.session, course: lecture.course },
         stream,
       });
+      if ('blocked' in queued) {
+        // The row belongs to the app, not to this command: reported, never followed.
+        const message = 'AutoSlides is already downloading this recording itself; it cannot be followed from the command line';
+        ctx.term.info(message);
+        items.push({ ...base, status: 'failed', path: null, error: { code: 'failed', message } });
+        continue;
+      }
       if (!queued.added) ctx.term.info('Already in the download list in AutoSlides; following that one.');
       if (queued.state === 'completed') {
         items.push({ ...base, status: 'downloaded', path: filePath });
@@ -188,5 +201,6 @@ export const appDownloadCommand: AppCommand = {
   ],
   positionals: { min: 0, max: Infinity },
   data: `{ output_dir, dry_run, waited, items: [${ITEM_SHAPE}] }; ItemStatus: "downloaded"|"skipped"|"planned"|"queued"|"failed"`,
+  dataSchema: DOWNLOAD_SCHEMA_APP,
   serve,
 };

@@ -96,11 +96,23 @@ type Read<T> = { ok: true; data: T } | { ok: false; gone: boolean; expired?: tru
  */
 const OUTAGE_CODES = new Set(['99151011']);
 
+/**
+ * The codes that mean the record does not exist, one per resource (the same
+ * ones the indexer relies on). Only these, or code 0 with no record, are
+ * `gone`; any other non-zero code is Yanhekt failing and reads as unavailable,
+ * so a passing fault never shows a course as missing or a session as deleted.
+ */
+const MISSING_CODES = { course: '12111010', session: '12121010' } as const;
+
 /** 课程已过期: earlier terms' courses and sessions, refused to everyone since 2026-11-02. */
 const EXPIRED_CODE = '12121028';
 
-/** One GET through the web Worker's Yanhekt proxy. `gone`: Yanhekt answered with a non-zero code other than an outage. */
-async function readYanhekt<T>(web: NonNullable<Env['WEB']>, pathAndQuery: string): Promise<Read<T>> {
+/** One GET through the web Worker's Yanhekt proxy. `gone`: Yanhekt says the record does not exist. */
+async function readYanhekt<T>(
+  web: NonNullable<Env['WEB']>,
+  pathAndQuery: string,
+  missingCode: string,
+): Promise<Read<T>> {
   try {
     // A service binding ignores the host; only path and query reach the callee.
     const res = await web.fetch(
@@ -112,7 +124,8 @@ async function readYanhekt<T>(web: NonNullable<Env['WEB']>, pathAndQuery: string
     const body = (await res.json()) as { code?: unknown; data?: T };
     if (OUTAGE_CODES.has(String(body.code))) return { ok: false, gone: false };
     if (String(body.code) === EXPIRED_CODE) return { ok: false, gone: false, expired: true };
-    if (String(body.code) !== '0') return { ok: false, gone: true };
+    if (String(body.code) === missingCode) return { ok: false, gone: true };
+    if (String(body.code) !== '0') return { ok: false, gone: false };
     return body.data == null ? { ok: false, gone: true } : { ok: true, data: body.data };
   } catch {
     return { ok: false, gone: false };
@@ -204,7 +217,7 @@ const notIndexed = (id: number): Failure => ({ error: 'not-found', message: `no 
 export async function courseDetails(env: Env, id: number): Promise<CourseDetails | Failure> {
   if (!env.WEB) return notConfigured;
   if (!(await courseSessions(env.YANHEKT_DB, id))) return notIndexed(id);
-  const read = await readYanhekt<RawCourse>(env.WEB, `/v1/course?id=${id}`);
+  const read = await readYanhekt<RawCourse>(env.WEB, `/v1/course?id=${id}`, MISSING_CODES.course);
   if (!read.ok && read.expired) return expiredCourse(env, id);
   if (!read.ok) return read.gone ? { error: 'not-found', message: `Yanhekt has no course ${id}` } : unavailable;
   return courseFromRaw(id, read.data);
@@ -241,7 +254,7 @@ export async function sessionDetails(env: Env, id: number, from: number): Promis
   });
   const readOne = async (i: number) => {
     const sid = ids[i];
-    const read = await readYanhekt<RawSession>(web, `/v1/course/session?session_id=${sid}&with_video=true`);
+    const read = await readYanhekt<RawSession>(web, `/v1/course/session?session_id=${sid}&with_video=true`, MISSING_CODES.session);
     out[i] = read.ok && text(read.data.course_id) === String(id) ? sessionFromRaw(sid, read.data) : missing(sid, read);
   };
   // Expiry is per course: when the first session is expired, so is the rest

@@ -135,6 +135,23 @@ class PostProcessingServiceClass {
     this.controllers.get(jobId)?.abort()
   }
 
+  /**
+   * Stop a job because its owner was cancelled. A queued job is removed and
+   * never starts; a running one stops at its next safe point (between images
+   * or batches), in every phase. Moves already made are kept, not undone.
+   */
+  abortJob(jobId: string): void {
+    const job = this.getJob(jobId)
+    if (!job) return
+    if (job.status === 'queued') {
+      this.removeJob(jobId)
+      return
+    }
+    if (job.status !== 'processing') return
+    job.cancelRequested = true
+    this.controllers.get(jobId)?.abort()
+  }
+
   addJob(taskId: string, outputPath: string, imageFiles: string[]): string {
     const existing = this.state.jobs.find(
       job => job.taskId === taskId && (job.status === 'queued' || job.status === 'processing')

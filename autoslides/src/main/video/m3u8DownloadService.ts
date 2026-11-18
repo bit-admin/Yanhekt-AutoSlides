@@ -1,4 +1,6 @@
 import fs from 'fs';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
+import { expandTilde } from '@main/infra/pathUtils';
 import path from 'path';
 import type { AxiosInstance } from 'axios';
 import { isHttpCancel } from '@main/infra/http';
@@ -177,15 +179,17 @@ export class M3u8DownloadService {
     progressCallback: (progress: DownloadProgress) => void,
     loginToken: string,
     overrides: DownloadOverrides = {}
-  ): Promise<void> {
+  ): Promise<string> {
     const signer = new YanhektHlsSigner(this.apiClient, this.configService, loginToken);
-    await this.startSignedDownload(downloadId, m3u8Url, outputName, progressCallback, signer, overrides);
+    return this.startSignedDownload(downloadId, m3u8Url, outputName, progressCallback, signer, overrides);
   }
 
   /**
    * Download any HLS recording whose requests `signer` knows how to sign, into
    * the output folder as `<outputName>.mp4`, with the same segment pool,
-   * resume, remux and intranet route as a Yanhekt download.
+   * resume, remux and intranet route as a Yanhekt download. Answers the
+   * finished file's path: the folder is fixed here, at the start, so a
+   * folder changed in Settings meanwhile does not move it.
    */
   async startSignedDownload(
     downloadId: string,
@@ -194,12 +198,16 @@ export class M3u8DownloadService {
     progressCallback: (progress: DownloadProgress) => void,
     signer: HlsRequestSigner,
     overrides: DownloadOverrides = {}
-  ): Promise<void> {
+  ): Promise<string> {
     if (this.activeDownloads.has(downloadId)) {
       throw new Error('Download already in progress');
     }
 
-    const outputDir = overrides.outputDir ?? this.configService.getConfig().outputDirectory;
+    const configured = expandTilde(this.configService.getConfig().outputDirectory);
+    const outputDir = expandTilde(overrides.outputDir ?? this.configService.getConfig().outputDirectory);
+    // The configured output folder is not recreated when its drive is away; a
+    // folder named on the command line is created as asked.
+    await ensureWritableOutputDir(configured, outputDir);
     // A command line run names its route outright and means it. The app asks
     // the route service, whose Auto mode may fall back to the public network.
     let route: IntranetRoute;
@@ -230,6 +238,7 @@ export class M3u8DownloadService {
     } finally {
       this.activeDownloads.delete(downloadId);
     }
+    return path.resolve(path.join(outputDir, `${outputName}.mp4`));
   }
 
   cancelDownload(downloadId: string): void {
@@ -332,8 +341,11 @@ class M3u8Downloader {
       log.debug(`Save path: ${this.filePath}`);
 
       // Create directory for TS files
+      // Not recursive: the output folder was checked when the download was
+      // accepted, and if it has gone since (drive unplugged) this must fail
+      // rather than rebuild the path on the system disk.
       if (!fs.existsSync(this.workDir)) {
-        fs.mkdirSync(this.workDir, { recursive: true });
+        fs.mkdirSync(this.workDir);
       }
 
       // Download all TS files

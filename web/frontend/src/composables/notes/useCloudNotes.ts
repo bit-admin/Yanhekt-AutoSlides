@@ -3,6 +3,7 @@ import type { NoteSummary, NoteDetail, NoteGroup, NotesResult } from '../../lib/
 import { isAutoSlidesGroupName, isManagedGroupName } from '../../lib/notes/notesTypes';
 import { notesClient } from '../../lib/notes/notesClient';
 import { noteErrorText } from '../../lib/notes/noteErrors';
+import { UNGROUP_KEPT_BOTH } from '../../lib/notes/noteUngroup';
 import { cloudStorageStore } from '../../stores/cloudStorageStore';
 
 const PAGE_SIZE = 20;
@@ -64,6 +65,17 @@ export function useCloudNotes() {
   /** The note whose detail is currently being fetched; dims its sidebar row. */
   const openingNoteId = ref<number | null>(null);
   let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // Whose notes these are. A different token (sign-out, or another account
+  // signing in while this cached page lives on) starts a new epoch: everything
+  // loaded is dropped (`resetForIdentity`) and an answer still on its way for
+  // the previous epoch writes nothing. Each action calls `live()` once at its
+  // start and checks the result after every await.
+  let epoch = 0;
+  const live = (): (() => boolean) => {
+    const mine = epoch;
+    return () => mine === epoch;
+  };
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null);
 
@@ -134,7 +146,9 @@ export function useCloudNotes() {
   }
 
   async function refreshGroups(): Promise<void> {
+    const alive = live();
     const res = await notesClient.groupList();
+    if (!alive()) return;
     const data = unwrap(res);
     if (data) {
       groups.value = data;
@@ -149,6 +163,7 @@ export function useCloudNotes() {
    * (superseded by a newer searchGen) are discarded. Does not touch allNotes.
    */
   async function fetchKeywordMatches(kw: string): Promise<void> {
+    const alive = live();
     const gen = ++searchGen;
     const ownLoading = !loading.value;
     if (ownLoading) loading.value = true;
@@ -159,7 +174,7 @@ export function useCloudNotes() {
       let lastPage = 1;
       do {
         const res = await notesClient.list({ page: p, pageSize: FETCH_PAGE_SIZE, keyword: kw });
-        if (gen !== searchGen) return;
+        if (gen !== searchGen || !alive()) return;
         const data = unwrap(res);
         if (!data) break;
         collected.push(...data.data);
@@ -182,21 +197,29 @@ export function useCloudNotes() {
       clearTimeout(searchDebounceTimer);
       searchDebounceTimer = null;
     }
+    const alive = live();
     loading.value = true;
     error.value = '';
     try {
       const collected: NoteSummary[] = [];
       let p = 1;
       let lastPage = 1;
+      let complete = true;
       do {
         const res = await notesClient.list({ page: p, pageSize: FETCH_PAGE_SIZE });
+        if (!alive()) return;
         const data = unwrap(res);
-        if (!data) break;
+        if (!data) {
+          complete = false;
+          break;
+        }
         collected.push(...data.data);
         lastPage = Math.max(1, data.last_page);
         p += 1;
       } while (p <= lastPage && p <= MAX_FETCH_PAGES);
-      allNotes.value = collected;
+      // A page that failed leaves the list as it was (the error is shown): the
+      // pages before it are not the whole list.
+      if (complete) allNotes.value = collected;
       const kw = keyword.value.trim();
       if (kw !== '') {
         // Keep loading true across the keyword re-fetch.
@@ -206,7 +229,7 @@ export function useCloudNotes() {
         applyView();
       }
     } finally {
-      loading.value = false;
+      if (alive()) loading.value = false;
     }
   }
 
@@ -253,11 +276,13 @@ export function useCloudNotes() {
    * own caller — it just no longer owns `selectedNote`.
    */
   async function openNote(id: number): Promise<NoteDetail | null> {
+    const alive = live();
     error.value = '';
     const gen = ++openGen;
     openingNoteId.value = id;
     try {
       const res = await notesClient.get(id);
+      if (!alive()) return null;
       const data = unwrap(res);
       if (data && gen === openGen) selectedNote.value = data;
       return data;
@@ -272,7 +297,9 @@ export function useCloudNotes() {
 
   async function createNote(): Promise<number | null> {
     error.value = '';
+    const alive = live();
     const res = await notesClient.create();
+    if (!alive()) return null;
     const id = unwrap(res);
     if (id != null) {
       // Refetch so the new (blank) note appears with proper metadata.
@@ -285,8 +312,10 @@ export function useCloudNotes() {
     saving.value = true;
     error.value = '';
     try {
+      const alive = live();
       const res = await notesClient.updateContent(id, content);
-      if (!res.ok) unwrap(res);
+      // A refusal that arrives for the previous account is not this page's error.
+      if (!res.ok && alive()) unwrap(res);
       return res.ok;
     } finally {
       saving.value = false;
@@ -295,7 +324,9 @@ export function useCloudNotes() {
 
   async function renameNote(id: number, title: string): Promise<boolean> {
     error.value = '';
+    const alive = live();
     const res = await notesClient.updateTitle(id, title);
+    if (!alive()) return false;
     if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value.title = title;
       patchTitle(id, title);
@@ -308,7 +339,9 @@ export function useCloudNotes() {
 
   async function deleteNote(id: number): Promise<boolean> {
     error.value = '';
+    const alive = live();
     const res = await notesClient.delete(id);
+    if (!alive()) return false;
     if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value = null;
       removeFromBuffers(id);
@@ -332,9 +365,20 @@ export function useCloudNotes() {
     error.value = '';
     const row = allNotes.value.find((n) => n.id === id);
     const title = row?.title ?? selectedNote.value?.title ?? '';
+    const alive = live();
     const res = await notesClient.moveToGroup(id, groupId, title, content);
+    if (!alive()) return null;
     const newId = unwrap(res);
-    if (newId == null) return null;
+    if (newId == null) {
+      // The copy exists and the original stayed: show both.
+      if (!res.ok && res.error === UNGROUP_KEPT_BOTH) {
+        // A reload clears the error line; this one has to stay up.
+        const message = error.value;
+        await loadAll();
+        error.value = message;
+      }
+      return null;
+    }
 
     if (newId !== id) {
       // Ungroup recreated the note under a new id — drop the old row and reload.
@@ -352,7 +396,9 @@ export function useCloudNotes() {
 
   async function createGroup(name: string): Promise<boolean> {
     error.value = '';
+    const alive = live();
     const res = await notesClient.groupCreate(name);
+    if (!alive()) return false;
     if (res.ok) {
       await refreshGroups();
     } else {
@@ -363,7 +409,9 @@ export function useCloudNotes() {
 
   async function deleteGroup(id: number): Promise<boolean> {
     error.value = '';
+    const alive = live();
     const res = await notesClient.groupDelete(id);
+    if (!alive()) return false;
     if (res.ok) {
       // Server reassigns the group's notes to the default group (0).
       for (const n of allNotes.value) {
@@ -387,6 +435,35 @@ export function useCloudNotes() {
   }
 
   /**
+   * The signed-in identity changed: drop everything loaded for the previous
+   * one, and let nothing still in flight for it write. The caller reloads.
+   */
+  function resetForIdentity(): void {
+    epoch += 1;
+    searchGen += 1;
+    openGen += 1;
+    if (searchDebounceTimer != null) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
+    groups.value = [];
+    allNotes.value = [];
+    searchResults.value = null;
+    notes.value = [];
+    selectedNote.value = null;
+    openingNoteId.value = null;
+    keyword.value = '';
+    activeGroupId.value = '';
+    page.value = 1;
+    totalPages.value = 1;
+    filteredCount.value = 0;
+    loading.value = false;
+    busy.value = false;
+    saving.value = false;
+    error.value = '';
+  }
+
+  /**
    * Initial load — groups + the complete note set.
    *
    * `busy` covers both halves. `loading` alone does not: it is set by loadAll /
@@ -395,11 +472,12 @@ export function useCloudNotes() {
    */
   async function init(): Promise<void> {
     if (busy.value) return;
+    const alive = live();
     busy.value = true;
     try {
       await Promise.all([refreshGroups(), loadAll()]);
     } finally {
-      busy.value = false;
+      if (alive()) busy.value = false;
     }
   }
 
@@ -425,6 +503,7 @@ export function useCloudNotes() {
     openingNoteId,
     // actions
     init,
+    resetForIdentity,
     refreshGroups,
     loadAll,
     searchNotes,

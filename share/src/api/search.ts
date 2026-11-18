@@ -71,7 +71,9 @@ export function searchKeys(tokens: string[]): Key[] {
 function keySql(term: string, k: Key): [string, unknown[]] {
   return 'gram' in k
     ? ['SELECT course_id FROM course_grams WHERE term = ? AND gram = ?', [term, k.gram]]
-    : ['SELECT course_id FROM course_grams WHERE term = ? AND gram >= ? AND gram < ?', [term, k.from, k.to]];
+    // DISTINCT: one course can have several words under the prefix, and the
+    // LIMIT below must count courses, not postings, to tell a complete list.
+    : ['SELECT DISTINCT course_id FROM course_grams WHERE term = ? AND gram >= ? AND gram < ?', [term, k.from, k.to]];
 }
 
 function coursesByIds(db: D1Database, ids: number[]): D1PreparedStatement {

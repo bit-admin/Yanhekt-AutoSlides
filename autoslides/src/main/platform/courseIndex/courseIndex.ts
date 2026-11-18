@@ -79,6 +79,9 @@ export class CourseIndexBundle {
   private readonly keys: SigningKey[];
   private opening: Promise<Opened | { problem: CourseIndexProblem; detail?: string }> | null = null;
   private readonly terms = new Map<string, Promise<TermCourse[] | null>>();
+  // Whether a term's file has the bytes the signed manifest names, checked
+  // once per term for this copy (a reset makes a new bundle).
+  private readonly checked = new Map<string, Promise<boolean>>();
 
   constructor(options: CourseIndexOptions) {
     this.dir = options.dir;
@@ -102,6 +105,33 @@ export class CourseIndexBundle {
     const opened = await this.open();
     if ('problem' in opened) return null;
     return opened.present.get(term) ?? null;
+  }
+
+  /**
+   * True when the term's file is here and has exactly the length and hash the
+   * signed manifest gives. A present but truncated or damaged file is false,
+   * so it neither counts as held nor hides another copy.
+   */
+  verified(term: string): Promise<boolean> {
+    let pending = this.checked.get(term);
+    if (!pending) {
+      pending = this.checkTerm(term);
+      this.checked.set(term, pending);
+    }
+    return pending;
+  }
+
+  private async checkTerm(term: string): Promise<boolean> {
+    const entry = await this.entry(term);
+    if (!entry) return false;
+    try {
+      const sealed = await fs.readFile(path.join(this.dir, entry.asset));
+      if (sealed.length === entry.bytes && sha256Hex(sealed) === entry.assetSha256) return true;
+      log.warn(`course index ${term}: ${path.basename(this.dir)} copy fails its checksum`);
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   /** A bundled term's courses, sorted by id; null when the term is not bundled or its file fails a check. */
@@ -242,17 +272,26 @@ export class LocalCourseIndex {
    * update with updates off).
    */
   private async copyFor(term: string): Promise<{ bundle: CourseIndexBundle; entry: ClientTerm; source: LocalIndexTerm['source'] } | null> {
+    return (await this.copiesFor(term))[0] ?? null;
+  }
+
+  /**
+   * The copies that hold a term with a file that passes its checksum, the
+   * preferred one first: the newer one when both do (a stale download must
+   * not hide a fresher bundle after an app update with updates off). A copy
+   * whose file is damaged is left out, so it cannot hide a good one.
+   */
+  private async copiesFor(term: string): Promise<Array<{ bundle: CourseIndexBundle; entry: ClientTerm; source: LocalIndexTerm['source'] }>> {
     const [down, bundled] = await Promise.all([this.downloaded.entry(term), this.bundled.entry(term)]);
+    const candidates: Array<{ bundle: CourseIndexBundle; entry: ClientTerm; source: LocalIndexTerm['source'] }> = [];
+    if (down) candidates.push({ bundle: this.downloaded, entry: down, source: 'downloaded' });
+    if (bundled) candidates.push({ bundle: this.bundled, entry: bundled, source: 'bundled' });
     if (down && bundled) {
       const [ds, bs] = await Promise.all([this.downloaded.state(), this.bundled.state()]);
-      const bundledNewer = ds.ok && bs.ok && bs.generatedAt > ds.generatedAt;
-      return bundledNewer
-        ? { bundle: this.bundled, entry: bundled, source: 'bundled' }
-        : { bundle: this.downloaded, entry: down, source: 'downloaded' };
+      if (ds.ok && bs.ok && bs.generatedAt > ds.generatedAt) candidates.reverse();
     }
-    if (down) return { bundle: this.downloaded, entry: down, source: 'downloaded' };
-    if (bundled) return { bundle: this.bundled, entry: bundled, source: 'bundled' };
-    return null;
+    const usable = await Promise.all(candidates.map((c) => c.bundle.verified(term)));
+    return candidates.filter((_, i) => usable[i]);
   }
 
   /** Every term held, newest first, with the copy it is read from. */
@@ -276,7 +315,7 @@ export class LocalCourseIndex {
     return stamps.sort().pop() ?? null;
   }
 
-  /** The manifest entry this computer holds for a term (downloaded first), for the updater. */
+  /** The manifest entry of the copy a term is read from (one whose file checks out), for the updater. */
   async heldEntry(term: string): Promise<ClientTerm | null> {
     return (await this.copyFor(term))?.entry ?? null;
   }
@@ -287,10 +326,13 @@ export class LocalCourseIndex {
 
   /** A term's courses, or null when no copy holds the term (or its file fails a check). */
   async termCourses(term: string): Promise<IndexCourse[] | null> {
-    const copy = await this.copyFor(term);
-    if (!copy) return null;
-    const courses = await copy.bundle.term(term);
-    return courses ? courses.map((c) => ({ ...c, term })) : null;
+    // The next copy is tried when one fails a later check (it cannot be
+    // opened): never a result that was not checked.
+    for (const copy of await this.copiesFor(term)) {
+      const courses = await copy.bundle.term(term);
+      if (courses) return courses.map((c) => ({ ...c, term }));
+    }
+    return null;
   }
 
   /** Every course of every term held. */

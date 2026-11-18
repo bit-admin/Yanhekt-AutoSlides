@@ -17,8 +17,9 @@ import type { AppCommand, AppCommandContext, AppSettingsWriter } from '../app/ty
 import { toCliError } from '../classifyError';
 import { CliError } from '../errors';
 import type { CommandInput } from '../types';
+import { checkOptions, checkPositionals } from '../validate';
 import { MAX_REQUEST_BYTES, createLineReader, encodeLine, parseRequest, type ControlMessage } from './protocol';
-import type { RendererBridge } from './rendererBridge';
+import { rendererFor, type RendererBridge } from './rendererBridge';
 
 const log = createLogger('CliControl');
 
@@ -31,6 +32,8 @@ export interface CliControlServerDeps {
   enrolledCoursesService: EnrolledCoursesService;
   renderer: RendererBridge;
   commands: Readonly<Record<string, AppCommand>>;
+  /** This app's version; a command sent from another version is refused. */
+  version: string;
 }
 
 export class CliControlServer {
@@ -56,17 +59,31 @@ export class CliControlServer {
       log.error('Command-line control socket failed:', error);
       if (this.server === server) this.server = null;
     });
-    server.listen(socketPath, () => {
-      if (!isPipe) {
-        try {
-          fs.chmodSync(socketPath, 0o600);
-        } catch (error) {
-          log.warn('Could not restrict the command-line control socket:', error);
-        }
-      }
-      log.info(`Command-line control listening on ${socketPath}`);
-    });
     this.server = server;
+    // A Unix socket is created by bind, inside listen(), with the umask's
+    // mode; a private umask for that one synchronous call means it never
+    // exists readable by others. The chmod after is the check: a socket that
+    // cannot be made private is closed, not left open with a warning.
+    // A Windows named pipe keeps the system's default access rules, which
+    // this code neither sets nor checks (audit CLI-15, open).
+    const umask = isPipe ? null : process.umask(0o177);
+    try {
+      server.listen(socketPath, () => {
+        if (!isPipe) {
+          try {
+            fs.chmodSync(socketPath, 0o600);
+          } catch (error) {
+            log.error('Could not make the command-line control socket private; closing it:', error);
+            if (this.server === server) this.stop();
+            else server.close();
+            return;
+          }
+        }
+        log.info(`Command-line control listening on ${socketPath}`);
+      });
+    } finally {
+      if (umask !== null) process.umask(umask);
+    }
   }
 
   stop(): void {
@@ -94,16 +111,30 @@ export class CliControlServer {
     const abort = new AbortController();
     let started = false;
 
-    const read = createLineReader((line) => {
-      if (started) return;
-      started = true;
-      void this.run(socket, line, abort.signal).finally(() => {
-        this.connections.delete(socket);
-        socket.end();
-      });
-    });
+    // One request per connection: the first line. It is refused, not run, when
+    // it is over the limit, and whatever follows it is dropped unread.
+    const read = createLineReader(
+      (line) => {
+        if (started) return;
+        started = true;
+        void this.run(socket, line, abort.signal).finally(() => {
+          this.connections.delete(socket);
+          socket.end();
+        });
+      },
+      {
+        maxLineBytes: MAX_REQUEST_BYTES,
+        onOverflow: () => {
+          if (started) return;
+          started = true;
+          this.send(socket, { type: 'result', error: new CliError('usage', 'the request is too large').toJSON() });
+          this.connections.delete(socket);
+          socket.end();
+        },
+      },
+    );
     socket.on('data', (chunk) => {
-      if (read(chunk) > MAX_REQUEST_BYTES) socket.destroy();
+      if (!started) read(chunk);
     });
     socket.on('error', (error) => log.debug('Command-line control connection error:', error));
     socket.on('close', () => {
@@ -119,9 +150,27 @@ export class CliControlServer {
       this.send(socket, { type: 'result', error: error.toJSON() });
       return;
     }
+    if (request.appVersion !== undefined && request.appVersion !== this.deps.version) {
+      const error = new CliError(
+        'app_version_mismatch',
+        `the running AutoSlides is version ${this.deps.version}, but this command is from version ${request.appVersion}`,
+        'Quit AutoSlides and open it again (an update finishes on restart), then run the command again.',
+      );
+      this.send(socket, { type: 'result', error: error.toJSON() });
+      return;
+    }
     const command = this.deps.commands[request.command];
     if (!command) {
       this.send(socket, { type: 'result', error: new CliError('usage', `unknown command: ${request.command}`).toJSON() });
+      return;
+    }
+
+    // Checked here as in the terminal: nothing runs on arguments the command does not take.
+    try {
+      checkOptions(request.options, command.options);
+      checkPositionals(request.command, command, request.positionals);
+    } catch (error) {
+      this.send(socket, { type: 'result', error: toCliError(error).toJSON() });
       return;
     }
 
@@ -131,7 +180,7 @@ export class CliControlServer {
       apiClient: this.deps.apiClient,
       courseLookup: this.deps.courseLookup,
       enrolledCoursesService: this.deps.enrolledCoursesService,
-      renderer: this.deps.renderer,
+      renderer: rendererFor(this.deps.renderer, signal),
       signal,
       term: {
         info: (text) => this.send(socket, { type: 'info', text }),

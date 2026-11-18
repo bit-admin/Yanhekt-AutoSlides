@@ -1,3 +1,4 @@
+import { parseOutputFolderBusy } from '@common/outputFolderWork'
 import {
   normalizeCurrentTermSearchSource,
   normalizeEarlierTermSearchSource,
@@ -15,6 +16,8 @@ const log = createLogger('Settings');
 export interface UseSettingsReturn {
   // Basic settings state
   outputDirectory: Ref<string>
+  /** The last folder change was refused because work is still writing into the current folder. */
+  outputDirectoryBusy: Ref<boolean>
   connectionMode: Ref<ConnectionMode>
   muteMode: Ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>
 
@@ -68,6 +71,7 @@ export interface UseSettingsReturn {
 export function useSettings(): UseSettingsReturn {
   // Basic settings state
   const outputDirectory = ref('')
+  const outputDirectoryBusy = ref(false)
   // Also set outside the page (`autoslides config output_dir`); it is written
   // at once (no buffer), so a live mirror is safe.
   watch(() => configStore.outputDirectory, (dir) => {
@@ -173,10 +177,15 @@ export function useSettings(): UseSettingsReturn {
   const selectOutputDirectory = async () => {
     try {
       const result = await window.electronAPI.config.selectOutputDirectory()
+      outputDirectoryBusy.value = false
       if (result) {
         outputDirectory.value = result.outputDirectory
       }
     } catch (error) {
+      if (parseOutputFolderBusy(error)) {
+        outputDirectoryBusy.value = true
+        return
+      }
       log.error('Failed to select output directory:', error)
     }
   }
@@ -238,6 +247,7 @@ export function useSettings(): UseSettingsReturn {
   return {
     // Basic settings state
     outputDirectory,
+    outputDirectoryBusy,
     connectionMode,
     muteMode,
 

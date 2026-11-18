@@ -112,6 +112,27 @@ export function setupDualHlsErrorHandler(
   opts: DualHlsErrorOptions
 ): void {
   const counters = createRecoveryCounters()
+  // Retries wait a moment; by then the instance may have been torn down (a
+  // switch to one stream, another source) and the element may play something
+  // else. A destroyed instance cancels its waits, and a retry only acts while
+  // this instance still drives this element.
+  let destroyed = false
+  const timers = new Set<ReturnType<typeof setTimeout>>()
+  const later = (fn: () => void, ms: number, needsMedia: boolean): void => {
+    const timer = setTimeout(() => {
+      timers.delete(timer)
+      if (destroyed) return
+      // A media fix seeks the element, so only while this instance drives it.
+      if (needsMedia && hlsInstance.media !== video) return
+      fn()
+    }, ms)
+    timers.add(timer)
+  }
+  hlsInstance.on(Events.DESTROYING, () => {
+    destroyed = true
+    timers.forEach(clearTimeout)
+    timers.clear()
+  })
 
   hlsInstance.on(Events.ERROR, (_event, data) => {
     log.error(`Dual HLS error (${label}):`, _event, data)
@@ -130,9 +151,9 @@ export function setupDualHlsErrorHandler(
       case ErrorTypes.NETWORK_ERROR:
         if (counters.networkErrorRecoveryCount < counters.maxRecoveryAttempts) {
           counters.networkErrorRecoveryCount++
-          setTimeout(() => {
+          later(() => {
             retryNetworkLoad(hlsInstance, data)
-          }, 1000 * counters.networkErrorRecoveryCount)
+          }, 1000 * counters.networkErrorRecoveryCount, false)
         } else {
           opts.onFatal(`Network error: Unable to load ${label} stream after multiple attempts`)
         }
@@ -142,7 +163,7 @@ export function setupDualHlsErrorHandler(
         if (counters.mediaErrorRecoveryCount < counters.maxRecoveryAttempts) {
           counters.mediaErrorRecoveryCount++
           const currentPosition = video.currentTime || 0
-          setTimeout(() => {
+          later(() => {
             try {
               hlsInstance.recoverMediaError()
               if (currentPosition > 0 && opts.mode === 'recorded') {
@@ -151,7 +172,7 @@ export function setupDualHlsErrorHandler(
             } catch (recoveryError) {
               log.error(`Dual media recovery failed (${label}):`, recoveryError)
             }
-          }, 500 * counters.mediaErrorRecoveryCount)
+          }, 500 * counters.mediaErrorRecoveryCount, true)
         } else {
           opts.onFatal(`Video decoding error: Unable to decode ${label} stream after multiple attempts`)
         }

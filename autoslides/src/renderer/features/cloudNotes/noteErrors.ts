@@ -1,4 +1,5 @@
 import { i18n } from '@shared/i18n'
+import { UNGROUP_KEPT_BOTH } from '@common/noteUngroup'
 
 const YANHEKT_ERROR = /^yanhekt-error:(-?\d+)$/
 
@@ -10,6 +11,7 @@ const YANHEKT_ERROR = /^yanhekt-error:(-?\d+)$/
  * machine codes like `not-signed-in` still reach their own checks.
  */
 export function noteErrorText(error: string): string {
+  if (error === UNGROUP_KEPT_BOTH) return i18n.global.t('cloudNotes.ungroupKeptBoth')
   const m = YANHEKT_ERROR.exec(error)
   return m ? i18n.global.t('cloudNotes.yanhektError', { code: m[1] }) : error
 }

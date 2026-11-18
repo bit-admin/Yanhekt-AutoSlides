@@ -26,7 +26,9 @@ export function registerSlideTimelineIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('slideTimeline:get', async (_event, folderPath: string) => {
     try {
-      return await slideTimelineService.read(folderPath);
+      // After the writes already queued for this folder, so a read never
+      // returns the timeline from before a capture or relink that was sent first.
+      return await slideTimelineService.read(folderPath, { afterWrites: true });
     } catch (error) {
       log.error('Failed to read slide timeline:', error);
       return null;

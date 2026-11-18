@@ -4,6 +4,38 @@ import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('TrashIpc');
 
+type RestoreDeps = Pick<IpcServices, 'slideExtractionService' | 'slideMetadataService' | 'slideTimelineService'>;
+
+/**
+ * Restore trash entries and record the restore where it belongs: `edited` on
+ * the folders, and the timeline's current slide. Both follow the files that
+ * actually came back. An entry whose file could not be moved changes neither,
+ * or the timeline would point at a slide that is not in the folder.
+ */
+export async function restoreTrash(
+  deps: RestoreDeps,
+  ids: string[],
+  outputDir: string,
+): Promise<{ restored: number; failed: number }> {
+  const outcome = await deps.slideExtractionService.restoreTrashEntries(ids, outputDir);
+  const folders = new Set(outcome.restored.map(entry => path.dirname(entry.originalPath)));
+  for (const folderPath of folders) {
+    deps.slideMetadataService.stageEdited(folderPath);
+  }
+  // Best-effort: the file is back either way; a timeline that could not be
+  // updated is logged with the file it concerns.
+  for (const entry of outcome.restored) {
+    try {
+      await deps.slideTimelineService.restoreCanonical(path.dirname(entry.originalPath), {
+        file: entry.filename,
+      });
+    } catch (timelineError) {
+      log.warn(`Timeline restoreCanonical failed for ${entry.filename}:`, timelineError);
+    }
+  }
+  return { restored: outcome.restored.length, failed: outcome.failed.length };
+}
+
 export function registerTrashIpcHandlers(services: IpcServices): void {
   const { configService, slideExtractionService, slideMetadataService, slideTimelineService } = services;
 
@@ -20,28 +52,7 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
   ipcMain.handle('trash:restore', async (_event, ids: string[]) => {
     try {
       const outputDir = configService.getConfig().outputDirectory;
-      // Resolve the folders these entries restore into BEFORE the manifest is
-      // rewritten, so we can stage `edited` on each (no-op if no metadata).
-      const entries = await slideExtractionService.getTrashEntries(outputDir);
-      const affectedFolders = new Set(
-        entries.filter(e => ids.includes(e.id)).map(e => path.dirname(e.originalPath))
-      );
-      const toRestore = entries.filter(e => ids.includes(e.id));
-      const result = await slideExtractionService.restoreFromTrash(ids, outputDir);
-      for (const folderPath of affectedFolders) {
-        slideMetadataService.stageEdited(folderPath);
-      }
-      // Best-effort: restore timeline resolution for each restored file.
-      for (const entry of toRestore) {
-        try {
-          await slideTimelineService.restoreCanonical(path.dirname(entry.originalPath), {
-            file: entry.filename,
-          });
-        } catch (timelineError) {
-          log.warn(`Timeline restoreCanonical failed for ${entry.filename}:`, timelineError);
-        }
-      }
-      return result;
+      return await restoreTrash({ slideExtractionService, slideMetadataService, slideTimelineService }, ids, outputDir);
     } catch (error) {
       log.error('Failed to restore from trash:', error);
       throw error;

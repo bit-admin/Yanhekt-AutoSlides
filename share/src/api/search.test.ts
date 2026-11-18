@@ -142,3 +142,16 @@ describe('courseSessions', () => {
     expect(await courseSessions(db, 999)).toBeNull();
   });
 });
+
+describe('a prefix that several words of one course share', () => {
+  it('counts distinct courses, not postings, before deciding the list is complete', async () => {
+    // 20 courses with two words each that start with the query: 40 postings,
+    // 20 courses. The course that only has a later word must still be found.
+    for (let i = 0; i < 20; i += 1) addCourse(db, { id: 2001 + i, name: `progaa progbb`, teachers: [] });
+    addCourse(db, { id: 3001, name: 'progzz', teachers: [] });
+    const found = await ids(`q=prog&${T}`);
+    expect(found).toContain(3001);
+    expect(found).toHaveLength(21);
+  });
+});
+

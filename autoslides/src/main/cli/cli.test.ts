@@ -228,6 +228,7 @@ describe('help and schema', () => {
     network: true,
     tokenUse: 'To list sessions',
     data: '{}',
+    dataSchema: { type: 'object' },
     run: async () => ({ data: null }),
   };
   const quiet: CliCommand = { ...command, network: false, tokenUse: undefined, options: [] };

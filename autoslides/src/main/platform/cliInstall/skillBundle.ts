@@ -42,19 +42,41 @@ export type SkillSync = 'copied' | 'current' | 'missing';
 
 /**
  * Make `target` an exact copy of `source`. Only rewrites it when something
- * differs, and swaps the whole folder in at once, so a link to `target` never
- * sees half of an update.
+ * differs. The new copy is built complete beside the old one, the old one is
+ * moved aside, the new one renamed in, and only then is the old one deleted;
+ * a failed rename puts the old one back. A link to `target` sees the old or
+ * the new skill, never half of one, and at worst finds it missing for the
+ * instant between the two renames. A copy left aside by a crash is put back
+ * (or cleaned up) on the next run.
  */
 export function syncSkill(source: string, target: string): SkillSync {
   const wanted = skillDigest(source);
   if (wanted === null) return 'missing';
-  if (source === target || skillDigest(target) === wanted) return 'current';
+  if (source === target) return 'current';
+
+  const previous = `${target}.previous`;
+  if (fs.existsSync(previous)) {
+    if (fs.existsSync(target)) fs.rmSync(previous, { recursive: true, force: true });
+    else fs.renameSync(previous, target);
+  }
+  if (skillDigest(target) === wanted) return 'current';
 
   const staging = `${target}.staging-${process.pid}`;
   fs.rmSync(staging, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.cpSync(source, staging, { recursive: true, filter: (from) => !SKIPPED.has(path.basename(from)) });
-  fs.rmSync(target, { recursive: true, force: true });
-  fs.renameSync(staging, target);
+  try {
+    fs.cpSync(source, staging, { recursive: true, filter: (from) => !SKIPPED.has(path.basename(from)) });
+    const hadTarget = fs.existsSync(target);
+    if (hadTarget) fs.renameSync(target, previous);
+    try {
+      fs.renameSync(staging, target);
+    } catch (error) {
+      if (hadTarget) fs.renameSync(previous, target);
+      throw error;
+    }
+  } finally {
+    fs.rmSync(staging, { recursive: true, force: true });
+  }
+  fs.rmSync(previous, { recursive: true, force: true });
   return 'copied';
 }

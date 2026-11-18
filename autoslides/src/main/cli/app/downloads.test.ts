@@ -5,6 +5,7 @@ import { CliError } from '../errors';
 import type { CommandInput } from '../types';
 import { appDownloadsCommand } from './downloads';
 import type { AppCommandContext } from './types';
+import { expectMatchesSchema } from '../dataSchemas.testkit';
 
 const OUT = path.join(path.sep, 'out');
 
@@ -89,27 +90,28 @@ function fakeApp(items: CliQueueItem[], signedIn = true) {
   return { ctx, calls, output, emit, abort, listeners };
 }
 
-const input = (positionals: string[], options: Record<string, string | true> = {}): CommandInput => ({
+const input = (positionals: string[], options: Record<string, string | true> = {}, json = true): CommandInput => ({
   program: 'autoslides',
   positionals,
   options,
-  json: true,
+  json,
 });
 
-const serve = (positionals: string[], app: ReturnType<typeof fakeApp>, options: Record<string, string | true> = {}) =>
-  appDownloadsCommand.serve(input(positionals, options), app.ctx);
+const serve = (positionals: string[], app: ReturnType<typeof fakeApp>, options: Record<string, string | true> = {}, json = true) =>
+  appDownloadsCommand.serve(input(positionals, options, json), app.ctx);
 
 describe('autoslides downloads', () => {
   const queue = (): CliQueueItem[] => [
-    row({ itemId: 'a', state: 'completed', progress: 100, completedAt: Date.UTC(2026, 9, 1) }),
+    row({ itemId: 'a', state: 'completed', progress: 100, completedAt: Date.UTC(2026, 9, 1), filePath: path.join(path.sep, 'then', 'screen_课程-第1讲__c70101s850101.mp4') }),
     row({ itemId: 'b', state: 'downloading', progress: 40, kind: 'camera', name: 'camera_课程-第1讲' }),
     row({ itemId: 'c', state: 'error', error: 'Cancelled by user', sessionId: '850102', sessionTitle: '第2讲' }),
     row({ itemId: 'd', state: 'error', error: 'HTTP 403', sessionId: '850103', kind: 'audio', name: 'audio_课程-第3讲' }),
   ];
 
-  it('lists the panel with file paths and the app\'s words for each state', async () => {
+  it('lists the panel with the files written and the app\'s words for each state', async () => {
     const app = fakeApp(queue());
     const { data } = await serve([], app);
+    expectMatchesSchema(appDownloadsCommand.dataSchema, data);
     const items = (data as { items: Array<Record<string, unknown>> }).items;
     expect(items.map((i) => [i.item_id, i.status])).toEqual([
       ['a', 'completed'],
@@ -117,10 +119,11 @@ describe('autoslides downloads', () => {
       ['c', 'cancelled'],
       ['d', 'failed'],
     ]);
-    expect(items[0].path).toBe(path.join(OUT, 'screen_课程-第1讲__c70101s850101.mp4'));
+    // The folder the download used, not today's setting; nothing until a file exists.
+    expect(items[0].path).toBe(path.join(path.sep, 'then', 'screen_课程-第1讲__c70101s850101.mp4'));
     expect(items[0].completed_at).toBe('2026-10-01T00:00:00.000Z');
-    expect(items[1].path).toBe(path.join(OUT, 'camera_课程-第1讲__c70101s850101.mp4'));
-    expect(items[3].path).toBe(path.join(OUT, 'audio_课程-第3讲__c70101s850103.aac'));
+    expect(items[1].path).toBeNull();
+    expect(items[3].path).toBeNull();
     expect(items[2].error).toBeUndefined();
     expect(items[3].error).toBe('HTTP 403');
   });
@@ -141,12 +144,24 @@ describe('autoslides downloads', () => {
     await expect(serve(['retry', 'c'], app)).rejects.toMatchObject({ code: 'sign_in_required' });
   });
 
-  it('waits for what is unfinished and prints the finished file', async () => {
+  it('keeps stdout for the one JSON answer when waiting with --json', async () => {
     const app = fakeApp(queue());
     const pending = serve(['wait'], app);
     for (let i = 0; i < 20 && !app.listeners.has('b'); i++) await Promise.resolve();
+    app.emit({ itemId: 'b', state: 'completed', progress: 100, filePath: path.join(OUT, 'camera_课程-第1讲__c70101s850101.mp4') });
+    const result = await pending;
+    expect(app.output.out).toEqual([]);
+    expect((result.data as { items: Array<{ status: string; path: string }> }).items).toMatchObject([
+      { status: 'completed', path: path.join(OUT, 'camera_课程-第1讲__c70101s850101.mp4') },
+    ]);
+  });
+
+  it('waits for what is unfinished and prints the finished file', async () => {
+    const app = fakeApp(queue());
+    const pending = serve(['wait'], app, {}, false);
+    for (let i = 0; i < 20 && !app.listeners.has('b'); i++) await Promise.resolve();
     app.emit({ itemId: 'b', state: 'downloading', progress: 80 });
-    app.emit({ itemId: 'b', state: 'completed', progress: 100 });
+    app.emit({ itemId: 'b', state: 'completed', progress: 100, filePath: path.join(OUT, 'camera_课程-第1讲__c70101s850101.mp4') });
     const result = await pending;
     expect(app.calls.find((c) => c.method === 'followDownloads')?.params).toEqual({ itemIds: ['b'] });
     expect(result.error).toBeUndefined();
@@ -174,6 +189,7 @@ describe('autoslides downloads', () => {
   it('cancels named rows and says which had already finished', async () => {
     const app = fakeApp(queue());
     const result = await serve(['cancel', '850101'], app);
+    expectMatchesSchema(appDownloadsCommand.dataSchema, result.data);
     expect(app.calls.find((c) => c.method === 'changeDownloads')?.params).toEqual({ action: 'cancel', itemIds: ['a', 'b'] });
     const items = (result.data as { items: Array<{ item_id: string; status: string; changed: boolean }> }).items;
     expect(items.map((i) => [i.item_id, i.status, i.changed])).toEqual([
@@ -201,6 +217,7 @@ describe('autoslides downloads', () => {
 
   it('clears finished and failed rows', async () => {
     const result = await serve(['clear'], fakeApp(queue()));
+    expectMatchesSchema(appDownloadsCommand.dataSchema, result.data);
     expect(result.data).toEqual({ removed: 3 });
   });
 });

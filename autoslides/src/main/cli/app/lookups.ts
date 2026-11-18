@@ -10,6 +10,7 @@ import { TERMS_DATA, listTerms } from '../commands/terms';
 import { CliError } from '../errors';
 import { requireSignIn } from './signIn';
 import type { AppCommand } from './types';
+import { COURSE_SCHEMA_APP, MINE_SCHEMA_APP, SESSION_SCHEMA, TERMS_SCHEMA, WHOAMI_SCHEMA_APP } from '../dataSchemas';
 
 const ACCOUNT_DATA = 'account: { name, badge } | null';
 
@@ -25,6 +26,7 @@ export const appMineCommand: AppCommand = {
   options: MINE_OPTIONS,
   positionals: { min: 0, max: 0 },
   data: `${MINE_DATA}, ${ACCOUNT_DATA} }`,
+  dataSchema: MINE_SCHEMA_APP,
   serve: async (input, ctx) => {
     const { token, account } = await requireSignIn(ctx);
     const result = await listMyCourses(input, {
@@ -59,6 +61,7 @@ export const appCourseCommand: AppCommand = {
   options: [{ long: 'no-sessions', description: 'Show the course only' }],
   positionals: { min: 1, max: 1 },
   data: `${COURSE_DATA}, ${ACCOUNT_DATA} }`,
+  dataSchema: COURSE_SCHEMA_APP,
   serve: async (input, ctx) => {
     const { token, account } = await requireSignIn(ctx);
     const result = await showCourse(input, {
@@ -83,6 +86,7 @@ export const appSessionCommand: AppCommand = {
   options: [],
   positionals: { min: 1, max: 1 },
   data: SESSION_DATA,
+  dataSchema: SESSION_SCHEMA,
   serve: async (input, ctx) => {
     const { token } = await requireSignIn(ctx);
     return showSession(input, ctx.apiClient, token);
@@ -100,6 +104,7 @@ export const appTermsCommand: AppCommand = {
   options: [],
   positionals: { min: 0, max: 0 },
   data: TERMS_DATA,
+  dataSchema: TERMS_SCHEMA,
   serve: async (_input, ctx) => {
     await requireSignIn(ctx);
     return listTerms(ctx.apiClient);
@@ -118,6 +123,7 @@ export const appWhoamiCommand: AppCommand = {
   options: [],
   positionals: { min: 0, max: 0 },
   data: '{ signed_in: true, account: string|null, badge: string|null }',
+  dataSchema: WHOAMI_SCHEMA_APP,
   serve: async (_input, ctx) => {
     const { account } = await requireSignIn(ctx);
     return {

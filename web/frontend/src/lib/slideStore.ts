@@ -17,7 +17,7 @@
 // re-put; getSlideBlob rebuilds a short-lived Blob on every read. No Blob
 // migration path: the web app has not shipped, so only ArrayBuffer is stored.
 
-import { openDatabase, requestToPromise, transactionDone } from './idb';
+import { createConnection, openDatabase, requestToPromise, transactionDone } from './idb';
 import { cropImageBuffer, type CropRect } from './imageCrop';
 import type { SlideMetadata, SlideMetadataKind, SlideMetadataSource, SlidePostProcessingMeta } from './slideMetadataTypes';
 import { SLIDE_METADATA_VERSION } from './slideMetadataTypes';
@@ -92,25 +92,54 @@ const SLIDES = 'slides';
 const TRASH = 'trash';
 const FOLDERS = 'folders';
 
-let dbPromise: Promise<IDBDatabase> | null = null;
-
-function getDb(): Promise<IDBDatabase> {
-  if (!dbPromise) {
-    dbPromise = openDatabase(DB_NAME, DB_VERSION, (db) => {
-      const slides = db.createObjectStore(SLIDES, { keyPath: 'id' });
-      slides.createIndex('by-folder', 'folder');
-      slides.createIndex('by-folder-status', ['folder', 'status']);
-      const trash = db.createObjectStore(TRASH, { keyPath: 'id' });
-      trash.createIndex('by-folder', 'originalParentFolder');
-      trash.createIndex('by-trashPath', 'trashPath');
-      db.createObjectStore(FOLDERS, { keyPath: 'name' });
-    });
-    dbPromise.catch(() => {
-      dbPromise = null;
-    });
+/**
+ * The schema, one step per version. A step runs only for a database older
+ * than it (`oldVersion` is 0 for a new one), so a later version adds a step
+ * here instead of creating the stores again.
+ */
+function upgradeSchema(db: IDBDatabase, oldVersion: number): void {
+  if (oldVersion < 1) {
+    const slides = db.createObjectStore(SLIDES, { keyPath: 'id' });
+    slides.createIndex('by-folder', 'folder');
+    slides.createIndex('by-folder-status', ['folder', 'status']);
+    const trash = db.createObjectStore(TRASH, { keyPath: 'id' });
+    trash.createIndex('by-folder', 'originalParentFolder');
+    trash.createIndex('by-trashPath', 'trashPath');
+    db.createObjectStore(FOLDERS, { keyPath: 'name' });
   }
-  return dbPromise;
 }
+
+let outdatedListener: (() => void) | null = null;
+let outdated = false;
+
+function markOutdated(): void {
+  if (outdated) return;
+  outdated = true;
+  outdatedListener?.();
+}
+
+/**
+ * Called once when a newer version of the app (in another tab) has taken the
+ * slide store over: this tab's connection was closed for its upgrade, or the
+ * store is already newer than this code. Saving slides fails from then on
+ * until the page is reloaded.
+ */
+export function onSlideStoreOutdated(listener: () => void): void {
+  outdatedListener = listener;
+  if (outdated) listener();
+}
+
+const getDb = createConnection(async (onClosed) => {
+  try {
+    return await openDatabase(DB_NAME, DB_VERSION, upgradeSchema, (reason) => {
+      if (reason === 'versionchange') markOutdated();
+      onClosed(reason);
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'VersionError') markOutdated();
+    throw error;
+  }
+});
 
 export function slideId(folder: string, filename: string): string {
   return `${folder}/${filename}`;

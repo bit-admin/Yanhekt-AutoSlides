@@ -2,6 +2,7 @@
 // app's own route (IntranetApiTransport), so it behaves like ApiClient's and
 // yanhe2Http's requests. Developer mode only; yanhekt.cn hosts only.
 import type { AxiosResponse } from 'axios';
+import { requestEffect } from '@common/requestEffect';
 import { getClientSignature } from '@common/crypto';
 import {
   isYanhe2ApiUrl,
@@ -119,6 +120,8 @@ export class DevApiConsole {
     try {
       const response = await this.transport.send<string>({
         method: request.method,
+        // A hand-built Yanhe 2.0 write GET must not be resent either.
+        effect: requestEffect(request.method, request.url),
         url: request.url,
         headers,
         data: requestBody(request),

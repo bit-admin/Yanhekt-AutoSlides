@@ -1,4 +1,5 @@
 import { computed, reactive, ref, watch } from 'vue'
+import { requestEffect } from '@common/requestEffect'
 
 import { maskToken, type DevApiMethod, type DevApiPlatform, type DevApiResponse } from '@common/devApi'
 import { tokenManager } from '@shared/services/authService'
@@ -161,6 +162,12 @@ export function useApiLab() {
   const responseTab = ref<ResponseTab>('body')
 
   const preset = computed<ApiPreset | null>(() => presets.value.find((p) => p.id === presetId.value) ?? null)
+  /**
+   * Whether the request as it stands now changes the account. Worked out from
+   * the method and URL being sent (`@common/requestEffect`, the same table the
+   * network layer uses), so editing a preset's path or method updates it.
+   */
+  const writes = computed(() => requestEffect(method.value, urlText.value.trim()) === 'write')
 
   const filteredPresets = computed(() => {
     const q = filter.value.trim().toLowerCase()
@@ -403,6 +410,7 @@ export function useApiLab() {
     filteredPresets,
     filter,
     preset,
+    writes,
     presetId,
     method,
     urlText,

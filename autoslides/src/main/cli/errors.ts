@@ -22,7 +22,9 @@ export const CLI_ERROR_CODES = {
   network: { exit: EXIT.network, meaning: 'Yanhekt (or the AutoSlides Index) could not be reached' },
   cli_control_disabled: { exit: EXIT.appUnavailable, meaning: 'Command-line control is turned off in AutoSlides (Settings > Add-ons > Command Line)' },
   app_not_running: { exit: EXIT.appUnavailable, meaning: 'AutoSlides is not running and could not be started, or did not answer' },
+  app_version_mismatch: { exit: EXIT.appUnavailable, meaning: 'The running AutoSlides is another version than the command (usually an update waiting for a restart); quit and reopen it' },
   term_unavailable: { exit: EXIT.notFound, meaning: 'The course index searched (on this computer, or the AutoSlides Index) does not hold that term; see Settings > General > Search' },
+  output_folder_busy: { exit: EXIT.failed, meaning: 'The output folder was not changed: downloads, extractions, tasks or post-processing in AutoSlides are still writing into the current one' },
   failed: { exit: EXIT.failed, meaning: 'Anything else; the message says what' },
   interrupted: { exit: EXIT.interrupted, meaning: 'Stopped by Ctrl-C. In the terminal, run the same command again to resume a download; in the app, queued downloads keep going' },
 } as const;

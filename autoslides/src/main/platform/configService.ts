@@ -173,6 +173,8 @@ export interface CachedSemesterTag {
   savedAt: number;
 }
 
+const textOr = (value: unknown): string => (typeof value === 'string' ? value : '');
+
 export class ConfigService {
   private store: any; // Using any to bypass incorrect type definitions in electron-store v10+
   private themeService: ThemeService;
@@ -184,13 +186,17 @@ export class ConfigService {
     });
 
     this.themeService = new ThemeService();
-    this.ensureOutputDirectoryExists();
-    this.initializeTheme();
+    // Order matters. The migrations read legacy shapes, which the repair would
+    // otherwise reset; the repair then puts back the default for any value of
+    // the wrong type; only after it do the steps that act on stored values
+    // (creating the output folder, applying the theme) run.
     this.migrateOnboardingFlag();
     this.migrateAccounts();
     this.migrateWatchNotes();
     this.dropRetiredKeys();
     this.repairInvalidValues();
+    this.ensureOutputDirectoryExists();
+    this.initializeTheme();
     this.installSchemaFile();
   }
 
@@ -261,15 +267,18 @@ export class ConfigService {
   // list. Seeds a placeholder with badge '' because the badge is not persisted;
   // it is reconciled to a real record (matched by token) on the next verifyToken.
   private migrateAccounts(): void {
-    const existing = (this.store.get('accounts') ?? []) as StoredAccount[];
-    if (existing.length > 0) return;
+    // A damaged list (not an array) is treated as empty: the repair would
+    // reset it anyway, and the legacy sign-in should not be lost with it.
+    const existing: unknown = this.store.get('accounts');
+    if (Array.isArray(existing) && existing.length > 0) return;
     const token = this.store.get('authToken');
-    if (!token) return;
+    if (typeof token !== 'string' || !token) return;
     const now = Date.now();
     this.store.set('accounts', [{
       badge: '',
-      nickname: this.store.get('userOriginalNickname') ?? '',
-      displayName: this.store.get('userDisplayName') ?? '',
+      // Strings only: the repair drops an account whose fields have the wrong type.
+      nickname: textOr(this.store.get('userOriginalNickname')),
+      displayName: textOr(this.store.get('userDisplayName')),
       token,
       addedAt: now,
       lastUsedAt: now
@@ -1532,19 +1541,13 @@ export class ConfigService {
     return this.getSlideExtractionConfig().enablePngColorReduction !== false;
   }
 
-  async selectOutputDirectory(): Promise<string | null> {
+  /** The folder picker, starting at the current folder. Saves nothing (the settings writer does). */
+  async pickOutputDirectory(): Promise<string | null> {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
       defaultPath: this.store.get('outputDirectory')
     });
-
-    if (!result.canceled && result.filePaths.length > 0) {
-      const selectedPath = result.filePaths[0];
-      this.setOutputDirectory(selectedPath);
-      return selectedPath;
-    }
-
-    return null;
+    return !result.canceled && result.filePaths.length > 0 ? result.filePaths[0] : null;
   }
 
   get<K extends keyof AppConfig>(key: K, defaultValue?: AppConfig[K]): AppConfig[K] {

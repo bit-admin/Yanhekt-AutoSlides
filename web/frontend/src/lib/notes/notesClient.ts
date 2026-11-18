@@ -11,6 +11,7 @@
 
 import { authStore } from '../../stores/authStore';
 import { NOTE_GROUP_NAME_MAX } from './notesTypes';
+import { ungroupByRecreate } from './noteUngroup';
 import type {
   NoteDetail,
   NoteGroup,
@@ -21,6 +22,7 @@ import type {
 } from './notesTypes';
 import { createLogger } from '../logger';
 import { coalesce, invalidate } from '../requestCache';
+import { identityKey } from '../identityKey';
 
 const log = createLogger('NotesClient');
 
@@ -127,7 +129,7 @@ async function request<T>(method: string, path: string, body?: Record<string, un
   }
   // Key on the token so an account switch cannot join another account's read.
   const token = authStore.token.value ?? '';
-  return coalesce(`${NOTE_READ_PREFIX}${path}|${token.slice(0, 8)}`, () =>
+  return coalesce(`${NOTE_READ_PREFIX}${path}|${identityKey(token)}`, () =>
     send<T>(method, path, body),
   );
 }
@@ -220,15 +222,19 @@ export const notesClient: CloudNotesProvider = {
         return id;
       }
 
-      const body = content ?? detail.content ?? '';
-      const created = await request<{ id: number; success?: boolean }>('POST', '/v1/note', {
-        content: '',
-        version: 2,
-      });
-      const newId = created.id;
-      await request<void>('PUT', '/v1/note', { id: newId, title });
-      if (body) await request<void>('PUT', '/v1/note/content', { id: newId, content: body });
-      await request<void>('DELETE', '/v1/note', { id });
+      const newId = await ungroupByRecreate(
+        {
+          create: async () =>
+            (await request<{ id: number; success?: boolean }>('POST', '/v1/note', { content: '', version: 2 })).id,
+          setTitle: (noteId, text) => request<void>('PUT', '/v1/note', { id: noteId, title: text }),
+          setContent: (noteId, text) => request<void>('PUT', '/v1/note/content', { id: noteId, content: text }),
+          readContent: async (noteId) =>
+            (await request<NoteDetail>('GET', `/v1/note?id=${encodeURIComponent(noteId)}`)).content ?? '',
+          remove: (noteId) => request<void>('DELETE', '/v1/note', { id: noteId }),
+          warn: (message, error) => log.warn(message, error instanceof Error ? error.message : error),
+        },
+        { id, title, content: content ?? detail.content ?? '' },
+      );
       log.info('ungrouped note via recreate', { from: id, to: newId });
       return newId;
     });

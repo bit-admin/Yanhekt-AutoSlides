@@ -63,6 +63,9 @@ export interface DownloadItem {
   addedAt: number
   startedAt?: number
   completedAt?: number
+  // The finished file, as main reported it (the folder is fixed when the
+  // download starts). Absent until then, and on rows with their own runner.
+  filePath?: string
 
   // Qt extractor state (populated only when auto-extract is enabled and the binary is ready)
   extractionStatus?: ExtractionStatus
@@ -247,6 +250,7 @@ class DownloadServiceClass {
     item.error = undefined
     item.startedAt = undefined
     item.completedAt = undefined
+    item.filePath = undefined
 
     // Move the item to the end of the queue by removing and re-adding it
     const index = this.items.indexOf(item)
@@ -393,7 +397,7 @@ class DownloadServiceClass {
         }
       }
 
-      const completedListener = (downloadId: string) => {
+      const completedListener = (downloadId: string, filePath?: string) => {
         if (downloadId === item.id && !completed) {
           completed = true
           cleanupListeners()
@@ -410,6 +414,7 @@ class DownloadServiceClass {
           item.status = 'completed'
           item.progress = 100
           item.completedAt = Date.now()
+          if (filePath) item.filePath = filePath
           log.debug(`Completed: ${item.name}`)
 
 

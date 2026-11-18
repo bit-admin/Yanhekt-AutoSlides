@@ -1,7 +1,7 @@
 import { reactive, computed } from 'vue'
 import { PostProcessingService, type PostProcessJob } from './postProcessingService'
 import { configStore } from './configStore'
-import { TaskCoordinator, type TaskContext, type Yanhe2TaskSource } from '@shared/orchestration/taskCoordinator'
+import { TaskCoordinator, type TaskContext, type Yanhe2TaskSource, isTaskCancelled } from '@shared/orchestration/taskCoordinator'
 import { reduceTask, type TaskEvent } from '@shared/orchestration/taskMachine'
 import { overrides } from '../overrideRegistry'
 import type { SessionSnapshot } from './sessionSnapshot'
@@ -321,6 +321,9 @@ class TaskQueueService {
     this.applyTask(task, { type: 'START' })
 
     void TaskCoordinator.runTask(this.toContext(task)).catch((err) => {
+      // Paused or removed while starting: not a failure, and the task may
+      // already be running again under a new start.
+      if (isTaskCancelled(err)) return
       log.warn('[TaskQueue] Failed to start task:', task.id, err)
       const message = err instanceof Error ? err.message : String(err)
       // Only fail if the task is still active (a pause/remove may have moved on).

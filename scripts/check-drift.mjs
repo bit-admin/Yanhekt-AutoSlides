@@ -92,6 +92,18 @@ const GROUPS = [
 /** [source, copy]: the copy must be byte-identical to the source. */
 const IDENTICAL = [
   ['autoslides/src/renderer/features/video/streamFallback.ts', 'web/frontend/src/composables/video/streamFallback.ts'],
+  // One note's saves in order, and what counts as readable note content: the
+  // web editor must behave as the desktop one does.
+  ['autoslides/src/renderer/features/cloudNotes/noteSaveChain.ts', 'web/frontend/src/lib/notes/noteSaveChain.ts'],
+  ['autoslides/src/renderer/features/cloudNotes/noteContent.ts', 'web/frontend/src/lib/notes/noteContent.ts'],
+  // Ungrouping recreates the note: the same order of writes and the same
+  // outcome on a failure, on both sides.
+  ['autoslides/src/shared/noteUngroup.ts', 'web/frontend/src/lib/notes/noteUngroup.ts'],
+  // A worker request always ends, the same way on both sides.
+  ['autoslides/src/renderer/shared/workers/workerRequests.ts', 'web/frontend/src/workers/workerRequests.ts'],
+  // Behaviour cases both watch-progress copies must pass (each package runs
+  // them against its own copy, so a rule changed on one side fails there).
+  ['autoslides/src/shared/watchProgress.cases.json', 'web/frontend/src/lib/watchProgress.cases.json'],
   // The share Worker's search must split text exactly as the indexer wrote it.
   ['indexer/src/grams.ts', 'share/src/indexer/grams.ts'],
   // The share tests seed D1 through the indexer's own upload statements.

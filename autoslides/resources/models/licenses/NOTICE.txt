@@ -1,0 +1,21 @@
+AutoSlides bundled models
+=========================
+
+These model files are separate works shipped beside AutoSlides. The app
+loads them as data at run time. Each keeps its own licence; the AutoSlides
+licence (Apache-2.0) does not apply to them, and its terms do not restrict
+the rights those licences grant.
+
+slide-detect-v1.onnx
+  Slide canvas detector (auto-crop). A YOLOv8 model fine-tuned with
+  Ultralytics by the AutoSlides author in a separate project.
+  Licence: GNU Affero General Public License, version 3 (AGPL-3.0.txt).
+  Source (training code and instructions): https://github.com/bit-admin/slide-crop
+  You may use your own model instead: Settings > Image Processing >
+  Auto Crop > Select Custom Model.
+
+slide-classifier-v1.onnx
+  Slide / not-slide classifier (post-processing). A MobileNetV4 model
+  trained by the AutoSlides author in a separate project.
+  Licence: MIT (slide-classifier-MIT.txt).
+  Source: https://github.com/bit-admin/slide-classifier

@@ -111,8 +111,10 @@ const {
   owner: userId
 })
 
+// Not skipped while a load runs: the list takes the newest request (another
+// account's must replace the one in flight) and joins a repeat of the same one.
 const refresh = () => {
-  if (isLoggedIn.value && !isLoading.value) {
+  if (isLoggedIn.value) {
     void fetchPersonalCourses().finally(() => {
       hasFetched.value = true
     })

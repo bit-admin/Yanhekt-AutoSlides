@@ -21,7 +21,7 @@
     "make:linux": "electron-forge package --platform=linux --arch=x64 && electron-builder --linux --config electron-builder.yml --prepackaged out/AutoSlides-linux-x64 --publish never",
     "publish": "electron-forge publish",
     "sign:update": "node scripts/update-signing.mjs sign",
-    "lint": "eslint --ext .ts,.tsx .",
+    "lint": "eslint --ext .ts,.tsx . && node scripts/check-boundaries.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "gen:config-schema": "node scripts/gen-config-schema.mjs"

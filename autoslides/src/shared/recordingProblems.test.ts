@@ -41,3 +41,10 @@ describe('recordingProblems', () => {
     expect(queueErrorText(undefined)).toBeUndefined()
   })
 })
+
+describe('queueErrorText and an output folder that cannot be written', () => {
+  it('words a disconnected drive instead of showing the marker', () => {
+    const text = queueErrorText("Error invoking remote method 'x': Error: AUTOSLIDES_OUTPUT_DIR:unreachable:/Volumes/Drive/out")
+    expect(text).toBe("The output folder /Volumes/Drive/out can't be found. The drive it's on may be disconnected.")
+  })
+})

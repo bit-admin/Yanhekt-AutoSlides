@@ -74,6 +74,7 @@
   "settings": {
     "settings": "設定",
     "outputDirectory": "出力ディレクトリ",
+    "outputDirectoryBusy": "ダウンロード、抽出、タスク、後処理の実行中は出力ディレクトリを変更できません。完了するか取り消してから、もう一度お試しください。",
     "openFolder": "フォルダを開く",
     "browse": "参照",
     "connectionMode": "接続モード",
@@ -513,7 +514,7 @@
     "cacheClearError": "キャッシュクリアに失敗しました",
     "resetAllDataTitle": "全データリセット",
     "resetAllDataMessage": "アプリケーションを工場出荷時設定に完全にリセットします。",
-    "resetAllDataDetail": "すべての設定、キャッシュ、ログ、ユーザーデータが永続的に削除されます。この操作は元に戻せません。",
+    "resetAllDataDetail": "すべての設定、キャッシュ、ユーザーデータが永続的に削除されます（ログファイルは残ります）。この操作は元に戻せません。",
     "finalConfirmation": "最終確認",
     "finalConfirmationMessage": "本当にすべてのデータをリセットしますか？",
     "finalConfirmationDetail": "すべてが削除され、アプリケーションは新規インストール時のように再起動されます。",
@@ -522,7 +523,7 @@
     "resetError": "アプリケーションデータのリセットに失敗しました",
     "restartRequired": "再起動が必要",
     "restartRequiredMessage": "リセットを完了するためにアプリケーションの再起動が必要です。",
-    "restartRequiredDetail": "「今すぐ再起動」をクリックして即座に再起動するか、「後で再起動」をクリックして手動で再起動してください。",
+    "restartRequiredDetail": "「今すぐ再起動」をクリックすると AutoSlides が再起動します。",
     "restartNow": "今すぐ再起動",
     "restartLater": "後で再起動",
     "intranetInterface": "内部ネットワークインターフェース",
@@ -1316,6 +1317,7 @@
     "idle": "アイドル",
     "delete": "削除",
     "editorPlaceholder": "入力を開始…",
+    "unreadableContent": "このノートの内容は AutoSlides が読み取れない形式のため、空の状態でロックして表示しています。延河課堂上の元の内容は変更されていません。",
     "watchNotes": {
       "creating": "ノートを作成中…",
       "error": "ノートを作成できませんでした。接続を確認して再試行してください。",
@@ -1403,6 +1405,7 @@
     "importClose": "閉じる",
     "importEmpty": "画像が見つかりません",
     "importNotSignedIn": "先にサインインしてください",
+    "importListIncomplete": "ノート一覧をすべて読み込めなかったため、インポートしませんでした。もう一度お試しください。",
     "exportButton": "エクスポート",
     "exportTip": "このノートをファイルにエクスポート",
     "exportTitle": "ノートをエクスポート",
@@ -1450,7 +1453,10 @@
     "noteMeta": "AutoSlides によりインポート · {count} 枚 · {date}",
     "noteSlideCaption": "スライド {n}",
     "cancel": "キャンセル",
-    "yanhektError": "延河課堂のノートサービスでエラーが発生しました（エラーコード {code}）。延河課堂側の問題です。しばらくしてから再試行してください。"
+    "yanhektError": "延河課堂のノートサービスでエラーが発生しました（エラーコード {code}）。延河課堂側の問題です。しばらくしてから再試行してください。",
+    "changesNotSaved": "最新の変更は保存されませんでした。{reason}",
+    "leftUnsaved": "「{title}」の最新の変更は保存されず、失われました。{reason}",
+    "ungroupKeptBoth": "ノートを未分類にコピーしましたが、元のノートを削除できませんでした。両方とも残っています。不要なほうを削除してください。"
   },
   "webCapture": {
     "back": "戻る",

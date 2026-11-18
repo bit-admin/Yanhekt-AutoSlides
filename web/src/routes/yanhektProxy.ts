@@ -14,6 +14,9 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { Env } from "../env";
 import { upstreamHeaders } from "../lib/yanhekt";
+import { BODY_LIMITS, readRequestLimited, tooLarge } from "../lib/body";
+import { UPSTREAM_TIMEOUTS_MS, fetchUpstream, isUpstreamFailure } from "../lib/upstream";
+import { endpointFor, omitsCredential } from "../lib/yanhektEndpoints";
 
 const UPSTREAM_BASE = "https://cbiz.yanhekt.cn";
 
@@ -22,89 +25,16 @@ const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i;
 
 /**
  * Only the endpoint+method pairs the frontend actually uses are forwarded —
- * this proxy must not be an open relay onto the yanhekt API. Write methods
- * are matched exactly per path (no prefix-widening a read allowance into a
- * write one).
+ * this proxy must not be an open relay onto the yanhekt API. The pairs, and
+ * which of them go without the user's Bearer, are the table in
+ * lib/yanhektEndpoints.ts.
  */
-const ALLOWED_PATHS: Record<string, string[]> = {
-  GET: [
-    "/v1/user",
-    "/v1/cas/logout",
-    "/v2/live/list",
-    // Broadcast detail by id — the only way to resolve a live id without
-    // paging the whole live list. See isAnonymousUpstream.
-    "/v1/live",
-    "/v2/course/list",
-    "/v2/course/private/list",
-    "/v1/course",
-    "/v2/course/session/list",
-    // v1 twin, the fallback when v2 is empty (the /v1/course prefix already
-    // covers it; listed so the intent is explicit).
-    "/v1/course/session/list",
-    "/v1/tag/semester/default",
-    "/v1/video",
-    "/v1/note",
-    "/v1/note/list",
-    "/v1/note/group/list",
-  ],
-  POST: ["/v1/note", "/v1/note/group", "/v1/minio/upload", "/v1/course/subscription"],
-  PUT: ["/v1/note", "/v1/note/content", "/v1/course/session/user/progress"],
-  DELETE: ["/v1/note", "/v1/note/group", "/v1/course/subscription"],
-};
-
-function isAllowed(method: string, upstreamPath: string): boolean {
-  const paths = ALLOWED_PATHS[method];
-  if (!paths) return false;
-  if (method === "GET") {
-    // Reads keep the historical prefix semantics (e.g. /v1/course/<id>).
-    return paths.some((prefix) => upstreamPath === prefix || upstreamPath.startsWith(`${prefix}/`));
-  }
-  return paths.includes(upstreamPath);
-}
+const isAllowed = (method: string, upstreamPath: string): boolean => endpointFor(method, upstreamPath) !== null;
 
 function parseLoginToken(authHeader: string | undefined): string | null {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice("Bearer ".length).trim();
   return token.length > 0 ? token : null;
-}
-
-/**
- * Paths Yanhekt serves without a user Bearer (2026-08-13 probes). Personal
- * live (`user_relationship_type=1`), session list, subscriptions, notes,
- * and /v1/user still need the token forwarded.
- *
- * Keep in step with the Electron `allowAnonymous` opt-ins in
- * autoslides/src/main/platform/apiClient.ts (`preferAnonymousApiRequests`):
- *   anonymous-ok : getCourseList (/v2/course/list), getCourseInfo first hop
- *                  (/v1/course), public getLiveList / searchLiveList
- *                  (/v2/live/list, user_relationship_type !== 1),
- *                  getAvailableSemesters (/v1/tag/semester/default,
- *                  always), getVideoAssets
- *                  (/v1/video), getVideoToken
- *   never        : session list, personal live/course, subscriptions,
- *                  /v1/user, logout, notes, MinIO
- *
- * `/v1/course/session` is the exception that proves the rule: its public fields
- * are anonymous-ok, but `user_progress` — this account's saved playhead, which
- * the resume feature reads — only exists for the holder of the Bearer. Electron
- * documents the same hop as never-anonymous for exactly this reason
- * (apiClient.getSessionProgress). Stripping the token here would silently turn
- * every resume into "no history".
- * yanhektProxy.test.ts asserts this table.
- */
-function isAnonymousUpstream(method: string, path: string, search: URLSearchParams): boolean {
-  if (method !== "GET") return false;
-  if (path === "/v1/tag/semester/default") return true;
-  if (path === "/v2/course/list" || path.startsWith("/v2/course/list/")) return true;
-  if (path === "/v1/course") return true;
-  if (path === "/v1/video") return true;
-  // Exact, not prefix — same caution as /v1/course above: a future
-  // /v1/live/<something> personal endpoint must not inherit the omit.
-  if (path === "/v1/live") return true;
-  if (path === "/v2/live/list" || path.startsWith("/v2/live/list/")) {
-    return search.get("user_relationship_type") !== "1";
-  }
-  return false;
 }
 
 export const yanhektProxyRouter = new Hono<{ Bindings: Env }>();
@@ -125,13 +55,15 @@ async function forward(c: Context<{ Bindings: Env }>): Promise<Response> {
   }
 
   const headers = upstreamHeaders(
-    isAnonymousUpstream(method, upstreamPath, url.searchParams) ? null : token,
+    omitsCredential(method, upstreamPath, url.searchParams) ? null : token,
   );
-  let body: ArrayBuffer | undefined;
+  let body: Uint8Array | undefined;
   if (method !== "GET") {
     // Forward the caller's body bytes and Content-Type verbatim — for
     // multipart uploads the incoming header carries the form boundary.
-    body = await c.req.arrayBuffer();
+    const read = await readRequestLimited(c.req.raw, BODY_LIMITS.yanhekt);
+    if (read === null) return tooLarge(BODY_LIMITS.yanhekt);
+    body = read;
     const contentType = c.req.header("Content-Type");
     if (contentType) {
       headers["Content-Type"] = contentType;
@@ -140,11 +72,12 @@ async function forward(c: Context<{ Bindings: Env }>): Promise<Response> {
 
   // Forward url.search verbatim — query keys like `semesters[]=` must reach
   // the upstream unre-serialized.
-  const upstreamResponse = await fetch(`${UPSTREAM_BASE}${upstreamPath}${url.search}`, {
-    method,
-    headers,
-    body,
-  });
+  const upstreamResponse = await fetchUpstream(
+    (signal) => fetch(`${UPSTREAM_BASE}${upstreamPath}${url.search}`, { method, headers, body, signal }),
+    { caller: c.req.raw.signal, timeoutMs: UPSTREAM_TIMEOUTS_MS.yanhekt },
+  );
+  // No answer from Yanhekt: fetchUpstream's own 502/504, passed on as is.
+  if (isUpstreamFailure(upstreamResponse)) return upstreamResponse;
 
   return new Response(upstreamResponse.body, {
     status: upstreamResponse.status,

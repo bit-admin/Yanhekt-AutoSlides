@@ -10,6 +10,7 @@ import { configStore } from '@shared/services/configStore'
 import { fillIndexCourses, indexRowToCourse } from './courseIndexSearch'
 import { isEarlierTermOption as isEarlierTerm, termKeyOfOption, termOptionsBackFrom } from '@common/termOptions'
 import { createLogger } from '@shared/utils/logger';
+import { createLatest } from '@shared/utils/latest';
 const log = createLogger('SearchPage');
 
 const SEARCH_DEBOUNCE_MS = 400
@@ -62,8 +63,16 @@ const errorMessage = ref('')
 const hasSearched = ref(false)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
-// Sequence number so stale responses (rapid keyword/mode/semester flips) are dropped.
-let requestSeq = 0
+// Only the newest search writes. A search goes stale the moment what is asked
+// for changes (keyword, term, mode), not when the debounced replacement starts,
+// and also when the account it was sent for is no longer the one signed in.
+const searches = createLatest()
+
+/** What is being asked for changed: nothing in flight may write any more. */
+const dropInFlight = () => {
+  searches.cancel()
+  isLoading.value = false
+}
 
 const cancelPendingSearch = () => {
   if (debounceTimer !== null) {
@@ -95,10 +104,14 @@ const executeSearch = async (resetPage = true) => {
   cancelPendingSearch()
 
   // Not a Yanhekt search: `useYanhe2Search` follows the keyword on its own.
-  if (mode.value === 'yanhe2') return
+  if (mode.value === 'yanhe2') {
+    dropInFlight()
+    return
+  }
 
   const token = tokenManager.getToken()
   if (!token) {
+    dropInFlight()
     errorMessage.value = ''
     results.value = []
     hasSearched.value = false
@@ -110,18 +123,21 @@ const executeSearch = async (resetPage = true) => {
     currentPage.value = 1
   }
 
-  const seq = ++requestSeq
+  const newest = searches.begin()
+  const current = () => newest() && tokenManager.getToken() === token
   errorMessage.value = ''
   hasSearched.value = true
   indexNotice.value = null
 
   // The course index answers earlier terms (Yanhekt's search covers only the
   // current one), and the current term too when Settings → General → Search
-  // picks it over Yanhekt. `seq` above already made any in-flight search stale.
+  // picks it over Yanhekt. `begin` above already made any in-flight search stale.
   if (mode.value === 'recorded') {
     const picked = availableSemesters.value.find((t) => t.id === selectedSemesterIds.value[0])
     if (picked && (isEarlierTerm(picked.id) || configStore.currentTermSearchSource !== 'yanhekt')) {
-      await searchIndex(termKeyOfOption(picked), token, seq)
+      await searchIndex(termKeyOfOption(picked), token, current)
+      // An answer for an account that has since changed ends its own spinner.
+      if (newest()) isLoading.value = false
       return
     }
   }
@@ -131,7 +147,7 @@ const executeSearch = async (resetPage = true) => {
   try {
     if (mode.value === 'live') {
       const response: LiveListResponse = await apiClient.searchLiveList(token, keyword.value.trim(), currentPage.value, RESULTS_PER_PAGE)
-      if (seq !== requestSeq) return
+      if (!current()) return
       results.value = response.data.map(transformLiveStreamToCourse)
       // Live rows have no name_en — fill it per course, in the background.
       void hydrateLiveTitles(results.value)
@@ -144,20 +160,18 @@ const executeSearch = async (resetPage = true) => {
         page: currentPage.value,
         pageSize: RESULTS_PER_PAGE
       })
-      if (seq !== requestSeq) return
+      if (!current()) return
       results.value = response.data.map(transformCourseDataToCourse)
       totalPages.value = response.last_page
       currentPage.value = response.current_page
     }
   } catch (error: unknown) {
-    if (seq !== requestSeq) return
+    if (!current()) return
     log.error('Search failed:', error)
     errorMessage.value = (error instanceof Error && error.message) || 'Failed to search courses'
     results.value = []
   } finally {
-    if (seq === requestSeq) {
-      isLoading.value = false
-    }
+    if (newest()) isLoading.value = false
   }
 }
 
@@ -170,7 +184,7 @@ const showIndexNotice = (notice: IndexNotice) => {
   indexNotice.value = notice
 }
 
-const searchIndex = async (term: string, token: string, seq: number) => {
+const searchIndex = async (term: string, token: string, current: () => boolean) => {
   const text = keyword.value.trim()
   if (!text) {
     showIndexNotice('type')
@@ -179,7 +193,7 @@ const searchIndex = async (term: string, token: string, seq: number) => {
   isLoading.value = true
   try {
     const answer = await apiClient.searchCourseIndex(token, term, text, currentPage.value, RESULTS_PER_PAGE)
-    if (seq !== requestSeq) return
+    if (!current()) return
     if (!answer.ok) {
       if (answer.reason === 'sign-in' || answer.reason === 'yanhekt') results.value = []
       else if (answer.reason === 'local-missing') showIndexNotice('local-missing')
@@ -192,14 +206,14 @@ const searchIndex = async (term: string, token: string, seq: number) => {
     totalPages.value = answer.lastPage
     currentPage.value = answer.page
     // Names and teachers show at once; the rest arrives card by card.
-    void fillIndexCourses(results.value, apiClient, token, () => seq === requestSeq)
+    void fillIndexCourses(results.value, apiClient, token, current)
   } catch (error: unknown) {
-    if (seq !== requestSeq) return
+    if (!current()) return
     log.error('Course index search failed:', error)
     errorMessage.value = (error instanceof Error && error.message) || 'Failed to search courses'
     results.value = []
   } finally {
-    if (seq === requestSeq) isLoading.value = false
+    if (current()) isLoading.value = false
   }
 }
 
@@ -210,6 +224,7 @@ watch(() => [configStore.currentTermSearchSource, configStore.earlierTermSearchS
 
 // Search-as-you-type: debounce while the Search page is active.
 watch(keyword, () => {
+  dropInFlight()
   if (navigationStore.activeNav.value !== 'search') return
   cancelPendingSearch()
   debounceTimer = setTimeout(() => {
@@ -227,6 +242,7 @@ const goToPage = async (page: number) => {
 
 const setMode = async (m: SearchMode) => {
   if (mode.value === m) return
+  dropInFlight()
   mode.value = m
   if (m === 'recorded' && !semesterInitialized.value) {
     await selectLatestSemester()
@@ -244,6 +260,7 @@ const setSemesters = (ids: number[]) => {
   if (ids.length === 0) return
   selectedSemesterIds.value = ids.slice(0, 1)
   semesterInitialized.value = true
+  dropInFlight()
   cancelPendingSearch()
   debounceTimer = setTimeout(() => {
     debounceTimer = null
@@ -271,6 +288,7 @@ const handleSidebarEnter = () => {
 // Home page saved-course click: prefill and run.
 const openSavedSearch = async (kw: string, m: 'live' | 'recorded') => {
   cancelPendingSearch()
+  dropInFlight()
   keyword.value = kw
   mode.value = m
   navigationStore.navigate('search')

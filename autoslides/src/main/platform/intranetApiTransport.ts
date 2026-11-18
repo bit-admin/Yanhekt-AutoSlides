@@ -11,6 +11,14 @@ import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { httpClient } from '@main/infra/http';
 import { IntranetAgentPool, intranetRequest, isConnectionFailure, isUnsentFailure } from '@main/infra/intranetTransport';
 import type { IntranetMappingService } from './intranetMappingService';
+import type { RequestEffect } from '@common/requestEffect';
+
+/**
+ * One API request. `effect` says whether it changes anything; without it a GET
+ * is a read and anything else a write. Yanhe 2.0 has GETs that write, and
+ * those must say so: the HTTP method is never changed to express it.
+ */
+export type ApiRequestConfig = AxiosRequestConfig & { url: string; effect?: RequestEffect };
 
 /**
  * How long connecting to an intranet address may take before the public host
@@ -41,11 +49,12 @@ export class IntranetApiTransport {
    * to be current before it starts. Either way an address that cannot be
    * connected to is given up on after a few seconds, not the full timeout.
    */
-  async send<T = unknown>(config: AxiosRequestConfig & { url: string }): Promise<AxiosResponse<T>> {
+  async send<T = unknown>(request: ApiRequestConfig): Promise<AxiosResponse<T>> {
+    const { effect, ...config } = request;
     const mapping = this.intranetMapping;
     if (!mapping || !this.agentPool) return httpClient.request<T>(config);
 
-    const isRead = (config.method ?? 'GET').toUpperCase() === 'GET';
+    const isRead = effect ? effect === 'read' : (config.method ?? 'GET').toUpperCase() === 'GET';
     if (isRead) {
       void mapping.ensureFresh();
     } else {

@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker, {
   LOGIN_TOKEN_RE,
+  MAX_PLAYLIST_BYTES,
+  allowedRedirect,
   fetchSignedMedia,
+  MAX_REDIRECTS,
+  readPlaylist,
   isAllowedUpstream,
   parseSeconds,
   parseSessionId,
@@ -87,6 +91,48 @@ describe('t= gate', () => {
     );
     expect(res.status).toBe(403);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('redirects (SVC-06)', () => {
+  const redirect = (location: string, status = 302) => new Response(null, { status, headers: { Location: location } });
+
+  it('follows a relative or absolute hop that stays on Yanhekt', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse('tok'))
+      .mockResolvedValueOnce(redirect('/other/path/a.m3u8'))
+      .mockResolvedValueOnce(redirect('https://cvideo2.yanhekt.cn/b.m3u8', 307))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+    const res = await fetchSignedMedia(MEDIA, fakeCtx(), null);
+    expect(res.status).toBe(200);
+    const urls = fetchSpy.mock.calls.map((c) => String(c[0]));
+    expect(urls[2]).toBe('https://cvideo.yanhekt.cn/other/path/a.m3u8');
+    expect(urls[3]).toBe('https://cvideo2.yanhekt.cn/b.m3u8');
+    for (const call of fetchSpy.mock.calls.slice(1)) expect(call[1]).toMatchObject({ redirect: 'manual' });
+  });
+
+  it('refuses a hop to another host without requesting it', async () => {
+    fetchSpy.mockResolvedValueOnce(tokenResponse('tok')).mockResolvedValueOnce(redirect('https://evil.example/x'));
+    const res = await fetchSignedMedia(MEDIA, fakeCtx(), null);
+    expect(res.status).toBe(502);
+    expect(fetchSpy.mock.calls.map((c) => String(c[0])).some((u) => u.includes('evil.example'))).toBe(false);
+  });
+
+  it('refuses a downgrade to http and a lookalike host', () => {
+    expect(allowedRedirect('https://cvideo.yanhekt.cn/a', 'http://cvideo.yanhekt.cn/b')).toBeNull();
+    expect(allowedRedirect('https://cvideo.yanhekt.cn/a', 'https://yanhekt.cn.evil.example/b')).toBeNull();
+    expect(allowedRedirect('https://cvideo.yanhekt.cn/a', null)).toBeNull();
+    expect(allowedRedirect('https://cvideo.yanhekt.cn/a/b.m3u8', 'c.ts')).toBe('https://cvideo.yanhekt.cn/a/c.ts');
+  });
+
+  it('stops a loop after MAX_REDIRECTS hops', async () => {
+    fetchSpy.mockImplementation(async (url: string) =>
+      url.startsWith('https://cbiz.yanhekt.cn/') ? tokenResponse('tok') : redirect('https://cvideo.yanhekt.cn/loop'),
+    );
+    const res = await fetchSignedMedia(MEDIA, fakeCtx(), null);
+    expect(res.status).toBe(502);
+    const mediaCalls = fetchSpy.mock.calls.filter((c) => String(c[0]).startsWith('https://cvideo.'));
+    expect(mediaCalls).toHaveLength(MAX_REDIRECTS + 1);
   });
 });
 
@@ -315,5 +361,71 @@ describe('watch progress', () => {
     // Only the progress PUT went upstream — no token mint, no media fetch.
     expect(fetchSpy.mock.calls).toHaveLength(1);
     expect(progressCalls()).toHaveLength(1);
+  });
+});
+
+describe('readPlaylist', () => {
+  const chunked = (parts: number, size: number) =>
+    new Response(
+      new ReadableStream({
+        start(controller) {
+          for (let i = 0; i < parts; i++) controller.enqueue(new Uint8Array(size).fill(0x23));
+          controller.close();
+        },
+      }),
+      { status: 200 },
+    );
+
+  it('reads a playlist of ordinary size', async () => {
+    expect(await readPlaylist(new Response('#EXTM3U\n0001.ts\n'))).toEqual({ status: 200, body: '#EXTM3U\n0001.ts\n' });
+  });
+
+  it('refuses a declared or streamed body over the limit, reading no further', async () => {
+    const declared = new Response('x', { headers: { 'Content-Length': String(MAX_PLAYLIST_BYTES + 1) } });
+    expect(await readPlaylist(declared)).toBeNull();
+    expect(await readPlaylist(chunked(5, 1024 * 1024))).toBeNull();
+  });
+
+  it('answers a failed upstream with its status and never reads the error body', async () => {
+    const res = new Response('a large error page', { status: 404 });
+    expect(await readPlaylist(res)).toEqual({ status: 404, body: 'Upstream answered HTTP 404' });
+  });
+});
+
+describe('a rejected video token', () => {
+  it('mints a new one on the retry even while the old cache entry is still being deleted', async () => {
+    // The cache delete never finishes during the retry: a read would still find tok1.
+    cache.delete.mockImplementation(() => new Promise(() => {}));
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse('tok1'))
+      .mockResolvedValueOnce(new Response('denied', { status: 403 }))
+      .mockResolvedValueOnce(tokenResponse('tok2'))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+    const ctx = fakeCtx();
+    // Seed the cache with tok1, as an earlier request would have.
+    await cache.put(new Request('https://yanhekt-proxy.cache/token/anon'), new Response(JSON.stringify({ token: 'tok1' })));
+    fetchSpy.mockReset();
+    fetchSpy
+      .mockResolvedValueOnce(new Response('denied', { status: 403 }))
+      .mockResolvedValueOnce(tokenResponse('tok2'))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+    const res = await fetchSignedMedia(MEDIA, ctx, null);
+    expect(res.status).toBe(200);
+    const urls = fetchSpy.mock.calls.map((c) => c[0]);
+    expect(urls[0]).toContain('Xvideo_Token=tok1');
+    expect(urls[2]).toContain('Xvideo_Token=tok2');
+  });
+
+  it('does not let a token minted before the rejection be cached after it', async () => {
+    let releaseMint!: (r: Response) => void;
+    fetchSpy.mockImplementationOnce(() => new Promise<Response>((resolve) => { releaseMint = resolve; }));
+    const ctx = fakeCtx();
+    const { getVideoTokenForTest, invalidateTokenForTest } = await import('./index');
+    const old = getVideoTokenForTest(ctx);
+    await invalidateTokenForTest(ctx);
+    releaseMint(tokenResponse('stale'));
+    expect(await old).toBe('stale');
+    await Promise.all(ctx.pending);
+    expect(cache.store.has('https://yanhekt-proxy.cache/token/anon')).toBe(false);
   });
 });

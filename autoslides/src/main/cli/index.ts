@@ -28,6 +28,8 @@ import type { CliInvocation } from './invocation';
 import { pinRoute } from './route';
 import { fail, info, out, separate } from './terminal';
 import type { CliCommand, CliContext, CommandResult } from './types';
+import { checkPositionals } from './validate';
+import { SCHEMA_SCHEMA } from './dataSchemas';
 
 export { parseCliInvocation, type CliInvocation } from './invocation';
 export { createCliInterrupts } from './interrupts';
@@ -49,6 +51,7 @@ function schemaCommand(mode: CliMode): CliCommand {
     positionals: { min: 0, max: 0 },
     network: false,
     data: 'This document',
+    dataSchema: SCHEMA_SCHEMA,
     run: async (input, ctx) => {
       const schema = buildSchema(TABLES[mode], input.program, ctx.version, mode);
       return { data: schema, text: JSON.stringify(schema, null, 2) };
@@ -157,12 +160,7 @@ async function runCommand(
   if (options.verbose === true) ctx.setVerbose();
 
   try {
-    if (positionals.length > command.positionals.max) {
-      throw new CliError('usage', command.positionals.max === 0 ? `${id} takes no arguments` : `too many arguments: ${positionals.join(' ')}`);
-    }
-    if (positionals.length < command.positionals.min) {
-      throw new CliError('usage', `missing ${command.args}`);
-    }
+    checkPositionals(id, command, positionals);
     if (command.network) {
       // Only intranet traffic is ever bound to an interface, in the app as here.
       if (options.interface !== undefined && options.intranet !== true) {

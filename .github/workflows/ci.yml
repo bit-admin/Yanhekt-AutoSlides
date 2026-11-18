@@ -82,6 +82,26 @@ jobs:
         if: matrix.dir == 'web'
         run: npm run typecheck:web
 
+  indexer:
+    name: indexer (typecheck, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: indexer
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22' # latest 22.x; the indexer needs >= 22.18
+          cache: npm
+          cache-dependency-path: indexer/package-lock.json
+
+      - run: npm ci
+      # Unit tests only: synthetic fixtures, no crawl, upload or release.
+      - run: npm run typecheck
+      - run: npm test
+
   security:
     name: audit ${{ matrix.dir }}
     runs-on: ubuntu-latest
@@ -95,8 +115,20 @@ jobs:
           # remaining 3.x/5.x copies (eslint, forge's node-gyp, asar, glob 7/8)
           # do not contain the affected firstPhasePreProcess code, and 11 drops
           # APIs they use. Remove once 3.x/5.x patches ship or the range narrows.
+          #
+          # GHSA-fc5q-39xc-vjpf (picomatch extglob ReDoS, 2026-11-18): every
+          # release is affected (<=4.0.7, the latest), so nothing to update to.
+          # picomatch is dev-only in all four packages (fast-glob, chokidar,
+          # Vite, Vitest; no production tree), and those never match untrusted
+          # patterns. A fixed 4.x passes on its own; remove this then.
           - dir: autoslides
-            allow: --allow 'GHSA-g3hv-75wg-m249:minimatch:<9'
+            allow: --allow 'GHSA-g3hv-75wg-m249:minimatch:<9' --allow 'GHSA-fc5q-39xc-vjpf:picomatch:<5'
+          - dir: web
+            allow: --allow 'GHSA-fc5q-39xc-vjpf:picomatch:<5'
+          - dir: share
+            allow: --allow 'GHSA-fc5q-39xc-vjpf:picomatch:<5'
+          - dir: relay
+            allow: --allow 'GHSA-fc5q-39xc-vjpf:picomatch:<5'
     defaults:
       run:
         working-directory: ${{ matrix.dir }}

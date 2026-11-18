@@ -74,6 +74,7 @@
   "settings": {
     "settings": "설정",
     "outputDirectory": "출력 폴더",
+    "outputDirectoryBusy": "다운로드, 추출, 작업 또는 후처리가 진행 중일 때는 출력 폴더를 바꿀 수 없습니다. 끝나거나 취소한 뒤 다시 시도하세요.",
     "openFolder": "폴더 열기",
     "browse": "찾아보기",
     "connectionMode": "연결 모드",
@@ -513,7 +514,7 @@
     "cacheClearError": "캐시 지우기 실패",
     "resetAllDataTitle": "모든 데이터 재설정",
     "resetAllDataMessage": "애플리케이션을 공장 초기화 설정으로 완전히 재설정합니다.",
-    "resetAllDataDetail": "모든 설정, 캐시, 로그 및 사용자 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+    "resetAllDataDetail": "모든 설정, 캐시 및 사용자 데이터가 영구적으로 삭제됩니다(로그 파일은 유지됩니다). 이 작업은 되돌릴 수 없습니다.",
     "finalConfirmation": "최종 확인",
     "finalConfirmationMessage": "정말로 모든 데이터를 재설정하시겠습니까?",
     "finalConfirmationDetail": "모든 것이 삭제되고 애플리케이션이 새로 설치된 것처럼 다시 시작됩니다.",
@@ -522,7 +523,7 @@
     "resetError": "애플리케이션 데이터 재설정 실패",
     "restartRequired": "재시작 필요",
     "restartRequiredMessage": "재설정을 완료하려면 애플리케이션을 재시작해야 합니다.",
-    "restartRequiredDetail": "즉시 재시작하려면 '지금 재시작'을 클릭하고, 수동으로 재시작하려면 '나중에 재시작'을 클릭하세요.",
+    "restartRequiredDetail": "'지금 재시작'을 클릭하면 AutoSlides가 다시 시작됩니다.",
     "restartNow": "지금 재시작",
     "restartLater": "나중에 재시작",
     "intranetInterface": "내부 네트워크 인터페이스",
@@ -1316,6 +1317,7 @@
     "idle": "대기",
     "delete": "삭제",
     "editorPlaceholder": "입력 시작…",
+    "unreadableContent": "이 노트의 내용은 AutoSlides가 읽을 수 없는 형식이라 빈 상태로 잠겨 표시됩니다. 옌허커탕의 원본은 변경되지 않았습니다.",
     "watchNotes": {
       "creating": "노트를 만드는 중…",
       "error": "노트를 만들 수 없습니다. 연결을 확인한 후 다시 시도하세요.",
@@ -1403,6 +1405,7 @@
     "importClose": "닫기",
     "importEmpty": "이미지를 찾을 수 없음",
     "importNotSignedIn": "먼저 로그인하세요",
+    "importListIncomplete": "노트 목록을 모두 불러오지 못해 가져오지 않았습니다. 다시 시도하세요.",
     "exportButton": "내보내기",
     "exportTip": "이 노트를 파일로 내보내기",
     "exportTitle": "노트 내보내기",
@@ -1450,7 +1453,10 @@
     "noteMeta": "AutoSlides에서 가져옴 · 슬라이드 {count}장 · {date}",
     "noteSlideCaption": "슬라이드 {n}",
     "cancel": "취소",
-    "yanhektError": "옌허커탕 노트 서비스에 오류가 발생했습니다(오류 코드 {code}). 옌허커탕 서버 문제이니 잠시 후 다시 시도하세요."
+    "yanhektError": "옌허커탕 노트 서비스에 오류가 발생했습니다(오류 코드 {code}). 옌허커탕 서버 문제이니 잠시 후 다시 시도하세요.",
+    "changesNotSaved": "최근 변경 사항이 저장되지 않았습니다. {reason}",
+    "leftUnsaved": "“{title}”의 최근 변경 사항이 저장되지 않아 사라졌습니다. {reason}",
+    "ungroupKeptBoth": "노트를 미분류로 복사했지만 원본을 삭제하지 못했습니다. 두 노트 모두 남아 있으니 필요 없는 쪽을 삭제하세요."
   },
   "webCapture": {
     "back": "뒤로",

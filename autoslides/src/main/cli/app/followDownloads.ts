@@ -88,6 +88,8 @@ export function followDownloads<F extends Followed>(
       })
     );
     ctx.signal.addEventListener('abort', close);
-    if (left === 0) queueMicrotask(close);
+    // Already gone before the listener was added (or while the watchers were
+    // being registered): an abort event will not come again.
+    if (ctx.signal.aborted || left === 0) queueMicrotask(close);
   });
 }

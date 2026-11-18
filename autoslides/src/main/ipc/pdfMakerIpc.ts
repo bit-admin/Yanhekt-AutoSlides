@@ -264,9 +264,14 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
           );
 
           if (!exportResult.success || !exportResult.path) {
+            // The batch stops here. Files already made stay, and are reported,
+            // so a failure is not read as "nothing was exported".
             return {
               success: false,
-              error: exportResult.error || `Failed to create ${formatLabel} for ${folder.name}`
+              error: exportResult.error || `Failed to create ${formatLabel} for ${folder.name}`,
+              failedFolder: folder.name,
+              outputDir,
+              paths: generatedPaths
             };
           }
 

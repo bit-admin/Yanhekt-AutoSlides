@@ -74,6 +74,7 @@
   "settings": {
     "settings": "Settings",
     "outputDirectory": "Output Directory",
+    "outputDirectoryBusy": "The output folder cannot change while downloads, extractions, tasks or post-processing are running. Let them finish or cancel them, then try again.",
     "openFolder": "View Output",
     "browse": "Browse",
     "connectionMode": "Connection Mode",
@@ -513,7 +514,7 @@
     "cacheClearError": "Failed to clear cache",
     "resetAllDataTitle": "Reset All Data",
     "resetAllDataMessage": "This will completely reset the application to factory settings.",
-    "resetAllDataDetail": "All settings, cache, logs, and user data will be permanently deleted. This action cannot be undone.",
+    "resetAllDataDetail": "All settings, cache and user data will be permanently deleted; the log files are kept. This action cannot be undone.",
     "finalConfirmation": "Final Confirmation",
     "finalConfirmationMessage": "Are you absolutely sure you want to reset ALL data?",
     "finalConfirmationDetail": "This will delete everything and the application will restart as if newly installed.",
@@ -522,7 +523,7 @@
     "resetError": "Failed to reset application data",
     "restartRequired": "Restart Required",
     "restartRequiredMessage": "The application needs to restart to complete the reset.",
-    "restartRequiredDetail": "Click 'Restart Now' to restart immediately, or 'Restart Later' to restart manually.",
+    "restartRequiredDetail": "AutoSlides restarts when you click 'Restart Now'.",
     "restartNow": "Restart Now",
     "restartLater": "Restart Later",
     "intranetInterface": "Intranet Network Interface",
@@ -1316,6 +1317,7 @@
     "idle": "Idle",
     "delete": "Delete",
     "editorPlaceholder": "Start writing…",
+    "unreadableContent": "This note's content is in a format AutoSlides cannot read, so it is shown empty and locked. The original is unchanged on Yanhekt.",
     "watchNotes": {
       "creating": "Creating your note…",
       "error": "Couldn't create the note. Check your connection and try again.",
@@ -1403,6 +1405,7 @@
     "importClose": "Close",
     "importEmpty": "No Images Found",
     "importNotSignedIn": "Sign In First",
+    "importListIncomplete": "Could not read the full note list, so nothing was imported. Try again.",
     "exportButton": "Export",
     "exportTip": "Export this note to a file",
     "exportTitle": "Export Note",
@@ -1450,7 +1453,10 @@
     "noteMeta": "Imported by AutoSlides · {count} slides · {date}",
     "noteSlideCaption": "Slide {n}",
     "cancel": "Cancel",
-    "yanhektError": "Yanhekt's note service failed (error code {code}). This is a problem on Yanhekt's side; try again later."
+    "yanhektError": "Yanhekt's note service failed (error code {code}). This is a problem on Yanhekt's side; try again later.",
+    "changesNotSaved": "Your latest changes were not saved. {reason}",
+    "leftUnsaved": "Your latest changes to “{title}” were not saved and are lost. {reason}",
+    "ungroupKeptBoth": "The note was copied to Ungrouped, but the original could not be deleted. Both notes are kept; delete the one you do not need."
   },
   "webCapture": {
     "back": "Back",

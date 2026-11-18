@@ -12,6 +12,7 @@
 // sent to every window. No sign-in is needed: nothing here talks to Yanhekt.
 // There is no one-run override (`--output` and the like): a different folder
 // or route for one run is what `yhdl` is for.
+import { describeOutputFolderWork, parseOutputFolderBusy } from '@common/outputFolderWork';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -23,6 +24,7 @@ import { table } from '../format';
 import { resolveCliInterface } from '../networkInterface';
 import type { CommandInput, CommandResult } from '../types';
 import type { AppCommand, AppCommandContext } from './types';
+import { CONFIG_SCHEMA } from '../dataSchemas';
 
 type Value = string | number | boolean | null;
 
@@ -31,12 +33,17 @@ interface Setting {
   /** Where it is in the app, as the English UI names it. */
   setting: string;
   read: (config: AppConfig) => Value;
+  /**
+   * The value as stored, when `read` hides part of it: what tells a change
+   * from no change. Never shown.
+   */
+  stored?: (config: AppConfig) => Value;
   /** The JSON type, for `schema`. */
   type: string;
   /** What `config <key> <value>` takes, for help and errors. */
   accepts: string;
   /** Checks the typed value (a usage error when it is wrong) and saves it through the app. */
-  write: (raw: string, ctx: AppCommandContext) => void;
+  write: (raw: string, ctx: AppCommandContext) => void | Promise<void>;
 }
 
 const CONNECTION_MODES: readonly ConnectionMode[] = ['auto', 'internal', 'external'];
@@ -81,11 +88,14 @@ function parseProxyMode(key: string, raw: string): ProxyMode {
   return mode;
 }
 
-/** A proxy address (`none` clears it). The password, if any, is never printed back. */
+/**
+ * A proxy address (`none` clears it). Never printed back, not even when it is
+ * refused: what was typed may hold a password.
+ */
 function parseProxyAddress(raw: string): string {
   if (['none', ''].includes(raw.toLowerCase())) return '';
   if (!parseProxyUrl(raw)) {
-    throw new CliError('usage', `proxy_url is http://, https:// or socks5:// with a host and port, not ${raw}`);
+    throw new CliError('usage', 'proxy_url is http://, https:// or socks5:// with a host and port (no path), or none');
   }
   return raw.trim();
 }
@@ -112,7 +122,20 @@ export const SETTINGS: readonly Setting[] = [
     type: 'string|null',
     accepts: 'an existing folder (absolute path)',
     read: (c) => c.outputDirectory || null,
-    write: (raw, ctx) => ctx.settings.setOutputDirectory(parseFolder(raw)),
+    write: async (raw, ctx) => {
+      const folder = parseFolder(raw);
+      try {
+        await ctx.settings.setOutputDirectory(folder);
+      } catch (error) {
+        const work = parseOutputFolderBusy(error);
+        if (!work) throw error;
+        throw new CliError(
+          'output_folder_busy',
+          `the output folder cannot change while ${describeOutputFolderWork(work)} in AutoSlides ${work.downloads + work.extractions + work.tasks + work.postProcessing === 1 ? 'is' : 'are'} unfinished`,
+          'Let them finish, or cancel them in the app (`autoslides downloads cancel --all` for downloads), then run this again.',
+        );
+      }
+    },
   },
   {
     key: 'connection_mode',
@@ -164,6 +187,7 @@ export const SETTINGS: readonly Setting[] = [
     type: 'string|null',
     accepts: 'http://, https:// or socks5:// host:port, or none',
     read: (c) => (c.proxyCustomUrl ? maskProxyPassword(c.proxyCustomUrl) : null),
+    stored: (c) => c.proxyCustomUrl || null,
     write: (raw, ctx) => ctx.settings.setProxySettings({ customUrl: parseProxyAddress(raw) }),
   },
   {
@@ -221,15 +245,21 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
   const config = ctx.configService.getConfig();
 
   if (wanted && raw !== undefined) {
+    const stored = wanted.stored ?? wanted.read;
     const previous = wanted.read(config);
-    wanted.write(raw, ctx);
+    const storedBefore = stored(config);
+    await wanted.write(raw, ctx);
     // As saved: ConfigService may have normalized it.
-    const value = wanted.read(ctx.configService.getConfig());
-    const changed = value !== previous;
-    return {
-      data: { key: wanted.key, value, previous, changed, setting: wanted.setting },
-      text: changed ? `${wanted.key}: ${shown(previous)} -> ${shown(value)}` : `${wanted.key} is already ${shown(value)}.`,
-    };
+    const saved = ctx.configService.getConfig();
+    const value = wanted.read(saved);
+    // Told from what is stored: two addresses that differ only in the password are shown alike.
+    const changed = stored(saved) !== storedBefore;
+    const text = !changed
+      ? `${wanted.key} is already ${shown(value)}.`
+      : value === previous
+        ? `${wanted.key}: updated (${shown(value)})`
+        : `${wanted.key}: ${shown(previous)} -> ${shown(value)}`;
+    return { data: { key: wanted.key, value, previous, changed, setting: wanted.setting }, text };
   }
 
   if (wanted) {
@@ -277,5 +307,6 @@ export const appConfigCommand: AppCommand = {
   data:
     `{ settings: { ${SETTINGS.map((s) => `${s.key}: ${s.type}`).join(', ')} } }; ` +
     'with a key: { key, value, setting }; with a key and value: { key, value, previous, changed: boolean, setting }',
+  dataSchema: CONFIG_SCHEMA,
   serve,
 };

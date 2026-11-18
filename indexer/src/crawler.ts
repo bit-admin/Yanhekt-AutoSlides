@@ -312,6 +312,8 @@ export class Crawler {
     const dir = spec.dir;
     let used = 0;
     let cut = false;
+    // Probe points that kept answering an error code: they may be sessions.
+    let unknown = 0;
     for (let k = 1; k <= config.probeCount; k++) {
       const id = lane.cursor + dir * k * config.probeStep;
       if (pastEnd(spec, id)) {
@@ -319,8 +321,16 @@ export class Crawler {
         break;
       }
       if (this.stopped() || !budget.canAfford(1)) return used; // state unchanged: probe again next time
-      const o = await this.call(() => this.d.api.session(id));
-      used += 1;
+      // Asked again on an error code, like a scanned id.
+      const fetched = await this.fetchSession(id);
+      const o = fetched.o;
+      used += fetched.used;
+      if (o.kind === 'unexpected') {
+        // Not a hit and not a miss: recorded so `retryFailed` asks again later.
+        this.unexpected('session', id, o);
+        unknown += 1;
+        continue;
+      }
       // An expired answer is a session too: ids are in use there.
       if (o.kind === 'ok' || o.kind === 'expired') {
         const resume = lane.cursor + dir * (k - 1) * config.probeStep;
@@ -337,6 +347,15 @@ export class Crawler {
       lane.missRun = 0;
       lane.missRunStart = null;
     };
+    if (unknown > 0 && (cut || dir < 0)) {
+      // A skip here would be for good (a range end, or a backward gap), and
+      // some probe points could not be read. Go on walking ids one at a time
+      // from here instead; the next probe lands elsewhere. (Forward at the
+      // newest id is safe either way: it rewinds and asks again later.)
+      this.log(`${spec.key}: ${unknown} probe point(s) after ${lane.cursor} answered error codes; not skipping, scanning on`);
+      reset();
+      return used;
+    }
     if (cut) {
       // Probes ran into the lane's end without a hit: nothing left to find.
       store.recordGap(spec.key, lane.cursor, spec.end!, 'skipped: no hit before the end of the range', this.d.now());

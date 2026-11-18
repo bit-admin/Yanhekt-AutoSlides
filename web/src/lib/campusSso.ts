@@ -20,6 +20,7 @@
  */
 import { constants, publicEncrypt } from "node:crypto";
 import CryptoJS from "crypto-js";
+import { BODY_LIMITS, readTextLimited } from "./body";
 
 const CAS_ORIGIN = "https://sso.bit.edu.cn";
 const CAS_LOGIN_URL = `${CAS_ORIGIN}/cas/login`;
@@ -79,6 +80,16 @@ export type SignInReason =
   | "unsupported_page"
   | "network"
   | "unknown";
+
+/**
+ * A CAS page or answer, read to at most `BODY_LIMITS.ssoPage`. A real one is a
+ * few tens of KB; anything past the limit is not a page this flow knows.
+ */
+async function readPage(response: Response): Promise<string> {
+  const text = await readTextLimited(response, BODY_LIMITS.ssoPage);
+  if (text === null) throw new CasSignInError("The campus sign-in page was unexpectedly large.", "unsupported_page");
+  return text;
+}
 
 export class CasSignInError extends Error {
   constructor(
@@ -625,7 +636,7 @@ export async function startPasswordSignIn(
     return { kind: "token", token, durableCookies: transport.jar.exportDurable() };
   }
 
-  const html = await response.text();
+  const html = await readPage(response);
   const secondFactorExecution = readElementText(html, "login-page-flowkey");
   const userObjectId = readElementText(html, "user-object-id");
 
@@ -697,7 +708,7 @@ export async function finishSecondFactor(
   const response = await transport.request(context.formAction, { method: "POST", form });
 
   if (response.status !== 302) {
-    const failure = classifyPageError(await response.text(), {
+    const failure = classifyPageError(await readPage(response), {
       reason: "code_rejected",
       message: "That verification code was rejected. Please start over.",
     });
@@ -774,7 +785,7 @@ async function lookupBoundPhone(
     },
   });
 
-  const body = await response.text();
+  const body = await readPage(response);
   if (!body) {
     throw new CasSignInError(
       "The verification service returned an empty response. Please sign in with token instead.",
@@ -798,7 +809,7 @@ async function assertNoCaptchaRequired(transport: CasTransport, username: string
       `${CAPTCHA_PROBE_URL}/${encodeURIComponent(username)}`,
       { cacheBust: true },
     );
-    payload = tryParseJson(await response.text());
+    payload = tryParseJson(await readPage(response));
   } catch {
     // Advisory only: if the probe fails, let the real POST decide.
     return;
@@ -825,10 +836,10 @@ async function loadCredentialPage(
   for (let hop = 0; hop <= MAX_PAGE_REDIRECTS; hop++) {
     const response = await transport.request(url);
     if (response.status < 300 || response.status >= 400) {
-      return { url, html: await response.text() };
+      return { url, html: await readPage(response) };
     }
     const location = response.headers.get("Location");
-    if (!location) return { url, html: await response.text() };
+    if (!location) return { url, html: await readPage(response) };
     url = new URL(location, url).toString();
   }
 
@@ -873,5 +884,5 @@ async function exchangeTicketForToken(
 
 async function postJson(transport: CasTransport, url: string, json: unknown): Promise<unknown> {
   const response = await transport.request(url, { method: "POST", json });
-  return tryParseJson(await response.text());
+  return tryParseJson(await readPage(response));
 }

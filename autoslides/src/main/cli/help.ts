@@ -4,6 +4,7 @@ import { optionLabel, type OptionSpec } from './args';
 import { TOKEN_ENV } from './credentials';
 import { CLI_ERROR_CODES, EXIT } from './errors';
 import type { CliCommand } from './types';
+import { DATA_SCHEMA_VERSION } from './dataSchemas';
 
 export const JSON_OPTION: OptionSpec = {
   long: 'json',
@@ -104,7 +105,7 @@ const AUTH: Record<CliMode, object> = {
   terminal: {
     env: TOKEN_ENV,
     order: ['--token', '--account', TOKEN_ENV, 'the account signed in to AutoSlides'],
-    note: 'Only the personal lists send a token: a course\'s sessions (course, download --course) and the account\'s courses (mine). Search, course details, session lookups and video downloads are anonymous.',
+    note: 'A token is read only when a request needs one: the personal lists (a course\'s sessions for course and download --course, the account\'s courses for mine), search when it reads the AutoSlides Index online, and session or download for an earlier term\'s session, which Yanhekt no longer serves by id (it is taken from its course\'s session list). Without a token those fail with auth_required. Everything else is anonymous: current-term session lookups, course details, search on Yanhekt or the course index on this computer, and video downloads.',
   },
   app: {
     note: 'Every command runs inside AutoSlides (started if it is not running) as the account it is signed in with. A command that talks to Yanhekt fails with sign_in_required while the app is signed out; config, and downloads other than retry, stay inside the app and work signed out. Requests follow its Settings > Network (route, prefer anonymous requests). Command-line control can be turned off in Settings > Add-ons > Command Line (error cli_control_disabled).',
@@ -116,6 +117,9 @@ export function buildSchema(commands: CommandTable, program: string, version: st
     program,
     version,
     runs_in: mode === 'app' ? 'the AutoSlides app' : 'this terminal process',
+    // Version of the commands' `data_schema` (JSON Schema). Fields may be added
+    // within a version; one is removed or retyped only with a new version.
+    data_schema_version: DATA_SCHEMA_VERSION,
     output: {
       json: 'With --json, stdout is exactly one JSON object: {"ok":true,"data":…} or {"ok":false,"error":{"code","message","hint"?},"data"?}. Progress and notices go to stderr.',
       text: 'Without --json, stdout carries only results (tables, or the path of each downloaded file).',
@@ -149,6 +153,7 @@ export function buildSchema(commands: CommandTable, program: string, version: st
           })),
         examples: c.examples.map((e) => `${program} ${fill(e, program)}`),
         data: c.data,
+        data_schema: c.dataSchema,
       };
     }),
   };

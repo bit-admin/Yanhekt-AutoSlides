@@ -20,6 +20,7 @@ import {
 import type { LectureVideoItem } from './useLecturesPage'
 import { overrides } from '@shared/overrideRegistry'
 import { getTimeline } from '@shared/services/slideTimelineClient'
+import { createLatest } from '@shared/utils/latest'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LectureLibrary')
@@ -56,7 +57,11 @@ export function useLectureLibrary(
     return findLibrarySession(courses.value, t.courseId, t.sessionId)
   })
 
-  const loadSlideSeeds = async () => {
+  // One run per `videos` list; only the newest writes seeds, titles and the
+  // two progress flags, so two scans cannot leave a mixed library.
+  const runs = createLatest()
+
+  const loadSlideSeeds = async (current: () => boolean): Promise<void> => {
     isDiscoveringSlides.value = true
     try {
       const folders = overrides.resultsProvider
@@ -71,17 +76,21 @@ export function useLectureLibrary(
           return timeline ? seed : null
         }),
       )
+      if (!current()) return
       slideSeeds.value = checked.filter((seed): seed is LibrarySlideSeed => seed != null)
     } catch (error) {
+      if (!current()) return
       log.warn('Library slide discovery failed', error)
       slideSeeds.value = []
     } finally {
-      isDiscoveringSlides.value = false
+      if (current()) isDiscoveringSlides.value = false
     }
   }
 
   const hydrate = async () => {
-    await loadSlideSeeds()
+    const current = runs.begin()
+    await loadSlideSeeds(current)
+    if (!current()) return
     const videoIds = videos.value
       .filter((v) => v.recognised && v.courseId)
       .map((v) => v.courseId!)
@@ -89,6 +98,7 @@ export function useLectureLibrary(
     const ids = [...new Set([...videoIds, ...seedIds])]
     if (ids.length === 0) {
       metaByCourse.value = new Map()
+      isHydrating.value = false
       return
     }
 
@@ -98,11 +108,12 @@ export function useLectureLibrary(
       for (const c of buildLibraryCourses(videos.value, new Map(), slideSeeds.value)) {
         titleBy.set(c.courseId, c.title)
       }
-      metaByCourse.value = await hydrateCourseMetas(ids, titleBy)
+      const metas = await hydrateCourseMetas(ids, titleBy)
+      if (current()) metaByCourse.value = metas
     } catch (error) {
-      log.warn('Library meta hydrate failed', error)
+      if (current()) log.warn('Library meta hydrate failed', error)
     } finally {
-      isHydrating.value = false
+      if (current()) isHydrating.value = false
     }
   }
 

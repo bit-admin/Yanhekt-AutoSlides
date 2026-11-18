@@ -21,6 +21,7 @@ import { englishTitle, table } from '../format';
 import { matchTerm, termKey } from '../terms';
 import { info } from '../terminal';
 import type { CliCommand, CliContext, CommandInput, CommandResult } from '../types';
+import { SEARCH_SCHEMA } from '../dataSchemas';
 
 const ANONYMOUS = '';
 export const DEFAULT_LIMIT = 20;
@@ -226,5 +227,6 @@ export const searchCommand: CliCommand = {
   network: true,
   tokenUse: 'Only for the AutoSlides Index online (earlier terms not on this computer, or when Settings picks it)',
   data: SEARCH_DATA,
+  dataSchema: SEARCH_SCHEMA,
   run,
 };

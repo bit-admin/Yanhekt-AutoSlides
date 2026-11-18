@@ -25,6 +25,21 @@ function env(extra: Partial<Env> = {}): Env {
 describe("recorded-HLS relay routes", () => {
   const app = createApp();
 
+  it("refuses a playlist larger than any real one instead of reading it all", async () => {
+    const huge = vi.fn(
+      async () =>
+        new Response("#EXTM3U\n" + "x".repeat(4 * 1024 * 1024 + 1), {
+          headers: { "Content-Type": "application/vnd.apple.mpegurl" },
+        }),
+    );
+    const res = await app.request(
+      PLAYLIST,
+      {},
+      env({ RELAY: { fetch: huge } as unknown as Fetcher, ALLOW_OFFCAMPUS_RELAY: "true", RELAY_PUBLIC_ORIGIN: "https://relay.example.com" }),
+    );
+    expect(res.status).toBe(502);
+  });
+
   it("proxies over the binding when off-campus relaying is allowed", async () => {
     const fetchStub = relayStub();
     const res = await app.request(

@@ -41,8 +41,18 @@ const VERSION_PATTERN = /[\d]+\.[\d]+\.[\d]+/;
 export const EXTRACTOR_REPO_URL = 'https://github.com/bit-admin/AutoSlides-Extractor';
 
 export class ExtractorInstallerService extends FileDownloadService {
+  // The assets main last offered for this platform, by name. A download is
+  // accepted only for one of these, from its own address or its proxy copy:
+  // the renderer chooses among them, it does not name what to fetch.
+  private offered = new Map<string, ExtractorAsset>();
+
   constructor() {
     super({ userAgent: 'AutoSlides-ExtractorInstaller' });
+  }
+
+  /** Remember what was offered (the platform's assets of the latest release). */
+  rememberOffered(assets: readonly ExtractorAsset[]): void {
+    this.offered = new Map(assets.map((asset) => [asset.name, asset]));
   }
 
   getAssetsForPlatform(assets: ExtractorAsset[]): ExtractorAsset[] {
@@ -72,12 +82,32 @@ export class ExtractorInstallerService extends FileDownloadService {
     );
   }
 
+  /**
+   * Download one of the offered installers. `url` must be that asset's GitHub
+   * address or its proxy copy. The size must match what the release lists.
+   * That catches a truncated or swapped file in transit; it is not proof the
+   * file is genuine (the Extractor's releases are not signed yet).
+   */
   async downloadInstaller(
     url: string,
     filename: string,
     progressCallback: (progress: ExtractorDownloadProgress) => void
   ): Promise<string> {
-    return this.downloadFile(url, filename, progressCallback);
+    const asset = this.offered.get(filename);
+    if (!asset || !ExtractorInstallerService.isInstallerName(filename)) {
+      throw new Error(`Not an offered AutoSlides Extractor installer: ${filename}`);
+    }
+    const allowed = [asset.browser_download_url, FileDownloadService.getProxyUrl(asset.browser_download_url)];
+    if (!allowed.includes(url)) throw new Error('This address does not belong to the offered installer');
+    const filePath = await this.downloadFile(url, filename, progressCallback);
+    if (asset.size > 0) {
+      const { size } = await fs.promises.stat(filePath);
+      if (size !== asset.size) {
+        await fs.promises.rm(filePath, { force: true });
+        throw new Error(`The download is ${size} bytes, the release lists ${asset.size}`);
+      }
+    }
+    return filePath;
   }
 
   async installInstaller(filename: string): Promise<ExtractorInstallResult> {

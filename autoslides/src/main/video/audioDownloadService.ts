@@ -12,6 +12,7 @@
 // `.aac` lives on the same cvideo host as the video and must follow the same
 // NIC binding and Host-preserving rewrite.
 import fs from 'node:fs';
+import { ensureWritableOutputDir } from '@main/infra/outputDir';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import type { Readable } from 'node:stream';
@@ -62,7 +63,7 @@ export class AudioDownloadService {
     audioUrl: string,
     outputName: string,
     progressCallback: (progress: DownloadProgress) => void,
-  ): Promise<void> {
+  ): Promise<string> {
     if (this.activeDownloads.has(downloadId)) {
       throw new Error('Download already in progress');
     }
@@ -71,7 +72,7 @@ export class AudioDownloadService {
     await this.intranetMapping.ensureFresh();
     const route = this.intranetMapping.route();
 
-    await fs.promises.mkdir(outputDir, { recursive: true });
+    await ensureWritableOutputDir(outputDir);
     void ensureCopyrightNotice(outputDir);
 
     const finalPath = path.join(outputDir, `${outputName}.aac`);
@@ -125,6 +126,7 @@ export class AudioDownloadService {
 
       // No processing stage: phase 1 exists only for the FFmpeg remux.
       progressCallback({ current: total || received, total: total || received, phase: 2 });
+      return finalPath;
     } catch (error) {
       await fs.promises.rm(partPath, { force: true }).catch(() => { /* best effort */ });
 

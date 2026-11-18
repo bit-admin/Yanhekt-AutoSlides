@@ -18,6 +18,7 @@
           <button type="button" class="page-banner-link" @click="changeOutputFolder">{{ $t('pageError.outputDir.folderLink') }}</button>
         </template>
       </i18n-t>
+      <span v-if="folderBusy" class="page-error-row page-error-hint" role="alert">{{ $t('settings.outputDirectoryBusy') }}</span>
     </template>
     <template v-else>{{ message }}</template>
   </PageBanner>
@@ -30,6 +31,7 @@
 // inline actions; any other error shows its message without the IPC wrapper.
 import { computed, ref, watch } from 'vue'
 import { parseOutputDirProblem } from '@common/outputDirAccess'
+import { parseOutputFolderBusy } from '@common/outputFolderWork'
 import { userFacingIpcError } from '@common/ipcError'
 import { configStore } from '@shared/services/configStore'
 import { createLogger } from '@shared/utils/logger'
@@ -108,14 +110,22 @@ async function openPrivacySettings(): Promise<void> {
   }
 }
 
+// Set when main refused the change because work still writes into the folder.
+const folderBusy = ref(false)
+
 async function changeOutputFolder(): Promise<void> {
   const before = configStore.outputDirectory
   try {
     const updated = await window.electronAPI.config.selectOutputDirectory()
+    folderBusy.value = false
     // Pages rescan when outputDirectory changes; re-picking the same folder
     // (e.g. after granting access) needs an explicit retry.
     if (updated && updated.outputDirectory === before) void runRetry()
   } catch (error) {
+    if (parseOutputFolderBusy(error)) {
+      folderBusy.value = true
+      return
+    }
     log.warn('Failed to change output folder:', error)
   }
 }

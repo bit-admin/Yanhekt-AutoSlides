@@ -30,12 +30,12 @@ Progress and notices go to stderr; ignore them or show them to the user. Branch 
 | Exit | `error.code` | What to do |
 |---|---|---|
 | 0 | — | done |
-| 1 | `failed` | read the message; for downloads, `data.items` says which failed |
+| 1 | `failed`, `output_folder_busy` | read the message; for downloads, `data.items` says which failed. `output_folder_busy`: `output_dir` was not changed because downloads, extractions, tasks or post-processing are still running; wait for them (`autoslides downloads wait`) or ask the user before cancelling anything |
 | 2 | `usage` | the command line was wrong and nothing ran; fix the arguments (see `--help`) |
 | 3 | `not_found`, `no_recording`, `expired`, `term_unavailable` | wrong id, the session has no recording yet, an earlier-term session that the course index on this computer or its course's session list cannot supply, or the course index does not hold that term; do not retry unchanged |
 | 4 | `sign_in_required` (autoslides), `auth_required` (yhdl) | ask the user to sign in to Yanhekt in the AutoSlides window, then run it again |
 | 5 | `network` | Yanhekt or the AutoSlides Index could not be reached; check the connection or `connection_mode` |
-| 6 | `app_not_running`, `cli_control_disabled` | the app could not start, or the user turned off Allow Command-Line Control; ask the user |
+| 6 | `app_not_running`, `cli_control_disabled`, `app_version_mismatch` | the app could not start, the user turned off Allow Command-Line Control, or the running app is another version than the command (an update waiting for a restart); ask the user |
 | 130 | `interrupted` | stopped by Ctrl-C. An `autoslides` download keeps going in the app |
 
 `autoslides schema` (or `yhdl schema`) prints every command, option, data shape and code as JSON. Use it as the source of truth if anything here disagrees.
@@ -73,13 +73,13 @@ autoslides config output_dir ~/Lectures
 autoslides config connection_mode internal
 ```
 
-A finished download's `path` is the absolute path of the `.mp4` (`.aac` for audio rows) in the app's output folder. Files that already exist are `skipped`, not downloaded again, unless you pass `--force`.
+A finished download's `path` is the absolute path of the `.mp4` (`.aac` for audio rows) in the output folder it started with; in `downloads` it is `null` until the row is `completed`. Files that already exist are `skipped`, not downloaded again, unless you pass `--force`.
 
 ## Rules
 
 - **Sign-in.** Every `autoslides` command that talks to Yanhekt needs the app signed in. `config` and `downloads` (except `retry`) stay inside the app and work signed out. Never ask the user for a token or password, and never pass one to `autoslides`.
 - **Waiting.** `download` and `downloads wait` block until the downloads end, which can take many minutes per lecture. Use `--no-wait` and then `downloads wait` (or `downloads --json` to poll) when you need to do other work meanwhile.
-- **Stopping.** Ctrl-C on `autoslides` only stops waiting. To stop a download, use `downloads cancel <item or session>`.
+- **Stopping.** Ctrl-C on `autoslides` stops waiting and queues nothing more (lectures and streams not yet added are skipped); what is already queued keeps going in the app. To stop a download, use `downloads cancel <item or session>`.
 - **Changing settings.** `autoslides config <key> <value>` saves at once, as if the user pressed Save in Settings, and the app uses it straight away. Change a setting only when the user asks for that change. For a different folder or route on one run, use `yhdl download … -o <dir>` or `--intranet` instead.
 - **Output folder missing.** If `download` fails with "the AutoSlides output folder is not available", ask the user which folder to use, then run `autoslides config output_dir <absolute path>`. The folder must already exist.
 

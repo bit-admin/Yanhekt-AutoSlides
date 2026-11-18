@@ -11,6 +11,8 @@ import Table from '@editorjs/table';
 import { notesClient } from '../../lib/notes/notesClient';
 import { noteErrorText } from '../../lib/notes/noteErrors';
 import { syncEditorJsSelectionStyles } from '../../lib/notes/editorSelection';
+import { createNoteSaveChain, type NoteSaveChain } from '../../lib/notes/noteSaveChain';
+import { readNoteContent } from '../../lib/notes/noteContent';
 import type { useCloudNotes } from './useCloudNotes';
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>;
@@ -35,49 +37,68 @@ export function useNoteEditor(
   /** True once the editor has loaded a note and is ready to accept user edits. */
   let editorReady = false;
   /**
-   * Serialized *blocks* of the currently-loaded content, used to detect genuine
-   * edits. We compare blocks only — never the whole OutputData — because
-   * editor.save() stamps a fresh `time` on every call, which would otherwise make
-   * every save look like a change. The initial-render onChange also diffs equal.
+   * The saves of the note this editor has open, one at a time and in order
+   * (`noteSaveChain.ts`), with that note's own baseline: the serialized
+   * *blocks* of what the server holds. Blocks only, never the whole
+   * OutputData, because editor.save() stamps a fresh `time` on every call,
+   * which would make every save look like a change. A new chain is made for
+   * each mount.
    */
-  let lastSavedBlocks = '';
+  let chain: NoteSaveChain | null = null;
+  let chainNoteId: number | null = null;
   let saveTimer: ReturnType<typeof setTimeout> | undefined;
   let savedFlashTimer: ReturnType<typeof setTimeout> | undefined;
+  // Yanhekt's reason for the last failed save of the note on screen.
+  let lastSaveFailure = '';
 
-  function parseContent(raw: string): OutputData | undefined {
-    if (!raw) return undefined;
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.blocks)) return parsed as OutputData;
-    } catch {
-      // Malformed content — start blank rather than crash the editor.
-    }
-    return undefined;
+  function startChain(noteId: number, baselineBlocks: string): void {
+    const mine: NoteSaveChain = createNoteSaveChain((content) => cn.saveContent(noteId, content), {
+      // Only the chain of the note on screen speaks for the status line.
+      onWriteStart: () => {
+        if (chain === mine) saveStatus.value = 'saving';
+      },
+      onSettled: (saved) => {
+        if (chain !== mine) return;
+        // A failed save never reads as saved: the note stays dirty, and the
+        // banner says the changes were not saved, with Yanhekt's reason.
+        saveStatus.value = saved ? 'saved' : 'idle';
+        if (!saved) {
+          lastSaveFailure = cn.error.value;
+          if (lastSaveFailure) cn.error.value = t('cloudNotes.changesNotSaved', { reason: lastSaveFailure });
+          return;
+        }
+        lastSaveFailure = '';
+        if (savedFlashTimer) clearTimeout(savedFlashTimer);
+        savedFlashTimer = setTimeout(() => {
+          if (saveStatus.value === 'saved') saveStatus.value = 'idle';
+        }, 1500);
+      },
+    });
+    mine.setBaseline(baselineBlocks);
+    chain = mine;
+    chainNoteId = noteId;
   }
 
-  /** Persist the current editor content for the given note id, if it changed. */
-  async function flushSave(noteId: number): Promise<void> {
+  /**
+   * Persist the current editor content for the given note id, if it changed.
+   * False when the note has edits that could not be saved.
+   */
+  async function flushSave(noteId: number): Promise<boolean> {
     if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = undefined;
     }
-    if (!editor || !editorReady) return;
-    const data = await editor.save();
-    const blocks = JSON.stringify(data.blocks);
-    // No genuine change vs. what's loaded/last-saved → don't hit the network.
-    if (blocks === lastSavedBlocks) return;
-    saveStatus.value = 'saving';
-    const ok = await cn.saveContent(noteId, JSON.stringify(data));
-    if (ok) lastSavedBlocks = blocks;
-    // Don't clobber the status if the user already switched to another note.
-    if (cn.selectedNoteId.value !== noteId) return;
-    saveStatus.value = ok ? 'saved' : 'idle';
-    if (ok) {
-      if (savedFlashTimer) clearTimeout(savedFlashTimer);
-      savedFlashTimer = setTimeout(() => {
-        if (saveStatus.value === 'saved') saveStatus.value = 'idle';
-      }, 1500);
+    const instance = editor;
+    const saves = chain;
+    if (!instance || !editorReady || !saves || chainNoteId !== noteId) return true;
+    let data: OutputData;
+    try {
+      data = await instance.save();
+    } catch {
+      // The editor went away under the save (a teardown race): nothing to read.
+      return !saves.dirty;
     }
+    return saves.save({ blocks: JSON.stringify(data.blocks), content: JSON.stringify(data) });
   }
 
   /** Debounced auto-save triggered by Editor.js onChange. */
@@ -93,7 +114,11 @@ export function useNoteEditor(
 
   async function destroyEditor(): Promise<void> {
     editorReady = false;
-    lastSavedBlocks = '';
+    // Nothing more is sent for the note being left; a write already out ends
+    // without touching the next note's baseline or status.
+    chain?.close();
+    chain = null;
+    chainNoteId = null;
     if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = undefined;
@@ -113,9 +138,17 @@ export function useNoteEditor(
     await destroyEditor();
     if (!editorHolder.value) return;
     saveStatus.value = 'idle';
+    const noteId = cn.selectedNoteId.value;
+    const read = readNoteContent(content);
+    // Content this editor cannot read is shown empty and locked. Editing it
+    // would save a fresh document over the original, which is still intact on
+    // Yanhekt; leaving it alone is the only way not to lose it.
+    const readOnly = read.kind === 'unreadable';
+    if (readOnly) cn.error.value = t('cloudNotes.unreadableContent');
     const instance = new EditorJS({
       holder: editorHolder.value,
-      data: parseContent(content),
+      data: read.kind === 'document' ? (read.data as unknown as OutputData) : undefined,
+      readOnly,
       placeholder: t('cloudNotes.editorPlaceholder'),
       onChange: scheduleSave,
       tools: {
@@ -148,19 +181,35 @@ export function useNoteEditor(
     // Capture the editor's own block serialization of the just-loaded content as
     // the baseline, so the initial render's onChange (and block normalization)
     // don't count as an edit. Only block diffs against this trigger a real save.
+    // A locked note has no saves at all.
+    if (readOnly || noteId == null) return;
+    let baseline = '';
     try {
-      lastSavedBlocks = JSON.stringify((await instance.save()).blocks);
+      baseline = JSON.stringify((await instance.save()).blocks);
     } catch {
-      lastSavedBlocks = '';
+      baseline = '';
     }
+    if (editor !== instance) return;
+    startChain(noteId, baseline);
     editorReady = true;
   }
 
   async function openNote(id: number): Promise<void> {
-    // Persist any pending edits to the note we're leaving before switching.
+    // Persist any pending edits to the note we're leaving before switching,
+    // behind every save of it already on its way. If they cannot be saved the
+    // switch still happens (Yanhekt's note service fails often enough that
+    // holding the user on the note would get in the way); the banner then
+    // names the note whose changes were lost.
     const prevId = cn.selectedNoteId.value;
-    if (prevId != null && prevId !== id) await flushSave(prevId);
+    let lost: { title: string; reason: string } | null = null;
+    if (prevId != null && prevId !== id) {
+      const title = cn.selectedNote.value?.title ?? '';
+      if (!(await flushSave(prevId))) lost = { title, reason: lastSaveFailure };
+    }
     const detail = await cn.openNote(id);
+    if (lost && cn.selectedNoteId.value === id) {
+      cn.error.value = t('cloudNotes.leftUnsaved', lost);
+    }
     if (detail) {
       // cn.openNote drops a stale detail rather than clobbering a newer
       // selection, so a mismatch here means a faster open for another note

@@ -16,12 +16,19 @@ const web = {
     if (typeof a === 'number') return new Response('upstream', { status: a });
     if (a === OUTAGE) return Response.json(OUTAGE);
     if (a === EXPIRED) return Response.json(EXPIRED);
-    if (a === undefined) return Response.json({ code: 12111010, message: '课程信息不存在', data: null });
+    if (a === undefined) {
+      return u.pathname.endsWith('/v1/course/session')
+        ? Response.json({ code: 12121010, message: '课程不存在', data: null })
+        : Response.json({ code: 12111010, message: '课程信息不存在', data: null });
+    }
+    if (a === FLAKY) return Response.json(FLAKY);
     return Response.json({ code: 0, message: '', data: a });
   },
 };
 /** Yanhekt's gateway failure, verbatim: an HTTP 200 envelope, not a missing record. */
 const OUTAGE = { code: 99151011, message: 'failed to invoke service', displayable: false, data: [], module: 'frame_client_request' };
+/** A server-side fault Yanhekt sends at random when unstable (code 2002). Not a missing record. */
+const FLAKY = { code: 2002, message: 'service runtime exception', displayable: false, data: null, module: 'frame_server_domain' };
 /** An earlier term's course or session since 2026-11-02, verbatim. */
 const EXPIRED = { code: 12121028, message: '课程已过期', data: [] };
 const env = (bound = true) => ({ YANHEKT_DB: db, WEB: bound ? web : undefined }) as unknown as Env;
@@ -186,3 +193,19 @@ describe('expired courses (earlier terms)', () => {
     expect(seen).toHaveLength(1);
   });
 });
+
+describe('an error code share does not know', () => {
+  it('reads as unavailable, never as a missing course or a deleted session', async () => {
+    answers['/v1/course?id=12345'] = FLAKY;
+    expect(await courseDetails(env(), 12345)).toMatchObject({ error: 'yanhekt-unavailable' });
+
+    answers[sessionPath(100101)] = { id: 100101, course_id: 12345 };
+    answers[sessionPath(100102)] = FLAKY;
+    const page = await sessionDetails(env(), 12345, 0);
+    expect('sessions' in page && page.sessions.slice(1)).toEqual([
+      { id: 100102, error: 'unavailable' },
+      { id: 100103, error: 'gone' },
+    ]);
+  });
+});
+

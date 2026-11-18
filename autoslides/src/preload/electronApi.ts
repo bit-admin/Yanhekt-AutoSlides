@@ -801,7 +801,8 @@ export interface ElectronAPI {
     cancel: (downloadId: string) => Promise<void>;
     cleanupTempFiles: (outputName: string) => Promise<void>;
     onProgress: (callback: (downloadId: string, progress: DownloadProgress) => void) => () => void;
-    onCompleted: (callback: (downloadId: string) => void) => () => void;
+    /** `filePath` is the finished file, in the folder fixed when the download started. */
+    onCompleted: (callback: (downloadId: string, filePath?: string) => void) => () => void;
     onError: (callback: (downloadId: string, error: string) => void) => () => void;
   };
 
@@ -974,9 +975,11 @@ export interface ElectronAPI {
       success: boolean;
       error?: string;
     }>;
+    /** `notRemoved`: what the reset could not delete; the app must restart either way. */
     resetAllData: () => Promise<{
       success: boolean;
       error?: string;
+      notRemoved?: string[];
     }>;
   };
 
@@ -1132,7 +1135,14 @@ export interface ElectronAPI {
     ) => Promise<
       | { success: true; mode: 'single'; format: 'pdf' | 'pptx'; path: string }
       | { success: true; mode: 'batch'; format: 'pdf' | 'pptx'; outputDir: string; paths: string[] }
-      | { success: false; error?: string }
+      | {
+          success: false;
+          error?: string;
+          /** Batch only: the folder that failed, and the files made before it (kept). */
+          failedFolder?: string;
+          outputDir?: string;
+          paths?: string[];
+        }
     >;
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
   };
@@ -1228,6 +1238,17 @@ export interface ElectronAPI {
     groupCreate: (name: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     groupDelete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
     uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
+    /**
+     * One of the calls above, made for the account with this badge: when that
+     * account is no longer the active one nothing is sent and the answer is
+     * `account-changed` (`@common/notesTypes`). `args` are that call's
+     * arguments, as plain values. Use through `ownedNotesApi` in the renderer.
+     */
+    asOwner: (
+      badge: string,
+      method: import('@common/notesTypes').OwnedNoteMethod,
+      args: unknown[],
+    ) => Promise<import('@common/notesTypes').NotesResult<unknown>>;
     uploadImageFromPath: (filePath: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
     exportFolderStatus: (displayName: string, identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;

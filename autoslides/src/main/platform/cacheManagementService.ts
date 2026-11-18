@@ -34,6 +34,15 @@ export interface CacheOperationResult {
   error?: string;
 }
 
+/**
+ * A factory reset's answer. `notRemoved` names what is still there (entries of
+ * the user data folder, `temp`, or `browser data` when Chromium's storage
+ * could not be cleared); `success` is true only when it is empty.
+ */
+export interface ResetResult extends CacheOperationResult {
+  notRemoved: string[];
+}
+
 export class CacheManagementService {
   private readonly userDataPath: string;
   private readonly appTempPath: string;
@@ -85,33 +94,41 @@ export class CacheManagementService {
   }
 
   /**
-   * Reset all application data (factory reset)
+   * Reset all application data (factory reset). Everything in the user data
+   * folder goes except `logs/` (held open all session, and the record of what
+   * went wrong). Whatever could not be removed is reported, never passed off
+   * as success. The app must restart afterwards: running services still hold
+   * the old state in memory.
    */
-  async resetAllData(): Promise<CacheOperationResult> {
+  async resetAllData(): Promise<ResetResult> {
+    const notRemoved: string[] = [];
     try {
       // Release Chromium file handles before deleting userData.
       try {
         await this.clearSessionCaches({ storage: true });
       } catch (error) {
         log.warn('Session clear during factory reset failed:', error);
+        notRemoved.push('browser data');
       }
 
       const items = await fs.promises.readdir(this.userDataPath);
       for (const item of items) {
-        // The log file is held open for the whole session (Windows cannot
-        // delete an open file), and it is the record of what went wrong.
         if (item === 'logs') continue;
-        await this.removeTree(path.join(this.userDataPath, item));
+        if (!(await this.removeTree(path.join(this.userDataPath, item)))) notRemoved.push(item);
       }
+      if (!(await this.removeTree(this.appTempPath))) notRemoved.push('temp');
 
-      await this.removeTree(this.appTempPath);
-
+      if (notRemoved.length > 0) {
+        log.warn('Factory reset left:', notRemoved.join(', '));
+        return { success: false, notRemoved, error: `Could not remove: ${notRemoved.join(', ')}` };
+      }
       log.debug('Factory reset completed');
-      return { success: true };
+      return { success: true, notRemoved };
     } catch (error) {
       log.error('Failed to reset all data:', error);
       return {
         success: false,
+        notRemoved,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
@@ -201,11 +218,14 @@ export class CacheManagementService {
     return { size: totalSize, files: fileCount };
   }
 
-  private async removeTree(target: string): Promise<void> {
+  /** False when it could not be removed (a missing one counts as removed). */
+  private async removeTree(target: string): Promise<boolean> {
     try {
       await fs.promises.rm(target, { recursive: true, force: true });
+      return true;
     } catch (error) {
       log.warn(`Failed to remove ${target}:`, error);
+      return false;
     }
   }
 }

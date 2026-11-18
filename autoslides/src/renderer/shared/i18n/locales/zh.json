@@ -74,6 +74,7 @@
   "settings": {
     "settings": "设置",
     "outputDirectory": "输出目录",
+    "outputDirectoryBusy": "下载、提取、任务或后处理仍在进行时，无法更改输出目录。请等它们完成或取消后再试。",
     "openFolder": "打开输出目录",
     "browse": "选择",
     "connectionMode": "连接模式",
@@ -513,7 +514,7 @@
     "cacheClearError": "缓存清理失败",
     "resetAllDataTitle": "重置所有数据",
     "resetAllDataMessage": "这将完全重置应用程序到出厂设置。",
-    "resetAllDataDetail": "所有设置、缓存、日志和用户数据将被永久删除。此操作无法撤销。",
+    "resetAllDataDetail": "所有设置、缓存和用户数据将被永久删除，日志文件会保留。此操作无法撤销。",
     "finalConfirmation": "最终确认",
     "finalConfirmationMessage": "你确定要重置所有数据吗？",
     "finalConfirmationDetail": "这将删除所有内容，应用程序将重新启动并初始化。",
@@ -522,7 +523,7 @@
     "resetError": "重置应用程序数据失败",
     "restartRequired": "需要重启",
     "restartRequiredMessage": "应用程序需要重启以完成重置。",
-    "restartRequiredDetail": "点击“立即重启”立即重启，或点击“稍后重启”手动重启。",
+    "restartRequiredDetail": "点击“立即重启”后 AutoSlides 将重新启动。",
     "restartNow": "立即重启",
     "restartLater": "稍后重启",
     "intranetInterface": "内网网络接口",
@@ -1316,6 +1317,7 @@
     "idle": "空闲",
     "delete": "删除",
     "editorPlaceholder": "开始输入…",
+    "unreadableContent": "这篇笔记的内容格式 AutoSlides 无法读取，因此显示为空并已锁定。延河课堂上的原文未被改动。",
     "watchNotes": {
       "creating": "正在创建笔记…",
       "error": "无法创建笔记。请检查网络后重试。",
@@ -1403,6 +1405,7 @@
     "importClose": "关闭",
     "importEmpty": "未找到图片",
     "importNotSignedIn": "请先登录",
+    "importListIncomplete": "未能读取完整的笔记列表，未导入任何内容，请重试。",
     "exportButton": "导出",
     "exportTip": "将此笔记导出为文件",
     "exportTitle": "导出笔记",
@@ -1450,7 +1453,10 @@
     "noteMeta": "由 AutoSlides 导入 · {count} 张幻灯片 · {date}",
     "noteSlideCaption": "幻灯片 {n}",
     "cancel": "取消",
-    "yanhektError": "延河课堂笔记服务出错（错误码 {code}），这是延河课堂服务器的问题，请稍后再试。"
+    "yanhektError": "延河课堂笔记服务出错（错误码 {code}），这是延河课堂服务器的问题，请稍后再试。",
+    "changesNotSaved": "最近的修改未能保存。{reason}",
+    "leftUnsaved": "“{title}”最近的修改未能保存，已丢失。{reason}",
+    "ungroupKeptBoth": "笔记已复制到未分组，但原笔记未能删除。两份笔记均已保留，请删除不需要的一份。"
   },
   "webCapture": {
     "back": "后退",

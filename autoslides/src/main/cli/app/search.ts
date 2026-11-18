@@ -3,6 +3,7 @@
 import { SEARCH_DATA, SEARCH_OPTIONS, searchCourses } from '../commands/search';
 import { requireSignIn } from './signIn';
 import type { AppCommand } from './types';
+import { SEARCH_SCHEMA } from '../dataSchemas';
 
 export const appSearchCommand: AppCommand = {
   summary: 'Find courses by name, teacher or course id',
@@ -17,6 +18,7 @@ export const appSearchCommand: AppCommand = {
   options: SEARCH_OPTIONS,
   positionals: { min: 1, max: Infinity },
   data: SEARCH_DATA,
+  dataSchema: SEARCH_SCHEMA,
   serve: async (input, ctx) => {
     const { token } = await requireSignIn(ctx);
     return searchCourses(input, {

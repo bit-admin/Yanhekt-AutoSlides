@@ -53,7 +53,9 @@ export function createWatchProgressSync(opts: WatchProgressSyncOptions): WatchPr
   // Keyed by session: the Lectures player reuses one sync across episodes, and a
   // bucket carried over from the previous lecture would suppress reports for the
   // new one until it played past that point.
-  let lastReported: { sessionId: string; bucket: number } | null = null
+  // Keyed by account too: the position is per account, so what one account
+  // reported must not suppress the next account's report of the same bucket.
+  let lastReported: { sessionId: string; token: string; bucket: number } | null = null
 
   // A session id AND the opt-in AND a login token — the position is per account.
   const context = (): { sessionId: string; token: string } | null => {
@@ -70,9 +72,13 @@ export function createWatchProgressSync(opts: WatchProgressSyncOptions): WatchPr
 
     const bucket = progressBucket(opts.getCurrentTime())
     if (bucket <= 0) return
-    if (lastReported?.sessionId === ctx.sessionId && lastReported.bucket === bucket) return
+    if (
+      lastReported?.sessionId === ctx.sessionId &&
+      lastReported.token === ctx.token &&
+      lastReported.bucket === bucket
+    ) return
 
-    lastReported = { sessionId: ctx.sessionId, bucket }
+    lastReported = { ...ctx, bucket }
     void apiClient.reportWatchProgress(ctx.sessionId, bucket, ctx.token)
   }
 
@@ -87,11 +93,15 @@ export function createWatchProgressSync(opts: WatchProgressSyncOptions): WatchPr
         ctx.token,
         courseId != null && courseId !== '' ? String(courseId) : undefined,
       )
+      // Answered for a lecture or an account that is no longer the one playing:
+      // nothing to seek to and nothing to record.
+      const now = context()
+      if (now?.sessionId !== ctx.sessionId || now.token !== ctx.token) return null
       // The seek we are about to perform is already known to the server; a
       // fresh start clears the slate so the first heartbeat always lands.
       lastReported = position === null
         ? null
-        : { sessionId: ctx.sessionId, bucket: progressBucket(position) }
+        : { ...ctx, bucket: progressBucket(position) }
       if (position !== null) log.debug('Resuming session', ctx.sessionId, 'at', position)
       return position
     },

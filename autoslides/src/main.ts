@@ -1,6 +1,7 @@
 // Must stay first: see the file.
 import '@main/cli/earlyDockHide';
-import { app, BrowserWindow, Menu } from 'electron';
+import { app, BrowserWindow, Menu, session } from 'electron';
+import { installLocalAccessHeader } from '@main/video/videoProxy/localAccess';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -61,7 +62,7 @@ import { slideMetadataService } from '@main/extraction/slideMetadataService';
 import { slideTimelineService } from '@main/extraction/slideTimelineService';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
-import { createSettingsWriter } from '@main/ipc/settingsWriter';
+import { createSettingsWriter, outputFolderWorkFrom } from '@main/ipc/settingsWriter';
 import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
 import { initLogFile, setLogVerbose, flushLogFile, getLogDir } from '@main/infra/logFile';
 import { YanhektCatalogStore } from '@main/platform/yanhektCatalog';
@@ -140,6 +141,7 @@ if (!cliRun && app.isPackaged && !app.requestSingleInstanceLock()) {
 const cliSocketPath = controlSocketPath(app.getPath('userData'), { dev: !app.isPackaged });
 
 const configService = new ConfigService();
+slideExtractionService.setOutputRoot(() => configService.getConfig().outputDirectory);
 
 // Proxy settings: main-process requests follow them from here on. The app also
 // applies them to its Chromium sessions; a command-line run uses no windows and
@@ -183,6 +185,7 @@ app.on('child-process-gone', (_event, details) => {
 });
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const TOOLS_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
 app.setName('AutoSlides');
@@ -299,6 +302,12 @@ const createWindow = () => {
 
 app.on('ready', () => {
   if (cliRun) return;
+  // The player proxy answers only the app's own pages (and FFmpeg, given the header).
+  installLocalAccessHeader(session.defaultSession, {
+    secret: videoProxyService.localAccessSecret,
+    port: () => videoProxyService.port,
+    devServerUrls: [MAIN_WINDOW_VITE_DEV_SERVER_URL, TOOLS_WINDOW_VITE_DEV_SERVER_URL],
+  });
   // Local progressive media for Lectures Library (Range seeks under outputDir).
   // Install before any window loads so asmedia:// is ready immediately.
   installAsmediaProtocol(configService);
@@ -473,12 +482,13 @@ const cliControlBridge = new RendererBridge(
 const cliControlServer = new CliControlServer({
   socketPath: cliSocketPath,
   configService,
-  settings: createSettingsWriter(configService, intranetMappingService),
+  settings: createSettingsWriter(configService, intranetMappingService, outputFolderWorkFrom(cliControlBridge)),
   apiClient,
   courseLookup,
   enrolledCoursesService,
   renderer: cliControlBridge,
   commands: APP_COMMANDS,
+  version: app.getVersion(),
 });
 
 const windowManager = new WindowManager();

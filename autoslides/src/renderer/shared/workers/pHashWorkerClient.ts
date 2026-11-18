@@ -4,6 +4,7 @@
 // shared/postProcessing/workerHelpers.ts.
 
 import PostProcessorWorker from './postProcessor.worker?worker';
+import { createWorkerClient, type WorkerResponseBase } from './workerClientFactory';
 import type { GrayImage, SSIMPrepareOptions } from './postProcessor.worker';
 
 export type { GrayImage, SSIMPrepareOptions };
@@ -17,21 +18,24 @@ export interface PHashWorkerClient {
   destroy: () => void;
 }
 
-export function createPHashWorkerClient(): PHashWorkerClient {
-  const worker = new PostProcessorWorker();
+interface PHashResponse extends WorkerResponseBase {
+  result?: unknown;
+}
 
-  const request = <T>(type: string, data: Record<string, unknown>): Promise<T> => {
-    return new Promise((resolve, reject) => {
-      const messageId = `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-      const handler = (event: MessageEvent) => {
-        const { id, success, result, error } = event.data;
-        if (id !== messageId) return;
-        worker.removeEventListener('message', handler);
-        success ? resolve(result as T) : reject(new Error(error || `${type} failed`));
-      };
-      worker.addEventListener('message', handler);
-      worker.postMessage({ id: messageId, type, data });
-    });
+export function createPHashWorkerClient(): PHashWorkerClient {
+  // Every request ends (see `workerRequests.ts`): a crashed or stopped worker
+  // rejects what was waiting on it instead of leaving it pending.
+  const client = createWorkerClient<PHashResponse>({
+    createWorker: () => new PostProcessorWorker(),
+    workerName: 'postProcessor',
+    // Hashes are requested in bulk (a whole folder at once): no per-request limit.
+    timeoutMs: null,
+  });
+
+  const request = async <T>(type: string, data: Record<string, unknown>): Promise<T> => {
+    const response = await client.request({ type, data });
+    if (!response.success) throw new Error(response.error || `${type} failed`);
+    return response.result as T;
   };
 
   const calculatePHash = (imageData: ImageData) =>
@@ -80,6 +84,6 @@ export function createPHashWorkerClient(): PHashWorkerClient {
     prepareForSSIM,
     ssimFromGray,
     bufferToImageData,
-    destroy: () => worker.terminate(),
+    destroy: () => client.destroy(),
   };
 }

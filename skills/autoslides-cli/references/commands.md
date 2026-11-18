@@ -1,6 +1,6 @@
 # Command reference
 
-Every command takes `--json` and `-h/--help`. `autoslides schema` and `yhdl schema` print this as JSON from the code itself; when the two disagree, trust `schema`.
+Every command takes `--json` and `-h/--help`. `autoslides schema` and `yhdl schema` print this as JSON from the code itself; when the two disagree, trust `schema`. Each command there also has `data_schema`, the JSON Schema of its `data` (`data_schema_version` 1): fields may be added within a version, never removed or retyped.
 
 ## `autoslides` (drives the app)
 
@@ -43,13 +43,13 @@ Both commands read the selected saved account's cached enrolled courses (all kno
 
 Name rows by `item_id` (from `downloads --json`) or by a session id or link, which takes every row of that session. A session with no rows is `not_found`.
 
-- `list` and `wait`: `{ output_dir, items: [Row] }`. `wait` with no rows named waits for everything unfinished; if nothing is running it answers at once with "Nothing is downloading." It exits 1 if a row it waited for failed.
+- `list` and `wait`: `{ output_dir, items: [Row] }`. `wait` with no rows named waits for everything unfinished; if nothing is running it answers at once with "Nothing is downloading." It exits 1 if a row it waited for failed. Without `--json`, `wait` prints each finished file's path on stdout; with `--json`, stdout is the one JSON answer and the paths are in `items[].path`.
 - `cancel` and `retry`: `{ action, items: [Row & { changed: boolean }] }`. `changed: false` means the row was already finished (cancel) or was not failed or cancelled (retry). One of `--all` or a row is required.
 - `clear`: `{ removed }`. It removes every finished and failed row, like the panel's Clear Completed.
 
 `Row = { item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", status, progress: 0-100, path, error?, added_at, completed_at, extraction: { state, progress, error? } | null }`
 
-Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `cancelled` or `removed`.
+Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `cancelled` or `removed`. A row's `path` is the file the download wrote, in the folder it started with (`output_dir` cannot change while a row is unfinished); it is `null` until the row is `completed`.
 
 ### `config`
 
@@ -59,7 +59,7 @@ Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `c
 
 | Key | Settings location | Takes |
 |---|---|---|
-| `output_dir` | General > Output Directory | an absolute path to an existing folder (`~` works); never created |
+| `output_dir` | General > Output Directory | an absolute path to an existing folder (`~` works); never created. Refused with `output_folder_busy` while the app has unfinished downloads, extractions, tasks or post-processing |
 | `connection_mode` | General > Connection Mode | `auto`, `internal` (campus intranet) or `external` (public network) |
 | `intranet_interface` | Network > Intranet Network Interface | an interface name (`en0`) or one of this computer's IPv4 addresses; `default` for the system default |
 | `anonymous_requests` | Network > Anonymous API requests | `true` / `false` |
@@ -78,7 +78,7 @@ Booleans also take `on`/`off`, `yes`/`no` and `1`/`0`. `custom` uses `proxy_url`
 
 The same lookup commands (`search`, `mine`, `course`, `session`, `terms`, `whoami`, `schema`) and `download`, run without the app. It has no `downloads` or `config`: those answer "needs the AutoSlides app".
 
-- **Anonymous by default.** Only the personal lists and the AutoSlides Index online use a token: `mine`, the session list of `course`, `download --course`, and `search` when it reads the online Index. The token comes from, in order: `--token <token>`, `--account <name or student number>` (an account saved in AutoSlides), `YANHEKT_TOKEN`, then the account signed in to the app. A token is never saved or printed. `whoami` reports which one would be used, offline.
+- **Anonymous by default.** A token is read only when a request needs one: `mine`, the session list of `course`, `download --course`, `search` when it reads the online Index, and `session` / `download` for an earlier term's session (see "Where `search` looks"). Without one these fail with `auth_required` (exit 4). The token comes from, in order: `--token <token>`, `--account <name or student number>` (an account saved in AutoSlides), `YANHEKT_TOKEN`, then the account signed in to the app. A token is never saved or printed. `whoami` reports which one would be used, offline.
 - **Route.** Public network unless `--intranet` (strict: no fallback to public). `--interface <name or IPv4>` picks the interface, only with `--intranet`. The app's Connection Mode is ignored; its proxy settings (`proxy_campus`, `proxy_other`, `proxy_url`) apply.
 - **`download`.** Takes `-o/--output <dir>` for this run (created if needed); otherwise the app's output folder. Same `--stream`, `--course`, `--dry-run`, `--force`. Item `status` can also be `interrupted`; running the same command again resumes.
 - `-v/--verbose` prints diagnostic logs to stderr.

@@ -5,6 +5,7 @@
 
 import { app } from 'electron';
 import fs from 'fs';
+import path from 'path';
 import PDFDocument from 'pdfkit';
 import PptxGenJS from 'pptxgenjs';
 import { sharpService } from '@main/infra/sharpService';
@@ -17,6 +18,27 @@ import {
 } from './coverFontService';
 import { createLogger } from '@main/infra/logger';
 import { COPYRIGHT_KEYWORDS, COPYRIGHT_SHORT } from '@common/copyrightNotice';
+let partialCounter = 0;
+
+/**
+ * Where an export is written before it is published: a hidden file beside the
+ * target, same extension (PptxGenJS adds `.pptx` to a name without it). The
+ * finished file is renamed over the target, so a failed export never leaves a
+ * half-written file under the real name or damages one already there.
+ */
+export function partialExportPath(outputPath: string): string {
+  partialCounter += 1;
+  const ext = path.extname(outputPath);
+  const base = path.basename(outputPath, ext);
+  return path.join(path.dirname(outputPath), `.${base}.${process.pid}-${partialCounter}.partial${ext}`);
+}
+
+async function discardPartial(partial: string): Promise<void> {
+  await fs.promises.rm(partial, { force: true }).catch((error: unknown) => {
+    log.warn('Could not remove an unfinished export:', partial, error);
+  });
+}
+
 const log = createLogger('Pdf');
 
 export type AspectRatio = '16:9' | '4:3';
@@ -459,6 +481,8 @@ export class PdfService {
     outputPath: string,
     onProgress?: (current: number, total: number) => void
   ): Promise<{ success: boolean; path?: string; error?: string }> {
+    let partial: string | null = null;
+    let stream: fs.WriteStream | null = null;
     try {
       // Calculate total images
       const totalImages = folders.reduce((sum, f) => sum + f.images.length, 0);
@@ -495,8 +519,21 @@ export class PdfService {
       }
       const doc = new PDFDocument(docOptions);
 
-      // Create write stream
-      const writeStream = fs.createWriteStream(outputPath);
+      // Written to a partial file first; listeners are attached now, not after
+      // the pages, so an output that cannot be opened is seen at once instead
+      // of surfacing as an unhandled stream error mid-export.
+      partial = partialExportPath(outputPath);
+      const writeStream = fs.createWriteStream(partial);
+      stream = writeStream;
+      const written = new Promise<void>((resolve, reject) => {
+        writeStream.once('finish', resolve);
+        writeStream.once('error', reject);
+      });
+      // Keep a failure noticed even while the pages are still being prepared.
+      let streamError: unknown = null;
+      written.catch((error: unknown) => {
+        streamError = error;
+      });
       doc.pipe(writeStream);
 
       // Render cover page first (before any image pages) if requested.
@@ -510,6 +547,7 @@ export class PdfService {
       // Process each folder
       for (const folder of folders) {
         for (let i = 0; i < folder.images.length; i++) {
+          if (streamError) throw streamError;
           const imagePath = folder.images[i];
           const { imageBuffer, imageDimensions } = await this.prepareImageForExport(
             imagePath,
@@ -541,16 +579,20 @@ export class PdfService {
 
       // Finalize PDF
       doc.end();
-
-      // Wait for write to complete
-      await new Promise<void>((resolve, reject) => {
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-      });
+      await written;
+      await fs.promises.rename(partial, outputPath);
+      partial = null;
 
       return { success: true, path: outputPath };
     } catch (error) {
       log.error('PDF generation failed:', error);
+      if (stream && !stream.destroyed) {
+        await new Promise<void>((resolve) => {
+          stream!.once('close', () => resolve());
+          stream!.destroy();
+        });
+      }
+      if (partial) await discardPartial(partial);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -572,6 +614,7 @@ export class PdfService {
     outputPath: string,
     onProgress?: (current: number, total: number) => void
   ): Promise<{ success: boolean; path?: string; error?: string }> {
+    let partial: string | null = null;
     try {
       const totalImages = folders.reduce((sum, f) => sum + f.images.length, 0);
       if (totalImages === 0) {
@@ -632,11 +675,15 @@ export class PdfService {
         }
       }
 
-      await pptx.writeFile({ fileName: outputPath });
+      partial = partialExportPath(outputPath);
+      await pptx.writeFile({ fileName: partial });
+      await fs.promises.rename(partial, outputPath);
+      partial = null;
 
       return { success: true, path: outputPath };
     } catch (error) {
       log.error('PPTX generation failed:', error);
+      if (partial) await discardPartial(partial);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

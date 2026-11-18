@@ -12,7 +12,6 @@
  * Writes for a given folder are serialized through a per-path promise chain so
  * concurrent read-modify-write calls cannot clobber each other.
  */
-import { promises as fs } from 'fs';
 import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
 import {
@@ -34,96 +33,85 @@ import {
   type SlideTimeline,
   type UnlinkToGapPayload,
 } from '@common/sidecars';
+import { SidecarFile, type SidecarRead, type SidecarWrite } from './slideExtraction/sidecarFile';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('SlideTimeline');
 
 export class SlideTimelineService {
-  private writeChains = new Map<string, Promise<unknown>>();
+  // Per-folder write serialization, atomic replacement and damaged-file handling.
+  private file = new SidecarFile<SlideTimeline>('timeline', log);
 
   private timelinePath(folderPath: string): string {
     return path.join(path.resolve(expandTilde(folderPath)), SLIDE_TIMELINE_FILENAME);
   }
 
-  /** Read and parse a folder's timeline, or null if absent/unreadable. */
-  async read(folderPath: string): Promise<SlideTimeline | null> {
+  /**
+   * A folder's timeline, or null if absent, damaged or unreadable (use
+   * `readState` to tell those apart). With `afterWrites`, waits for the writes
+   * already queued for this folder first.
+   */
+  async read(folderPath: string, opts?: { afterWrites?: boolean }): Promise<SlideTimeline | null> {
+    const state = await this.readState(folderPath, opts);
+    return state.state === 'ok' ? state.value : null;
+  }
+
+  /** As `read`, saying whether the file is missing, damaged or unreadable. */
+  async readState(folderPath: string, opts?: { afterWrites?: boolean }): Promise<SidecarRead<SlideTimeline>> {
     const filePath = this.timelinePath(folderPath);
-    try {
-      const content = await fs.readFile(filePath, 'utf8');
-      return JSON.parse(content) as SlideTimeline;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        log.warn(`Failed to read timeline at ${filePath}:`, error);
-      }
-      return null;
-    }
+    if (opts?.afterWrites) await this.file.settled(filePath);
+    return this.file.read(filePath);
   }
 
   /**
    * Serialize a read-modify-write against one folder. `mutate` receives the
    * current timeline (or null) and returns the next state, or null to skip the
-   * write entirely.
+   * write entirely. Resolves to what happened; it does not reject.
    */
-  private async mutate(
+  private mutate(
     folderPath: string,
     mutate: (current: SlideTimeline | null) => SlideTimeline | null
-  ): Promise<void> {
-    const filePath = this.timelinePath(folderPath);
-    const prior = this.writeChains.get(filePath) ?? Promise.resolve();
-
-    const next = prior.then(async () => {
-      const current = await this.read(folderPath);
-      const updated = mutate(current);
-      if (!updated) return;
-      try {
-        await fs.mkdir(path.dirname(filePath), { recursive: true });
-        await fs.writeFile(filePath, JSON.stringify(updated, null, 2), 'utf8');
-      } catch (error) {
-        log.error(`Failed to write timeline at ${filePath}:`, error);
-      }
-    });
-
-    this.writeChains.set(filePath, next.catch(() => undefined));
-    await next;
+  ): Promise<SidecarWrite> {
+    return this.file.mutate(this.timelinePath(folderPath), mutate);
   }
 
   /** Replace a folder's timeline.json (export reconstitution). */
-  async write(folderPath: string, timeline: SlideTimeline): Promise<void> {
-    await this.mutate(folderPath, () => timeline);
+  async write(folderPath: string, timeline: SlideTimeline): Promise<SidecarWrite> {
+    return this.mutate(folderPath, () => timeline);
   }
 
   /** Append a confirmed capture. Creates timeline.json if absent. */
   async recordCaptureConfirmed(
     folderPath: string,
     payload: RecordCaptureConfirmedPayload
-  ): Promise<void> {
-    await this.mutate(folderPath, current => recordCaptureConfirmed(current, payload));
+  ): Promise<SidecarWrite> {
+    return this.mutate(folderPath, current => recordCaptureConfirmed(current, payload));
   }
 
   /** Append an explicit gap boundary. Creates timeline.json if absent. */
-  async recordGapBoundary(folderPath: string, payload: RecordGapBoundaryPayload): Promise<void> {
-    await this.mutate(folderPath, current => recordGapBoundary(current, payload));
+  async recordGapBoundary(folderPath: string, payload: RecordGapBoundaryPayload): Promise<SidecarWrite> {
+    return this.mutate(folderPath, current => recordGapBoundary(current, payload));
   }
 
   /** Relink a duplicate capture to the first-kept target. No-op if no timeline. */
-  async relinkDuplicate(folderPath: string, payload: RelinkDuplicatePayload): Promise<void> {
-    await this.mutate(folderPath, current => {
+  async relinkDuplicate(folderPath: string, payload: RelinkDuplicatePayload): Promise<SidecarWrite> {
+    return this.mutate(folderPath, current => {
       if (!current) return null;
       return relinkDuplicate(current, payload);
     });
   }
 
   /** Unlink a file's spans into explicit gaps. No-op if no timeline. */
-  async unlinkToGap(folderPath: string, payload: UnlinkToGapPayload): Promise<void> {
-    await this.mutate(folderPath, current => {
+  async unlinkToGap(folderPath: string, payload: UnlinkToGapPayload): Promise<SidecarWrite> {
+    return this.mutate(folderPath, current => {
       if (!current) return null;
       return unlinkToGap(current, payload);
     });
   }
 
   /** Restore a file's capture events to canonical. No-op if no timeline. */
-  async restoreCanonical(folderPath: string, payload: RestoreCanonicalPayload): Promise<void> {
-    await this.mutate(folderPath, current => {
+  async restoreCanonical(folderPath: string, payload: RestoreCanonicalPayload): Promise<SidecarWrite> {
+    return this.mutate(folderPath, current => {
       if (!current) return null;
       return restoreCanonical(current, payload);
     });
@@ -138,22 +126,21 @@ export class SlideTimelineService {
     filename: string,
     reason: string,
     duplicateOf?: string
-  ): Promise<void> {
+  ): Promise<SidecarWrite> {
     if (reason === 'duplicate') {
-      if (!duplicateOf) return;
-      await this.relinkDuplicate(folderPath, {
+      if (!duplicateOf) return 'unchanged';
+      return this.relinkDuplicate(folderPath, {
         duplicateFile: filename,
         targetFile: duplicateOf,
       });
-      return;
     }
     const gapReason: GapReason = gapReasonFromTrashReason(reason);
-    await this.unlinkToGap(folderPath, { file: filename, reason: gapReason });
+    return this.unlinkToGap(folderPath, { file: filename, reason: gapReason });
   }
 
   /** Clear all events (re-extract / clear slides). Writes empty timeline if file existed or forceCreate. */
-  async clear(folderPath: string, opts?: { createIfMissing?: boolean }): Promise<void> {
-    await this.mutate(folderPath, current => {
+  async clear(folderPath: string, opts?: { createIfMissing?: boolean }): Promise<SidecarWrite> {
+    return this.mutate(folderPath, current => {
       if (!current && !opts?.createIfMissing) return null;
       return clearTimeline(current ?? createEmptyTimeline());
     });
@@ -164,8 +151,8 @@ export class SlideTimelineService {
    * (Qt writes extractor:"qt" only). No-op if the file is absent. Preserves
    * events/resolutions so Electron post-processing can relink/unlink next.
    */
-  async ensureRecordedHostFields(folderPath: string): Promise<void> {
-    await this.mutate(folderPath, current => {
+  async ensureRecordedHostFields(folderPath: string): Promise<SidecarWrite> {
+    return this.mutate(folderPath, current => {
       if (!current) return null;
       const next = ensureRecordedHostFields(current);
       // Skip disk write when pure helper returned the same reference.

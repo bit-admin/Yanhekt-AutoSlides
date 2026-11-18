@@ -106,7 +106,10 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   })
 
   // Wait for video to be fully ready for task processing
-  const waitForVideoReady = (): Promise<void> => {
+  // `signal` (here and in the initializers below) aborts when the task is
+  // paused or removed while it is still starting; each wait then ends and
+  // nothing further is started. It is not a failure and is not retried.
+  const waitForVideoReady = (signal?: AbortSignal): Promise<void> => {
     return new Promise((resolve, reject) => {
       const timeout = 20000
       const startTime = Date.now()
@@ -114,6 +117,11 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       const requiredConsecutiveChecks = 3
 
       const checkVideoReady = () => {
+        if (signal?.aborted) {
+          reject(new Error('Task start cancelled'))
+          return
+        }
+
         // Retrying cannot help: the server has no video for this recording.
         if (emptyStreamTypes.value.includes('screen')) {
           reject(new Error(formatEmptyRecording()))
@@ -177,7 +185,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   }
 
   // Initialize task after video is confirmed ready
-  const initializeTaskAfterVideoLoad = async (taskId: string, retryCount = 0) => {
+  const initializeTaskAfterVideoLoad = async (taskId: string, retryCount = 0, signal?: AbortSignal): Promise<void> => {
     const maxRetries = 3
     const retryDelay = 2000
 
@@ -203,12 +211,14 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
         selectedStream.value = screenStreamKey
         await switchStream()
         await new Promise(resolve => setTimeout(resolve, 1000))
+        if (signal?.aborted) return
       }
 
       // Also covers a retry: never start extraction on a video that has not
       // loaded (the pipeline then reports "video element not found", which
       // hides the real cause).
-      await waitForVideoReady()
+      await waitForVideoReady(signal)
+      if (signal?.aborted) return
 
       // Set task speed for playback rate (only for recorded mode)
       if (videoPlayer.value && mode === 'recorded') {
@@ -224,6 +234,8 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
         await toggleSlideExtraction()
 
         await new Promise(resolve => setTimeout(resolve, 1000))
+        // Paused meanwhile: the pause already stopped extraction.
+        if (signal?.aborted) return
 
         if (!slideExtractorInstance.value || !slideExtractionStatus.value.isRunning) {
           throw new Error('Failed to start slide extraction')
@@ -250,6 +262,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
       log.debug('Task initialized successfully after video load:', taskId)
     } catch (initError) {
+      if (signal?.aborted) return
       log.error(`Task initialization failed after video load (attempt ${retryCount + 1}):`, taskId, initError)
 
       if (retryCount < maxRetries) {
@@ -263,7 +276,8 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
         if (isRecoverableError) {
           log.debug(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
           await new Promise(resolve => setTimeout(resolve, retryDelay))
-          return initializeTaskAfterVideoLoad(taskId, retryCount + 1)
+          if (signal?.aborted) return
+          return initializeTaskAfterVideoLoad(taskId, retryCount + 1, signal)
         }
       }
 
@@ -273,7 +287,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   }
 
   // Initialize task with improved error handling and video readiness check
-  const initializeTask = async (taskId: string, retryCount = 0) => {
+  const initializeTask = async (taskId: string, retryCount = 0, signal?: AbortSignal): Promise<void> => {
     const maxRetries = 2
     const retryDelay = 3000
 
@@ -282,11 +296,13 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
       if (!playbackData.value || loading.value) {
         log.debug('Video data not ready, waiting for video to load...')
-        await waitForVideoReady()
+        await waitForVideoReady(signal)
       }
+      if (signal?.aborted) return
 
-      await initializeTaskAfterVideoLoad(taskId)
+      await initializeTaskAfterVideoLoad(taskId, 0, signal)
     } catch (initError) {
+      if (signal?.aborted) return
       log.error(`Task initialization failed (attempt ${retryCount + 1}):`, taskId, initError)
       const errorMessage = initError instanceof Error ? initError.message : String(initError)
 
@@ -298,7 +314,8 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
         if (isRecoverableError) {
           log.debug(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
           await new Promise(resolve => setTimeout(resolve, retryDelay))
-          return initializeTask(taskId, retryCount + 1)
+          if (signal?.aborted) return
+          return initializeTask(taskId, retryCount + 1, signal)
         }
       }
 
@@ -421,6 +438,20 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     taskCompletionInProgress.value = taskId
     log.debug('Completing task:', taskId)
 
+    // Stop extraction and wait for its last slide before listing the files: a
+    // slide still being written when the video ended would otherwise miss
+    // post-processing.
+    const extractor = slideExtractorInstance.value
+    if (extractor) {
+      extractor.stop()
+      await extractor.settled()
+      if (currentTaskId.value !== taskId) {
+        // Paused or removed while the last slide was being written.
+        taskCompletionInProgress.value = null
+        return
+      }
+    }
+
     // Get slide extraction info for post-processing (non-blocking)
     // Check config directly to ensure we respect the latest setting value
     const config = configStore
@@ -488,7 +519,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   // the coordinator's job. `start` resolves once initialization completes (the
   // status is already 'in_progress', set by TaskQueue before runTask), replacing
   // the old acknowledgment + 30-retry handshake.
-  const start = async (task: TaskContext): Promise<void> => {
+  const start = async (task: TaskContext, signal?: AbortSignal): Promise<void> => {
     if (currentTaskId.value === task.taskId && isTaskMode.value) {
       // Already running this task — nothing to do.
       return
@@ -501,7 +532,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
     // initializeTask handles its own retries and reports failure via
     // TaskQueue.updateTaskStatus(..., 'error'); it does not throw.
-    await initializeTask(task.taskId)
+    await initializeTask(task.taskId, 0, signal)
   }
 
   const pause = (task: TaskContext): void => {

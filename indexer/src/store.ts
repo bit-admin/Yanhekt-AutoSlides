@@ -3,11 +3,11 @@
 import { DatabaseSync, type StatementSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { migrate } from './migrations.ts';
 import { asObject, professorNames, splitRow, videoIdsOf, type SqlValue } from './extract.ts';
 import {
   COURSE_API,
   COURSE_SKIP,
-  SCHEMA_SQL,
   SESSION_API,
   SESSION_SKIP,
   SYNC_TABLE_NAMES,
@@ -102,7 +102,7 @@ export class SqliteStore implements Store {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
     this.db = new DatabaseSync(path);
     this.db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA busy_timeout = 5000;');
-    this.db.exec(SCHEMA_SQL);
+    migrate(this.db);
   }
 
   close(): void {

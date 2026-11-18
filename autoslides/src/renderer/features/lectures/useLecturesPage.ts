@@ -8,6 +8,7 @@ import {
 } from '@common/lectureVideoNaming'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
+import { createLatest } from '@shared/utils/latest'
 import { createLogger } from '@shared/utils/logger'
 import { LectureCompressQueue } from './lectureCompressQueue'
 
@@ -81,12 +82,18 @@ export function useLecturesPage() {
   const showCompressModal = ref(false)
   const showRenameModal = ref(false)
 
+  // Only the newest scan writes the list, the error and the spinner: scans
+  // overlap when the output folder changes or an action rescans mid-scan.
+  const scans = createLatest()
+
   const loadVideos = async (): Promise<void> => {
+    const current = scans.begin()
     isLoading.value = true
     try {
       const rows = await (overrides.lecturesProvider
         ? overrides.lecturesProvider.listVideos()
         : window.electronAPI.lectures.listVideos())
+      if (!current()) return
       const items = rows.map((row): LectureVideoItem => {
         const parsed = parseLectureVideoName(row.name)
         return {
@@ -111,12 +118,13 @@ export function useLecturesPage() {
       // Cleared only on success, so a retry keeps the banner (spinning) up.
       loadError.value = null
     } catch (error) {
+      if (!current()) return
       log.error('Failed to list videos', error)
       loadError.value = error
       videos.value = []
       subtitles.value = []
     } finally {
-      isLoading.value = false
+      if (current()) isLoading.value = false
     }
   }
 
@@ -124,6 +132,8 @@ export function useLecturesPage() {
   watch(
     () => configStore.outputDirectory,
     () => {
+      // Paths picked in the previous folder mean nothing in this one.
+      selectedPaths.value = []
       void loadVideos()
     },
   )

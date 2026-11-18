@@ -153,28 +153,25 @@ export function useCacheManagement(): UseCacheManagementReturn {
 
     try {
       const result = await window.electronAPI.cache?.resetAllData?.()
-      if (result?.success) {
-        cacheOperationStatus.value = {
-          type: 'success',
-          message: t('advanced.resetSuccess')
-        }
+      if (!result) throw new Error('Unknown error')
+      const left = result.notRemoved ?? []
+      cacheOperationStatus.value = result.success
+        ? { type: 'success', message: t('advanced.resetSuccess') }
+        : { type: 'error', message: left.length > 0 ? `${t('advanced.resetError')}: ${left.join(', ')}` : t('advanced.resetError') }
+      if (!result.success) log.error('Factory reset incomplete:', result.error)
 
-        // Show restart dialog
-        const shouldRestart = await window.electronAPI.dialog?.showMessageBox?.({
-          type: 'info',
-          buttons: [t('advanced.restartLater'), t('advanced.restartNow')],
-          defaultId: 1,
-          title: t('advanced.restartRequired'),
-          message: t('advanced.restartRequiredMessage'),
-          detail: t('advanced.restartRequiredDetail')
-        })
-
-        if (shouldRestart?.response === 1) {
-          await window.electronAPI.app?.restart?.()
-        }
-      } else {
-        throw new Error(result?.error || 'Unknown error')
-      }
+      // A reset that ran always ends in a restart: the services still running
+      // hold the old state in memory and would write it back. There is no
+      // "later"; closing the box restarts too.
+      await window.electronAPI.dialog?.showMessageBox?.({
+        type: result.success ? 'info' : 'warning',
+        buttons: [t('advanced.restartNow')],
+        defaultId: 0,
+        title: t('advanced.restartRequired'),
+        message: t('advanced.restartRequiredMessage'),
+        detail: t('advanced.restartRequiredDetail')
+      })
+      await window.electronAPI.app?.restart?.()
     } catch (error) {
       log.error('Failed to reset all data:', error)
       cacheOperationStatus.value = {

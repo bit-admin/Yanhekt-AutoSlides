@@ -232,6 +232,9 @@ export function statements(sql: string): string[] {
 const courseRank = (t: string) => `(CASE ${t}.detail_status WHEN 'ok' THEN 2 WHEN 'missing' THEN 1 ELSE 0 END)`;
 const videoRank = (t: string) => `(CASE ${t}.status WHEN 'ok' THEN 1 ELSE 0 END)`;
 
+/** When a copy last learned something about a session: its last read, or the refresh that found it gone. */
+const sessionSeen = (t: string) => `MAX(${t}.fetched_at, COALESCE(${t}.gone_at, 0))`;
+
 export const SYNC_TABLES = {
   courses: {
     keep: ['first_seen_at'],
@@ -239,7 +242,12 @@ export const SYNC_TABLES = {
   },
   sessions: {
     keep: ['first_seen_at'],
-    where: 'excluded.fetched_at >= sessions.fetched_at',
+    // The later observation wins: a read (`fetched_at`) or a refresh that
+    // found it gone (`gone_at`, which leaves `fetched_at` alone). Comparing
+    // `fetched_at` alone let an older read revive a session a later refresh
+    // had marked gone (audit SVC-10). An expired answer is neither: it sets
+    // only `refreshed_at`. Equal times: the incoming row, as before.
+    where: `${sessionSeen('excluded')} >= ${sessionSeen('sessions')}`,
   },
   videos: {
     keep: [] as string[],

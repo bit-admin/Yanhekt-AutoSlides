@@ -8,6 +8,7 @@ import { table } from '../format';
 import { semesterTermKey } from '../terms';
 import { cliTermOptions } from './search';
 import type { CliCommand, CliContext, CommandResult } from '../types';
+import { TERMS_SCHEMA } from '../dataSchemas';
 
 /** The term list, for both the terminal command and the app's. */
 export async function listTerms(apiClient: ApiClient): Promise<CommandResult> {
@@ -42,5 +43,6 @@ export const termsCommand: CliCommand = {
   positionals: { min: 0, max: 0 },
   network: true,
   data: TERMS_DATA,
+  dataSchema: TERMS_SCHEMA,
   run,
 };
