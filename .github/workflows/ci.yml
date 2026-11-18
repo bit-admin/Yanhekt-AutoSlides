@@ -115,8 +115,20 @@ jobs:
           # remaining 3.x/5.x copies (eslint, forge's node-gyp, asar, glob 7/8)
           # do not contain the affected firstPhasePreProcess code, and 11 drops
           # APIs they use. Remove once 3.x/5.x patches ship or the range narrows.
+          #
+          # GHSA-fc5q-39xc-vjpf (picomatch extglob ReDoS, 2026-11-18): every
+          # release is affected (<=4.0.7, the latest), so nothing to update to.
+          # picomatch is dev-only in all four packages (fast-glob, chokidar,
+          # Vite, Vitest; no production tree), and those never match untrusted
+          # patterns. A fixed 4.x passes on its own; remove this then.
           - dir: autoslides
-            allow: --allow 'GHSA-g3hv-75wg-m249:minimatch:<9'
+            allow: --allow 'GHSA-g3hv-75wg-m249:minimatch:<9' --allow 'GHSA-fc5q-39xc-vjpf:picomatch:<5'
+          - dir: web
+            allow: --allow 'GHSA-fc5q-39xc-vjpf:picomatch:<5'
+          - dir: share
+            allow: --allow 'GHSA-fc5q-39xc-vjpf:picomatch:<5'
+          - dir: relay
+            allow: --allow 'GHSA-fc5q-39xc-vjpf:picomatch:<5'
     defaults:
       run:
         working-directory: ${{ matrix.dir }}
