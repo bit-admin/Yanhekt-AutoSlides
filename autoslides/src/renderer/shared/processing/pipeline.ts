@@ -75,6 +75,11 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   // Resolves once a stopped run has nothing left in flight and `onStopped` ran.
   private settling: Promise<void> = Promise.resolve();
 
+  /** Starting or running: a run that may still write slides. */
+  get isActive(): boolean {
+    return this.phase !== 'idle';
+  }
+
   private get isRunning(): boolean {
     return this.phase === 'running';
   }

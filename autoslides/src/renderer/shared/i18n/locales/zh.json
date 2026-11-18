@@ -74,6 +74,7 @@
   "settings": {
     "settings": "设置",
     "outputDirectory": "输出目录",
+    "outputDirectoryBusy": "下载、提取、任务或后处理仍在进行时，无法更改输出目录。请等它们完成或取消后再试。",
     "openFolder": "打开输出目录",
     "browse": "选择",
     "connectionMode": "连接模式",

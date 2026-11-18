@@ -12,6 +12,7 @@
 // sent to every window. No sign-in is needed: nothing here talks to Yanhekt.
 // There is no one-run override (`--output` and the like): a different folder
 // or route for one run is what `yhdl` is for.
+import { describeOutputFolderWork, parseOutputFolderBusy } from '@common/outputFolderWork';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -42,7 +43,7 @@ interface Setting {
   /** What `config <key> <value>` takes, for help and errors. */
   accepts: string;
   /** Checks the typed value (a usage error when it is wrong) and saves it through the app. */
-  write: (raw: string, ctx: AppCommandContext) => void;
+  write: (raw: string, ctx: AppCommandContext) => void | Promise<void>;
 }
 
 const CONNECTION_MODES: readonly ConnectionMode[] = ['auto', 'internal', 'external'];
@@ -121,7 +122,20 @@ export const SETTINGS: readonly Setting[] = [
     type: 'string|null',
     accepts: 'an existing folder (absolute path)',
     read: (c) => c.outputDirectory || null,
-    write: (raw, ctx) => ctx.settings.setOutputDirectory(parseFolder(raw)),
+    write: async (raw, ctx) => {
+      const folder = parseFolder(raw);
+      try {
+        await ctx.settings.setOutputDirectory(folder);
+      } catch (error) {
+        const work = parseOutputFolderBusy(error);
+        if (!work) throw error;
+        throw new CliError(
+          'output_folder_busy',
+          `the output folder cannot change while ${describeOutputFolderWork(work)} in AutoSlides ${work.downloads + work.extractions + work.tasks + work.postProcessing === 1 ? 'is' : 'are'} unfinished`,
+          'Let them finish, or cancel them in the app (`autoslides downloads cancel --all` for downloads), then run this again.',
+        );
+      }
+    },
   },
   {
     key: 'connection_mode',
@@ -234,7 +248,7 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
     const stored = wanted.stored ?? wanted.read;
     const previous = wanted.read(config);
     const storedBefore = stored(config);
-    wanted.write(raw, ctx);
+    await wanted.write(raw, ctx);
     // As saved: ConfigService may have normalized it.
     const saved = ctx.configService.getConfig();
     const value = wanted.read(saved);

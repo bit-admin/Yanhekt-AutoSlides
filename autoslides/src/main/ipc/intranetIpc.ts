@@ -2,11 +2,11 @@ import { ipcMain } from 'electron';
 import os from 'node:os';
 import type { IpcServices } from './types';
 import { probeCampusConnection } from '@main/platform/campusNetworkProbe';
-import { createSettingsWriter } from './settingsWriter';
+import { createSettingsWriter, outputFolderWorkFrom } from './settingsWriter';
 
 export function registerIntranetIpcHandlers(services: IpcServices): void {
   const { intranetMappingService, configService } = services;
-  const settings = createSettingsWriter(configService, intranetMappingService);
+  const settings = createSettingsWriter(configService, intranetMappingService, outputFolderWorkFrom(services.cliControlBridge));
 
   ipcMain.handle('intranet:getStatus', async () => {
     // Settings and the player ask when they open; make the answer current.

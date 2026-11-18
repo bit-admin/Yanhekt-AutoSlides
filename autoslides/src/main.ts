@@ -61,7 +61,7 @@ import { slideMetadataService } from '@main/extraction/slideMetadataService';
 import { slideTimelineService } from '@main/extraction/slideTimelineService';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
-import { createSettingsWriter } from '@main/ipc/settingsWriter';
+import { createSettingsWriter, outputFolderWorkFrom } from '@main/ipc/settingsWriter';
 import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
 import { initLogFile, setLogVerbose, flushLogFile, getLogDir } from '@main/infra/logFile';
 import { YanhektCatalogStore } from '@main/platform/yanhektCatalog';
@@ -474,7 +474,7 @@ const cliControlBridge = new RendererBridge(
 const cliControlServer = new CliControlServer({
   socketPath: cliSocketPath,
   configService,
-  settings: createSettingsWriter(configService, intranetMappingService),
+  settings: createSettingsWriter(configService, intranetMappingService, outputFolderWorkFrom(cliControlBridge)),
   apiClient,
   courseLookup,
   enrolledCoursesService,

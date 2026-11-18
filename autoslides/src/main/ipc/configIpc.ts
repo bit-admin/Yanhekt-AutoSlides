@@ -2,7 +2,7 @@ import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
-import { createSettingsWriter } from './settingsWriter';
+import { createSettingsWriter, outputFolderWorkFrom } from './settingsWriter';
 import { broadcastConfig as broadcastConfigSnapshot } from './broadcastConfig';
 import type { AIServiceType } from '@main/platform/configService';
 import type { ConnectionMode, CustomProviderId, LanguageMode, ProxySettings, StoredAccount } from '@common/types';
@@ -27,14 +27,16 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   } = services;
 
   const broadcastConfig = (): void => broadcastConfigSnapshot(configService);
-  const settings = createSettingsWriter(configService, intranetMappingService);
+  const settings = createSettingsWriter(configService, intranetMappingService, outputFolderWorkFrom(services.cliControlBridge));
 
   ipcMain.handle('config:get', async () => {
     return configService.getConfig();
   });
 
+  // Both refuse (reject with the `@common/outputFolderWork` marker) while work
+  // is still writing into the current folder.
   ipcMain.handle('config:setOutputDirectory', async (_event, directory: string) => {
-    settings.setOutputDirectory(directory);
+    await settings.setOutputDirectory(directory);
     return configService.getConfig();
   });
 
@@ -55,9 +57,11 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('config:selectOutputDirectory', async () => {
-    const selectedPath = await configService.selectOutputDirectory();
+    await settings.assertOutputFolderIdle();
+    const selectedPath = await configService.pickOutputDirectory();
     if (!selectedPath) return null;
-    broadcastConfig();
+    // Asked again: work may have started while the picker was open.
+    await settings.setOutputDirectory(selectedPath);
     return configService.getConfig();
   });
 

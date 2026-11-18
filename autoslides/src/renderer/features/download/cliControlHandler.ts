@@ -4,6 +4,7 @@ import { tokenManager, whenStartupAuthSettled } from '@shared/services/authServi
 import { DownloadService, type DownloadItem } from '@shared/services/downloadService'
 import { createLogger } from '@shared/utils/logger'
 import { isCliItem, listed, snapshot, type CliItem } from './cliQueueItems'
+import { countOutputFolderWork } from './outputFolderWork'
 import { queueSessionDownload } from './queueSessionDownload'
 
 const log = createLogger('CliControl')
@@ -73,6 +74,8 @@ export function installCliControlHandler(): () => void {
         if (!isFinalDownloadState(current.state)) follow(queued.id)
         return { ...current, added: result.added }
       }
+      case 'outputFolderWork':
+        return countOutputFolderWork()
       case 'listDownloads':
         return { items: DownloadService.downloadItems.filter(isCliItem).map(listed) }
       case 'followDownloads': {

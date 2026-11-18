@@ -1541,19 +1541,13 @@ export class ConfigService {
     return this.getSlideExtractionConfig().enablePngColorReduction !== false;
   }
 
-  async selectOutputDirectory(): Promise<string | null> {
+  /** The folder picker, starting at the current folder. Saves nothing (the settings writer does). */
+  async pickOutputDirectory(): Promise<string | null> {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
       defaultPath: this.store.get('outputDirectory')
     });
-
-    if (!result.canceled && result.filePaths.length > 0) {
-      const selectedPath = result.filePaths[0];
-      this.setOutputDirectory(selectedPath);
-      return selectedPath;
-    }
-
-    return null;
+    return !result.canceled && result.filePaths.length > 0 ? result.filePaths[0] : null;
   }
 
   get<K extends keyof AppConfig>(key: K, defaultValue?: AppConfig[K]): AppConfig[K] {

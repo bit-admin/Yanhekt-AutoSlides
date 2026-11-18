@@ -10,6 +10,7 @@
 //
 // Every payload here is plain JSON (it crosses IPC).
 import type { SessionDownloadInfo } from './apiTypes';
+import type { OutputFolderWork } from './outputFolderWork';
 
 export type CliDownloadStream = 'screen' | 'camera';
 
@@ -67,6 +68,12 @@ export interface CliControlMethods {
   changeDownloads: { params: { action: 'cancel' | 'retry'; itemIds: string[] }; result: CliQueueChange[] };
   /** The panel's Clear Completed: drop every finished and failed row. Answers how many went. */
   clearDownloads: { params: Record<string, never>; result: { removed: number } };
+  /**
+   * Work still writing into the output folder (`@common/outputFolderWork`).
+   * Not a command of its own: main asks before any output folder change, from
+   * the Settings page or `autoslides config output_dir`.
+   */
+  outputFolderWork: { params: Record<string, never>; result: OutputFolderWork };
 }
 
 export type CliControlMethod = keyof CliControlMethods;

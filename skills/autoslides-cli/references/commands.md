@@ -49,7 +49,7 @@ Name rows by `item_id` (from `downloads --json`) or by a session id or link, whi
 
 `Row = { item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", status, progress: 0-100, path, error?, added_at, completed_at, extraction: { state, progress, error? } | null }`
 
-Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `cancelled` or `removed`. A row's `path` is the file the download wrote, in the folder it started with (a later change of `output_dir` does not move it); it is `null` until the row is `completed`.
+Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `cancelled` or `removed`. A row's `path` is the file the download wrote, in the folder it started with (`output_dir` cannot change while a row is unfinished); it is `null` until the row is `completed`.
 
 ### `config`
 
@@ -59,7 +59,7 @@ Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `c
 
 | Key | Settings location | Takes |
 |---|---|---|
-| `output_dir` | General > Output Directory | an absolute path to an existing folder (`~` works); never created |
+| `output_dir` | General > Output Directory | an absolute path to an existing folder (`~` works); never created. Refused with `output_folder_busy` while the app has unfinished downloads, extractions, tasks or post-processing |
 | `connection_mode` | General > Connection Mode | `auto`, `internal` (campus intranet) or `external` (public network) |
 | `intranet_interface` | Network > Intranet Network Interface | an interface name (`en0`) or one of this computer's IPv4 addresses; `default` for the system default |
 | `anonymous_requests` | Network > Anonymous API requests | `true` / `false` |

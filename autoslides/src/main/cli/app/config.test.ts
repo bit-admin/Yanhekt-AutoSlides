@@ -211,3 +211,29 @@ describe('autoslides config', () => {
     expect(applied).toEqual([]);
   });
 });
+
+describe('output_dir while the app is busy', () => {
+  it('answers output_folder_busy and changes nothing', async () => {
+    const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'as-config-'));
+    try {
+      const { OutputFolderBusyError } = await import('@common/outputFolderWork');
+      const busy = {
+        ...context(),
+        settings: {
+          setOutputDirectory: async () => {
+            throw new OutputFolderBusyError({ downloads: 2, extractions: 0, tasks: 1, postProcessing: 0 });
+          },
+        },
+      } as unknown as AppCommandContext;
+      const error = await appConfigCommand.serve(input(['output_dir', folder]), busy).then(
+        () => null,
+        (e: unknown) => e as { code: string; message: string; hint?: string },
+      );
+      expect(error?.code).toBe('output_folder_busy');
+      expect(error?.message).toContain('2 downloads and 1 task');
+      expect(current.outputDirectory).toBe(storedConfig.outputDirectory);
+    } finally {
+      fs.rmSync(folder, { recursive: true, force: true });
+    }
+  });
+});

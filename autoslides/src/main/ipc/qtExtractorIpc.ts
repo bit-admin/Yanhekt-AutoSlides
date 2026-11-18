@@ -1,12 +1,12 @@
 import { ipcMain } from 'electron';
-import { createSettingsWriter } from './settingsWriter';
+import { createSettingsWriter, outputFolderWorkFrom } from './settingsWriter';
 import type { IpcServices } from './types';
 
 export function registerQtExtractorIpcHandlers(services: IpcServices): void {
   const { qtExtractorService, configService, intranetMappingService } = services;
   // The two toggles now reach every window's config, so the extraction queue
   // (which reads `configStore.qtExtractor`) sees them without a restart.
-  const settings = createSettingsWriter(configService, intranetMappingService);
+  const settings = createSettingsWriter(configService, intranetMappingService, outputFolderWorkFrom(services.cliControlBridge));
 
   ipcMain.handle('qtExtractor:getStatus', async () => {
     return await qtExtractorService.verifyBinary();

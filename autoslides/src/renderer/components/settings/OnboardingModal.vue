@@ -84,6 +84,7 @@
               />
               <button @click="selectOutputDirectory" class="btn btn--primary">{{ $t('settings.browse') }}</button>
             </div>
+            <div v-if="outputDirectoryBusy" class="setting-description output-busy" role="alert">{{ $t('settings.outputDirectoryBusy') }}</div>
           </template>
 
           <!-- Connection mode -->
@@ -421,6 +422,7 @@ const openLegal = (url: string) => {
 const settings = useSettings()
 const {
   outputDirectory,
+  outputDirectoryBusy,
   connectionMode,
   muteMode,
   selectOutputDirectory,
@@ -635,6 +637,11 @@ const onSignInBrowserLogin = () => {
 </script>
 
 <style scoped>
+.output-busy {
+  margin-top: 8px;
+  color: var(--danger);
+}
+
 .onboarding-overlay {
   position: fixed;
   inset: 0;

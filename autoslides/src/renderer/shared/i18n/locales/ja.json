@@ -74,6 +74,7 @@
   "settings": {
     "settings": "設定",
     "outputDirectory": "出力ディレクトリ",
+    "outputDirectoryBusy": "ダウンロード、抽出、タスク、後処理の実行中は出力ディレクトリを変更できません。完了するか取り消してから、もう一度お試しください。",
     "openFolder": "フォルダを開く",
     "browse": "参照",
     "connectionMode": "接続モード",

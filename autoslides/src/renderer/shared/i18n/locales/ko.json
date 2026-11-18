@@ -74,6 +74,7 @@
   "settings": {
     "settings": "설정",
     "outputDirectory": "출력 폴더",
+    "outputDirectoryBusy": "다운로드, 추출, 작업 또는 후처리가 진행 중일 때는 출력 폴더를 바꿀 수 없습니다. 끝나거나 취소한 뒤 다시 시도하세요.",
     "openFolder": "폴더 열기",
     "browse": "찾아보기",
     "connectionMode": "연결 모드",

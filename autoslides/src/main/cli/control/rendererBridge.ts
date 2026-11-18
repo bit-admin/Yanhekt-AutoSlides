@@ -157,6 +157,19 @@ export class RendererBridge {
     });
   }
 
+  /**
+   * Ask only a renderer that is up: null when none is (no window, or a reload
+   * in progress), never opening a window for it. For questions whose answer
+   * with no renderer is known, such as what work it is running (none).
+   */
+  async requestIfReady<M extends CliControlMethod>(
+    method: M,
+    params: CliControlMethods[M]['params'],
+  ): Promise<CliControlMethods[M]['result'] | null> {
+    if (!this.readyContents || this.readyContents.isDestroyed()) return null;
+    return this.request(method, params);
+  }
+
   handleResponse(sender: WebContents, response: CliControlResponse): void {
     if (sender !== this.readyContents) return;
     const pending = this.pending.get(response.id);

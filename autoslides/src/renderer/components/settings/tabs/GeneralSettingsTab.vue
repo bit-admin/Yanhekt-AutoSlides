@@ -13,6 +13,7 @@
         />
         <button @click="selectOutputDirectory" class="btn">{{ $t('settings.browse') }}</button>
       </div>
+      <div v-if="outputDirectoryBusy" class="setting-description output-busy" role="alert">{{ $t('settings.outputDirectoryBusy') }}</div>
     </div>
 
     <div class="setting-item">
@@ -426,6 +427,7 @@ const { auth, settings, advanced, cache } = useSettingsContext()
 
 const {
   outputDirectory,
+  outputDirectoryBusy,
   selectOutputDirectory,
   rememberPassword,
 } = settings
@@ -556,6 +558,11 @@ function openLogFolder(): void {
 </script>
 
 <style scoped>
+.output-busy {
+  margin-top: 6px;
+  color: var(--danger);
+}
+
 .developer-catalog {
   margin-top: 8px;
 }
