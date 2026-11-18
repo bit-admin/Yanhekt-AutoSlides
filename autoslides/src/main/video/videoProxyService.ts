@@ -1,4 +1,5 @@
 import * as http from 'http';
+import { createLocalAccessSecret, hasLocalAccess, isLoopbackHost, LOCAL_ACCESS_HEADER } from './videoProxy/localAccess';
 import * as url from 'url';
 import type { AxiosResponse } from 'axios';
 import { httpClient, isHttpCancel, isHttpError } from '@main/infra/http';
@@ -96,6 +97,8 @@ export class VideoProxyService {
 
   private proxyServer: http.Server | null = null;
   private proxyPort = 0;
+  /** This launch's secret; requests without it are refused (`localAccess.ts`). */
+  readonly localAccessSecret = createLocalAccessSecret();
   // In-flight start promise. Dedupes concurrent startVideoProxy() calls so that
   // parallel tasks/playback tabs don't race: the server is created synchronously
   // (making proxyServer truthy) while listen() resolves the port asynchronously,
@@ -169,6 +172,16 @@ export class VideoProxyService {
   /**
    * Register a new client and return client ID for reference counting
    */
+  /** The proxy's port, 0 while it is not listening. */
+  get port(): number {
+    return this.proxyPort;
+  }
+
+  /** FFmpeg `-headers` lines that let it read proxy URLs. */
+  localAccessHeaderLines(): string {
+    return `${LOCAL_ACCESS_HEADER}: ${this.localAccessSecret}\r\n`;
+  }
+
   registerClient(): string {
     const clientId = `client_${++this.clientIdCounter}_${Date.now()}`;
     this.activeClients.add(clientId);
@@ -408,10 +421,17 @@ export class VideoProxyService {
         // The mic-audio probe reads a file's size off a ranged answer.
         res.setHeader('Access-Control-Expose-Headers', 'Content-Range');
 
-        // Handle CORS preflight requests
+        // Handle CORS preflight requests (they never carry the access header)
         if (req.method === 'OPTIONS') {
           res.writeHead(200);
           res.end();
+          return;
+        }
+
+        // Only the app's own pages and its FFmpeg runs (see localAccess.ts).
+        if (!isLoopbackHost(req.headers.host, this.proxyPort) || !hasLocalAccess(req.headers, this.localAccessSecret)) {
+          res.writeHead(403, { 'Content-Type': 'text/plain' });
+          res.end('Forbidden');
           return;
         }
 

@@ -119,11 +119,13 @@ export class ThumbnailService {
   }
 
   private async grabFrame(ffmpegPath: string, url: string, seekSeconds: number): Promise<Buffer | null> {
-    const needsHeaders = !url.startsWith('http://localhost');
+    const viaProxy = url.startsWith('http://localhost');
     const args: string[] = [];
-    if (needsHeaders) {
-      args.push('-headers', `Origin: ${ORIGIN}\r\nReferer: ${REFERER}\r\nUser-Agent: ${USER_AGENT}\r\n`);
-    }
+    // The local proxy wants its access header (FFmpeg's HLS demuxer sends it
+    // on every playlist and segment request too); upstream wants the site's.
+    args.push('-headers', viaProxy
+      ? this.videoProxyService.localAccessHeaderLines()
+      : `Origin: ${ORIGIN}\r\nReferer: ${REFERER}\r\nUser-Agent: ${USER_AGENT}\r\n`);
     args.push(
       '-nostdin',
       '-ss', String(seekSeconds),
