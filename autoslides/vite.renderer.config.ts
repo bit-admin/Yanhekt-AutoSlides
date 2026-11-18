@@ -10,9 +10,7 @@ function ortWasmDevServer(): Plugin {
   );
   const whitelist = new Set([
     'ort-wasm-simd-threaded.jsep.wasm',
-    'ort-wasm-simd-threaded.jsep.mjs',
-    'ort-wasm-simd-threaded.wasm',
-    'ort-wasm-simd-threaded.mjs'
+    'ort-wasm-simd-threaded.jsep.mjs'
   ]);
   return {
     name: 'serve-ort-wasm-dev',
@@ -51,9 +49,7 @@ function ortWasmBuildCopy(): Plugin {
   );
   const files = [
     'ort-wasm-simd-threaded.jsep.wasm',
-    'ort-wasm-simd-threaded.jsep.mjs',
-    'ort-wasm-simd-threaded.wasm',
-    'ort-wasm-simd-threaded.mjs'
+    'ort-wasm-simd-threaded.jsep.mjs'
   ];
   return {
     name: 'copy-ort-wasm-build',
