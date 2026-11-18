@@ -506,6 +506,8 @@
   "cloudNotes": {
     "notSignedIn": "请登录后使用笔记。",
     "yanhektError": "延河课堂笔记服务出错（错误码 {code}），这是延河课堂服务器的问题，请稍后再试。",
+    "changesNotSaved": "最近的修改未能保存。{reason}",
+    "leftUnsaved": "“{title}”最近的修改未能保存，已丢失。{reason}",
     "ungroupKeptBoth": "笔记已复制到未分组，但原笔记未能删除。两份笔记均已保留，请删除不需要的一份。",
     "workspaceTitle": "AutoSlides 笔记",
     "workspaceBrand": "AutoSlides",

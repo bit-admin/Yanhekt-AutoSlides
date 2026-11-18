@@ -1454,6 +1454,8 @@
     "noteSlideCaption": "スライド {n}",
     "cancel": "キャンセル",
     "yanhektError": "延河課堂のノートサービスでエラーが発生しました（エラーコード {code}）。延河課堂側の問題です。しばらくしてから再試行してください。",
+    "changesNotSaved": "最新の変更は保存されませんでした。{reason}",
+    "leftUnsaved": "「{title}」の最新の変更は保存されず、失われました。{reason}",
     "ungroupKeptBoth": "ノートを未分類にコピーしましたが、元のノートを削除できませんでした。両方とも残っています。不要なほうを削除してください。"
   },
   "webCapture": {

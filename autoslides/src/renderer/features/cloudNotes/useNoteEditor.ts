@@ -49,6 +49,8 @@ export function useNoteEditor(
   let chainNoteId: number | null = null
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let savedFlashTimer: ReturnType<typeof setTimeout> | undefined
+  // Yanhekt's reason for the last failed save of the note on screen.
+  let lastSaveFailure = ''
 
   function startChain(noteId: number, baselineBlocks: string): void {
     const mine: NoteSaveChain = createNoteSaveChain(cn.noteWriter(noteId), {
@@ -59,9 +61,14 @@ export function useNoteEditor(
       onSettled: (saved) => {
         if (chain !== mine) return
         // A failed save never reads as saved: the note stays dirty, and the
-        // error is in the page's banner.
+        // banner says the changes were not saved, with Yanhekt's reason.
         saveStatus.value = saved ? 'saved' : 'idle'
-        if (!saved) return
+        if (!saved) {
+          lastSaveFailure = cn.error.value
+          if (lastSaveFailure) cn.error.value = t('cloudNotes.changesNotSaved', { reason: lastSaveFailure })
+          return
+        }
+        lastSaveFailure = ''
         if (savedFlashTimer) clearTimeout(savedFlashTimer)
         savedFlashTimer = setTimeout(() => {
           if (saveStatus.value === 'saved') saveStatus.value = 'idle'
@@ -189,11 +196,19 @@ export function useNoteEditor(
   async function openNote(id: number): Promise<void> {
     // Persist any pending edits to the note we're leaving before switching,
     // behind every save of it already on its way. If they cannot be saved the
-    // note stays open with its edits (and the error shown) rather than being
-    // replaced: leaving would throw them away.
+    // switch still happens (Yanhekt's note service fails often enough that
+    // holding the user on the note would get in the way); the banner then
+    // names the note whose changes were lost.
     const prevId = cn.selectedNoteId.value
-    if (prevId != null && prevId !== id && !(await flushSave(prevId))) return
+    let lost: { title: string; reason: string } | null = null
+    if (prevId != null && prevId !== id) {
+      const title = cn.selectedNote.value?.title ?? ''
+      if (!(await flushSave(prevId))) lost = { title, reason: lastSaveFailure }
+    }
     const detail = await cn.openNote(id)
+    if (lost && cn.selectedNoteId.value === id) {
+      cn.error.value = t('cloudNotes.leftUnsaved', lost)
+    }
     if (detail) {
       // cn.openNote drops a stale detail rather than clobbering a newer
       // selection, so a mismatch here means a faster open for another note

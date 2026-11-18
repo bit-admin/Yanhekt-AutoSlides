@@ -506,6 +506,8 @@
   "cloudNotes": {
     "notSignedIn": "Sign in to use Notes.",
     "yanhektError": "Yanhekt's note service failed (error code {code}). This is a problem on Yanhekt's side; try again later.",
+    "changesNotSaved": "Your latest changes were not saved. {reason}",
+    "leftUnsaved": "Your latest changes to “{title}” were not saved and are lost. {reason}",
     "ungroupKeptBoth": "The note was copied to Ungrouped, but the original could not be deleted. Both notes are kept; delete the one you do not need.",
     "workspaceTitle": "AutoSlides Notes",
     "workspaceBrand": "AutoSlides",

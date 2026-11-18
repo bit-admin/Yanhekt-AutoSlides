@@ -1454,6 +1454,8 @@
     "noteSlideCaption": "슬라이드 {n}",
     "cancel": "취소",
     "yanhektError": "옌허커탕 노트 서비스에 오류가 발생했습니다(오류 코드 {code}). 옌허커탕 서버 문제이니 잠시 후 다시 시도하세요.",
+    "changesNotSaved": "최근 변경 사항이 저장되지 않았습니다. {reason}",
+    "leftUnsaved": "“{title}”의 최근 변경 사항이 저장되지 않아 사라졌습니다. {reason}",
     "ungroupKeptBoth": "노트를 미분류로 복사했지만 원본을 삭제하지 못했습니다. 두 노트 모두 남아 있으니 필요 없는 쪽을 삭제하세요."
   },
   "webCapture": {
