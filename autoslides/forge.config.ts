@@ -134,6 +134,14 @@ const config: ForgeConfig = {
           '--directory', path.join(resources, 'media-tools'),
         ], { stdio: 'inherit' });
         if (platform === 'darwin') {
+          // Electron's MIT licence and Chromium's notices come out beside the
+          // .app, and the DMG ships only the .app: put them inside, before the
+          // re-sign. (Windows and Linux installers take the whole folder.)
+          for (const [from, to] of [['LICENSE', 'LICENSE.electron.txt'], ['LICENSES.chromium.html', 'LICENSES.chromium.html']]) {
+            const source = path.join(outputPath, from);
+            if (!fs.existsSync(source)) throw new Error(`postPackage: Electron's ${from} is missing next to the app`);
+            fs.copyFileSync(source, path.join(resources, to));
+          }
           // ditto keeps the framework's symlinks. The re-sign below covers it
           // ad-hoc; Sparkle only needs the new app's signature to be valid.
           const frameworks = path.join(appPath, 'Contents/Frameworks');
