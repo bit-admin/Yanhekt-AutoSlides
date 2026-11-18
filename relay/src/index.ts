@@ -346,6 +346,46 @@ async function getSegment(
   return new Response(toClient, { status: res.status, headers: res.headers });
 }
 
+// ---- Redirects -------------------------------------------------------------
+// `isAllowedUpstream` checks only the first address; an automatic follow would
+// let an allowed host send the relay anywhere (audit SVC-06). Sampled on
+// 2026-11-18, the real chain has no redirect at all (cbiz and cvideo answer
+// 200/206 directly, playlist lines are relative), so redirects are followed
+// by hand, a few at most, each one checked like the first address.
+
+export const MAX_REDIRECTS = 3;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+/** Where a redirect may go: an allowed Yanhekt host, never from https down to http. */
+export function allowedRedirect(from: string, location: string | null): string | null {
+  if (!location) return null;
+  let next: URL;
+  try {
+    next = new URL(location, from);
+  } catch {
+    return null;
+  }
+  if (new URL(from).protocol === 'https:' && next.protocol !== 'https:') return null;
+  return isAllowedUpstream(next.href) ? next.href : null;
+}
+
+const refusedRedirect = (why: string): Response =>
+  new Response(`Upstream redirect refused: ${why}`, { status: 502, headers: { 'Content-Type': 'text/plain' } });
+
+export async function fetchAllowedHops(url: string, headers: Record<string, string>): Promise<Response> {
+  let current = url;
+  for (let hop = 0; ; hop++) {
+    const res = await fetch(current, { headers, redirect: 'manual' });
+    if (!REDIRECT_STATUSES.has(res.status)) return res;
+    // Nothing of a redirect body is passed on.
+    await res.body?.cancel();
+    if (hop >= MAX_REDIRECTS) return refusedRedirect('too many redirects');
+    const next = allowedRedirect(current, res.headers.get('Location'));
+    if (!next) return refusedRedirect('not a Yanhekt address');
+    current = next;
+  }
+}
+
 // ---- Signed media fetch with 403 re-sign / re-mint retry ------------------
 
 export async function fetchSignedMedia(
@@ -367,7 +407,7 @@ export async function fetchSignedMedia(
     const headers: Record<string, string> = { ...MEDIA_HEADERS };
     if (range) headers['Range'] = range;
 
-    const res = await fetch(signed, { headers, redirect: 'follow' });
+    const res = await fetchAllowedHops(signed, headers);
     if (res.status !== 403) return res;
     last = res;
   }

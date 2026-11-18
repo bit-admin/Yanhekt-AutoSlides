@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker, {
   LOGIN_TOKEN_RE,
   MAX_PLAYLIST_BYTES,
+  allowedRedirect,
   fetchSignedMedia,
+  MAX_REDIRECTS,
   readPlaylist,
   isAllowedUpstream,
   parseSeconds,
@@ -89,6 +91,48 @@ describe('t= gate', () => {
     );
     expect(res.status).toBe(403);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('redirects (SVC-06)', () => {
+  const redirect = (location: string, status = 302) => new Response(null, { status, headers: { Location: location } });
+
+  it('follows a relative or absolute hop that stays on Yanhekt', async () => {
+    fetchSpy
+      .mockResolvedValueOnce(tokenResponse('tok'))
+      .mockResolvedValueOnce(redirect('/other/path/a.m3u8'))
+      .mockResolvedValueOnce(redirect('https://cvideo2.yanhekt.cn/b.m3u8', 307))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+    const res = await fetchSignedMedia(MEDIA, fakeCtx(), null);
+    expect(res.status).toBe(200);
+    const urls = fetchSpy.mock.calls.map((c) => String(c[0]));
+    expect(urls[2]).toBe('https://cvideo.yanhekt.cn/other/path/a.m3u8');
+    expect(urls[3]).toBe('https://cvideo2.yanhekt.cn/b.m3u8');
+    for (const call of fetchSpy.mock.calls.slice(1)) expect(call[1]).toMatchObject({ redirect: 'manual' });
+  });
+
+  it('refuses a hop to another host without requesting it', async () => {
+    fetchSpy.mockResolvedValueOnce(tokenResponse('tok')).mockResolvedValueOnce(redirect('https://evil.example/x'));
+    const res = await fetchSignedMedia(MEDIA, fakeCtx(), null);
+    expect(res.status).toBe(502);
+    expect(fetchSpy.mock.calls.map((c) => String(c[0])).some((u) => u.includes('evil.example'))).toBe(false);
+  });
+
+  it('refuses a downgrade to http and a lookalike host', () => {
+    expect(allowedRedirect('https://cvideo.yanhekt.cn/a', 'http://cvideo.yanhekt.cn/b')).toBeNull();
+    expect(allowedRedirect('https://cvideo.yanhekt.cn/a', 'https://yanhekt.cn.evil.example/b')).toBeNull();
+    expect(allowedRedirect('https://cvideo.yanhekt.cn/a', null)).toBeNull();
+    expect(allowedRedirect('https://cvideo.yanhekt.cn/a/b.m3u8', 'c.ts')).toBe('https://cvideo.yanhekt.cn/a/c.ts');
+  });
+
+  it('stops a loop after MAX_REDIRECTS hops', async () => {
+    fetchSpy.mockImplementation(async (url: string) =>
+      url.startsWith('https://cbiz.yanhekt.cn/') ? tokenResponse('tok') : redirect('https://cvideo.yanhekt.cn/loop'),
+    );
+    const res = await fetchSignedMedia(MEDIA, fakeCtx(), null);
+    expect(res.status).toBe(502);
+    const mediaCalls = fetchSpy.mock.calls.filter((c) => String(c[0]).startsWith('https://cvideo.'));
+    expect(mediaCalls).toHaveLength(MAX_REDIRECTS + 1);
   });
 });
 
