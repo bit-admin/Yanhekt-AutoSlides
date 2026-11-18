@@ -26,6 +26,8 @@ function sparklePublicKey(): string {
 
 const SPARKLE_SCRIPT = path.join(__dirname, 'scripts/sparkle.mjs');
 const SPARKLE_BRIDGE = path.join(__dirname, 'vendor/sparkle/sparkle_bridge.node');
+// Written by generateAssets, shipped as Resources/THIRD-PARTY-NOTICES.txt.
+const NOTICES_FILE = path.join(__dirname, 'vendor/notices/THIRD-PARTY-NOTICES.txt');
 
 // Check if we're running in development mode (npm start)
 const isDev = process.argv.some(arg => arg.includes('electron-forge-start'));
@@ -95,11 +97,22 @@ const config: ForgeConfig = {
         '--platform', platform, '--arch', arch,
       ], { stdio: 'inherit' });
       const mediaRoot = path.join(__dirname, 'vendor/media-tools');
+      // Licence texts of every npm package the app ships, plus libvips and
+      // Sparkle (scripts/third-party-notices.mjs). Vite strips the licence
+      // comments from the bundles, so this file is where they live.
+      if (platform === 'darwin') {
+        execFileSync(process.execPath, [SPARKLE_SCRIPT, 'prepare'], { stdio: 'inherit' });
+      }
+      execFileSync(process.execPath, [
+        path.join(__dirname, 'scripts/third-party-notices.mjs'),
+        '--out', NOTICES_FILE, '--platform', platform,
+      ], { stdio: 'inherit' });
       const resources = forgeConfig.packagerConfig.extraResource ?? [];
       const existing = typeof resources === 'string' ? [resources] : resources;
       const extra = [
-        ...existing.filter(resource => !resource.startsWith(mediaRoot + path.sep) && resource !== SPARKLE_BRIDGE),
+        ...existing.filter(resource => !resource.startsWith(mediaRoot + path.sep) && resource !== SPARKLE_BRIDGE && resource !== NOTICES_FILE),
         path.join(mediaRoot, `${platform}-${arch}`, 'media-tools'),
+        NOTICES_FILE,
       ];
       // macOS in-place updates: pinned Sparkle plus the bridge the main
       // process loads from Contents/Resources. postPackage copies the

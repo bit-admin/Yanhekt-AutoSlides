@@ -27,6 +27,7 @@ export const SPARKLE = {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const vendorDir = path.join(root, 'vendor/sparkle');
 export const frameworkPath = path.join(vendorDir, 'Sparkle.framework');
+export const licensePath = path.join(vendorDir, 'LICENSE');
 export const bridgePath = path.join(vendorDir, 'sparkle_bridge.node');
 const bridgeSource = path.join(root, 'native/sparkle-bridge/sparkle_bridge.mm');
 const cacheDir = path.join(root, '.cache/sparkle');
@@ -58,7 +59,7 @@ async function downloadPinned() {
 
 export async function prepare() {
   if (fs.existsSync(stampPath) && fs.readFileSync(stampPath, 'utf8').trim() === SPARKLE.sha256
-      && fs.existsSync(frameworkPath)) {
+      && fs.existsSync(frameworkPath) && fs.existsSync(licensePath)) {
     process.stdout.write(`Sparkle ${SPARKLE.version} already in vendor/sparkle\n`);
     return;
   }
@@ -66,11 +67,13 @@ export async function prepare() {
   const staging = fs.mkdtempSync(path.join(cacheDir, '.extract-'));
   try {
     // bsdtar keeps the framework's symlinks (Versions/Current and friends).
-    execFileSync('tar', ['-xf', archive, '-C', staging, 'Sparkle.framework', 'bin'], { stdio: 'inherit' });
+    execFileSync('tar', ['-xf', archive, '-C', staging, 'Sparkle.framework', 'bin', 'LICENSE'], { stdio: 'inherit' });
     fs.rmSync(vendorDir, { recursive: true, force: true });
     fs.mkdirSync(vendorDir, { recursive: true });
     fs.renameSync(path.join(staging, 'Sparkle.framework'), frameworkPath);
     fs.renameSync(path.join(staging, 'bin'), path.join(vendorDir, 'bin'));
+    // Sparkle's licence (MIT plus the notices of the code it includes), for THIRD-PARTY-NOTICES.
+    fs.renameSync(path.join(staging, 'LICENSE'), licensePath);
     fs.writeFileSync(stampPath, SPARKLE.sha256 + '\n');
   } finally {
     fs.rmSync(staging, { recursive: true, force: true });

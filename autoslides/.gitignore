@@ -55,3 +55,6 @@ vendor/media-tools/
 
 # Pinned Sparkle and the built bridge (scripts/sparkle.mjs, run by Forge on macOS)
 vendor/sparkle/
+
+# Third-party licence notices, generated at package time (scripts/third-party-notices.mjs)
+vendor/notices/
