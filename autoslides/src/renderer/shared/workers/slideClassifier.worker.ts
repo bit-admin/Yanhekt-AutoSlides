@@ -9,7 +9,7 @@
  * shared copy through `opencvLoader.ts`.
  */
 
-import * as ort from 'onnxruntime-web'
+import * as ort from 'onnxruntime-web/wasm'
 import { loadOpenCv } from './opencvLoader'
 import { createLogger } from '@shared/utils/logger';
 const logger = createLogger('SlideClassifierWorker');

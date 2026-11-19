@@ -13,11 +13,13 @@ interface VendorFiles {
 }
 
 const VENDOR_FILES: VendorFiles[] = [
-  // onnxruntime-web JSEP build; workers set `ort.env.wasm.wasmPaths` to it.
+  // onnxruntime-web's plain CPU build (the workers import `onnxruntime-web/wasm`
+  // and set `ort.env.wasm.wasmPaths` here). The .mjs glue must match the .wasm:
+  // change both together with the import.
   {
     dir: 'ort-wasm',
     sourceDir: path.resolve(__dirname, 'node_modules/onnxruntime-web/dist'),
-    files: ['ort-wasm-simd-threaded.jsep.wasm', 'ort-wasm-simd-threaded.jsep.mjs']
+    files: ['ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs']
   },
   // OpenCV.js (wasm inlined as base64), one copy shared by the autoCrop and
   // slideClassifier workers through shared/workers/opencvLoader.ts.
@@ -82,7 +84,7 @@ function vendorFilesBuildCopy(): Plugin {
 
 // The slideClassifier/autoCrop workers import onnxruntime-web, whose loader
 // references the wasm via `new URL(..., import.meta.url)`, so Rollup emits a
-// ~24 MB copy of ort-wasm-simd-threaded.jsep.wasm into assets/. That copy is dead
+// ~13 MB copy of ort-wasm-simd-threaded.wasm into assets/. That copy is dead
 // weight: at runtime the workers set `ort.env.wasm.wasmPaths` to the ort-wasm/
 // directory populated by vendorFilesBuildCopy, so the assets/ copy is never fetched.
 // Drop it so the blob ships once per renderer instead of twice.

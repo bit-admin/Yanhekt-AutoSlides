@@ -11,7 +11,7 @@
  * at <output>/opencv/opencv.js, also used by slideClassifier.worker.ts.
  */
 
-import * as ort from 'onnxruntime-web'
+import * as ort from 'onnxruntime-web/wasm'
 import { loadOpenCv } from './opencvLoader'
 import { createLogger } from '@shared/utils/logger';
 const logger = createLogger('AutoCropWorker');
@@ -154,7 +154,7 @@ let cachedModelBuffer: ArrayBuffer | null = null
 
 function resolveOrtWasmBase(): string {
   // Dev: Vite dev-server middleware serves files at /ort-wasm/.
-  // Prod: files are emitted to <output>/ort-wasm/ by ortWasmBuildCopy, and the
+  // Prod: files are emitted to <output>/ort-wasm/ by vendorFilesBuildCopy, and the
   // worker lives at <output>/assets/worker-xxx.js under a file:// URL, so we
   // resolve relative to the worker's own location.
   if (import.meta.env.DEV) return '/ort-wasm/'

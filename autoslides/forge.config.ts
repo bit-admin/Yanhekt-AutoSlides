@@ -35,10 +35,10 @@ const isDev = process.argv.some(arg => arg.includes('electron-forge-start'));
 const config: ForgeConfig = {
   packagerConfig: {
     asar: {
-      // ort-wasm/** is unpacked so onnxruntime-web's runtime dynamic import of
-      // the .mjs backend loader works from file:// (ESM imports out of asar
-      // fail in Electron — the file needs to live on the real filesystem).
-      unpack: '**/{*.node,sharp/**/*,@img/**/*,ort-wasm/**/*}'
+      // onnxruntime-web's ort-wasm/ pair stays inside app.asar: minimatch
+      // skips the `.vite/` dot segment, so an `ort-wasm/**` pattern here never
+      // matched and every release so far has loaded the pair from the archive.
+      unpack: '**/{*.node,sharp/**/*,@img/**/*}'
     },
     name: 'AutoSlides',
     executableName: process.platform === 'linux' ? 'autoslides' : 'AutoSlides',
@@ -145,6 +145,13 @@ const config: ForgeConfig = {
           path.join(__dirname, 'scripts/media-tools.mjs'), 'verify',
           '--platform', platform, '--arch', arch,
           '--directory', path.join(resources, 'media-tools'),
+        ], { stdio: 'inherit' });
+        // Chromium's locale packs for languages the app has no UI in (~43 MiB
+        // per target): keep English, Chinese, Japanese and Korean. On macOS this
+        // must come before the re-sign below.
+        execFileSync(process.execPath, [
+          path.join(__dirname, 'scripts/chromium-locales.mjs'), 'trim',
+          '--platform', platform, '--output', outputPath,
         ], { stdio: 'inherit' });
         if (platform === 'darwin') {
           // Electron's MIT licence and Chromium's notices come out beside the
