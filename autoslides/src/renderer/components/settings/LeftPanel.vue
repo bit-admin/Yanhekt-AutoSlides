@@ -127,26 +127,28 @@
           </nav>
         </template>
 
-        <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.pinned') }}</div>
-        <div class="nav-items">
-          <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
-            <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPin(c)" :title="courseDisplayTitle(c)">
-              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-              </svg>
-              <span class="pinned-label">{{ courseDisplayTitle(c) }}</span>
-            </button>
-            <button class="pinned-unpin" @click.stop="removePinnedCourse(c.id)" :title="$t('sessions.unpin')" :aria-label="$t('sessions.unpin')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="2" y1="2" x2="22" y2="22"/>
-                <path d="M12 17v5"/>
-                <path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"/>
-                <path d="M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89"/>
-              </svg>
-            </button>
+        <template v-if="pinnedRecordedCourses.length > 0">
+          <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.pinned') }}</div>
+          <div class="nav-items">
+            <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
+              <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPin(c)" :title="courseDisplayTitle(c)">
+                <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                <span class="pinned-label">{{ courseDisplayTitle(c) }}</span>
+              </button>
+              <button class="pinned-unpin" @click.stop="removePinnedCourse(c.id)" :title="$t('sessions.unpin')" :aria-label="$t('sessions.unpin')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="2" y1="2" x2="22" y2="22"/>
+                  <path d="M12 17v5"/>
+                  <path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"/>
+                  <path d="M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89"/>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
+        </template>
       </div>
 
       <!-- Settings stays fixed below the scrollable navigation, above the user bar. -->

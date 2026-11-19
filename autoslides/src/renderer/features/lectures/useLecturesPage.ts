@@ -100,7 +100,6 @@ export function useLecturesPage() {
   const isSelectMode = ref(false)
   const selectedPaths = ref<string[]>([])
   const groupByCourse = ref(true)
-  const showMakeVideoModal = ref(false)
   const showRenameModal = ref(false)
 
   // Only the newest scan writes the list, the error and the spinner: scans
@@ -227,7 +226,6 @@ export function useLecturesPage() {
     selectedPaths,
     groupByCourse,
     slideFolders,
-    showMakeVideoModal,
     showRenameModal,
     groups,
     selectedItems,

@@ -103,13 +103,14 @@
         </div>
 
         <div
-          v-if="item.extractionStatus && item.extractionStatus !== 'none'"
+          v-if="item.extractionStatus && item.extractionStatus !== 'none' && !(item.extractionStatus === 'pending' && item.status === 'error')"
           class="extraction-affiliated-panel"
           :class="[`ext-status-${item.extractionStatus}`]"
         >
           <div class="ext-row">
             <span class="ext-name">
-              <span v-if="item.extractionStatus === 'pending'">{{ $t('downloads.extraction.waiting') }}</span>
+              <span v-if="item.extractionStatus === 'pending' && item.status !== 'completed'">{{ $t('downloads.extraction.waitingForDownload') }}</span>
+              <span v-else-if="item.extractionStatus === 'pending'">{{ $t('downloads.extraction.waiting') }}</span>
               <span v-else-if="item.extractionStatus === 'extracting'">{{ $t('downloads.extraction.extracting') }} {{ item.extractionProgress || 0 }}%</span>
               <span v-else-if="item.extractionStatus === 'normalizing'">{{ $t('downloads.extraction.normalizing') }}</span>
               <span v-else-if="item.extractionStatus === 'post_processing'">{{ $t('downloads.extraction.completed') }}</span>

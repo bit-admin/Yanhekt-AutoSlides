@@ -190,19 +190,20 @@ export class ExtractionOrchestrator {
   private async workerLoop(): Promise<void> {
     while (true) {
       const items = this.items
+      // A failed or cancelled download can never extract. Settle every such
+      // slot now, not only the earliest, so none stays pending behind a
+      // download that is still running.
+      for (const failed of items.filter((i) => i.extractionStatus === 'pending' && i.status === 'error')) {
+        this.apply(failed, {
+          type: 'DOWNLOAD_FAILED',
+          error: failed.error || 'Download cancelled'
+        })
+      }
+
       // Find the FIRST pending extraction in download-list order.
       const earliest = items.find((i) => i.extractionStatus === 'pending')
       if (!earliest) {
         await this.waitForChange()
-        continue
-      }
-
-      // If the download was cancelled or errored, skip this slot.
-      if (earliest.status === 'error') {
-        this.apply(earliest, {
-          type: 'DOWNLOAD_FAILED',
-          error: earliest.error || 'Download cancelled'
-        })
         continue
       }
 

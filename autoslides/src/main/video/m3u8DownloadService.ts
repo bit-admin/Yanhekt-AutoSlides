@@ -359,7 +359,8 @@ class M3u8Downloader {
       // Hand FFmpeg only a complete set, or its failure is all the user sees.
       this.verifySegments();
 
-      this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 1 });
+      // Processing starts at zero; the finished segment count belongs to phase 0.
+      this.progressCallback({ current: 0, total: 100, phase: 1 });
       await this.outputMp4();
       await this.deleteFiles();
       log.info(`Download successfully --> ${this.name}`);

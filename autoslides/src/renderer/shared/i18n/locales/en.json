@@ -799,7 +799,8 @@
       "signInRequired": "Sign in to download."
     },
     "extraction": {
-      "waiting": "Waiting for previous extraction…",
+      "waiting": "Waiting for earlier items…",
+      "waitingForDownload": "Waiting for download to finish…",
       "extracting": "Extracting slides",
       "normalizing": "Reducing PNG colors",
       "completed": "Extraction complete",
@@ -1751,6 +1752,7 @@
     "noTimelineHint": "This folder has no timeline.json, so it cannot make a video. Extract the slides again to write one.",
     "expandGroup": "Expand",
     "collapseGroup": "Collapse",
+    "sessionWithoutTitle": "Untitled Session",
     "makeVideoResolutionHint": "Video height. Slides are never scaled up; other aspect ratios are letterboxed.",
     "makeVideoQuality": "Quality",
     "makeVideoQualityHigh": "High (CRF 18)",

@@ -1,11 +1,18 @@
 import { extractSessionLabel, SESSION_SUFFIX_PATTERN } from '@common/lectureNaming'
 import { isLectureAudioExt } from '@common/lectureVideoNaming'
+import { compareLectureSessions } from './sessionOrder'
 import type { LectureVideoItem } from './useLecturesPage'
 
 interface LectureListSection {
   items: LectureVideoItem[]
   paths: string[]
-  session?: { id: string; title: string; displayName: string }
+  session?: {
+    id: string
+    title: string
+    displayName: string
+    /** `S01E05` of a renamed file; the header falls back to it when there is no title. */
+    episodeLabel?: string
+  }
 }
 
 export interface LectureListGroup {
@@ -18,6 +25,7 @@ export interface LectureListGroup {
 
 const byName = new Intl.Collator('zh')
 const byTitle = new Intl.Collator('zh', { numeric: true })
+const embyLabelPattern = /^(.+?) - (S\d+(?:E\d+)?|E\d+)(?: - (.+))?$/i
 
 export type LectureListFileKind = 'screen' | 'slidesVideo' | 'camera' | 'audio' | 'subtitles' | 'slides' | 'other'
 
@@ -38,19 +46,50 @@ function compareFiles(a: LectureVideoItem, b: LectureVideoItem): number {
     || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
 }
 
-function splitLectureLabel(displayName: string): { courseName: string; title: string } {
-  const emby = displayName.match(/^(.+?) - ((?:S\d+(?:E\d+)?|E\d+)(?: - .+)?)$/i)
-  if (emby) return { courseName: emby[1], title: emby[2] }
-  const legacy = extractSessionLabel(displayName)
-  if (legacy) {
+function splitLegacyLectureLabel(displayName: string): { courseName: string; title: string } | undefined {
+  const title = extractSessionLabel(displayName)
+  if (title) return { courseName: displayName.replace(SESSION_SUFFIX_PATTERN, '').replace(/_/g, ' '), title }
+}
+
+interface LectureLabel {
+  courseName: string
+  title: string
+  episodeLabel?: string
+  episode?: number
+}
+
+function splitLectureLabel(displayName: string): LectureLabel {
+  const emby = displayName.match(embyLabelPattern)
+  if (emby) {
+    const episode = emby[2].match(/E(\d+)/i)?.[1]
     return {
-      courseName: displayName.replace(SESSION_SUFFIX_PATTERN, '').replace(/_/g, ' '),
-      title: legacy,
+      courseName: emby[1],
+      title: emby[3]?.trim() ?? '',
+      episodeLabel: emby[2].toUpperCase(),
+      episode: episode ? parseInt(episode, 10) : undefined,
     }
   }
+  const legacy = splitLegacyLectureLabel(displayName)
+  if (legacy) return legacy
   const dash = displayName.indexOf(' - ')
   if (dash !== -1) return { courseName: displayName.slice(0, dash), title: displayName.slice(dash + 3) }
   return { courseName: displayName, title: displayName }
+}
+
+function legacyMatchesEmby(legacyName: string, embyName: string): boolean {
+  const emby = embyName.match(embyLabelPattern)
+  const embyTitle = emby?.[3]?.trim()
+  if (!emby || !embyTitle) return false
+  const legacy = splitLegacyLectureLabel(legacyName)
+  return legacy?.title === embyTitle && legacy.courseName === emby[1].replace(/_/g, ' ')
+}
+
+export function shouldShowLectureListFileName(item: LectureVideoItem, sessionDisplayName?: string): boolean {
+  if (sessionDisplayName === undefined || lectureListFileKind(item) === 'other') return true
+  if (item.displayName === sessionDisplayName) return false
+  // A renamed recording and its original slides folder can spell the same label differently.
+  return !legacyMatchesEmby(item.displayName, sessionDisplayName)
+    && !legacyMatchesEmby(sessionDisplayName, item.displayName)
 }
 
 function flatGroup(key: string, items: LectureVideoItem[]): LectureListGroup {
@@ -90,10 +129,15 @@ export function buildLectureListGroups(files: LectureVideoItem[], groupByCourse:
     const sections = Array.from(sessions, ([id, items]) => {
       items.sort(compareFiles)
       const displayName = items[0].displayName
-      const { title } = splitLectureLabel(displayName)
-      return { items, paths: items.map((item) => item.path), session: { id, title, displayName } }
-    }).sort((a, b) => byTitle.compare(a.session.title, b.session.title)
+      const labels = items.map((item) => splitLectureLabel(item.displayName))
+      const title = labels.find((label) => label.title)?.title ?? ''
+      const episodeLabel = labels.find((label) => label.episodeLabel)?.episodeLabel
+      const episode = labels.find((label) => label.episode != null)?.episode ?? null
+      const session = { id, title, displayName, ...(episodeLabel ? { episodeLabel } : {}) }
+      return { items, paths: items.map((item) => item.path), session, order: { title, episode } }
+    }).sort((a, b) => compareLectureSessions(a.order, b.order)
       || byTitle.compare(a.session.id, b.session.id))
+      .map(({ items, paths, session }) => ({ items, paths, session }))
 
     return {
       key: `id:${courseId}`,

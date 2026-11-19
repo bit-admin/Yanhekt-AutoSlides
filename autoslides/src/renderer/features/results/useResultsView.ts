@@ -1,5 +1,5 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
+import { getSlideFolderDisplayLabel } from '@shared/utils/toolWindowFolders'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
@@ -85,7 +85,7 @@ export function useResultsView(options: UseResultsViewOptions = {}) {
   const cropIO = createResultsCropIO()
 
   const currentFolderDisplayName = computed(() => {
-    return currentFolder.value ? formatToolFolderName(currentFolder.value.name) : ''
+    return currentFolder.value ? getSlideFolderDisplayLabel(currentFolder.value) : ''
   })
 
   const cropEntriesByOriginalPath = computed(() => {
@@ -946,6 +946,5 @@ export function useResultsView(options: UseResultsViewOptions = {}) {
     applyCropToImage,
     restoreCropFromImage,
     formatDate,
-    formatToolFolderName,
   }
 }

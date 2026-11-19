@@ -91,3 +91,17 @@ describe('cancelling a download while its slides are post-processed', () => {
     expect(pp.abortJob).toHaveBeenCalledWith('job-1')
   })
 })
+
+describe('the extraction worker', () => {
+  it('settles a failed download behind one that is still downloading', async () => {
+    const orchestrator = new ExtractionOrchestrator()
+    const running = { ...makeItem(), id: 'item-1', status: 'downloading' } as DownloadItem
+    const failed = { ...makeItem(), id: 'item-2', status: 'error', error: 'Network error' } as DownloadItem
+    orchestrator.setJobProvider(() => [running, failed])
+    orchestrator.notifyChange()
+    await settle()
+
+    expect(failed.extractionStatus).toBe('cancelled')
+    expect(running.extractionStatus).toBe('pending')
+  })
+})

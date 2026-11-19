@@ -70,62 +70,49 @@
         </div>
       </div>
 
-      <div class="export-menu">
-        <button
-          type="button"
-          class="export-menu-toggle"
-          :disabled="exportControlsDisabled"
-          :aria-expanded="isExportMenuOpen"
-          aria-haspopup="menu"
-          @click="toggleExportMenu"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16">
+      <WorkspaceExportOptions :label="exportMenuLabel" :disabled="exportControlsDisabled">
+        <template #icon>
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
             <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1H4V8zm0 2h8v1H4v-1zm0 2h5v1H4v-1z" fill="currentColor"/>
           </svg>
-          <span>{{ exportMenuLabel }}</span>
-          <svg class="export-menu-chevron" width="12" height="12" viewBox="0 0 12 12">
-            <path d="M3 4.5L6 7.5l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          </svg>
-        </button>
+        </template>
 
-        <div v-if="isExportMenuOpen" class="export-menu-panel" role="menu">
-          <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.outputFormat')">
-            <span class="export-menu-section-label">{{ $t('pdfmaker.outputFormat') }}</span>
-            <div class="mode-segmented">
-              <label class="mode-option" :class="{ active: pdf.outputFormat.value === 'pdf' }">
-                <input type="radio" v-model="pdf.outputFormat.value" value="pdf" />
-                <span>{{ $t('pdfmaker.formatPdf') }}</span>
-              </label>
-              <label class="mode-option" :class="{ active: pdf.outputFormat.value === 'pptx' }">
-                <input type="radio" v-model="pdf.outputFormat.value" value="pptx" />
-                <span>{{ $t('pdfmaker.formatPptx') }}</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.outputMode')">
-            <span class="export-menu-section-label">{{ $t('pdfmaker.outputMode') }}</span>
-            <div class="mode-segmented">
-              <label class="mode-option" :class="{ active: pdf.outputMode.value === 'single' }">
-                <input type="radio" v-model="pdf.outputMode.value" value="single" />
-                <span>{{ pdf.outputFormat.value === 'pptx' ? $t('pdfmaker.combineOnePptx') : $t('pdfmaker.combineOnePdf') }}</span>
-              </label>
-              <label class="mode-option" :class="{ active: pdf.outputMode.value === 'batch' }">
-                <input type="radio" v-model="pdf.outputMode.value" value="batch" />
-                <span>{{ pdf.outputFormat.value === 'pptx' ? $t('pdfmaker.separatePptxs') : $t('pdfmaker.separatePdfs') }}</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.pages')">
-            <span class="export-menu-section-label">{{ $t('pdfmaker.pages') }}</span>
-            <label class="cover-toggle">
-              <input type="checkbox" v-model="pdf.includeCover.value" />
-              <span>{{ $t('pdfmaker.includeCover') }}</span>
+        <div class="export-menu-section" role="radiogroup" :aria-label="$t('pdfmaker.outputFormat')">
+          <span class="export-menu-section-label">{{ $t('pdfmaker.outputFormat') }}</span>
+          <div class="mode-segmented">
+            <label class="mode-option">
+              <input type="radio" name="slides-output-format" v-model="pdf.outputFormat.value" value="pdf" />
+              <span>{{ $t('pdfmaker.formatPdf') }}</span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="slides-output-format" v-model="pdf.outputFormat.value" value="pptx" />
+              <span>{{ $t('pdfmaker.formatPptx') }}</span>
             </label>
           </div>
         </div>
-      </div>
+
+        <div class="export-menu-section" role="radiogroup" :aria-label="$t('pdfmaker.outputMode')">
+          <span class="export-menu-section-label">{{ $t('pdfmaker.outputMode') }}</span>
+          <div class="mode-segmented">
+            <label class="mode-option">
+              <input type="radio" name="slides-output-mode" v-model="pdf.outputMode.value" value="single" />
+              <span>{{ pdf.outputFormat.value === 'pptx' ? $t('pdfmaker.combineOnePptx') : $t('pdfmaker.combineOnePdf') }}</span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="slides-output-mode" v-model="pdf.outputMode.value" value="batch" />
+              <span>{{ pdf.outputFormat.value === 'pptx' ? $t('pdfmaker.separatePptxs') : $t('pdfmaker.separatePdfs') }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.pages')">
+          <span class="export-menu-section-label">{{ $t('pdfmaker.pages') }}</span>
+          <label class="cover-toggle">
+            <input type="checkbox" v-model="pdf.includeCover.value" />
+            <span>{{ $t('pdfmaker.includeCover') }}</span>
+          </label>
+        </div>
+      </WorkspaceExportOptions>
 
       <button
         class="btn btn--primary"
@@ -145,9 +132,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { usePdfMaker } from '@features/export/usePdfMaker'
+import WorkspaceExportOptions from '../shell/WorkspaceExportOptions.vue'
 
 const props = defineProps<{
   pdf: ReturnType<typeof usePdfMaker>
@@ -158,7 +146,6 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const exportControlsDisabled = computed(() => !props.isFolderEditMode || props.pdf.isGenerating.value)
-const isExportMenuOpen = ref(false)
 
 const formatSizeOption = (size: string) => {
   const [w, h] = size.split('x')
@@ -178,16 +165,6 @@ const outputModeLabel = computed(() => {
 })
 
 const exportMenuLabel = computed(() => `${props.pdf.outputFormat.value.toUpperCase()} · ${outputModeLabel.value}`)
-
-const toggleExportMenu = () => {
-  isExportMenuOpen.value = !isExportMenuOpen.value
-}
-
-watch(exportControlsDisabled, (disabled) => {
-  if (disabled) {
-    isExportMenuOpen.value = false
-  }
-})
 
 const toggleSortOrder = () => {
   if (props.pdf.useCustomOrder.value) {
@@ -237,44 +214,12 @@ const handleMakePdf = async () => {
     })
   }
 }
-
-// Close the export menu on outside clicks. Runs alongside the parent's
-// .action-split listener — same observable behavior as the former single
-// handler, each guarded by its own closest() check.
-const handleGlobalClick = (event: MouseEvent) => {
-  const target = event.target as HTMLElement | null
-  if (isExportMenuOpen.value && !target?.closest('.export-menu')) {
-    isExportMenuOpen.value = false
-  }
-}
-
-onMounted(() => {
-  document.addEventListener('click', handleGlobalClick)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', handleGlobalClick)
-})
 </script>
 
-<style scoped>
-/* Second toolbar row: PDF/PPTX export controls. Grayed out until the user
-   enters Select mode (folder selection doubles as the export selection). */
-.export-bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background-color: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-color);
-  gap: 10px;
-  row-gap: 6px;
-  transition: opacity 0.2s;
-}
+<style scoped src="../../shared/styles/workspaceExportBar.css"></style>
 
+<style scoped>
 .export-bar-disabled {
-  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -329,18 +274,6 @@ onBeforeUnmount(() => {
   opacity: 0.5;
 }
 
-.config-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.config-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
 /* Inline config-row selects — auto width instead of the shared full width */
 .pdf-select {
   width: auto;
@@ -354,117 +287,6 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   white-space: nowrap;
-}
-
-.export-menu {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.export-menu-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 0.2s, border-color 0.2s;
-}
-
-.export-menu-toggle:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  border-color: var(--border-input);
-}
-
-.export-menu-toggle:disabled {
-  cursor: not-allowed;
-}
-
-.export-menu-chevron {
-  transition: transform 0.2s;
-}
-
-.export-menu-toggle[aria-expanded="true"] .export-menu-chevron {
-  transform: rotate(180deg);
-}
-
-.export-menu-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: var(--z-overlay);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 260px;
-  padding: 10px;
-  border: 1px solid var(--border-input);
-  border-radius: 6px;
-  background-color: var(--bg-card);
-  box-shadow: 0 8px 24px var(--shadow-md);
-}
-
-.export-menu-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.export-menu-section-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.export-menu-panel .mode-segmented {
-  width: 100%;
-}
-
-.export-menu-panel .mode-option {
-  flex: 1;
-  justify-content: center;
-}
-
-.mode-segmented {
-  display: flex;
-  align-items: center;
-  padding: 2px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-input);
-  border-radius: 5px;
-}
-
-.mode-option {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.2;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.mode-option input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.mode-option.active {
-  background-color: var(--bg-surface);
-  color: var(--accent);
-  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .cover-toggle {

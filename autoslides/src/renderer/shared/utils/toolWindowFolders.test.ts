@@ -8,6 +8,7 @@ import {
   getCourseLabel,
   getLiveId,
   getSessionId,
+  getSlideFolderDisplayLabel,
 } from './toolWindowFolders';
 
 /** Minimal metadata carrying just the identity fields grouping reads. */
@@ -110,6 +111,35 @@ describe('getCourseKey fallback chain', () => {
       metadata: meta('70101', undefined, '泛函分析'),
     };
     expect(getCourseLabel(folder)).toBe('泛函分析');
+  });
+
+  it('keeps a recorded course title as recorded', () => {
+    const folder = { name: 'slides_Lab_A__c70101', metadata: meta('70101', undefined, ' Lab_A  C++ ') };
+    expect(getCourseLabel(folder)).toBe('Lab_A  C++');
+  });
+});
+
+describe('getSlideFolderDisplayLabel', () => {
+  it('shows only the schedule under a course header and keeps the course in the flat list', () => {
+    const folder = { name: 'slides_示例_课程_第1周_星期三_第2大节__c101s201' };
+    expect(getCourseLabel(folder)).toBe('示例 课程');
+    expect(getSlideFolderDisplayLabel(folder, true)).toBe('第1周 星期三 第2大节');
+    expect(getSlideFolderDisplayLabel(folder)).toBe('示例 课程 第1周 星期三 第2大节');
+    expect(formatToolFolderName(folder.name)).toBe('示例_课程_第1周_星期三_第2大节');
+  });
+
+  it('prefers the session title in metadata, including titles outside the schedule pattern', () => {
+    const metadata = meta('101', '201', 'Example Course');
+    metadata.source = { ...metadata.source, sessionTitle: 'Review_and_Q&A' };
+    const folder = { name: 'slides_Example_Course_Old_Title__c101s201', metadata };
+    expect(getSlideFolderDisplayLabel(folder, true)).toBe('Review and Q&A');
+  });
+
+  it('recovers only known legacy or course prefixes when metadata has no session title', () => {
+    expect(getSlideFolderDisplayLabel({ name: 'slides_Example_Course - Lecture 2' }, true)).toBe('Lecture 2');
+    const metadata = meta('101', '201', 'Example Course');
+    expect(getSlideFolderDisplayLabel({ name: 'slides_Example_Course_Review_1', metadata }, true)).toBe('Review 1');
+    expect(getSlideFolderDisplayLabel({ name: 'slides_Imported_Set', metadata }, true)).toBe('Imported Set');
   });
 });
 

@@ -799,7 +799,8 @@
       "signInRequired": "ダウンロードするにはサインインしてください。"
     },
     "extraction": {
-      "waiting": "前の抽出を待機中…",
+      "waiting": "前の項目を待機中…",
+      "waitingForDownload": "ダウンロードの完了を待機中…",
       "extracting": "スライド抽出中",
       "normalizing": "PNG 色数削減中",
       "completed": "抽出完了",
@@ -1751,6 +1752,7 @@
     "noTimelineHint": "このフォルダーには timeline.json がないため、動画を作成できません。スライドを再抽出すると書き込まれます。",
     "expandGroup": "展開",
     "collapseGroup": "折りたたむ",
+    "sessionWithoutTitle": "タイトルのないセッション",
     "makeVideoResolutionHint": "動画の高さ。スライドは拡大されず、縦横比が違う場合は黒帯を付けます。",
     "makeVideoQuality": "画質",
     "makeVideoQualityHigh": "高（CRF 18）",

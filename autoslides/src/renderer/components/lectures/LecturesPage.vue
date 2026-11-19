@@ -79,19 +79,6 @@
 
           <button
             v-if="viewMode === 'list'"
-            class="action-btn action-btn--primary"
-            :disabled="!canMakeVideo"
-            :title="makeVideoDisabledReason"
-            @click="openMakeVideo"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="2" y="5" width="14" height="14" rx="2"/>
-              <path d="m22 8-6 4 6 4V8z"/>
-            </svg>
-            {{ $t('lectures.makeVideo') }}
-          </button>
-          <button
-            v-if="viewMode === 'list'"
             class="action-btn action-btn--secondary"
             :disabled="!canRename"
             @click="openRename"
@@ -103,6 +90,14 @@
           </button>
         </div>
       </div>
+
+      <LectureMakeVideoBar
+        v-show="viewMode === 'list'"
+        :is-select-mode="isSelectMode"
+        :can-make-video="canMakeVideo"
+        :skipped="selectedSlideVideos.missingSlides + selectedSlideVideos.missingAudio"
+        @start="onMakeVideoStart"
+      />
 
       <div
         class="content-area custom-scrollbar"
@@ -194,14 +189,6 @@
         </label>
       </div>
 
-      <LectureMakeVideoModal
-        v-if="showMakeVideoModal"
-        :session-count="selectedSlideVideos.targets.length"
-        :skipped="selectedSlideVideos.missingSlides + selectedSlideVideos.missingAudio"
-        @close="showMakeVideoModal = false"
-        @start="onMakeVideoStart"
-      />
-
       <LectureRenameModal
         v-if="showRenameModal"
         :items="selectedRecognised"
@@ -230,7 +217,7 @@ import type { LibrarySession } from '@features/lectures/libraryModel'
 import LectureListView from './LectureListView.vue'
 import LectureLibraryView from './LectureLibraryView.vue'
 import LecturePlayerView from './LecturePlayerView.vue'
-import LectureMakeVideoModal from './LectureMakeVideoModal.vue'
+import LectureMakeVideoBar from './LectureMakeVideoBar.vue'
 import LectureRenameModal from './LectureRenameModal.vue'
 import LectureCloneShareModal from './LectureCloneShareModal.vue'
 import PageErrorNotice from '../shell/PageErrorNotice.vue'
@@ -252,7 +239,6 @@ const {
   isSelectMode,
   selectedPaths,
   groupByCourse,
-  showMakeVideoModal,
   showRenameModal,
   groups,
   selectedSlideVideos,
@@ -318,12 +304,6 @@ const canRename = computed(
   () => viewMode.value === 'list' && isSelectMode.value && selectedRecognised.value.length > 0,
 )
 
-const makeVideoDisabledReason = computed(() => {
-  if (!isSelectMode.value) return t('lectures.makeVideoSelectFirst')
-  if (selectedSlideVideos.value.targets.length === 0) return t('lectures.makeVideoNeeds')
-  return t('lectures.makeVideoHelp')
-})
-
 const setViewMode = (mode: LecturesViewMode) => {
   if (viewMode.value === mode) return
   // Leaving library / player tears down player state.
@@ -343,20 +323,14 @@ const onRefresh = async () => {
   if (viewMode.value === 'library') void hydrate()
 }
 
-const openMakeVideo = () => {
-  if (!canMakeVideo.value) return
-  showMakeVideoModal.value = true
-}
-
 const openRename = () => {
   if (!canRename.value) return
   showRenameModal.value = true
 }
 
 const onMakeVideoStart = (options: SlideVideoOptions) => {
-  const targets = selectedSlideVideos.value.targets
-  const added = queue.enqueue(targets, options)
-  showMakeVideoModal.value = false
+  if (!canMakeVideo.value) return
+  const added = queue.enqueue(selectedSlideVideos.value.targets, options)
   if (added === 0) {
     void window.electronAPI.dialog?.showMessageBox?.({ type: 'info', message: t('lectures.makeVideoAlreadyQueued') })
   }
@@ -511,14 +485,6 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
-}
-
-.action-btn--primary {
-  background-color: var(--accent);
-}
-
-.action-btn--primary:hover:not(:disabled) {
-  background-color: var(--accent-hover);
 }
 
 .action-btn--secondary {

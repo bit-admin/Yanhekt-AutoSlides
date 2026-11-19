@@ -88,7 +88,9 @@
               <svg class="folder-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
               </svg>
-              <span class="session-name" :title="section.session.title">{{ section.session.title }}</span>
+              <span class="session-name" :title="section.session.title || undefined">
+                {{ section.session.title || section.session.episodeLabel || $t('lectures.sessionWithoutTitle') }}
+              </span>
               <span
                 class="entity-id"
                 :title="$t('trash.sessionIdHint', { id: section.session.id })"
@@ -150,7 +152,12 @@
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                   <circle cx="12" cy="13" r="4"/>
                 </svg>
-                <svg v-else-if="item.videoType === 'screen' || item.videoType === 'slides'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg v-else-if="item.videoType === 'slides'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="M7 4v16m10-16v16M2 9h5m-5 6h5m10-6h5m-5 6h5"/>
+                  <path d="m10 8.5 5 3.5-5 3.5z" fill="currentColor" stroke="none"/>
+                </svg>
+                <svg v-else-if="item.videoType === 'screen'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                   <line x1="8" y1="21" x2="16" y2="21"/>
                   <line x1="12" y1="17" x2="12" y2="21"/>
@@ -168,14 +175,13 @@
 
               <span class="folder-heading">
                 <span
-                  v-if="!section.session || item.displayName !== section.session.displayName || lectureListFileKind(item) === 'other'"
+                  v-if="shouldShowLectureListFileName(item, section.session?.displayName)"
                   class="folder-name"
                 >{{ item.displayName }}</span>
                 <span
                   v-if="lectureListFileKind(item) !== 'other'"
                   :class="section.session ? 'file-role' : 'meta-badge meta-badge--type'"
                 >{{ $t(fileKindLabels[lectureListFileKind(item)]) }}</span>
-                <span v-if="section.session && item.ext" class="file-extension">{{ item.ext.slice(1) }}</span>
                 <span
                   v-if="item.slidesFolder && !item.slidesFolder.hasTimeline"
                   class="entity-id entity-id--unknown"
@@ -197,6 +203,7 @@
                 <span v-if="item.slidesFolder">{{ $t('lectures.slideCount', { count: item.slidesFolder.imageCount }) }}</span>
                 <span v-else>{{ formatBytes(item.size) }}</span>
               </span>
+              <span v-if="section.session" class="file-extension">{{ item.ext.slice(1) }}</span>
             </component>
           </div>
         </div>
@@ -211,6 +218,7 @@
 import { computed, ref, useId } from 'vue'
 import {
   lectureListFileKind,
+  shouldShowLectureListFileName,
   type LectureListFileKind,
   type LectureListGroup,
 } from '@features/lectures/lectureListModel'
@@ -511,9 +519,12 @@ input[type='checkbox'] {
 }
 
 .file-extension {
+  flex: 0 0 5ch;
   color: var(--text-muted);
   font-size: 11px;
+  text-align: end;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .meta-badge {

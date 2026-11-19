@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { formatLectureVideoDisplayName, isLectureSubtitleExt, parseLectureVideoName } from '@common/lectureVideoNaming'
-import { buildLectureListGroups } from './lectureListModel'
+import { buildLectureListGroups, shouldShowLectureListFileName } from './lectureListModel'
 
 const file = (name: string) => {
   const parsed = parseLectureVideoName(name)
@@ -53,9 +53,62 @@ describe('buildLectureListGroups', () => {
 
     expect(course.sections).toHaveLength(2)
     expect(course.sections.find((s) => s.session?.id === '201')?.paths).toEqual([screen.path, renamed.path])
-    expect(course.sections.find((s) => s.session?.id === '202')?.session?.title).toBe('S01E02 - 第二讲')
+    expect(course.sections.find((s) => s.session?.id === '202')?.session?.title).toBe('第二讲')
     expect(course.paths).toHaveLength(3)
     expect(groups.find((g) => g.courseId === '102')?.paths).toEqual([other.path])
+  })
+
+  it('does not use a bare Emby episode number as the title', () => {
+    const screen = file('测试课程 - S01E01 [yhid=c101s201] [vtype=screen].mp4')
+    const slides = { ...legacy('slides_', ''), slidesFolder: { imageCount: 4, hasTimeline: true } }
+    const [onlyScreen] = buildLectureListGroups([screen], true)
+    expect(onlyScreen.sections[0].session?.title).toBe('')
+    const [withSlides] = buildLectureListGroups([screen, slides], true)
+    expect(withSlides.sections[0].session?.title).toBe('第1周 星期三 第2大节')
+  })
+
+  it('falls back to the episode token for a session with no title', () => {
+    const [group] = buildLectureListGroups([file('测试课程 - S01E05 [yhid=c101s205] [vtype=screen].mp4')], true)
+    expect(group.sections[0].session?.episodeLabel).toBe('S01E05')
+  })
+
+  it('orders renamed sessions by episode number, not by title', () => {
+    const ep = (n: number, title: string) =>
+      file(`测试课程 - S01E${String(n).padStart(2, '0')} - ${title} [yhid=c101s2${n}] [vtype=screen].mp4`)
+    const files = [ep(10, 'Review'), ep(2, '第二讲'), ep(1, '第一讲'), file('测试课程 - S01E03 [yhid=c101s23] [vtype=screen].mp4')]
+    const [group] = buildLectureListGroups(files, true)
+    expect(group.sections.map((s) => s.session?.id)).toEqual(['21', '22', '23', '210'])
+  })
+
+  it('orders original session titles by week, weekday and section', () => {
+    const at = (sid: number, label: string) => file(`screen_测试_课程_${label}__c101s${sid}.mp4`)
+    const files = [
+      at(4, '第10周_星期一_第1大节'),
+      at(3, '第2周_星期二_第1大节'),
+      at(2, '第2周_星期一_第3大节'),
+      at(1, '第2周_星期一_第1大节'),
+    ]
+    const [group] = buildLectureListGroups(files, true)
+    expect(group.sections.map((s) => s.session?.id)).toEqual(['1', '2', '3', '4'])
+  })
+
+  it('shows only the role when renamed and original files repeat the session label', () => {
+    const renamed = (kind: string, title = '第1周 星期三 第2大节') =>
+      file(`测试 课程 - S01E01 - ${title} [yhid=c101s201] [vtype=${kind}].mp4`)
+    const screen = renamed('screen')
+    const slideVideo = renamed('slides')
+    const slides = { ...legacy('slides_', ''), slidesFolder: { imageCount: 4, hasTimeline: true } }
+    const [group] = buildLectureListGroups([slides, slideVideo, screen], true)
+    const sessionName = group.sections[0].session?.displayName
+
+    expect(sessionName).toBe(screen.displayName)
+    for (const item of group.sections[0].items) {
+      expect(shouldShowLectureListFileName(item, sessionName)).toBe(false)
+    }
+    expect(shouldShowLectureListFileName(screen, slides.displayName)).toBe(false)
+    expect(shouldShowLectureListFileName(renamed('slides', '复习课'), sessionName)).toBe(true)
+    expect(shouldShowLectureListFileName(legacy('', '.mp4'), sessionName)).toBe(true)
+    expect(shouldShowLectureListFileName(slides)).toBe(true)
   })
 
   it('leaves missing IDs outside session boxes and preserves the flat view', () => {

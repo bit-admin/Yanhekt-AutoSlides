@@ -251,7 +251,6 @@
           :selected-folder-names="selectedFolderNames"
           :last-visited-folder-name="lastVisitedFolderName"
           :is-generating="isGenerating"
-          :format-tool-folder-name="formatToolFolderName"
           @open-folder="handleOpenFolder"
           @toggle-selection="toggleFolderSelection"
           @select-course="selectAllInCourse"
@@ -436,7 +435,6 @@ const {
   applyCropToImage,
   restoreCropFromImage,
   formatDate,
-  formatToolFolderName,
 } = useResultsView({
   onFolderReviewed: (f) => void maybeAutoSync(f, 'reviewed'),
   onFolderEdited: (f) => void maybeAutoSync(f, 'edited'),

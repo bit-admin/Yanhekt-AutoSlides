@@ -1,0 +1,85 @@
+/* The second toolbar row on Slides and Lectures. */
+.export-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+  gap: 10px;
+  row-gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.export-bar-disabled {
+  opacity: 0.5;
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.config-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Slotted groups in WorkspaceExportOptions are scoped to the calling bar. */
+.export-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-menu-section-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.mode-segmented {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
+  border-radius: 5px;
+}
+
+.mode-option {
+  position: relative;
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.mode-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-option:has(input:checked) {
+  background-color: var(--bg-surface);
+  color: var(--accent);
+  box-shadow: 0 1px 2px var(--shadow-sm);
+}
+
+.mode-option:has(input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}

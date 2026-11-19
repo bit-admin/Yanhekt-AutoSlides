@@ -4,10 +4,12 @@
 // process (coverFontService) shares one implementation; this module keeps the
 // renderer-side sorting and grouping built on top of them.
 import {
+  extractSessionLabel,
   formatLectureDisplayName,
   parseLectureIds,
   parseSessionInfo,
 } from '@common/lectureNaming'
+import { sanitizeFileName } from '@common/sanitizeFileName'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 
 export interface CourseGroupFolder {
@@ -15,9 +17,39 @@ export interface CourseGroupFolder {
   metadata?: SlideMetadata | null
 }
 
-/** Strip the `slides_` prefix and the id block — the only way a name is shown. */
+/** Strip the `slides_` prefix and the id block without changing the remaining stem. */
 export function formatToolFolderName(name: string): string {
   return formatLectureDisplayName(name)
+}
+
+function readableFolderLabel(name: string): string {
+  return name.replace(/[_\s]+/g, ' ').trim()
+}
+
+/** Display only. Under a course header, prefer just the session title when recoverable. */
+export function getSlideFolderDisplayLabel(folder: CourseGroupFolder, grouped = false): string {
+  const fullName = formatToolFolderName(folder.name)
+  if (grouped) {
+    const source = folder.metadata?.source
+    const title = typeof source?.sessionTitle === 'string' ? readableFolderLabel(source.sessionTitle) : ''
+    if (title) return title
+
+    const legacyTitle = extractSessionLabel(folder.name)
+    if (legacyTitle) return legacyTitle
+
+    const courseName = parseSessionInfo(folder.name)?.courseName
+    const lecturePrefix = courseName && `${courseName} - `
+    if (lecturePrefix && fullName.startsWith(lecturePrefix)) return readableFolderLabel(fullName.slice(lecturePrefix.length))
+
+    if (typeof source?.courseTitle === 'string' && source.courseTitle.trim()) {
+      const prefix = `${sanitizeFileName(source.courseTitle)}_`
+      if (fullName.startsWith(prefix)) {
+        const suffix = readableFolderLabel(fullName.slice(prefix.length))
+        if (suffix) return suffix
+      }
+    }
+  }
+  return readableFolderLabel(fullName) || fullName
 }
 
 /**
@@ -56,7 +88,13 @@ export function getCourseKey(folder: CourseGroupFolder): string {
 
 /** Human label for a course group, preferring the recorded title over the parsed one. */
 export function getCourseLabel(folder: CourseGroupFolder): string {
-  return folder.metadata?.source?.courseTitle || parsedCourseName(folder.name)
+  // The recorded title is canonical (shown and sorted as recorded); only the
+  // name parsed back out of a folder needs its underscores turned into spaces.
+  const title = folder.metadata?.source?.courseTitle
+  const label = typeof title === 'string' ? title.trim() : ''
+  if (label) return label
+  const parsed = parsedCourseName(folder.name)
+  return readableFolderLabel(parsed) || parsed
 }
 
 /** The course id behind a folder, for display as secondary text. */

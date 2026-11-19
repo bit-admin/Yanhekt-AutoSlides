@@ -799,7 +799,8 @@
       "signInRequired": "登录后才能下载。"
     },
     "extraction": {
-      "waiting": "等待前一项提取完成…",
+      "waiting": "等待前面的项目…",
+      "waitingForDownload": "等待下载完成…",
       "extracting": "提取幻灯片中",
       "normalizing": "PNG 色彩压缩中",
       "completed": "提取完成",
@@ -1751,6 +1752,7 @@
     "noTimelineHint": "此文件夹没有 timeline.json，无法生成视频。重新提取幻灯片即可写入。",
     "expandGroup": "展开",
     "collapseGroup": "收起",
+    "sessionWithoutTitle": "未命名课时",
     "makeVideoResolutionHint": "视频高度。幻灯片不会被放大；比例不同时加黑边。",
     "makeVideoQuality": "画质",
     "makeVideoQualityHigh": "高（CRF 18）",

@@ -799,7 +799,8 @@
       "signInRequired": "다운로드하려면 로그인하세요."
     },
     "extraction": {
-      "waiting": "이전 추출이 끝날 때까지 대기 중…",
+      "waiting": "앞 항목을 기다리는 중…",
+      "waitingForDownload": "다운로드가 끝날 때까지 대기 중…",
       "extracting": "슬라이드 추출 중",
       "normalizing": "PNG 색상 축소 중",
       "completed": "추출 완료",
@@ -1751,6 +1752,7 @@
     "noTimelineHint": "이 폴더에는 timeline.json이 없어 동영상을 만들 수 없습니다. 슬라이드를 다시 추출하면 기록됩니다.",
     "expandGroup": "펼치기",
     "collapseGroup": "접기",
+    "sessionWithoutTitle": "제목 없는 세션",
     "makeVideoResolutionHint": "동영상 높이입니다. 슬라이드는 확대되지 않으며, 비율이 다르면 검은 여백을 넣습니다.",
     "makeVideoQuality": "화질",
     "makeVideoQualityHigh": "높음(CRF 18)",

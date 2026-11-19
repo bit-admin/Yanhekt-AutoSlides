@@ -8,51 +8,63 @@
       :key="group.courseKey || groupIdx"
       :class="{ 'course-group': isGroupingActive }"
     >
-      <div
-        v-if="isGroupingActive"
-        class="course-header"
-        @click="isFolderEditMode && emitSelectCourse(group.folderNames)"
-      >
+      <div v-if="isGroupingActive" class="course-header">
         <input
           v-if="isFolderEditMode"
+          :id="`${disclosureId(group.courseKey)}-check`"
           type="checkbox"
           class="course-checkbox"
+          :aria-labelledby="`${disclosureId(group.courseKey)}-title`"
           :checked="isCourseFullySelected(group.folderNames)"
           :indeterminate.prop="isCoursePartiallySelected(group.folderNames)"
-          @click.stop
           @change="emitSelectCourse(group.folderNames)"
         />
-        <svg class="course-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-        </svg>
-        <span class="course-name">{{ group.courseName }}</span>
-        <span
-          v-if="group.courseId"
-          class="entity-id"
-          :title="$t('trash.courseIdHint', { id: group.courseId })"
-        >{{ group.courseId }}</span>
-        <!-- No recoverable course id: this group is keyed on the title alone, so
-             say so — otherwise it renders identically to an id-keyed group of
-             the same name and looks like a duplicate. -->
-        <span
-          v-else
-          class="entity-id entity-id--unknown"
-          :title="$t('trash.noCourseIdHint')"
-        >{{ $t('trash.noCourseId') }}</span>
-        <svg
-          class="course-chevron"
-          :class="{ collapsed: isCourseCollapsed(group.courseKey) }"
-          width="14" height="14" viewBox="0 0 16 16"
-          @click.stop="toggleCourseCollapse(group.courseKey)"
+        <!-- Match Lectures: the title selects in Select mode; otherwise it collapses. -->
+        <component
+          :is="isFolderEditMode ? 'label' : 'button'"
+          :id="`${disclosureId(group.courseKey)}-title`"
+          :for="isFolderEditMode ? `${disclosureId(group.courseKey)}-check` : undefined"
+          :type="isFolderEditMode ? undefined : 'button'"
+          :tabindex="isFolderEditMode ? undefined : -1"
+          :aria-expanded="isFolderEditMode ? undefined : !isCourseCollapsed(group.courseKey)"
+          :aria-controls="isFolderEditMode ? undefined : `${disclosureId(group.courseKey)}-folders`"
+          class="course-toggle"
+          @click="!isFolderEditMode && toggleCourseCollapse(group.courseKey)"
         >
-          <path d="M4 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+          <svg class="course-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+          <span class="course-name">{{ group.courseName }}</span>
+          <span
+            v-if="group.courseId"
+            class="entity-id"
+            :title="$t('trash.courseIdHint', { id: group.courseId })"
+          >{{ group.courseId }}</span>
+          <!-- The same title can also appear in an id-keyed group. -->
+          <span
+            v-else
+            class="entity-id entity-id--unknown"
+            :title="$t('trash.noCourseIdHint')"
+          >{{ $t('trash.noCourseId') }}</span>
+        </component>
+        <button
+          type="button"
+          class="chevron-toggle"
+          :aria-expanded="!isCourseCollapsed(group.courseKey)"
+          :aria-controls="`${disclosureId(group.courseKey)}-folders`"
+          :aria-labelledby="`${disclosureId(group.courseKey)}-title`"
+          @click="toggleCourseCollapse(group.courseKey)"
+        >
+          <svg class="course-chevron" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M4 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
 
-      <template v-if="!isCourseCollapsed(group.courseKey)">
+      <div :id="isGroupingActive ? `${disclosureId(group.courseKey)}-folders` : undefined">
       <button
-        v-for="entry in group.folders"
+        v-for="entry in isGroupingActive && isCourseCollapsed(group.courseKey) ? [] : group.folders"
         :key="entry.folder.name"
         class="folder-item"
         :class="{
@@ -90,7 +102,7 @@
         <div class="folder-copy">
           <div class="folder-mainline">
             <div class="folder-heading">
-              <span class="folder-name">{{ formatToolFolderName(entry.folder.name) }}</span>
+              <span class="folder-name">{{ getSlideFolderDisplayLabel(entry.folder, isGroupingActive) }}</span>
               <!-- Session id (plus course id when there's no group header to
                    carry it) — the on-disk identity, shown so two same-titled
                    lectures are tellable apart. -->
@@ -148,19 +160,20 @@
           </svg>
         </div>
       </button>
-      </template>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, useId } from 'vue'
 import {
   getCourseId,
   getCourseKey,
   getCourseLabel,
   getLiveId,
   getSessionId,
+  getSlideFolderDisplayLabel,
 } from '@shared/utils/toolWindowFolders'
 import { isWatchExtraction } from '@common/slideMetadataTypes'
 import type { ResultsFolder } from '@features/results/useResultsView'
@@ -172,7 +185,6 @@ const props = defineProps<{
   selectedFolderNames: string[]
   lastVisitedFolderName: string | null
   isGenerating: boolean
-  formatToolFolderName: (name: string) => string
 }>()
 
 const emit = defineEmits<{
@@ -185,6 +197,8 @@ const emit = defineEmits<{
 // Collapse state is view-local: the parent never reads it, and re-entering the
 // folder view keeps the same component instance (v-else within the page).
 const collapsedCourses = ref<Set<string>>(new Set())
+const listId = useId()
+const disclosureId = (courseKey: string) => `${listId}-course-${encodeURIComponent(courseKey)}`
 
 const toggleCourseCollapse = (courseKey: string) => {
   if (collapsedCourses.value.has(courseKey)) {
@@ -331,14 +345,32 @@ defineExpose({
   margin-top: 0;
 }
 
-.course-header {
+.course-header,
+.course-toggle {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 28px;
-  padding: 10px 14px 10px;
-  cursor: pointer;
   user-select: none;
+}
+
+.course-header {
+  min-height: 28px;
+}
+
+.course-header:hover {
+  background-color: var(--bg-hover);
+}
+
+.course-toggle {
+  flex: 1;
+  align-self: stretch;
+  min-width: 0;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
 }
 
 .course-icon {
@@ -355,19 +387,28 @@ defineExpose({
   color: var(--text-secondary);
 }
 
-.course-chevron {
+.chevron-toggle {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
   flex-shrink: 0;
-  margin-left: auto;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
   color: var(--text-muted);
-  transition: transform 0.15s;
   cursor: pointer;
 }
 
-.course-chevron.collapsed {
-  transform: rotate(0deg);
+.chevron-toggle:hover {
+  color: var(--text-primary);
 }
 
-.course-chevron:not(.collapsed) {
+.chevron-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.chevron-toggle[aria-expanded='true'] .course-chevron {
   transform: rotate(90deg);
 }
 
@@ -423,9 +464,11 @@ defineExpose({
 }
 
 .course-checkbox {
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
   margin: 0;
+  margin-inline-start: 14px;
   cursor: pointer;
   accent-color: var(--control-accent);
 }

@@ -373,28 +373,18 @@ class DownloadServiceClass {
       let completed = false
       let cleanupListeners = () => {}
 
-      // Set up progress listeners
-      const progressListener = (downloadId: string, progress: { current: number; total: number; phase: number }) => {
-        if (downloadId === item.id && !completed) {
-          // Check if the item was already cancelled - ignore progress updates
-          if (item.status === 'error' && item.error === 'Cancelled by user') {
-            return
-          }
+      const progressListener = (downloadId: string, { current, total, phase }: { current: number; total: number; phase: number }) => {
+        if (downloadId !== item.id || completed || (item.status !== 'downloading' && item.status !== 'processing')) return
+        // Only the completion event (with the final file path) can set 100%.
+        if (phase !== 0 && phase !== 1) return
+        if (phase === 0 && item.status === 'processing') return
 
-
-          // Phase 0: downloading, Phase 1: processing, Phase 2: completed
-          if (progress.phase === 0) {
-            item.status = 'downloading'
-            item.progress = Math.floor((progress.current / progress.total) * 90)
-          } else if (progress.phase === 1) {
-            item.status = 'processing'
-            item.progress = 90 + Math.floor((progress.current / progress.total) * 10)
-          } else if (progress.phase === 2) {
-            // Phase 2: Post-processing complete
-            item.status = 'completed'
-            item.progress = 100
-          }
-        }
+        const ratio = total > 0 ? current / total : 0
+        const fraction = Number.isFinite(ratio) ? Math.max(0, Math.min(ratio, 1)) : 0
+        const overall = phase === 0 ? fraction * 90 : 90 + fraction * 10
+        // A retry within the same attempt (e.g. FFmpeg fallback) can report a lower fraction.
+        item.progress = Math.max(item.progress, Math.min(99, Math.floor(overall)))
+        if (phase === 1) item.status = 'processing'
       }
 
       const completedListener = (downloadId: string, filePath?: string) => {
