@@ -21,12 +21,7 @@ export interface ScreenThumbnailRequest {
   token: string;
 }
 
-// Headers required when ffmpeg hits a direct (non-proxied) yanhekt URL, i.e.
-// external-mode live streams. The localhost proxy injects these itself.
-const ORIGIN = 'https://www.yanhekt.cn';
-const REFERER = 'https://www.yanhekt.cn/';
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+const isLocalProxyUrl = (url: string): boolean => url.startsWith('http://localhost:');
 
 const FFMPEG_TIMEOUT_MS = 15000;
 const LIVE_TTL_MS = 60000;
@@ -115,17 +110,19 @@ export class ThumbnailService {
     // source is the server URL behind that label, so changing the relabel
     // changes the cache key instead of replaying the old picture for a minute.
     const screen = result.streams.screen;
-    return { url: screen?.url || '', source: screen?.original_url || '' };
+    if (!screen?.url) return { url: '', source: screen?.original_url || '' };
+    // External mode hands back the server's HTTPS address; FFmpeg reads only
+    // the local proxy (the bundled build has no TLS).
+    const url = isLocalProxyUrl(screen.url) ? screen.url : await this.videoProxyService.liveProxyUrl(screen.url, req.token);
+    return { url, source: screen.original_url || '' };
   }
 
   private async grabFrame(ffmpegPath: string, url: string, seekSeconds: number): Promise<Buffer | null> {
-    const viaProxy = url.startsWith('http://localhost');
+    if (!isLocalProxyUrl(url)) return null;
     const args: string[] = [];
     // The local proxy wants its access header (FFmpeg's HLS demuxer sends it
-    // on every playlist and segment request too); upstream wants the site's.
-    args.push('-headers', viaProxy
-      ? this.videoProxyService.localAccessHeaderLines()
-      : `Origin: ${ORIGIN}\r\nReferer: ${REFERER}\r\nUser-Agent: ${USER_AGENT}\r\n`);
+    // on every playlist and segment request too); it adds the site's own.
+    args.push('-headers', this.videoProxyService.localAccessHeaderLines());
     args.push(
       '-nostdin',
       '-ss', String(seekSeconds),

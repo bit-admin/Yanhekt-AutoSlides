@@ -182,6 +182,17 @@ export class VideoProxyService {
     return `${LOCAL_ACCESS_HEADER}: ${this.localAccessSecret}\r\n`;
   }
 
+  /**
+   * A live stream through the local proxy, whatever the connection mode. The
+   * player reads external-mode live streams directly; FFmpeg thumbnails come
+   * here so the bundled FFmpeg needs no TLS (the proxy speaks HTTPS upstream).
+   */
+  async liveProxyUrl(originalUrl: string, token: string): Promise<string> {
+    const port = await this.startVideoProxy();
+    this.getAuth(token);
+    return `http://localhost:${port}/live?originalUrl=${encodeURIComponent(this.fixUrlEscaping(originalUrl))}&loginToken=${encodeURIComponent(token)}`;
+  }
+
   registerClient(): string {
     const clientId = `client_${++this.clientIdCounter}_${Date.now()}`;
     this.activeClients.add(clientId);

@@ -51,14 +51,24 @@ There is no system `PATH` search, Homebrew fallback, npm installer fallback or r
 
 ### Verification boundaries
 
-The verifier checks executable architecture headers and both tools' `9.0.2` version identity (allowing the provider's branch/build suffix), not merely that files with the correct names exist. It also checks the components AutoSlides needs:
+The verifier checks executable architecture headers and the `9.0.2` version identity (allowing the provider's branch/build suffix), not merely that files with the correct names exist. It also checks the components AutoSlides needs:
 
-- Encoders/codec support: `libsvtav1`, `libx265`, `libopus`, AAC, MJPEG and `pcm_s16le`.
-- Filters: `crop`, `cropdetect`, `fps`, `scale`, `hqdn3d`, `unsharp`, `highpass`, `afftdn`, `speechnorm` and `loudnorm`.
-- Required demuxers/muxers across HLS, concat, MP4, MPEG-TS and image piping (`image2pipe`), plus the `aac_adtstoasc` bitstream filter.
-- Protocols: HTTP, HTTPS, `file` and `pipe`.
+- Encoders: `libx264`, `libopus`, MJPEG and `pcm_s16le`; decoders: H.264, HEVC, AAC and PNG.
+- Filters: `scale`, `pad`, `setsar`, `format`, `aresample`, `highpass`, `afftdn`, `speechnorm` and `loudnorm`.
+- Demuxers: HLS, concat, MPEG-TS, MP4, Matroska, ADTS AAC, `ffmetadata`, `image2` and `png_pipe`; muxers: MP4, `image2pipe`, `null` and `s16le`; the `aac_adtstoasc` bitstream filter.
+- Protocols: HTTP (the local player proxy only), `file`, `pipe` and `crypto` (AES-128 HLS). Remote streams always go through the proxy, so the build needs no TLS.
 
 The verifier's capability assertions are the executable contract. When adding a feature that needs another FFmpeg component, update those assertions with the caller. Preserve useful `-version`, `-buildconf` and `-L` output with release provenance. A capability-list check is not an end-to-end encode test, a hardware-acceleration test, a security audit or a licensing audit. Do not assume every optional codec in a provider's “full” build is required by AutoSlides.
+
+## Minimal build (in progress)
+
+`autoslides/scripts/ffmpeg-minimal/build.sh <target>` builds FFmpeg from pinned source archives (FFmpeg, x264, Opus; zlib on Linux and Windows) with only the components in `requirements`: no TLS, no devices, no hardware codecs, no ffprobe. It works in the gitignored `autoslides/vendor/ffmpeg-build/`. macOS arm64 builds on a Mac; Linux x64 in Debian 11 (glibc 2.31); Windows x64 is cross-compiled with mingw-w64. On macOS arm64 the result is about 7.6 MB, against 66 MB for the provider build.
+
+- `verify.mjs <ffmpeg>` checks the version, GPL/no-nonfree, the `requirements` and (macOS) system-only dylibs. It runs without `node_modules`.
+- `make-inputs.sh <full-ffmpeg> <dir>` makes short test clips; `check.sh <ffmpeg> <dir>` runs every command shape the app uses (downloads, posters, thumbnails, caption sync, Make Video) against them. A new FFmpeg call in `src/main/video/` belongs in `check.sh`, its components in `requirements` and in `build.sh`. Configure names can differ from runtime names (`image_png_pipe`, the `pcm_s16le` muxer for `-f s16le`).
+- `.github/workflows/ffmpeg-minimal.yml` (manual) builds all three targets, checks each on its own OS, and with a `release_tag` publishes a prerelease holding the three zips, every source archive, `build.sh` and `SHA256SUMS`, the Corresponding Source for that build.
+
+Remote streams reach FFmpeg only through the local player proxy (plain HTTP), so the build needs no TLS. The manifest still pins the provider builds until a published minimal build replaces them.
 
 ## Updating a pin
 

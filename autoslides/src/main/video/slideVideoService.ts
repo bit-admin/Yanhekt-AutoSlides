@@ -10,6 +10,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { app } from 'electron';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import type { FFmpegService } from '@main/infra/ffmpegService';
@@ -80,6 +81,31 @@ async function readImageSize(filePath: string): Promise<{ width: number; height:
   } catch {
     return null;
   }
+}
+
+/** A solid black RGB PNG, written here so FFmpeg needs no generator device. */
+export function blackPng(width: number, height: number): Buffer {
+  const chunk = (type: string, data: Buffer): Buffer => {
+    const head = Buffer.alloc(8);
+    head.writeUInt32BE(data.length, 0);
+    head.write(type, 4, 'ascii');
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(zlib.crc32(Buffer.concat([head.subarray(4), data])) >>> 0, 0);
+    return Buffer.concat([head, data, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0);
+  ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 2; // RGB
+  // Each row: filter byte 0, then zeros.
+  const pixels = zlib.deflateSync(Buffer.alloc((width * 3 + 1) * height));
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', pixels),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
 }
 
 export class SlideVideoService {
@@ -162,12 +188,7 @@ export class SlideVideoService {
       await fs.promises.mkdir(workDir, { recursive: true });
       const needsBlack = plan.entries.some((entry) => !segments[entry.segment].file);
       const blackPath = path.join(workDir, 'black.png');
-      if (needsBlack) {
-        await this.run(ffmpeg, [
-          '-hide_banner', '-nostdin', '-y', '-f', 'lavfi', '-i', `color=c=black:s=${canvas.width}x${canvas.height}`,
-          '-frames:v', '1', blackPath,
-        ]);
-      }
+      if (needsBlack) await fs.promises.writeFile(blackPath, blackPng(canvas.width, canvas.height));
       const concatPath = path.join(workDir, 'slides.ffconcat');
       const metadataPath = path.join(workDir, 'metadata.txt');
       await fs.promises.writeFile(concatPath, slideVideoConcatList(plan.entries, (index) => {

@@ -52,6 +52,7 @@ vendor/course-index/
 
 # Pinned platform media binaries (Forge or npm run media:prepare fills this)
 vendor/media-tools/
+vendor/ffmpeg-build/
 
 # Pinned Sparkle and the built bridge (scripts/sparkle.mjs, run by Forge on macOS)
 vendor/sparkle/

@@ -200,7 +200,7 @@ describe('version and capabilities', () => {
     expect(() => script.assertVersion('ffmpeg version 9.0.2\n--enable-libsvtav1', 'ffmpeg', { version: '9.0.2' })).toThrow('GPL build');
   });
 
-  it('requires current HEVC/audio features as well as SVT-AV1', () => {
+  it('requires every encoder, filter and format the app runs', () => {
     expect(() => script.assertCapabilities(capabilities())).not.toThrow();
     for (const [kind, names] of Object.entries(script.requirements)) {
       for (const name of names) {
@@ -215,7 +215,7 @@ describe('version and capabilities', () => {
     const outputs = capabilities();
     outputs.demuxers = outputs.demuxers.replace('V..... mov description', 'D  mov,mp4,m4a,3gp,3g2,mj2 QuickTime / MOV');
     expect(() => script.assertCapabilities(outputs)).not.toThrow();
-    outputs.encoders = outputs.encoders.replace('V..... libsvtav1 description', 'V..... other description mentions libsvtav1');
-    expect(() => script.assertCapabilities(outputs)).toThrow('libsvtav1');
+    outputs.encoders = outputs.encoders.replace('V..... libx264 description', 'V..... other description mentions libx264');
+    expect(() => script.assertCapabilities(outputs)).toThrow('libx264');
   });
 });

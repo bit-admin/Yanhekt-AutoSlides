@@ -8,7 +8,6 @@ import { execFileSync, spawn } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import extractZip from 'extract-zip';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = path.join(root, 'scripts/media-tools/manifest.json');
@@ -16,13 +15,17 @@ const noticesPath = path.join(root, 'resources/media-tools');
 const FORMAT = 'autoslides-media-tools/v1';
 // ffprobe was dropped 2026-11-19: the app reads lengths from `ffmpeg -i`.
 export const TOOLS = ['ffmpeg'];
+// What the app runs (Make Video, recording downloads, thumbnails and posters,
+// Yanhe 2.0 caption sync). A custom minimal build must keep all of it.
 export const requirements = {
-  encoders: ['libsvtav1', 'libx265', 'libopus', 'aac', 'mjpeg', 'pcm_s16le'],
-  filters: ['crop', 'cropdetect', 'fps', 'scale', 'hqdn3d', 'unsharp', 'highpass', 'afftdn', 'speechnorm', 'loudnorm'],
-  demuxers: ['hls', 'concat', 'mpegts', 'mov'],
-  muxers: ['mp4', 'image2pipe'],
+  encoders: ['libx264', 'libopus', 'mjpeg', 'pcm_s16le'],
+  decoders: ['h264', 'hevc', 'aac', 'png'],
+  filters: ['scale', 'pad', 'setsar', 'format', 'aresample', 'highpass', 'afftdn', 'speechnorm', 'loudnorm'],
+  demuxers: ['hls', 'concat', 'mpegts', 'mov', 'matroska', 'aac', 'ffmetadata', 'image2', 'png_pipe'],
+  muxers: ['mp4', 'image2pipe', 'null', 's16le'],
   bsfs: ['aac_adtstoasc'],
-  protocols: ['file', 'http', 'https', 'pipe'],
+  // No https: FFmpeg reads remote streams only through the local proxy.
+  protocols: ['file', 'http', 'pipe', 'crypto'],
 };
 
 export async function hashFile(file) {
@@ -64,7 +67,7 @@ export function assertVersion(output, tool, target) {
   }
   if (target.revision && !version.includes(target.revision)) throw new Error(`Unexpected ${tool} revision: ${version}`);
   if (output.includes('--enable-nonfree')) throw new Error('Non-redistributable FFmpeg build rejected');
-  if (!output.includes('--enable-gpl')) throw new Error('Expected the GPL build (libx265 is required)');
+  if (!output.includes('--enable-gpl')) throw new Error('Expected the GPL build (libx264 is required)');
 }
 
 export function assertCapabilities(outputs) {
@@ -169,7 +172,8 @@ export async function extractFiles(archive, artifact, destination) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'autoslides-media-extract-'));
   try {
     const zip = artifact.url.endsWith('.zip');
-    if (zip) await extractZip(archive, { dir: temp });
+    // Loaded here so the capability checks run without node_modules (scripts/ffmpeg-minimal/verify.mjs).
+    if (zip) await (await import('extract-zip')).default(archive, { dir: temp });
     for (const [member, output] of Object.entries(artifact.files)) {
       safeMember(member);
       safeMember(output);

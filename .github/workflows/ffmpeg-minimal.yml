@@ -1,0 +1,177 @@
+name: Minimal FFmpeg
+
+# Builds the bundled FFmpeg from pinned sources (autoslides/scripts/ffmpeg-minimal/)
+# for the three release targets, checks each one natively against everything the
+# app runs, and optionally publishes it as a prerelease. Manual only: run it
+# when a pin, the configure line or the requirements change. The app's
+# updaters read `v<version>` tags only, and release.yml skips prereleases.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Publish as this prerelease tag (e.g. ffmpeg-9.0.2-r1). Empty = build and check only.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ffmpeg-minimal
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-arm64
+            os: macos-15
+          - target: linux-x64
+            os: ubuntu-24.04
+            container: debian:bullseye # glibc 2.31, so the binary runs on older distributions
+          - target: win32-x64
+            os: ubuntu-24.04
+    steps:
+      - name: Install build tools (Linux)
+        if: matrix.target == 'linux-x64'
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends build-essential nasm pkg-config curl ca-certificates xz-utils bzip2 zip
+      - name: Install build tools (Windows cross)
+        if: matrix.target == 'win32-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mingw-w64 nasm pkg-config zip
+      - name: Install build tools (macOS)
+        if: matrix.target == 'darwin-arm64'
+        run: command -v pkg-config || brew install pkgconf
+
+      - uses: actions/checkout@v4
+
+      - name: Cache source archives
+        uses: actions/cache@v4
+        with:
+          path: autoslides/vendor/ffmpeg-build/src
+          key: ffmpeg-minimal-src-${{ hashFiles('autoslides/scripts/ffmpeg-minimal/build.sh') }}
+
+      - name: Build
+        working-directory: autoslides
+        run: scripts/ffmpeg-minimal/build.sh ${{ matrix.target }}
+
+      - name: Package
+        working-directory: autoslides/vendor/ffmpeg-build/out/${{ matrix.target }}
+        run: zip -r -X "$GITHUB_WORKSPACE/ffmpeg-minimal-${{ matrix.target }}.zip" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-minimal-${{ matrix.target }}
+          path: ffmpeg-minimal-${{ matrix.target }}.zip
+          if-no-files-found: error
+
+      # Every pinned archive (zlib comes from the non-mac builds): the Corresponding Source.
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'linux-x64'
+        with:
+          name: ffmpeg-minimal-sources
+          path: autoslides/vendor/ffmpeg-build/src/*
+          if-no-files-found: error
+
+  inputs:
+    name: test clips
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: autoslides/scripts/ffmpeg-minimal/make-inputs.sh "$(command -v ffmpeg)" "$RUNNER_TEMP/inputs"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-test-clips
+          path: ${{ runner.temp }}/inputs
+          if-no-files-found: error
+
+  check:
+    name: check ${{ matrix.target }}
+    needs: [build, inputs]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-arm64
+            os: macos-15
+            exe: ffmpeg
+          - target: linux-x64
+            os: ubuntu-22.04
+            exe: ffmpeg
+          - target: win32-x64
+            os: windows-latest
+            exe: ffmpeg.exe
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHON: ${{ matrix.os == 'windows-latest' && 'python' || 'python3' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-minimal-${{ matrix.target }}
+          path: build
+      - uses: actions/download-artifact@v4
+        with:
+          name: ffmpeg-test-clips
+          path: inputs
+      - name: Unpack
+        run: |
+          mkdir bin
+          cd bin
+          "$PYTHON" -m zipfile -e "../build/ffmpeg-minimal-${{ matrix.target }}.zip" .
+          chmod +x "${{ matrix.exe }}"
+          ls -l "${{ matrix.exe }}"
+      - name: Requirements
+        run: node autoslides/scripts/ffmpeg-minimal/verify.mjs "bin/${{ matrix.exe }}"
+      - name: Every command shape the app runs
+        run: autoslides/scripts/ffmpeg-minimal/check.sh "$PWD/bin/${{ matrix.exe }}" "$PWD/inputs"
+
+  publish:
+    name: publish ${{ inputs.release_tag }}
+    if: inputs.release_tag != ''
+    needs: check
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ffmpeg-minimal-*
+          path: dist
+          merge-multiple: true
+      - name: Release
+        run: |
+          ls dist
+          cp autoslides/scripts/ffmpeg-minimal/build.sh dist/build.sh
+          (cd dist && find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS)
+          {
+            echo "Minimal FFmpeg bundled with AutoSlides (GPL-3.0-or-later; x264 GPL-2.0-or-later, Opus BSD-3-Clause, zlib)."
+            echo
+            echo "Built by the Minimal FFmpeg workflow from commit ${GITHUB_SHA} (run ${GITHUB_RUN_ID})."
+            echo "The source archives and build.sh attached here are the complete Corresponding Source."
+            echo
+            echo '```'
+            cat dist/SHA256SUMS
+            echo '```'
+          } > notes.md
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "Minimal FFmpeg ($TAG)" --notes-file notes.md --prerelease --latest=false
