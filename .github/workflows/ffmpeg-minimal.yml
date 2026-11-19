@@ -34,44 +34,93 @@ jobs:
             os: macos-15
           - target: linux-x64
             os: ubuntu-24.04
-            container: ubuntu:20.04 # glibc 2.31, so the binary runs on older distributions (Debian 11's archive is gone)
+            container: almalinux:8 # glibc 2.28, so the binary runs on older distributions; its own mirrors, not Canonical's
           - target: win32-x64
             os: ubuntu-24.04
+    env:
+      # Built binary per target. build.sh holds every pin and the configure line,
+      # so the key changes with it; a re-run or a publish run after a check-only
+      # run reuses (and releases) the very bytes that were checked.
+      OUT_KEY: ffmpeg-minimal-out-v1-${{ matrix.target }}-${{ matrix.os }}-${{ matrix.container || 'host' }}
     steps:
-      - name: Install build tools (Linux)
-        if: matrix.target == 'linux-x64'
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          apt-get update
-          apt-get install -y --no-install-recommends -o Acquire::Retries=3 build-essential pkg-config curl ca-certificates xz-utils bzip2 zip
-          # 20.04's nasm 2.14 cannot assemble FFmpeg 9's swscale code; a build tool only, not shipped.
-          curl -fsSL -o /tmp/nasm.tar.xz https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz
-          echo "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148  /tmp/nasm.tar.xz" | sha256sum -c -
-          mkdir /tmp/nasm && tar -xf /tmp/nasm.tar.xz -C /tmp/nasm --strip-components=1
-          (cd /tmp/nasm && ./configure && make -j"$(nproc)" nasm && cp nasm /usr/local/bin/)
-          nasm -v
-      - name: Install build tools (Windows cross)
-        if: matrix.target == 'win32-x64'
-        run: |
-          sudo apt-get update
-          # Only the 64-bit C cross compiler (the `mingw-w64` metapackage is ~256 MB: i686, g++, both thread models).
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 gcc-mingw-w64-x86-64-win32 nasm pkg-config zip
-      - name: Install build tools (macOS)
-        if: matrix.target == 'darwin-arm64'
-        run: command -v pkg-config || brew install pkgconf
-
+      # actions/cache needs tar and gzip inside the container.
+      - name: Prepare container
+        if: matrix.container
+        run: command -v tar && command -v gzip || dnf -y install tar gzip
+      # The container has no git; checkout falls back to the REST API.
       - uses: actions/checkout@v4
 
+      - name: Restore the built binary
+        id: out
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            autoslides/vendor/ffmpeg-build/out/${{ matrix.target }}
+            autoslides/vendor/ffmpeg-build/src
+          key: ${{ env.OUT_KEY }}-${{ hashFiles('autoslides/scripts/ffmpeg-minimal/build.sh') }}
+
+      # Package downloads (and the nasm build), saved right after installing so a
+      # later failure keeps them; a re-run then needs no package mirror.
+      - name: Restore build tools
+        id: tools
+        if: steps.out.outputs.cache-hit != 'true' && matrix.target != 'darwin-arm64'
+        uses: actions/cache/restore@v4
+        with:
+          path: .build-tools
+          key: ffmpeg-minimal-tools-v1-${{ matrix.target }}-${{ matrix.os }}-${{ matrix.container || 'host' }}-${{ hashFiles('.github/workflows/ffmpeg-minimal.yml') }}
+          restore-keys: ffmpeg-minimal-tools-v1-${{ matrix.target }}-${{ matrix.os }}-${{ matrix.container || 'host' }}-
+
+      - name: Install build tools (Linux)
+        if: steps.out.outputs.cache-hit != 'true' && matrix.target == 'linux-x64'
+        run: |
+          TOOLS="$GITHUB_WORKSPACE/.build-tools" # not github.workspace: that is the host's path
+          pkgs="tar findutils which gcc make diffutils pkgconf-pkg-config xz bzip2 zip curl"
+          dnf="dnf -y --setopt=install_weak_deps=False --setopt=keepcache=1 --setopt=cachedir=$TOOLS/dnf"
+          # Offline from the cached packages and metadata when they are there, else the mirrors.
+          $dnf -C install $pkgs || $dnf install $pkgs
+          # A build tool only, not shipped: FFmpeg 9's swscale asm needs nasm 2.15+.
+          if [ ! -x "$TOOLS/nasm-2.16.03" ]; then
+            curl -fsSL -o /tmp/nasm.tar.xz https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz
+            echo "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148  /tmp/nasm.tar.xz" | sha256sum -c -
+            mkdir /tmp/nasm && tar -xf /tmp/nasm.tar.xz -C /tmp/nasm --strip-components=1
+            (cd /tmp/nasm && ./configure && make -j"$(nproc)" nasm && cp nasm "$TOOLS/nasm-2.16.03")
+          fi
+          cp "$TOOLS/nasm-2.16.03" /usr/local/bin/nasm
+          nasm -v
+      - name: Install build tools (Windows cross)
+        if: steps.out.outputs.cache-hit != 'true' && matrix.target == 'win32-x64'
+        # Only the 64-bit C cross compiler (the `mingw-w64` metapackage is ~256 MB: i686, g++, both thread models).
+        run: autoslides/scripts/ffmpeg-minimal/apt-cached.sh "$GITHUB_WORKSPACE/.build-tools/debs" gcc-mingw-w64-x86-64-win32 nasm pkg-config zip
+      - name: Save build tools
+        if: steps.out.outputs.cache-hit != 'true' && matrix.target != 'darwin-arm64' && steps.tools.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .build-tools
+          key: ${{ steps.tools.outputs.cache-primary-key }}
+      - name: Install build tools (macOS)
+        if: steps.out.outputs.cache-hit != 'true' && matrix.target == 'darwin-arm64'
+        run: command -v pkg-config || brew install pkgconf
+
       - name: Cache source archives
+        if: steps.out.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: autoslides/vendor/ffmpeg-build/src
           key: ffmpeg-minimal-src-${{ hashFiles('autoslides/scripts/ffmpeg-minimal/build.sh') }}
 
       - name: Build
+        if: steps.out.outputs.cache-hit != 'true'
         working-directory: autoslides
         run: scripts/ffmpeg-minimal/build.sh ${{ matrix.target }}
+
+      - name: Save the built binary
+        if: steps.out.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            autoslides/vendor/ffmpeg-build/out/${{ matrix.target }}
+            autoslides/vendor/ffmpeg-build/src
+          key: ${{ steps.out.outputs.cache-primary-key }}
 
       - name: Package
         working-directory: autoslides/vendor/ffmpeg-build/out/${{ matrix.target }}
