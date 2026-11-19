@@ -1547,6 +1547,8 @@ History-mode `/demo/live` would render the real app via SPA fallback. Demo is ha
 
 `ort-wasm` must stay unpacked; `ort.env.wasm.wasmPaths` must point at the real filesystem. Vite configs stream `/ort-wasm/*` in dev and copy WASM once per renderer in prod (duplicate Rollup chunks are dropped).
 
+OpenCV.js is not bundled into the workers. `vite.renderer.config.ts` serves `/opencv/opencv.js` in dev and copies it to `opencv/` beside `assets/` in prod, and `shared/workers/opencvLoader.ts` runs that one copy for both the auto-crop and the classifier worker (`importScripts` in built classic workers; fetch + indirect eval in dev, where Vite starts module workers). It stays inside asar: a classic script loads from asar like the worker files themselves. Do not `import '@techstark/opencv-js'` in a worker, or the 11 MB script is inlined into that bundle again. The Emscripten Module it creates has a `then` that calls back with itself, so it must never be resolved through a promise (an async function returning it loops forever); the loader hands it out as `{ cv }`.
+
 ### Audit overrides
 
 CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each package's `package.json` `overrides` (and `autoslides/vendor/extract-zip`, the one remaining shim). `image-size` is an override to `^2.0.4`, not a vendor: pptxgenjs still asks for `^1.2.1`. Do not `npm audit fix --force`. Drop a pin only after a temporary removal + reinstall proves the in-range latest is patched.

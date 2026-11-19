@@ -5,12 +5,12 @@
  * Preprocessing matches:
  *   BGR->RGB -> resize 256x256 INTER_AREA -> /255 -> ImageNet mean/std -> CHW float32.
  *
- * Static top-level imports mirror autoCrop.worker.ts so Vite bundles the
- * runtimes into the worker at build time.
+ * onnxruntime-web is bundled as in autoCrop.worker.ts; OpenCV.js comes from the
+ * shared copy through `opencvLoader.ts`.
  */
 
-import cvRaw from '@techstark/opencv-js'
 import * as ort from 'onnxruntime-web'
+import { loadOpenCv } from './opencvLoader'
 import { createLogger } from '@shared/utils/logger';
 const logger = createLogger('SlideClassifierWorker');
 
@@ -60,53 +60,13 @@ interface ClassifyMessage {
 type IncomingMessage = InitMessage | ClassifyMessage
 
 // ----------------------------------------------------------------------------
-// OpenCV.js loader (shared style with autoCrop.worker.ts)
+// OpenCV.js, loaded from the shared copy (opencvLoader.ts)
 // ----------------------------------------------------------------------------
 
 let cv: any = null
-let cvLoading: Promise<void> | null = null
 
 async function ensureCvReady(): Promise<void> {
-  if (cv) return
-  if (!cvLoading) {
-    cvLoading = (async () => {
-      const candidate: any = cvRaw
-      let resolved: any
-
-      if (candidate && typeof candidate.then === 'function') {
-        resolved = (await new Promise<{ cv: any }>((resolve, reject) => {
-          const timer = setTimeout(
-            () => reject(new Error('OpenCV.js init timed out (30 s)')),
-            30_000,
-          )
-          candidate.then((initialised: any) => {
-            clearTimeout(timer)
-            resolve({ cv: initialised })
-          })
-        })).cv
-      } else if (typeof candidate === 'function') {
-        const result = candidate({})
-        resolved = (result && typeof result.then === 'function') ? await result : result
-      } else if (candidate && typeof candidate.cvtColor === 'function') {
-        resolved = candidate
-      } else {
-        resolved = (self as any).cv ?? candidate
-      }
-
-      cv = resolved
-      const ready =
-        cv &&
-        typeof cv.cvtColor === 'function' &&
-        typeof cv.matFromImageData === 'function' &&
-        typeof cv.resize === 'function' &&
-        typeof cv.Mat === 'function'
-      if (!ready) {
-        throw new Error('OpenCV.js initialised but cv namespace is incomplete')
-      }
-      log('opencv ready')
-    })()
-  }
-  await cvLoading
+  if (!cv) cv = (await loadOpenCv(log)).cv
 }
 
 // ----------------------------------------------------------------------------

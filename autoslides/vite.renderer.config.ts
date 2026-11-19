@@ -3,30 +3,48 @@ import vue from '@vitejs/plugin-vue';
 import path from 'path';
 import fs from 'fs';
 
-function ortWasmDevServer(): Plugin {
-  const sourceDir = path.resolve(
-    __dirname,
-    'node_modules/onnxruntime-web/dist'
-  );
-  const whitelist = new Set([
-    'ort-wasm-simd-threaded.jsep.wasm',
-    'ort-wasm-simd-threaded.jsep.mjs'
-  ]);
+// Runtime files the workers load by URL instead of bundling: served by the dev
+// server and copied beside assets/ at build time, under the same /<dir>/ path.
+interface VendorFiles {
+  /** URL path segment and output folder, e.g. `ort-wasm`. */
+  dir: string;
+  sourceDir: string;
+  files: string[];
+}
+
+const VENDOR_FILES: VendorFiles[] = [
+  // onnxruntime-web JSEP build; workers set `ort.env.wasm.wasmPaths` to it.
+  {
+    dir: 'ort-wasm',
+    sourceDir: path.resolve(__dirname, 'node_modules/onnxruntime-web/dist'),
+    files: ['ort-wasm-simd-threaded.jsep.wasm', 'ort-wasm-simd-threaded.jsep.mjs']
+  },
+  // OpenCV.js (wasm inlined as base64), one copy shared by the autoCrop and
+  // slideClassifier workers through shared/workers/opencvLoader.ts.
+  {
+    dir: 'opencv',
+    sourceDir: path.resolve(__dirname, 'node_modules/@techstark/opencv-js/dist'),
+    files: ['opencv.js']
+  }
+];
+
+function vendorFilesDevServer(): Plugin {
   return {
-    name: 'serve-ort-wasm-dev',
+    name: 'serve-vendor-files-dev',
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         if (!req.url) return next();
         const pathname = req.url.split('?')[0];
-        if (!pathname.startsWith('/ort-wasm/')) return next();
-        const filename = pathname.substring('/ort-wasm/'.length);
-        if (!whitelist.has(filename)) return next();
-        const filepath = path.join(sourceDir, filename);
+        const group = VENDOR_FILES.find((g) => pathname.startsWith(`/${g.dir}/`));
+        if (!group) return next();
+        const filename = pathname.substring(group.dir.length + 2);
+        if (!group.files.includes(filename)) return next();
+        const filepath = path.join(group.sourceDir, filename);
         if (!fs.existsSync(filepath)) return next();
         const ext = path.extname(filename);
         const mime =
-          ext === '.mjs' ? 'application/javascript' :
+          ext === '.mjs' || ext === '.js' ? 'application/javascript' :
           ext === '.wasm' ? 'application/wasm' :
           'application/octet-stream';
         res.setHeader('Content-Type', mime);
@@ -42,27 +60,20 @@ function ortWasmDevServer(): Plugin {
   };
 }
 
-function ortWasmBuildCopy(): Plugin {
-  const sourceDir = path.resolve(
-    __dirname,
-    'node_modules/onnxruntime-web/dist'
-  );
-  const files = [
-    'ort-wasm-simd-threaded.jsep.wasm',
-    'ort-wasm-simd-threaded.jsep.mjs'
-  ];
+function vendorFilesBuildCopy(): Plugin {
   return {
-    name: 'copy-ort-wasm-build',
+    name: 'copy-vendor-files-build',
     apply: 'build',
     writeBundle(options) {
       const outDir = options.dir ?? path.resolve(__dirname, 'dist');
-      const destDir = path.join(outDir, 'ort-wasm');
-      fs.mkdirSync(destDir, { recursive: true });
-      for (const f of files) {
-        const src = path.join(sourceDir, f);
-        const dst = path.join(destDir, f);
-        if (fs.existsSync(src)) {
-          fs.copyFileSync(src, dst);
+      for (const group of VENDOR_FILES) {
+        const destDir = path.join(outDir, group.dir);
+        fs.mkdirSync(destDir, { recursive: true });
+        for (const f of group.files) {
+          const src = path.join(group.sourceDir, f);
+          // A missing file would only fail at runtime inside a worker; fail the build.
+          if (!fs.existsSync(src)) throw new Error(`vendor file missing: ${src}`);
+          fs.copyFileSync(src, path.join(destDir, f));
         }
       }
     }
@@ -73,7 +84,7 @@ function ortWasmBuildCopy(): Plugin {
 // references the wasm via `new URL(..., import.meta.url)`, so Rollup emits a
 // ~24 MB copy of ort-wasm-simd-threaded.jsep.wasm into assets/. That copy is dead
 // weight: at runtime the workers set `ort.env.wasm.wasmPaths` to the ort-wasm/
-// directory populated by ortWasmBuildCopy, so the assets/ copy is never fetched.
+// directory populated by vendorFilesBuildCopy, so the assets/ copy is never fetched.
 // Drop it so the blob ships once per renderer instead of twice.
 function dropBundledOrtWasm(): Plugin {
   return {
@@ -104,8 +115,8 @@ export default defineConfig(({ mode }) => ({
         }
       }
     }),
-    ortWasmDevServer(),
-    ortWasmBuildCopy(),
+    vendorFilesDevServer(),
+    vendorFilesBuildCopy(),
     dropBundledOrtWasm()
   ],
   resolve: {
