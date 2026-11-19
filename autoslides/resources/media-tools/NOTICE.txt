@@ -3,27 +3,31 @@ AutoSlides bundled media tools
 
 FFmpeg is a separate executable, invoked as a subprocess by AutoSlides.
 Copyright (c) the FFmpeg developers and contributing authors.
-The selected builds enable GPL components and version 3, and are distributed
-under the GNU General Public License, version 3 or later. See GPL-3.0.txt.
-These components retain their own licenses; the AutoSlides license and
-application terms do not restrict rights granted by those licenses.
+This build enables GPL components and version 3, and is distributed under the
+GNU General Public License, version 3 or later. See GPL-3.0.txt and
+FFmpeg-COPYING.GPLv3. These components retain their own licenses; the
+AutoSlides license and application terms do not restrict rights granted by
+those licenses.
 
 FFmpeg project: https://ffmpeg.org/
 Licensing: https://ffmpeg.org/legal.html
 
-SVT-AV1 is included for AV1 software encoding. Copyright (c) Alliance for
-Open Media and contributing authors. See SVT-AV1-LICENSE.md.
-Project: https://gitlab.com/AOMediaCodec/SVT-AV1
+The build is AutoSlides' own minimal configuration of FFmpeg 9.0.2 and
+statically includes:
+- x264 (GPL-2.0-or-later), Copyright (c) the x264 project.
+  See x264-COPYING. https://www.videolan.org/developers/x264.html
+- Opus (BSD-3-Clause), Copyright (c) Xiph.Org Foundation and contributors.
+  See opus-COPYING. https://opus-codec.org/
+- zlib (zlib licence; Windows and Linux builds), Copyright (c) Jean-loup
+  Gailly and Mark Adler. See zlib-LICENSE. https://zlib.net/
+  The macOS build uses the system zlib.
 
-Other compiled-in libraries retain their respective licenses and copyright
-notices. The BtbN archive's LICENSE.txt is retained as BtbN-LICENSE.txt on
-Windows and Linux. This notice is not an exhaustive dependency license list.
+Corresponding Source: the exact source archives (FFmpeg, x264, Opus, zlib),
+the build script and SHA-256 checksums of every file are published with the
+binaries at
+https://github.com/bit-admin/Yanhekt-AutoSlides/releases/tag/ffmpeg-9.0.2-r1
+SOURCES.txt lists the archives with their checksums. The build script is
+autoslides/scripts/ffmpeg-minimal/build.sh in the AutoSlides source tree.
 
-The adjacent build-info.json records the provider, exact build, download URLs,
-archive SHA-256 pins, source/build-script references and (on native builds)
-FFmpeg configuration output. The references are provenance, not a
-claim that a build-script repository is complete Corresponding Source.
-
-Release maintainers: preserve and provide the complete Corresponding Source,
-including linked dependencies, modifications and build instructions, for each
-redistributed build. See docs/media-tools.md in the AutoSlides source tree.
+The adjacent build-info.json records the build, download URL, archive SHA-256
+pin and FFmpeg configuration output.

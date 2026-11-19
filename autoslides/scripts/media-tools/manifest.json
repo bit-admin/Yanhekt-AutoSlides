@@ -3,49 +3,60 @@
   "version": "9.0.2",
   "targets": {
     "darwin-arm64": {
-      "provider": "Martin Riedl",
-      "build": "1789931890_9.0.2",
+      "provider": "AutoSlides (scripts/ffmpeg-minimal)",
+      "build": "ffmpeg-9.0.2-r1",
       "version": "9.0.2",
-      "source": "https://git.martin-riedl.de/ffmpeg/build-script",
-      "metadata": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/versions.txt",
+      "source": "https://github.com/bit-admin/Yanhekt-AutoSlides/releases/tag/ffmpeg-9.0.2-r1",
       "artifacts": [
         {
-          "url": "https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip",
-          "sha256": "c8ed4c4e6978a03c485edbfe4e0a5dc2380f8a30bba5150531b31b094492d924",
-          "files": { "ffmpeg": "ffmpeg" }
+          "url": "https://github.com/bit-admin/Yanhekt-AutoSlides/releases/download/ffmpeg-9.0.2-r1/ffmpeg-minimal-darwin-arm64.zip",
+          "sha256": "2d81b268d9724c03a00016fefb6b56c81e3235dd684c42dcd7a6dabc56789a86",
+          "files": {
+            "ffmpeg": "ffmpeg",
+            "licenses/FFmpeg-COPYING.GPLv3": "licenses/FFmpeg-COPYING.GPLv3",
+            "licenses/x264-COPYING": "licenses/x264-COPYING",
+            "licenses/opus-COPYING": "licenses/opus-COPYING",
+            "SOURCES.txt": "licenses/SOURCES.txt"
+          }
         }
       ]
     },
     "win32-x64": {
-      "provider": "BtbN",
-      "build": "autobuild-2026-09-30-13-08",
+      "provider": "AutoSlides (scripts/ffmpeg-minimal)",
+      "build": "ffmpeg-9.0.2-r1",
       "version": "9.0.2",
-      "revision": "2a571b6068",
-      "source": "https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-09-30-13-08",
+      "source": "https://github.com/bit-admin/Yanhekt-AutoSlides/releases/tag/ffmpeg-9.0.2-r1",
       "artifacts": [
         {
-          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0.zip",
-          "sha256": "a0e45723c72141975f51d8666302e614711745f3102b704ca3f82c897a58d278",
+          "url": "https://github.com/bit-admin/Yanhekt-AutoSlides/releases/download/ffmpeg-9.0.2-r1/ffmpeg-minimal-win32-x64.zip",
+          "sha256": "659346464e7aaef8de37ab9e2a4b47ad355cc92c123f74ae538920641d588b9f",
           "files": {
-            "ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0/bin/ffmpeg.exe": "ffmpeg.exe",
-            "ffmpeg-n9.0.2-17-g2a571b6068-win64-gpl-9.0/LICENSE.txt": "licenses/BtbN-LICENSE.txt"
+            "ffmpeg.exe": "ffmpeg.exe",
+            "licenses/FFmpeg-COPYING.GPLv3": "licenses/FFmpeg-COPYING.GPLv3",
+            "licenses/x264-COPYING": "licenses/x264-COPYING",
+            "licenses/opus-COPYING": "licenses/opus-COPYING",
+            "licenses/zlib-LICENSE": "licenses/zlib-LICENSE",
+            "SOURCES.txt": "licenses/SOURCES.txt"
           }
         }
       ]
     },
     "linux-x64": {
-      "provider": "BtbN",
-      "build": "autobuild-2026-09-30-13-08",
+      "provider": "AutoSlides (scripts/ffmpeg-minimal)",
+      "build": "ffmpeg-9.0.2-r1",
       "version": "9.0.2",
-      "revision": "2a571b6068",
-      "source": "https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-09-30-13-08",
+      "source": "https://github.com/bit-admin/Yanhekt-AutoSlides/releases/tag/ffmpeg-9.0.2-r1",
       "artifacts": [
         {
-          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0.tar.xz",
-          "sha256": "68ee646831adaae2495618346f3bba94ff207ff83bbd34d643e7004730d66269",
+          "url": "https://github.com/bit-admin/Yanhekt-AutoSlides/releases/download/ffmpeg-9.0.2-r1/ffmpeg-minimal-linux-x64.zip",
+          "sha256": "40cf9b216d8bbe40085c3ea8119080193a92abff3ef27e282f16814076c9b3ac",
           "files": {
-            "ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0/bin/ffmpeg": "ffmpeg",
-            "ffmpeg-n9.0.2-17-g2a571b6068-linux64-gpl-9.0/LICENSE.txt": "licenses/BtbN-LICENSE.txt"
+            "ffmpeg": "ffmpeg",
+            "licenses/FFmpeg-COPYING.GPLv3": "licenses/FFmpeg-COPYING.GPLv3",
+            "licenses/x264-COPYING": "licenses/x264-COPYING",
+            "licenses/opus-COPYING": "licenses/opus-COPYING",
+            "licenses/zlib-LICENSE": "licenses/zlib-LICENSE",
+            "SOURCES.txt": "licenses/SOURCES.txt"
           }
         }
       ]
