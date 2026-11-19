@@ -145,8 +145,20 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
-      - run: autoslides/scripts/ffmpeg-minimal/make-inputs.sh "$(command -v ffmpeg)" "$RUNNER_TEMP/inputs"
+      # The full build the manifest already pins (GitHub-hosted, checksum-verified), not apt's.
+      - name: Full FFmpeg for making clips
+        run: |
+          read -r url sha member < <(node -e '
+            const t = require("./autoslides/scripts/media-tools/manifest.json").targets["linux-x64"].artifacts[0];
+            const m = Object.entries(t.files).find(([, out]) => out === "ffmpeg")[0];
+            console.log(t.url, t.sha256, m)')
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/full.tar.xz" "$url"
+          echo "$sha  $RUNNER_TEMP/full.tar.xz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/full"
+          tar -xOf "$RUNNER_TEMP/full.tar.xz" "$member" > "$RUNNER_TEMP/full/ffmpeg"
+          chmod +x "$RUNNER_TEMP/full/ffmpeg"
+          "$RUNNER_TEMP/full/ffmpeg" -hide_banner -version | head -1
+      - run: autoslides/scripts/ffmpeg-minimal/make-inputs.sh "$RUNNER_TEMP/full/ffmpeg" "$RUNNER_TEMP/inputs"
       - uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-test-clips
