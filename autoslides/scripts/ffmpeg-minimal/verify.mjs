@@ -21,4 +21,4 @@ if (process.platform === 'darwin') {
   const foreign = libraries.filter((lib) => !lib.startsWith('/usr/lib/') && !lib.startsWith('/System/Library/'));
   if (foreign.length) throw new Error(`Non-system dylibs: ${foreign.join(', ')}`);
 }
-process.stdout.write(`${version.split('\n', 1)[0]}: requirements met\n`);
+process.stdout.write(`${version.split(/\r?\n/, 1)[0]}: requirements met\n`);
