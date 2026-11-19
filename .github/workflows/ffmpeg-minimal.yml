@@ -24,6 +24,7 @@ jobs:
   build:
     name: build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45 # a build is minutes; a stuck package mirror should fail, not hold the run for an hour
     container: ${{ matrix.container }}
     strategy:
       fail-fast: false
@@ -43,7 +44,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential pkg-config curl ca-certificates xz-utils bzip2 zip
+          apt-get install -y --no-install-recommends -o Acquire::Retries=3 build-essential pkg-config curl ca-certificates xz-utils bzip2 zip
           # 20.04's nasm 2.14 cannot assemble FFmpeg 9's swscale code; a build tool only, not shipped.
           curl -fsSL -o /tmp/nasm.tar.xz https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz
           echo "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148  /tmp/nasm.tar.xz" | sha256sum -c -
@@ -54,7 +55,8 @@ jobs:
         if: matrix.target == 'win32-x64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends mingw-w64 nasm pkg-config zip
+          # Only the 64-bit C cross compiler (the `mingw-w64` metapackage is ~256 MB: i686, g++, both thread models).
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 gcc-mingw-w64-x86-64-win32 nasm pkg-config zip
       - name: Install build tools (macOS)
         if: matrix.target == 'darwin-arm64'
         run: command -v pkg-config || brew install pkgconf
