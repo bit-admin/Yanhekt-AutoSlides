@@ -33,12 +33,14 @@ jobs:
             os: macos-15
           - target: linux-x64
             os: ubuntu-24.04
-            container: debian:bullseye # glibc 2.31, so the binary runs on older distributions
+            container: ubuntu:20.04 # glibc 2.31, so the binary runs on older distributions (Debian 11's archive is gone)
           - target: win32-x64
             os: ubuntu-24.04
     steps:
       - name: Install build tools (Linux)
         if: matrix.target == 'linux-x64'
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           apt-get update
           apt-get install -y --no-install-recommends build-essential nasm pkg-config curl ca-certificates xz-utils bzip2 zip

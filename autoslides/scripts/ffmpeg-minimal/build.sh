@@ -5,7 +5,7 @@
 # complete Corresponding Source for the GPL binary.
 #
 #   scripts/ffmpeg-minimal/build.sh darwin-arm64   # on an Apple silicon Mac
-#   scripts/ffmpeg-minimal/build.sh linux-x64      # on x86-64 Linux; CI uses Debian 11 (glibc 2.31)
+#   scripts/ffmpeg-minimal/build.sh linux-x64      # on x86-64 Linux; CI uses Ubuntu 20.04 (glibc 2.31)
 #   scripts/ffmpeg-minimal/build.sh win32-x64      # cross-compiled on Linux with mingw-w64
 #
 # Works in vendor/ffmpeg-build/ (gitignored); the result is

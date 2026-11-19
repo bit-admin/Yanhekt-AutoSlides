@@ -62,7 +62,7 @@ The verifier's capability assertions are the executable contract. When adding a 
 
 ## Minimal build (in progress)
 
-`autoslides/scripts/ffmpeg-minimal/build.sh <target>` builds FFmpeg from pinned source archives (FFmpeg, x264, Opus; zlib on Linux and Windows) with only the components in `requirements`: no TLS, no devices, no hardware codecs, no ffprobe. It works in the gitignored `autoslides/vendor/ffmpeg-build/`. macOS arm64 builds on a Mac; Linux x64 in Debian 11 (glibc 2.31); Windows x64 is cross-compiled with mingw-w64. On macOS arm64 the result is about 7.6 MB, against 66 MB for the provider build.
+`autoslides/scripts/ffmpeg-minimal/build.sh <target>` builds FFmpeg from pinned source archives (FFmpeg, x264, Opus; zlib on Linux and Windows) with only the components in `requirements`: no TLS, no devices, no hardware codecs, no ffprobe. It works in the gitignored `autoslides/vendor/ffmpeg-build/`. macOS arm64 builds on a Mac; Linux x64 in Ubuntu 20.04 (glibc 2.31); Windows x64 is cross-compiled with mingw-w64. On macOS arm64 the result is about 7.6 MB, against 66 MB for the provider build.
 
 - `verify.mjs <ffmpeg>` checks the version, GPL/no-nonfree, the `requirements` and (macOS) system-only dylibs. It runs without `node_modules`.
 - `make-inputs.sh <full-ffmpeg> <dir>` makes short test clips; `check.sh <ffmpeg> <dir>` runs every command shape the app uses (downloads, posters, thumbnails, caption sync, Make Video) against them. A new FFmpeg call in `src/main/video/` belongs in `check.sh`, its components in `requirements` and in `build.sh`. Configure names can differ from runtime names (`image_png_pipe`, the `pcm_s16le` muxer for `-f s16le`).
