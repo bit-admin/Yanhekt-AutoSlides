@@ -43,7 +43,13 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends build-essential nasm pkg-config curl ca-certificates xz-utils bzip2 zip
+          apt-get install -y --no-install-recommends build-essential pkg-config curl ca-certificates xz-utils bzip2 zip
+          # 20.04's nasm 2.14 cannot assemble FFmpeg 9's swscale code; a build tool only, not shipped.
+          curl -fsSL -o /tmp/nasm.tar.xz https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/nasm-2.16.03.tar.xz
+          echo "1412a1c760bbd05db026b6c0d1657affd6631cd0a63cddb6f73cc6d4aa616148  /tmp/nasm.tar.xz" | sha256sum -c -
+          mkdir /tmp/nasm && tar -xf /tmp/nasm.tar.xz -C /tmp/nasm --strip-components=1
+          (cd /tmp/nasm && ./configure && make -j"$(nproc)" nasm && cp nasm /usr/local/bin/)
+          nasm -v
       - name: Install build tools (Windows cross)
         if: matrix.target == 'win32-x64'
         run: |
