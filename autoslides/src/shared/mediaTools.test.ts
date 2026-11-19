@@ -77,6 +77,13 @@ describe('media artifact pins', () => {
     }
   });
 
+  it('ships ffmpeg alone on every target (ffprobe was dropped)', () => {
+    for (const target of Object.values(manifest.targets)) {
+      const outputs = target.artifacts.flatMap((artifact) => Object.values(artifact.files) as string[])
+      expect(outputs.filter((file) => !file.startsWith('licenses/'))).toEqual([expect.stringMatching(/^ffmpeg(\.exe)?$/)])
+    }
+  });
+
   it('hashes file bytes rather than trusting the npm lock or a filename', async () => {
     const file = path.join(directory, 'artifact.zip');
     fs.writeFileSync(file, 'first artifact');
@@ -171,7 +178,7 @@ describe('executable architecture', () => {
     const suffix = platform === 'win32' ? '.exe' : '';
     const foreign = path.join(directory, 'foreign');
     fs.mkdirSync(foreign);
-    for (const tool of ['ffmpeg', 'ffprobe']) fs.writeFileSync(path.join(foreign, tool + suffix), header(platform), { mode: 0o755 });
+    fs.writeFileSync(path.join(foreign, 'ffmpeg' + suffix), header(platform), { mode: 0o755 });
     expect(script.verifyBundle(foreign, platform, 'x64', { version: '9.0.2' })).toEqual({ native: false, versions: {} });
   });
 });
@@ -179,7 +186,7 @@ describe('executable architecture', () => {
 describe('version and capabilities', () => {
   it('accepts release and pinned release-branch version banners', () => {
     expect(() => script.assertVersion('ffmpeg version 9.0.2-https://www.martin-riedl.de Copyright\nconfiguration: --enable-gpl', 'ffmpeg', { version: '9.0.2' })).not.toThrow();
-    expect(() => script.assertVersion('ffprobe version n9.0.2-17-g2a571b6068 Copyright\nconfiguration: --enable-gpl', 'ffprobe', { version: '9.0.2', revision: '2a571b6068' })).not.toThrow();
+    expect(() => script.assertVersion('ffmpeg version n9.0.2-17-g2a571b6068 Copyright\nconfiguration: --enable-gpl', 'ffmpeg', { version: '9.0.2', revision: '2a571b6068' })).not.toThrow();
   });
 
   it.each(['6.1.1', '9.0.20', '9.0.1', '10.0'])('rejects a mismatched version %s', version => {

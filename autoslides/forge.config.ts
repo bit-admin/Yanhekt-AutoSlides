@@ -80,7 +80,7 @@ const config: ForgeConfig = {
       // The agent skill for the command line (repo `skills/`). The app copies
       // it under userData on launch for agents to link (cliInstall/skillBundle.ts).
       '../skills',
-      // generateAssets adds the pinned FFmpeg/FFprobe bundle for the explicit
+      // generateAssets adds the pinned FFmpeg bundle for the explicit
       // target. Do not pick a binary from the build host's node_modules.
       // Include sharp and its dependencies
       'node_modules/sharp',

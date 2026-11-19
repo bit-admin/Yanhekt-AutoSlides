@@ -24,8 +24,13 @@ import {
  * like the other two and shares the whole naming grammar, but it is NOT a
  * video: callers that pick a poster source, decide a stream mode or set a
  * `<video>.src` must exclude it explicitly.
+ *
+ * `slides` is a slide video made in Lectures (Make Video): the slides of a
+ * `slides_*` folder on its timeline, with the lecture's audio. It is named
+ * after its folder (`slides_….mp4`) and plays in the screen's place when the
+ * session has no screen recording.
  */
-export type LectureVideoType = 'screen' | 'camera' | 'audio';
+export type LectureVideoType = 'screen' | 'camera' | 'audio' | 'slides';
 
 /**
  * The extensions the Lectures workspace treats as local lecture media.
@@ -49,8 +54,8 @@ export const LECTURE_MEDIA_EXTENSIONS: ReadonlySet<string> = new Set([
 /**
  * Subtitle sidecars saved beside a lecture (the Yanhe 2.0 transcript download).
  * Kept out of `LECTURE_MEDIA_EXTENSIONS` on purpose: a subtitle file is listed
- * and renamed with its lecture, but it is never streamed, bucketed into the
- * Library or compressed.
+ * and renamed with its lecture, but it is never streamed or bucketed into the
+ * Library.
  */
 export const LECTURE_SUBTITLE_EXTENSIONS: ReadonlySet<string> = new Set(['.srt']);
 
@@ -69,9 +74,6 @@ export function isLectureVideoExt(ext: string): boolean {
   return LECTURE_VIDEO_EXTENSIONS.has(ext.toLowerCase());
 }
 
-/** Video preset recorded in `[ascomp=…]` after a successful Lectures compress. */
-export type LectureCompressPresetTag = 'tiny' | 'small' | 'readable';
-
 export interface ParsedLectureVideo extends ParsedLectureIds {
   /** Bare filename without directory. */
   fileName: string;
@@ -85,33 +87,27 @@ export interface ParsedLectureVideo extends ParsedLectureIds {
   /** True when type came from `[vtype=…]` rather than a `screen_`/`camera_` prefix. */
   hasVtypeTag: boolean;
   /**
-   * Compress preset from `[ascomp=tiny|small|readable]` when present (after a
-   * successful Lectures batch compress). Used to skip re-encode + UI badge.
-   */
-  compressPreset?: LectureCompressPresetTag;
-  /**
-   * Recognised for Lectures grouping / rename / compress-as-screen:
+   * Recognised for Lectures grouping / rename:
    * both courseId and sessionId present (and preferably a video type).
    */
   recognised: boolean;
 }
 
 const YANHEKT_ID_TAG = /\[yhid=(c(\d+)(?:s(\d+))?(?:l(\d+))?)\]/i;
-const VTYPE_TAG = /\[vtype=(screen|camera|audio)\]/i;
-/** After `[vtype=…]`: records which Lectures compress preset was applied. */
-const ASCOMP_TAG = /\[ascomp=(tiny|small|readable)\]/i;
-const LEGACY_TYPE_PREFIX = /^(screen|camera|audio)_/i;
+const VTYPE_TAG = /\[vtype=(screen|camera|audio|slides)\]/i;
+/**
+ * Retired (the old Lectures compress stamped it). Files that still carry it
+ * parse and display as if it were not there; rename drops it.
+ */
+const RETIRED_ASCOMP_TAG = /\[ascomp=[a-z]+\]/i;
+const LEGACY_TYPE_PREFIX = /^(screen|camera|audio|slides)_/i;
 
-function isCompressPreset(value: string): value is LectureCompressPresetTag {
-  return value === 'tiny' || value === 'small' || value === 'readable';
-}
-
-/** Strip Emby-style tags (case-insensitive), including compress status. */
+/** Strip Emby-style tags (case-insensitive), and the retired compress tag. */
 export function stripEmbyTags(name: string): string {
   return name
     .replace(YANHEKT_ID_TAG, '')
     .replace(VTYPE_TAG, '')
-    .replace(ASCOMP_TAG, '')
+    .replace(RETIRED_ASCOMP_TAG, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -145,10 +141,6 @@ export function buildVtypeTag(videoType: LectureVideoType): string {
   return `[vtype=${videoType}]`;
 }
 
-export function buildAscompTag(preset: LectureCompressPresetTag): string {
-  return `[ascomp=${preset}]`;
-}
-
 /**
  * Parse a video file name (with or without extension). Accepts legacy
  * `screen_…__c…s…` names and Emby-tagged renames.
@@ -161,7 +153,6 @@ export function parseLectureVideoName(fileName: string): ParsedLectureVideo {
 
   const yanhekt = stem.match(YANHEKT_ID_TAG);
   const vtypeTag = stem.match(VTYPE_TAG);
-  const ascompTag = stem.match(ASCOMP_TAG);
 
   let courseId: string | undefined;
   let sessionId: string | undefined;
@@ -174,11 +165,11 @@ export function parseLectureVideoName(fileName: string): ParsedLectureVideo {
     sessionId = yanhekt[3];
     liveId = yanhekt[4];
   } else {
-    // Legacy `__c…s…` is $‑anchored. Tags appended after compress
-    // (` [ascomp=tiny]`) would make parseLectureIds miss the id block — strip
+    // Legacy `__c…s…` is $‑anchored. A tag appended after it (the retired
+    // ` [ascomp=tiny]`) would make parseLectureIds miss the id block — strip
     // known bracket tags first so identity still resolves.
     const stemForLegacyIds = stem
-      .replace(ASCOMP_TAG, '')
+      .replace(RETIRED_ASCOMP_TAG, '')
       .replace(VTYPE_TAG, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
@@ -200,9 +191,6 @@ export function parseLectureVideoName(fileName: string): ParsedLectureVideo {
     }
   }
 
-  const compressRaw = ascompTag?.[1]?.toLowerCase() ?? '';
-  const compressPreset = isCompressPreset(compressRaw) ? compressRaw : undefined;
-
   const recognised = Boolean(courseId && sessionId);
 
   return {
@@ -215,7 +203,6 @@ export function parseLectureVideoName(fileName: string): ParsedLectureVideo {
     videoType,
     hasEmbyTags,
     hasVtypeTag,
-    compressPreset,
     recognised,
   };
 }
@@ -258,14 +245,12 @@ export interface BuildLectureVideoFileNameInput {
   courseId: string | number;
   sessionId: string | number;
   videoType: LectureVideoType;
-  /** When set, append `[ascomp=…]` after `[vtype=…]` (preserve on rename). */
-  compressPreset?: LectureCompressPresetTag;
   ext?: string; // default .mp4
 }
 
 /**
  * Final on-disk name after rename. Tags are appended AFTER sanitising the stem.
- * Order: stem [yhid=…] [vtype=…] [ascomp=…].ext
+ * Order: stem [yhid=…] [vtype=…].ext
  */
 export function buildLectureVideoFileName(input: BuildLectureVideoFileNameInput): string {
   const stem = sanitizeLectureVideoStem(input.stem);
@@ -274,30 +259,13 @@ export function buildLectureVideoFileName(input: BuildLectureVideoFileNameInput)
     sessionId: input.sessionId,
   });
   const typeTag = buildVtypeTag(input.videoType);
-  const ascompTag = input.compressPreset ? buildAscompTag(input.compressPreset) : '';
   const ext = input.ext
     ? input.ext.startsWith('.')
       ? input.ext.toLowerCase()
       : `.${input.ext.toLowerCase()}`
     : '.mp4';
-  const parts = [stem, idTag, typeTag, ascompTag].filter(Boolean);
+  const parts = [stem, idTag, typeTag].filter(Boolean);
   return `${parts.join(' ')}${ext}`;
-}
-
-/**
- * Set or replace `[ascomp={preset}]` on an existing basename (legacy or Emby).
- * Identity / vtype tags are left alone. Used after a successful compress replace.
- */
-export function withAscompTag(
-  fileName: string,
-  preset: LectureCompressPresetTag,
-): string {
-  const base = fileName.split(/[/\\]/).pop() || fileName;
-  const extMatch = base.match(/(\.[^.]+)$/);
-  const ext = extMatch ? extMatch[1] : '';
-  let stem = ext ? base.slice(0, -ext.length) : base;
-  stem = stem.replace(ASCOMP_TAG, '').replace(/\s{2,}/g, ' ').trim();
-  return `${stem} ${buildAscompTag(preset)}${ext}`;
 }
 
 /**

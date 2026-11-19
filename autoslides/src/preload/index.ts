@@ -1,7 +1,7 @@
 import { contextBridge } from 'electron';
 import type { ElectronAPI } from './electronApi';
 import { auth, yanhe2, config, windowNs, shell, menu, powerManagement, cache, app, log, dialog } from './platform';
-import { video, compressLecture, download } from './video';
+import { video, slideVideo, download } from './video';
 import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
 import { pdfmaker, yuketang, noteExport } from './export';
@@ -31,7 +31,7 @@ const electronAPI: ElectronAPI = {
   cli,
   deepLink,
   video,
-  compressLecture,
+  slideVideo,
   download,
   slideExtraction,
   dialog,

@@ -59,7 +59,7 @@ Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `c
 
 | Key | Settings location | Takes |
 |---|---|---|
-| `output_dir` | General > Output Directory | an absolute path to an existing folder (`~` works); never created. Refused with `output_folder_busy` while the app has unfinished downloads, extractions, tasks or post-processing |
+| `output_dir` | General > Output Directory | an absolute path to an existing folder (`~` works); never created. Refused with `output_folder_busy` while the app has unfinished downloads, extractions, tasks, post-processing or Lectures slide videos |
 | `connection_mode` | General > Connection Mode | `auto`, `internal` (campus intranet) or `external` (public network) |
 | `intranet_interface` | Network > Intranet Network Interface | an interface name (`en0`) or one of this computer's IPv4 addresses; `default` for the system default |
 | `anonymous_requests` | Network > Anonymous API requests | `true` / `false` |

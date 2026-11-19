@@ -4,6 +4,8 @@ import path from 'node:path';
 import { expandTilde, hasTraversalSegment, isPathInsideRoot } from '@main/infra/pathUtils';
 import { readOutputDir } from '@main/infra/outputDir';
 import { LECTURE_MEDIA_EXTENSIONS, LECTURE_SUBTITLE_EXTENSIONS } from '@common/lectureVideoNaming';
+import { SLIDE_IMAGE_PATTERN } from '@common/slideVideo';
+import { SLIDE_TIMELINE_FILENAME } from '@common/sidecars';
 import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
 
@@ -29,6 +31,14 @@ export interface LectureVideoFileInfo {
   mtimeMs: number;
 }
 
+export interface LectureSlideFolderInfo {
+  name: string;
+  path: string;
+  imageCount: number;
+  mtimeMs: number;
+  hasTimeline: boolean;
+}
+
 export function registerLecturesIpcHandlers(services: IpcServices): void {
   const { configService, localLecturePosterService } = services;
 
@@ -42,10 +52,12 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
         if (!entry.isFile()) continue;
         const ext = path.extname(entry.name).toLowerCase();
         // Subtitle sidecars are listed too; the renderer keeps them out of the
-        // Library and the compress queue.
+        // Library.
         if (!MEDIA_EXTENSIONS.has(ext) && !LECTURE_SUBTITLE_EXTENSIONS.has(ext)) continue;
-        // Skip in-progress compress temps
-        if (entry.name.includes('.compressing.tmp')) continue;
+        // Hidden files include a slide video still being written
+        // (`.<name>.<pid>-<n>.partial.mp4`); `.compressing.tmp` is the retired
+        // compress's temp, which an interrupted run may have left behind.
+        if (entry.name.startsWith('.') || entry.name.includes('.compressing.tmp')) continue;
 
         const filePath = path.join(outputDir, entry.name);
         try {
@@ -67,6 +79,36 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
       log.error('Failed to list lecture videos:', error);
       throw error;
     }
+  });
+
+  /** `slides_*` folders, listed with a session's files and needed to make its slide video. */
+  ipcMain.handle('lectures:listSlideFolders', async (): Promise<LectureSlideFolderInfo[]> => {
+    const outputDir = expandTilde(configService.getConfig().outputDirectory);
+    const entries = await readOutputDir(outputDir);
+    const folders = await Promise.all(
+      entries
+        .filter((entry) => entry.isDirectory() && entry.name.startsWith('slides_'))
+        .map(async (entry): Promise<LectureSlideFolderInfo | null> => {
+          const folderPath = path.join(outputDir, entry.name);
+          try {
+            const [stat, names, timeline] = await Promise.all([
+              fs.promises.stat(folderPath),
+              fs.promises.readdir(folderPath),
+              fs.promises.stat(path.join(folderPath, SLIDE_TIMELINE_FILENAME)).catch(() => null),
+            ]);
+            return {
+              name: entry.name,
+              path: folderPath,
+              imageCount: names.filter((name) => SLIDE_IMAGE_PATTERN.test(name)).length,
+              mtimeMs: stat.mtimeMs,
+              hasTimeline: Boolean(timeline?.isFile()),
+            };
+          } catch {
+            return null; // unreadable folder
+          }
+        }),
+    );
+    return folders.filter((folder): folder is LectureSlideFolderInfo => folder !== null);
   });
 
   ipcMain.handle(

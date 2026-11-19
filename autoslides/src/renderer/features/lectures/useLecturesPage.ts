@@ -3,14 +3,15 @@ import {
   formatLectureVideoDisplayName,
   isLectureSubtitleExt,
   parseLectureVideoName,
-  type LectureCompressPresetTag,
   type LectureVideoType,
 } from '@common/lectureVideoNaming'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
 import { createLatest } from '@shared/utils/latest'
 import { createLogger } from '@shared/utils/logger'
-import { LectureCompressQueue } from './lectureCompressQueue'
+import { SlideVideoQueue } from '@shared/services/slideVideoQueue'
+import { buildLectureListGroups } from './lectureListModel'
+import { slideVideoTargets } from './slideVideoModel'
 
 const log = createLogger('LecturesPage')
 
@@ -27,19 +28,49 @@ export interface LectureVideoItem {
   sessionId?: string
   liveId?: string
   videoType?: LectureVideoType
-  /** Present when the file was compressed via Lectures (`[ascomp=…]`). */
-  compressPreset?: LectureCompressPresetTag
   recognised: boolean
   hasEmbyTags: boolean
   /** A subtitle sidecar. Its `videoType` is that of the video it is named after. */
   isSubtitle?: boolean
+  /**
+   * A `slides_*` folder, listed with its session's files (List view only; the
+   * Library finds folders itself). `path` is the folder, `size` is 0.
+   */
+  slidesFolder?: { imageCount: number; hasTimeline: boolean }
 }
 
-export interface LectureCourseGroup {
-  courseKey: string
-  courseId?: string
-  courseName: string
-  items: LectureVideoItem[]
+type SlideFolderRow = { name: string; path: string; imageCount: number; mtimeMs: number; hasTimeline: boolean }
+
+async function listSlideFolders(): Promise<SlideFolderRow[]> {
+  try {
+    const provider = overrides.lecturesProvider
+    if (provider) return (await provider.listSlideFolders?.()) ?? []
+    return await window.electronAPI.lectures.listSlideFolders()
+  } catch (error) {
+    // The files still list; only the folders are missing.
+    log.warn('Failed to list slides folders', error)
+    return []
+  }
+}
+
+function slideFolderItem(row: SlideFolderRow): LectureVideoItem | null {
+  const parsed = parseLectureVideoName(row.name)
+  // Only folders that belong to a session: the rest are Slides workspace business.
+  if (!parsed.courseId || !parsed.sessionId) return null
+  return {
+    name: row.name,
+    path: row.path,
+    size: 0,
+    mtimeMs: row.mtimeMs,
+    ext: '',
+    displayName: formatLectureVideoDisplayName(row.name),
+    courseId: parsed.courseId,
+    sessionId: parsed.sessionId,
+    liveId: parsed.liveId,
+    recognised: true,
+    hasEmbyTags: false,
+    slidesFolder: { imageCount: row.imageCount, hasTimeline: row.hasTimeline },
+  }
 }
 
 function formatBytes(n: number): string {
@@ -54,32 +85,22 @@ function formatBytes(n: number): string {
   return `${v < 10 && i > 0 ? v.toFixed(1) : Math.round(v)}${units[i]}`
 }
 
-function courseLabelFromItem(item: LectureVideoItem): string {
-  // Prefer Emby stem course segment before " - S" / " - ", else display name.
-  const d = item.displayName
-  const se = d.match(/^(.+?)\s+-\s+S\d{2}/)
-  if (se) return se[1].trim()
-  // Legacy: course_session… with Chinese week pattern
-  const legacy = d.match(/^(.+?)_第\d+周/)
-  if (legacy) return legacy[1].replace(/_/g, ' ').trim()
-  const dash = d.split(' - ')[0]
-  return (dash || d || item.name).trim()
-}
-
 export function useLecturesPage() {
-  /** Media files only: this is what the Library, posters and compress read. */
+  /** Media files only: this is what the Library and posters read. */
   const videos = ref<LectureVideoItem[]>([])
   /** Subtitle sidecars, shown in List view and renamed with their lecture. */
   const subtitles = ref<LectureVideoItem[]>([])
-  /** Every listed file, for List view. */
-  const files = computed(() => [...videos.value, ...subtitles.value])
+  /** Session `slides_*` folders, shown in List view and read by Make Video. */
+  const slideFolders = ref<LectureVideoItem[]>([])
+  /** Everything List view shows: files and slides folders. */
+  const files = computed(() => [...videos.value, ...subtitles.value, ...slideFolders.value])
   const isLoading = ref(false)
   /** Last listVideos failure (raw, for PageErrorNotice), or null. */
   const loadError = ref<unknown>(null)
   const isSelectMode = ref(false)
   const selectedPaths = ref<string[]>([])
   const groupByCourse = ref(true)
-  const showCompressModal = ref(false)
+  const showMakeVideoModal = ref(false)
   const showRenameModal = ref(false)
 
   // Only the newest scan writes the list, the error and the spinner: scans
@@ -90,9 +111,12 @@ export function useLecturesPage() {
     const current = scans.begin()
     isLoading.value = true
     try {
-      const rows = await (overrides.lecturesProvider
-        ? overrides.lecturesProvider.listVideos()
-        : window.electronAPI.lectures.listVideos())
+      const [rows, folderRows] = await Promise.all([
+        overrides.lecturesProvider
+          ? overrides.lecturesProvider.listVideos()
+          : window.electronAPI.lectures.listVideos(),
+        listSlideFolders(),
+      ])
       if (!current()) return
       const items = rows.map((row): LectureVideoItem => {
         const parsed = parseLectureVideoName(row.name)
@@ -107,7 +131,6 @@ export function useLecturesPage() {
           sessionId: parsed.sessionId,
           liveId: parsed.liveId,
           videoType: parsed.videoType,
-          compressPreset: parsed.compressPreset,
           recognised: parsed.recognised,
           hasEmbyTags: parsed.hasEmbyTags,
           isSubtitle: isLectureSubtitleExt(parsed.ext),
@@ -115,6 +138,9 @@ export function useLecturesPage() {
       })
       videos.value = items.filter((item) => !item.isSubtitle)
       subtitles.value = items.filter((item) => item.isSubtitle)
+      slideFolders.value = folderRows
+        .map(slideFolderItem)
+        .filter((item): item is LectureVideoItem => item !== null)
       // Cleared only on success, so a retry keeps the banner (spinning) up.
       loadError.value = null
     } catch (error) {
@@ -123,6 +149,7 @@ export function useLecturesPage() {
       loadError.value = error
       videos.value = []
       subtitles.value = []
+      slideFolders.value = []
     } finally {
       if (current()) isLoading.value = false
     }
@@ -138,73 +165,18 @@ export function useLecturesPage() {
     },
   )
 
-  const groups = computed<LectureCourseGroup[]>(() => {
-    const recognised = files.value.filter((v) => v.recognised)
-    const unrecognised = files.value.filter((v) => !v.recognised)
-
-    if (!groupByCourse.value) {
-      const flat: LectureCourseGroup[] = []
-      if (recognised.length) {
-        flat.push({
-          courseKey: 'all-recognised',
-          courseName: '',
-          items: [...recognised].sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh')),
-        })
-      }
-      if (unrecognised.length) {
-        flat.push({
-          courseKey: 'unrecognised',
-          courseName: '',
-          items: unrecognised,
-        })
-      }
-      return flat
-    }
-
-    const map = new Map<string, LectureCourseGroup>()
-    for (const item of recognised) {
-      const courseId = item.courseId!
-      const key = `id:${courseId}`
-      let group = map.get(key)
-      if (!group) {
-        group = {
-          courseKey: key,
-          courseId,
-          courseName: courseLabelFromItem(item),
-          items: [],
-        }
-        map.set(key, group)
-      }
-      group.items.push(item)
-    }
-
-    const ordered = [...map.values()].sort((a, b) =>
-      a.courseName.localeCompare(b.courseName, 'zh'),
-    )
-    for (const g of ordered) {
-      g.items.sort((a, b) => a.displayName.localeCompare(b.displayName, 'zh'))
-    }
-
-    if (unrecognised.length) {
-      ordered.push({
-        courseKey: 'unrecognised',
-        courseName: '',
-        items: [...unrecognised].sort((a, b) => a.name.localeCompare(b.name, 'zh')),
-      })
-    }
-    return ordered
-  })
+  const groups = computed(() => buildLectureListGroups(files.value, groupByCourse.value))
 
   const selectedItems = computed(() =>
     files.value.filter((v) => selectedPaths.value.includes(v.path)),
   )
 
-  const selectedScreenRecognised = computed(() =>
-    selectedItems.value.filter((v) => v.recognised && v.videoType === 'screen' && !v.isSubtitle),
-  )
+  /** Sessions touched by the selection, and which of them can make a slide video. */
+  const selectedSlideVideos = computed(() => slideVideoTargets(files.value, selectedPaths.value))
 
+  /** Rename works on files; a slides folder keeps its name (Slides and the player find it by it). */
   const selectedRecognised = computed(() =>
-    selectedItems.value.filter((v) => v.recognised),
+    selectedItems.value.filter((v) => v.recognised && !v.slidesFolder),
   )
 
   const toggleSelectMode = () => {
@@ -254,13 +226,14 @@ export function useLecturesPage() {
     isSelectMode,
     selectedPaths,
     groupByCourse,
-    showCompressModal,
+    slideFolders,
+    showMakeVideoModal,
     showRenameModal,
     groups,
     selectedItems,
-    selectedScreenRecognised,
+    selectedSlideVideos,
     selectedRecognised,
-    queue: LectureCompressQueue,
+    queue: SlideVideoQueue,
     loadVideos,
     toggleSelectMode,
     toggleSelection,

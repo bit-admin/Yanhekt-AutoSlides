@@ -41,7 +41,7 @@ import { QtExtractorService } from '@main/extraction/qtExtractorService';
 import { extractorInstallerService } from '@main/download/extractorInstallerService';
 import { AutoCropModelService } from '@main/ai/autoCropModelService';
 import { MlClassifierModelService } from '@main/ai/mlClassifierModelService';
-import { CompressLectureService } from '@main/video/compressLectureService';
+import { SlideVideoService } from '@main/video/slideVideoService';
 import { WindowManager, getWindowBackgroundColor } from '@main/platform/windowManager';
 import { TrayService } from '@main/platform/trayService';
 import { pdfService } from '@main/export/pdfService';
@@ -427,7 +427,7 @@ const localRelayService = new LocalRelayService(apiClient, intranetMappingServic
 const ffmpegService = new FFmpegService();
 const thumbnailService = new ThumbnailService(videoProxyService, ffmpegService);
 const localLecturePosterService = new LocalLecturePosterService(configService, ffmpegService);
-const compressLectureService = new CompressLectureService(ffmpegService);
+const slideVideoService = new SlideVideoService(ffmpegService);
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 const audioDownloadService = new AudioDownloadService(configService, intranetMappingService);
 const yanhe2TwinResolver = new Yanhe2TwinResolver(yanhe2Service, apiClient, configService, courseLookup);
@@ -515,8 +515,6 @@ windowManager.setOnBusyChange((busy) => {
     if (trayService.isEnabled()) trayService.noteWorkFinished();
   }, 5000);
 });
-// Lecture Compress moved to the main-window Lectures page; do not cancel an
-// in-flight batch encode just because the Tools window closes.
 
 // Initialize power management based on config
 const initializePowerManagement = async () => {
@@ -603,7 +601,7 @@ if (!cliRun) registerAllIpcHandlers({
   extractorInstallerService,
   autoCropModelService,
   mlClassifierModelService,
-  compressLectureService,
+  slideVideoService,
   windowManager,
   pdfService,
   noteExportService,

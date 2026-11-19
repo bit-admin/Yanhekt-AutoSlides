@@ -73,6 +73,38 @@ function resolutionToCueFields(
 }
 
 /**
+ * Timeline second that is second 0 of the recording. The built-in extractor and
+ * Yanhe 2.0 write the player's clock (0 at the start). The Extractor writes the
+ * file's media times; from 2.1.0 it also records the file's start time
+ * (`source.startTime`), which is that origin. An older Extractor wrote none,
+ * and its downloads start at 0.
+ */
+export function timelineOrigin(timeline: Pick<SlideTimeline, 'extractor' | 'source'>): number {
+  const start = timeline.source?.startTime;
+  return timeline.extractor === 'qt' && typeof start === 'number' && Number.isFinite(start) && start > 0 ? start : 0;
+}
+
+/**
+ * The timeline with its event times on the player's clock (`timelineOrigin`
+ * subtracted), for anything that shows or seeks to them. Returns the same
+ * object when there is nothing to subtract. Never write the result back: the
+ * file keeps the times its extractor wrote.
+ */
+export function timelineOnPlayerClock<T extends SlideTimeline | null | undefined>(timeline: T): T {
+  if (!timeline) return timeline;
+  const origin = timelineOrigin(timeline);
+  if (!origin) return timeline;
+  return {
+    ...timeline,
+    events: timeline.events.map((event) => ({
+      ...event,
+      changeAt: Math.max(0, event.changeAt - origin),
+      confirmedAt: Math.max(0, event.confirmedAt - origin),
+    })),
+  };
+}
+
+/**
  * Derive subtitle-like cues from the event log + resolution map.
  * Explicit gaps stay gaps (never extend the previous slide).
  * Missing timeline / empty events → [].

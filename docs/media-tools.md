@@ -1,6 +1,6 @@
 # Bundled Media Tools
 
-AutoSlides prepares pinned FFmpeg and FFprobe executables **at development/build time**, then ships them as application resources. They are separate command-line programs invoked by the Electron main process, not libraries linked into Electron. End users do not install FFmpeg, and the app does not download it at runtime.
+AutoSlides prepares a pinned FFmpeg executable **at development/build time**, then ships it as an application resource. It is a separate command-line program invoked by the Electron main process, not a library linked into Electron. FFprobe is not shipped (dropped 2026-11-19, about 66 MB per install): where the app needs a file's length or streams it reads the header that `ffmpeg -i` prints. End users do not install FFmpeg, and the app does not download it at runtime.
 
 ## Supported targets and providers
 
@@ -8,7 +8,7 @@ Only these release targets are supported:
 
 | Electron target | Provider | Selected build family |
 | --- | --- | --- |
-| `darwin-arm64` | [Martin Riedl](https://ffmpeg.martin-riedl.de/) | FFmpeg/FFprobe `9.0.2`, build `1789931890_9.0.2` |
+| `darwin-arm64` | [Martin Riedl](https://ffmpeg.martin-riedl.de/) | FFmpeg `9.0.2`, build `1789931890_9.0.2` |
 | `win32-x64` | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) | `autobuild-2026-09-30-13-08`, `n9.0.2-17-g2a571b6068`, `win64-gpl-9.0` static variant |
 | `linux-x64` | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) | Same retained monthly tag/version, `linux64-gpl-9.0` static variant |
 
@@ -25,7 +25,7 @@ npm run media:prepare
 npm run media:verify -- --directory <path>
 ```
 
-These commands wrap `autoslides/scripts/media-tools.mjs` (`prepare` and `verify`). `media:prepare` acquires the pinned archives for the selected target, validates their SHA-256 checksums, and stages the required executables and notices. It defaults to the host target; `--platform` and `--arch` select another supported target explicitly. For example, to prepare Windows x64 inputs:
+These commands wrap `autoslides/scripts/media-tools.mjs` (`prepare` and `verify`). `media:prepare` acquires the pinned archives for the selected target, validates their SHA-256 checksums, and stages the executable and notices. It defaults to the host target; `--platform` and `--arch` select another supported target explicitly. For example, to prepare Windows x64 inputs:
 
 ```sh
 npm run media:prepare -- --platform win32 --arch x64
@@ -36,12 +36,11 @@ Verification accepts the same target flags together with `--directory`. The defa
 ```text
 vendor/media-tools/<platform>-<arch>/media-tools/
   ffmpeg           # ffmpeg.exe on Windows
-  ffprobe          # ffprobe.exe on Windows
 ```
 
-These prepared files are build inputs, not tracked replacement npm packages. Both executables must come from the selected provider build. Packaging copies the prepared `media-tools` directory outside `app.asar`, into the application's resources directory. Verify the final copied resources as well as the development input; archive integrity alone does not establish that the right files reached the installer.
+These prepared files are build inputs, not tracked replacement npm packages. The executable must come from the selected provider build. Packaging copies the prepared `media-tools` directory outside `app.asar`, into the application's resources directory. Verify the final copied resources as well as the development input; archive integrity alone does not establish that the right files reached the installer.
 
-`media:verify -- --directory <path>` checks an already-prepared directory containing the executables. Use the target's native OS/architecture runner to execute its tools; merely extracting a Windows or Linux archive on macOS does not verify that it runs. A packaged directory is typically `<app resources>/media-tools` (`AutoSlides.app/Contents/Resources/media-tools` on macOS).
+`media:verify -- --directory <path>` checks an already-prepared directory containing the executable. Use the target's native OS/architecture runner to execute its tools; merely extracting a Windows or Linux archive on macOS does not verify that it runs. A packaged directory is typically `<app resources>/media-tools` (`AutoSlides.app/Contents/Resources/media-tools` on macOS).
 
 Runtime resolves **only** these locations:
 
@@ -63,7 +62,7 @@ The verifier's capability assertions are the executable contract. When adding a 
 
 ## Updating a pin
 
-1. Select exact provider builds for **all three current targets**. Keep FFmpeg and FFprobe aligned. For BtbN, record the dated release tag, full asset names and the FFmpeg source revision embedded in the version; `release/9.0` alone moves over time.
+1. Select exact provider builds for **all three current targets**. For BtbN, record the dated release tag, full asset names and the FFmpeg source revision embedded in the version; `release/9.0` alone moves over time.
 2. Obtain provider checksums through a trusted channel and independently compute SHA-256 for every downloaded archive. Update the manifest's URLs, member names, version expectations and digests together. Do not disable verification to accept a changed asset. A checksum establishes byte identity, not provider authenticity or license compliance.
 3. Preserve the archives and provenance needed for later releases. BtbN's README describes retention of the last 14 daily builds and monthly builds for two years; a dated URL is not a permanent availability guarantee. Plan durable retention rather than switching to `latest` when an old pin disappears.
 4. Prepare fresh target directories and run the verifier on each native target, including the packaged resources. Run the relevant automated tests and normal desktop packaging checks. Changes to a capability requirement must be reviewed alongside its consuming feature.
@@ -90,11 +89,11 @@ Before shipping, the distributor must choose and fulfill a source-conveyance met
 
 ### Notices and application terms
 
-Ship accessible third-party notices and license texts with the app, identifying FFmpeg/FFprobe, the FFmpeg developers, the applicable GPLv3-or-later terms, the exact provider build and the **actual** matching-source location or fulfilled source-offer arrangement. Preserve the provider's packaged license rather than extracting only `bin/`. Maintain dependency notices too. An About/download-page link helps users find this information but is not a replacement for the required materials.
+Ship accessible third-party notices and license texts with the app, identifying FFmpeg, the FFmpeg developers, the applicable GPLv3-or-later terms, the exact provider build and the **actual** matching-source location or fulfilled source-offer arrangement. Preserve the provider's packaged license rather than extracting only `bin/`. Maintain dependency notices too. An About/download-page link helps users find this information but is not a replacement for the required materials.
 
 Recommended notice wording, once the source location has been populated and checked:
 
-> AutoSlides bundles FFmpeg and FFprobe, Copyright © the FFmpeg developers, under GNU GPL version 3 or later. These are separately executed command-line tools. The included license texts, build identification and corresponding-source information are provided with the media-tools notices. Third-party components retain their respective copyrights and licenses.
+> AutoSlides bundles FFmpeg, Copyright © the FFmpeg developers, under GNU GPL version 3 or later. It is a separately executed command-line tool. The included license texts, build identification and corresponding-source information are provided with the media-tools notices. Third-party components retain their respective copyrights and licenses.
 
 Do not claim the corresponding sources are included or available until that statement is true. Review the final attribution against the actual executable's copyright and license output.
 
@@ -105,7 +104,7 @@ Do not claim the corresponding sources are included or available until that stat
 Provider metadata and scripts examined on 2026-10-30; mutable pages are evidence to archive for a release, not additional download pins.
 
 - [Martin's build download page](https://ffmpeg.martin-riedl.de/) and [pinned version/configuration/dependency report](https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/versions.txt).
-- Martin's [pinned FFmpeg ZIP](https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip), [checksum](https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip.sha256), [FFprobe ZIP](https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffprobe.zip) and [checksum](https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffprobe.zip.sha256).
+- Martin's [pinned FFmpeg ZIP](https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip) and [checksum](https://ffmpeg.martin-riedl.de/download/macos/arm64/1789931890_9.0.2/ffmpeg.zip.sha256).
 - Martin's [build-script repository](https://git.martin-riedl.de/ffmpeg/build-script), [FFmpeg source-fetch recipe](https://git.martin-riedl.de/ffmpeg/build-script/src/branch/main/script/build-ffmpeg.sh) and [script-repository license](https://git.martin-riedl.de/ffmpeg/build-script/src/branch/main/LICENSE).
 - [BtbN README: variants, build prerequisites and retention](https://github.com/BtbN/FFmpeg-Builds#readme).
 - [Selected BtbN monthly release](https://github.com/BtbN/FFmpeg-Builds/releases/tag/autobuild-2026-09-30-13-08), its [checksums](https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-09-30-13-08/checksums.sha256) and [tagged build recipes](https://github.com/BtbN/FFmpeg-Builds/tree/autobuild-2026-09-30-13-08). The download manifest selects its exact static GPL assets.

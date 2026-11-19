@@ -221,7 +221,7 @@ describe('output_dir while the app is busy', () => {
         ...context(),
         settings: {
           setOutputDirectory: async () => {
-            throw new OutputFolderBusyError({ downloads: 2, extractions: 0, tasks: 1, postProcessing: 0 });
+            throw new OutputFolderBusyError({ downloads: 2, extractions: 0, tasks: 1, postProcessing: 0, slideVideos: 0 });
           },
         },
       } as unknown as AppCommandContext;

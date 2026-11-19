@@ -140,6 +140,14 @@ export function installDemo(): void {
   const lectureVideos = demoLectureVideos()
   overrides.lecturesProvider = {
     listVideos: async () => lectureVideos.map((row) => ({ ...row })),
+    listSlideFolders: async () => {
+      const folders = (await overrides.resultsProvider?.getFolders()) ?? []
+      return Promise.all(folders.map(async (folder) => ({
+        ...folder,
+        mtimeMs: Date.now(),
+        hasTimeline: (await demoTimeline(folder.path)) != null,
+      })))
+    },
     getPoster: async (filePath: string) => {
       const kind = /\[vtype=camera\]/i.test(filePath) ? 'camera' : 'screen'
       return demoPosterDataUri(kind)

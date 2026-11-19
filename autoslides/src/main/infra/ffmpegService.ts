@@ -5,7 +5,9 @@ import { app } from 'electron';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('Ffmpeg');
-type MediaTool = 'ffmpeg' | 'ffprobe';
+// The bundle is ffmpeg alone: ffprobe was dropped (2026-11-19); `ffmpeg -i`
+// prints the container header where a probe is needed.
+type MediaTool = 'ffmpeg';
 
 export class FFmpegService {
   private paths: Partial<Record<MediaTool, string>> = {};
@@ -13,7 +15,7 @@ export class FFmpegService {
   /**
    * Probe only the prepared bundle, lazily. A success is cached; a failure is
    * not, so the next call tries again (a first run can be slow while antivirus
-   * scans the ~165 MB executable). Packaging/preparation owns permissions;
+   * scans the large executable). Packaging/preparation owns permissions;
    * runtime never repairs or substitutes an executable from the system, PATH,
    * or an npm installer package.
    */
@@ -57,14 +59,9 @@ export class FFmpegService {
     return this.resolveTool('ffmpeg');
   }
 
-  getFfprobePath(): string | null {
-    return this.resolveTool('ffprobe');
-  }
-
-  /** Warm up the blocking -version probes before the first compression click. */
+  /** Warm up the blocking -version probe before the first media job. */
   warmUp(): void {
     this.getFfmpegPath();
-    this.getFfprobePath();
   }
 
   isAvailable(): boolean {

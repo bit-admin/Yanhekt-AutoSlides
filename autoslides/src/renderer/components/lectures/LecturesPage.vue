@@ -80,14 +80,15 @@
           <button
             v-if="viewMode === 'list'"
             class="action-btn action-btn--primary"
-            :disabled="!canCompress"
-            :title="compressDisabledReason"
-            @click="openCompress"
+            :disabled="!canMakeVideo"
+            :title="makeVideoDisabledReason"
+            @click="openMakeVideo"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1zm3 2H4v8h8V6h-2V4H6zm1 0v1h2V4H7zm-2 5h6v1H5V9z" fill="currentColor"/>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="5" width="14" height="14" rx="2"/>
+              <path d="m22 8-6 4 6 4V8z"/>
             </svg>
-            {{ $t('lectures.compress') }}
+            {{ $t('lectures.makeVideo') }}
           </button>
           <button
             v-if="viewMode === 'list'"
@@ -115,13 +116,10 @@
         <LectureListView
           v-else-if="viewMode === 'list'"
           :groups="groups"
-          :group-by-course="groupByCourse"
           :is-select-mode="isSelectMode"
           :selected-paths="selectedPaths"
           :is-loading="isLoading"
           :format-bytes="formatBytes"
-          :active-path="activeJob?.inputPath"
-          :active-progress="activeJob?.progress"
           @toggle-selection="toggleSelection"
           @select-group="selectGroup"
           @open="openExternally"
@@ -145,8 +143,8 @@
       <div v-if="queue.hasWork.value" class="queue-status">
         <div class="queue-status-main">
           <template v-if="activeJob">
-            <span class="queue-label">{{ $t('lectures.compressing') }}</span>
-            <span class="queue-name" :title="activeJob.displayName">{{ activeJob.displayName }}</span>
+            <span class="queue-label">{{ $t('lectures.makingVideo') }}</span>
+            <span class="queue-name" :title="activeJob.target.displayName">{{ activeJob.target.displayName }}</span>
             <span class="queue-pct">{{ activeJob.progress }}%</span>
           </template>
           <template v-else>
@@ -163,14 +161,24 @@
             class="btn"
             @click="() => queue.cancelCurrent()"
           >
-            {{ $t('lectures.cancelCompress') }}
+            {{ $t('lectures.cancelMakeVideo') }}
           </button>
+        </div>
+      </div>
+      <div v-else-if="queue.failed.value.length" class="queue-status">
+        <div class="queue-status-main">
+          <span class="queue-label queue-label--error">
+            {{ $t('lectures.makeVideoFailed', { count: queue.failed.value.length }) }}
+          </span>
+          <span class="queue-name" :title="queue.failed.value[0].error">
+            {{ queue.failed.value[0].target.displayName }}: {{ queue.failed.value[0].error }}
+          </span>
         </div>
       </div>
       <div
         v-if="activeJob"
         class="progress-bar-container"
-        :title="`${activeJob.displayName} — ${activeJob.progress}%`"
+        :title="`${activeJob.target.displayName} — ${activeJob.progress}%`"
       >
         <div class="progress-bar" :style="{ width: `${activeJob.progress}%` }"></div>
       </div>
@@ -186,18 +194,19 @@
         </label>
       </div>
 
-      <LectureCompressModal
-        v-if="showCompressModal"
-        :file-count="selectedScreenRecognised.length"
-        @close="showCompressModal = false"
-        @start="onCompressStart"
+      <LectureMakeVideoModal
+        v-if="showMakeVideoModal"
+        :session-count="selectedSlideVideos.targets.length"
+        :skipped="selectedSlideVideos.missingSlides + selectedSlideVideos.missingAudio"
+        @close="showMakeVideoModal = false"
+        @start="onMakeVideoStart"
       />
 
       <LectureRenameModal
         v-if="showRenameModal"
         :items="selectedRecognised"
         :subtitles="subtitles"
-        :existing-names="files.map((v) => v.name)"
+        :existing-names="[...videos, ...subtitles].map((v) => v.name)"
         @close="showRenameModal = false"
         @done="onRenameDone"
       />
@@ -214,14 +223,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { LectureCompressDefaults } from '@common/types'
+import type { SlideVideoOptions } from '@common/slideVideo'
 import { useLecturesPage } from '@features/lectures/useLecturesPage'
 import { useLectureLibrary } from '@features/lectures/useLectureLibrary'
 import type { LibrarySession } from '@features/lectures/libraryModel'
 import LectureListView from './LectureListView.vue'
 import LectureLibraryView from './LectureLibraryView.vue'
 import LecturePlayerView from './LecturePlayerView.vue'
-import LectureCompressModal from './LectureCompressModal.vue'
+import LectureMakeVideoModal from './LectureMakeVideoModal.vue'
 import LectureRenameModal from './LectureRenameModal.vue'
 import LectureCloneShareModal from './LectureCloneShareModal.vue'
 import PageErrorNotice from '../shell/PageErrorNotice.vue'
@@ -243,10 +252,10 @@ const {
   isSelectMode,
   selectedPaths,
   groupByCourse,
-  showCompressModal,
+  showMakeVideoModal,
   showRenameModal,
   groups,
-  selectedScreenRecognised,
+  selectedSlideVideos,
   selectedRecognised,
   queue,
   loadVideos,
@@ -301,18 +310,18 @@ watch(
   },
 )
 
-const canCompress = computed(
-  () => viewMode.value === 'list' && isSelectMode.value && selectedScreenRecognised.value.length > 0,
+const canMakeVideo = computed(
+  () => viewMode.value === 'list' && isSelectMode.value && selectedSlideVideos.value.targets.length > 0,
 )
 
 const canRename = computed(
   () => viewMode.value === 'list' && isSelectMode.value && selectedRecognised.value.length > 0,
 )
 
-const compressDisabledReason = computed(() => {
-  if (!isSelectMode.value) return t('lectures.selectFirst')
-  if (selectedScreenRecognised.value.length === 0) return t('lectures.compressScreenOnly')
-  return ''
+const makeVideoDisabledReason = computed(() => {
+  if (!isSelectMode.value) return t('lectures.makeVideoSelectFirst')
+  if (selectedSlideVideos.value.targets.length === 0) return t('lectures.makeVideoNeeds')
+  return t('lectures.makeVideoHelp')
 })
 
 const setViewMode = (mode: LecturesViewMode) => {
@@ -334,9 +343,9 @@ const onRefresh = async () => {
   if (viewMode.value === 'library') void hydrate()
 }
 
-const openCompress = () => {
-  if (!canCompress.value) return
-  showCompressModal.value = true
+const openMakeVideo = () => {
+  if (!canMakeVideo.value) return
+  showMakeVideoModal.value = true
 }
 
 const openRename = () => {
@@ -344,30 +353,12 @@ const openRename = () => {
   showRenameModal.value = true
 }
 
-const onCompressStart = (options: LectureCompressDefaults) => {
-  const { added, skipped } = queue.enqueue(
-    selectedScreenRecognised.value.map((v) => ({
-      path: v.path,
-      displayName: v.displayName,
-      fileName: v.name,
-      compressPreset: v.compressPreset,
-    })),
-    options,
-  )
-  showCompressModal.value = false
+const onMakeVideoStart = (options: SlideVideoOptions) => {
+  const targets = selectedSlideVideos.value.targets
+  const added = queue.enqueue(targets, options)
+  showMakeVideoModal.value = false
   if (added === 0) {
-    void window.electronAPI.dialog?.showMessageBox?.({
-      type: 'info',
-      message:
-        skipped > 0
-          ? t('lectures.alreadyCompressedOrQueued', { count: skipped })
-          : t('lectures.alreadyQueued'),
-    })
-  } else if (skipped > 0) {
-    void window.electronAPI.dialog?.showMessageBox?.({
-      type: 'info',
-      message: t('lectures.compressSkippedSome', { added, skipped }),
-    })
+    void window.electronAPI.dialog?.showMessageBox?.({ type: 'info', message: t('lectures.makeVideoAlreadyQueued') })
   }
 }
 
@@ -616,6 +607,10 @@ onMounted(async () => {
 .queue-label {
   color: var(--text-secondary);
   font-weight: 550;
+}
+
+.queue-label--error {
+  color: var(--danger);
 }
 
 .queue-name {

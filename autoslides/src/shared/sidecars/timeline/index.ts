@@ -7,6 +7,7 @@ export {
   type SlideCaptureEvent,
   type SlideResolution,
   type SlideTimeline,
+  type SlideTimelineSource,
   type SlideCue,
   type RecordCaptureConfirmedPayload,
   type RecordGapBoundaryPayload,
@@ -27,5 +28,11 @@ export {
   gapReasonFromTrashReason,
 } from './reducers';
 
-export { deriveCues, coalesceConsecutiveSlideCues, appearancesForFile } from './cues';
+export {
+  deriveCues,
+  coalesceConsecutiveSlideCues,
+  appearancesForFile,
+  timelineOrigin,
+  timelineOnPlayerClock,
+} from './cues';
 export type { SlideAppearanceSpan } from './cues';

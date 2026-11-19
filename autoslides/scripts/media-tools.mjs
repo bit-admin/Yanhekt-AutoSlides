@@ -14,6 +14,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = path.join(root, 'scripts/media-tools/manifest.json');
 const noticesPath = path.join(root, 'resources/media-tools');
 const FORMAT = 'autoslides-media-tools/v1';
+// ffprobe was dropped 2026-11-19: the app reads lengths from `ffmpeg -i`.
+export const TOOLS = ['ffmpeg'];
 export const requirements = {
   encoders: ['libsvtav1', 'libx265', 'libopus', 'aac', 'mjpeg', 'pcm_s16le'],
   filters: ['crop', 'cropdetect', 'fps', 'scale', 'hqdn3d', 'unsharp', 'highpass', 'afftdn', 'speechnorm', 'loudnorm'],
@@ -94,7 +96,7 @@ export function verifyBundle(directory, platform, arch, target) {
   const native = platform === process.platform && arch === process.arch;
   const suffix = platform === 'win32' ? '.exe' : '';
   const versions = {};
-  for (const tool of ['ffmpeg', 'ffprobe']) {
+  for (const tool of TOOLS) {
     const file = path.join(directory, `${tool}${suffix}`);
     if (!fs.lstatSync(file).isFile()) throw new Error(`Not a regular executable: ${file}`);
     assertArchitecture(readHeader(file), platform, arch);
@@ -113,7 +115,7 @@ export function verifyBundle(directory, platform, arch, target) {
     ]));
     assertCapabilities(outputs);
     if (platform === 'darwin') {
-      for (const tool of ['ffmpeg', 'ffprobe']) {
+      for (const tool of TOOLS) {
         const libraries = execFileSync('otool', ['-L', path.join(directory, tool)], { encoding: 'utf8' });
         const dependencies = libraries.split('\n').slice(1).map(line => line.trim().split(' ')[0]).filter(Boolean);
         if (dependencies.some(file => !file.startsWith('/usr/lib/') && !file.startsWith('/System/Library/'))) {
@@ -242,7 +244,7 @@ export async function prepare(platform, arch) {
       await extractFiles(archive, artifact, staged);
     }
     if (platform !== 'win32') {
-      for (const tool of ['ffmpeg', 'ffprobe']) fs.chmodSync(path.join(staged, tool), 0o755);
+      for (const tool of TOOLS) fs.chmodSync(path.join(staged, tool), 0o755);
     }
     const { native, versions } = verifyBundle(staged, platform, arch, target);
     const info = {
@@ -261,7 +263,7 @@ export async function prepare(platform, arch) {
       if (fs.existsSync(previous)) fs.renameSync(previous, destination);
       throw error;
     }
-    process.stdout.write(`Prepared ${target.key}: FFmpeg/FFprobe ${target.version}${native ? ', capabilities verified' : ', cross-target architecture verified (native capabilities checked on target runner)'}\n`);
+    process.stdout.write(`Prepared ${target.key}: FFmpeg ${target.version}${native ? ', capabilities verified' : ', cross-target architecture verified (native capabilities checked on target runner)'}\n`);
     return destination;
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });

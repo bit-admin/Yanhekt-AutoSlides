@@ -5,11 +5,13 @@ const state = vi.hoisted(() => ({
   pipelines: [] as Array<{ isActive: boolean }>,
   tasks: [] as Array<{ status: string }>,
   jobs: [] as Array<{ status: string }>,
+  slideVideos: 0,
 }))
 
 vi.mock('@shared/services/downloadService', () => ({ DownloadService: { get downloadItems() { return state.downloads } } }))
 vi.mock('@shared/services/taskQueueService', () => ({ TaskQueue: { get tasks() { return state.tasks } } }))
 vi.mock('@shared/services/postProcessingService', () => ({ PostProcessingService: { get jobs() { return state.jobs } } }))
+vi.mock('@shared/services/slideVideoQueue', () => ({ SlideVideoQueue: { pendingCount: { get value() { return state.slideVideos } } } }))
 vi.mock('@shared/processing/manager', () => ({ slideExtractionManager: { getAll: () => state.pipelines } }))
 
 import { countOutputFolderWork, downloadRowIsUnfinished } from './outputFolderWork'
@@ -28,7 +30,8 @@ describe('countOutputFolderWork', () => {
     state.pipelines = [{ isActive: true }, { isActive: false }]
     state.tasks = [{ status: 'queued' }, { status: 'in_progress' }, { status: 'completed' }, { status: 'error' }]
     state.jobs = [{ status: 'processing' }, { status: 'failed' }]
-    expect(countOutputFolderWork()).toEqual({ downloads: 3, extractions: 1, tasks: 2, postProcessing: 1 })
+    state.slideVideos = 2
+    expect(countOutputFolderWork()).toEqual({ downloads: 3, extractions: 1, tasks: 2, postProcessing: 1, slideVideos: 2 })
   })
 
   it('treats a finished row as done', () => {

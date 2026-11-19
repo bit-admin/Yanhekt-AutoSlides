@@ -61,6 +61,21 @@ export interface SlideTimeline {
   events: SlideCaptureEvent[];
   /** Mutable map eventId → current display resolution. */
   resolutions: Record<string, SlideResolution>;
+  /**
+   * The video the slides came from, written by the Extractor from 2.1.0
+   * (`path` absolute at extraction time; event times are that file's media
+   * times and `startTime` is its origin). Read when present, never required:
+   * older Extractors and the built-in extractor do not write it.
+   */
+  source?: SlideTimelineSource;
+}
+
+export interface SlideTimelineSource {
+  path?: string;
+  /** Seconds; absent when unknown. */
+  duration?: number;
+  /** Seconds. */
+  startTime?: number;
 }
 
 export interface SlideCue {

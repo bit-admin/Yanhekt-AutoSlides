@@ -4,7 +4,7 @@
 
 import { computed, reactive, ref, unref, watch, type MaybeRefOrGetter, type Ref } from 'vue'
 import { parseLectureIds } from '@common/lectureNaming'
-import { coalesceConsecutiveSlideCues, deriveCues } from '@common/sidecars'
+import { coalesceConsecutiveSlideCues, deriveCues, timelineOnPlayerClock } from '@common/sidecars'
 import { overrides } from '@shared/overrideRegistry'
 import { getTimeline } from '@shared/services/slideTimelineClient'
 import { createLatest } from '@shared/utils/latest'
@@ -165,7 +165,9 @@ export function useLectureSlideChapters(
           : undefined
       // Coalesce on the full cue list first so explicit gaps still break a run;
       // then keep slide cards only for the strip.
-      const cues = coalesceConsecutiveSlideCues(deriveCues(timeline, durationArg)).filter(
+      // On the player's clock: an Extractor 2.1.0 timeline holds the file's
+      // media times, offset by its start time (same rule as the slide video).
+      const cues = coalesceConsecutiveSlideCues(deriveCues(timelineOnPlayerClock(timeline), durationArg)).filter(
         (cue): cue is typeof cue & { type: 'slide'; file: string } =>
           cue.type === 'slide' && typeof cue.file === 'string' && cue.file.length > 0
       )

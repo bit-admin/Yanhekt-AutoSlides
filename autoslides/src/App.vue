@@ -81,6 +81,7 @@ import { DownloadService } from '@shared/services/downloadService'
 import { installCliControlHandler } from '@features/download/cliControlHandler'
 import { installDeepLinkHandler } from '@features/course/deepLinkHandler'
 import { PostProcessingService } from '@shared/services/postProcessingService'
+import { SlideVideoQueue } from '@shared/services/slideVideoQueue'
 
 // Whether any long-running work is active. Drives the main-process warning shown
 // when the user tries to close the window or quit while work is in flight.
@@ -95,7 +96,9 @@ const isBusy = computed(() => {
     (item.extractionStatus !== undefined && ACTIVE_EXTRACTION.has(item.extractionStatus))
   )
   const postProcessingBusy = PostProcessingService.isProcessing || PostProcessingService.activeJobCount > 0
-  return tasksBusy || downloadsBusy || postProcessingBusy
+  // Quitting kills FFmpeg mid-video; the queued ones would be lost too.
+  const slideVideosBusy = SlideVideoQueue.hasWork.value
+  return tasksBusy || downloadsBusy || postProcessingBusy || slideVideosBusy
 })
 
 watch(isBusy, (busy) => {

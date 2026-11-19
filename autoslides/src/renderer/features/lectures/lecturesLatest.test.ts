@@ -31,7 +31,7 @@ vi.mock('@shared/services/configStore', async () => {
 })
 vi.mock('@shared/overrideRegistry', () => ({ overrides: {} }))
 vi.mock('@shared/utils/logger', () => ({ createLogger: () => ({ debug() {}, info() {}, warn() {}, error() {} }) }))
-vi.mock('./lectureCompressQueue', () => ({ LectureCompressQueue: {} }))
+vi.mock('@shared/services/slideVideoQueue', () => ({ SlideVideoQueue: {} }))
 vi.mock('@shared/services/slideTimelineClient', () => ({
   getTimeline: (folder: string) => {
     const answer = timelines.get(folder) ?? deferred<unknown>()
@@ -100,6 +100,27 @@ beforeEach(() => {
 })
 
 describe('the Lectures file scan', () => {
+  it('selects a session without selecting other sessions', async () => {
+    const page = scoped(() => useLecturesPage())
+    const screen = file('screen_test__c101s201.mp4')
+    const subtitle = file('screen_test__c101s201.srt')
+    const later = file('screen_test__c101s202.mp4')
+    const scan = page.loadVideos()
+    scans[0].resolve([later, subtitle, screen])
+    await scan
+
+    const [course] = page.groups.value
+    const session = course.sections.find((section) => section.session?.id === '201')!
+    page.toggleSelectMode()
+    page.selectGroup(session.paths)
+    expect(page.selectedPaths.value).toEqual([screen.path, subtitle.path])
+
+    page.selectGroup(course.paths)
+    expect(page.selectedPaths.value).toEqual([screen.path, subtitle.path, later.path])
+    page.selectGroup(session.paths)
+    expect(page.selectedPaths.value).toEqual([later.path])
+  })
+
   it('keeps the newest scan when the older one answers last', async () => {
     const page = scoped(() => useLecturesPage())
     const first = page.loadVideos()
@@ -195,6 +216,21 @@ describe('slide chapters in the local player', () => {
     expect(chapters.folderPath.value).toBe(b.path)
     expect(chapters.chapters.value.map((c) => c.file)).toEqual(['b.png'])
     expect(chapters.loading.value).toBe(false)
+  })
+
+  it('puts an Extractor 2.1.0 timeline on the player clock', async () => {
+    const chapters = useLectureSlideChapters(ref('850101'), ref('70101'), ref(0), ref(100))
+    const a = folder('850101', '70101')
+    folderCalls[0].resolve([a])
+    await settle()
+    timelines.get(a.path)!.resolve({
+      ...timeline('a.png'),
+      extractor: 'qt',
+      source: { path: '/x/screen.mp4', startTime: 1.5 },
+      events: [{ id: 'evt_1', changeAt: 11.5, confirmedAt: 12.5, initialFile: 'a.png' }],
+    })
+    await settle()
+    expect(chapters.chapters.value.map((c) => c.startTime)).toEqual([10])
   })
 
   it('clears at once on a change and ignores a late failure', async () => {

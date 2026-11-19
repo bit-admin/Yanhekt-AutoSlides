@@ -10,6 +10,8 @@ import {
   recordGapBoundary,
   relinkDuplicate,
   restoreCanonical,
+  timelineOnPlayerClock,
+  timelineOrigin,
   unlinkToGap,
 } from './index';
 
@@ -476,5 +478,32 @@ describe('slide timeline reducers + deriveCues', () => {
       endTime: Number.POSITIVE_INFINITY,
       source: 'resolved',
     });
+  });
+});
+
+describe('timelineOnPlayerClock', () => {
+  const base = {
+    version: 1,
+    createdAt: '',
+    updatedAt: '',
+    events: [{ id: 'e', changeAt: 11.4, confirmedAt: 12.4, initialFile: 'Slide_1.png' }],
+    resolutions: { e: { state: 'canonical' as const, file: 'Slide_1.png' } },
+  };
+
+  it('moves Extractor 2.1.0 media times to the player clock', () => {
+    const qt = { ...base, extractor: 'qt' as const, source: { path: '/v.mp4', startTime: 1.4 } };
+    expect(timelineOrigin(qt)).toBe(1.4);
+    const shifted = timelineOnPlayerClock(qt);
+    expect(shifted.events[0].changeAt).toBeCloseTo(10);
+    expect(shifted.events[0].confirmedAt).toBeCloseTo(11);
+    expect(qt.events[0].changeAt).toBe(11.4); // the input is left alone
+  });
+
+  it('leaves player-clock and pre-2.1.0 timelines as they are', () => {
+    const builtin = { ...base, extractor: 'builtin' as const, source: { startTime: 3 } };
+    const oldQt = { ...base, extractor: 'qt' as const };
+    expect(timelineOnPlayerClock(builtin)).toBe(builtin);
+    expect(timelineOnPlayerClock(oldQt)).toBe(oldQt);
+    expect(timelineOnPlayerClock(null)).toBeNull();
   });
 });

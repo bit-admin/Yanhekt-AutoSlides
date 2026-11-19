@@ -15,6 +15,7 @@ import type { PinRequest } from '@common/pins';
 import type { DevApiRequest, DevApiResponse } from '@common/devApi';
 import type { DevSsoControl, DevSsoSnapshot, DevSsoStartRequest } from '@common/devSso';
 import type { EnrolledRefreshResult } from '@common/types';
+import type { SlideVideoOptions } from '@common/slideVideo';
 import type {
   AppConfig,
   Yanhe2CaptionMode,
@@ -315,28 +316,26 @@ export interface DownloadProgress {
   phase: number;
 }
 
-export interface CompressLectureOptions {
-  inputPath: string;
-  outputPath?: string;
-  replaceSource?: boolean;
-  preset?: 'tiny' | 'small' | 'readable';
-  audioPreset?: 'low' | 'mid' | 'high' | 'max';
-  audioFilterPreset?: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
-  cropMode?: 'none' | '4:3' | 'auto';
-  filterMode?: 'none' | 'denoise' | 'sharpen' | 'both';
-  scaler?: 'lanczos' | 'bicubic';
-  container?: 'mp4' | 'mkv';
-  opusVbr?: 'on' | 'constrained' | 'off';
-  opusFrameDuration?: 20 | 40 | 60;
-  keepAac?: boolean;
-  x265Params?: string;
+export interface SlideVideoRequest {
+  /** A `slides_*` folder with a timeline.json, inside the output folder. */
+  slidesFolder: string;
+  /** The session's screen recording, when one is on disk. */
+  screenPath?: string | null;
+  /** The session's classroom mic `.aac`, when one is on disk. */
+  micPath?: string | null;
+  options?: Partial<SlideVideoOptions>;
 }
 
-export interface CompressLectureProgress {
-  phase: 'preparing' | 'cropdetect' | 'encoding' | 'validating' | 'completed';
-  current: number;
-  total: number;
-  message?: string;
+export interface SlideVideoProgress {
+  phase: 'preparing' | 'encoding' | 'finishing';
+  /** 0–100. */
+  percent: number;
+}
+
+export interface SlideVideoResult {
+  outputPath: string;
+  durationSeconds: number;
+  chapters: number;
 }
 
 export interface LectureVideoFileInfo {
@@ -346,16 +345,13 @@ export interface LectureVideoFileInfo {
   mtimeMs: number;
 }
 
-export interface CompressLecturePreviewResult {
-  command: string;
-  outputPath: string;
-  sourceWidth: number;
-  sourceHeight: number;
-  targetWidth: number;
-  targetHeight: number;
-  contentAspect: '4:3' | '16:9' | 'cropped' | 'source';
-  videoFiltergraph: string;
-  audioFiltergraph: string;
+export interface LectureSlideFolderInfo {
+  name: string;
+  path: string;
+  /** `Slide_*.png` files in it. */
+  imageCount: number;
+  mtimeMs: number;
+  hasTimeline: boolean;
 }
 
 export interface DialogOptions {
@@ -769,20 +765,16 @@ export interface ElectronAPI {
   };
 
 
-  compressLecture: {
-    selectInput: () => Promise<string | null>;
-    selectOutput: (defaultPath?: string) => Promise<string | null>;
-    preview: (options: CompressLectureOptions) => Promise<CompressLecturePreviewResult>;
-    start: (options: CompressLectureOptions) => Promise<{ outputPath: string }>;
+  slideVideo: {
+    make: (request: SlideVideoRequest) => Promise<SlideVideoResult>;
     cancel: () => Promise<boolean>;
     isActive: () => Promise<boolean>;
-    onProgress: (callback: (progress: CompressLectureProgress) => void) => () => void;
-    onCompleted: (callback: (result: { outputPath: string }) => void) => () => void;
-    onError: (callback: (error: string) => void) => () => void;
+    onProgress: (callback: (progress: SlideVideoProgress) => void) => () => void;
   };
 
   lectures: {
     listVideos: () => Promise<LectureVideoFileInfo[]>;
+    listSlideFolders: () => Promise<LectureSlideFolderInfo[]>;
     rename: (fromPath: string, toName: string) => Promise<{ path: string; name: string }>;
     reveal: (filePath: string) => Promise<void>;
     openOutputDirectory: () => Promise<void>;

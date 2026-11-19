@@ -77,6 +77,7 @@ export interface PlaybackDemo {
 // library/list/player render offline; production reads `overrides.lecturesProvider ?? real`.
 export interface LecturesProvider {
   listVideos(): Promise<Array<{ name: string; path: string; size: number; mtimeMs: number }>>
+  listSlideFolders?(): Promise<Array<{ name: string; path: string; imageCount: number; mtimeMs: number; hasTimeline: boolean }>>
   getPoster(filePath: string, seekSeconds?: number): Promise<string | null>
   rename(fromPath: string, toName: string): Promise<{ path: string; name: string }>
 }

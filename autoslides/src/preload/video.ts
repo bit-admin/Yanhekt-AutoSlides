@@ -1,6 +1,13 @@
 import { ipcRenderer } from 'electron';
 import { invoke } from './invoke';
-import type { ElectronAPI, LiveStreamInput, RecordedSessionInput } from './electronApi';
+import type {
+  ElectronAPI,
+  LiveStreamInput,
+  RecordedSessionInput,
+  SlideVideoProgress,
+  SlideVideoRequest,
+  SlideVideoResult,
+} from './electronApi';
 
 export const video: ElectronAPI['video'] = {
   getLiveStreamUrls: (stream: LiveStreamInput, token: string) =>
@@ -21,51 +28,14 @@ export const video: ElectronAPI['video'] = {
   stopSignatureLoop: () => invoke('video:stopSignatureLoop'),
 };
 
-type CompressLectureOptions = {
-  inputPath: string;
-  outputPath?: string;
-  replaceSource?: boolean;
-  preset?: 'tiny' | 'small' | 'readable';
-  audioPreset?: 'low' | 'mid' | 'high' | 'max';
-  audioFilterPreset?: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
-  cropMode?: 'none' | '4:3' | 'auto';
-  filterMode?: 'none' | 'denoise' | 'sharpen' | 'both';
-  scaler?: 'lanczos' | 'bicubic';
-  container?: 'mp4' | 'mkv';
-  opusVbr?: 'on' | 'constrained' | 'off';
-  opusFrameDuration?: 20 | 40 | 60;
-  keepAac?: boolean;
-  x265Params?: string;
-};
-
-type CompressLectureProgress = {
-  phase: 'preparing' | 'cropdetect' | 'encoding' | 'validating' | 'completed';
-  current: number;
-  total: number;
-  message?: string;
-};
-
-export const compressLecture: ElectronAPI['compressLecture'] = {
-  selectInput: () => invoke('compressLecture:selectInput') as Promise<string | null>,
-  selectOutput: (defaultPath?: string) => invoke('compressLecture:selectOutput', defaultPath) as Promise<string | null>,
-  preview: (options: CompressLectureOptions) => invoke('compressLecture:preview', options),
-  start: (options: CompressLectureOptions) => invoke('compressLecture:start', options) as Promise<{ outputPath: string }>,
-  cancel: () => invoke('compressLecture:cancel') as Promise<boolean>,
-  isActive: () => invoke('compressLecture:isActive') as Promise<boolean>,
-  onProgress: (callback: (progress: CompressLectureProgress) => void) => {
-    const handler = (_e: Electron.IpcRendererEvent, progress: CompressLectureProgress) => callback(progress);
-    ipcRenderer.on('compressLecture:progress', handler);
-    return () => ipcRenderer.removeListener('compressLecture:progress', handler);
-  },
-  onCompleted: (callback: (result: { outputPath: string }) => void) => {
-    const handler = (_e: Electron.IpcRendererEvent, result: { outputPath: string }) => callback(result);
-    ipcRenderer.on('compressLecture:completed', handler);
-    return () => ipcRenderer.removeListener('compressLecture:completed', handler);
-  },
-  onError: (callback: (error: string) => void) => {
-    const handler = (_e: Electron.IpcRendererEvent, error: string) => callback(error);
-    ipcRenderer.on('compressLecture:error', handler);
-    return () => ipcRenderer.removeListener('compressLecture:error', handler);
+export const slideVideo: ElectronAPI['slideVideo'] = {
+  make: (request: SlideVideoRequest) => invoke('slideVideo:make', request) as Promise<SlideVideoResult>,
+  cancel: () => invoke('slideVideo:cancel') as Promise<boolean>,
+  isActive: () => invoke('slideVideo:isActive') as Promise<boolean>,
+  onProgress: (callback: (progress: SlideVideoProgress) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, progress: SlideVideoProgress) => callback(progress);
+    ipcRenderer.on('slideVideo:progress', handler);
+    return () => ipcRenderer.removeListener('slideVideo:progress', handler);
   },
 };
 

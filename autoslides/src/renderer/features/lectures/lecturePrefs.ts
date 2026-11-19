@@ -1,22 +1,9 @@
-// Hardcoded session defaults for Lectures modals — same convention as Slides PDF
+// Hardcoded session defaults for Lectures modals (Make Video's are
+// DEFAULT_SLIDE_VIDEO_OPTIONS in @common/slideVideo) — same convention as Slides PDF
 // export settings (usePdfMaker): options live only while the modal/session is open
 // and are NOT persisted to localStorage or AppConfig.
 
-import type { LectureCompressDefaults, LectureRenameOptions } from '@common/types'
-
-export const DEFAULT_COMPRESS: LectureCompressDefaults = {
-  preset: 'small',
-  audioPreset: 'mid',
-  audioFilterPreset: 'speech',
-  cropMode: 'none',
-  filterMode: 'none',
-  scaler: 'lanczos',
-  container: 'mp4',
-  opusVbr: 'constrained',
-  opusFrameDuration: 60,
-  keepAac: false,
-  x265Params: 'aq-mode=1',
-}
+import type { LectureRenameOptions } from '@common/types'
 
 export const DEFAULT_RENAME: LectureRenameOptions = {
   includeInstructor: false,

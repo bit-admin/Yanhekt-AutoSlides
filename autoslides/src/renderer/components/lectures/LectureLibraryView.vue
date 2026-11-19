@@ -266,11 +266,11 @@
                     {{ $t('lectures.subtitles') }}
                   </span>
                   <span
-                    v-if="session.screen?.compressPreset"
-                    class="ep-badge ep-badge--comp"
-                    :title="$t('lectures.compressedHint', { preset: session.screen.compressPreset })"
+                    v-if="session.screen?.videoType === 'slides'"
+                    class="ep-badge"
+                    :title="$t('lectures.slidesVideoHint')"
                   >
-                    {{ session.screen.compressPreset }}
+                    {{ $t('lectures.slidesVideo') }}
                   </span>
                 </div>
               </div>
@@ -1175,13 +1175,6 @@ watch(
   background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
   border-color: color-mix(in srgb, var(--text-secondary) 30%, transparent);
   color: var(--text-secondary);
-}
-
-.ep-badge--comp {
-  text-transform: lowercase;
-  color: var(--success);
-  border-color: color-mix(in srgb, var(--success) 35%, transparent);
-  background: color-mix(in srgb, var(--success) 12%, transparent);
 }
 
 @media (max-width: 720px) {

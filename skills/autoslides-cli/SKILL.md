@@ -30,7 +30,7 @@ Progress and notices go to stderr; ignore them or show them to the user. Branch 
 | Exit | `error.code` | What to do |
 |---|---|---|
 | 0 | — | done |
-| 1 | `failed`, `output_folder_busy` | read the message; for downloads, `data.items` says which failed. `output_folder_busy`: `output_dir` was not changed because downloads, extractions, tasks or post-processing are still running; wait for them (`autoslides downloads wait`) or ask the user before cancelling anything |
+| 1 | `failed`, `output_folder_busy` | read the message; for downloads, `data.items` says which failed. `output_folder_busy`: `output_dir` was not changed because downloads, extractions, tasks, post-processing or Lectures slide videos are still running; wait for them (`autoslides downloads wait`) or ask the user before cancelling anything |
 | 2 | `usage` | the command line was wrong and nothing ran; fix the arguments (see `--help`) |
 | 3 | `not_found`, `no_recording`, `expired`, `term_unavailable` | wrong id, the session has no recording yet, an earlier-term session that the course index on this computer or its course's session list cannot supply, or the course index does not hold that term; do not retry unchanged |
 | 4 | `sign_in_required` (autoslides), `auth_required` (yhdl) | ask the user to sign in to Yanhekt in the AutoSlides window, then run it again |

@@ -390,21 +390,6 @@ export interface AppConfig {
   yanhe2SessionExpiry: Record<string, number>;
 }
 
-/** Compress options persisted for the Lectures batch modal (no paths). */
-export interface LectureCompressDefaults {
-  preset: 'tiny' | 'small' | 'readable';
-  audioPreset: 'low' | 'mid' | 'high' | 'max';
-  audioFilterPreset: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
-  cropMode: 'none' | '4:3' | 'auto';
-  filterMode: 'none' | 'denoise' | 'sharpen' | 'both';
-  scaler: 'lanczos' | 'bicubic';
-  container: 'mp4' | 'mkv';
-  opusVbr: 'on' | 'constrained' | 'off';
-  opusFrameDuration: 20 | 40 | 60;
-  keepAac: boolean;
-  x265Params: string;
-}
-
 export interface LectureRenameOptions {
   includeInstructor: boolean;
   includeSchoolYear: boolean;

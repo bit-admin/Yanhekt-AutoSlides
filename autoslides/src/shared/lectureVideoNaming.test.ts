@@ -14,7 +14,6 @@ import {
   LECTURE_MEDIA_EXTENSIONS,
   parseLectureVideoName,
   subtitleNameForVideo,
-  withAscompTag,
 } from './lectureVideoNaming';
 
 describe('parseLectureVideoName — legacy downloads', () => {
@@ -109,53 +108,32 @@ describe('buildYanhektIdTag', () => {
   });
 });
 
-describe('ascomp compress tag', () => {
-  it('parses [ascomp=…] and strips it from the display name', () => {
-    const name =
-      '泛函分析 - S01E01 - 第1周 [yhid=c1s2] [vtype=screen] [ascomp=tiny].mp4';
-    const parsed = parseLectureVideoName(name);
-    expect(parsed.compressPreset).toBe('tiny');
-    expect(formatLectureVideoDisplayName(name)).toBe('泛函分析 - S01E01 - 第1周');
+describe('retired ascomp tag', () => {
+  it('is stripped from the display name and does not hide legacy ids', () => {
+    const emby = '泛函分析 - S01E01 - 第1周 [yhid=c1s2] [vtype=screen] [ascomp=tiny].mp4';
+    expect(formatLectureVideoDisplayName(emby)).toBe('泛函分析 - S01E01 - 第1周');
+    expect(parseLectureVideoName(emby)).not.toHaveProperty('compressPreset');
+
+    const legacy = parseLectureVideoName('screen_泛函分析_第1周_星期三_第2大节__c70101s850101 [ascomp=small].mp4');
+    expect(legacy.recognised).toBe(true);
+    expect(legacy.courseId).toBe('70101');
+    expect(legacy.sessionId).toBe('850101');
+    expect(legacy.videoType).toBe('screen');
   });
 
-  it('appends ascomp after vtype on build', () => {
-    const name = buildLectureVideoFileName({
-      stem: 'Course - S01E01',
-      courseId: 1,
-      sessionId: 2,
-      videoType: 'screen',
-      compressPreset: 'small',
-    });
-    expect(name).toBe(
-      'Course - S01E01 [yhid=c1s2] [vtype=screen] [ascomp=small].mp4',
-    );
+  it('is never written on build', () => {
+    expect(buildLectureVideoFileName({ stem: 'Course - S01E01', courseId: 1, sessionId: 2, videoType: 'screen' }))
+      .toBe('Course - S01E01 [yhid=c1s2] [vtype=screen].mp4');
   });
+});
 
-  it('withAscompTag sets or replaces the tag without touching ids', () => {
-    const legacy = 'screen_foo__c1s2.mp4';
-    expect(withAscompTag(legacy, 'tiny')).toBe('screen_foo__c1s2 [ascomp=tiny].mp4');
-
-    const tagged =
-      'Course [yhid=c1s2] [vtype=screen] [ascomp=tiny].mp4';
-    expect(withAscompTag(tagged, 'readable')).toBe(
-      'Course [yhid=c1s2] [vtype=screen] [ascomp=readable].mp4',
-    );
-  });
-
-  it('legacy __c…s… stays recognised after [ascomp=…] is appended', () => {
-    const name = withAscompTag(
-      'screen_泛函分析_第1周_星期三_第2大节__c70101s850101.mp4',
-      'tiny',
-    );
-    expect(name).toBe(
-      'screen_泛函分析_第1周_星期三_第2大节__c70101s850101 [ascomp=tiny].mp4',
-    );
-    const parsed = parseLectureVideoName(name);
-    expect(parsed.recognised).toBe(true);
-    expect(parsed.courseId).toBe('70101');
-    expect(parsed.sessionId).toBe('850101');
-    expect(parsed.videoType).toBe('screen');
-    expect(parsed.compressPreset).toBe('tiny');
+describe('slide videos', () => {
+  it('parse as type slides from the folder-name prefix or the vtype tag', () => {
+    const made = parseLectureVideoName('slides_泛函分析_第1周_星期三_第2大节__c70101s850101.mp4');
+    expect(made).toMatchObject({ videoType: 'slides', courseId: '70101', sessionId: '850101', recognised: true });
+    expect(formatLectureVideoDisplayName('slides_泛函分析_第1周_星期三_第2大节__c70101s850101.mp4'))
+      .toBe('泛函分析_第1周_星期三_第2大节');
+    expect(parseLectureVideoName('Course - S01E01 [yhid=c1s2] [vtype=slides].mp4').videoType).toBe('slides');
   });
 });
 

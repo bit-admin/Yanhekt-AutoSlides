@@ -221,7 +221,6 @@ const targetName = (item: LectureVideoItem): string => {
     courseId: item.courseId!,
     sessionId: item.sessionId!,
     videoType: item.videoType!,
-    compressPreset: item.compressPreset,
     ext,
   })
 }

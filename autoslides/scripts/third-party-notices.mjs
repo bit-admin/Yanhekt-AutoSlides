@@ -123,7 +123,7 @@ with the app, with their own files:
 
 - Electron (MIT): LICENSE.electron.txt (macOS) or LICENSE (Windows, Linux),
   and Chromium's notices in LICENSES.chromium.html.
-- FFmpeg and FFprobe (GPL-3.0-or-later): media-tools/licenses/.
+- FFmpeg (GPL-3.0-or-later): media-tools/licenses/.
 - The slide detector and classifier models: models/licenses/NOTICE.txt.
 
 `;

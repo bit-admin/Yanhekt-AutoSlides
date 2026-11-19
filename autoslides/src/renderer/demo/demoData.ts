@@ -925,7 +925,7 @@ export function demoLectureVideos(): Array<{ name: string; path: string; size: n
     week: number,
     courseId: string,
     videoType: 'screen' | 'camera',
-    opts?: { ascomp?: 'tiny' | 'small' | 'readable'; daysAgo?: number; mb?: number },
+    opts?: { daysAgo?: number; mb?: number },
   ) => {
     const sessionId = demoSessionId(courseId, week)
     const semester = DEMO_COURSES.find((c) => c.id === courseId)?.semester === '2' ? 'S02' : 'S01'
@@ -933,7 +933,6 @@ export function demoLectureVideos(): Array<{ name: string; path: string; size: n
     const tags = [
       `[yhid=c${courseId}s${sessionId}]`,
       `[vtype=${videoType}]`,
-      opts?.ascomp ? `[ascomp=${opts.ascomp}]` : '',
     ].filter(Boolean).join(' ')
     const name = `${title} - ${semester}E${ep} - Lecture ${week} ${tags}.mp4`
     return {
@@ -947,7 +946,7 @@ export function demoLectureVideos(): Array<{ name: string; path: string; size: n
     mk('Functional Analysis', 9, '501', 'screen', { daysAgo: 14, mb: 510 }),
     mk('Functional Analysis', 9, '501', 'camera', { daysAgo: 14, mb: 260 }),
     mk('Functional Analysis', 10, '501', 'screen', { daysAgo: 7, mb: 488 }),
-    mk('Functional Analysis', 12, '501', 'screen', { ascomp: 'small', daysAgo: 1, mb: 96 }),
+    mk('Functional Analysis', 12, '501', 'screen', { daysAgo: 1, mb: 455 }),
     mk('Functional Analysis', 12, '501', 'camera', { daysAgo: 1, mb: 240 }),
     mk('Real Analysis', 11, '401', 'screen', { daysAgo: 10, mb: 402 }),
     mk('Real Analysis', 11, '401', 'camera', { daysAgo: 10, mb: 218 }),

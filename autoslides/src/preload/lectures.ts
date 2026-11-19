@@ -1,5 +1,5 @@
 import { invoke } from './invoke';
-import type { ElectronAPI } from './electronApi';
+import type { ElectronAPI, LectureSlideFolderInfo } from './electronApi';
 
 export type LectureVideoFileInfo = {
   name: string;
@@ -11,6 +11,8 @@ export type LectureVideoFileInfo = {
 export const lectures: ElectronAPI['lectures'] = {
   listVideos: () =>
     invoke('lectures:listVideos') as Promise<LectureVideoFileInfo[]>,
+  listSlideFolders: () =>
+    invoke('lectures:listSlideFolders') as Promise<LectureSlideFolderInfo[]>,
   rename: (fromPath: string, toName: string) =>
     invoke('lectures:rename', { fromPath, toName }) as Promise<{
       path: string;

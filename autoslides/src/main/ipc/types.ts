@@ -26,7 +26,7 @@ import type { QtExtractorService } from '@main/extraction/qtExtractorService';
 import type { ExtractorInstallerService } from '@main/download/extractorInstallerService';
 import type { AutoCropModelService } from '@main/ai/autoCropModelService';
 import type { MlClassifierModelService } from '@main/ai/mlClassifierModelService';
-import type { CompressLectureService } from '@main/video/compressLectureService';
+import type { SlideVideoService } from '@main/video/slideVideoService';
 import type { WindowManager } from '@main/platform/windowManager';
 import type { TrayService } from '@main/platform/trayService';
 import type { PdfService } from '@main/export/pdfService';
@@ -86,7 +86,7 @@ export interface IpcServices {
   extractorInstallerService: ExtractorInstallerService;
   autoCropModelService: AutoCropModelService;
   mlClassifierModelService: MlClassifierModelService;
-  compressLectureService: CompressLectureService;
+  slideVideoService: SlideVideoService;
   windowManager: WindowManager;
   pdfService: PdfService;
   noteExportService: NoteExportService;

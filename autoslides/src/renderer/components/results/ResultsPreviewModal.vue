@@ -192,7 +192,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { appearancesForFile, type SlideTimeline } from '@common/sidecars'
+import { appearancesForFile, timelineOnPlayerClock, type SlideTimeline } from '@common/sidecars'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { getTimeline } from '@shared/services/slideTimelineClient'
 import { useCropEditor, type CropHandle } from '@features/results/useCropEditor'
@@ -271,7 +271,7 @@ const formatAppearanceSpan = (startTime: number, endTime: number): string => {
 const appearanceLabels = computed(() => {
   const item = props.previewItem
   if (!item) return []
-  return appearancesForFile(cachedTimeline.value, item.name).map((span) =>
+  return appearancesForFile(timelineOnPlayerClock(cachedTimeline.value), item.name).map((span) =>
     formatAppearanceSpan(span.startTime, span.endTime)
   )
 })

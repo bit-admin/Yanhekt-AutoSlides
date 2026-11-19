@@ -12,7 +12,7 @@
 // sent to every window. No sign-in is needed: nothing here talks to Yanhekt.
 // There is no one-run override (`--output` and the like): a different folder
 // or route for one run is what `yhdl` is for.
-import { describeOutputFolderWork, parseOutputFolderBusy } from '@common/outputFolderWork';
+import { describeOutputFolderWork, outputFolderWorkTotal, parseOutputFolderBusy } from '@common/outputFolderWork';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -131,7 +131,7 @@ export const SETTINGS: readonly Setting[] = [
         if (!work) throw error;
         throw new CliError(
           'output_folder_busy',
-          `the output folder cannot change while ${describeOutputFolderWork(work)} in AutoSlides ${work.downloads + work.extractions + work.tasks + work.postProcessing === 1 ? 'is' : 'are'} unfinished`,
+          `the output folder cannot change while ${describeOutputFolderWork(work)} in AutoSlides ${outputFolderWorkTotal(work) === 1 ? 'is' : 'are'} unfinished`,
           'Let them finish, or cancel them in the app (`autoslides downloads cancel --all` for downloads), then run this again.',
         );
       }

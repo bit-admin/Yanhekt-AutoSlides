@@ -1,8 +1,8 @@
 AutoSlides bundled media tools
 =============================
 
-FFmpeg and FFprobe are separate executables, invoked as subprocesses by
-AutoSlides. Copyright (c) the FFmpeg developers and contributing authors.
+FFmpeg is a separate executable, invoked as a subprocess by AutoSlides.
+Copyright (c) the FFmpeg developers and contributing authors.
 The selected builds enable GPL components and version 3, and are distributed
 under the GNU General Public License, version 3 or later. See GPL-3.0.txt.
 These components retain their own licenses; the AutoSlides license and
@@ -21,7 +21,7 @@ Windows and Linux. This notice is not an exhaustive dependency license list.
 
 The adjacent build-info.json records the provider, exact build, download URLs,
 archive SHA-256 pins, source/build-script references and (on native builds)
-FFmpeg/FFprobe configuration output. The references are provenance, not a
+FFmpeg configuration output. The references are provenance, not a
 claim that a build-script repository is complete Corresponding Source.
 
 Release maintainers: preserve and provide the complete Corresponding Source,

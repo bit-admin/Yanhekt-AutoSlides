@@ -9,7 +9,6 @@ import {
   isLectureAudioExt,
   formatEpisodeToken,
   formatSemesterToken,
-  type LectureCompressPresetTag,
   type LectureVideoType,
 } from '@common/lectureVideoNaming'
 import type { LectureVideoItem } from './useLecturesPage'
@@ -21,7 +20,6 @@ export interface LibraryFileRef {
   size: number
   mtimeMs: number
   videoType: LectureVideoType
-  compressPreset?: LectureCompressPresetTag
   displayName: string
   hasEmbyTags: boolean
 }
@@ -33,6 +31,7 @@ export interface LibrarySession {
   weekNumber?: number | null
   day?: number | null
   startedAt?: string | null
+  /** Screen recording, or the session's slide video (`videoType: 'slides'`) when there is none. */
   screen?: LibraryFileRef
   camera?: LibraryFileRef
   /**
@@ -103,7 +102,6 @@ function toFileRef(item: LectureVideoItem, videoType: LectureVideoType): Library
     size: item.size,
     mtimeMs: item.mtimeMs,
     videoType,
-    compressPreset: item.compressPreset,
     displayName: item.displayName,
     hasEmbyTags: item.hasEmbyTags,
   }
@@ -246,6 +244,7 @@ export function buildLibraryCourses(
     camera?: LibraryFileRef
     audio?: LibraryFileRef
     subtitles?: LibraryFileRef
+    slidesVideo?: LibraryFileRef
     fallbackTitle: string
     slideFolderPath?: string
   }
@@ -284,6 +283,11 @@ export function buildLibraryCourses(
       const ref = toFileRef(item, type)
       const existing = session[type]
       session[type] = existing ? pickBetter(existing, ref) : ref
+    } else if (type === 'slides') {
+      // Made from the slides and the lecture audio, on the screen's clock:
+      // it plays in the screen's place when there is no screen recording.
+      const ref = toFileRef(item, 'slides')
+      session.slidesVideo = session.slidesVideo ? pickBetter(session.slidesVideo, ref) : ref
     } else if (isLectureAudioExt(item.ext)) {
       // Untyped but audio by extension. Must be caught BEFORE the screen
       // fallback below: filed as `screen` it would set a `<video>.src` to an
@@ -326,6 +330,7 @@ export function buildLibraryCourses(
     const sessions: LibrarySession[] = []
 
     for (const sess of bucket.sessions.values()) {
+      sess.screen ??= sess.slidesVideo
       if (!sess.screen && !sess.camera && !sess.audio && !sess.slideFolderPath) continue
 
       const metaSession = meta?.sessions.find((s) => String(s.session_id) === String(sess.sessionId))

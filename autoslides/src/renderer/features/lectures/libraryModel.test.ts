@@ -49,12 +49,11 @@ describe('buildLibraryCourses', () => {
         mtimeMs: 10,
       }),
       item({
-        name: 'a [yhid=c1s2] [vtype=screen] [ascomp=small].mp4',
+        name: 'a [yhid=c1s2] [vtype=screen].mp4',
         path: '/out/a-scr.mp4',
         courseId: '1',
         sessionId: '2',
         videoType: 'screen',
-        compressPreset: 'small',
         displayName: 'Course - S01E01 - Lecture',
         mtimeMs: 20,
       }),
