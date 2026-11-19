@@ -185,7 +185,6 @@ app.on('child-process-gone', (_event, details) => {
 });
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
-declare const TOOLS_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
 app.setName('AutoSlides');
@@ -195,8 +194,8 @@ app.setName('AutoSlides');
 // user confirms past the "work still running" warning.
 let quitRequested = false;
 
-// The one main window (the Tools window is another BrowserWindow).
 let mainWindowRef: BrowserWindow | null = null;
+const toolGuestLog = createLogger('ToolWebviews');
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -227,6 +226,22 @@ const createWindow = () => {
       // the preload reads reliably (process.env is not dependable there).
       ...demoWebPreferences()
     }
+  });
+
+  // Keep tool links that request a new window inside their guest. Do not
+  // change the browser sign-in guest or install this on the shell itself.
+  const toolSessions = new Set([
+    session.fromPartition('persist:webcapture'),
+    session.fromPartition('persist:yuketang'),
+  ]);
+  mainWindow.webContents.on('did-attach-webview', (_event, guest) => {
+    if (!toolSessions.has(guest.session)) return;
+    guest.setWindowOpenHandler(({ url }) => {
+      if (/^https?:\/\//i.test(url)) {
+        void guest.loadURL(url).catch(() => toolGuestLog.debug('Guest link did not load'));
+      }
+      return { action: 'deny' };
+    });
   });
 
   mainWindowRef = mainWindow;
@@ -306,7 +321,7 @@ app.on('ready', () => {
   installLocalAccessHeader(session.defaultSession, {
     secret: videoProxyService.localAccessSecret,
     port: () => videoProxyService.port,
-    devServerUrls: [MAIN_WINDOW_VITE_DEV_SERVER_URL, TOOLS_WINDOW_VITE_DEV_SERVER_URL],
+    devServerUrls: [MAIN_WINDOW_VITE_DEV_SERVER_URL],
   });
   // Local progressive media for Lectures Library (Range seeks under outputDir).
   // Install before any window loads so asmedia:// is ready immediately.
@@ -543,7 +558,12 @@ app.whenReady().then(() => {
     return;
   }
   initializePowerManagement();
-  windowManager.setupYuketangClassCapture();
+  windowManager.setupYuketangClassCapture((state) => {
+    const win = mainWindowRef;
+    if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) {
+      win.webContents.send('yuketang:classCaptureUpdated', state);
+    }
+  });
   // Tray icon, when Settings → Download & Playback keeps the app running in the tray.
   trayService.applyConfig();
   // Start LAN relay if Developer mode is on and the user left it enabled.

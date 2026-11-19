@@ -12,8 +12,7 @@ import {
  *   synced, which provider they go to, the Obsidian provider's vault, notes
  *   folder and auto-create switch, and the Notion connection (applied at once,
  *   not on commit).
- * - Tools: whether the Tools window icon button rides beside Settings at the
- *   foot of the navigator.
+ * - Tools: whether Web Capture and Yuketang appear in the sidebar.
  * - Command Line: whether `autoslides` commands may drive the app (the
  *   wrappers themselves install at once, outside this lifecycle).
  * Self-contained like useCloudSettings — reads/writes config directly and joins

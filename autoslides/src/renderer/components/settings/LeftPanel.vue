@@ -99,6 +99,34 @@
           </button>
         </nav>
 
+        <template v-if="configStore.showToolsButton">
+          <div id="tools-nav-label" class="nav-group-title nav-group-title--spaced">{{ $t('tools.openTools') }}</div>
+          <nav class="nav-items" aria-labelledby="tools-nav-label">
+            <button
+              type="button"
+              :class="['nav-item', { active: activeNav === 'webcapture' }]"
+              :aria-current="activeNav === 'webcapture' ? 'page' : undefined"
+              @click="navigate('webcapture')"
+            >
+              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2 3h12v8H2V3zm1 1v6h10V4H3zm1 8h8v1H4v-1zM6 6h4v3H6z" fill="currentColor"/>
+              </svg>
+              <span>{{ $t('tools.tabWebCapture') }}</span>
+            </button>
+            <button
+              type="button"
+              :class="['nav-item', { active: activeNav === 'yuketang' }]"
+              :aria-current="activeNav === 'yuketang' ? 'page' : undefined"
+              @click="navigate('yuketang')"
+            >
+              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
+              </svg>
+              <span>{{ $t('tools.tabYuketang') }}</span>
+            </button>
+          </nav>
+        </template>
+
         <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.pinned') }}</div>
         <div class="nav-items">
           <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
@@ -121,10 +149,7 @@
         </div>
       </div>
 
-      <!-- Fixed at bottom of navigator area (above user bar); not indented nav items.
-           Settings leads and takes the row; Tools is a secondary window, so it keeps
-           only its glyph at the far right and wears its label as a tooltip. Tools is
-           opt-in (Settings → Add-ons); without it Settings spans the whole row. -->
+      <!-- Settings stays fixed below the scrollable navigation, above the user bar. -->
       <div class="panel-actions">
         <button
           type="button"
@@ -136,18 +161,6 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
           <span>{{ $t('settings.settings') }}</span>
-        </button>
-        <button
-          v-if="configStore.showToolsButton"
-          type="button"
-          class="panel-action-button panel-action-button--icon"
-          :title="$t('tools.openTools')"
-          :aria-label="$t('tools.openTools')"
-          @click="openToolsWindow()"
-        >
-          <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-          </svg>
         </button>
       </div>
     </div>
@@ -515,15 +528,6 @@ const {
   confirmNameInput,
   cancelNameInput
 } = pHashExclusion
-
-// Tools Window
-const openToolsWindow = async (tab?: string) => {
-  try {
-    await window.electronAPI.tools.openWindow(tab)
-  } catch (error) {
-    log.error('Failed to open tools window:', error)
-  }
-}
 
 // Settings opened from the native menu bar (macOS AutoSlides > Settings…,
 // Windows/Linux File > Settings). Cleanup returned by the preload subscription.
@@ -1039,9 +1043,7 @@ defineExpose({
   margin: 18px 0 4px;
 }
 
-/* Fixed footer of the navigator: Settings takes the row, Tools rides at the far
-   right as an icon. Not indented like .nav-item rows — flush with the group-label
-   column, hairline above. */
+/* Fixed Settings row, flush with the group-label column. */
 .panel-actions {
   flex-shrink: 0;
   display: flex;
@@ -1071,15 +1073,6 @@ defineExpose({
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
-}
-
-/* Icon-only secondary action: squares off against the row height Settings sets
-   (8px + 14px glyph + 8px). Must follow the base rule — same specificity. */
-.panel-action-button--icon {
-  flex: 0 0 auto;
-  width: 30px;
-  padding: 8px 0;
-  justify-content: center;
 }
 
 .panel-action-button:hover {

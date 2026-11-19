@@ -3,7 +3,7 @@
 // The renderer's demo data + behavior lives in src/renderer/demo/; this module
 // holds the few main-process enablement hooks for `npm run demo` / the
 // screenshot script (which set DEMO_MODE=1). Deleting this file plus its call
-// sites in main.ts and windowManager.ts removes demo support from the main
+// sites in main.ts removes demo support from the main
 // process — real launches are unaffected (the flag is simply never set).
 
 import type { App } from 'electron'

@@ -113,8 +113,7 @@
     <h4>{{ $t('advanced.addons.toolsTitle') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.addons.toolsDescription') }}</div>
-      <!-- What the Tools window holds, in its own tab order. Glyphs match the
-           Tools window's tab icons so the two surfaces read as one thing. -->
+      <!-- Same order and icons as the Tools section in the sidebar. -->
       <ul class="addon-tool-list" :aria-label="$t('advanced.addons.includedTools')">
         <li class="addon-tool">
           <svg class="addon-tool-icon" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">

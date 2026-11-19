@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, readonly, computed, onMounted, onUnmounted, type Ref, type ComputedRef } from 'vue'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('Yuketang');
 
@@ -19,12 +19,14 @@ export interface UseYuketangReturn {
   cleanup: () => void
 }
 
+const isExporting = ref(false)
+export const yuketangExportBusy = readonly(isExporting)
+
 export function useYuketang(): UseYuketangReturn {
   const currentPageMode = ref<'none' | 'lesson' | 'class'>('none')
   const lessonId = ref('')
-  const isExporting = ref(false)
   const exportFormat = ref<'pdf' | 'images'>('pdf')
-  const statusMessage = ref('')
+  const statusMessage = ref('defaultStatus')
   const latestExportDir = ref('')
   const latestPdfPath = ref('')
   const classCapture = ref<{ presentationId: string; hasAuthorization: boolean }>({
@@ -194,8 +196,6 @@ export function useYuketang(): UseYuketangReturn {
       log.warn('Failed to load initial class capture state:', error)
     }
 
-    // Set initial status
-    statusMessage.value = 'defaultStatus'
   })
 
   onUnmounted(() => {

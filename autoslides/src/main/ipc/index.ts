@@ -19,7 +19,7 @@ import { registerMenuIpcHandlers } from './menuIpc';
 import { registerPowerIpcHandlers } from './powerIpc';
 import { registerCacheIpcHandlers } from './cacheIpc';
 import { registerAppIpcHandlers } from './appIpc';
-import { registerToolsWindowIpcHandlers } from './toolsWindowIpc';
+import { registerWebCaptureIpcHandlers } from './webCaptureIpc';
 import { registerYuketangIpcHandlers } from './yuketangIpc';
 import { registerNotesIpcHandlers } from './notesIpc';
 import { registerTrashIpcHandlers } from './trashIpc';
@@ -61,7 +61,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerPowerIpcHandlers(services);
   registerCacheIpcHandlers(services);
   registerAppIpcHandlers();
-  registerToolsWindowIpcHandlers(services);
+  registerWebCaptureIpcHandlers();
   registerYuketangIpcHandlers(services);
   registerNotesIpcHandlers(services);
   registerTrashIpcHandlers(services);

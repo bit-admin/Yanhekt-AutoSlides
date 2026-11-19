@@ -63,6 +63,7 @@ const skipped = []
 // top), written to sections.json so process-docs.mjs can split the long settings
 // screenshots at live-DOM section boundaries instead of hardcoded pixel rows.
 const sectionsManifest = {}
+let yuketangGuestHidden = false
 
 async function main() {
   const app = await electron.launch({
@@ -514,37 +515,43 @@ async function main() {
     await win.waitForSelector('.onboarding-card', { state: 'detached', timeout: 4000 }).catch(() => {})
   })
 
-  // --- separate windows: Tools & Add-ons ----------------------------------
-  // Opened directly on the target tab via IPC (deterministic; avoids the
-  // ambiguous panel buttons, one of which opens Finder).
-  const captureChildWindow = async (openExpr, name, readySelector) => {
-    const child = await Promise.all([
-      app.waitForEvent('window'),
-      win.evaluate(openExpr),
-    ]).then(([w]) => w)
-    await child.waitForLoadState('domcontentloaded')
+  // --- main-window Tools and Workspace pages -------------------------------
+  const captureTool = async (name, label, target, readySelector) => {
+    const wasEnabled = await win.evaluate(async () => {
+      const { showToolsButton } = await window.electronAPI.config.get()
+      if (!showToolsButton) await window.electronAPI.config.setShowToolsButton(true)
+      return showToolsButton
+    })
     try {
-      const bw = await app.browserWindow(child)
-      await bw.evaluate((w) => { w.setContentSize(1200, 800); w.center() })
-    } catch { /* best effort */ }
-    if (readySelector) await child.waitForSelector(readySelector, { timeout: 8000 }).catch(() => {})
-    // Yuketang's QR lives in an embedded <webview>; give the live page time to paint.
-    await child.waitForTimeout(name === 'tools-yuketang' ? 3500 : 1000)
-    await shot(name, child)
-    await child.close().catch(() => {})
-    await win.waitForTimeout(400)
+      const tools = win.locator('nav[aria-labelledby="tools-nav-label"]')
+      await tools.getByRole('button', { name: label, exact: true }).click()
+      await win.waitForSelector(`[data-mode="${target}"]:not(.mode-hidden) ${readySelector}`)
+      await win.waitForSelector('.layout > .right-panel.collapsed')
+      if (target === 'yuketang') {
+        // The live site can render a login QR anywhere in its guest. Hide the
+        // whole guest in this capture instead of redacting a fixed rectangle.
+        const style = await win.addStyleTag({ content: '.yuketang-webview { display: none !important; }' })
+        try {
+          await win.waitForSelector('.yuketang-webview', { state: 'hidden' })
+          await shot(name)
+          yuketangGuestHidden = true
+        } finally {
+          await style.evaluate((element) => element.remove())
+        }
+      } else {
+        await shot(name)
+      }
+    } finally {
+      // Keep the extra nav rows out of later captures unless already enabled.
+      await win.evaluate(async (enabled) => {
+        window.__demoNavigate?.('home')
+        if (!enabled) await window.electronAPI.config.setShowToolsButton(false)
+      }, wasEnabled)
+    }
   }
 
-  await step('tools-webcapture', () =>
-    captureChildWindow(() => window.electronAPI.tools.openWindow('webcapture'), 'tools-webcapture', '.toolwin-tabs'))
-
-  await step('tools-yuketang', () =>
-    captureChildWindow(() => window.electronAPI.tools.openWindow('yuketang'), 'tools-yuketang', '.toolwin-tabs'))
-
-  // --- main-window Workspace pages ----------------------------------------
-  // Slides Review / Slides Export / Cloud Notes migrated from the Tools window
-  // into the main window (full-width, right panel hidden). Driven via the demo
-  // navigation hook; backed by the demo override data.
+  await step('tools-webcapture', () => captureTool('tools-webcapture', 'Web Capture', 'webcapture', '.capture-webview'))
+  await step('tools-yuketang', () => captureTool('tools-yuketang', 'Yuketang', 'yuketang', '.yuketang-webview'))
 
   // Slides Review: folder list → image grid → may_be_slide_edit preview → crop
   // mode (demo data; reads no real files).
@@ -742,7 +749,7 @@ async function main() {
     : {}
   writeFileSync(sectionsPath, JSON.stringify({ ...priorSections, ...sectionsManifest }, null, 2))
   console.log(`  ✓ sections.json`)
-  writeFileSync(path.join(outDir, 'meta.json'), JSON.stringify({ dpr: runDpr }, null, 2))
+  writeFileSync(path.join(outDir, 'meta.json'), JSON.stringify({ dpr: runDpr, yuketangGuestHidden }, null, 2))
   console.log(`  ✓ meta.json (dpr ${runDpr})`)
   writeNotes()
 

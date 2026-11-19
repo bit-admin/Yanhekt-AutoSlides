@@ -168,7 +168,7 @@
       <!-- Non-macOS: right-panel toggle pushed to the trailing edge of the
            center drag band (margin-left:auto). macOS keeps it at the far right. -->
       <button
-        v-if="!isMacOS && !isWorkspacePage"
+        v-if="!isMacOS && !isFullWidthPage"
         class="panel-toggle panel-toggle--center panel-toggle--center-trail"
         :class="{ active: layoutStore.rightCollapsed }"
         @click="toggleRightPanel"
@@ -212,7 +212,7 @@
          don't fit (narrow panel, or Win-Linux window controls eating the width)
          tabs drop to icon-only — see switcherMode. -->
     <div
-      v-if="!isBrowserLoginActive && !isWorkspacePage"
+      v-if="!isBrowserLoginActive && !isFullWidthPage"
       ref="switcherRef"
       class="view-switcher"
     >
@@ -258,7 +258,7 @@
     </div>
     <!-- Hidden labelled copy of the switcher tabs, measured by fitSwitcher. -->
     <div
-      v-if="!isBrowserLoginActive && !isWorkspacePage"
+      v-if="!isBrowserLoginActive && !isFullWidthPage"
       ref="switcherGhostRef"
       class="view-switcher-ghost"
       aria-hidden="true"
@@ -284,7 +284,7 @@
            it lives at the right edge of the center drag band (see the tab
            strip). -->
       <button
-        v-if="isMacOS && !isWorkspacePage"
+        v-if="isMacOS && !isFullWidthPage"
         class="panel-toggle panel-toggle--trail"
         :class="{ active: layoutStore.rightCollapsed }"
         @click="toggleRightPanel"
@@ -337,9 +337,9 @@ import { taskQueueState } from '@shared/services/taskQueueService';
 
 const { t: $t, locale } = useI18n();
 
-// True when a full-width Workspace page (e.g. Slides Review) owns the content
-// area: the right-panel view switcher + collapse toggles are hidden.
-const { isWorkspacePage } = navigationStore;
+// Workspace and Tools pages use the full content area, so the right-panel
+// view switcher and collapse controls are hidden.
+const { isFullWidthPage } = navigationStore;
 
 // The Info tab chip is renamed to match the page it shows: Home / Search / Live,
 // Recorded → Sessions once a course's sessions list is open, plus Workspace pages.
@@ -371,6 +371,10 @@ const infoTabLabel = computed(() => {
       return $t('tabs.settings');
     case 'developer':
       return $t('tabs.developer');
+    case 'webcapture':
+      return $t('tools.tabWebCapture');
+    case 'yuketang':
+      return $t('tools.tabYuketang');
     default:
       return $t('tabs.info');
   }
@@ -1351,7 +1355,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   color: var(--text-primary);
 }
 
-/* Active state matches the Tools window tabs (.toolwin-tab.active) */
+/* Active Info or playback tab. */
 .view-tab.active {
   background-color: var(--bg-selected);
   color: var(--text-primary);

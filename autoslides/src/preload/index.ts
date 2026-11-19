@@ -7,7 +7,7 @@ import { ai, copilot } from './ai';
 import { pdfmaker, yuketang, noteExport } from './export';
 import { api, enrolled, pins } from './course';
 import { update, extractorInstaller } from './update';
-import { tools, webCapture } from './tools';
+import { webCapture } from './webCapture';
 import { intranet } from './intranet';
 import { localRelay } from './localRelay';
 import { cli } from './cli';
@@ -50,7 +50,6 @@ const electronAPI: ElectronAPI = {
   slideTimeline,
   pdfmaker,
   noteExport,
-  tools,
   webCapture,
   yuketang,
   autoCrop,

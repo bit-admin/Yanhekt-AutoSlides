@@ -204,10 +204,6 @@ const config: ForgeConfig = {
           name: 'main_window',
           config: 'vite.renderer.config.ts',
         },
-        {
-          name: 'tools_window',
-          config: 'vite.tools.config.ts',
-        },
       ],
     }),
     // Auto-unpack native modules from asar (packaging only — during dev

@@ -3,7 +3,7 @@
  * errors, unhandled rejections and Vue render/lifecycle errors never went
  * through `createLogger`, so a packaged build lost them entirely.
  *
- * Called once per entry point (main window, Tools window).
+ * Installed by the main renderer before mounting the app.
  */
 
 import { watch, type App } from 'vue';

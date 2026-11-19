@@ -19,7 +19,7 @@ const PROBE_PARTITION = 'autoslides-proxy-probe';
 
 /** Which group's setting each Chromium session follows. `null` is the default session. */
 const SESSIONS: ReadonlyArray<{ partition: string | null; group: 'campus' | 'other' }> = [
-  // Main and Tools windows: course covers, the Windows updater's signature fetch.
+  // Main renderer: course covers, the Windows updater's signature fetch.
   { partition: null, group: 'other' },
   // Browser sign-in (campus SSO, Yanhe 2.0).
   { partition: 'persist:browserlogin', group: 'campus' },

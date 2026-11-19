@@ -10,7 +10,11 @@ import { createLogger } from '@shared/utils/logger';
 const log = createLogger('WebCapture');
 
 export type WebCaptureMode = 'inject' | 'capturePage'
-export type WebCaptureState = 'idle' | 'confirming' | 'running'
+export type WebCaptureState = 'idle' | 'confirming' | 'starting' | 'running' | 'stopping'
+
+// One Web Capture page lives in the shell. Its work can outlast the active page.
+const captureState = ref<WebCaptureState>('idle')
+export const webCaptureBusy = computed(() => captureState.value !== 'idle' && captureState.value !== 'confirming')
 
 export interface DetectedVideoInfo {
   selector: string
@@ -26,11 +30,7 @@ export interface CustomRegion {
   height: number
 }
 
-type WebviewTag = Electron.WebviewTag & {
-  send: (channel: string, ...args: unknown[]) => void
-  capturePage: (rect?: CustomRegion) => Promise<Electron.NativeImage>
-  executeJavaScript: (code: string) => Promise<unknown>
-}
+type WebviewTag = Electron.WebviewTag
 
 export interface WebCapturePreset {
   labelKey: string
@@ -76,7 +76,11 @@ const normalizeUrl = (raw: string): string => {
 }
 
 export function useWebCapture() {
-  const powerHolderId = `webCapture:${Date.now().toString(36)}`
+  // Reuse one pipeline per mounted page instead of accumulating one per run
+  // for the lifetime of the main renderer.
+  const instanceId = `webcapture_${Date.now()}`
+  const powerHolderId = `webCapture:${instanceId}`
+  const lifetime = new AbortController()
   // ---- Reactive state ----
   const preloadPath = ref<string>('')
   const currentUrl = ref('')
@@ -88,7 +92,6 @@ export function useWebCapture() {
   const userSelector = ref('')
   const customRegion = ref<CustomRegion | null>(null)
   const blockedSelectors = ref<string[]>([])
-  const captureState = ref<WebCaptureState>('idle')
   const captureMode = ref<WebCaptureMode>('inject')
   const tickCount = ref(0)
   const savedCount = ref(0)
@@ -133,7 +136,6 @@ export function useWebCapture() {
     el.addEventListener('did-navigate', onDidNavigate as EventListener)
     el.addEventListener('did-navigate-in-page', onDidNavigate as EventListener)
     el.addEventListener('did-finish-load', onDidFinishLoad as EventListener)
-    el.addEventListener('new-window', onNewWindow as EventListener)
   }
 
   const detachWebview = () => {
@@ -143,7 +145,6 @@ export function useWebCapture() {
     webviewRef.removeEventListener('did-navigate', onDidNavigate as EventListener)
     webviewRef.removeEventListener('did-navigate-in-page', onDidNavigate as EventListener)
     webviewRef.removeEventListener('did-finish-load', onDidFinishLoad as EventListener)
-    webviewRef.removeEventListener('new-window', onNewWindow as EventListener)
     webviewRef = null
   }
 
@@ -194,13 +195,6 @@ export function useWebCapture() {
     if (activePreset && currentUrl.value) {
       applyPresetRules(currentUrl.value)
     }
-  }
-
-  // Fallback for <webview> new-window (main process also handles via setWindowOpenHandler).
-  const onNewWindow = (event: Event) => {
-    event.preventDefault()
-    const url = (event as Event & { url: string }).url
-    if (url && webviewRef) webviewRef.loadURL(url)
   }
 
   // ---- Navigation ----
@@ -357,23 +351,36 @@ export function useWebCapture() {
   }
 
   const confirmAndStart = async () => {
-    if (captureState.value !== 'confirming' || !webviewRef) return
+    const guest = webviewRef
+    if (captureState.value !== 'confirming' || !guest) return
+    captureState.value = 'starting'
     // Reset capture mode: region forces capturePage, otherwise default to inject.
     captureMode.value = customRegion.value ? 'capturePage' : 'inject'
     const name = courseName.value.trim() || pageTitle.value.trim() || 'Untitled'
     try {
       const appConfig = configStore
       const slideConfig = await window.electronAPI.config.getSlideExtractionConfig()
+      if (lifetime.signal.aborted) return
       const outputDir = appConfig.outputDirectory || '~/Downloads/AutoSlides'
       const folder = `${outputDir}/slides_${sanitizeFileName(name)}`
       await window.electronAPI.slideExtraction.ensureDirectory(folder)
-
-      const instanceId = `webcapture_${Date.now()}`
+      if (lifetime.signal.aborted) return
       extractedSlides.value = []
       tickCount.value = 0
       savedCount.value = 0
 
-      // Listen for saves to update counter.
+      const extractor = await slideExtractionManager.run({
+        mode: 'live',
+        instanceId,
+        sourceMode: 'pushed',
+        outputPath: folder,
+        courseInfo: { courseName: name, mode: 'live' },
+      }, { signal: lifetime.signal })
+      if (lifetime.signal.aborted) return
+      if (!extractor) throw new Error('Failed to start pushed extraction')
+      slideExtractorInstance.value = extractor
+
+      // The pipeline has finished draining the previous run before this point.
       slideExtractedHandler = (event: Event) => {
         const detail = (event as CustomEvent).detail as {
           instanceId: string
@@ -385,20 +392,15 @@ export function useWebCapture() {
       }
       window.addEventListener('slideExtracted', slideExtractedHandler)
 
-      const extractor = await slideExtractionManager.run({
-        mode: 'live',
-        instanceId,
-        sourceMode: 'pushed',
-        outputPath: folder,
-        courseInfo: { courseName: name, mode: 'live' },
-      })
-      if (!extractor) throw new Error('Failed to start pushed extraction')
-      slideExtractorInstance.value = extractor
-
       try {
         await window.electronAPI.powerManagement.preventSleep(powerHolderId)
       } catch {
         // non-fatal
+      }
+
+      if (lifetime.signal.aborted) {
+        await releasePowerHolder()
+        return
       }
 
       const downsampleW = slideConfig?.downsampleWidth || 480
@@ -407,24 +409,24 @@ export function useWebCapture() {
 
       if (captureMode.value === 'inject') {
         const selectorToUse = userSelector.value.trim() || detectedVideo.value?.selector || ''
-        webviewRef.send('capture:start', {
+        await guest.send('capture:start', {
           selector: selectorToUse,
           downsampleW,
           downsampleH,
         })
-        captureInterval = setInterval(() => {
-          webviewRef?.send('capture:tick')
-        }, intervalMs)
+        if (lifetime.signal.aborted) return
+        captureInterval = setInterval(() => { void guest.send('capture:tick') }, intervalMs)
       } else {
-        captureInterval = setInterval(() => {
-          void capturePageTick(downsampleW, downsampleH)
-        }, intervalMs)
+        captureInterval = setInterval(() => { void capturePageTick(downsampleW, downsampleH) }, intervalMs)
       }
 
       captureState.value = 'running'
       statusMessage.value = 'webCapture.capturingStatus'
       statusParams.value = { mode: captureMode.value }
     } catch (err) {
+      clearCapture()
+      await releasePowerHolder()
+      if (lifetime.signal.aborted) return
       log.error('Failed to start web capture:', err)
       statusMessage.value = `Failed to start: ${(err as Error).message}`
       statusParams.value = {}
@@ -433,7 +435,9 @@ export function useWebCapture() {
   }
 
   const capturePageTick = async (targetW: number, targetH: number) => {
-    if (!webviewRef || !slideExtractorInstance.value) return
+    const extractor = slideExtractorInstance.value
+    const interval = captureInterval
+    if (!webviewRef || !extractor) return
     try {
       // Spread to plain object — Vue Proxy can't be structured-cloned across webview IPC.
       const rect = customRegion.value
@@ -445,9 +449,9 @@ export function useWebCapture() {
       if (!size.width || !size.height) return
       const dataUrl = image.toDataURL()
       const imageData = await dataUrlToImageData(dataUrl, targetW, targetH)
-      if (!imageData) return
-      await slideExtractorInstance.value.pushFrame(imageData)
-      tickCount.value += 1
+      if (!imageData || interval !== captureInterval) return
+      await extractor.pushFrame(imageData)
+      if (interval === captureInterval) tickCount.value += 1
     } catch (err) {
       log.error('capturePage tick failed:', err)
     }
@@ -480,38 +484,52 @@ export function useWebCapture() {
       img.src = dataUrl
     })
 
-  const stopCapture = async () => {
+  const clearCapture = () => {
     if (captureInterval) {
       clearInterval(captureInterval)
       captureInterval = null
     }
-    if (webviewRef) webviewRef.send('capture:stop')
-    const extractor = slideExtractorInstance.value
-    if (extractor) extractor.stop()
+    slideExtractorInstance.value?.stop()
+    slideExtractorInstance.value = null
     if (slideExtractedHandler) {
       window.removeEventListener('slideExtracted', slideExtractedHandler)
       slideExtractedHandler = null
     }
+  }
+
+  const releasePowerHolder = async () => {
     try {
       await window.electronAPI.powerManagement.allowSleep(powerHolderId)
     } catch {
       // non-fatal
     }
+  }
+
+  const stopCapture = async () => {
+    if (captureState.value !== 'running') return
+    captureState.value = 'stopping'
+    clearCapture()
+    try {
+      await webviewRef?.send('capture:stop')
+    } catch (err) {
+      log.debug('Capture guest closed before stop:', err)
+    } finally {
+      await releasePowerHolder()
+    }
+    if (lifetime.signal.aborted) return
     captureState.value = 'idle'
     statusMessage.value = 'webCapture.stoppedStatus'
     statusParams.value = { n: savedCount.value }
   }
 
-  // ---- Teardown ----
   onBeforeUnmount(() => {
-    if (captureState.value === 'running') {
-      void stopCapture()
-    }
-    if (slideExtractedHandler) {
-      window.removeEventListener('slideExtracted', slideExtractedHandler)
-      slideExtractedHandler = null
-    }
+    lifetime.abort()
+    if (captureState.value === 'running') void stopCapture()
+    else if (captureState.value === 'starting') void releasePowerHolder()
+    clearCapture()
+    slideExtractionManager.remove(instanceId)
     detachWebview()
+    captureState.value = 'idle'
   })
 
   // ---- Public setters used by template ----

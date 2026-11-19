@@ -9,7 +9,7 @@
             <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
-        <button class="btn nav-btn" @click="goHome" title="Home">
+        <button class="btn nav-btn" @click="goHome" :title="$t('navigation.home')">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M2.5 8L8 2.5 13.5 8M4 7v5.5a1 1 0 001 1h2v-3h2v3h2a1 1 0 001-1V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
@@ -75,13 +75,16 @@
         partition="persist:yuketang"
         allowpopups
         class="yuketang-webview"
+        @did-navigate="onNavigate"
+        @did-navigate-in-page="onNavigate"
+        @did-stop-loading="onStopLoading"
       ></webview>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useYuketang } from '@features/export/useYuketang'
 
@@ -100,7 +103,7 @@ const {
   openExportResult,
 } = useYuketang()
 
-const webviewRef = ref<HTMLElement | null>(null)
+const webviewRef = ref<Electron.WebviewTag | null>(null)
 
 // Map status message keys to i18n translations
 const displayStatus = computed(() => {
@@ -127,59 +130,25 @@ const displayStatus = computed(() => {
 
 // Navigation
 const goBack = () => {
-  const webview = webviewRef.value as unknown as Electron.WebviewTag
+  const webview = webviewRef.value
   if (webview?.canGoBack?.()) {
     webview.goBack()
   }
 }
 
 const goHome = () => {
-  const webview = webviewRef.value as unknown as Electron.WebviewTag
+  const webview = webviewRef.value
   webview?.loadURL?.('https://www.yuketang.cn/web')
 }
 
-onMounted(() => {
-  // Wait for webview to be available in DOM
-  const setupWebview = () => {
-    const webview = webviewRef.value as unknown as Electron.WebviewTag
-    if (!webview) return
+const onNavigate = (event: Event) => {
+  scheduleNavigationEvaluation((event as Event & { url: string }).url)
+}
 
-    // Handle webview navigation events
-    const handleDidNavigate = (event: Event) => {
-      const url = (event as Event & { url: string }).url
-      scheduleNavigationEvaluation(url, 180)
-    }
-
-    const handleDidNavigateInPage = (event: Event) => {
-      const url = (event as Event & { url: string }).url
-      scheduleNavigationEvaluation(url, 180)
-    }
-
-    const handleDidStopLoading = () => {
-      const url = webview.getURL?.()
-      if (url) {
-        scheduleNavigationEvaluation(url, 0)
-      }
-    }
-
-    // Redirect window.open to same webview (backup for main process handler)
-    const handleNewWindow = (event: Event) => {
-      event.preventDefault()
-      const url = (event as Event & { url: string }).url
-      if (url) {
-        webview.loadURL(url)
-      }
-    }
-
-    webview.addEventListener('did-navigate', handleDidNavigate as EventListener)
-    webview.addEventListener('did-navigate-in-page', handleDidNavigateInPage as EventListener)
-    webview.addEventListener('did-stop-loading', handleDidStopLoading as EventListener)
-    webview.addEventListener('new-window', handleNewWindow as EventListener)
-  }
-
-  // Give DOM time to mount the webview
-  setTimeout(setupWebview, 100)
-})
+const onStopLoading = () => {
+  const url = webviewRef.value?.getURL()
+  if (url) scheduleNavigationEvaluation(url, 0)
+}
 </script>
 
 <style scoped>
@@ -197,9 +166,10 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-subtle);
   border-bottom: 1px solid var(--border-color);
-  gap: 12px;
+  gap: 8px 12px;
+  flex-wrap: wrap;
 }
 
 .toolbar-left, .toolbar-right {
@@ -290,6 +260,7 @@ onMounted(() => {
 }
 
 .yuketang-webview {
+  display: flex;
   width: 100%;
   height: 100%;
   border: none;

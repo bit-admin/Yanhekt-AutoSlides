@@ -40,7 +40,7 @@ export function setLogVerbose(enabled: boolean): void {
   verbose = enabled;
 }
 
-/** Which window's lines these are (`tools` for the Tools window). */
+/** Source label for renderer log lines. */
 export function setLogSource(next: LogSource): void {
   source = next;
 }

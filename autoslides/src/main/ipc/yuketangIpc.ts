@@ -18,8 +18,7 @@ export function registerYuketangIpcHandlers(services: IpcServices): void {
     const outputDir = configService.getConfig().outputDirectory;
     const cookieHeader = await buildYuketangCookieHeader();
     const { yuketangClassCapture } = windowManager;
-    // Route progress + the save dialog to whichever window invoked the export
-    // (the Yuketang tab now lives in the Tools window).
+    // Route progress and the save dialog to the renderer that started the export.
     const senderWindow = BrowserWindow.fromWebContents(event.sender);
 
     const onProgress = (message: string) => {

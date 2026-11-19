@@ -81,10 +81,25 @@
           <DeveloperPage v-if="developerMounted" />
         </div>
 
-        <!-- Settings (Workspace page — full-width, right panel hidden). Reached
-             from the user-bar gear button / menu bar, not the Workspace nav list.
-             Lazily mounted on first visit so its prepare loads (network
-             interfaces, extractor verify, …) don't fire on every app start. -->
+        <!-- Tools keep their guests mounted after first use, so a tab switch
+             doesn't destroy browser history, capture, or export state. -->
+        <div
+          :class="['mode-container', 'tool-page', { 'mode-hidden': activeNav !== 'webcapture' }]"
+          :inert="activeNav !== 'webcapture' || tabStore.state.activeTabId !== null"
+          data-mode="webcapture"
+        >
+          <WebCaptureTab v-if="webCaptureMounted" />
+        </div>
+        <div
+          :class="['mode-container', 'tool-page', { 'mode-hidden': activeNav !== 'yuketang' }]"
+          :inert="activeNav !== 'yuketang' || tabStore.state.activeTabId !== null"
+          data-mode="yuketang"
+        >
+          <YuketangTab v-if="yuketangMounted" />
+        </div>
+
+        <!-- Settings keeps the right panel. Lazily mounted so preparation
+             (network interfaces, extractor verify, …) doesn't run at startup. -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'settings' }]"
           data-mode="settings"
@@ -170,6 +185,8 @@ import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
 import LecturesPage from '@renderer/components/lectures/LecturesPage.vue'
 import DeveloperPage from '@renderer/components/developer/DeveloperPage.vue'
+import WebCaptureTab from '@renderer/components/webCapture/WebCaptureTab.vue'
+import YuketangTab from '@renderer/components/export/YuketangTab.vue'
 import SettingsPage from '@renderer/components/settings/SettingsPage.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
@@ -246,6 +263,13 @@ watch(
     }
   },
 )
+
+const webCaptureMounted = ref(false)
+const yuketangMounted = ref(false)
+watch(activeNav, (nav) => {
+  if (nav === 'webcapture') webCaptureMounted.value = true
+  if (nav === 'yuketang') yuketangMounted.value = true
+}, { immediate: true })
 
 // Settings likewise mounts lazily on first visit (its prepare loads network
 // interfaces and verifies the extractor), then stays mounted.
@@ -471,6 +495,12 @@ onUnmounted(() => {
   top: 0;
   left: 0;
   transition: opacity 0.2s ease-in-out;
+}
+
+/* Keep the guest's viewport full-width even when another page shows the
+   right panel. Its layout and capture coordinates must not change on a tab hop. */
+.tool-page {
+  width: calc(100% + var(--right-panel-width, 0px));
 }
 
 .mode-container.mode-hidden {

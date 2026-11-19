@@ -12,9 +12,9 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export const LOG_LEVELS: readonly LogLevel[] = ['debug', 'info', 'warn', 'error'];
 
 /** Where a line came from. The renderer entry points pick theirs. */
-export type LogSource = 'main' | 'renderer' | 'tools';
+export type LogSource = 'main' | 'renderer';
 
-export const LOG_SOURCES: readonly LogSource[] = ['main', 'renderer', 'tools'];
+export const LOG_SOURCES: readonly LogSource[] = ['main', 'renderer'];
 
 /** Per-argument cap, so one huge payload cannot flood the file. */
 export const MAX_ARG_CHARS = 4096;

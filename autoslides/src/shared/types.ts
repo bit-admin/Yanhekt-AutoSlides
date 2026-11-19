@@ -315,8 +315,7 @@ export interface AppConfig {
   // When true (default), share links / Index publishes embed a compact v3
   // slide timeline so players can sync. Off falls back to a v2 image-only link.
   cloudShareEmbedTimeline: boolean;
-  // Settings → Add-ons → Tools: show the Tools window icon button beside Settings
-  // at the foot of the navigator. Default off — Settings then takes the full row.
+  // Settings → Add-ons → Tools: show the Tools section in the sidebar. Default off.
   showToolsButton: boolean;
   // Settings → Add-ons → Command Line: let `autoslides` commands drive this app
   // over a local socket (main `cli/control`). Default on; off closes the socket

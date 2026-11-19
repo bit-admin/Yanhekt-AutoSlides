@@ -276,11 +276,10 @@ Cross-domain hops use aliases; same-domain imports stay relative. ESLint `no-res
 ### Process topology
 
 ```
-main.ts                          tools.ts (second BrowserWindow)
-  WindowManager, services,         ToolsApp.vue
-  registerAllIpcHandlers()           Web Capture + Yuketang
-        │                                      │
-        ▼                                      ▼
+main.ts
+  WindowManager, services, registerAllIpcHandlers()
+        │
+        ▼
 preload/index.ts  ──contextBridge──►  window.electronAPI
         │
         ▼
@@ -291,9 +290,9 @@ renderer.ts → App.vue
 ```
 
 - **Main** (`src/main.ts`): lifecycle, `BrowserWindow`, one `IpcServices` bag, one `registerAllIpcHandlers(services)` call. Privileged `asmedia://` scheme is registered **before** `app.ready`.
-- **Preload** (`src/preload/`): twelve domain modules spread in `index.ts` (`platform`, `video`, `extraction`, `ai`, `export`, `course`, `update`, `tools`, `intranet`, `localRelay`, `notes`, `lectures`). The contract is `src/preload/electronApi.ts` (`ElectronAPI`). Each exported namespace is typed `ElectronAPI['<ns>']`, so a method added on only one side fails `tsc` in preload. `src/vite-env.d.ts` only maps it onto `Window`.
+- **Preload** (`src/preload/`): twelve domain modules spread in `index.ts` (`platform`, `video`, `extraction`, `ai`, `export`, `course`, `update`, `webCapture`, `intranet`, `localRelay`, `notes`, `lectures`). The contract is `src/preload/electronApi.ts` (`ElectronAPI`). Each exported namespace is typed `ElectronAPI['<ns>']`, so a method added on only one side fails `tsc` in preload. `src/vite-env.d.ts` only maps it onto `Window`.
 - **Renderer** (`src/renderer.ts`): load `configStore` then mount. No Pinia — module-level `reactive`/`ref` singletons.
-- **Tools window**: Web Capture + Yuketang only. Compress lives in Lectures. Guest `<webview>` gets `src/webviewCapturePreload.ts`.
+- **Tools**: Web Capture and Yuketang are Info-tab pages, mounted on first visit and kept alive across navigation. Each keeps its own guest `<webview>` session; Web Capture uses `src/webviewCapturePreload.ts`. Guest links that open popups stay in the corresponding tool guest.
 - **Demo**: `src/renderer/demo/` + `src/main/demo/`. Production never imports it. Inversion of control through `@shared/overrideRegistry` (empty `overrides` object; demo bootstrap is the only writer). Deleting both `demo/` trees plus the documented guarded hooks leaves a working real app. ESLint forbids production imports of `@renderer/demo`. Screenshot-only: `window.__demoSetWatchNotesProvider` reseeds the open watch tab as Obsidian or Notion (`seedWatchNoteEntry` takes any provider's entry). No override slot — the panel does not call those bridges until a button is clicked.
 
 Forge unpacks native bits from asar (`*.node`, `sharp`, `@img`, `ort-wasm`) so Node can load binaries and ONNX Runtime Web can `file://`-import its WASM. Extra resources include `resources/models` and the pinned FFmpeg bundle in `media-tools` (no FFprobe since 2026-11-19). Forge prepares checksum-pinned binaries for the explicit target before start/package, keeps them outside ASAR, and checks the packaged tools before signing. Runtime uses only the bundle, never PATH/system FFmpeg. Pins, commands and source/license responsibilities: [Media tools](media-tools.md). Packaged builds flip Electron fuses (`RunAsNode: false`, `OnlyLoadAppFromAsar: true`, …).
@@ -338,16 +337,16 @@ renderer/
 
 - `configStore` — reactive `AppConfig`, seeded by `loadConfig()`, kept in sync by `config:onUpdate`. Non-settings code reads it synchronously. Settings composables write through `electronAPI.config`.
 - `tabStore` — playback tabs. `activeTabId === null` ⇒ the persistent **Info tab**. Manual tabs cap at `maxManualTabs`; task tabs cap at `parallelTasks`. Inactive playback tabs are **CSS-hidden, never unmounted**.
-- `navigationStore` — Info-tab target (`home` / `live` / `recorded` / `search` / workspace / `settings`).
-- `rightPanelStore` — `task` | `download` | `notes`. Auto-hidden on workspace pages without touching the user's collapse preference. The Notes view is the Yanhekt editor, or `ExternalNotePanel` (append queue: `queued` / `appending` / `appended`, pause/resume) when the provider is Obsidian or Notion. The panel widens only for the Yanhekt editor.
+- `navigationStore` — Info-tab target (browsing, Workspace, Tools, or Settings).
+- `rightPanelStore` — `task` | `download` | `notes`. Auto-hidden on Workspace and Tools pages without touching the user's collapse preference. The Notes view is the Yanhekt editor, or `ExternalNotePanel` (append queue: `queued` / `appending` / `appended`, pause/resume) when the provider is Obsidian or Notion. The panel widens only for the Yanhekt editor.
 
-**Layout.** Three columns on browsing + playback; two columns on workspace pages (right panel collapsed). Workspace targets: `slides-review` (Slides), `cloud-notes` (Drive), `lectures`, `developer` (Settings → General → Developer mode). Settings is **not** a workspace page — it keeps the three-column chrome.
+**Layout.** Workspace and Tools pages span the main and right columns: `slides-review` (Slides), `cloud-notes` (Drive), `lectures`, `developer` (Settings → General → Developer mode), `webcapture`, and `yuketang`. Browsing, playback and Settings keep the three-column layout.
 
-`courseSelection` is the single entry point for opening a course/stream from anywhere. Settings tabs: General, Image Processing, Download & Playback, Network, AI, Cloud, Add-ons. `showToolsButton` (default false) hides the sidebar Tools button until Add-ons opts in; the Tools window itself is unchanged.
+`courseSelection` is the single entry point for opening a course/stream from anywhere. Settings tabs: General, Image Processing, Download & Playback, Network, AI, Cloud, Add-ons. `showToolsButton` (default false) controls the Tools group immediately below Workspace; the stored key is unchanged for upgrades.
 
 ### Preload namespaces (`window.electronAPI`)
 
-`auth`, `config`, `api`, `intranet`, `localRelay`, `video`, `slideVideo`, `lectures`, `download`, `qtExtractor`, `update`, `extractorInstaller`, `slideExtraction`, `dialog`, `powerManagement`, `window`, `shell`, `menu`, `cache`, `app`, `log`, `ai`, `copilot`, `trash`, `crop`, `slideMetadata`, `slideTimeline`, `pdfmaker`, `noteExport`, `tools`, `webCapture`, `yuketang`, `autoCrop`, `mlClassifier`, `cloudNotes`, `obsidianNotes`, `notionNotes`.
+`auth`, `config`, `api`, `intranet`, `localRelay`, `video`, `slideVideo`, `lectures`, `download`, `qtExtractor`, `update`, `extractorInstaller`, `slideExtraction`, `dialog`, `powerManagement`, `window`, `shell`, `menu`, `cache`, `app`, `log`, `ai`, `copilot`, `trash`, `crop`, `slideMetadata`, `slideTimeline`, `pdfmaker`, `noteExport`, `webCapture`, `yuketang`, `autoCrop`, `mlClassifier`, `cloudNotes`, `obsidianNotes`, `notionNotes`.
 
 Object-valued IPC **must** be JSON-cloned first. See [Gotcha: Vue proxies](#vue-proxies-cannot-cross-structured-clone).
 
@@ -417,7 +416,7 @@ features/lectures/          ← features/course/, video/
 
 ```
 src/
-├── main.ts | renderer.ts | tools.ts | webviewCapturePreload.ts | App.vue
+├── main.ts | renderer.ts | webviewCapturePreload.ts | webviewSsoPreload.ts | App.vue
 ├── main/           ai/ demo/ download/ export/ extraction/ infra/ ipc/ platform/ video/
 ├── preload/        electronApi.ts + domain modules + index.ts
 ├── renderer/       components/ demo/ features/ shared/
@@ -550,7 +549,7 @@ Worker tests (`npm test`): `resumeSeal` round-trip/expiry/tamper; Yanhekt golden
 
 ### Differences vs desktop (the ones that cause bugs)
 
-1. No right panel, no task/download queues, no download-by-session-id row, no local filesystem, no Qt extractor, no Lectures compress, no Yuketang Tools window, no Obsidian/Notion watch notes, no persistent log file, no local ONNX ML (LLM only).
+1. No right panel, no task/download queues, no download-by-session-id row, no local filesystem, no Qt extractor, no Lectures compress, no Web Capture or Yuketang tools, no Obsidian/Notion watch notes, no persistent log file, no local ONNX ML (LLM only).
 2. Native HLS on Safari/iOS.
 3. `String()` at every Yanhekt id boundary.
 4. Drive vs Notes, Pinned vs Subscribed (intentional).

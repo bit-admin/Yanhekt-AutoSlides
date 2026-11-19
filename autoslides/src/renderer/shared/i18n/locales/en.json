@@ -167,7 +167,7 @@
       "yanhektNotReady": "Cloud storage isn't set up yet, so no watch notes will be created.",
       "openCloudSettings": "Set Up in Cloud Settings",
       "toolsTitle": "Tools",
-      "toolsDescription": "Extra tools open in their own window, from a button next to Settings at the bottom of the sidebar.",
+      "toolsDescription": "Show Web Capture and Yuketang in the sidebar, below Workspace.",
       "showToolsButton": "Show Additional Tools",
       "includedTools": "Included tools",
       "webCaptureDescription": "Open any web page in a built-in browser and extract slides from the video playing on it.",
@@ -1490,8 +1490,8 @@
     "close": "Close",
     "closeGuard": {
       "title": "Work still in progress",
-      "message": "Tasks or downloads are still running.",
-      "detail": "If you quit now, in-progress tasks and downloads will be stopped and any unfinished work will be lost. Are you sure you want to quit?",
+      "message": "AutoSlides is still working.",
+      "detail": "Unfinished work may be lost if you quit now.",
       "confirm": "Quit anyway",
       "cancel": "Cancel"
     },

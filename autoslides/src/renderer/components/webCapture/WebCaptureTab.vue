@@ -25,7 +25,7 @@
         :placeholder="$t('webCapture.urlPlaceholder')"
         spellcheck="false"
       />
-      <button class="btn btn--primary" @click="navigate()" :disabled="!pendingUrl.trim()">{{ $t('webCapture.go') }}</button>
+      <button class="btn" @click="navigate()" :disabled="!pendingUrl.trim()">{{ $t('webCapture.go') }}</button>
       <div class="preset-dropdown">
         <button class="btn secondary-btn preset-toggle" @click.stop="presetOpen = !presetOpen">
           {{ $t('webCapture.presets') }}
@@ -64,7 +64,7 @@
         class="btn secondary-btn"
         :class="{ active: pickerActive === 'pick', faded: regionOverridesSelector }"
         @click="pickerActive === 'pick' ? cancelPicker() : pickVideoSelector()"
-        :disabled="captureState === 'running'"
+        :disabled="webCaptureBusy"
       >
         {{ pickerActive === 'pick' ? $t('webCapture.cancelPick') : $t('webCapture.pickVideo') }}
       </button>
@@ -72,7 +72,7 @@
         class="btn secondary-btn"
         :class="{ active: pickerActive === 'block' }"
         @click="pickerActive === 'block' ? cancelPicker() : startBlocker()"
-        :disabled="captureState === 'running'"
+        :disabled="webCaptureBusy"
       >
         {{ pickerActive === 'block' ? $t('webCapture.cancelBlock') : $t('webCapture.blockElement') }}
       </button>
@@ -87,7 +87,7 @@
         class="btn secondary-btn"
         :class="{ active: regionDrawMode }"
         @click="regionDrawMode ? cancelRegionDraw() : beginRegionDraw()"
-        :disabled="captureState === 'running'"
+        :disabled="webCaptureBusy"
       >
         {{ customRegion ? $t('webCapture.redrawRegion') : $t('webCapture.drawRegion') }}
       </button>
@@ -95,12 +95,12 @@
         v-if="customRegion"
         class="btn secondary-btn"
         @click="clearRegion"
-        :disabled="captureState === 'running'"
+        :disabled="webCaptureBusy"
       >
         {{ $t('webCapture.clearRegion') }}
       </button>
       <button
-        v-if="captureState !== 'running'"
+        v-if="captureState !== 'running' && captureState !== 'stopping'"
         class="btn btn--primary"
         @click="requestStart"
         :disabled="!canStart"
@@ -109,7 +109,8 @@
       </button>
       <button
         v-else
-        class="btn btn--danger"
+        class="btn btn--danger-outline"
+        :disabled="captureState !== 'running'"
         @click="stopCapture"
       >
         {{ $t('webCapture.stop') }}
@@ -163,8 +164,8 @@
 
     <!-- Confirm name modal -->
     <div v-if="captureState === 'confirming'" class="modal-overlay" @click.self="cancelStart">
-      <div class="dialog-box webcapture-confirm-box" @click.stop>
-        <h3 class="dialog-title">{{ $t('webCapture.confirmTitle') }}</h3>
+      <div class="dialog-box webcapture-confirm-box" role="dialog" aria-modal="true" aria-labelledby="webcapture-confirm-title" @keydown.esc.stop="cancelStart" @click.stop>
+        <h3 id="webcapture-confirm-title" class="dialog-title">{{ $t('webCapture.confirmTitle') }}</h3>
         <p class="dialog-help">{{ $t('webCapture.confirmDesc') }} <code>slides_{{ sanitizedPreview }}</code>.</p>
         <input
           class="text-input modal-input"
@@ -183,11 +184,9 @@
 </template>
 
 <script setup lang="ts">
-import { createLogger } from '@shared/utils/logger';
-const log = createLogger('WebCaptureTab');
 import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useWebCapture, type WebCapturePreset } from '@features/webCapture/useWebCapture'
+import { useWebCapture, webCaptureBusy, type WebCapturePreset } from '@features/webCapture/useWebCapture'
 import { sanitizeFileName } from '@common/sanitizeFileName'
 import RegionOverlay from './RegionOverlay.vue'
 
@@ -195,7 +194,6 @@ const { t } = useI18n()
 
 const {
   preloadPath,
-  currentUrl,
   pendingUrl,
   pageTitle,
   courseName,
@@ -236,7 +234,7 @@ const {
   onUserSelectorInput,
 } = useWebCapture()
 
-const webviewEl = ref<HTMLElement | null>(null)
+const webviewEl = ref<Electron.WebviewTag | null>(null)
 const modalInputRef = ref<HTMLInputElement | null>(null)
 const presetOpen = ref(false)
 
@@ -277,20 +275,8 @@ const focusModal = async () => {
   modalInputRef.value?.select()
 }
 
-// Attach once the <webview> appears in the DOM (it is v-if'd on preloadPath).
-watch(preloadPath, async (val) => {
-  if (!val) return
-  for (let i = 0; i < 30; i++) {
-    await nextTick()
-    const el = webviewEl.value as unknown as Electron.WebviewTag | null
-    if (el) {
-      attachWebview(el as never)
-      return
-    }
-    await new Promise((r) => setTimeout(r, 50))
-  }
-  log.warn('WebCaptureTab: webview element never appeared')
-}, { immediate: true })
+// When the guest preload path becomes available, Vue mounts the webview.
+watch(webviewEl, attachWebview, { flush: 'post' })
 
 watch(captureState, (val) => {
   if (val === 'confirming') void focusModal()
@@ -476,16 +462,11 @@ watch(captureState, (val) => {
 
 .modal-overlay {
   position: absolute;
-  inset: 0;
   background-color: var(--overlay-scrim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-overlay);
 }
 
 .webcapture-confirm-box {
-  width: 420px;
+  width: min(420px, calc(100% - 32px));
 }
 
 .webcapture-confirm-box code {

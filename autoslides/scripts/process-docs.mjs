@@ -11,8 +11,8 @@
 //   - SPLIT: the two over-long settings tabs are cropped into per-README-step
 //     sub-images, using the live-DOM section geometry recorded in sections.json
 //     (so boundaries survive layout changes). Uses ImageMagick (`magick`).
-//   - COVER: hide live login QR codes (Yuketang) with a rounded rect so docs
-//     never ship a scannable WeChat login code.
+//   - Skip Yuketang captures unless the screenshot script hid the guest to
+//     keep live login QR codes out of the docs.
 //   - CROP: a single named top-band of a capture is lifted into a standalone
 //     docs image (the source is still copied whole elsewhere). Used for the
 //     extractor-install image, which is just the top "Auto Extraction After
@@ -104,14 +104,6 @@ const COPY = {
   'watch-notes': 'watch-notes',
   'watch-notes-obsidian': 'watch-notes-obsidian',
   'watch-notes-notion': 'watch-notes-notion',
-}
-
-// Hide live login QR codes in docs outputs. Fractions of image width/height so
-// the cover survives DPR. Applied to the COPY dest of `src`.
-const COVER = {
-  // Measured on the live Yuketang login page, 2026-09-26 (the page moves now and then;
-  // re-check docs/images/tools-yuketang.png after every recapture).
-  'tools-yuketang': { x0: 0.4116, y0: 0.4276, x1: 0.5884, y1: 0.6798, rxFrac: 0.012 },
 }
 
 // Long settings tabs split into bands at section-title boundaries. `at` lists
@@ -210,9 +202,12 @@ function main() {
 
   // --- COPY -----------------------------------------------------------------
   let copied = 0
-  const coverFiles = []
   for (const [src, dst] of Object.entries(COPY)) {
     if (skipSrc(src)) continue
+    if (src === 'tools-yuketang' && meta.yuketangGuestHidden !== true) {
+      warn('skipping tools-yuketang.png: recapture with the guest hidden')
+      continue
+    }
     const from = path.join(srcDir, `${src}.png`)
     const to = path.join(docsDir, `${dst}.png`)
     if (!existsSync(from)) { warn(`missing capture: ${src}.png (skipped)`); continue }
@@ -221,28 +216,6 @@ function main() {
     copied++
     console.log(`  ✓ ${src}.png → docs/images/${dst}.png`)
     log.push(`- copy \`${src}.png\` → \`docs/images/${dst}.png\``)
-    if (COVER[src]) coverFiles.push({ file: to, spec: COVER[src], src })
-  }
-
-  // --- COVER (redact live QR codes) ----------------------------------------
-  for (const { file, spec, src } of coverFiles) {
-    const w = parseInt(identify(file, '%w'), 10)
-    const h = parseInt(identify(file, '%h'), 10)
-    const x0 = Math.round(spec.x0 * w)
-    const y0 = Math.round(spec.y0 * h)
-    const x1 = Math.round(spec.x1 * w)
-    const y1 = Math.round(spec.y1 * h)
-    const rx = Math.max(4, Math.round((spec.rxFrac ?? 0.012) * w))
-    execFileSync('magick', [
-      file,
-      '-fill', '#f4f4f6',
-      '-stroke', '#e2e2e8',
-      '-strokewidth', '1',
-      '-draw', `roundrectangle ${x0},${y0} ${x1},${y1} ${rx},${rx}`,
-      file,
-    ])
-    console.log(`  ✓ covered QR on ${path.basename(file)}`)
-    log.push(`- cover QR on \`${path.basename(file)}\` (from \`${src}.png\`)`)
   }
 
   // --- SPLIT ----------------------------------------------------------------

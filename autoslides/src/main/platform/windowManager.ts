@@ -1,13 +1,9 @@
 import { app, BrowserWindow, Menu, dialog, nativeTheme, session, shell } from 'electron';
-import path from 'node:path';
 import type { ConfigService } from '@main/platform/configService';
-import { demoWebPreferences } from '@main/demo/demoEnv';
 import enTranslations from '../../renderer/shared/i18n/locales/en.json';
 import zhTranslations from '../../renderer/shared/i18n/locales/zh.json';
 import jaTranslations from '../../renderer/shared/i18n/locales/ja.json';
 import koTranslations from '../../renderer/shared/i18n/locales/ko.json';
-import { createLogger } from '@main/infra/logger';
-const log = createLogger('WindowManager');
 
 export interface YuketangClassCapture {
   presentationId: string;
@@ -16,15 +12,11 @@ export interface YuketangClassCapture {
   updatedAt: string;
 }
 
-declare const TOOLS_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
-declare const TOOLS_WINDOW_VITE_NAME: string;
-
 export function getWindowBackgroundColor(): string {
   return nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff';
 }
 
 export class WindowManager {
-  private toolsWindow: BrowserWindow | null = null;
   readonly yuketangClassCapture: YuketangClassCapture = {
     presentationId: '',
     authorization: '',
@@ -32,7 +24,6 @@ export class WindowManager {
     updatedAt: ''
   };
 
-  private onToolsWindowClosed?: () => void;
   private configService?: ConfigService;
 
   // Whether the renderer reports active work (running/queued tasks, downloads,
@@ -196,70 +187,7 @@ export class WindowManager {
     }
   }
 
-  setOnToolsWindowClosed(fn: () => void): void {
-    this.onToolsWindowClosed = fn;
-  }
-
-  getToolsWindow(): BrowserWindow | null {
-    return this.toolsWindow;
-  }
-
-  createToolsWindow(tab?: string): void {
-    const targetTab = tab || 'webcapture';
-
-    if (this.toolsWindow && !this.toolsWindow.isDestroyed()) {
-      this.toolsWindow.webContents.send('tools:switchTab', targetTab);
-      this.toolsWindow.focus();
-      return;
-    }
-
-    this.toolsWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      minWidth: 900,
-      minHeight: 600,
-      title: 'Tools',
-      titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
-      frame: false,
-      backgroundColor: getWindowBackgroundColor(),
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        nodeIntegration: false,
-        contextIsolation: true,
-        // Web Capture + Yuketang tabs embed a <webview>.
-        webviewTag: true,
-        // Mirror the main window's demo flag so this renderer reports isDemoMode too.
-        ...demoWebPreferences()
-      }
-    });
-
-    // Keep webview navigations (e.g. Yuketang window.open) inside the webview
-    // rather than spawning OS windows.
-    this.toolsWindow.webContents.on('did-attach-webview', (_event, webContents) => {
-      log.debug('[Tools] Webview attached, setting up window open handler');
-      webContents.setWindowOpenHandler(({ url }) => {
-        log.debug('[Tools] Intercepted window.open:', url);
-        webContents.loadURL(url);
-        return { action: 'deny' };
-      });
-    });
-
-    if (TOOLS_WINDOW_VITE_DEV_SERVER_URL) {
-      this.toolsWindow.loadURL(`${TOOLS_WINDOW_VITE_DEV_SERVER_URL}/tools.html?tab=${targetTab}`);
-    } else {
-      this.toolsWindow.loadFile(
-        path.join(__dirname, `../renderer/${TOOLS_WINDOW_VITE_NAME}/tools.html`),
-        { query: { tab: targetTab } }
-      );
-    }
-
-    this.toolsWindow.on('closed', () => {
-      this.onToolsWindowClosed?.();
-      this.toolsWindow = null;
-    });
-  }
-
-  setupYuketangClassCapture(): void {
+  setupYuketangClassCapture(notify: (state: { presentationId: string; hasAuthorization: boolean }) => void): void {
     const captureSession = session.fromPartition('persist:yuketang');
     captureSession.webRequest.onBeforeSendHeaders(
       { urls: ['*://*.yuketang.cn/api/v3/lesson/presentation/fetch*'] },
@@ -282,7 +210,7 @@ export class WindowManager {
           if (presentationId || authorization) {
             this.yuketangClassCapture.sourceUrl = details.url;
             this.yuketangClassCapture.updatedAt = new Date().toISOString();
-            this.toolsWindow?.webContents.send('yuketang:classCaptureUpdated', {
+            notify({
               presentationId: this.yuketangClassCapture.presentationId,
               hasAuthorization: Boolean(this.yuketangClassCapture.authorization)
             });

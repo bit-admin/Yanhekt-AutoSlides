@@ -2,15 +2,11 @@ import { ref, computed } from 'vue'
 import { activateTab, tabStore } from './tabStore'
 import type { Course } from './useCourseList'
 
-// Yanhekt and Yanhe 2.0 browsing pages keep the three-panel layout; Workspace pages (the
-// migrated Tools tabs) take the whole window beside the left panel.
-export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'yanhe2-calendar' | 'yanhe2-curriculum' | 'slides-review' | 'cloud-notes' | 'lectures' | 'developer' | 'settings'
+export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'yanhe2-calendar' | 'yanhe2-curriculum' | 'slides-review' | 'cloud-notes' | 'lectures' | 'developer' | 'webcapture' | 'yuketang' | 'settings'
 
-// Nav targets that render as full-width Workspace pages (right panel hidden).
-// NOTE: 'settings' is deliberately NOT here — like the "AutoSlides" section pages
-// (home/live/recorded), it occupies only the main content area and keeps the
-// normal three-panel layout (right panel stays visible).
-const WORKSPACE_TARGETS = new Set<NavTarget>(['slides-review', 'cloud-notes', 'lectures', 'developer'])
+// Workspace and Tools use the full width beside the left panel. Settings and
+// the browsing pages keep the normal three-panel layout.
+const FULL_WIDTH_TARGETS = new Set<NavTarget>(['slides-review', 'cloud-notes', 'lectures', 'developer', 'webcapture', 'yuketang'])
 
 export interface CourseOpenRequest {
   mode: 'live' | 'recorded'
@@ -39,12 +35,10 @@ const activePinnedId = ref<string | null>(null)
 // click does NOT bump this, so it preserves the current sessions/grid state.
 const recordedGridResetTick = ref(0)
 
-// True when a Workspace page owns the content area: the Info tab is active (no
-// playback tab) AND the current nav target is a workspace page. Read by App.vue
-// and the title bar to collapse the right panel into a full-width main content.
-// Clicking a playback tab flips activeTabId, which turns this off automatically.
-const isWorkspacePage = computed(
-  () => tabStore.state.activeTabId === null && WORKSPACE_TARGETS.has(activeNav.value)
+// A full-width page only hides the right panel while the Info tab is in front.
+// Focusing a playback tab restores the usual layout without changing preferences.
+const isFullWidthPage = computed(
+  () => tabStore.state.activeTabId === null && FULL_WIDTH_TARGETS.has(activeNav.value)
 )
 
 let nextRequestId = 1
@@ -85,7 +79,7 @@ export const navigationStore = {
   activeNav,
   recordedOnSessions,
   yanhe2OnSessions,
-  isWorkspacePage,
+  isFullWidthPage,
   courseOpenRequest,
   activePinnedId,
   recordedGridResetTick,

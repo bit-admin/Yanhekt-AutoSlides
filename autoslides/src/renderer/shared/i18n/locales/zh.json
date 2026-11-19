@@ -167,7 +167,7 @@
       "yanhektNotReady": "尚未设置云存储，因此不会创建随堂笔记。",
       "openCloudSettings": "前往云端设置",
       "toolsTitle": "工具",
-      "toolsDescription": "额外工具在独立窗口中打开，入口是侧边栏底部“设置”旁的按钮。",
+      "toolsDescription": "在侧边栏的“工作区”下方显示网页捕获和雨课堂。",
       "showToolsButton": "显示更多工具",
       "includedTools": "包含的工具",
       "webCaptureDescription": "在内置浏览器中打开任意网页，并从页面上播放的视频中提取幻灯片。",
@@ -1490,8 +1490,8 @@
     "close": "关闭",
     "closeGuard": {
       "title": "仍有任务进行中",
-      "message": "任务或下载仍在进行中。",
-      "detail": "如果现在退出，正在进行的任务和下载将被中止，所有未完成的工作都会丢失。确定要退出吗？",
+      "message": "AutoSlides 仍在处理工作。",
+      "detail": "如果现在退出，未完成的工作可能会丢失。",
       "confirm": "仍然退出",
       "cancel": "取消"
     },

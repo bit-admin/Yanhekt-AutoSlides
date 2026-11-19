@@ -47,7 +47,7 @@ export function isLocalProxyUrl(url: string, port: number): boolean {
 
 /**
  * A page of the app itself: the packaged renderer (file://) or, in a dev
- * build, a Vite dev server's origin (main window, Tools window). Anything else (a site in a frame) is not.
+ * build, the main renderer's Vite origin. Anything else (a site in a frame) is not.
  */
 export function isAppPageUrl(pageUrl: string, devServerUrls: readonly (string | undefined)[]): boolean {
   if (pageUrl.startsWith('file://')) return true;

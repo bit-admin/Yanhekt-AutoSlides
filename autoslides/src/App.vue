@@ -30,17 +30,16 @@
         />
       </div>
 
-      <!-- Normal content when not in browser login mode -->
-      <template v-else>
-        <div class="main-content" :style="{ width: renderedMain + 'px' }">
-          <MainContent @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
-        </div>
-        <div v-if="!layoutStore.rightCollapsed && !isWorkspacePage" class="divider right-divider" @mousedown="startResize('right', $event)"></div>
+      <!-- Browser sign-in temporarily covers the shell without destroying open
+           tools or playback tabs. -->
+      <div v-show="!isBrowserLoginActive" class="main-content" :style="{ width: renderedMain + 'px' }">
+        <MainContent @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
+      </div>
+      <div v-if="!isBrowserLoginActive && !rightHidden" class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
-        <div class="right-panel" :class="{ collapsed: rightHidden }" :style="{ width: renderedRight + 'px' }">
-          <RightPanel ref="rightPanelRef" />
-        </div>
-      </template>
+      <div v-show="!isBrowserLoginActive" class="right-panel" :class="{ collapsed: rightHidden }" :style="{ width: renderedRight + 'px' }">
+        <RightPanel ref="rightPanelRef" />
+      </div>
     </div>
 
     <OnboardingModal
@@ -82,6 +81,8 @@ import { installCliControlHandler } from '@features/download/cliControlHandler'
 import { installDeepLinkHandler } from '@features/course/deepLinkHandler'
 import { PostProcessingService } from '@shared/services/postProcessingService'
 import { SlideVideoQueue } from '@shared/services/slideVideoQueue'
+import { webCaptureBusy } from '@features/webCapture/useWebCapture'
+import { yuketangExportBusy } from '@features/export/useYuketang'
 
 // Whether any long-running work is active. Drives the main-process warning shown
 // when the user tries to close the window or quit while work is in flight.
@@ -98,7 +99,8 @@ const isBusy = computed(() => {
   const postProcessingBusy = PostProcessingService.isProcessing || PostProcessingService.activeJobCount > 0
   // Quitting kills FFmpeg mid-video; the queued ones would be lost too.
   const slideVideosBusy = SlideVideoQueue.hasWork.value
-  return tasksBusy || downloadsBusy || postProcessingBusy || slideVideosBusy
+  return tasksBusy || downloadsBusy || postProcessingBusy || slideVideosBusy ||
+    webCaptureBusy.value || yuketangExportBusy.value
 })
 
 watch(isBusy, (busy) => {
@@ -205,7 +207,7 @@ provide(settingsContextKey, {
 })
 
 const { isBrowserLoginActive, browserLoginTarget, closeBrowserLogin, handleBrowserToken, isLoggedIn, smsChallenge } = auth
-const { isWorkspacePage } = navigationStore
+const { isFullWidthPage } = navigationStore
 
 // Onboarding / What's New. configStore + app version are loaded before mount.
 // v4 upgrades have onboardingCompleted but no lastOnboardingVersion — the
@@ -300,7 +302,7 @@ const mainWidth = ref(845)
 // A Workspace page hides the right panel just like collapsing it, but without
 // touching the user's rightCollapsed preference — so toggling back to a Yanhekt
 // page (or a playback tab) restores the panel exactly as the user left it.
-const rightHidden = computed(() => isWorkspacePage.value || layoutStore.rightCollapsed)
+const rightHidden = computed(() => isFullWidthPage.value || layoutStore.rightCollapsed)
 const renderedLeft = computed(() => (layoutStore.leftCollapsed ? 0 : leftWidth.value))
 const renderedRight = computed(() => (rightHidden.value ? 0 : rightWidth.value))
 const renderedMain = computed(() =>
