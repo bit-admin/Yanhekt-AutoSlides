@@ -43,10 +43,10 @@ jobs:
       # run reuses (and releases) the very bytes that were checked.
       OUT_KEY: ffmpeg-minimal-out-v1-${{ matrix.target }}-${{ matrix.os }}-${{ matrix.container || 'host' }}
     steps:
-      # actions/cache needs tar and gzip inside the container.
+      # actions/cache needs tar and gzip inside the container; Package needs zip even when the build is cached.
       - name: Prepare container
         if: matrix.container
-        run: command -v tar && command -v gzip || dnf -y install tar gzip
+        run: command -v tar && command -v gzip && command -v zip || dnf -y install tar gzip zip
       # The container has no git; checkout falls back to the REST API.
       - uses: actions/checkout@v4
 
