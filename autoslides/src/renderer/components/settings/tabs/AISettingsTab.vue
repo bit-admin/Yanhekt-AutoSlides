@@ -21,45 +21,74 @@
     </div>
   </div>
 
-  <!-- ML Classifier Panel (shown only in ML mode) -->
-  <template v-if="tempAiClassifierMode === 'ml'">
-    <div class="advanced-setting-section">
-      <h4>{{ $t('advanced.ai.ml.modelTitle') }}</h4>
-      <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.ai.ml.modelLabel') }}</label>
-        <div class="setting-description">{{ $t('advanced.ai.ml.modelHint') }}</div>
-        <div class="model-row" v-if="mlModelInfo">
-          <div class="model-info" v-if="mlModelInfo.active === 'custom' && mlModelInfo.customExists">
+  <!-- Model files remain manageable in LLM mode (the Image Lab can use ML independently). -->
+  <div v-if="showMlModel" class="advanced-setting-section">
+    <h4>{{ $t('advanced.ai.ml.modelTitle') }}</h4>
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.ai.ml.modelLabel') }}</label>
+      <div class="setting-description">{{ $t('advanced.ai.ml.modelHint') }}</div>
+      <div v-if="mlModelInfo" class="model-row ml-model-row">
+        <div class="model-info" aria-live="polite">
+          <template v-if="mlModelInfo.active === 'custom' && mlModelInfo.customExists">
             <strong>{{ $t('advanced.autoCrop.yolo.model.customLabel') }}:</strong>
             {{ mlModelInfo.customName || '—' }}
             <span v-if="mlModelInfo.customSizeBytes" class="model-size">
               ({{ formatCacheSize(mlModelInfo.customSizeBytes) }})
             </span>
-          </div>
-          <div class="model-info" v-else>
-            <strong>{{ $t('advanced.autoCrop.yolo.model.builtinLabel') }}:</strong>
+          </template>
+          <template v-else-if="mlModelInfo.builtinSource !== 'missing'">
+            <strong>{{ $t(`advanced.ai.ml.modelSource.${mlModelInfo.builtinSource}`) }}:</strong>
             {{ mlModelInfo.builtinVersion }}
             <span v-if="mlModelInfo.builtinSizeBytes" class="model-size">
               ({{ formatCacheSize(mlModelInfo.builtinSizeBytes) }})
             </span>
-          </div>
-          <div class="model-actions">
-            <button type="button" class="secondary-btn" @click="importCustomMlModel">
-              {{ $t('advanced.autoCrop.yolo.model.selectButton') }}
-            </button>
-            <button
-              type="button"
-              class="secondary-btn"
-              :disabled="!mlModelInfo.customExists"
-              @click="deleteCustomMlModel"
-            >
-              {{ $t('advanced.autoCrop.yolo.model.deleteButton') }}
-            </button>
-          </div>
+          </template>
+          <template v-else-if="mlModelInfo.downloadStatus === 'downloading'">
+            {{ $t('advanced.ai.ml.modelDownloading') }}
+            <span v-if="mlModelInfo.downloadPercent !== null" class="model-size model-progress">
+              {{ mlModelInfo.downloadPercent }}%
+            </span>
+          </template>
+          <template v-else>
+            {{ $t('advanced.ai.ml.modelNotInstalled') }}
+            <span v-if="mlModelInfo.canDownload" class="model-size">
+              ({{ formatCacheSize(mlModelInfo.releaseSizeBytes) }})
+            </span>
+          </template>
+        </div>
+        <div class="model-actions">
+          <button
+            v-if="mlModelInfo.canDownload && !(mlModelInfo.active === 'custom' && mlModelInfo.customExists) && mlModelInfo.downloadStatus !== 'downloading'"
+            type="button" class="secondary-btn" :disabled="mlModelActionBusy" @click="downloadDefaultMlModel"
+          >
+            {{ $t(mlModelInfo.downloadStatus === 'failed' ? 'advanced.ai.ml.modelRetry' : 'advanced.ai.ml.modelDownload') }}
+          </button>
+          <button type="button" class="secondary-btn" :disabled="mlModelActionBusy" @click="importCustomMlModel">
+            {{ $t('advanced.autoCrop.yolo.model.selectButton') }}
+          </button>
+          <button
+            v-if="mlModelInfo.customExists"
+            type="button" class="secondary-btn" :disabled="mlModelActionBusy" @click="deleteCustomMlModel"
+          >
+            {{ $t('advanced.autoCrop.yolo.model.deleteButton') }}
+          </button>
+          <button
+            v-if="mlModelInfo.downloadedSizeBytes !== null"
+            type="button" class="secondary-btn"
+            :disabled="mlModelActionBusy || mlModelInfo.downloadStatus === 'downloading'"
+            @click="deleteDownloadedMlModel"
+          >
+            {{ $t('advanced.ai.ml.modelDeleteDownloaded') }}
+          </button>
         </div>
       </div>
+      <div v-if="mlModelActionFailed || mlModelInfo?.downloadStatus === 'failed'" class="setting-description ml-model-error" role="status">
+        {{ $t(mlModelActionFailed ? 'advanced.ai.ml.modelActionFailed' : 'advanced.ai.ml.modelDownloadFailed') }}
+      </div>
     </div>
+  </div>
 
+  <template v-if="tempAiClassifierMode === 'ml'">
     <div class="advanced-setting-section">
       <h4>{{ $t('advanced.ai.ml.thresholdsTitle') }}</h4>
       <div class="setting-description">{{ $t('advanced.ai.ml.thresholdsHint') }}</div>
@@ -860,7 +889,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import MlThresholdSlider from '../MlThresholdSlider.vue'
 
@@ -941,9 +970,21 @@ const {
   tempAiClassifierMode,
   tempMlThresholds,
   mlModelInfo,
+  watchMlModelInfo,
+  mlModelActionBusy,
+  mlModelActionFailed,
   importCustomMlModel,
   deleteCustomMlModel,
+  downloadDefaultMlModel,
+  deleteDownloadedMlModel,
 } = ai
+
+const showMlModel = computed(() => tempAiClassifierMode.value === 'ml' || (
+  mlModelInfo.value && (mlModelInfo.value.customExists || mlModelInfo.value.downloadedSizeBytes !== null || mlModelInfo.value.downloadStatus !== 'idle')
+))
+let stopWatchingMlModel: (() => void) | undefined
+onMounted(() => { stopWatchingMlModel = watchMlModelInfo() })
+onUnmounted(() => stopWatchingMlModel?.())
 
 const copilotCodeCopied = ref(false)
 const copyUserCode = async () => {
@@ -965,6 +1006,28 @@ const openCopilotVerificationUrl = () => {
 </script>
 
 <style scoped>
+.ml-model-row {
+  flex-wrap: wrap;
+}
+
+.ml-model-row .model-info {
+  flex-basis: 12rem;
+}
+
+.ml-model-row .model-actions {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+}
+
+.model-progress {
+  font-variant-numeric: tabular-nums;
+}
+
+.ml-model-error {
+  margin-top: 6px;
+  color: var(--danger);
+}
+
 .completion-params {
   margin-top: 12px;
   padding-top: 12px;

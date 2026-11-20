@@ -16,6 +16,7 @@ import type { DevApiRequest, DevApiResponse } from '@common/devApi';
 import type { DevSsoControl, DevSsoSnapshot, DevSsoStartRequest } from '@common/devSso';
 import type { EnrolledRefreshResult } from '@common/types';
 import type { SlideVideoOptions } from '@common/slideVideo';
+import type { MlClassifierModelInfo } from '@common/onnxModelInfo';
 import type {
   AppConfig,
   Yanhe2CaptionMode,
@@ -92,16 +93,6 @@ import type {
 } from '../shared/apiTypes';
 
 export interface AutoCropModelInfo {
-  active: 'builtin' | 'custom';
-  builtinVersion: string;
-  builtinExists: boolean;
-  builtinSizeBytes: number | null;
-  customName: string | null;
-  customExists: boolean;
-  customSizeBytes: number | null;
-}
-
-export interface MlClassifierModelInfo {
   active: 'builtin' | 'custom';
   builtinVersion: string;
   builtinExists: boolean;
@@ -1180,6 +1171,9 @@ export interface ElectronAPI {
     getModelBuffer: () => Promise<ArrayBuffer>;
     selectAndImportModel: () => Promise<MlClassifierModelInfo | null>;
     deleteCustomModel: () => Promise<MlClassifierModelInfo>;
+    downloadDefaultModel: () => Promise<MlClassifierModelInfo>;
+    deleteDownloadedModel: () => Promise<MlClassifierModelInfo>;
+    onModelInfo: (callback: (info: MlClassifierModelInfo) => void) => () => void;
   };
 
   /** Obsidian watch-notes provider. Tab-keyed; main resolves every path. */

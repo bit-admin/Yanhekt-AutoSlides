@@ -112,6 +112,13 @@ export const mlClassifier: ElectronAPI['mlClassifier'] = {
   getModelBuffer: () => invoke('mlClassifier:getModelBuffer') as Promise<ArrayBuffer>,
   selectAndImportModel: () => invoke('mlClassifier:selectAndImportModel'),
   deleteCustomModel: () => invoke('mlClassifier:deleteCustomModel'),
+  downloadDefaultModel: () => invoke('mlClassifier:downloadDefaultModel'),
+  deleteDownloadedModel: () => invoke('mlClassifier:deleteDownloadedModel'),
+  onModelInfo: (callback) => {
+    const handler = (_: Electron.IpcRendererEvent, info: Parameters<typeof callback>[0]) => callback(info);
+    ipcRenderer.on('mlClassifier:modelInfo', handler);
+    return () => ipcRenderer.removeListener('mlClassifier:modelInfo', handler);
+  },
 };
 
 export const qtExtractor: ElectronAPI['qtExtractor'] = {

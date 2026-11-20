@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { SLIDE_CLASSIFIER_RELEASE } from './src/main/ai/slideClassifierRelease';
 
 // One sentence for every macOS privacy-protected location the output folder can
 // live in (the default is ~/Downloads/AutoSlides). Tahoe's TCC refuses access
@@ -67,10 +68,7 @@ const config: ForgeConfig = {
     // download cache must not also enter app.asar (extraResource copies once).
     // Include all necessary resources
     extraResource: [
-      // Bundled YOLO model(s) for auto-crop. Kept outside asar so we can
-      // read the bytes off disk via process.resourcesPath at runtime.
-      // Terms open in the browser (https://learn.ruc.edu.kg/terms) — no bundled RTF.
-      'resources/models',
+      // postPackage selects which ONNX models to ship outside ASAR.
       // Tray icons for Keep Running in the Tray (platform/trayService.ts).
       'resources/tray',
       // Earlier terms of the course index, sealed and signed
@@ -141,6 +139,15 @@ const config: ForgeConfig = {
         const resources = platform === 'darwin'
           ? path.join(appPath, 'Contents/Resources')
           : path.join(outputPath, 'resources');
+        const modelSource = path.join(__dirname, 'resources/models');
+        const modelDest = path.join(resources, 'models');
+        await fs.promises.mkdir(modelDest, { recursive: true });
+        await fs.promises.cp(path.join(modelSource, 'licenses'), path.join(modelDest, 'licenses'), { recursive: true });
+        await fs.promises.copyFile(path.join(modelSource, 'slide-detect-v1.onnx'), path.join(modelDest, 'slide-detect-v1.onnx'));
+        if (process.env.AUTOSLIDES_BUNDLE_CLASSIFIER === '1') {
+          const { filename } = SLIDE_CLASSIFIER_RELEASE;
+          await fs.promises.copyFile(path.join(modelSource, filename), path.join(modelDest, filename));
+        }
         execFileSync(process.execPath, [
           path.join(__dirname, 'scripts/media-tools.mjs'), 'verify',
           '--platform', platform, '--arch', arch,

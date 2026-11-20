@@ -729,9 +729,13 @@ export function useAISettings(options: UseAISettingsOptions) {
     mlThresholds: mlClassifier.mlThresholds,
     tempMlThresholds: mlClassifier.tempMlThresholds,
     mlModelInfo: mlClassifier.mlModelInfo,
-    refreshMlModelInfo: mlClassifier.refreshMlModelInfo,
+    watchMlModelInfo: mlClassifier.watchMlModelInfo,
+    mlModelActionBusy: mlClassifier.mlModelActionBusy,
+    mlModelActionFailed: mlClassifier.mlModelActionFailed,
     importCustomMlModel: mlClassifier.importCustomMlModel,
     deleteCustomMlModel: mlClassifier.deleteCustomMlModel,
+    downloadDefaultMlModel: mlClassifier.downloadDefaultMlModel,
+    deleteDownloadedMlModel: mlClassifier.deleteDownloadedMlModel,
 
     // Methods
     loadAISettings,

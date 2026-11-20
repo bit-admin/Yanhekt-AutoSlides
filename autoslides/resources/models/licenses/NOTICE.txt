@@ -1,10 +1,10 @@
-AutoSlides bundled models
-=========================
+AutoSlides model notices
+========================
 
-These model files are separate works shipped beside AutoSlides. The app
-loads them as data at run time. Each keeps its own licence; the AutoSlides
-licence (Apache-2.0) does not apply to them, and its terms do not restrict
-the rights those licences grant.
+These model files are separate works that AutoSlides loads as data at run
+time, either from the app bundle or as a separate download. Each keeps its
+own licence; the AutoSlides licence (Apache-2.0) does not apply to them,
+and its terms do not restrict the rights those licences grant.
 
 slide-detect-v1.onnx
   Slide canvas detector (auto-crop). A YOLOv8 model fine-tuned with

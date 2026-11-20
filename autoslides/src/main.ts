@@ -574,6 +574,11 @@ app.whenReady().then(() => {
   cliInstallService.syncSkill();
   // Download course index updates, unless Settings turned that off.
   courseIndexUpdater.applyConfig();
+  // Existing ML users get the pinned file in the background after startup,
+  // without loading the inference worker or holding up the first window.
+  if (app.isPackaged && !isDemoLaunch() && configService.getAIClassifierMode() === 'ml') {
+    setTimeout(() => mlClassifierModelService.prepareConfiguredModel(), 5_000).unref();
+  }
 });
 
 app.on('before-quit', () => {

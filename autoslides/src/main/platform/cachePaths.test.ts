@@ -8,6 +8,11 @@ import {
 } from './cachePaths';
 
 describe('collectCacheRoots', () => {
+  it('does not clear installed or custom ONNX models', () => {
+    expect(collectCacheRoots('/data', '/tmp/AutoSlides')).not.toContain(path.join('/data', 'models'));
+    expect(collectFilesystemOnlyCacheRoots('/data')).not.toContain(path.join('/data', 'models'));
+  });
+
   it('includes Chromium, app, and temp roots', () => {
     const roots = collectCacheRoots('/data', '/tmp/AutoSlides');
     expect(roots).toContain(path.join('/data', 'Cache'));

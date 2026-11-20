@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import type { MlClassifierModelInfo } from '@common/onnxModelInfo'
 import { resetMlClassifier } from '@shared/mlClassifier'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('MlClassifierSettings');
@@ -11,15 +12,7 @@ export interface MlThresholdValues {
   slideCheckLow: number
 }
 
-export interface MlModelInfo {
-  active: 'builtin' | 'custom'
-  builtinVersion: string
-  builtinExists: boolean
-  builtinSizeBytes: number | null
-  customName: string | null
-  customExists: boolean
-  customSizeBytes: number | null
-}
+export type MlModelInfo = MlClassifierModelInfo
 
 const DEFAULT_ML_THRESHOLDS: MlThresholdValues = { trustLow: 0.75, trustHigh: 0.9, slideCheckLow: 0.25 }
 
@@ -29,6 +22,8 @@ export function useMlClassifierSettings() {
   const mlThresholds = ref<MlThresholdValues>({ ...DEFAULT_ML_THRESHOLDS })
   const tempMlThresholds = ref<MlThresholdValues>({ ...DEFAULT_ML_THRESHOLDS })
   const mlModelInfo = ref<MlModelInfo | null>(null)
+  const mlModelActionBusy = ref(false)
+  const mlModelActionFailed = ref(false)
 
   const applyLoadedConfig = (cfg: { classifierMode?: AIClassifierMode; mlThresholds?: Partial<MlThresholdValues> }) => {
     const mode: AIClassifierMode = cfg.classifierMode === 'ml' ? 'ml' : 'llm'
@@ -74,27 +69,38 @@ export function useMlClassifierSettings() {
     }
   }
 
-  const importCustomMlModel = async () => {
+  const watchMlModelInfo = () => {
+    const unsubscribe = window.electronAPI.mlClassifier.onModelInfo(info => {
+      mlModelInfo.value = info
+    })
+    void refreshMlModelInfo()
+    return unsubscribe
+  }
+
+  const runModelAction = async (action: () => Promise<MlModelInfo | null>, resetWorker = false) => {
+    mlModelActionBusy.value = true
+    mlModelActionFailed.value = false
     try {
-      const result = await window.electronAPI.mlClassifier.selectAndImportModel()
-      if (result) {
-        resetMlClassifier()
-        await refreshMlModelInfo()
+      const info = await action()
+      if (info) {
+        if (resetWorker) resetMlClassifier()
+        mlModelInfo.value = info
       }
     } catch (error) {
-      log.error('Failed to import custom ML model:', error)
+      mlModelActionFailed.value = true
+      log.error('Classifier model action failed:', error)
+    } finally {
+      mlModelActionBusy.value = false
     }
   }
 
-  const deleteCustomMlModel = async () => {
-    try {
-      await window.electronAPI.mlClassifier.deleteCustomModel()
-      resetMlClassifier()
-      await refreshMlModelInfo()
-    } catch (error) {
-      log.error('Failed to delete custom ML model:', error)
-    }
-  }
+  const importCustomMlModel = () => runModelAction(() => window.electronAPI.mlClassifier.selectAndImportModel(), true)
+  const deleteCustomMlModel = () => runModelAction(() => window.electronAPI.mlClassifier.deleteCustomModel(), true)
+  const downloadDefaultMlModel = () => runModelAction(() => window.electronAPI.mlClassifier.downloadDefaultModel())
+  const deleteDownloadedMlModel = () => runModelAction(
+    () => window.electronAPI.mlClassifier.deleteDownloadedModel(),
+    mlModelInfo.value?.active !== 'custom' && mlModelInfo.value?.builtinSource === 'downloaded',
+  )
 
   return {
     aiClassifierMode,
@@ -107,9 +113,13 @@ export function useMlClassifierSettings() {
     save,
     resetTemp,
 
-    refreshMlModelInfo,
+    watchMlModelInfo,
+    mlModelActionBusy,
+    mlModelActionFailed,
     importCustomMlModel,
-    deleteCustomMlModel
+    deleteCustomMlModel,
+    downloadDefaultMlModel,
+    deleteDownloadedMlModel
   }
 }
 

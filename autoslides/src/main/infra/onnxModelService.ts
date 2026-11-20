@@ -2,15 +2,8 @@ import { app, dialog } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export interface OnnxModelInfo {
-  active: 'builtin' | 'custom';
-  builtinVersion: string;
-  builtinExists: boolean;
-  builtinSizeBytes: number | null;
-  customName: string | null;
-  customExists: boolean;
-  customSizeBytes: number | null;
-}
+import type { OnnxModelInfo } from '@common/onnxModelInfo';
+export type { OnnxModelInfo } from '@common/onnxModelInfo';
 
 export interface OnnxModelServiceParams {
   builtinModelName: string;
@@ -57,8 +50,15 @@ export class OnnxModelService {
     return this.getBuiltinModelPath();
   }
 
-  private statSafe(p: string): fs.Stats | null {
-    try { return fs.statSync(p); } catch { return null; }
+  protected statSafe(p: string): fs.Stats | null {
+    try {
+      const stat = fs.statSync(p);
+      return stat.isFile() ? stat : null;
+    } catch { return null; }
+  }
+
+  protected clearModelCache(): void {
+    this.cache = null;
   }
 
   getModelInfo(): OnnxModelInfo {

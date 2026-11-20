@@ -24,6 +24,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     localRelayService,
     yanhektCatalogStore,
     courseIndexUpdater,
+    mlClassifierModelService,
   } = services;
 
   const broadcastConfig = (): void => broadcastConfigSnapshot(configService);
@@ -650,7 +651,9 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('config:setAIClassifierMode', async (_event, mode: 'llm' | 'ml') => {
+    const previous = configService.getAIClassifierMode();
     configService.setAIClassifierMode(mode);
+    if (mode === 'ml' && previous !== mode) mlClassifierModelService.prepareConfiguredModel({ afterModeChange: true });
     broadcastConfig();
     return configService.getAIFilteringConfig();
   });

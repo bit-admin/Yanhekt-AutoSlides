@@ -185,7 +185,6 @@ const advancedSettings = useAdvancedSettings(
     cacheManagement.resetOperationStatus()
     await pHashExclusion.loadPHashExclusionList()
     await aiSettings.loadAISettings()
-    aiSettings.refreshMlModelInfo()
     aiSettings.resetTempValues()
     settings.resetTempEnableAIFiltering()
   },

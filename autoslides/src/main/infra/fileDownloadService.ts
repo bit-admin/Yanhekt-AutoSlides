@@ -64,6 +64,13 @@ export function checkDownloadHop(url: URL): void {
   }
 }
 
+export function checkDownloadRedirect(options: Record<string, unknown>): void {
+  const href = typeof options.href === 'string'
+    ? options.href
+    : `${String(options.protocol)}//${String(options.hostname)}`;
+  checkDownloadHop(new URL(href));
+}
+
 let partialCounter = 0;
 
 export class FileDownloadService {
@@ -128,12 +135,7 @@ export class FileDownloadService {
         // axios times socket inactivity, the same as the old request timeout.
         timeout: this.timeoutMs,
         maxRedirects: this.maxRedirects,
-        beforeRedirect: (options: Record<string, unknown>) => {
-          const href = typeof options.href === 'string'
-            ? options.href
-            : `${String(options.protocol)}//${String(options.hostname)}`;
-          checkDownloadHop(new URL(href));
-        },
+        beforeRedirect: checkDownloadRedirect,
         signal: controller.signal,
         validateStatus: () => true,
       });
