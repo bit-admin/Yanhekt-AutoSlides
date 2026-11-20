@@ -124,6 +124,10 @@
       "ai": "AI",
       "addons": "애드온"
     },
+    "cloudStorage": {
+      "shareTimelineTitle": "타임라인 공유",
+      "shareTimelineDescription": "공유 링크에 슬라이드 등장 시각을 넣어 플레이어가 슬라이드 바와 강의 영상을 동기화할 수 있게 합니다."
+    },
     "addons": {
       "watchNotesTitle": "시청 노트",
       "watchNotesDescription": "강의를 시청하며 슬라이드 추출을 시작하면 후처리에서 보존된 슬라이드가 Obsidian 노트 또는 Notion 페이지에 추가될 때까지 대기열에 표시됩니다.",

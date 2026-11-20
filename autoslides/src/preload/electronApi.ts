@@ -564,6 +564,7 @@ export interface ElectronAPI {
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
     setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => Promise<AppConfig>;
     setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => Promise<AppConfig>;
+    setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
     setCloseToTray: (enabled: boolean) => Promise<AppConfig>;

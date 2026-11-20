@@ -124,6 +124,10 @@
       "ai": "AI",
       "addons": "扩展"
     },
+    "cloudStorage": {
+      "shareTimelineTitle": "分享时间轴",
+      "shareTimelineDescription": "在分享链接中写入幻灯片出现时间，以便播放器将幻灯片条与课程视频同步。"
+    },
     "addons": {
       "watchNotesTitle": "随堂笔记",
       "watchNotesDescription": "观看课程并开始提取幻灯片后，AutoSlides 会将后处理保留的幻灯片加入队列，等待写入 Obsidian 笔记或 Notion 页面。",

@@ -392,6 +392,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setCloudShareEmbedTimeline', async (_, enabled: boolean) => {
+    configService.setCloudShareEmbedTimeline(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setShowToolsButton', async (_, enabled: boolean) => {
     configService.setShowToolsButton(enabled);
     broadcastConfig();

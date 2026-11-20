@@ -86,6 +86,18 @@ describe('ConfigService at launch', () => {
     }
   });
 
+  it('defaults Share Timeline to on and persists either checkbox value', () => {
+    const service = new ConfigService();
+    expect(service.getConfig().cloudShareEmbedTimeline).toBe(true);
+    service.setCloudShareEmbedTimeline(false);
+    const reopened = new ConfigService();
+    expect(reopened.getConfig().cloudShareEmbedTimeline).toBe(false);
+    expect(() => reopened.setCloudShareEmbedTimeline('true' as unknown as boolean)).toThrow(TypeError);
+    expect(reopened.getConfig().cloudShareEmbedTimeline).toBe(false);
+    reopened.setCloudShareEmbedTimeline(true);
+    expect(new ConfigService().getConfig().cloudShareEmbedTimeline).toBe(true);
+  });
+
   it('does not inherit an opt-in from the legacy Yanhekt sync flag', () => {
     disk.data = { cloudWatchSyncEnabled: true };
     const config = new ConfigService().getConfig();

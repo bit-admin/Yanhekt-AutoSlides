@@ -124,6 +124,10 @@
       "ai": "AI",
       "addons": "アドオン"
     },
+    "cloudStorage": {
+      "shareTimelineTitle": "タイムラインを共有",
+      "shareTimelineDescription": "共有リンクにスライドの出現時刻を含め、プレーヤーがスライドストリップを講義動画と同期できるようにします。"
+    },
     "addons": {
       "watchNotesTitle": "視聴ノート",
       "watchNotesDescription": "講義の視聴中にスライド抽出を開始すると、後処理で残ったスライドが Obsidian ノートまたは Notion ページへの追加待ちになります。",

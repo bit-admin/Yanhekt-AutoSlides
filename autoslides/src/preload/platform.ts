@@ -160,6 +160,7 @@ export const config: ElectronAPI['config'] = {
   setOnboardingCompleted: (completed: boolean) => invoke('config:setOnboardingCompleted', completed),
   setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => invoke('config:setObsidian', patch),
   setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => invoke('config:setWatchNotes', patch),
+  setCloudShareEmbedTimeline: (enabled: boolean) => invoke('config:setCloudShareEmbedTimeline', enabled),
   setShowToolsButton: (enabled: boolean) => invoke('config:setShowToolsButton', enabled),
   setAllowCliControl: (enabled: boolean) => invoke('config:setAllowCliControl', enabled),
   setCloseToTray: (enabled: boolean) => invoke('config:setCloseToTray', enabled),

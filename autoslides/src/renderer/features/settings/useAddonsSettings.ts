@@ -11,6 +11,7 @@ import {
  * - Watch Notes: whether slides are sent to Obsidian or Notion, the Obsidian
  *   vault, notes folder and auto-create switch, and the Notion connection
  *   (applied at once, not on commit).
+ * - Drive: whether new share links should include slide timelines.
  * - Tools: whether Web Capture and Yuketang appear in the sidebar.
  * - Command Line: whether `autoslides` commands may drive the app (the
  *   wrappers themselves install at once, outside this lifecycle).
@@ -30,6 +31,8 @@ export function useAddonsSettings() {
   const tempObsidianAutoCreateNote = ref(false)
   /** Whether the buffered vault path holds `.obsidian/` (null = not checked / empty). */
   const tempObsidianVaultIsVault = ref<boolean | null>(null)
+  const cloudShareEmbedTimeline = ref(true)
+  const tempCloudShareEmbedTimeline = ref(true)
   const showToolsButton = ref(false)
   const tempShowToolsButton = ref(false)
   const allowCliControl = ref(true)
@@ -67,6 +70,7 @@ export function useAddonsSettings() {
     obsidianVaultPath.value = cfg.obsidianVaultPath ?? ''
     obsidianSubfolder.value = cfg.obsidianSubfolder ?? 'AutoSlides'
     obsidianAutoCreateNote.value = cfg.obsidianAutoCreateNote ?? false
+    cloudShareEmbedTimeline.value = cfg.cloudShareEmbedTimeline ?? true
     showToolsButton.value = cfg.showToolsButton ?? false
     allowCliControl.value = cfg.allowCliControl ?? true
     resetTemp()
@@ -78,6 +82,7 @@ export function useAddonsSettings() {
     tempObsidianVaultPath.value = obsidianVaultPath.value
     tempObsidianSubfolder.value = obsidianSubfolder.value
     tempObsidianAutoCreateNote.value = obsidianAutoCreateNote.value
+    tempCloudShareEmbedTimeline.value = cloudShareEmbedTimeline.value
     tempShowToolsButton.value = showToolsButton.value
     tempAllowCliControl.value = allowCliControl.value
     notion.reset()
@@ -112,6 +117,11 @@ export function useAddonsSettings() {
       tempObsidianSubfolder.value = subfolder
       obsidianAutoCreateNote.value = tempObsidianAutoCreateNote.value
     }
+    const embedTimeline = tempCloudShareEmbedTimeline.value
+    if (embedTimeline !== cloudShareEmbedTimeline.value) {
+      await window.electronAPI.config.setCloudShareEmbedTimeline(embedTimeline)
+      cloudShareEmbedTimeline.value = embedTimeline
+    }
     if (tempShowToolsButton.value !== showToolsButton.value) {
       await window.electronAPI.config.setShowToolsButton(tempShowToolsButton.value)
       showToolsButton.value = tempShowToolsButton.value
@@ -131,6 +141,7 @@ export function useAddonsSettings() {
     tempObsidianVaultIsVault,
     selectObsidianVault,
     notion,
+    tempCloudShareEmbedTimeline,
     tempShowToolsButton,
     tempAllowCliControl,
     load,

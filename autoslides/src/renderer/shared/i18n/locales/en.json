@@ -124,6 +124,10 @@
       "ai": "AI",
       "addons": "Add-ons"
     },
+    "cloudStorage": {
+      "shareTimelineTitle": "Share Timeline",
+      "shareTimelineDescription": "Include slide appearance times in share links so a player can sync the slide strip with the lecture video."
+    },
     "addons": {
       "watchNotesTitle": "Watch Notes",
       "watchNotesDescription": "When you watch a lecture and start slide extraction, AutoSlides queues the slides kept after post-processing for your Obsidian note or Notion page.",

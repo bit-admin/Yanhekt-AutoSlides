@@ -428,6 +428,11 @@ export class ConfigService {
     }
   }
 
+  setCloudShareEmbedTimeline(enabled: boolean): void {
+    if (typeof enabled !== 'boolean') throw new TypeError('Share Timeline must be a boolean');
+    this.store.set('cloudShareEmbedTimeline', enabled);
+  }
+
   setShowToolsButton(enabled: boolean): void {
     this.store.set('showToolsButton', enabled);
   }
