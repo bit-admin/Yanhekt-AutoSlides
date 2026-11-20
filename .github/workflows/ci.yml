@@ -23,10 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # electron@41 and several deps (vite, sharp, vue-i18n, …) require Node ≥ 22.12.
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: autoslides/package-lock.json
 
@@ -60,9 +60,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: ${{ matrix.dir }}/package-lock.json
 
@@ -91,9 +91,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: '22' # latest 22.x; the indexer needs >= 22.18
+          node-version: '24' # latest 24.x; the indexer needs >= 22.18
           cache: npm
           cache-dependency-path: indexer/package-lock.json
 
@@ -135,9 +135,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: ${{ matrix.dir }}/package-lock.json
 
@@ -161,9 +161,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: autoslides/package-lock.json
 

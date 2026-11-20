@@ -95,9 +95,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: '22' # latest 22.x; the indexer needs >= 22.18
+          node-version: '24' # latest 24.x; the indexer needs >= 22.18
 
       - name: Check inputs
         env:
