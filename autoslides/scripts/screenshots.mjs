@@ -4,7 +4,7 @@
 //   npm run screenshots    # drives the unpackaged build in demo mode, writes PNGs
 //   node scripts/screenshots.mjs --only cloud-notes-share   # just that view
 //
-// We launch the UNPACKAGED Forge build (local electron + .vite/build/main.js):
+// We launch the UNPACKAGED Forge build (local electron + .vite/build/main.cjs):
 // the packaged .app disables the EnableNodeCliInspectArguments / RunAsNode fuses,
 // which Playwright's _electron needs, so it cannot attach to the packaged binary.
 // Fuses only apply to packaged builds, so the unpackaged launch works.
@@ -18,7 +18,7 @@ import path from 'node:path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')        // autoslides/
-const mainEntry = path.join(projectRoot, '.vite', 'build', 'main.js')
+const mainEntry = path.join(projectRoot, '.vite', 'build', 'main.cjs')
 const outDir = path.join(projectRoot, 'out', 'screenshots')  // autoslides/out (gitignored)
 
 // Capture mode:

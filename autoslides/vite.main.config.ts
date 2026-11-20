@@ -17,7 +17,7 @@ function indexClientKey(): string {
 }
 
 // Copy PDFKit's bundled font metric files (AFM) and the sRGB ICC profile next
-// to the built main.js. PDFKit's StandardFont loader calls
+// to the built main.cjs. PDFKit's StandardFont loader calls
 // `fs.readFileSync(__dirname + '/data/<Name>.afm')` from within its own
 // source, which after Vite bundling resolves to `<outDir>/data/<Name>.afm`.
 // Without these the very first `new PDFDocument({})` call throws ENOENT when

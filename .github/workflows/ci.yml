@@ -112,7 +112,7 @@ jobs:
         include:
           # GHSA-g3hv-75wg-m249 (minimatch globparts amplification): fixed
           # only in 11.0.1. Every 9.x/10.x copy is overridden to 11; the
-          # remaining 3.x/5.x copies (eslint, forge's node-gyp, asar, glob 7/8)
+          # remaining 3.x/5.x copies (eslint, asar, glob 7/8)
           # do not contain the affected firstPhasePreProcess code, and 11 drops
           # APIs they use. Remove once 3.x/5.x patches ship or the range narrows.
           #

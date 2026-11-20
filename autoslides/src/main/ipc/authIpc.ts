@@ -113,7 +113,7 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
   // Guest preload for the browser sign-in <webview>: reports the CAS
   // username/password fields so the saved-logins menu can be drawn over them.
   ipcMain.handle('auth:getBrowserLoginPreloadPath', async () => {
-    const absolute = path.join(__dirname, 'webviewSsoPreload.js');
+    const absolute = path.join(__dirname, 'webviewSsoPreload.cjs');
     return new URL(`file://${absolute}`).toString();
   });
 

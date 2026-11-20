@@ -217,7 +217,7 @@ const createWindow = () => {
       ? { vibrancy: 'sidebar' as const, backgroundColor: '#00000000' }
       : { backgroundColor: getWindowBackgroundColor() }),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
       backgroundThrottling: false,

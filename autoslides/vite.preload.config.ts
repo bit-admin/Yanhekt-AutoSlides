@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       external: ['electron'],
       output: {
-        entryFileNames: 'preload.js'
+        entryFileNames: 'preload.cjs'
       }
     }
   }

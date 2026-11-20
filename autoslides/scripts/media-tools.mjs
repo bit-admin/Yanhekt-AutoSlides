@@ -2,12 +2,12 @@
 // no downloads or system-tool discovery happen inside the running app.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { listZipEntries, readZipMember } from './media-tools/zipMember.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = path.join(root, 'scripts/media-tools/manifest.json');
@@ -169,35 +169,16 @@ export async function download(artifact, cache) {
 }
 
 export async function extractFiles(archive, artifact, destination) {
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'autoslides-media-extract-'));
-  try {
-    const zip = artifact.url.endsWith('.zip');
-    // Loaded here so the capability checks run without node_modules (scripts/ffmpeg-minimal/verify.mjs).
-    if (zip) await (await import('extract-zip')).default(archive, { dir: temp });
-    for (const [member, output] of Object.entries(artifact.files)) {
-      safeMember(member);
-      safeMember(output);
-      const file = path.join(destination, output);
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      if (zip) {
-        const source = path.join(temp, member);
-        if (!fs.lstatSync(source).isFile()) throw new Error(`Not a regular archive member: ${member}`);
-        fs.copyFileSync(source, file);
-      } else {
-        // Stream only the named member to a file we chose. tar never writes
-        // archive paths or links to disk, including for the .tar.xz Linux build.
-        const child = spawn('tar', ['-xOf', archive, member], { stdio: ['ignore', 'pipe', 'pipe'], cwd: root });
-        let stderr = '';
-        child.stderr.setEncoding('utf8').on('data', text => { stderr = (stderr + text).slice(-4096); });
-        const exited = new Promise((resolve, reject) => {
-          child.once('error', reject);
-          child.once('close', code => code === 0 ? resolve() : reject(new Error(`tar failed (${code}): ${stderr}`)));
-        });
-        await Promise.all([pipeline(child.stdout, fs.createWriteStream(file, { flags: 'wx' })), exited]);
-      }
-    }
-  } finally {
-    fs.rmSync(temp, { recursive: true, force: true });
+  if (!artifact.url.endsWith('.zip')) throw new Error(`Media artifacts must be zip archives: ${artifact.url}`);
+  // Read only the named members and write each to a path we chose.
+  const zip = fs.readFileSync(archive);
+  const entries = listZipEntries(zip);
+  for (const [member, output] of Object.entries(artifact.files)) {
+    safeMember(member);
+    safeMember(output);
+    const file = path.join(destination, output);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, readZipMember(zip, entries, member), { flag: 'wx' });
   }
 }
 

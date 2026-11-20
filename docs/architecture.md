@@ -242,7 +242,7 @@ Workers have no Node/WebCrypto MD5. `relay/` ships a pure-JS MD5 (`relay/src/md5
 
 ## 5. `autoslides/` — Electron desktop
 
-**Identity.** `package.json` name `autoslides`, productName `AutoSlides`, version as in `package.json`, `main` `.vite/build/main.js`. Electron Forge + Vite; All installers (macOS DMG, Windows NSIS, Linux AppImage/deb) go through `electron-builder.yml` on top of a Forge `--prepackaged` tree. `make:mac` (release workflow) builds an uncompressed DMG and `scripts/dmg-lzma.mjs` converts it to LZMA (ULMO; electron-builder's `dmg.format` does not offer it). `make:mac:local` is the local Mac build: index-bundle, Forge package, DropDMG `AutoSlides` profile, then signs the DMG with the local update key.
+**Identity.** `package.json` name `autoslides`, productName `AutoSlides`, version as in `package.json`, `main` `.vite/build/main.cjs`. Electron Forge 8 + Vite 8 (main and preload bundles are `.cjs`); all installers (macOS DMG, Windows NSIS, Linux AppImage/deb) go through `electron-builder.yml` on top of a Forge `--prepackaged` tree. `make:mac` (release workflow) builds an uncompressed DMG and `scripts/dmg-lzma.mjs` converts it to LZMA (ULMO; electron-builder's `dmg.format` does not offer it). `make:mac:local` is the local Mac build: index-bundle, Forge package, DropDMG `AutoSlides` profile, then signs the DMG with the local update key.
 
 ### Commands
 
@@ -1551,7 +1551,7 @@ OpenCV.js is not bundled into the workers. `vite.renderer.config.ts` serves `/op
 
 ### Audit overrides
 
-CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each package's `package.json` `overrides` (and `autoslides/vendor/extract-zip`, the one remaining shim). `image-size` is an override to `^2.0.4`, not a vendor: pptxgenjs still asks for `^1.2.1`. Do not `npm audit fix --force`. Drop a pin only after a temporary removal + reinstall proves the in-range latest is patched.
+CI `npm audit --audit-level=moderate` is a hard gate. Current pins live in each package's `package.json` `overrides` (and `autoslides/vendor/braces`, the one remaining shim). `scripts/media-tools.mjs` reads the pinned FFmpeg zips with `node:zlib` (`scripts/media-tools/zipMember.mjs`), so there is no unzip dependency. `image-size` is an override to `^2.0.4`, not a vendor: pptxgenjs still asks for `^1.2.1`. Do not `npm audit fix --force`. Drop a pin only after a temporary removal + reinstall proves the in-range latest is patched.
 
 ---
 
