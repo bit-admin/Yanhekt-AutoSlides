@@ -483,7 +483,10 @@ const aiPromptsService = new AIPromptsService();
 const llmApiService = new LLMApiService(configService);
 const aiFilteringService = new AIFilteringService(configService, aiPromptsService, llmApiService);
 const qtExtractorService = new QtExtractorService(configService);
-const shareService = new ShareService(configService, apiTransport);
+const shareService = new ShareService(configService, apiTransport, async (courseId, sessionId) => {
+  const token = configService.getAuthToken();
+  return token ? apiClient.getLectureTitles(courseId, sessionId, token) : null;
+});
 const obsidianNotesService = new ObsidianNotesService(configService);
 const notionNotesService = new NotionNotesService(configService);
 const cliInstallService = new CliInstallService();

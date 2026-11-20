@@ -39,11 +39,44 @@ interface UploadEnvelope {
   data: { host: string; path: string };
 }
 
+/**
+ * Canonical titles of one lecture, looked up by the app itself (signed-in
+ * Yanhekt session list, then the course index on this computer for an
+ * expired course). '' for what it could not find.
+ */
+export type LectureTitleLookup = (
+  courseId: string,
+  sessionId: string | undefined,
+) => Promise<{ courseTitle: string; sessionTitle: string } | null>;
+
+/**
+ * The share Worker labels a session of an expired course `第N次课` (its
+ * position in the Index) when Yanhekt gives no title. That is not a real
+ * title and the number can change, so it never names a folder.
+ */
+const WORKER_POSITION_LABEL = /^第\d+次课$/;
+
+/**
+ * The Worker's metadata with the app's own titles laid over it. The app's
+ * titles win; the Worker's position label is dropped when the app found none.
+ */
+export function mergeShareLectureMeta(
+  worker: ShareLectureMeta | null,
+  own: { courseTitle: string; sessionTitle: string } | null,
+): ShareLectureMeta | null {
+  const workerSession = worker?.sessionTitle?.trim() ?? '';
+  const courseTitle = own?.courseTitle || worker?.courseTitle?.trim() || '';
+  const sessionTitle = own?.sessionTitle || (WORKER_POSITION_LABEL.test(workerSession) ? '' : workerSession);
+  if (!worker && !courseTitle && !sessionTitle) return null;
+  return { ...worker, courseTitle, sessionTitle };
+}
+
 /** Upload slides for Share, resolve public links and rebuild local slide folders. */
 export class ShareService {
   constructor(
     private readonly configService: Pick<ConfigService, 'getAuthToken' | 'getConfig'>,
     private readonly cbiz: Pick<IntranetApiTransport, 'send'>,
+    private readonly lectureTitles: LectureTitleLookup = async () => null,
   ) {}
 
   /** Headers for multipart upload — no manual Content-Type (FormData sets the boundary). */
@@ -274,10 +307,12 @@ export class ShareService {
     }
 
     const identity = { courseId: payload.c, sessionId: payload.s, liveId: payload.l };
-    const [resolved, lectureMeta] = await Promise.all([
+    const [resolved, workerMeta, ownTitles] = await Promise.all([
       resolveShareImages(payload, (prefix) => this.listCossFolder(prefix)),
       shortMeta ? Promise.resolve(shortMeta) : this.fetchShareMeta(identity.courseId, identity.sessionId),
+      this.ownLectureTitles(identity.courseId, identity.sessionId),
     ]);
+    const lectureMeta = mergeShareLectureMeta(workerMeta, ownTitles);
     const urls = resolved.filter((r) => r.url !== null).map((r) => r.url as string);
     return {
       title: buildShareImportTitle(identity, lectureMeta),
@@ -301,6 +336,20 @@ export class ShareService {
     const data = (await res.json()) as { fragment?: string; meta?: ShareLectureMeta | null };
     if (!data.fragment) throw new Error('Short link not found');
     return { fragment: data.fragment, meta: data.meta ?? null };
+  }
+
+  /** The app's own titles for a shared lecture; null when it cannot look (no course id) or the lookup fails. */
+  private async ownLectureTitles(
+    courseId?: string,
+    sessionId?: string,
+  ): Promise<{ courseTitle: string; sessionTitle: string } | null> {
+    if (!courseId) return null;
+    try {
+      return await this.lectureTitles(String(courseId), sessionId === undefined ? undefined : String(sessionId));
+    } catch (error) {
+      log.debug('Own lecture title lookup failed', error instanceof Error ? error.message : error);
+      return null;
+    }
   }
 
   /** Long-link path: one Worker hop that fans out to Yanhekt course + session. */

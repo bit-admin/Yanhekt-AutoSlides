@@ -827,6 +827,47 @@ export class ApiClient {
     };
   }
 
+  /**
+   * Canonical course and session titles of one lecture, for naming a folder
+   * cloned from a share link. Session titles come from the session lists
+   * (`/v2`, then the signed-in `/v1` twin, which still answers for an expired
+   * course); course titles from {@link getCourseDetailOrIndex}. Never reads
+   * sessions by id or the online Index. Each title is '' when unknown, and a
+   * failed request only leaves its title empty.
+   */
+  async getLectureTitles(
+    courseId: string,
+    sessionId: string | undefined,
+    token: string,
+  ): Promise<{ courseTitle: string; sessionTitle: string }> {
+    const listRows = async (): Promise<SessionListApiResponse['data']> => {
+      let rows: SessionListApiResponse['data'] = [];
+      try {
+        rows = await this.fetchSessionRows('v2', courseId, token);
+      } catch (error: unknown) {
+        if (!(error instanceof CourseExpiredError)) throw error;
+      }
+      return rows.length > 0 ? rows : this.fetchSessionRows('v1', courseId, token);
+    };
+    const [detail, rows] = await Promise.all([
+      this.getCourseDetailOrIndex(courseId, token).catch((error: unknown) => {
+        log.debug('Course title unavailable for', courseId, error instanceof Error ? error.message : error);
+        return null;
+      }),
+      sessionId
+        ? listRows().catch((error: unknown) => {
+          log.debug('Session list unavailable for course', courseId, error instanceof Error ? error.message : error);
+          return [];
+        })
+        : Promise.resolve([]),
+    ]);
+    const row = sessionId ? rows.find((r) => String(r.id) === String(sessionId)) : undefined;
+    return {
+      courseTitle: detail?.title?.trim() ?? '',
+      sessionTitle: typeof row?.title === 'string' ? row.title.trim() : '',
+    };
+  }
+
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
     try {
       const detail = await this.getCourseDetailOrIndex(courseId, token);

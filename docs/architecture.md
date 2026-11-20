@@ -596,11 +596,11 @@ npm run deploy
 | Method | Path | Behaviour |
 |---|---|---|
 | `POST` | `/v1/api/shorten` | `{ fragment }` → KV short id. Max 8192 bytes. Must `decodeSharePayload`. |
-| `GET` | `/v1/api/get?id=` | `{ fragment, meta }` (meta from Yanhekt) |
+| `GET` | `/v1/api/get?id=` | `{ fragment, meta }` |
 | `GET` | `/v1/api/meta?courseId=&sessionId=` | `{ ok, meta }`, Cache-API 3600s |
 | `GET` | `/v1/s/<id>` | Serve the v1 SPA shell via `ASSETS` |
 
-Long `/v1/#…` links decode **locally** then call `/v1/api/meta` once.
+Long `/v1/#…` links decode **locally** then call `/v1/api/meta` once. Both APIs get metadata from Yanhekt. When the Index stands in for an unavailable course and Yanhekt supplied no session title, the Worker uses `第N次课` if the session is in that course's indexed list. `N` is its 1-based position in ascending session ID order, not an official title or week number.
 
 ### Index API (`src/api/`)
 
@@ -622,7 +622,7 @@ Contract: [`share/docs/api.md`](../share/docs/api.md). Read-only, no auth; the z
 
 ### Images
 
-Anonymous S3 ListObjectsV2 on `https://coss.yanhekt.cn/images?list-type=2&prefix=…`. `resolveShareImages` matches `payload.h` short hashes to full keys. Images are world-readable — the product discloses this.
+The viewer lists the public COSS bucket directly from the browser with anonymous S3 ListObjectsV2. If a folder has only one distinct slide hash, it requests `prefix=YYYY/M/<shortHash>&max-keys=1` (S3 matches the full object key); folders with several hashes share a paginated `prefix=YYYY/M/` listing. `resolveShareImages` matches `payload.h` short hashes to full keys. Images are world-readable — the product discloses this.
 
 ### Tests
 
@@ -1379,7 +1379,7 @@ Auth. `multipart/form-data`: `file` (image blob), `bucket=notes`. Response `{ ho
 Public reads need no auth:
 
 - `GET https://coss.yanhekt.cn/images/{YYYY}/{M}/{md5}.png`
-- S3 `GET https://coss.yanhekt.cn/images?list-type=2&prefix={YYYY/M/}&max-keys=1000` (`credentials: omit`) — share-link short hashes → full keys
+- S3 `GET https://coss.yanhekt.cn/images?list-type=2&prefix=…` (`credentials: omit`) — resolve share-link short hashes to full keys. The prefix always starts with `YYYY/M/` and may include the short hash.
 - Default cover `https://coss.yanhekt.cn/images/front_cover.png`
 
 ### 9.8 Campus CAS
