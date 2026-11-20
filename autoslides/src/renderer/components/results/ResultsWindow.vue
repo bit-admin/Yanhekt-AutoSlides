@@ -186,7 +186,22 @@
           </div>
         </div>
 
-        <!-- Same spot as the old Import to Notes button: left of Clear Folder. -->
+        <!-- Sharing: bring slides in from a link (no selection needed), and
+             share the selected folders. Left of Clear Folder. -->
+        <button
+          v-if="currentView === 'folders'"
+          class="btn"
+          :disabled="isLoading || isGenerating"
+          :title="$t('lectures.cloneModalHint')"
+          @click="showCloneModal = true"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+          {{ $t('lectures.cloneFromLink') }}
+        </button>
+
         <button
           v-if="currentView === 'folders'"
           class="btn drive-btn"
@@ -256,6 +271,7 @@
           @toggle-selection="toggleFolderSelection"
           @select-course="selectAllInCourse"
           @reorder="handleFolderReorder"
+          @drive-changed="refreshDriveCount"
         />
       </template>
 
@@ -345,6 +361,12 @@
       :set-baseline-crop="setBaselineCrop"
       @close="closePreview"
     />
+
+    <CloneSlidesModal
+      v-if="showCloneModal"
+      @close="showCloneModal = false"
+      @cloned="onCloneDone"
+    />
   </div>
 </template>
 
@@ -352,6 +374,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
+import { driveOfSummary } from '@features/results/resultsDataLoader'
 import { usePdfMaker } from '@features/export/usePdfMaker'
 import ResultsExportBar from './ResultsExportBar.vue'
 import { configStore } from '@shared/services/configStore'
@@ -360,6 +383,7 @@ import { startDriveUploads } from '@shared/services/driveUploadStart'
 import ResultsImageGrid from './ResultsImageGrid.vue'
 import ResultsPreviewModal from './ResultsPreviewModal.vue'
 import FolderListView from './FolderListView.vue'
+import CloneSlidesModal from './CloneSlidesModal.vue'
 import EmptySetState from '../shell/EmptySetState.vue'
 import PageErrorNotice from '../shell/PageErrorNotice.vue'
 
@@ -607,6 +631,13 @@ async function handleRefresh() {
   await refresh()
 }
 
+const showCloneModal = ref(false)
+
+async function onCloneDone() {
+  showCloneModal.value = false
+  await refresh()
+}
+
 async function handleClearSelectedFolders() {
   if (!canClearSelectedFolders.value) return
 
@@ -779,8 +810,7 @@ async function refreshDriveCount(folderPath: string) {
   if (!folder) return
   const result = await window.electronAPI.drive.folder(folderPath)
   if (!result.ok) return
-  const { uploaded, changed } = result.data.counts
-  folder.drive = uploaded + changed > 0 ? { uploaded, changed } : undefined
+  folder.drive = driveOfSummary(result.data)
 }
 
 let stopDriveListener: (() => void) | null = null

@@ -62,6 +62,21 @@ export function driveFolderCounts(meta: Pick<SlideMetadata, 'drive'> | null | un
   return { total, uploaded, changed, notUploaded, status, lastUploadAt };
 }
 
+/** One recorded share link, as the Slides page shows it. */
+export interface DriveShareLink {
+  id: string;
+  createdAt: string;
+  longUrl: string;
+  shortUrl?: string;
+  imageCount: number;
+  /** Whether the link carries the slide timeline (read from the link). */
+  timeline: boolean;
+  /** The link of the folder as it is now (every slide uploaded and unchanged). Cannot be removed. */
+  current: boolean;
+  /** False when the link is too long for the short-link service. */
+  canShorten: boolean;
+}
+
 /** One folder's upload state, for the Slides page. */
 export interface DriveFolderSummary {
   name: string;
@@ -74,6 +89,12 @@ export interface DriveFolderSummary {
   courseTitle?: string;
   sessionTitle?: string;
   counts: DriveFolderCounts;
+  /**
+   * The folder's share links, oldest first. A fully uploaded folder's
+   * current link is recorded when first seen, so the last one is current
+   * unless slides changed since.
+   */
+  shares: DriveShareLink[];
   /** Folder modified time, for sorting. */
   mtimeMs: number;
 }
@@ -100,6 +121,9 @@ export type DriveError =
   | 'not-found'
   | 'not-uploaded'
   | 'nothing-to-share'
+  | 'too-long'
+  | 'last-link'
+  | 'current-link'
   | 'busy'
   | 'failed';
 

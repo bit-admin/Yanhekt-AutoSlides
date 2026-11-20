@@ -203,7 +203,8 @@
                 <span v-if="item.slidesFolder">{{ $t('lectures.slideCount', { count: item.slidesFolder.imageCount }) }}</span>
                 <span v-else>{{ formatBytes(item.size) }}</span>
               </span>
-              <span v-if="section.session" class="file-extension">{{ item.ext.slice(1) }}</span>
+              <!-- A slides folder holds PNG slides; its item has no extension of its own. -->
+              <span v-if="section.session" class="file-extension">{{ item.slidesFolder ? 'png' : item.ext.slice(1) }}</span>
             </component>
           </div>
         </div>

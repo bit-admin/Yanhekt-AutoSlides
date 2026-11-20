@@ -13,6 +13,8 @@ export const drive: ElectronAPI['drive'] = {
   folder: (folderPath) => invoke('drive:folder', folderPath),
   upload: (folderPath, jobId) => invoke('drive:upload', folderPath, jobId),
   cancel: (jobId) => invoke('drive:cancel', jobId),
+  shortenShare: (folderPath, id) => invoke('drive:shortenShare', folderPath, id),
+  removeShare: (folderPath, id) => invoke('drive:removeShare', folderPath, id),
   recordClone: (folderPath, input) => invoke('drive:recordClone', folderPath, JSON.parse(JSON.stringify(input))),
   onProgress: (callback) => {
     const handler = (_e: Electron.IpcRendererEvent, progress: DriveUploadProgress) => callback(progress);

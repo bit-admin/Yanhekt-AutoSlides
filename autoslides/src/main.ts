@@ -489,7 +489,7 @@ const shareService = new ShareService(configService, apiTransport, async (course
   const token = configService.getAuthToken();
   return token ? apiClient.getLectureTitles(courseId, sessionId, token) : null;
 });
-const driveService = new DriveService(shareService, slideMetadataService, () => !!configService.getAuthToken());
+const driveService = new DriveService(shareService, slideMetadataService, slideTimelineService, () => !!configService.getAuthToken());
 const lectureOutputs = new LectureOutputs({
   metadata: slideMetadataService,
   removeFolders: (names, outputDir) => slideExtractionService.removeFolders(names, outputDir),

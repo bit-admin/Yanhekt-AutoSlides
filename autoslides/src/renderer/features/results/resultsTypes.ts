@@ -3,6 +3,7 @@
 
 import type { CropRect, CropEntry, TrashReason } from '@common/types'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
+import type { DriveShareLink } from '@common/driveStatus'
 
 export type { CropRect, CropEntry, TrashReason }
 export type { SlideMetadata }
@@ -28,7 +29,14 @@ export interface ResultsFolder {
   // Per-folder metadata (recorded extractions only); null/undefined = none.
   metadata?: SlideMetadata | null
   // Drive counts for the footer; absent when the folder has no upload records.
-  drive?: { uploaded: number; changed: number }
+  drive?: ResultsFolderDrive
+}
+
+export interface ResultsFolderDrive {
+  uploaded: number
+  changed: number
+  // Recorded share links, oldest first.
+  shares: DriveShareLink[]
 }
 
 export interface BaselineCrop {

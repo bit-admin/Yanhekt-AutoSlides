@@ -11,7 +11,7 @@ import { shareTimelineDelta } from './shareTimeline';
 import type { SlideTimeline } from './sidecars/timeline';
 
 // The share Worker's POST /v1/api/shorten caps the fragment at 8 KiB.
-const MAX_SHORTENABLE_FRAGMENT_BYTES = 8192;
+export const MAX_SHORTENABLE_FRAGMENT_BYTES = 8192;
 const PUBLIC_IMAGE_PREFIX = `${COSS_HOST}/images/`;
 
 interface ShareSlide {

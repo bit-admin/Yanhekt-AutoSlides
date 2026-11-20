@@ -19,17 +19,20 @@ import { createLogger } from '@main/infra/logger';
 import { readOutputDir } from '@main/infra/outputDir';
 import { expandTilde } from '@main/infra/pathUtils';
 import type { ShareService } from '@main/platform/shareService';
-import { parseCossImageUrl } from '@common/shareLink';
+import { decodeSharePayload, parseCossImageUrl, payloadHasTimeline } from '@common/shareLink';
+import { buildSlideShareLink, MAX_SHORTENABLE_FRAGMENT_BYTES } from '@common/shareCreation';
 import {
   driveFileState,
   driveFolderCounts,
   type DriveFileStat,
   type DriveFolderSummary,
   type DriveResult,
+  type DriveShareLink,
   type DriveUploadProgress,
 } from '@common/driveStatus';
-import type { SlideDriveFile, SlideMetadata } from '@common/sidecars/metadata';
+import type { SlideDriveFile, SlideMetadata, SlideShareRecord } from '@common/sidecars/metadata';
 import type { SlideMetadataService } from './slideMetadataService';
+import type { SlideTimelineService } from './slideTimelineService';
 
 const log = createLogger('Drive');
 
@@ -42,11 +45,12 @@ export function md5Of(bytes: Uint8Array): string {
   return createHash('md5').update(bytes).digest('hex');
 }
 
-type Uploader = Pick<ShareService, 'uploadImage'>;
+type Uploader = Pick<ShareService, 'uploadImage' | 'shortenShareUrl'>;
 type MetadataStore = Pick<
   SlideMetadataService,
-  'read' | 'writeExtraction' | 'recordDriveUploads'
+  'read' | 'writeExtraction' | 'recordDriveUploads' | 'saveShare' | 'removeShare'
 >;
+type TimelineStore = Pick<SlideTimelineService, 'read'>;
 
 interface UploadJob {
   progress: DriveUploadProgress;
@@ -59,6 +63,7 @@ export class DriveService {
   constructor(
     private readonly uploader: Uploader,
     private readonly metadata: MetadataStore,
+    private readonly timelines: TimelineStore,
     private readonly signedIn: () => boolean,
   ) {}
 
@@ -111,6 +116,9 @@ export class DriveService {
     if (meta) meta = await this.settleChanged(resolved, meta, files);
     let mtimeMs = 0;
     try { mtimeMs = (await fs.stat(resolved)).mtimeMs; } catch { /* gone */ }
+    const counts = driveFolderCounts(meta, files);
+    let currentUrl: string | undefined;
+    if (meta && counts.status === 'uploaded') ({ meta, currentUrl } = await this.recordCurrentShare(resolved, meta, files));
     return {
       name: path.basename(resolved),
       path: resolved,
@@ -120,9 +128,78 @@ export class DriveService {
       liveId: meta?.source.liveId,
       courseTitle: meta?.source.courseTitle,
       sessionTitle: meta?.source.sessionTitle,
-      counts: driveFolderCounts(meta, files),
+      counts,
+      shares: (meta?.shares ?? []).map((share) => shareLinkOf(share, share.longUrl === currentUrl)),
       mtimeMs,
     };
+  }
+
+  /**
+   * A fully uploaded folder's link as it is now: every slide in name order,
+   * always with the slide timeline when the folder has one that maps onto its
+   * slides (so Clone Slides from Link can use it); images only otherwise. Recorded in `shares` the first time it is seen, so each
+   * change to the uploaded slides (or the timeline) leaves a new version and
+   * the older links stay listed; they keep working, since uploads cannot be
+   * deleted. The id is derived from the link, so two reads racing to record
+   * it write the same record.
+   */
+  private async recordCurrentShare(
+    folderPath: string,
+    meta: SlideMetadata,
+    files: DriveFileStat[],
+  ): Promise<{ meta: SlideMetadata; currentUrl?: string }> {
+    const records = meta.drive?.files ?? {};
+    let timeline = null;
+    try {
+      timeline = await this.timelines.read(folderPath, { afterWrites: true });
+    } catch { /* no timeline: images only */ }
+    const link = buildSlideShareLink(
+      { courseId: meta.source.courseId, sessionId: meta.source.sessionId, liveId: meta.source.liveId },
+      files.map((f) => ({ filename: f.name, url: records[f.name].url })),
+      timeline,
+    );
+    if (!link) return { meta };
+    const currentUrl = link.longUrl;
+    if (meta.shares?.some((share) => share.longUrl === currentUrl)) return { meta, currentUrl };
+    const share: SlideShareRecord = {
+      id: createHash('sha256').update(link.longUrl).digest('hex').slice(0, 16),
+      createdAt: new Date().toISOString(),
+      longUrl: link.longUrl,
+      files: files.map((f) => f.name),
+      timeline: linkHasTimeline(link.longUrl),
+    };
+    const written = await this.metadata.saveShare(folderPath, share);
+    if (written === 'failed' || written === 'blocked') return { meta, currentUrl };
+    return { meta: { ...meta, shares: [...(meta.shares ?? []).filter((s) => s.id !== share.id), share] }, currentUrl };
+  }
+
+  /**
+   * Take one link off the folder's list (the link itself keeps working).
+   * Refused for the last link and for the current one, which the next read
+   * would record again anyway.
+   */
+  async removeShare(folderPath: string, id: string): Promise<DriveResult<null>> {
+    const resolved = path.resolve(expandTilde(folderPath));
+    const { shares } = await this.folderSummary(resolved);
+    const share = shares.find((s) => s.id === id);
+    if (!share) return { ok: false, error: 'not-found' };
+    if (shares.length <= 1) return { ok: false, error: 'last-link' };
+    if (share.current) return { ok: false, error: 'current-link' };
+    const written = await this.metadata.removeShare(resolved, id);
+    return written === 'failed' || written === 'blocked' ? { ok: false, error: 'failed' } : { ok: true, data: null };
+  }
+
+  /** Make a short link for one recorded share and keep it on the record. */
+  async shortenShare(folderPath: string, id: string): Promise<DriveResult<DriveShareLink>> {
+    const resolved = path.resolve(expandTilde(folderPath));
+    const share = (await this.metadata.read(resolved, { afterWrites: true }))?.shares?.find((s) => s.id === id);
+    if (!share) return { ok: false, error: 'not-found' };
+    if (share.shortUrl) return { ok: true, data: shareLinkOf(share) };
+    if (!shareLinkOf(share).canShorten) return { ok: false, error: 'too-long' };
+    const next = { ...share, shortUrl: (await this.uploader.shortenShareUrl(fragmentOf(share.longUrl))).url };
+    const written = await this.metadata.saveShare(resolved, next);
+    if (written === 'failed' || written === 'blocked') return { ok: false, error: 'failed' };
+    return { ok: true, data: shareLinkOf(next) };
   }
 
   /** Every `slides_*` folder in the output folder, newest first. */
@@ -240,7 +317,7 @@ export class DriveService {
   }
 
   /**
-   * Record a folder made by Clone from Share Link: metadata.json with
+   * Record a folder made by Clone Slides from Link: metadata.json with
    * `extractor: 'share'` and the link's lecture facts, then an upload record
    * for every slide whose bytes are the ones its URL names (the images are on
    * Drive already). `slides` pairs each written file with its source URL.
@@ -272,6 +349,27 @@ export class DriveService {
     await this.metadata.recordDriveUploads(resolved, records);
     return { ok: true, data: null };
   }
+}
+
+const fragmentOf = (longUrl: string): string => longUrl.slice(longUrl.indexOf('#') + 1);
+
+/** Read from the link itself, so older records report what the link really carries. */
+function linkHasTimeline(longUrl: string): boolean {
+  const payload = decodeSharePayload(fragmentOf(longUrl));
+  return !!payload && payloadHasTimeline(payload);
+}
+
+function shareLinkOf(share: SlideShareRecord, current = false): DriveShareLink {
+  return {
+    id: share.id,
+    createdAt: share.createdAt,
+    longUrl: share.longUrl,
+    ...(share.shortUrl ? { shortUrl: share.shortUrl } : {}),
+    imageCount: share.files.length,
+    timeline: linkHasTimeline(share.longUrl),
+    current,
+    canShorten: fragmentOf(share.longUrl).length <= MAX_SHORTENABLE_FRAGMENT_BYTES,
+  };
 }
 
 function isFinished(progress: DriveUploadProgress): boolean {

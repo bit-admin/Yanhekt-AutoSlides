@@ -9,10 +9,12 @@ import type {
   CropEntry,
   RemovedEntry,
   ResultsFolder,
+  ResultsFolderDrive,
   ResultsItem,
   SlideMetadata,
 } from './resultsTypes';
 import { createLogger } from '@shared/utils/logger';
+import type { DriveFolderSummary } from '@common/driveStatus';
 const log = createLogger('ResultsDataLoader');
 
 export interface ResultsDataIO {
@@ -23,7 +25,7 @@ export interface ResultsDataIO {
   // Optional: demo/override providers may omit it (treated as "no metadata").
   getMetadata?(folderPath: string): Promise<SlideMetadata | null>;
   // Optional: Drive upload counts by folder name (absent = no uploads shown).
-  getDriveCounts?(): Promise<Map<string, { uploaded: number; changed: number }>>;
+  getDriveCounts?(): Promise<Map<string, ResultsFolderDrive>>;
 }
 
 export function createResultsDataIO(): ResultsDataIO {
@@ -51,16 +53,22 @@ export function createResultsDataIO(): ResultsDataIO {
     getMetadata: (folderPath) => window.electronAPI.slideMetadata.get(folderPath),
     getDriveCounts: async () => {
       const result = await window.electronAPI.drive.folders();
-      const counts = new Map<string, { uploaded: number; changed: number }>();
+      const counts = new Map<string, ResultsFolderDrive>();
       if (!result.ok) return counts;
       for (const folder of result.data) {
-        if (folder.counts.uploaded + folder.counts.changed > 0) {
-          counts.set(folder.name, { uploaded: folder.counts.uploaded, changed: folder.counts.changed });
-        }
+        const drive = driveOfSummary(folder);
+        if (drive) counts.set(folder.name, drive);
       }
       return counts;
     },
   };
+}
+
+/** A folder's Drive state for the Slides list, or undefined when it has no uploads and no links. */
+export function driveOfSummary(summary: DriveFolderSummary): ResultsFolderDrive | undefined {
+  const { uploaded, changed } = summary.counts;
+  if (uploaded + changed === 0 && summary.shares.length === 0) return undefined;
+  return { uploaded, changed, shares: summary.shares };
 }
 
 export interface FolderSummariesResult {
@@ -75,9 +83,9 @@ export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSumm
     io.getFolders(),
     io.getTrashEntries(),
     io.getCropEntries(),
-    (io.getDriveCounts?.() ?? Promise.resolve(new Map<string, { uploaded: number; changed: number }>())).catch((error) => {
+    (io.getDriveCounts?.() ?? Promise.resolve(new Map<string, ResultsFolderDrive>())).catch((error) => {
       log.warn('Failed to load Drive counts:', error);
-      return new Map<string, { uploaded: number; changed: number }>();
+      return new Map<string, ResultsFolderDrive>();
     }),
   ]);
 

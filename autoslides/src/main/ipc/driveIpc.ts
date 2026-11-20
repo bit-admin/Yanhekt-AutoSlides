@@ -71,6 +71,12 @@ export function registerDriveIpcHandlers(services: IpcServices): void {
     if (typeof jobId === 'string') driveService.cancel(jobId);
   });
 
+  ipcMain.handle('drive:shortenShare', (_e, folderPath: string, id: string) =>
+    inFolder(folderPath, (folder) => driveService.shortenShare(folder, String(id ?? ''))));
+
+  ipcMain.handle('drive:removeShare', (_e, folderPath: string, id: string) =>
+    inFolder(folderPath, (folder) => driveService.removeShare(folder, String(id ?? ''))));
+
   ipcMain.handle('drive:recordClone', (_e, folderPath: string, input: { source?: Record<string, unknown>; slides?: Array<{ filename?: unknown; url?: unknown }> }) =>
     inFolder(folderPath, (folder) => driveService.recordClone(folder, {
       source: plainSource(input?.source),

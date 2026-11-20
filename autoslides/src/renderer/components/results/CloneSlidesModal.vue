@@ -1,6 +1,7 @@
 <template>
+  <!-- Slides → Clone Slides from Link: rebuild a slides folder from a share link. -->
   <div class="modal-overlay" @click.self="onOverlay">
-    <div class="dialog-box lec-clone-box" @click.stop>
+    <div class="dialog-box clone-box" @click.stop>
       <h3 class="dialog-title">{{ $t('lectures.cloneModalTitle') }}</h3>
       <p class="dialog-help">{{ $t('lectures.cloneModalHint') }}</p>
 
@@ -9,14 +10,14 @@
           ref="inputEl"
           v-model="link"
           type="text"
-          class="input-field lec-clone-input"
+          class="input-field clone-input"
           :placeholder="$t('lectures.clonePastePlaceholder')"
           :disabled="resolving"
           spellcheck="false"
           autocomplete="off"
           @keydown.enter.prevent="onClone"
         />
-        <p v-if="error" class="lec-clone-error">{{ error }}</p>
+        <p v-if="error" class="clone-error">{{ error }}</p>
         <div class="dialog-actions">
           <button type="button" class="btn dialog-btn" :disabled="resolving" @click="emit('close')">
             {{ $t('trash.cancel') }}
@@ -33,26 +34,26 @@
       </template>
 
       <template v-else>
-        <div class="lec-clone-row">
-          <div class="lec-clone-row-top">
-            <span class="lec-clone-name" :title="shareExp.item.value.title">{{ shareExp.item.value.title }}</span>
-            <span class="lec-clone-status" :class="`s-${shareExp.item.value.status}`">{{ statusText(shareExp.item.value) }}</span>
+        <div class="clone-row">
+          <div class="clone-row-top">
+            <span class="clone-name" :title="shareExp.item.value.title">{{ shareExp.item.value.title }}</span>
+            <span class="clone-status" :class="`s-${shareExp.item.value.status}`">{{ statusText(shareExp.item.value) }}</span>
           </div>
-          <div class="lec-clone-bar">
+          <div class="clone-bar">
             <div
-              class="lec-clone-fill"
+              class="clone-fill"
               :class="`s-${shareExp.item.value.status}`"
               :style="{ width: barWidth(shareExp.item.value) + '%' }"
             ></div>
           </div>
-          <div v-if="shareExp.item.value.status === 'conflict'" class="lec-clone-conflict-actions">
+          <div v-if="shareExp.item.value.status === 'conflict'" class="clone-conflict-actions">
             <button class="btn btn--sm btn--ghost" :disabled="shareExp.exporting.value" @click="shareExp.openFolder()">
               {{ $t('cloudNotes.exportOpenFolder') }}
             </button>
             <button class="btn btn--sm" :disabled="shareExp.exporting.value" @click="shareExp.resolveConflict('create')">
               {{ $t('cloudNotes.exportCreateNew') }}
             </button>
-            <button class="btn btn--sm lec-clone-replace" :disabled="shareExp.exporting.value" @click="shareExp.resolveConflict('replace')">
+            <button class="btn btn--sm clone-replace" :disabled="shareExp.exporting.value" @click="shareExp.resolveConflict('replace')">
               {{ $t('cloudNotes.exportReplace') }}
             </button>
             <button class="btn btn--sm btn--ghost" :disabled="shareExp.exporting.value" @click="finish(false)">
@@ -60,7 +61,7 @@
             </button>
           </div>
         </div>
-        <p v-if="shareExp.item.value.status === 'conflict'" class="lec-clone-hint">
+        <p v-if="shareExp.item.value.status === 'conflict'" class="clone-hint">
           {{ $t('cloudNotes.exportConflictHint') }}
         </p>
         <div class="dialog-actions">
@@ -89,7 +90,7 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { precheckShareLinkTimeline } from '@common/shareLink'
+import { parseShareLink } from '@common/shareLink'
 import { useShareLinkExport, type ShareExportItem } from '@features/cloudNotes/useShareLinkExport'
 
 const emit = defineEmits<{
@@ -124,15 +125,7 @@ function barWidth(item: ShareExportItem): number {
   return 0
 }
 
-function errorForPrecheck(status: ReturnType<typeof precheckShareLinkTimeline>): string {
-  if (status === 'empty') return ''
-  if (status === 'invalid') return t('lectures.cloneInvalid')
-  if (status === 'no-timeline') return t('lectures.cloneNoTimeline')
-  return ''
-}
-
 function errorForResolve(code: string | undefined): string {
-  if (code === 'share-link-no-timeline') return t('lectures.cloneNoTimeline')
   if (code === 'invalid-share-link') return t('lectures.cloneInvalid')
   return t('lectures.cloneFailed')
 }
@@ -140,23 +133,19 @@ function errorForResolve(code: string | undefined): string {
 async function onClone(): Promise<void> {
   if (resolving.value || shareExp.exporting.value) return
   const raw = link.value.trim()
-  const pre = precheckShareLinkTimeline(raw)
-  if (pre !== 'ok') {
-    error.value = errorForPrecheck(pre)
+  if (!raw) return
+  if (!parseShareLink(raw)) {
+    error.value = t('lectures.cloneInvalid')
     return
   }
   error.value = ''
   resolving.value = true
   try {
-    const res = await window.electronAPI.cloudNotes.resolveShareLink(raw, { requireTimeline: true })
+    // Any link: one with a timeline also writes timeline.json, one without
+    // gives a slides-only folder.
+    const res = await window.electronAPI.cloudNotes.resolveShareLink(raw)
     if (!res.ok) {
       error.value = errorForResolve(res.error)
-      return
-    }
-    // Defense in depth: short v2 links fail in main, but a resolved v3 with a
-    // reconstruct failure must still not write a timeline-less slides folder.
-    if (!res.data.timeline) {
-      error.value = t('lectures.cloneNoTimeline')
       return
     }
     if (res.data.urls.length === 0) {
@@ -189,23 +178,23 @@ function finish(cloned: boolean): void {
 </script>
 
 <style scoped>
-.lec-clone-box {
+.clone-box {
   width: 460px;
   max-width: 92vw;
 }
 
-.lec-clone-input {
+.clone-input {
   width: 100%;
 }
 
-.lec-clone-error {
+.clone-error {
   margin: -6px 0 0;
   font-size: 12px;
   color: var(--danger);
   line-height: 1.4;
 }
 
-.lec-clone-row {
+.clone-row {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -215,14 +204,14 @@ function finish(cloned: boolean): void {
   background-color: var(--bg-surface);
 }
 
-.lec-clone-row-top {
+.clone-row-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.lec-clone-name {
+.clone-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -232,25 +221,25 @@ function finish(cloned: boolean): void {
   color: var(--text-primary);
 }
 
-.lec-clone-status {
+.clone-status {
   flex-shrink: 0;
   font-size: 12px;
   color: var(--text-muted);
 }
 
-.lec-clone-status.s-done { color: var(--success); }
-.lec-clone-status.s-error { color: var(--danger); }
-.lec-clone-status.s-conflict { color: var(--warning); }
-.lec-clone-status.s-downloading { color: var(--accent); }
+.clone-status.s-done { color: var(--success); }
+.clone-status.s-error { color: var(--danger); }
+.clone-status.s-conflict { color: var(--warning); }
+.clone-status.s-downloading { color: var(--accent); }
 
-.lec-clone-bar {
+.clone-bar {
   height: 4px;
   background-color: var(--bg-hover);
   border-radius: 2px;
   overflow: hidden;
 }
 
-.lec-clone-fill {
+.clone-fill {
   height: 100%;
   width: 0;
   border-radius: 2px;
@@ -258,28 +247,28 @@ function finish(cloned: boolean): void {
   transition: width 0.3s ease;
 }
 
-.lec-clone-fill.s-done { background-color: var(--success); }
-.lec-clone-fill.s-error,
-.lec-clone-fill.s-conflict { background-color: transparent; }
+.clone-fill.s-done { background-color: var(--success); }
+.clone-fill.s-error,
+.clone-fill.s-conflict { background-color: transparent; }
 
-.lec-clone-conflict-actions {
+.clone-conflict-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 2px;
 }
 
-.lec-clone-replace {
+.clone-replace {
   color: var(--danger);
   border-color: var(--danger);
 }
 
-.lec-clone-replace:hover:not(:disabled) {
+.clone-replace:hover:not(:disabled) {
   background-color: var(--danger-bg);
   border-color: var(--danger-hover);
 }
 
-.lec-clone-hint {
+.clone-hint {
   margin: 0;
   font-size: 12px;
   color: var(--text-muted);

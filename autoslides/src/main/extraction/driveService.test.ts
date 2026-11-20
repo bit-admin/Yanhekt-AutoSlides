@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@main/infra/logger', () => ({ createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }) }));
 
+import { decodeSharePayload } from '@common/shareLink';
+import { recordCaptureConfirmed, type SlideTimeline } from '@common/sidecars/timeline';
 import { DriveService, md5Of } from './driveService';
 import { SlideMetadataService } from './slideMetadataService';
 
@@ -15,7 +17,7 @@ afterEach(async () => {
 
 const extraction = { extractor: 'qt' as const, extractedAt: '2026-11-20T00:00:00.000Z' };
 
-async function setup(withMetadata = true) {
+async function setup(withMetadata = true, timeline: SlideTimeline | null = null) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'drive-'));
   dirs.push(root);
   const folder = path.join(root, 'slides_课程_第1周__c1s2');
@@ -30,8 +32,10 @@ async function setup(withMetadata = true) {
       uploads.push(filename);
       return { url: `https://coss.yanhekt.cn/images/2026/11/${md5Of(new Uint8Array(bytes as ArrayBuffer))}.png` };
     }),
+    shortenShareUrl: vi.fn(async () => ({ url: 'https://share.ruc.edu.kg/v1/s/abc' })),
   };
-  const service = new DriveService(uploader as never, metadata, () => true);
+  const timelines = { read: vi.fn(async () => timeline) };
+  const service = new DriveService(uploader as never, metadata, timelines as never, () => true);
   return { root, folder, metadata, service, uploads, uploader };
 }
 
@@ -48,10 +52,60 @@ describe('DriveService', () => {
     await writeFile(path.join(folder, 'Slide_002.png'), 'two, cropped');
     expect((await service.folderSummary(folder)).counts).toMatchObject({ uploaded: 1, changed: 1, status: 'changed' });
     await service.uploadFolder(folder, () => {});
-    expect(uploads).toEqual(['Slide_001.png', 'Slide_002.png', 'Slide_002.png']);
+    // Uploads run three at a time, so the first two may finish in either order.
+    expect([...uploads].sort()).toEqual(['Slide_001.png', 'Slide_002.png', 'Slide_002.png']);
     const record = (await metadata.read(folder))?.drive?.files['Slide_002.png'];
     expect(record?.md5).toBe(md5Of(Buffer.from('two, cropped')));
     expect((record?.uploadedAt ?? '') <= (record?.updatedAt ?? '')).toBe(true);
+  });
+
+  it('records a share link version for each fully uploaded state, and shortens one', async () => {
+    const { folder, service, uploader } = await setup();
+    expect((await service.folderSummary(folder)).shares).toEqual([]);
+    await service.uploadFolder(folder, () => {});
+    const first = (await service.folderSummary(folder)).shares;
+    expect(first).toHaveLength(1);
+    expect(first[0]).toMatchObject({ imageCount: 2, canShorten: true, timeline: false });
+    expect(first[0].longUrl).toMatch(/^https:\/\/share\.ruc\.edu\.kg\/v1#/);
+    expect(decodeSharePayload(first[0].longUrl.slice(first[0].longUrl.indexOf('#')))).toMatchObject({ v: 2, c: '1', s: '2', n: 7 });
+    // Read again: the same link is not recorded twice.
+    expect((await service.folderSummary(folder)).shares).toHaveLength(1);
+
+    // A crop keeps the old link listed; uploading it again adds a second version.
+    await writeFile(path.join(folder, 'Slide_002.png'), 'two, cropped');
+    expect((await service.folderSummary(folder)).shares).toHaveLength(1);
+    await service.uploadFolder(folder, () => {});
+    const second = (await service.folderSummary(folder)).shares;
+    expect(second).toHaveLength(2);
+    expect(second[0].id).toBe(first[0].id);
+    expect(second[1].longUrl).not.toBe(first[0].longUrl);
+
+    expect(await service.shortenShare(folder, first[0].id)).toMatchObject({ ok: true, data: { shortUrl: 'https://share.ruc.edu.kg/v1/s/abc' } });
+    expect(await service.shortenShare(folder, first[0].id)).toMatchObject({ ok: true });
+    expect(uploader.shortenShareUrl).toHaveBeenCalledTimes(1);
+    expect((await service.folderSummary(folder)).shares[0].shortUrl).toBe('https://share.ruc.edu.kg/v1/s/abc');
+    expect(await service.shortenShare(folder, 'missing')).toMatchObject({ ok: false, error: 'not-found' });
+
+    // Removing: the current link stays, an older one can go, the last one stays.
+    expect(second.map((s) => s.current)).toEqual([false, true]);
+    expect(await service.removeShare(folder, second[1].id)).toMatchObject({ ok: false, error: 'current-link' });
+    expect(await service.removeShare(folder, second[0].id)).toMatchObject({ ok: true });
+    expect((await service.folderSummary(folder)).shares.map((s) => s.id)).toEqual([second[1].id]);
+    await writeFile(path.join(folder, 'Slide_001.png'), 'one, cropped');
+    const [only] = (await service.folderSummary(folder)).shares;
+    expect(only.current).toBe(false);
+    expect(await service.removeShare(folder, only.id)).toMatchObject({ ok: false, error: 'last-link' });
+  });
+
+  it('puts the timeline in the link whenever the folder has one', async () => {
+    let timeline = recordCaptureConfirmed(null, { changeAt: 0, confirmedAt: 2, file: 'Slide_001.png' });
+    timeline = recordCaptureConfirmed(timeline, { changeAt: 90, confirmedAt: 92, file: 'Slide_002.png' });
+    const { folder, service, metadata } = await setup(true, timeline);
+    await service.uploadFolder(folder, () => {});
+    const [share] = (await service.folderSummary(folder)).shares;
+    expect(share.timeline).toBe(true);
+    expect(decodeSharePayload(share.longUrl.slice(share.longUrl.indexOf('#')))).toMatchObject({ v: 3, t: '0:0,1:90' });
+    expect((await metadata.read(folder))?.shares?.[0].timeline).toBe(true);
   });
 
   it('counts restored original bytes as uploaded without sending them', async () => {
@@ -75,7 +129,7 @@ describe('DriveService', () => {
     const { folder, service } = await setup(false);
     expect(await service.uploadFolder(folder, () => {})).toMatchObject({ ok: false, error: 'not-recognised' });
     expect((await service.folderSummary(folder)).recognised).toBe(false);
-    const signedOut = new DriveService({} as never, new SlideMetadataService(), () => false);
+    const signedOut = new DriveService({} as never, new SlideMetadataService(), { read: async () => null } as never, () => false);
     expect(await signedOut.uploadFolder(folder, () => {})).toMatchObject({ ok: false, error: 'sign-in' });
   });
 

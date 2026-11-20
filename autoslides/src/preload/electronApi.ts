@@ -1203,7 +1203,11 @@ export interface ElectronAPI {
     /** Resolves when the job ends; progress on `onProgress`. */
     upload: (folderPath: string, jobId: string) => Promise<import('@common/driveStatus').DriveResult<import('@common/driveStatus').DriveUploadProgress>>;
     cancel: (jobId: string) => Promise<void>;
-    /** After Clone from Share Link: metadata.json (`extractor: 'share'`) and upload records for the slides it downloaded. */
+    /** Make (once) and record a short link for one of the folder's share links. */
+    shortenShare: (folderPath: string, id: string) => Promise<import('@common/driveStatus').DriveResult<import('@common/driveStatus').DriveShareLink>>;
+    /** Take a link off the folder's list (not the last one, not the current one); the link keeps working. */
+    removeShare: (folderPath: string, id: string) => Promise<import('@common/driveStatus').DriveResult<null>>;
+    /** After Clone Slides from Link: metadata.json (`extractor: 'share'`) and upload records for the slides it downloaded. */
     recordClone: (folderPath: string, input: { source: import('@common/sidecars/metadata').SlideMetadataSource; slides: Array<{ filename: string; url: string }> }) => Promise<import('@common/driveStatus').DriveResult<null>>;
     onProgress: (callback: (progress: import('@common/driveStatus').DriveUploadProgress) => void) => () => void;
   };
