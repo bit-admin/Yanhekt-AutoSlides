@@ -770,8 +770,8 @@ const slideExtraction = useSlideExtraction({
 })
 
 // When the user starts extraction while watching (manual tab), hand off to the
-// watch-notes store: it creates/opens this tab's ASuser note and reveals the
-// right-panel Notes tab. Gated inside the store (manual origin + watch-sync on).
+// watch-notes store: it opens this tab's Obsidian or Notion queue and reveals
+// the right-panel Notes tab. Gated inside the store (manual origin + watch-sync on).
 watch(
   () => slideExtraction.slideExtractionStatus.value.isRunning,
   (running, was) => {

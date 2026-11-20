@@ -51,17 +51,6 @@
           <ResultsWindow />
         </div>
 
-        <!-- Cloud Notes (Workspace page — full-width, right panel hidden).
-             Lazily mounted on first visit: its onMounted loads notes over the
-             network AND recreates a README note (a network write), so we don't
-             want that firing on every app start. Kept mounted once opened. -->
-        <div
-          :class="['mode-container', { 'mode-hidden': activeNav !== 'cloud-notes' }]"
-          data-mode="cloud-notes"
-        >
-          <CloudNotesTab v-if="cloudNotesMounted" />
-        </div>
-
         <!-- Lectures (Workspace page — local .mp4 library + compress/rename).
              Lazily mounted; kept mounted so the compress queue UI stays alive. -->
         <div
@@ -182,7 +171,6 @@ import Yanhe2CurriculumPage from '@renderer/components/yanhe2/Yanhe2CurriculumPa
 import Yanhe2PlaybackPage from '@renderer/components/yanhe2/Yanhe2PlaybackPage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
-import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
 import LecturesPage from '@renderer/components/lectures/LecturesPage.vue'
 import DeveloperPage from '@renderer/components/developer/DeveloperPage.vue'
 import WebCaptureTab from '@renderer/components/webCapture/WebCaptureTab.vue'
@@ -206,17 +194,6 @@ interface RecordedState {
 
 const { t } = useI18n()
 const { activeNav, courseOpenRequest, recordedGridResetTick } = navigationStore
-
-// Cloud Notes mounts lazily on first visit (its onMounted hits the network and
-// recreates a README note), then stays mounted to preserve editor/queue state.
-const cloudNotesMounted = ref(false)
-watch(
-  activeNav,
-  (nav) => {
-    if (nav === 'cloud-notes') cloudNotesMounted.value = true
-  },
-  { immediate: true }
-)
 
 // Lectures mounts lazily; kept mounted so the in-page compress queue strip and
 // list selection survive sidebar navigations away and back.

@@ -9,9 +9,9 @@ import * as path from 'path';
 import { app, dialog } from 'electron';
 import { ThemeService, ThemeMode } from './themeService';
 import {
-  migrateLegacyWatchSync,
+  isWatchNotesChoice,
   normalizeWatchNotesProvider,
-  type WatchNotesProviderId,
+  type WatchNotesChoice,
 } from '@common/watchNotesProviders';
 import {
   AUTO_CROP_YOLO_INPUT_SIZES,
@@ -222,13 +222,16 @@ export class ConfigService {
     }
   }
 
-  // Keys of removed features: the old Public Index's auto-publish toggles, and
-  // the Temporary Workarounds (live stream relabel, course snapshot search;
-  // retired 23.125).
+  // Local settings belonging to retired features, not remote notes or groups.
   private dropRetiredKeys(): void {
     for (const key of [
       'cloudAutoPublishAfterSync',
       'cloudAutoRepublishAfterResync',
+      'cloudStorageInitializedUsers',
+      'cloudAutoSyncMode',
+      'cloudAutoResyncMode',
+      'cloudWatchSyncEnabled',
+      'cloudShareEmbedTimeline',
       'yanhektLiveWorkaround',
       'yanhektCourseSnapshotSearch',
       'courseSnapshotPickerTerms',
@@ -247,19 +250,14 @@ export class ConfigService {
     }
   }
 
-  // One-time migration to notes add-ons: the Yanhekt-only `cloudWatchSyncEnabled`
-  // becomes `watchNotesEnabled` + `watchNotesProvider: 'yanhekt'`. Keyed on the
-  // legacy key alone — electron-store has already written the new keys' defaults
-  // by now, so their presence says nothing. Deleting the legacy key makes it run once.
+  // Do not redirect an opt-in for Yanhekt notes to another destination: a
+  // stored `yanhekt` (or anything unknown) becomes Off and watch notes are
+  // switched off. Off, Obsidian and Notion, and their opt-in flags, remain unchanged.
   private migrateWatchNotes(): void {
-    const migrated = migrateLegacyWatchSync(
-      this.store.has('cloudWatchSyncEnabled'),
-      this.store.get('cloudWatchSyncEnabled')
-    );
-    if (!migrated) return;
-    this.store.set('watchNotesEnabled', migrated.watchNotesEnabled);
-    this.store.set('watchNotesProvider', migrated.watchNotesProvider);
-    this.store.delete('cloudWatchSyncEnabled');
+    const provider: unknown = this.store.get('watchNotesProvider');
+    if (isWatchNotesChoice(provider)) return;
+    this.store.set('watchNotesEnabled', false);
+    this.store.set('watchNotesProvider', normalizeWatchNotesProvider(provider));
   }
 
   // One-time migration: bring the legacy single-account state (the standalone
@@ -363,9 +361,6 @@ export class ConfigService {
       enrolledCourses: this.getEnrolledCourses(),
       onboardingCompleted: this.store.get('onboardingCompleted') ?? false,
       lastOnboardingVersion: this.store.get('lastOnboardingVersion') ?? null,
-      cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? [],
-      cloudAutoSyncMode: this.store.get('cloudAutoSyncMode') ?? 'disabled',
-      cloudAutoResyncMode: this.store.get('cloudAutoResyncMode') ?? 'disabled',
       watchNotesEnabled: this.store.get('watchNotesEnabled') ?? false,
       watchNotesProvider: normalizeWatchNotesProvider(this.store.get('watchNotesProvider')),
       obsidianVaultPath: this.store.get('obsidianVaultPath') ?? '',
@@ -373,7 +368,6 @@ export class ConfigService {
       obsidianAutoCreateNote: this.store.get('obsidianAutoCreateNote') ?? false,
       notionConnected: this.getNotionToken() !== null,
       notionWorkspaceName: this.store.get('notionWorkspaceName') ?? '',
-      cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       showToolsButton: this.store.get('showToolsButton') ?? false,
       allowCliControl: this.store.get('allowCliControl') ?? true,
       closeToTray: this.getCloseToTray(),
@@ -419,38 +413,20 @@ export class ConfigService {
     }
   }
 
-  setCloudStorageInitialized(badge: string, initialized: boolean): void {
-    const users = new Set(this.store.get('cloudStorageInitializedUsers') ?? []);
-    if (initialized) users.add(badge);
-    else users.delete(badge);
-    this.store.set('cloudStorageInitializedUsers', [...users]);
-  }
-
-  setCloudAutoSyncMode(mode: 'disabled' | 'edited' | 'reviewed'): void {
-    this.store.set('cloudAutoSyncMode', mode);
-  }
-
-  setCloudAutoResyncMode(mode: 'disabled' | 'edited'): void {
-    this.store.set('cloudAutoResyncMode', mode);
-  }
-
   setObsidian(patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }): void {
     if (typeof patch.vaultPath === 'string') this.store.set('obsidianVaultPath', patch.vaultPath);
     if (typeof patch.subfolder === 'string') this.store.set('obsidianSubfolder', patch.subfolder);
     if (typeof patch.autoCreateNote === 'boolean') this.store.set('obsidianAutoCreateNote', patch.autoCreateNote);
   }
 
-  setWatchNotes(patch: { enabled?: boolean; provider?: WatchNotesProviderId }): void {
+  setWatchNotes(patch: { enabled?: boolean; provider?: WatchNotesChoice }): void {
+    if (patch.provider !== undefined && !isWatchNotesChoice(patch.provider)) return;
     if (typeof patch.enabled === 'boolean') {
       this.store.set('watchNotesEnabled', patch.enabled);
     }
     if (patch.provider !== undefined) {
-      this.store.set('watchNotesProvider', normalizeWatchNotesProvider(patch.provider));
+      this.store.set('watchNotesProvider', patch.provider);
     }
-  }
-
-  setCloudShareEmbedTimeline(enabled: boolean): void {
-    this.store.set('cloudShareEmbedTimeline', enabled);
   }
 
   setShowToolsButton(enabled: boolean): void {

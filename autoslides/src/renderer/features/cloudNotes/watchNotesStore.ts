@@ -1,5 +1,4 @@
 import { reactive, computed, watch } from 'vue'
-import type { OutputData } from '@editorjs/editorjs'
 import { configStore } from '@shared/services/configStore'
 import { layoutStore } from '@shared/services/layoutStore'
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore'
@@ -8,14 +7,6 @@ import { buildSlideFolderName, SLIDE_FOLDER_PREFIX, type LectureIdentity } from 
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { tabStore } from '@features/course/tabStore'
 import { knownLiveSessionId } from '@features/course/liveSessionIds'
-import { cloudStorageStore } from './cloudStorageStore'
-import {
-  yanhektWatchSink,
-  emptyDoc,
-  registerActiveEditor,
-  unregisterActiveEditor,
-  commitEditorContent as commitYanhektContent,
-} from './yanhektWatchSink'
 import { obsidianWatchSink, createLectureNote, chooseNote, setObsidianPaused } from './obsidianWatchSink'
 import { notionWatchSink, choosePage, setNotionPaused } from './notionWatchSink'
 import type { WatchNotesProviderId } from '@common/watchNotesProviders'
@@ -30,7 +21,6 @@ import type {
 // Watch notes: the provider-neutral slide stream. A manual watch tab that starts
 // extraction gets an entry; captured slides wait here until post-processing
 // keeps them, then go to the entry's provider sink in capture order.
-//   Yanhekt  → yanhektWatchSink (ASuser note + live editor)
 //   Obsidian → obsidianWatchSink (visible queue → images appended to a Markdown note)
 //   Notion   → notionWatchSink (visible queue → image blocks on a picked page)
 
@@ -45,7 +35,6 @@ const state = reactive<{ entries: Record<string, WatchNoteEntry> }>({ entries: {
 const pendingSlides = new Map<string, Map<string, string>>()
 
 const SINKS: Record<WatchNotesProviderId, WatchNotesSink<never>> = {
-  yanhekt: yanhektWatchSink,
   obsidian: obsidianWatchSink,
   notion: notionWatchSink,
 }
@@ -120,9 +109,8 @@ function deriveNoteNaming(tabId: string): {
 
 /**
  * Whether the watch-notes auto flow may run right now: Settings → Add-ons →
- * Watch Notes is on, and the chosen provider can take notes (Yanhekt needs the
- * ASuser group; Obsidian always can, since a note may be chosen per lecture;
- * Notion needs a connected token).
+ * Watch Notes is on and the selected provider can take notes. Obsidian can
+ * choose a vault note later; Notion needs a connected token.
  */
 export function watchSyncActive(): boolean {
   if (!configStore.watchNotesEnabled) return false
@@ -132,7 +120,7 @@ export function watchSyncActive(): boolean {
     case 'notion':
       return configStore.notionConnected
     default:
-      return cloudStorageStore.canUse.value && cloudStorageStore.userGroupId.value != null
+      return false
   }
 }
 
@@ -140,9 +128,9 @@ function newEntry(tabId: string, instanceId: string): WatchNoteEntry {
   const { displayName, identity, slidesFolderName } = deriveNoteNaming(tabId)
   const base = { tabId, instanceId, displayName, identity, slidesFolderName }
   const external = { status: 'awaiting' as const, target: null, items: [], paused: false, lastError: null }
-  if (configStore.watchNotesProvider === 'obsidian') return { ...base, ...external, provider: 'obsidian' }
-  if (configStore.watchNotesProvider === 'notion') return { ...base, ...external, provider: 'notion' }
-  return { ...base, provider: 'yanhekt', status: 'creating', noteId: null, content: emptyDoc() }
+  return configStore.watchNotesProvider === 'notion'
+    ? { ...base, ...external, provider: 'notion' }
+    : { ...base, ...external, provider: 'obsidian' }
 }
 
 /**
@@ -276,12 +264,6 @@ export const notesTabAvailable = computed<boolean>(
   () => watchSyncActive() && tabStore.state.activeTabId != null,
 )
 
-/** Sync a Yanhekt entry's working content back from the live editor. */
-export function commitEditorContent(tabId: string, content: OutputData): void {
-  const entry = state.entries[tabId]
-  if (entry?.provider === 'yanhekt') commitYanhektContent(entry, content)
-}
-
 function obsidianEntry(tabId: string): ObsidianWatchNoteEntry | null {
   const entry = state.entries[tabId]
   return entry?.provider === 'obsidian' ? entry : null
@@ -362,9 +344,6 @@ export const watchNotesStore = {
   onExtractionStopped,
   activeEntry,
   notesTabAvailable,
-  registerActiveEditor,
-  unregisterActiveEditor,
-  commitEditorContent,
   createObsidianNote,
   chooseObsidianNote,
   chooseNotionPage,

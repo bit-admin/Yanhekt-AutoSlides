@@ -11,11 +11,11 @@ export const CBIZ = 'https://cbiz.yanhekt.cn';
 export type PresetAuth = 'anonymous' | 'auth';
 
 export type PresetGroup =
-  | 'catalog' | 'course' | 'live' | 'video' | 'personal' | 'account' | 'notes'
+  | 'catalog' | 'course' | 'live' | 'video' | 'personal' | 'account'
   // Yanhe 2.0 only (yanhe2ApiPresets.ts).
   | 'calendar' | 'playback' | 'serverContent';
 
-export const PRESET_GROUPS: readonly PresetGroup[] = ['catalog', 'course', 'live', 'video', 'personal', 'account', 'notes'];
+export const PRESET_GROUPS: readonly PresetGroup[] = ['catalog', 'course', 'live', 'video', 'personal', 'account'];
 
 export interface ApiPresetParam {
   key: string;
@@ -299,74 +299,6 @@ export const YANHEKT_API_PRESETS: readonly ApiPreset[] = [
     params: [],
     auth: 'auth',
     note: 'Profile of the token\'s account. 61101113 when the token is missing or revoked.',
-  },
-
-  // Notes
-  {
-    id: 'note-list',
-    group: 'notes',
-    method: 'GET',
-    path: '/v1/note/list',
-    params: [
-      { key: 'with_brief', value: 'false' },
-      { key: 'keyword', value: '' },
-      { key: 'page', value: '1' },
-      { key: 'page_size', value: '20' },
-      { key: 'with_page', value: 'true' },
-    ],
-    auth: 'auth',
-    note: 'Note paginator. content is "" in the list; read one note for it.',
-  },
-  {
-    id: 'note-detail',
-    group: 'notes',
-    method: 'GET',
-    path: '/v1/note',
-    params: [{ key: 'id', value: '', hint: 'note id' }],
-    auth: 'auth',
-    note: 'One note with its Editor.js content (a JSON string).',
-  },
-  {
-    id: 'note-groups',
-    group: 'notes',
-    method: 'GET',
-    path: '/v1/note/group/list',
-    params: [{ key: 'with_note', value: 'false' }],
-    auth: 'auth',
-    note: 'Note groups. Bare array; look managed groups up by name.',
-  },
-  {
-    id: 'note-create',
-    group: 'notes',
-    method: 'POST',
-    path: '/v1/note',
-    params: [],
-    body: '{\n  "content": "",\n  "version": 2\n}',
-    auth: 'auth',
-    write: true,
-    note: 'Create an empty note. Answers { id }.',
-  },
-  {
-    id: 'note-update',
-    group: 'notes',
-    method: 'PUT',
-    path: '/v1/note',
-    params: [],
-    body: '{\n  "id": 0,\n  "title": "",\n  "note_group_id": 1\n}',
-    auth: 'auth',
-    write: true,
-    note: 'Rename or regroup a note. note_group_id 0 is rejected.',
-  },
-  {
-    id: 'note-delete',
-    group: 'notes',
-    method: 'DELETE',
-    path: '/v1/note',
-    params: [],
-    body: '{\n  "id": 0\n}',
-    auth: 'auth',
-    write: true,
-    note: 'Delete a note.',
   },
 ];
 

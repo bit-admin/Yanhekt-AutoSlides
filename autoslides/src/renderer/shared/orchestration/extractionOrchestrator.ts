@@ -111,6 +111,16 @@ export class ExtractionOrchestrator {
     return this.extractorReady
   }
 
+  /**
+   * Whether a screen download queued now would be extracted by the Qt
+   * Extractor afterwards (binary ready and auto-run on). The queue gate
+   * (issue #45) asks this before deciding what "already done" means.
+   */
+  async willAutoExtract(): Promise<boolean> {
+    await this.ensureStatusInitialized()
+    return this.extractorReady && computePendingExtractionFields(configStore) !== null
+  }
+
   getExtractorStatus(): ExtractorStatusSnapshot | null {
     return this.extractorStatus
   }

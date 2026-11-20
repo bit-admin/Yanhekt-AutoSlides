@@ -294,6 +294,9 @@ class DownloadServiceClass {
         }
         this.activeDownloads.delete(item.id)
         this.processQueue()
+        // A runner that stands in for a download (an existing video, issue
+        // #45) leads to extraction like a real one.
+        this.notifyExtractionQueueChange()
         return
       }
 

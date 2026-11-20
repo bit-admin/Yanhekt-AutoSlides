@@ -8,7 +8,7 @@ type RestoreDeps = Pick<IpcServices, 'slideExtractionService' | 'slideMetadataSe
 
 /**
  * Restore trash entries and record the restore where it belongs: `edited` on
- * the folders, and the timeline's current slide. Both follow the files that
+ * the folders, their Drive records, and the timeline's current slide. Both follow the files that
  * actually came back. An entry whose file could not be moved changes neither,
  * or the timeline would point at a slide that is not in the folder.
  */
@@ -21,6 +21,11 @@ export async function restoreTrash(
   const folders = new Set(outcome.restored.map(entry => path.dirname(entry.originalPath)));
   for (const folderPath of folders) {
     deps.slideMetadataService.stageEdited(folderPath);
+    // Drive records follow the files that came back.
+    const filenames = outcome.restored
+      .filter(entry => path.dirname(entry.originalPath) === folderPath)
+      .map(entry => entry.filename);
+    await deps.slideMetadataService.markDriveRemoved(folderPath, filenames, false);
   }
   // Best-effort: the file is back either way; a timeline that could not be
   // updated is logged with the file it concerns.

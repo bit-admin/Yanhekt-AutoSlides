@@ -3,51 +3,15 @@ import type { ElectronAPI } from './electronApi';
 import type { LectureIdentity } from '@common/lectureNaming';
 import type {
   NotesResult,
-  NoteListParams,
-  NoteListResult,
-  NoteDetail,
-  NoteGroup,
   UploadedImage,
   ExportFolderInfo,
   ShareImportResult,
 } from '@common/notesTypes';
 
-/**
- * Yanhekt cloud-notes bridge. All calls round-trip to the main process, which
- * holds the auth token (mirrored from the main window's localStorage into
- * electron-store) and performs the actual API requests — the Tools window has
- * no token of its own.
- */
+/** Share keeps the historical cloudNotes name; the Yanhekt token stays in main. */
 export const cloudNotes: ElectronAPI['cloudNotes'] = {
-  list: (params: NoteListParams = {}): Promise<NotesResult<NoteListResult>> =>
-    invoke('cloudNotes:list', params),
-  get: (id: number): Promise<NotesResult<NoteDetail>> =>
-    invoke('cloudNotes:get', id),
-  create: (): Promise<NotesResult<number>> =>
-    invoke('cloudNotes:create'),
-  updateTitle: (id: number, title: string, groupId?: number): Promise<NotesResult<void>> =>
-    invoke('cloudNotes:updateTitle', id, title, groupId),
-  updateContent: (id: number, content: string): Promise<NotesResult<void>> =>
-    invoke('cloudNotes:updateContent', id, content),
-  moveToGroup: (
-    id: number,
-    groupId: number,
-    title: string,
-    content?: string,
-  ): Promise<NotesResult<number>> =>
-    invoke('cloudNotes:moveToGroup', id, groupId, title, content),
-  delete: (id: number): Promise<NotesResult<void>> =>
-    invoke('cloudNotes:delete', id),
-  groupList: (): Promise<NotesResult<NoteGroup[]>> =>
-    invoke('cloudNotes:groupList'),
-  groupCreate: (name: string): Promise<NotesResult<void>> =>
-    invoke('cloudNotes:groupCreate', name),
-  groupDelete: (id: number): Promise<NotesResult<void>> =>
-    invoke('cloudNotes:groupDelete', id),
   uploadImage: (bytes: ArrayBuffer, filename: string, mime: string): Promise<NotesResult<UploadedImage>> =>
     invoke('cloudNotes:uploadImage', bytes, filename, mime),
-  asOwner: (badge, method, args) =>
-    invoke('cloudNotes:asOwner', badge, method, args),
   uploadImageFromPath: (filePath: string): Promise<NotesResult<UploadedImage>> =>
     invoke('cloudNotes:uploadImageFromPath', filePath),
   // `identity` must be a plain object — a Vue reactive/ref would throw an
@@ -60,11 +24,8 @@ export const cloudNotes: ElectronAPI['cloudNotes'] = {
     invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
   shortenShareUrl: (fragment: string): Promise<NotesResult<{ url: string }>> =>
     invoke('cloudNotes:shortenShareUrl', fragment),
-  resolveShareLink: (
-    link: string,
-    opts?: { requireTimeline?: boolean },
-  ): Promise<NotesResult<ShareImportResult>> =>
-    invoke('cloudNotes:resolveShareLink', link, opts),
+  resolveShareLink: (link: string): Promise<NotesResult<ShareImportResult>> =>
+    invoke('cloudNotes:resolveShareLink', link),
 };
 
 /**

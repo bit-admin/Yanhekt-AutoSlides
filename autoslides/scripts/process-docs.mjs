@@ -2,7 +2,7 @@
 //
 //   npm run screenshots:build   # (re)capture into autoslides/out/screenshots
 //   npm run docs:images         # this script: rename/split/copy → ../docs/images
-//   node scripts/process-docs.mjs --only cloud-notes-share   # just that capture
+//   node scripts/process-docs.mjs --only pdfmaker   # just that capture
 //
 // What it does:
 //   - COPY: rename each non-split capture 1:1 into docs/images/ (native window shots
@@ -63,10 +63,9 @@ const COPY = {
   'onboarding-signin': 'onboarding-signin',
   'onboarding-signin-sms': 'onboarding-signin-sms',
   'onboarding-signin-ready': 'onboarding-signin-ready',
-  'onboarding-notes-provider': 'onboarding-notes-provider',
+  'onboarding-notes': 'onboarding-notes',
   'onboarding-notes-obsidian': 'onboarding-notes-obsidian',
   'onboarding-notes-notion': 'onboarding-notes-notion',
-  'onboarding-cloud': 'onboarding-cloud',
   'onboarding-done': 'onboarding-done',
   'onboarding-whats-new': 'onboarding-whats-new',
   home: 'home',
@@ -85,23 +84,18 @@ const COPY = {
   'results-preview': 'results-preview',
   'results-crop': 'results-crop',
   pdfmaker: 'pdfmaker',
-  'cloud-notes': 'cloud-notes',
-  'cloud-notes-editor': 'cloud-notes-editor',
-  'cloud-notes-share': 'cloud-notes-share',
   'tools-webcapture': 'tools-webcapture',
   'tools-yuketang': 'tools-yuketang',
   'advanced-general': 'settings-general',
   'advanced-playback': 'settings-playback',
   'advanced-network': 'settings-network',
   'advanced-ai-ml': 'settings-ai-ml',
-  'advanced-cloud': 'settings-cloud',
   'advanced-addons-obsidian': 'settings-addons-obsidian',
   'advanced-addons-notion': 'settings-addons-notion',
   'lectures-library': 'lectures-library',
   'lectures-list': 'lectures-list',
   'lectures-course': 'lectures-course',
   'lectures-player': 'lectures-player',
-  'watch-notes': 'watch-notes',
   'watch-notes-obsidian': 'watch-notes-obsidian',
   'watch-notes-notion': 'watch-notes-notion',
 }

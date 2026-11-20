@@ -69,6 +69,46 @@ describe('ConfigService at launch', () => {
     expect(disk.data.accounts).toMatchObject([{ token: 'c'.repeat(32), displayName: '' }]);
   });
 
+  it('disables a retired Yanhekt watch-notes opt-in and drops retired cloud keys', () => {
+    disk.data = {
+      watchNotesEnabled: true,
+      watchNotesProvider: 'yanhekt',
+      cloudStorageInitializedUsers: ['fixture'],
+      cloudAutoSyncMode: 'reviewed',
+      cloudAutoResyncMode: 'edited',
+      cloudShareEmbedTimeline: false,
+    };
+    const config = new ConfigService().getConfig();
+    expect(config).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'off' });
+    for (const key of ['cloudStorageInitializedUsers', 'cloudAutoSyncMode', 'cloudAutoResyncMode', 'cloudShareEmbedTimeline']) {
+      expect(config).not.toHaveProperty(key);
+      expect(disk.data).not.toHaveProperty(key);
+    }
+  });
+
+  it('does not inherit an opt-in from the legacy Yanhekt sync flag', () => {
+    disk.data = { cloudWatchSyncEnabled: true };
+    const config = new ConfigService().getConfig();
+    expect(config).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'off' });
+    expect(disk.data).not.toHaveProperty('cloudWatchSyncEnabled');
+  });
+
+  it.each(['obsidian', 'notion'] as const)('preserves an existing %s destination and opt-in', (provider) => {
+    disk.data = { watchNotesEnabled: true, watchNotesProvider: provider };
+    const service = new ConfigService();
+    service.setWatchNotes({ enabled: false, provider: 'yanhekt' as typeof provider });
+    expect(service.getConfig()).toMatchObject({ watchNotesEnabled: true, watchNotesProvider: provider });
+  });
+
+  it('starts a new install with no notes provider, and keeps Off once chosen', () => {
+    disk.data = {};
+    const service = new ConfigService();
+    expect(service.getConfig()).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'off' });
+    service.setWatchNotes({ enabled: true, provider: 'notion' });
+    service.setWatchNotes({ provider: 'off' });
+    expect(service.getConfig()).toMatchObject({ watchNotesEnabled: true, watchNotesProvider: 'off' });
+  });
+
   it('leaves a sound account list alone', () => {
     const accounts = [{ badge: '0000000001', nickname: 'n', displayName: 'd', token: 'a'.repeat(32), addedAt: 1, lastUsedAt: 1 }];
     disk.data = { accounts, authToken: 'b'.repeat(32) };

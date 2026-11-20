@@ -6,6 +6,9 @@
 // Change vs desktop: `aiClassifierMode` widened to `string | null` (the
 // desktop AIClassifierMode union isn't ported; web AI filtering is always
 // the LLM `distinguish` path, so the value is informational only).
+// Desktop version 2 (2026-11-20) adds optional `drive` / `shares` blocks and
+// `extractor: 'share'` for its Drive page; the web has no Drive and stays on
+// version 1.
 
 export const SLIDE_METADATA_VERSION = 1;
 

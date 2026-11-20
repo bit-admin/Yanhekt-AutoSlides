@@ -1,34 +1,23 @@
-// Notes add-ons: where watch-mode notes are written. A watch note is the
-// per-lecture note AutoSlides creates when a manual playback tab starts slide
-// extraction, then appends each post-processing-kept slide to. Yanhekt Notes
-// (the ASuser group of the account's Yanhekt cloud notes) keeps an editable note;
-// Obsidian (a local Markdown vault) and Notion (a page the student picks per
-// lecture) only ever get slide images appended. The list
-// is here so config, migration and the Settings picker agree.
+// Desktop watch notes append kept slides to an Obsidian vault or a Notion page.
+export const WATCH_NOTES_PROVIDERS = ['obsidian', 'notion'] as const
+export type WatchNotesProviderId = typeof WATCH_NOTES_PROVIDERS[number]
 
-export type WatchNotesProviderId = 'yanhekt' | 'obsidian' | 'notion'
+// The Notes Provider setting: a provider, or Off (no provider), the default
+// since 2026-11-21 so a new install needs no Obsidian or Notion setup. The
+// Enable Watch Notes switch is separate and unchanged.
+export const WATCH_NOTES_CHOICES = ['off', ...WATCH_NOTES_PROVIDERS] as const
+export type WatchNotesChoice = typeof WATCH_NOTES_CHOICES[number]
+export const DEFAULT_WATCH_NOTES_PROVIDER: WatchNotesChoice = 'off'
 
-export const WATCH_NOTES_PROVIDERS: readonly WatchNotesProviderId[] = ['yanhekt', 'obsidian', 'notion']
-
-export const DEFAULT_WATCH_NOTES_PROVIDER: WatchNotesProviderId = 'yanhekt'
-
-/** Coerce a stored value to a known provider id (unknown or missing → default). */
-export function normalizeWatchNotesProvider(value: unknown): WatchNotesProviderId {
-  return WATCH_NOTES_PROVIDERS.includes(value as WatchNotesProviderId)
-    ? (value as WatchNotesProviderId)
-    : DEFAULT_WATCH_NOTES_PROVIDER
+export function isWatchNotesProvider(value: unknown): value is WatchNotesProviderId {
+  return WATCH_NOTES_PROVIDERS.some((provider) => provider === value)
 }
 
-/**
- * One-time migration off the pre-add-ons `cloudWatchSyncEnabled` key, which
- * always meant "sync to Yanhekt". Returns the new keys to write, or null when
- * the legacy key is absent (nothing to migrate). Anything but a literal `true`
- * migrates as disabled.
- */
-export function migrateLegacyWatchSync(
-  hasLegacy: boolean,
-  legacyValue: unknown
-): { watchNotesEnabled: boolean; watchNotesProvider: WatchNotesProviderId } | null {
-  if (!hasLegacy) return null
-  return { watchNotesEnabled: legacyValue === true, watchNotesProvider: 'yanhekt' }
+export function isWatchNotesChoice(value: unknown): value is WatchNotesChoice {
+  return WATCH_NOTES_CHOICES.some((choice) => choice === value)
+}
+
+/** A stored value as a choice: anything unknown (the retired `yanhekt`) is Off. */
+export function normalizeWatchNotesProvider(value: unknown): WatchNotesChoice {
+  return isWatchNotesChoice(value) ? value : DEFAULT_WATCH_NOTES_PROVIDER
 }

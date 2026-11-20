@@ -157,32 +157,11 @@
       ],
       "description": "App version last acknowledged by finishing or skipping onboarding / What's New. null = never stamped (fresh install, or a v4 upgrade that only has onboardingCompleted). Do not default this to the current app version — absence is how we detect \"updated from before 5.0.0\"."
     },
-    "cloudStorageInitializedUsers": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "cloudAutoSyncMode": {
-      "type": "string",
-      "enum": [
-        "disabled",
-        "edited",
-        "reviewed"
-      ]
-    },
-    "cloudAutoResyncMode": {
-      "type": "string",
-      "enum": [
-        "disabled",
-        "edited"
-      ]
-    },
     "watchNotesEnabled": {
       "type": "boolean"
     },
     "watchNotesProvider": {
-      "$ref": "#/definitions/WatchNotesProviderId"
+      "$ref": "#/definitions/WatchNotesChoice"
     },
     "obsidianVaultPath": {
       "type": "string"
@@ -198,9 +177,6 @@
     },
     "notionWorkspaceName": {
       "type": "string"
-    },
-    "cloudShareEmbedTimeline": {
-      "type": "boolean"
     },
     "showToolsButton": {
       "type": "boolean"
@@ -809,10 +785,10 @@
       },
       "description": "One enrolled course on the Recorded page: a Yanhekt course (`id`) with the fields its card shows, so the grid draws without a request."
     },
-    "WatchNotesProviderId": {
+    "WatchNotesChoice": {
       "type": "string",
       "enum": [
-        "yanhekt",
+        "off",
         "obsidian",
         "notion"
       ]

@@ -152,27 +152,45 @@ export async function fetchSession(sessionId: string): Promise<YanhektSession | 
   );
 }
 
+function indexedSessionNumber(sessionIds: string, sessionId?: string): number | undefined {
+  if (!sessionId || !/^\d{1,12}$/.test(sessionId)) return undefined;
+  try {
+    // The indexer stores unique session IDs in ascending numeric order.
+    const ids: unknown = JSON.parse(sessionIds);
+    const index = Array.isArray(ids) ? ids.indexOf(Number(sessionId)) : -1;
+    return index < 0 ? undefined : index + 1;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
- * What the Index (D1) holds about a course: its name, teachers and term. The
- * stand-in when Yanhekt refuses an earlier term's course (课程已过期, since
- * 2026-11-02) or does not answer. One row read; null when not indexed.
+ * One Index row stands in when Yanhekt won't return the course. The session
+ * number is its position among the course's indexed sessions, not a week number.
  */
-export async function indexedCourse(db: D1Database | undefined, courseId: string): Promise<YanhektCourse | null> {
+async function indexedCourse(
+  db: D1Database | undefined,
+  courseId: string,
+  sessionId?: string,
+): Promise<{ course: YanhektCourse; sessionNumber?: number } | null> {
   if (!db || !/^\d{1,12}$/.test(courseId)) return null;
   try {
     const row = await db
-      .prepare('SELECT name, teachers, term FROM courses WHERE id = ?')
+      .prepare('SELECT name, teachers, term, session_ids FROM courses WHERE id = ?')
       .bind(Number(courseId))
-      .first<{ name: string; teachers: string | null; term: string | null }>();
+      .first<{ name: string; teachers: string | null; term: string | null; session_ids: string }>();
     if (!row) return null;
     const teachers = JSON.parse(row.teachers ?? '[]') as unknown;
     const [, schoolYear, semester] = /^(\d{4}-\d{4})-(\d)$/.exec(row.term ?? '') ?? [];
     return {
-      id: courseId,
-      name_zh: row.name,
-      professors: Array.isArray(teachers) ? teachers.map(String) : [],
-      school_year: schoolYear,
-      semester,
+      course: {
+        id: courseId,
+        name_zh: row.name,
+        professors: Array.isArray(teachers) ? teachers.map(String) : [],
+        school_year: schoolYear,
+        semester,
+      },
+      sessionNumber: indexedSessionNumber(row.session_ids, sessionId),
     };
   } catch {
     return null;
@@ -180,10 +198,9 @@ export async function indexedCourse(db: D1Database | undefined, courseId: string
 }
 
 /**
- * One Worker-side fan-out: session detail (nested course) plus a course-detail
- * fallback when the session payload is thin. Used by /v1/api/meta and /v1/api/get.
- * When Yanhekt gives no course (an expired one), the Index's copy stands in;
- * the session title is then unknown.
+ * Look up session and course details in parallel. Used by /v1/api/meta and /v1/api/get.
+ * When Yanhekt gives no course, the Index's copy stands in and can label a
+ * session by position if Yanhekt didn't supply its title.
  */
 export async function fetchLectureMeta(courseId: string, sessionId?: string, db?: D1Database): Promise<LectureMeta | null> {
   const cid = courseId.trim();
@@ -192,13 +209,16 @@ export async function fetchLectureMeta(courseId: string, sessionId?: string, db?
 
   if (sid) {
     const [session, fetched] = await Promise.all([fetchSession(sid), cid ? fetchCourse(cid) : Promise.resolve(null)]);
-    const course = fetched ?? (!session?.course && cid ? await indexedCourse(db, cid) : null);
+    const indexed = !fetched && !session?.course && cid ? await indexedCourse(db, cid, sid) : null;
+    const course = fetched ?? indexed?.course;
     if (!session && !course) return null;
     const fromSession = metaFromSession(session ?? undefined, cid || asString(session?.course?.id), sid);
     if (course) {
       const fromCourse = courseFromYanhekt(course, cid);
+      const sessionNumber = indexed?.sessionNumber;
       return {
         ...fromSession,
+        sessionTitle: fromSession.sessionTitle || (sessionNumber === undefined ? '' : `第${sessionNumber}次课`),
         courseTitle: fromCourse.courseTitle || fromSession.courseTitle,
         instructor: fromCourse.instructor || fromSession.instructor,
         professors: fromCourse.professors?.length ? fromCourse.professors : fromSession.professors,
@@ -210,7 +230,7 @@ export async function fetchLectureMeta(courseId: string, sessionId?: string, db?
     return fromSession;
   }
 
-  const course = (await fetchCourse(cid)) ?? (await indexedCourse(db, cid));
+  const course = (await fetchCourse(cid)) ?? (await indexedCourse(db, cid))?.course;
   if (!course) return null;
   const fromCourse = courseFromYanhekt(course, cid);
   return {

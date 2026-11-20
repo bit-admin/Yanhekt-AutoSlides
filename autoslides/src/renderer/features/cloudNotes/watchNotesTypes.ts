@@ -1,4 +1,3 @@
-import type { OutputData } from '@editorjs/editorjs'
 import type { LectureIdentity } from '@common/lectureNaming'
 import type { ObsidianErrorCode, ObsidianTargetInfo } from '@common/obsidianNotesTypes'
 import type { NotionErrorCode, NotionTargetInfo } from '@common/notionNotesTypes'
@@ -19,13 +18,6 @@ interface WatchNoteEntryBase {
   /** `slides_…__c…s…` — names the per-lecture image folder for file providers. */
   slidesFolderName: string
   status: WatchNoteStatus
-}
-
-export interface YanhektWatchNoteEntry extends WatchNoteEntryBase {
-  provider: 'yanhekt'
-  noteId: number | null
-  /** Working copy of the note's Editor.js document (source of truth for background tabs). */
-  content: OutputData
 }
 
 /** `appending` is the one item currently being written. */
@@ -70,7 +62,7 @@ export interface NotionWatchNoteEntry extends ExternalWatchNoteEntryBase {
 
 export type ExternalWatchNoteEntry = ObsidianWatchNoteEntry | NotionWatchNoteEntry
 
-export type WatchNoteEntry = YanhektWatchNoteEntry | ExternalWatchNoteEntry
+export type WatchNoteEntry = ExternalWatchNoteEntry
 
 export interface KeptSlide {
   /** `Slide_*.png`. */

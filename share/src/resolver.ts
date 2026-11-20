@@ -10,17 +10,16 @@ import {
 export type ResolvedImage = ResolvedShareImage;
 
 /**
- * Browser/Worker folder lister: fetch each ListObjectsV2 page and pull the keys
- * out with DOMParser. Paginates via the S3 continuation token.
- * The bucket is anonymously listable; we read with
- * credentials omitted.
+ * List public COSS keys in the browser with DOMParser, paginating with the S3
+ * continuation token. With `onlyHash` (the folder's one distinct hash, chosen
+ * by the shared resolver) one page holding the first match is enough.
  */
-async function listFolder(prefix: string): Promise<Map<string, string>> {
+async function listFolder(prefix: string, onlyHash?: string): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   let token: string | null = null;
 
   do {
-    const res = await fetch(buildCossListUrl(prefix, token), { credentials: 'omit' });
+    const res = await fetch(new URL(buildCossListUrl(prefix, token, onlyHash)), { credentials: 'omit' });
     if (!res.ok) break;
     const doc = new DOMParser().parseFromString(await res.text(), 'application/xml');
 
@@ -31,6 +30,7 @@ async function listFolder(prefix: string): Promise<Map<string, string>> {
       if (base) map.set(base, key);
     }
 
+    if (onlyHash) break;
     const truncated = doc.querySelector('IsTruncated')?.textContent === 'true';
     token = truncated ? (doc.querySelector('NextContinuationToken')?.textContent ?? null) : null;
   } while (token);

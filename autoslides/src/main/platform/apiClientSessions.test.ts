@@ -463,3 +463,38 @@ describe('getSessionProgress', () => {
     await expect(client.getSessionProgress('850101', 'tok', '70101')).rejects.toThrow('invalid token');
   });
 });
+
+describe('getLectureTitles', () => {
+  const EXPIRED = { code: 12121028, message: '课程已过期' };
+
+  function client(answer: (url: string) => unknown, indexed: { name: string } | null = null) {
+    const c = new ApiClient();
+    const calls: string[] = [];
+    (c as unknown as { makeRequest: unknown }).makeRequest = vi.fn(async (_m: string, url: string) => {
+      calls.push(url);
+      return answer(url);
+    });
+    c.setLocalCourseFacts({
+      courseOfSession: async () => null,
+      course: async () => (indexed ? { id: '70101', name: indexed.name, number: null, teachers: [], term: '2024-2025-1' } : null),
+    });
+    return { c, calls };
+  }
+
+  it('reads an expired course from the index and the session from the signed-in /v1 list', async () => {
+    const { c, calls } = client((url) => (url.includes('/v1/course/session/list') ? { code: 0, data: [ROW] } : EXPIRED), { name: '示例课程' });
+    expect(await c.getLectureTitles('70101', '850101', 'tok')).toEqual({ courseTitle: '示例课程', sessionTitle: '第1周' });
+    expect(calls.some((url) => url.includes('/v1/course/session?'))).toBe(false);
+  });
+
+  it('leaves a title empty when its lookup fails or the session is not listed', async () => {
+    const { c } = client((url) => (url.includes('/session/list') ? { code: 0, data: [] } : EXPIRED));
+    expect(await c.getLectureTitles('70101', '850101', 'tok')).toEqual({ courseTitle: '', sessionTitle: '' });
+  });
+
+  it('does not read a session list for a course-only share', async () => {
+    const { c, calls } = client(() => EXPIRED, { name: '示例课程' });
+    expect(await c.getLectureTitles('70101', undefined, 'tok')).toEqual({ courseTitle: '示例课程', sessionTitle: '' });
+    expect(calls.some((url) => url.includes('/session/list'))).toBe(false);
+  });
+});

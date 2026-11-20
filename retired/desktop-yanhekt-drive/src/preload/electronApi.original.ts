@@ -1,0 +1,1240 @@
+/**
+ * The renderer-facing `window.electronAPI` contract.
+ *
+ * Every preload namespace object (`src/preload/*.ts`) is annotated with
+ * `ElectronAPI['<namespace>']`, and `preload/index.ts` exposes an object typed
+ * `ElectronAPI`, so a method added on one side without the other fails `tsc`
+ * on the preload side — the interface can no longer drift from what preload
+ * actually exposes. `src/vite-env.d.ts` only maps it onto `Window`.
+ *
+ * Payload shapes that also exist in main come from `@common/*` (config,
+ * metadata, sidecars, Yanhekt API models); only bridge-specific shapes are
+ * declared here.
+ */
+import type { PinRequest } from '@common/pins';
+import type { DevApiRequest, DevApiResponse } from '@common/devApi';
+import type { DevSsoControl, DevSsoSnapshot, DevSsoStartRequest } from '@common/devSso';
+import type { EnrolledRefreshResult } from '@common/types';
+import type { SlideVideoOptions } from '@common/slideVideo';
+import type { MlClassifierModelInfo } from '@common/onnxModelInfo';
+import type {
+  AppConfig,
+  Yanhe2CaptionMode,
+  ConnectionMode,
+  ProxySettings,
+  CampusProbeResult,
+  AIFilteringConfig,
+  PHashExclusionItem,
+  SlideExtractionConfig,
+  TrashEntry,
+  TrashMetadata,
+  CropRect,
+  CropEntry,
+  StoredAccount,
+  CurrentTermSearchSource,
+  EarlierTermSearchSource,
+} from '../shared/types';
+import type { CourseIndexSearchResult, CourseIndexStatus } from '../shared/courseIndexTypes';
+import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
+import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../shared/obsidianNotesTypes';
+import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/notionNotesTypes';
+import type { LogLevel, LogSource } from '../shared/logFormat';
+import type { CliInstallResult, CliInstallStatus } from '../shared/cliCommands';
+import type { CliControlRequest, CliControlResponse, CliDownloadUpdate } from '../shared/cliControl';
+import type { DeepLink } from '../shared/deepLink';
+import type { Yanhe2ProfileSummary, Yanhe2SessionState, Yanhe2SignInResult } from '../shared/yanhe2';
+import type {
+  Yanhe2CalendarDay,
+  Yanhe2DayQuery,
+  Yanhe2ReadResult,
+  Yanhe2ScheduleDay,
+  Yanhe2WeekQuery,
+} from '../shared/yanhe2Calendar';
+import type { Yanhe2Course, Yanhe2CourseDetail, Yanhe2CourseDetailQuery } from '../shared/yanhe2Curriculum';
+import type { Yanhe2PlaybackQuery, Yanhe2PlaybackResult } from '../shared/yanhe2Playback';
+import type { Yanhe2CourseTwinQuery, Yanhe2CourseTwinResult, YanhektCourseTwinResult } from '../shared/yanhe2CourseTwin';
+import type { Yanhe2CourseSearchPage, Yanhe2CourseSearchQuery, Yanhe2Term } from '../shared/yanhe2Search';
+import type { Yanhe2Slide } from '../shared/yanhe2Slides';
+import type {
+  Yanhe2SlideSavePrepared,
+  Yanhe2SlideSaveProgress,
+  Yanhe2SlideSaveQuery,
+  Yanhe2SlideSaveResult,
+} from '../shared/yanhe2SlideSave';
+import type { Yanhe2CaptionSyncResult } from '../shared/yanhe2CaptionSync';
+import type { Yanhe2SubtitlePrepared, Yanhe2SubtitleQuery, Yanhe2SubtitleResult } from '../shared/yanhe2Subtitles';
+import type { Yanhe2DownloadKind, Yanhe2DownloadPrepared, Yanhe2DownloadQuery } from '../shared/yanhe2Download';
+import type { Yanhe2ExtractionPrepared, Yanhe2ExtractionQuery } from '../shared/yanhe2Extraction';
+import type { Yanhe2TranscriptLine } from '../shared/yanhe2Transcript';
+import type {
+  SlideMetadata,
+  SlideMetadataKind,
+  SlideMetadataSource,
+  SlideExtractionMeta,
+  SlidePostProcessingMeta,
+} from '../shared/slideMetadataTypes';
+import type {
+  SlideTimeline,
+  RecordCaptureConfirmedPayload,
+  RecordGapBoundaryPayload,
+  RelinkDuplicatePayload,
+  UnlinkToGapPayload,
+  RestoreCanonicalPayload,
+} from '../shared/sidecars';
+import type {
+  TokenVerificationResult,
+  LiveStream,
+  CourseData,
+  CourseInfoResponse,
+  CourseDetailResponse,
+  SessionDownloadInfo,
+  SemesterOption,
+  LiveDetailIds,
+} from '../shared/apiTypes';
+
+export interface AutoCropModelInfo {
+  active: 'builtin' | 'custom';
+  builtinVersion: string;
+  builtinExists: boolean;
+  builtinSizeBytes: number | null;
+  customName: string | null;
+  customExists: boolean;
+  customSizeBytes: number | null;
+}
+
+export interface SlideImageProcessingParams {
+  hammingThresholdLow?: number;
+  hammingThresholdUp?: number;
+  ssimThreshold?: number;
+  ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+  pHashThreshold?: number;
+  enableDownsampling?: boolean;
+  downsampleWidth?: number;
+  downsampleHeight?: number;
+  enablePngColorReduction?: boolean;
+}
+
+export type ThinkingParamKey = 'enable_thinking' | 'thinking';
+
+/** null = omit key from the chat-completion request JSON. */
+export interface AIRequestBodySettings {
+  maxTokens: number | null;
+  temperature: number | null;
+  topP: number | null;
+  stream: boolean | null;
+  enableThinking: boolean | null;
+  thinkingKey: ThinkingParamKey;
+}
+
+export interface AIPrompts {
+  live: string;
+  recorded: string;
+}
+
+export interface AIClassificationResult {
+  classification: 'slide' | 'not_slide' | 'may_be_slide_edit';
+}
+
+export interface AIBatchClassificationResult {
+  [key: string]: 'slide' | 'not_slide' | 'may_be_slide_edit';
+}
+
+export interface AIFilteringResult {
+  success: boolean;
+  result?: AIClassificationResult | AIBatchClassificationResult;
+  error?: string;
+  errorKind?: 'rate_limited' | 'upstream_rate_limited' | 'quota_exceeded' | 'auth_failed' | 'cloudflare_blocked' | 'timeout' | 'network' | 'service_unavailable' | 'server_error' | 'bad_request' | 'parse_failed' | 'unknown';
+  modelUsed?: string;
+}
+
+// ============================================================================
+// API Response Types
+// ============================================================================
+
+// API Request Options
+export interface CourseListOptions {
+  semesters?: number[];
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PersonalCourseListOptions {
+  page?: number;
+  pageSize?: number;
+}
+
+// Video Proxy Input Types
+export interface LiveStreamInput {
+  id?: string;
+  live_id?: string;
+  title: string;
+  target?: string;
+  target_vga?: string;
+  /** Classroom camera (Video2). Same unsigned live CDN URL as `target`. */
+  target_room?: string;
+}
+
+export interface RecordedSessionInput {
+  session_id?: string;
+  video_id?: string;
+  title: string;
+  duration?: string | number;
+  main_url?: string;
+  vga_url?: string;
+  /** Unsigned SubAudio `.aac`; resolved by the renderer via api.getVideoAssets. */
+  audio_url?: string;
+}
+
+/** Why a campus SSO sign-in did not produce a token. Mirrors SignInReason in main. */
+export type SignInFailureReason =
+  | 'bad_credentials'
+  | 'account_locked'
+  | 'account_inactive'
+  | 'account_dormant'
+  | 'code_rejected'
+  | 'captcha_required'
+  | 'risk_rejected'
+  | 'challenge_expired'
+  | 'sms_send_failed'
+  | 'unsupported_page'
+  | 'network'
+  | 'unknown';
+
+export interface AuthResponse {
+  success: boolean;
+  token?: string;
+  error?: string;
+  reason?: SignInFailureReason;
+  /**
+   * Present instead of token/error when CAS demands an SMS code. Answer it with
+   * auth.submitSmsCode(challengeId, code); the flow itself lives in main and
+   * expires after `expiresInSeconds`.
+   */
+  smsChallenge?: {
+    challengeId: string;
+    /** Masked number as CAS supplied it; '' when it supplied none. */
+    phoneHint: string;
+    expiresInSeconds: number;
+  };
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export interface StreamInfo {
+  type: 'camera' | 'screen' | 'room';
+  name: string;
+  url: string;
+  original_url: string;
+}
+
+export interface VideoStreamResponse {
+  stream_id?: string;
+  session_id?: string;
+  video_id?: string;
+  title: string;
+  duration?: string;
+  streams: {
+    [key: string]: StreamInfo;
+  };
+  /** Proxied mic track, when this lecture has one. Not a `streams` entry — it is not a video. */
+  audioUrl?: string;
+}
+
+export interface IntranetMapping {
+  type: 'single' | 'loadbalance';
+  ip?: string;
+  ips?: string[];
+  strategy?: 'round_robin' | 'random' | 'first_available';
+  currentIndex?: number;
+}
+
+export interface IntranetAddressProbe {
+  ip: string;
+  ms: number | null;
+}
+
+export interface IntranetStatus {
+  mode: ConnectionMode;
+  /** Whether requests are going through the intranet right now (in Auto: whether it was reachable). */
+  enabled: boolean;
+  reachable: boolean;
+  resolvedByCampusDns: boolean;
+  mappingCount: number;
+  interfaceIp: string | null;
+}
+
+export interface NetworkInterfaceInfo {
+  name: string;
+  address: string;
+  family: 'IPv4' | 'IPv6';
+  internal: boolean;
+  mac?: string;
+  cidr: string | null;
+}
+
+export interface SetInterfaceIpResponse {
+  status: IntranetStatus;
+  warning?: 'interface-not-found';
+}
+
+export interface LocalRelayStatus {
+  enabled: boolean;
+  running: boolean;
+  port: number;
+  bindAddresses: string[];
+  error: string | null;
+}
+
+export interface PowerManagementResponse {
+  success: boolean;
+  error?: string;
+}
+
+export interface PowerManagementStatus {
+  isPreventing: boolean;
+  error?: string;
+}
+
+export interface DownloadProgress {
+  current: number;
+  total: number;
+  phase: number;
+}
+
+export interface SlideVideoRequest {
+  /** A `slides_*` folder with a timeline.json, inside the output folder. */
+  slidesFolder: string;
+  /** The session's screen recording, when one is on disk. */
+  screenPath?: string | null;
+  /** The session's classroom mic `.aac`, when one is on disk. */
+  micPath?: string | null;
+  options?: Partial<SlideVideoOptions>;
+}
+
+export interface SlideVideoProgress {
+  phase: 'preparing' | 'encoding' | 'finishing';
+  /** 0–100. */
+  percent: number;
+}
+
+export interface SlideVideoResult {
+  outputPath: string;
+  durationSeconds: number;
+  chapters: number;
+}
+
+export interface LectureVideoFileInfo {
+  name: string;
+  path: string;
+  size: number;
+  mtimeMs: number;
+}
+
+export interface LectureSlideFolderInfo {
+  name: string;
+  path: string;
+  /** `Slide_*.png` files in it. */
+  imageCount: number;
+  mtimeMs: number;
+  hasTimeline: boolean;
+}
+
+export interface DialogOptions {
+  type?: 'none' | 'info' | 'error' | 'question' | 'warning';
+  buttons?: string[];
+  defaultId?: number;
+  title?: string;
+  message?: string;
+  detail?: string;
+  checkboxLabel?: string;
+  checkboxChecked?: boolean;
+  icon?: string;
+  cancelId?: number;
+  noLink?: boolean;
+  normalizeAccessKeys?: boolean;
+}
+
+export interface DialogResponse {
+  response: number;
+  checkboxChecked?: boolean;
+}
+
+export interface SlideOperationResponse {
+  success: boolean;
+}
+
+/** A remembered SSO login, without the password. The secret is a separate call. */
+export interface SavedLoginSummary {
+  badge: string;
+  username: string;
+}
+
+export type SaveSavedLoginResult =
+  | { ok: true }
+  | { ok: false; error: 'invalid' | 'disabled' | 'encryption_unavailable' };
+
+// ============================================================================
+// Electron API Interface
+// ============================================================================
+
+export interface ElectronAPI {
+  isDemoMode: boolean;
+  auth: {
+    login: (username: string, password: string) => Promise<AuthResponse>;
+    submitSmsCode: (challengeId: string, code: string) => Promise<AuthResponse>;
+    cancelSmsChallenge: (challengeId: string) => Promise<{ success: boolean }>;
+    verifyToken: (token: string) => Promise<TokenVerificationResult>;
+    revokeToken: (token: string) => Promise<void>;
+    clearBrowserData: () => Promise<{ success: boolean; error?: string }>;
+    /** Usernames only, newest first. Empty when nothing has been remembered. */
+    listSavedLogins: () => Promise<SavedLoginSummary[]>;
+    /** Decrypt one account's password. Null when none is stored or it cannot be decrypted. */
+    getSavedLogin: (badge: string) => Promise<{ username: string; password: string } | null>;
+    saveSavedLogin: (badge: string, username: string, password: string) => Promise<SaveSavedLoginResult>;
+    forgetSavedLogin: (badge: string) => Promise<void>;
+    /** file:// URL of the guest preload for the browser sign-in <webview>. */
+    getBrowserLoginPreloadPath: () => Promise<string>;
+    /** Developer → SSO (developer mode only). State is redacted in main; nothing is stored. */
+    devSsoState: () => Promise<DevSsoSnapshot>;
+    /** Start a run, replacing any current one. */
+    devSsoStart: (request: DevSsoStartRequest) => Promise<DevSsoSnapshot>;
+    devSsoControl: (action: DevSsoControl) => Promise<DevSsoSnapshot>;
+    /** Answer the SMS gate. The lab never sends a code without this. */
+    devSsoSendSms: (decision: 'send' | 'skip') => Promise<DevSsoSnapshot>;
+    devSsoSubmitCode: (code: string) => Promise<DevSsoSnapshot>;
+    /** Show tokens, cookies, tickets and codes unmasked in the lab's state (or mask them again). */
+    devSsoSetReveal: (on: boolean) => Promise<DevSsoSnapshot>;
+    onDevSsoUpdate: (callback: (snapshot: DevSsoSnapshot) => void) => () => void;
+  };
+
+  /**
+   * Yanhe 2.0 (aita.yanhekt.cn) session for a signed-in account, keyed by its
+   * badge (student id). `getJwt` is the one read of the stored token, for the
+   * Settings field. `getProfile` is the id and play-signing phone for the menu.
+   */
+  /**
+   * Pinned courses. Main is the only writer of the stored list (it broadcasts
+   * config after each change) and syncs it with Yanhekt subscriptions and
+   * Yanhe 2.0 bookmarks. `owner` is the signed-in account's badge.
+   */
+  pins: {
+    /** Sync the account's pins with both sites; resolves when done. */
+    sync: (owner: string) => Promise<void>;
+    /** Pin the course, or unpin it when pinned. Sending to the sites follows in the background. */
+    toggle: (owner: string, request: PinRequest) => Promise<{ pinned: boolean }>;
+    /** Unpin by the pin's key (`PinnedCourse.id`). */
+    remove: (owner: string, key: string) => Promise<void>;
+    /** Fill a pinned course's stored details from an opened course. No-op when not pinned. */
+    upgrade: (owner: string, request: PinRequest) => Promise<void>;
+  };
+  /**
+   * The Recorded page's enrolled courses (config `enrolledCourses`). Main is
+   * the only writer and broadcasts config after each change.
+   */
+  enrolled: {
+    /** Refresh the account's list; resolves once the current term is read, earlier terms fill in after. */
+    refresh: (owner: string) => Promise<EnrolledRefreshResult>;
+  };
+  yanhe2: {
+    login: (account: string, username: string, password: string) => Promise<Yanhe2SignInResult>;
+    submitSmsCode: (account: string, challengeId: string, code: string) => Promise<Yanhe2SignInResult>;
+    cancelSmsChallenge: (challengeId: string) => Promise<void>;
+    /** Renew an expired session with the saved password, under Auto Sign In's rules. */
+    autoSignIn: (account: string) => Promise<Yanhe2SignInResult>;
+    /** Re-check the stored session with Yanhe 2.0 (`infosimple`). */
+    check: (account: string) => Promise<Yanhe2SessionState>;
+    signOut: (account: string) => Promise<void>;
+    /** Stored JWT for the Settings field. Empty when this account has no session. */
+    getJwt: (account: string) => Promise<string>;
+    /** Id and play-signing phone. Null when this account has no live session. */
+    getProfile: (account: string) => Promise<Yanhe2ProfileSummary | null>;
+    /** A pasted token, `_token` cookie, or Cookie header. */
+    adoptCookies: (account: string, text: string) => Promise<Yanhe2SignInResult>;
+    /** Calendar → All Courses: one school day, grouped by period. */
+    calendarDay: (account: string, query: Yanhe2DayQuery) => Promise<Yanhe2ReadResult<Yanhe2CalendarDay>>;
+    /** Calendar → My Courses: the account's own sessions for a date range. */
+    calendarWeek: (account: string, query: Yanhe2WeekQuery) => Promise<Yanhe2ReadResult<Yanhe2ScheduleDay[]>>;
+    /** Curriculum: the account's enrolled courses. */
+    myCourses: (account: string) => Promise<Yanhe2ReadResult<Yanhe2Course[]>>;
+    /** Curriculum: one course and its sessions. */
+    courseDetail: (account: string, query: Yanhe2CourseDetailQuery) => Promise<Yanhe2ReadResult<Yanhe2CourseDetail>>;
+    /** Search: the terms the catalogue can be filtered by. */
+    terms: (account: string) => Promise<Yanhe2ReadResult<Yanhe2Term[]>>;
+    /** Search: one page of the catalogue matching a keyword. */
+    searchCourses: (account: string, query: Yanhe2CourseSearchQuery) => Promise<Yanhe2ReadResult<Yanhe2CourseSearchPage>>;
+    /** The Yanhekt course a Yanhe 2.0 course is; `courseId` is the Yanhe 2.0 id. */
+    findYanhektCourse: (account: string, query: Yanhe2CourseTwinQuery) => Promise<YanhektCourseTwinResult>;
+    /** The Yanhe 2.0 course a Yanhekt course is; `courseId` is the Yanhekt id. */
+    findYanhe2Course: (account: string, query: Yanhe2CourseTwinQuery) => Promise<Yanhe2CourseTwinResult>;
+    /** One session's streams. Recorded ones come back as local proxy URLs. */
+    playback: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2PlaybackResult>;
+    /** One session's server slides, as local proxy image URLs. Empty when it has none. */
+    slides: (account: string, query: Yanhe2PlaybackQuery) => Promise<Yanhe2ReadResult<Yanhe2Slide[]>>;
+    /** Find the Yanhekt lecture a session's server slides would be saved under. Writes nothing. */
+    prepareSlideSave: (account: string, query: Yanhe2SlideSaveQuery) => Promise<Yanhe2SlideSavePrepared>;
+    /** Save the server slides into that lecture's `slides_*` folder as `Slide_*.png`. */
+    saveSlides: (account: string, query: Yanhe2SlideSaveQuery) => Promise<Yanhe2SlideSaveResult>;
+    onSlideSaveProgress: (callback: (progress: Yanhe2SlideSaveProgress) => void) => () => void;
+    /** Find the Yanhekt lecture a session's subtitles would be filed under. Writes nothing. */
+    prepareSubtitles: (account: string, query: Yanhe2SubtitleQuery) => Promise<Yanhe2SubtitlePrepared>;
+    /** Write the transcript as an `.srt` in the output folder, its times held back by `shift` seconds. */
+    saveSubtitles: (account: string, query: Yanhe2SubtitleQuery, shift: number) => Promise<Yanhe2SubtitleResult>;
+    /** What a recording has to download, and the Yanhekt lecture it is filed under. Writes nothing. */
+    prepareDownload: (account: string, query: Yanhe2DownloadQuery) => Promise<Yanhe2DownloadPrepared>;
+    /** The Yanhekt lecture a recording's extracted slides are filed under, and their metadata. Writes nothing. */
+    prepareExtraction: (account: string, query: Yanhe2ExtractionQuery) => Promise<Yanhe2ExtractionPrepared>;
+    /** One session's transcript lines, in time order. Empty when it has none. */
+    transcript: (account: string, subId: string) => Promise<Yanhe2ReadResult<Yanhe2TranscriptLine[]>>;
+    /**
+     * How many seconds one recording's transcript must be held back by to match
+     * the recording. Measured from the recording's audio the first time (this
+     * can take a while), answered from the kept result after that.
+     */
+    captionSync: (account: string, query: Yanhe2SubtitleQuery) => Promise<Yanhe2CaptionSyncResult>;
+    prepareBrowserSignIn: () => Promise<void>;
+    /** `reason: 'pending'` until the browser sign-in webview holds a token. */
+    adoptBrowserSession: (account: string) => Promise<Yanhe2SignInResult>;
+  };
+
+  config: {
+    get: () => Promise<AppConfig>;
+    onUpdate: (callback: (cfg: AppConfig) => void) => () => void;
+    setOutputDirectory: (directory: string) => Promise<AppConfig>;
+    selectOutputDirectory: () => Promise<AppConfig | null>;
+    /** `error` carries the @common/outputDirAccess marker (denied / missing / unreachable). */
+    probeOutputDirectory: () => Promise<{ ok: true } | { ok: false; error: string }>;
+    /** Recreate a missing output folder; never creates one whose drive is gone. */
+    recreateOutputDirectory: () => Promise<{ ok: true } | { ok: false; error: string }>;
+    setConnectionMode: (mode: ConnectionMode) => Promise<AppConfig>;
+    setMaxConcurrentDownloads: (count: number) => Promise<AppConfig>;
+    setDownloadMaxWorkers: (count: number) => Promise<AppConfig>;
+    setDownloadNumRetries: (count: number) => Promise<AppConfig>;
+    setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<AppConfig>;
+    setVideoRetryCount: (count: number) => Promise<AppConfig>;
+    setVideoTokenRefreshSeconds: (seconds: number) => Promise<AppConfig>;
+    setTaskSpeed: (speed: number) => Promise<AppConfig>;
+    setParallelTasks: (count: number) => Promise<AppConfig>;
+    setMaxManualTabs: (count: number) => Promise<AppConfig>;
+    setPreviewFromVideo: (enabled: boolean) => Promise<AppConfig>;
+    setPreviewSeekSeconds: (seconds: number) => Promise<AppConfig>;
+    setShowMorePlaybackSpeed: (enabled: boolean) => Promise<AppConfig>;
+    setPreferMicAudioByDefault: (enabled: boolean) => Promise<AppConfig>;
+    setCheckMicAudioBeforeOffering: (enabled: boolean) => Promise<AppConfig>;
+    setYanhe2Captions: (mode: Yanhe2CaptionMode, offsetSeconds: number) => Promise<AppConfig>;
+    setResumeFromServerProgress: (enabled: boolean) => Promise<AppConfig>;
+    setResumeFromServerProgressLectures: (enabled: boolean) => Promise<AppConfig>;
+    setDeveloperMode: (enabled: boolean) => Promise<AppConfig>;
+    setLogYanhektCatalog: (enabled: boolean) => Promise<AppConfig>;
+    setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
+    setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;
+    getAutoPostProcessingLive: () => Promise<boolean>;
+    setEnableAIFiltering: (enabled: boolean) => Promise<AppConfig>;
+    getEnableAIFiltering: () => Promise<boolean>;
+    setPreventSystemSleep: (prevent: boolean) => Promise<AppConfig>;
+    getSkipUpdateCheckUntil: () => Promise<number>;
+    setSkipUpdateCheckUntil: (timestamp: number) => Promise<void>;
+    // Auth token mirror for cross-window access (add-ons windows have separate localStorage)
+    setAuthToken: (token: string | null) => Promise<void>;
+    getAuthToken: () => Promise<string | null>;
+
+    // Theme configuration
+    setThemeMode: (theme: 'system' | 'light' | 'dark') => Promise<AppConfig>;
+    isDarkMode: () => Promise<boolean>;
+
+    // Language configuration
+    setLanguageMode: (language: 'system' | 'en' | 'zh' | 'ja' | 'ko') => Promise<AppConfig>;
+    getLanguageMode: () => Promise<'system' | 'en' | 'zh' | 'ja' | 'ko'>;
+    setUserNames: (original: string, display: string) => Promise<void>;
+    setLastGreetingId: (id: string) => Promise<void>;
+    setOnboardingCompleted: (completed: boolean) => Promise<void>;
+    setCloudStorageInitialized: (badge: string, initialized: boolean) => Promise<void>;
+    setCloudAutoSyncMode: (mode: 'disabled' | 'edited' | 'reviewed') => Promise<AppConfig>;
+    setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => Promise<AppConfig>;
+    setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => Promise<AppConfig>;
+    setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => Promise<AppConfig>;
+    setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
+    setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
+    setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
+    setCloseToTray: (enabled: boolean) => Promise<AppConfig>;
+    setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;
+    /** Any subset of the proxy settings; the rest stays as saved. */
+    setProxySettings: (next: Partial<ProxySettings>) => Promise<AppConfig>;
+    /** Settings → General → Search; omitted fields keep their value. */
+    setSearchSettings: (patch: {
+      currentTermSource?: CurrentTermSearchSource;
+      earlierTermSource?: EarlierTermSearchSource;
+      courseIndexAutoUpdate?: boolean;
+    }) => Promise<AppConfig>;
+    setRememberPassword: (enabled: boolean) => Promise<AppConfig>;
+    setAutoSignIn: (enabled: boolean) => Promise<AppConfig>;
+    setYanhe2SignInWithMain: (enabled: boolean) => Promise<AppConfig>;
+    setLocalRelayConfig: (patch: {
+      enabled?: boolean;
+      port?: number;
+      whitelistEnabled?: boolean;
+      includeCurrentToken?: boolean;
+      tokenWhitelist?: string[];
+    }) => Promise<{ config: AppConfig; status: LocalRelayStatus }>;
+    upsertAccount: (account: StoredAccount) => Promise<void>;
+    removeAccount: (badge: string) => Promise<void>;
+    setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
+
+    // Slide extraction configuration
+    getSlideExtractionConfig: () => Promise<SlideExtractionConfig>;
+    setSlideExtractionConfig: (config: {
+      enableDuplicateRemoval?: boolean;
+      enableExclusionList?: boolean;
+    }) => Promise<SlideExtractionConfig>;
+    setSlideCheckInterval: (interval: number) => Promise<SlideExtractionConfig>;
+    setSlideDoubleVerification: (enabled: boolean, count?: number) => Promise<SlideExtractionConfig>;
+    setSlideImageProcessingParams: (params: SlideImageProcessingParams) => Promise<SlideExtractionConfig>;
+
+    // Auto-crop params
+    setAutoCropParams: (params: {
+      aspectTolerance?: number;
+      blackThreshold?: number;
+      maxBorderFrac?: number;
+      cannyLowThreshold?: number;
+      cannyHighThreshold?: number;
+      areaRatioMin?: number;
+      areaRatioMax?: number;
+      marginFrac?: number;
+      fillRatioMin?: number;
+    }) => Promise<SlideExtractionConfig>;
+    resetAutoCropParams: () => Promise<SlideExtractionConfig>;
+
+    // Auto-crop detector mode + YOLO params
+    setAutoCropDetectorMode: (mode: 'canny_then_yolo' | 'canny_only' | 'yolo_only') => Promise<SlideExtractionConfig>;
+    setAutoCropYoloParams: (params: {
+      confidenceThreshold?: number;
+      iouThreshold?: number;
+      inputSize?: number;
+    }) => Promise<SlideExtractionConfig>;
+    resetAutoCropYoloParams: () => Promise<{
+      confidenceThreshold: number;
+      iouThreshold: number;
+      inputSize: number;
+    }>;
+
+    // distinguish may_be_slide flag
+    getDistinguishMaybeSlide: () => Promise<boolean>;
+    setDistinguishMaybeSlide: (enabled: boolean) => Promise<AppConfig>;
+
+    // auto-crop may_be_slide_edit frames during post-processing
+    getAutoCropAIFilteredEdit: () => Promise<boolean>;
+    setAutoCropAIFilteredEdit: (enabled: boolean) => Promise<AppConfig>;
+    // re-run pHash after those auto-crops (Results-style candidate dedup)
+    getDedupAfterAutoCropAIFilteredEdit: () => Promise<boolean>;
+    setDedupAfterAutoCropAIFilteredEdit: (enabled: boolean) => Promise<AppConfig>;
+
+    // pHash exclusion list management
+    getPHashExclusionList: () => Promise<PHashExclusionItem[]>;
+    addPHashExclusionItem: (name: string, pHash: string) => Promise<PHashExclusionItem>;
+    removePHashExclusionItem: (id: string) => Promise<boolean>;
+    updatePHashExclusionItemName: (id: string, newName: string) => Promise<boolean>;
+    clearPHashExclusionList: () => Promise<PHashExclusionItem[]>;
+    selectImageForExclusion: () => Promise<{
+      success: boolean;
+      canceled?: boolean;
+      error?: string;
+      imagePath?: string;
+      imageBuffer?: number[];
+      fileName?: string;
+    }>;
+
+    // AI filtering configuration
+    getAIFilteringConfig: () => Promise<AIFilteringConfig>;
+    setAIFilteringConfig: (config: Partial<AIFilteringConfig>) => Promise<AIFilteringConfig>;
+    setAIClassifierMode: (mode: 'llm' | 'ml') => Promise<AIFilteringConfig>;
+    setMlThresholds: (thresholds: {
+      trustLow?: number;
+      trustHigh?: number;
+      slideCheckLow?: number;
+    }) => Promise<AIFilteringConfig>;
+
+    // AI prompts management
+    getAIPrompts: (variant?: 'simple' | 'distinguish') => Promise<AIPrompts>;
+    setAIPrompt: (type: 'live' | 'recorded', prompt: string, variant?: 'simple' | 'distinguish') => Promise<AIPrompts>;
+    resetAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
+  };
+  api: {
+    /** Developer → API: send one hand-built Yanhekt request (developer mode only). Never rejects on an HTTP error. */
+    devSend: (request: DevApiRequest) => Promise<DevApiResponse>;
+    getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStream>>;
+    searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStream>>;
+    getCourseList: (token: string, options: CourseListOptions) => Promise<PaginatedResponse<CourseData>>;
+    getPersonalCourseList: (token: string, options: PersonalCourseListOptions) => Promise<PaginatedResponse<CourseData>>;
+    /** Names only, via the single `/v1/course?id=` hop. Unlike getCourseInfo this
+     *  does not need the course to have sessions, so it works for live-only
+     *  courses. Resolves null when the course or its names are unavailable. */
+    getCourseNames: (courseId: string, token: string) => Promise<{ nameZh: string; nameEn?: string } | null>;
+    /** The session behind a live broadcast and its course's registrar number (`/v1/live?id=` detail). Null when unreadable. */
+    getLiveDetail: (liveId: string, token: string) => Promise<LiveDetailIds | null>;
+    /** One course's `/v1/course` detail, no session list. Anonymous-ok. Null when expired. */
+    getCourseDetail: (courseId: string, token: string) => Promise<CourseDetailResponse | null>;
+    /** One page of a course index search in one term, from the source Settings → Search picks. Signed-in only. */
+    searchCourseIndex: (token: string, term: string, keyword: string, page?: number, pageSize?: number) => Promise<CourseIndexSearchResult>;
+    /** What the course index on this computer holds, and its update state. */
+    getCourseIndexStatus: () => Promise<CourseIndexStatus>;
+    /** Check the index release now; resolves with the new status. */
+    updateCourseIndex: () => Promise<CourseIndexStatus>;
+    getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
+    /** Mic-audio URL for one video id (GET /v1/video). Absent when the room recorded no mic. */
+    getVideoAssets: (videoId: string, token: string) => Promise<{ audioUrl?: string }>;
+    /** Download-by-session-id: session detail + VOD/mic URLs from two anonymous-ok hops. */
+    getSessionDownloadInfo: (sessionId: string, token: string) => Promise<SessionDownloadInfo>;
+    /**
+     * Raw `user_progress` off GET /v1/course/session — `[]`, an object, or null. Parse with `@common/watchProgress`.
+     * `courseId` lets an expired course's session read it off the `/v1` session list instead.
+     */
+    getSessionProgress: (sessionId: string, token: string, courseId?: string) => Promise<unknown>;
+    /** PUT the playhead for a recorded session (5-second grid, like the official player). */
+    reportSessionProgress: (sessionId: string, seconds: number, token: string) => Promise<void>;
+    getAvailableSemesters: () => Promise<SemesterOption[]>;
+  };
+  intranet: {
+    getStatus: () => Promise<IntranetStatus>;
+    getMappings: () => Promise<{ [domain: string]: IntranetMapping }>;
+    /** Re-run the route check (campus DNS + reachability) and return what it found. */
+    refresh: () => Promise<{ status: IntranetStatus; mappings: { [domain: string]: IntranetMapping } }>;
+    /** Time an answer from each address of one mapped domain; `ms` is null when there was none. */
+    probeDomain: (domain: string) => Promise<IntranetAddressProbe[]>;
+    getNetworkInterfaces: () => Promise<NetworkInterfaceInfo[]>;
+    getInterfaceIp: () => Promise<string | null>;
+    setInterfaceIp: (ip: string | null) => Promise<SetInterfaceIpResponse>;
+    checkCampusConnection: () => Promise<CampusProbeResult>;
+  };
+
+  localRelay: {
+    getStatus: () => Promise<LocalRelayStatus>;
+  };
+
+  /**
+   * Command line wrappers on PATH (Settings → Add-ons → Command Line), and the
+   * renderer's side of `autoslides` commands (`@common/cliControl`).
+   */
+  cli: {
+    getStatus: () => Promise<CliInstallStatus>;
+    install: () => Promise<CliInstallResult>;
+    uninstall: () => Promise<CliInstallResult>;
+    /** Subscribe to main's questions; returns an unsubscribe. Then call `controlReady`. */
+    onControlRequest: (callback: (request: CliControlRequest) => void) => () => void;
+    controlReady: () => void;
+    controlRespond: (response: CliControlResponse) => void;
+    controlDownloadUpdate: (update: CliDownloadUpdate) => void;
+  };
+
+  /** `autoslides://` links (`@common/deepLink`), checked in main. */
+  deepLink: {
+    /** Subscribe to links; returns an unsubscribe. Then call `ready`. */
+    onOpen: (callback: (link: DeepLink) => void) => () => void;
+    ready: () => void;
+  };
+
+  video: {
+    getLiveStreamUrls: (stream: LiveStreamInput, token: string) => Promise<VideoStreamResponse>;
+    getVideoPlaybackUrls: (session: RecordedSessionInput, token: string) => Promise<VideoStreamResponse>;
+    getScreenThumbnail: (req: {
+      kind: 'live' | 'recorded';
+      screenUrl: string;
+      /** Live only. The other raw fields, so a relabel can still find the screen. */
+      liveTarget?: string;
+      liveRoomUrl?: string;
+      seekSeconds: number;
+      cacheKey: string;
+      token: string;
+    }) => Promise<string | null>;
+    registerClient: () => Promise<string>;
+    unregisterClient: (clientId: string) => Promise<void>;
+    stopSignatureLoop: () => Promise<void>;
+  };
+
+
+  slideVideo: {
+    make: (request: SlideVideoRequest) => Promise<SlideVideoResult>;
+    cancel: () => Promise<boolean>;
+    isActive: () => Promise<boolean>;
+    onProgress: (callback: (progress: SlideVideoProgress) => void) => () => void;
+  };
+
+  lectures: {
+    listVideos: () => Promise<LectureVideoFileInfo[]>;
+    listSlideFolders: () => Promise<LectureSlideFolderInfo[]>;
+    rename: (fromPath: string, toName: string) => Promise<{ path: string; name: string }>;
+    reveal: (filePath: string) => Promise<void>;
+    openOutputDirectory: () => Promise<void>;
+    openExternally: (filePath: string) => Promise<void>;
+    /** The text of a subtitle file in the output folder, or null when it cannot be read. */
+    readSubtitles: (filePath: string) => Promise<string | null>;
+    getPoster: (filePath: string, seekSeconds?: number) => Promise<string | null>;
+  };
+
+  download: {
+    start: (downloadId: string, m3u8Url: string, outputName: string) => Promise<void>;
+    /** Mic-audio sidecar: a plain unsigned `.aac`, so no login token. Reports on the same channels as `start`. */
+    startAudio: (downloadId: string, audioUrl: string, outputName: string) => Promise<void>;
+    /** A Yanhe 2.0 recording's stream, signed and fetched in main. Reports on the same channels as `start`. */
+    startYanhe2: (downloadId: string, account: string, query: Yanhe2DownloadQuery, kind: Yanhe2DownloadKind, outputName: string) => Promise<void>;
+    cancel: (downloadId: string) => Promise<void>;
+    cleanupTempFiles: (outputName: string) => Promise<void>;
+    onProgress: (callback: (downloadId: string, progress: DownloadProgress) => void) => () => void;
+    /** `filePath` is the finished file, in the folder fixed when the download started. */
+    onCompleted: (callback: (downloadId: string, filePath?: string) => void) => () => void;
+    onError: (callback: (downloadId: string, error: string) => void) => () => void;
+  };
+
+  qtExtractor: {
+    getStatus: () => Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>;
+    detect: () => Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>;
+    verify: (binaryPath?: string) => Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>;
+    selectBinary: () => Promise<string | null>;
+    setBinaryPath: (binaryPath: string) => Promise<void>;
+    setAutoRun: (enabled: boolean) => Promise<void>;
+    setAutoPostProcess: (enabled: boolean) => Promise<void>;
+    runExtraction: (
+      extractionId: string,
+      videoPath: string,
+      outputDir: string,
+      params: {
+        ssimThreshold: number;
+        enableDownsampling: boolean;
+        downsampleWidth: number;
+        downsampleHeight: number;
+        chunkSize?: number;
+      }
+    ) => Promise<{ slideCount: number; slidesDir: string }>;
+    cancelExtraction: (extractionId: string) => Promise<boolean>;
+    applyColorReduction: (slidesDir: string) => Promise<{ processed: number }>;
+    onProgress: (callback: (extractionId: string, percent: number) => void) => () => void;
+    onSlidesExtracted: (callback: (extractionId: string, slidesDir: string, count: number) => void) => () => void;
+    onCompleted: (callback: (extractionId: string, result: { slideCount: number; slidesDir: string }) => void) => () => void;
+    onError: (callback: (extractionId: string, message: string, category?: string) => void) => () => void;
+    onCancelled: (callback: (extractionId: string) => void) => () => void;
+  };
+
+  update: {
+    checkForUpdates: () => Promise<
+      | {
+          success: true;
+          hasUpdate: boolean;
+          currentVersion: string;
+          latestVersion: string;
+          releaseUrl: string;
+          releaseBody: string;
+          publishedAt: string;
+          /** Windows only: the download installs in place on quit (electron-updater). */
+          inPlaceUpdate: boolean;
+          assets: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
+        }
+      | { success: false; error: string }
+    >;
+    onCheckForUpdates: (callback: () => void) => () => void;
+    onAutoCheckForUpdates: (callback: () => void) => () => void;
+    getReleaseInfo: () => Promise<{
+      success: boolean;
+      tagName?: string;
+      name?: string;
+      body?: string;
+      bodyHtml?: string;
+      htmlUrl?: string;
+      publishedAt?: string;
+      assets?: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
+      error?: string;
+    }>;
+    downloadUpdate: (url: string, filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    cancelDownload: () => Promise<{ success: boolean }>;
+    isDownloading: () => Promise<{ isDownloading: boolean }>;
+    onDownloadProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => () => void;
+    onDownloadComplete: (callback: (filename: string) => void) => () => void;
+    onDownloadError: (callback: (error: string) => void) => () => void;
+    onPromptQuit: (callback: (filename: string) => void) => () => void;
+    openDownloadFolder: () => Promise<{ success: boolean; error?: string }>;
+    getDownloadFolder: () => Promise<{ success: boolean; path?: string }>;
+    installUpdate: (filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    listDownloadedUpdates: () => Promise<{ success: boolean; updates?: string[]; error?: string }>;
+    findOldUpdates: () => Promise<{ success: boolean; files?: string[]; currentVersion?: string; error?: string }>;
+    deleteOldUpdates: (filenames: string[]) => Promise<{ success: boolean; errors?: string[] }>;
+  };
+
+  extractorInstaller: {
+    checkLatest: () => Promise<{
+      success: boolean;
+      tagName?: string;
+      name?: string;
+      body?: string;
+      bodyHtml?: string;
+      htmlUrl?: string;
+      publishedAt?: string;
+      assets?: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
+      repoUrl?: string;
+      error?: string;
+    }>;
+    download: (url: string, filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    cancel: () => Promise<{ success: boolean }>;
+    isDownloading: () => Promise<{ isDownloading: boolean }>;
+    /** `kind: 'appImage'` = copied to `installedPath` and set as the extractor path (Linux). */
+    install: (filename: string) => Promise<{
+      success: boolean;
+      kind?: 'opened' | 'appImage';
+      filePath?: string;
+      installedPath?: string;
+      error?: string;
+    }>;
+    openDownloadFolder: () => Promise<{ success: boolean; error?: string }>;
+    /** Linux: shows the installed AppImage in the file manager. */
+    revealInstalled: () => Promise<void>;
+    openRepo: () => Promise<void>;
+    onProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => () => void;
+    onComplete: (callback: (filename: string) => void) => () => void;
+    onError: (callback: (error: string) => void) => () => void;
+  };
+
+  slideExtraction: {
+    saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) => Promise<SlideOperationResponse>;
+    ensureDirectory: (path: string) => Promise<SlideOperationResponse>;
+    deleteSlide: (outputPath: string, filename: string) => Promise<SlideOperationResponse>;
+    moveToInAppTrash: (outputPath: string, filename: string, metadata: TrashMetadata) => Promise<SlideOperationResponse>;
+    readSlideAsBase64: (outputPath: string, filename: string) => Promise<string>;
+    readSlideForAI: (outputPath: string, filename: string, targetWidth: number, targetHeight: number) => Promise<string>;
+    listSlides: (outputPath: string) => Promise<string[]>;
+    readImageBuffer: (filePath: string) => Promise<Uint8Array>;
+  };
+
+  dialog: {
+    showMessageBox: (options: DialogOptions) => Promise<DialogResponse>;
+    showErrorBox: (title: string, content: string) => Promise<void>;
+    openImageFile: () => Promise<string | null>;
+    openImageFiles: () => Promise<string[] | null>;
+  };
+
+  powerManagement: {
+    preventSleep: (holderId: string) => Promise<PowerManagementResponse>;
+    allowSleep: (holderId: string) => Promise<PowerManagementResponse>;
+    isPreventingSleep: () => Promise<PowerManagementStatus>;
+  };
+
+  window: {
+    minimize: () => Promise<void>;
+    maximize: () => Promise<{ success: true; isMaximized: boolean } | { success: false; error: string }>;
+    close: () => Promise<void>;
+    isMaximized: () => Promise<boolean>;
+    setBusyState: (busy: boolean) => Promise<{ success: boolean }>;
+  };
+
+  shell: {
+    /** Fixed QQ invitation in an isolated native modal; never accepts arbitrary URLs. */
+    openCommunity: () => Promise<{ success: boolean; error?: string }>;
+    openExternal: (url: string) => Promise<void>;
+    openPath: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+    /** macOS Files & Folders privacy pane; resolves unsuccessful elsewhere. */
+    openPrivacySettings: () => Promise<{ success: boolean; error?: string }>;
+  };
+
+  menu: {
+    openSettings: () => Promise<{ success: boolean; error?: string }>;
+    onOpenSettings: (callback: () => void) => () => void;
+    openTermsAndConditions: () => Promise<void>;
+    reload: () => Promise<void>;
+    forceReload: () => Promise<void>;
+    toggleDevTools: () => Promise<void>;
+    resetZoom: () => Promise<void>;
+    zoomIn: () => Promise<void>;
+    zoomOut: () => Promise<void>;
+    toggleFullscreen: () => Promise<void>;
+  };
+
+  cache: {
+    getStats: () => Promise<{
+      totalSize: number;
+      tempFiles: number;
+    }>;
+    clear: () => Promise<{
+      success: boolean;
+      error?: string;
+    }>;
+    /** `notRemoved`: what the reset could not delete; the app must restart either way. */
+    resetAllData: () => Promise<{
+      success: boolean;
+      error?: string;
+      notRemoved?: string[];
+    }>;
+  };
+
+  app: {
+    restart: () => Promise<void>;
+    /** Quit the app on every platform (closing the window does not on macOS). */
+    quit: () => Promise<void>;
+    getVersion: () => Promise<string>;
+    getPlatform: () => Promise<string>;
+    /** `<userData>/logs`, or null if the log folder could not be created. */
+    getLogDir: () => Promise<string | null>;
+    openLogFolder: () => Promise<{ success: boolean; error?: string }>;
+  };
+
+  /** Fire-and-forget line into the main-process log file. Strings only. */
+  log: {
+    write: (level: LogLevel, source: LogSource, namespace: string, message: string) => void;
+  };
+
+  ai: {
+    classifySingleImage: (
+      base64Image: string,
+      token?: string,
+      modelOverride?: string
+    ) => Promise<AIFilteringResult>;
+    classifyMultipleImages: (
+      base64Images: string[],
+      token?: string,
+      modelOverride?: string
+    ) => Promise<AIFilteringResult>;
+    getBuiltinModelName: (token: string) => Promise<string>;
+    getBuiltinModelInfo: (token: string) => Promise<{
+      model: string;
+      rateLimit: number;
+      maxConcurrent: number;
+      minTime: number;
+      batchSize: number;
+      requestBody: {
+        maxTokens: number | null;
+        temperature: number | null;
+        topP: number | null;
+        stream: boolean | null;
+        enableThinking: boolean | null;
+        thinkingKey: 'enable_thinking' | 'thinking';
+      };
+    }>;
+    isConfigured: (token?: string) => Promise<boolean>;
+    getServiceType: () => Promise<'builtin' | 'custom' | 'copilot'>;
+    getExhaustedModels: () => Promise<string[]>;
+  };
+
+  copilot: {
+    requestDeviceCode: () => Promise<{
+      device_code: string;
+      user_code: string;
+      verification_uri: string;
+      expires_in: number;
+      interval: number;
+    }>;
+    pollForAccessToken: (deviceCode: string, interval: number) => Promise<string>;
+    getUserInfo: (ghoToken: string) => Promise<{
+      login: string;
+      avatar_url: string;
+      name?: string;
+    }>;
+    validateToken: (ghoToken: string) => Promise<boolean>;
+    exchangeToken: (ghoToken: string) => Promise<{
+      token: string;
+      expires_at: number;
+    }>;
+    clearCache: () => Promise<void>;
+  };
+
+  trash: {
+    getEntries: () => Promise<TrashEntry[]>;
+    restore: (ids: string[]) => Promise<{ restored: number; failed: number }>;
+    clear: () => Promise<{ cleared: number; failed: number }>;
+    clearEntries: (ids: string[]) => Promise<{ cleared: number; failed: number }>;
+    removeFolders: (folderNames: string[]) => Promise<{ removed: number; failed: number }>;
+    getImageAsBase64: (trashPath: string) => Promise<string>;
+  };
+
+  crop: {
+    getEntries: () => Promise<CropEntry[]>;
+    getImageAsBase64: (cropPath: string) => Promise<string>;
+    apply: (
+      imagePath: string,
+      rect: CropRect,
+      autoCropped?: boolean,
+      isAutomated?: boolean,
+    ) => Promise<{ success: boolean }>;
+    restore: (imagePath: string) => Promise<{ success: boolean }>;
+  };
+
+  slideMetadata: {
+    get: (folderPath: string) => Promise<SlideMetadata | null>;
+    writeExtraction: (
+      folderPath: string,
+      data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }
+    ) => Promise<{ success: boolean }>;
+    updatePostProcessing: (
+      folderPath: string,
+      pp: SlidePostProcessingMeta
+    ) => Promise<{ success: boolean }>;
+    write: (folderPath: string, metadata: SlideMetadata) => Promise<{ success: boolean }>;
+    markReviewed: (folderPath: string) => Promise<{ success: boolean }>;
+    commitEdited: (folderPath: string) => Promise<{ success: boolean; result: { cropped?: boolean } | null }>;
+  };
+
+  slideTimeline: {
+    get: (folderPath: string) => Promise<SlideTimeline | null>;
+    write: (folderPath: string, timeline: SlideTimeline) => Promise<{ success: boolean }>;
+    recordCaptureConfirmed: (
+      folderPath: string,
+      payload: RecordCaptureConfirmedPayload
+    ) => Promise<{ success: boolean }>;
+    recordGapBoundary: (
+      folderPath: string,
+      payload: RecordGapBoundaryPayload
+    ) => Promise<{ success: boolean }>;
+    relinkDuplicate: (
+      folderPath: string,
+      payload: RelinkDuplicatePayload
+    ) => Promise<{ success: boolean }>;
+    unlinkToGap: (folderPath: string, payload: UnlinkToGapPayload) => Promise<{ success: boolean }>;
+    restoreCanonical: (
+      folderPath: string,
+      payload: RestoreCanonicalPayload
+    ) => Promise<{ success: boolean }>;
+    clear: (folderPath: string) => Promise<{ success: boolean }>;
+    ensureRecordedHostFields: (folderPath: string) => Promise<{ success: boolean }>;
+  };
+
+  pdfmaker: {
+    getFolders: () => Promise<{ name: string; path: string; imageCount: number }[]>;
+    getImages: (folderPath: string) => Promise<{ name: string; path: string }[]>;
+    getImageAsBase64: (imagePath: string) => Promise<string>;
+    deleteImage: (imagePath: string) => Promise<{ success: boolean }>;
+    makePdf: (
+      folders: { name: string; path: string; images: string[] }[],
+      options: {
+        reduceEnabled: boolean;
+        aspectRatio?: '16:9' | '4:3';
+        effort: 'standard' | 'compact' | 'minimal' | 'custom';
+        customColors?: number | null;
+        customWidth?: number | null;
+        customHeight?: number | null;
+        outputMode?: 'single' | 'batch';
+        outputFormat?: 'pdf' | 'pptx';
+        includeCover?: boolean;
+        copyrightText?: string;
+      }
+    ) => Promise<
+      | { success: true; mode: 'single'; format: 'pdf' | 'pptx'; path: string }
+      | { success: true; mode: 'batch'; format: 'pdf' | 'pptx'; outputDir: string; paths: string[] }
+      | {
+          success: false;
+          error?: string;
+          /** Batch only: the folder that failed, and the files made before it (kept). */
+          failedFolder?: string;
+          outputDir?: string;
+          paths?: string[];
+        }
+    >;
+    onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
+  };
+
+  noteExport: {
+    export: (payload: { title: string; content: string; format: 'pdf' | 'markdown' | 'docx' }) => Promise<{
+      ok: boolean;
+      path?: string;
+      canceled?: boolean;
+      error?: string;
+    }>;
+  };
+
+  webCapture: {
+    getGuestPreloadPath: () => Promise<string>;
+  };
+
+  yuketang: {
+    exportLesson: (payload: { lessonId?: string; format: 'pdf' | 'images' }) => Promise<{
+      lessonId: string;
+      lessonTitle: string;
+      lessonDir: string;
+      presentationCount: number;
+      format: string;
+      pdfPath?: string;
+      cancelled?: boolean;
+    }>;
+    getClassCapture: () => Promise<{ presentationId: string; hasAuthorization: boolean }>;
+    openFolder: (folderPath: string) => Promise<void>;
+    onExportProgress: (callback: (message: string) => void) => () => void;
+    onClassCaptureUpdate: (callback: (data: { presentationId: string; hasAuthorization: boolean }) => void) => () => void;
+  };
+
+  autoCrop: {
+    getModelInfo: () => Promise<AutoCropModelInfo>;
+    getModelBuffer: () => Promise<ArrayBuffer>;
+    selectAndImportModel: () => Promise<AutoCropModelInfo | null>;
+    deleteCustomModel: () => Promise<AutoCropModelInfo>;
+  };
+
+  mlClassifier: {
+    getModelInfo: () => Promise<MlClassifierModelInfo>;
+    getModelBuffer: () => Promise<ArrayBuffer>;
+    selectAndImportModel: () => Promise<MlClassifierModelInfo | null>;
+    deleteCustomModel: () => Promise<MlClassifierModelInfo>;
+    downloadDefaultModel: () => Promise<MlClassifierModelInfo>;
+    deleteDownloadedModel: () => Promise<MlClassifierModelInfo>;
+    onModelInfo: (callback: (info: MlClassifierModelInfo) => void) => () => void;
+  };
+
+  /** Obsidian watch-notes provider. Tab-keyed; main resolves every path. */
+  obsidianNotes: {
+    probeVault: (dir: string) => Promise<ObsidianVaultProbe>;
+    selectVault: () => Promise<{ path: string; isVault: boolean } | null>;
+    openAuto: (tabId: string, title: string, slidesFolderName: string) => Promise<ObsidianResult<ObsidianTargetInfo>>;
+    chooseNote: (tabId: string, slidesFolderName: string) => Promise<ObsidianResult<ObsidianTargetInfo | null>>;
+    append: (tabId: string, bytes: ArrayBuffer, filename: string) => Promise<ObsidianResult<void>>;
+    close: (tabId: string) => Promise<void>;
+    openInObsidian: (tabId: string) => Promise<ObsidianResult<void>>;
+    reveal: (tabId: string) => Promise<ObsidianResult<void>>;
+    useFoundVault: (tabId: string) => Promise<ObsidianResult<void>>;
+  };
+
+  /** Notion watch-notes provider. Tab-keyed; main owns the token and pages. */
+  notionNotes: {
+    connect: (token: string) => Promise<NotionResult<{ workspaceName: string }>>;
+    /** Stored token, for Settings' show/hide field; null when not connected. */
+    getToken: () => Promise<string | null>;
+    disconnect: () => Promise<void>;
+    searchPages: (query: string, cursor: string | null) => Promise<NotionResult<NotionPageList>>;
+    choosePage: (tabId: string, pageId: string) => Promise<NotionResult<NotionTargetInfo>>;
+    append: (tabId: string, bytes: ArrayBuffer, filename: string) => Promise<NotionResult<void>>;
+    close: (tabId: string) => Promise<void>;
+    openPage: (tabId: string) => Promise<NotionResult<void>>;
+  };
+
+  cloudNotes: {
+    list: (params?: import('@common/notesTypes').NoteListParams) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteListResult>>;
+    get: (id: number) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteDetail>>;
+    create: () => Promise<import('@common/notesTypes').NotesResult<number>>;
+    updateTitle: (id: number, title: string, groupId?: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    updateContent: (id: number, content: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    moveToGroup: (
+      id: number,
+      groupId: number,
+      title: string,
+      content?: string,
+    ) => Promise<import('@common/notesTypes').NotesResult<number>>;
+    delete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    groupList: () => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteGroup[]>>;
+    groupCreate: (name: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    groupDelete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
+    /**
+     * One of the calls above, made for the account with this badge: when that
+     * account is no longer the active one nothing is sent and the answer is
+     * `account-changed` (`@common/notesTypes`). `args` are that call's
+     * arguments, as plain values. Use through `ownedNotesApi` in the renderer.
+     */
+    asOwner: (
+      badge: string,
+      method: import('@common/notesTypes').OwnedNoteMethod,
+      args: unknown[],
+    ) => Promise<import('@common/notesTypes').NotesResult<unknown>>;
+    uploadImageFromPath: (filePath: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
+    exportFolderStatus: (displayName: string, identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
+    prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
+    downloadImageToFolder: (url: string, dir: string, filename: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    shortenShareUrl: (fragment: string) => Promise<import('@common/notesTypes').NotesResult<{ url: string }>>;
+    resolveShareLink: (link: string, opts?: { requireTimeline?: boolean }) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ShareImportResult>>;
+  };
+}

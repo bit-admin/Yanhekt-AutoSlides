@@ -4,7 +4,7 @@ import { auth, yanhe2, config, windowNs, shell, menu, powerManagement, cache, ap
 import { video, slideVideo, download } from './video';
 import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
-import { pdfmaker, yuketang, noteExport } from './export';
+import { pdfmaker, yuketang } from './export';
 import { api, enrolled, pins } from './course';
 import { update, extractorInstaller } from './update';
 import { webCapture } from './webCapture';
@@ -14,6 +14,7 @@ import { cli } from './cli';
 import { deepLink } from './deepLink';
 import { cloudNotes, notionNotes, obsidianNotes } from './notes';
 import { lectures } from './lectures';
+import { drive, lectureOutputs } from './drive';
 
 const electronAPI: ElectronAPI = {
   // Demo mode flag: set by `npm run demo` (DEMO_MODE=1). The main process
@@ -49,7 +50,6 @@ const electronAPI: ElectronAPI = {
   slideMetadata,
   slideTimeline,
   pdfmaker,
-  noteExport,
   webCapture,
   yuketang,
   autoCrop,
@@ -61,6 +61,8 @@ const electronAPI: ElectronAPI = {
   obsidianNotes,
   notionNotes,
   lectures,
+  drive,
+  lectureOutputs,
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -1,10 +1,10 @@
 // How the main process reaches the Yanhekt API hosts (cbiz.yanhekt.cn, and
-// aita.yanhekt.cn for Yanhe 2.0): through the campus intranet when it is
-// reachable, with the public host as fallback in every connection mode.
-// Nothing in the app works without the API, so it never depends on the
-// intranet being up.
+// aita.yanhekt.cn for Yanhe 2.0) and the public image host (coss.yanhekt.cn):
+// through the campus intranet when it is reachable, with the public host as
+// fallback in every connection mode. Nothing in the app works without the
+// API, so it never depends on the intranet being up.
 //
-// Shared by ApiClient, NotesService and the Yanhe 2.0 reads so none of them
+// Shared by ApiClient, ShareService and the Yanhe 2.0 reads so none of them
 // can route differently. It is host-agnostic: a URL goes to the intranet when
 // its host is in the mapping table, and nowhere special otherwise.
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
@@ -44,7 +44,7 @@ export class IntranetApiTransport {
    *
    * A read is retried on the public host after any connection failure. A
    * write is different: once it may have reached the server, sending it again
-   * could apply it twice (a second note, a second upload). So a write is
+   * could apply it twice (e.g. a second upload). So a write is
    * retried only when the connection was never made, and waits for the route
    * to be current before it starts. Either way an address that cannot be
    * connected to is given up on after a few seconds, not the full timeout.

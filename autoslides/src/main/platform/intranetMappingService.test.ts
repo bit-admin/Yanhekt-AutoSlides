@@ -127,6 +127,13 @@ describe('addresses', () => {
     expect(svc.getMappings()['aita.yanhekt.cn']).toEqual({ type: 'single', ip: '10.0.11.240' });
   });
 
+  it('maps the public image host to the cbiz addresses', () => {
+    const { svc } = service('internal', { alive: [] });
+    const list = 'https://coss.yanhekt.cn/images?list-type=2&prefix=2026%2F1%2F&max-keys=1000';
+    expect(new URL(svc.mapUrl(list)).hostname).toMatch(/^10\.0\.34\.2[12]$/);
+    expect(svc.mapUrl(list)).toMatch(/\/images\?list-type=2&prefix=2026%2F1%2F&max-keys=1000$/);
+  });
+
   it('only accepts private addresses from the resolver', () => {
     expect(isPrivateIPv4('10.0.34.24')).toBe(true);
     expect(isPrivateIPv4('172.20.1.1')).toBe(true);

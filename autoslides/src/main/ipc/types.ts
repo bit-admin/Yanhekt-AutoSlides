@@ -30,14 +30,15 @@ import type { SlideVideoService } from '@main/video/slideVideoService';
 import type { WindowManager } from '@main/platform/windowManager';
 import type { TrayService } from '@main/platform/trayService';
 import type { PdfService } from '@main/export/pdfService';
-import type { NoteExportService } from '@main/export/noteExportService';
 import type { SlideExtractionService } from '@main/extraction/slideExtractionService';
 import type { SlideMetadataService } from '@main/extraction/slideMetadataService';
+import type { DriveService } from '@main/extraction/driveService';
+import type { LectureOutputs } from '@main/extraction/lectureOutputs';
 import type { SlideTimelineService } from '@main/extraction/slideTimelineService';
 import type { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
 import type { YanhektCatalogStore } from '@main/platform/yanhektCatalog';
-import type { NotesService } from '@main/platform/notesService';
+import type { ShareService } from '@main/platform/shareService';
 import type { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import type { NotionNotesService } from '@main/export/notionNotesService';
 import type { LocalRelayService } from '@main/video/localRelayService';
@@ -89,7 +90,6 @@ export interface IpcServices {
   slideVideoService: SlideVideoService;
   windowManager: WindowManager;
   pdfService: PdfService;
-  noteExportService: NoteExportService;
   slideExtractionService: SlideExtractionService;
   slideMetadataService: SlideMetadataService;
   slideTimelineService: SlideTimelineService;
@@ -100,7 +100,11 @@ export interface IpcServices {
   cacheManagementService: CacheManagementService;
   /** Developer-mode Yanhekt catalog file in the log folder. */
   yanhektCatalogStore: YanhektCatalogStore;
-  notesService: NotesService;
+  shareService: ShareService;
+  /** Drive uploads and share records (metadata.json version 2). */
+  driveService: DriveService;
+  /** What a lecture already has in the output folder (issue #45). */
+  lectureOutputs: LectureOutputs;
   obsidianNotesService: ObsidianNotesService;
   notionNotesService: NotionNotesService;
   cliInstallService: CliInstallService;

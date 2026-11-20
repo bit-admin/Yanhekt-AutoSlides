@@ -29,6 +29,8 @@ import {
   type SlideExtractionMeta,
   type SlidePostProcessingMeta,
   type SlideReviewMeta,
+  type SlideDriveFile,
+  type SlideShareRecord,
 } from '@common/slideMetadataTypes';
 import { SidecarFile, type SidecarRead, type SidecarWrite } from './slideExtraction/sidecarFile';
 import { createLogger } from '@main/infra/logger';
@@ -44,6 +46,13 @@ function keepCourseNumber(next: SlideMetadataSource, stored: SlideMetadataSource
   return { ...next, courseNumber: stored.courseNumber };
 }
 
+/** `base` with `added` laid over it by id, oldest first. */
+function mergeShares(base: SlideShareRecord[] | undefined, added: SlideShareRecord[]): SlideShareRecord[] {
+  const byId = new Map<string, SlideShareRecord>();
+  for (const share of [...(base ?? []), ...added]) byId.set(share.id, share);
+  return [...byId.values()].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
 export class SlideMetadataService {
   // Per-folder write serialization, atomic replacement and damaged-file handling.
   private file = new SidecarFile<SlideMetadata>('metadata', log);
@@ -51,6 +60,11 @@ export class SlideMetadataService {
   // Human edits staged during a folder-review session, keyed by resolved
   // folder path, awaiting commitEdited(). In-memory only.
   private pendingEdits = new Map<string, { cropped?: boolean }>();
+
+  // Share records of folders retired for a re-extraction, keyed by the
+  // lecture id block (`__c…s…`), waiting for the new folder's first
+  // `writeExtraction`. In memory only: lost if the app quits in between.
+  private carriedShares = new Map<string, SlideShareRecord[]>();
 
   private metadataPath(folderPath: string): string {
     return path.join(path.resolve(expandTilde(folderPath)), SLIDE_METADATA_FILENAME);
@@ -108,16 +122,96 @@ export class SlideMetadataService {
     data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }
   ): Promise<SidecarWrite> {
     const now = new Date().toISOString();
-    return this.mutate(folderPath, (current) => ({
-      version: SLIDE_METADATA_VERSION,
-      kind: data.kind ?? 'recorded',
-      source: keepCourseNumber(data.source, current?.source),
-      extraction: data.extraction,
-      postProcessing: current?.postProcessing,
-      review: current?.review ?? emptyReview(),
-      createdAt: current?.createdAt ?? now,
-      updatedAt: now,
-    }));
+    const carried = this.takeCarriedShares(folderPath);
+    return this.mutate(folderPath, (current) => {
+      const shares = mergeShares(current?.shares, carried);
+      return {
+        version: SLIDE_METADATA_VERSION,
+        kind: data.kind ?? 'recorded',
+        source: keepCourseNumber(data.source, current?.source),
+        extraction: data.extraction,
+        postProcessing: current?.postProcessing,
+        review: current?.review ?? emptyReview(),
+        // Upload records stay: each is checked against its file before use.
+        ...(current?.drive ? { drive: current.drive } : {}),
+        ...(shares.length > 0 ? { shares } : {}),
+        createdAt: current?.createdAt ?? now,
+        updatedAt: now,
+      };
+    });
+  }
+
+  /**
+   * Keep these share records for the folder a re-extraction of the same
+   * lecture creates next (matched by the id block `suffix`, e.g. `__c1s2`).
+   */
+  carryShares(suffix: string, shares: SlideShareRecord[]): void {
+    if (!suffix || shares.length === 0) return;
+    this.carriedShares.set(suffix, mergeShares(this.carriedShares.get(suffix), shares));
+  }
+
+  private takeCarriedShares(folderPath: string): SlideShareRecord[] {
+    const name = path.basename(this.resolveFolderKey(folderPath));
+    for (const [suffix, shares] of this.carriedShares) {
+      if (name.endsWith(suffix)) {
+        this.carriedShares.delete(suffix);
+        return shares;
+      }
+    }
+    return [];
+  }
+
+  /** Merge upload records, by file name. No-op if the folder has no metadata. */
+  async recordDriveUploads(folderPath: string, files: Record<string, SlideDriveFile>): Promise<SidecarWrite> {
+    return this.mutate(folderPath, (current) => {
+      if (!current || Object.keys(files).length === 0) return null;
+      return { ...current, version: SLIDE_METADATA_VERSION, drive: { files: { ...current.drive?.files, ...files } } };
+    });
+  }
+
+  /**
+   * Mark uploaded slides as moved to the trash (`removed`) or back. Slides
+   * without an upload record are left alone; no-op without metadata.
+   */
+  async markDriveRemoved(folderPath: string, filenames: string[], removed: boolean): Promise<SidecarWrite> {
+    return this.mutate(folderPath, (current) => {
+      const records = current?.drive?.files;
+      if (!current || !records) return null;
+      const now = new Date().toISOString();
+      const next = { ...records };
+      let changed = false;
+      for (const name of filenames) {
+        const record = next[name];
+        if (!record) continue;
+        if (removed && !record.removedAt) {
+          next[name] = { ...record, removedAt: now };
+          changed = true;
+        } else if (!removed && record.removedAt) {
+          const { removedAt: _removed, ...rest } = record;
+          next[name] = rest;
+          changed = true;
+        }
+      }
+      return changed ? { ...current, drive: { files: next } } : null;
+    });
+  }
+
+  /** Add a share record, or replace the one with its id. No-op without metadata. */
+  async saveShare(folderPath: string, share: SlideShareRecord): Promise<SidecarWrite> {
+    return this.mutate(folderPath, (current) => {
+      if (!current) return null;
+      return { ...current, version: SLIDE_METADATA_VERSION, shares: mergeShares(current.shares, [share]) };
+    });
+  }
+
+  /** Take a share record off the folder (the link itself keeps working). */
+  async removeShare(folderPath: string, id: string): Promise<SidecarWrite> {
+    return this.mutate(folderPath, (current) => {
+      if (!current?.shares?.some((share) => share.id === id)) return null;
+      const shares = current.shares.filter((share) => share.id !== id);
+      const { shares: _old, ...rest } = current;
+      return shares.length > 0 ? { ...rest, shares } : rest;
+    });
   }
 
   /**

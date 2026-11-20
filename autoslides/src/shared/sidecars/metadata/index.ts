@@ -8,4 +8,7 @@ export {
   type SlidePostProcessingMeta,
   type SlideReviewMeta,
   type SlideMetadata,
+  type SlideDriveFile,
+  type SlideDriveMeta,
+  type SlideShareRecord,
 } from './types';

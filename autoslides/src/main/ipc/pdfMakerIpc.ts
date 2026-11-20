@@ -181,6 +181,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
       } catch (timelineError) {
         log.warn('Timeline update after manual delete failed:', timelineError);
       }
+      await slideMetadataService.markDriveRemoved(outputPath, [filename], true);
       return { success: true };
     } catch (error) {
       log.error('Failed to delete image:', error);

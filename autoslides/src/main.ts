@@ -1,6 +1,6 @@
 // Must stay first: see the file.
 import '@main/cli/earlyDockHide';
-import { app, BrowserWindow, Menu, session } from 'electron';
+import { app, BrowserWindow, Menu, session, shell } from 'electron';
 import { installLocalAccessHeader } from '@main/video/videoProxy/localAccess';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -9,7 +9,7 @@ import { MainAuthService } from '@main/platform/authService';
 import { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
 import { MainApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
-import { NotesService } from '@main/platform/notesService';
+import { ShareService } from '@main/platform/shareService';
 import { ObsidianNotesService } from '@main/export/obsidianNotesService';
 import { NotionNotesService } from '@main/export/notionNotesService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
@@ -45,7 +45,6 @@ import { SlideVideoService } from '@main/video/slideVideoService';
 import { WindowManager, getWindowBackgroundColor } from '@main/platform/windowManager';
 import { TrayService } from '@main/platform/trayService';
 import { pdfService } from '@main/export/pdfService';
-import { noteExportService } from '@main/export/noteExportService';
 import { slideExtractionService } from '@main/extraction/slideExtractionService';
 import { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
@@ -60,6 +59,8 @@ import { Yanhe2DownloadService } from '@main/video/yanhe2DownloadService';
 import { Yanhe2CaptionSyncService } from '@main/video/yanhe2CaptionSyncService';
 import { slideMetadataService } from '@main/extraction/slideMetadataService';
 import { slideTimelineService } from '@main/extraction/slideTimelineService';
+import { DriveService } from '@main/extraction/driveService';
+import { LectureOutputs } from '@main/extraction/lectureOutputs';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
 import { createSettingsWriter, outputFolderWorkFrom } from '@main/ipc/settingsWriter';
@@ -484,7 +485,16 @@ const aiPromptsService = new AIPromptsService();
 const llmApiService = new LLMApiService(configService);
 const aiFilteringService = new AIFilteringService(configService, aiPromptsService, llmApiService);
 const qtExtractorService = new QtExtractorService(configService);
-const notesService = new NotesService(configService, apiTransport);
+const shareService = new ShareService(configService, apiTransport, async (courseId, sessionId) => {
+  const token = configService.getAuthToken();
+  return token ? apiClient.getLectureTitles(courseId, sessionId, token) : null;
+});
+const driveService = new DriveService(shareService, slideMetadataService, slideTimelineService, () => !!configService.getAuthToken());
+const lectureOutputs = new LectureOutputs({
+  metadata: slideMetadataService,
+  removeFolders: (names, outputDir) => slideExtractionService.removeFolders(names, outputDir),
+  trashFile: (filePath) => shell.trashItem(filePath),
+});
 const obsidianNotesService = new ObsidianNotesService(configService);
 const notionNotesService = new NotionNotesService(configService);
 const cliInstallService = new CliInstallService();
@@ -629,7 +639,6 @@ if (!cliRun) registerAllIpcHandlers({
   slideVideoService,
   windowManager,
   pdfService,
-  noteExportService,
   slideExtractionService,
   slideMetadataService,
   slideTimelineService,
@@ -642,7 +651,9 @@ if (!cliRun) registerAllIpcHandlers({
   enrolledCoursesService,
   cacheManagementService,
   yanhektCatalogStore,
-  notesService,
+  shareService,
+  driveService,
+  lectureOutputs,
   obsidianNotesService,
   notionNotesService,
   cliInstallService,

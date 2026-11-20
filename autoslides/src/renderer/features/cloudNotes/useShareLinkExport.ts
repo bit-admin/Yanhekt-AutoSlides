@@ -1,8 +1,10 @@
 import { computed, ref } from 'vue'
 import { shareImportDisplayName } from '@common/notesTypes'
-import type { ShareImportResult } from '@common/notesTypes'
+import type { ShareImportResult, ShareLectureMeta } from '@common/notesTypes'
 import type { LectureIdentity } from '@common/lectureNaming'
 import type { SlideTimeline } from '@common/sidecars'
+import { createLogger } from '@shared/utils/logger'
+const log = createLogger('ShareLinkExport')
 
 export type ShareExportStatus = 'pending' | 'downloading' | 'done' | 'conflict' | 'error'
 
@@ -24,6 +26,8 @@ export interface ShareExportItem {
   folderName?: string
   /** Reconstructed timeline.json from a v3 share payload. */
   timeline?: SlideTimeline | null
+  /** Lecture facts from the link, for the folder's metadata.json. */
+  lectureMeta?: ShareLectureMeta | null
   error?: string
 }
 
@@ -78,13 +82,35 @@ export function useShareLinkExport() {
     row.status = 'downloading'
     row.downloaded = 0
     const width = Math.max(3, String(row.urls.length).length)
+    const written: Array<{ filename: string; url: string }> = []
     for (let i = 0; i < row.urls.length; i += 1) {
       if (cancelRequested.value) { row.status = 'error'; row.error = 'cancelled'; return }
       const name = `Slide_${String(i + 1).padStart(width, '0')}.png`
       const dl = await window.electronAPI.cloudNotes.downloadImageToFolder(row.urls[i], prep.data.dir, name)
       if (!dl.ok) { row.status = 'error'; row.error = dl.error; return }
+      written.push({ filename: name, url: String(row.urls[i]) })
       row.downloaded += 1
     }
+    // metadata.json (`extractor: 'share'`) makes the folder a recognised Drive
+    // folder, and its slides count as uploaded already. Plain values only.
+    const meta = row.lectureMeta
+    const identity = identityOf(row)
+    const recorded = await window.electronAPI.drive.recordClone(prep.data.dir, {
+      source: {
+        courseId: identity.courseId != null ? String(identity.courseId) : undefined,
+        sessionId: identity.sessionId != null ? String(identity.sessionId) : undefined,
+        liveId: identity.liveId != null ? String(identity.liveId) : undefined,
+        courseTitle: meta?.courseTitle || undefined,
+        sessionTitle: meta?.sessionTitle || undefined,
+        instructor: meta?.instructor || undefined,
+        professors: meta?.professors ? [...meta.professors] : undefined,
+        college: meta?.college || undefined,
+        schoolYear: meta?.schoolYear || undefined,
+        semester: meta?.semester || undefined,
+      },
+      slides: written,
+    }).catch(() => null)
+    if (!recorded?.ok) log.warn('Clone metadata was not written', prep.data.dir)
     // JSON-clone: `row` is inside a ref (DataCloneError otherwise, CLAUDE.md).
     if (row.timeline) {
       try {
@@ -117,6 +143,7 @@ export function useShareLinkExport() {
         downloaded: 0,
         total: result.urls.length,
         timeline: result.timeline ?? null,
+        lectureMeta: result.lectureMeta ? JSON.parse(JSON.stringify(result.lectureMeta)) : null,
       }
       item.value = row
 

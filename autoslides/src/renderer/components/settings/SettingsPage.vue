@@ -33,9 +33,6 @@
       <div v-show="advanced.activeAdvancedTab.value === 'ai'" class="tab-content">
         <AISettingsTab />
       </div>
-      <div v-show="advanced.activeAdvancedTab.value === 'cloud'" class="tab-content">
-        <CloudSettingsTab />
-      </div>
       <div v-show="advanced.activeAdvancedTab.value === 'addons'" class="tab-content">
         <AddonsSettingsTab />
       </div>
@@ -71,7 +68,6 @@ import ImageProcessingSettingsTab from './tabs/ImageProcessingSettingsTab.vue'
 import PlaybackSettingsTab from './tabs/PlaybackSettingsTab.vue'
 import NetworkSettingsTab from './tabs/NetworkSettingsTab.vue'
 import AISettingsTab from './tabs/AISettingsTab.vue'
-import CloudSettingsTab from './tabs/CloudSettingsTab.vue'
 import AddonsSettingsTab from './tabs/AddonsSettingsTab.vue'
 
 const { advanced } = useSettingsContext()

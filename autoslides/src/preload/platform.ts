@@ -2,7 +2,7 @@ import { ipcRenderer } from 'electron';
 import { invoke } from './invoke';
 import type { ElectronAPI, DialogOptions } from './electronApi';
 import type { AppConfig, ConnectionMode, CustomProviderId, LanguageMode, StoredAccount } from '@common/types';
-import type { WatchNotesProviderId } from '@common/watchNotesProviders';
+import type { WatchNotesChoice } from '@common/watchNotesProviders';
 import type { Yanhe2SlideSaveProgress } from '@common/yanhe2SlideSave';
 import type { DevSsoSnapshot } from '@common/devSso';
 
@@ -158,12 +158,8 @@ export const config: ElectronAPI['config'] = {
   setUserNames: (original: string, display: string) => invoke('config:setUserNames', original, display),
   setLastGreetingId: (id: string) => invoke('config:setLastGreetingId', id),
   setOnboardingCompleted: (completed: boolean) => invoke('config:setOnboardingCompleted', completed),
-  setCloudStorageInitialized: (badge: string, initialized: boolean) => invoke('config:setCloudStorageInitialized', badge, initialized),
-  setCloudAutoSyncMode: (mode: 'disabled' | 'edited' | 'reviewed') => invoke('config:setCloudAutoSyncMode', mode),
-  setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => invoke('config:setCloudAutoResyncMode', mode),
   setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => invoke('config:setObsidian', patch),
-  setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => invoke('config:setWatchNotes', patch),
-  setCloudShareEmbedTimeline: (enabled: boolean) => invoke('config:setCloudShareEmbedTimeline', enabled),
+  setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesChoice }) => invoke('config:setWatchNotes', patch),
   setShowToolsButton: (enabled: boolean) => invoke('config:setShowToolsButton', enabled),
   setAllowCliControl: (enabled: boolean) => invoke('config:setAllowCliControl', enabled),
   setCloseToTray: (enabled: boolean) => invoke('config:setCloseToTray', enabled),

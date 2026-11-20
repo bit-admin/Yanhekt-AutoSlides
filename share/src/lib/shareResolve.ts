@@ -25,18 +25,34 @@ export interface ResolvedShareImage {
   url: string | null;
 }
 
-/** Lists one `YYYY/M` folder → map of `<basename>` → bucket-relative `<key>`. */
-export type FolderLister = (prefix: string) => Promise<Map<string, string>>;
+/**
+ * Lists one `YYYY/M` folder → map of `<basename>` → bucket-relative `<key>`.
+ * `onlyHash` is set when the payload needs one distinct hash from the folder:
+ * the lister then asks for that hash alone (`buildCossListUrl(prefix, null,
+ * onlyHash)`, one page) instead of listing the whole folder.
+ */
+export type FolderLister = (prefix: string, onlyHash?: string) => Promise<Map<string, string>>;
 
-/** Build the S3 ListObjectsV2 URL for one page of a folder listing. */
-export function buildCossListUrl(prefix: string, token: string | null): string {
+/**
+ * Build the S3 ListObjectsV2 URL for one page of a folder listing. With
+ * `onlyHash`, the URL asks for the first key that starts with that hash (S3
+ * filters on the full key, so the hash goes after the folder's slash).
+ */
+export function buildCossListUrl(prefix: string, token: string | null, onlyHash?: string): string {
   const normalized = prefix.endsWith('/') ? prefix : `${prefix}/`;
   const u = new URL(`${COSS_HOST}/images`);
   u.searchParams.set('list-type', '2');
-  u.searchParams.set('prefix', normalized);
-  u.searchParams.set('max-keys', '1000');
-  if (token) u.searchParams.set('continuation-token', token);
+  u.searchParams.set('prefix', onlyHash ? `${normalized}${onlyHash}` : normalized);
+  u.searchParams.set('max-keys', onlyHash ? '1' : '1000');
+  if (token && !onlyHash) u.searchParams.set('continuation-token', token);
   return u.toString();
+}
+
+/** The one distinct short hash a folder is asked for, or undefined when there are several. */
+function singleHashOf(hashes: Set<string>): string | undefined {
+  if (hashes.size !== 1) return undefined;
+  const [hash] = hashes;
+  return /^[0-9a-f]+$/.test(hash) ? hash : undefined;
 }
 
 /**
@@ -49,12 +65,19 @@ export async function resolveShareImages(
   listFolder: FolderLister,
 ): Promise<ResolvedShareImage[]> {
   const refs = shareImageRefs(payload);
-  const prefixes = [...new Set(refs.map((r) => r.prefix))];
+  // A folder needed for one hash is asked for that hash alone; a folder with
+  // several shares one listing, so requests do not grow with the slide count.
+  const hashesByPrefix = new Map<string, Set<string>>();
+  for (const { prefix, short } of refs) {
+    const hashes = hashesByPrefix.get(prefix) ?? new Set<string>();
+    hashes.add(short);
+    hashesByPrefix.set(prefix, hashes);
+  }
 
   const folders = new Map<string, Map<string, string>>();
   await Promise.all(
-    prefixes.map(async (prefix) => {
-      folders.set(prefix, await listFolder(prefix));
+    [...hashesByPrefix].map(async ([prefix, hashes]) => {
+      folders.set(prefix, await listFolder(prefix, singleHashOf(hashes)));
     }),
   );
 

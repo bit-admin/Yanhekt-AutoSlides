@@ -63,18 +63,24 @@
       </div>
 
       <div :id="isGroupingActive ? `${disclosureId(group.courseKey)}-folders` : undefined">
-      <button
+      <!-- One box per folder, like a Lectures session: the folder row, then
+           (when every slide is uploaded) its share link as a child row. -->
+      <div
         v-for="entry in isGroupingActive && isCourseCollapsed(group.courseKey) ? [] : group.folders"
         :key="entry.folder.name"
-        class="folder-item"
+        class="folder-entry"
         :class="{
-          'folder-item-grouped': isGroupingActive,
-          'folder-item-last-visited': !isFolderEditMode && entry.folder.name === lastVisitedFolderName,
-          'folder-item-selected': isFolderEditMode && selectedFolderNames.includes(entry.folder.name),
-          'folder-item-edit': isFolderEditMode,
-          'folder-item-drag-over': dragOverIndex === entry.index,
-          'folder-item-dragging': dragStartIndex === entry.index,
+          'folder-entry-grouped': isGroupingActive,
+          'folder-entry-last-visited': !isFolderEditMode && entry.folder.name === lastVisitedFolderName,
+          'folder-entry-selected': isFolderEditMode && selectedFolderNames.includes(entry.folder.name),
+          'folder-entry-drag-over': dragOverIndex === entry.index,
+          'folder-entry-dragging': dragStartIndex === entry.index,
         }"
+      >
+      <button
+        type="button"
+        class="folder-item"
+        :class="{ 'folder-item-grouped': isGroupingActive, 'folder-item-edit': isFolderEditMode }"
         :ref="(el) => setFolderItemRef(entry.folder.name, el as HTMLButtonElement | null)"
         :draggable="isFolderEditMode && !isGenerating"
         @click="isFolderEditMode ? emit('toggle-selection', entry.folder.name) : emit('open-folder', entry.folder)"
@@ -146,6 +152,20 @@
                 <span class="count-value">{{ entry.folder.removedCount }}</span>
                 <span class="count-label">{{ $t('trash.removed') }}</span>
               </span>
+              <!-- Drive: an upload in progress, else the slides still on Drive as they are. -->
+              <template v-if="uploadRow(entry.folder)">
+                <span class="folder-count-separator">/</span>
+                <span class="folder-count-text">
+                  <span class="count-label">{{ uploadLabel(entry.folder) }}</span>
+                </span>
+              </template>
+              <template v-else-if="entry.folder.drive && entry.folder.drive.uploaded + entry.folder.drive.changed > 0">
+                <span class="folder-count-separator">/</span>
+                <span class="folder-count-text" :title="entry.folder.drive.changed ? $t('drive.changedHint', { count: entry.folder.drive.changed }) : undefined">
+                  <span class="count-value">{{ entry.folder.drive.uploaded }}</span>
+                  <span class="count-label">{{ $t('drive.uploadedCount') }}</span>
+                </span>
+              </template>
             </div>
           </div>
         </div>
@@ -154,12 +174,22 @@
           <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
 
-        <div v-else class="drag-handle" :title="$t('pdfmaker.customOrderHint')">
-          <svg width="20" height="20" viewBox="0 0 16 16">
-            <path d="M4 4h2v2H4zM4 7h2v2H4zM4 10h2v2H4zM10 4h2v2h-2zM10 7h2v2h-2zM10 10h2v2h-2z" fill="currentColor"/>
+        <!-- Grip in the chevron's place: same size, same quiet ink. -->
+        <span v-else class="drag-handle" :title="$t('pdfmaker.customOrderHint')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/>
+            <circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/>
+            <circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/>
           </svg>
-        </div>
+        </span>
       </button>
+      <FolderShareRow
+        v-if="entry.folder.path && entry.folder.drive?.shares.length"
+        :folder-path="entry.folder.path"
+        :shares="entry.folder.drive.shares"
+        @changed="emit('drive-changed', entry.folder.path)"
+      />
+      </div>
       </div>
     </div>
   </div>
@@ -167,6 +197,8 @@
 
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { DriveUploads } from '@shared/services/driveUploadQueue'
 import {
   getCourseId,
   getCourseKey,
@@ -177,6 +209,7 @@ import {
 } from '@shared/utils/toolWindowFolders'
 import { isWatchExtraction } from '@common/slideMetadataTypes'
 import type { ResultsFolder } from '@features/results/useResultsView'
+import FolderShareRow from './FolderShareRow.vue'
 
 const props = defineProps<{
   folders: ResultsFolder[]
@@ -192,6 +225,7 @@ const emit = defineEmits<{
   (e: 'toggle-selection', name: string): void
   (e: 'select-course', names: string[]): void
   (e: 'reorder', from: number, to: number): void
+  (e: 'drive-changed', folderPath: string): void
 }>()
 
 // Collapse state is view-local: the parent never reads it, and re-entering the
@@ -324,6 +358,21 @@ function setFolderItemRef(name: string, el: HTMLButtonElement | null) {
 defineExpose({
   getFolderEl: (name: string): HTMLButtonElement | null => folderItemRefs.get(name) ?? null,
 })
+
+const { t: tDrive } = useI18n()
+
+/** The folder's Drive upload while it is queued or running. */
+function uploadRow(folder: { path?: string }) {
+  if (!folder.path || !DriveUploads.isBusy(folder.path)) return null
+  return DriveUploads.rowOf(folder.path) ?? null
+}
+
+function uploadLabel(folder: { path?: string }): string {
+  const row = uploadRow(folder)
+  if (!row) return ''
+  if (row.status === 'queued' || row.status === 'checking') return tDrive('drive.uploadWaiting')
+  return tDrive('drive.uploadingCount', { done: row.done, total: row.total })
+}
 </script>
 
 <style scoped>
@@ -473,65 +522,101 @@ defineExpose({
   accent-color: var(--control-accent);
 }
 
+/*
+ * A folder is a box like a Lectures session box: same margins inside a
+ * course card, hairline border, 6px corners. State rings sit on the box so
+ * they also wrap the share link row.
+ */
+.folder-entry {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.folder-entry-grouped {
+  margin: 0 12px 10px 16px;
+  border-radius: 6px;
+}
+
+.folder-entry:has(> .folder-item:hover) {
+  border-color: var(--border-strong);
+}
+
+.folder-entry-last-visited,
+.folder-entry-last-visited:has(> .folder-item:hover),
+.folder-entry-selected,
+.folder-entry-selected:has(> .folder-item:hover) {
+  border-color: var(--accent);
+}
+
+/* The inner half of the 2px ring. Drawn above the rows: an inset shadow on
+   the box itself is painted under them, so it showed through the translucent
+   folder row but not the opaque share row, and the ring looked uneven. */
+.folder-entry-last-visited::after,
+.folder-entry-selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 1px var(--accent) inset;
+  pointer-events: none;
+}
+
+.folder-entry-last-visited > .folder-item,
+.folder-entry-selected > .folder-item {
+  background-color: var(--badge-active-bg);
+}
+
+.folder-entry-drag-over {
+  border-color: var(--accent);
+  border-style: dashed;
+}
+
+.folder-entry-drag-over > .folder-item {
+  background-color: var(--badge-active-bg);
+}
+
+.folder-entry-dragging {
+  opacity: 0.5;
+}
+
 .folder-item {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border: 0;
   background-color: var(--bg-input);
+  color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
 }
 
-.folder-item:hover {
+.folder-item:hover,
+.folder-entry-last-visited > .folder-item:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
 }
 
-.folder-item-last-visited {
+.folder-entry-selected > .folder-item:hover {
   background-color: var(--badge-active-bg);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
-.folder-item-last-visited:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--accent);
+.folder-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Lectures session header spacing. */
+.folder-item-grouped {
+  padding: 10px 12px;
 }
 
 .folder-item-edit {
   cursor: pointer;
-}
-
-.folder-item-selected {
-  background-color: var(--badge-active-bg);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent) inset;
-}
-
-.folder-item-selected:hover {
-  background-color: var(--badge-active-bg);
-  border-color: var(--accent-hover);
-}
-
-.folder-item-drag-over {
-  border-color: var(--accent);
-  border-style: dashed;
-  background-color: var(--badge-active-bg);
-}
-
-.folder-item-dragging {
-  opacity: 0.5;
-}
-
-.folder-item-grouped {
-  margin: 0 8px 8px;
-  width: calc(100% - 16px);
-  border-radius: 6px;
 }
 
 .folder-checkbox {
@@ -618,18 +703,15 @@ defineExpose({
 }
 
 .drag-handle {
+  display: flex;
   flex-shrink: 0;
-  cursor: grab;
-  padding: 6px 8px;
-  opacity: 0.6;
-  transition: opacity 0.2s, background-color 0.2s;
-  border-radius: 4px;
   color: var(--text-muted);
+  cursor: grab;
+  transition: color 0.2s;
 }
 
 .folder-item:hover .drag-handle {
-  opacity: 1;
-  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .drag-handle:active {

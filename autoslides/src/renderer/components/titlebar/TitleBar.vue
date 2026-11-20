@@ -363,8 +363,6 @@ const infoTabLabel = computed(() => {
         : $t('tabs.yanhe2Curriculum');
     case 'slides-review':
       return $t('tabs.slidesReview');
-    case 'cloud-notes':
-      return $t('tabs.cloudNotes');
     case 'lectures':
       return $t('tabs.lectures');
     case 'settings':

@@ -63,8 +63,6 @@ const GROUPS = [
     ],
   },
   { name: 'academicTerm', sides: [['autoslides/src/shared/academicTerm.ts'], ['share/src/lib/term.ts']] },
-  pair('notesContent', 'autoslides/src/shared/notesContent.ts', 'web/frontend/src/lib/notes/notesContent.ts'),
-  pair('notesTypes', 'autoslides/src/shared/notesTypes.ts', 'web/frontend/src/lib/notes/notesTypes.ts'),
   pair('sanitizeFileName', 'autoslides/src/shared/sanitizeFileName.ts', 'web/frontend/src/lib/sanitizeFileName.ts'),
   // The desktop's slideMetadataTypes.ts is only a re-export of this file.
   pair('slideMetadataTypes', 'autoslides/src/shared/sidecars/metadata/types.ts', 'web/frontend/src/lib/slideMetadataTypes.ts'),
@@ -92,13 +90,6 @@ const GROUPS = [
 /** [source, copy]: the copy must be byte-identical to the source. */
 const IDENTICAL = [
   ['autoslides/src/renderer/features/video/streamFallback.ts', 'web/frontend/src/composables/video/streamFallback.ts'],
-  // One note's saves in order, and what counts as readable note content: the
-  // web editor must behave as the desktop one does.
-  ['autoslides/src/renderer/features/cloudNotes/noteSaveChain.ts', 'web/frontend/src/lib/notes/noteSaveChain.ts'],
-  ['autoslides/src/renderer/features/cloudNotes/noteContent.ts', 'web/frontend/src/lib/notes/noteContent.ts'],
-  // Ungrouping recreates the note: the same order of writes and the same
-  // outcome on a failure, on both sides.
-  ['autoslides/src/shared/noteUngroup.ts', 'web/frontend/src/lib/notes/noteUngroup.ts'],
   // A worker request always ends, the same way on both sides.
   ['autoslides/src/renderer/shared/workers/workerRequests.ts', 'web/frontend/src/workers/workerRequests.ts'],
   // Behaviour cases both watch-progress copies must pass (each package runs

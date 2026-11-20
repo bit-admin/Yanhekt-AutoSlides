@@ -6,7 +6,10 @@
 // missing file means "no metadata" and all consumers degrade gracefully.
 import type { AIClassifierMode } from '../../types';
 
-export const SLIDE_METADATA_VERSION = 1;
+// 2 (2026-11-20): optional `drive` and `shares` blocks. Version 1 files read
+// the same; older app versions read version 2 too, but drop both blocks if
+// they rewrite the file.
+export const SLIDE_METADATA_VERSION = 2;
 export const SLIDE_METADATA_FILENAME = 'metadata.json';
 
 // The source medium of the folder's slides. 'live' is written only for
@@ -49,7 +52,8 @@ export interface SlideMetadataSource {
 
 export interface SlideExtractionMeta {
   // 'yanhe2' = not extracted here: the slides Yanhe 2.0 detected itself, saved as they came.
-  extractor: 'builtin' | 'qt' | 'yanhe2';
+  // 'share' = not extracted here: the images of a share link, saved by Clone from Share Link.
+  extractor: 'builtin' | 'qt' | 'yanhe2' | 'share';
   ssimThreshold?: number;
   extractedAt: string;
   // How the extraction was initiated. Absent (legacy files) is treated as 'auto'.
@@ -80,6 +84,44 @@ export interface SlideReviewMeta {
   cropped: boolean;
 }
 
+/**
+ * One slide uploaded to Drive (Yanhekt's public image host). The URL's file
+ * name is the MD5 of the uploaded bytes, so any change to the file (a crop)
+ * means a new URL: `size` + `mtimeMs` are the quick check, `md5` the real one.
+ */
+export interface SlideDriveFile {
+  url: string;
+  md5: string;
+  size: number;
+  mtimeMs: number;
+  /** First upload. */
+  uploadedAt: string;
+  /** Last upload (a changed file, or the same bytes recorded again). */
+  updatedAt: string;
+  /** Set when the slide moves to the trash, cleared on restore. The image stays public. */
+  removedAt?: string;
+}
+
+export interface SlideDriveMeta {
+  /** Keyed by slide file name, so the records travel with the folder. */
+  files: Record<string, SlideDriveFile>;
+}
+
+/**
+ * A share link made from this folder. A snapshot: it keeps working after its
+ * slides are removed or the folder is re-extracted, and removing the record
+ * only takes it off the Drive list.
+ */
+export interface SlideShareRecord {
+  id: string;
+  createdAt: string;
+  longUrl: string;
+  shortUrl?: string;
+  /** Slide file names, in link order. */
+  files: string[];
+  timeline: boolean;
+}
+
 export interface SlideMetadata {
   version: number;
   kind: SlideMetadataKind;
@@ -87,6 +129,10 @@ export interface SlideMetadata {
   extraction: SlideExtractionMeta;
   postProcessing?: SlidePostProcessingMeta;
   review: SlideReviewMeta;
+  /** Version 2. */
+  drive?: SlideDriveMeta;
+  /** Version 2. */
+  shares?: SlideShareRecord[];
   createdAt: string;
   updatedAt: string;
 }
