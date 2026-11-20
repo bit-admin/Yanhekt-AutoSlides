@@ -178,7 +178,7 @@
           <template v-else-if="currentId === 'signIn'">
             <h3 class="step-title">{{ signInTitle }}</h3>
             <p class="step-description">{{ signInDescription }}</p>
-            <div v-if="isLoggedIn" class="cloud-inited-row">
+            <div v-if="isLoggedIn" class="signin-ready-row">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
@@ -208,11 +208,7 @@
               </button>
             </div>
 
-            <p v-if="notesProvider === 'yanhekt'" class="notes-provider-detail">
-              {{ $t('onboarding.notes.yanhektDetail') }}
-            </p>
-
-            <div v-else-if="notesProvider === 'obsidian'" class="notes-provider-detail">
+            <div v-if="notesProvider === 'obsidian'" class="notes-provider-detail">
               <label class="notes-field-label">{{ $t('advanced.addons.obsidianVault') }}</label>
               <div class="input-group">
                 <input
@@ -238,53 +234,7 @@
 
           <!-- Notes add-ons: the chosen provider's own page -->
           <template v-else-if="currentId === 'notes'">
-            <!-- Yanhekt Notes: cloud storage (the 5.0.0 cloud step) -->
-            <template v-if="notesProvider === 'yanhekt'">
-              <h3 class="step-title">{{ $t('onboarding.cloudTitle') }}</h3>
-              <p class="step-description cloud-step-description">{{ $t('onboarding.cloudDescription') }}</p>
-
-              <button
-                v-if="isLoggedIn && !cloudReady"
-                type="button"
-                class="btn btn--primary cloud-init-btn"
-                :disabled="cloudBusy"
-                @click="onInitCloud"
-              >
-                {{ cloudBusy ? $t('cloudNotes.initializing') : $t('cloudNotes.initStorage') }}
-              </button>
-              <p v-if="cloudStorageStore.status.value === 'error' && cloudStorageStore.lastError.value" class="cloud-storage-error">
-                {{ cloudStorageStore.lastError.value }}
-              </p>
-
-              <div v-if="cloudReady" class="cloud-inited-row">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                {{ $t('advanced.cloudStorage.statusReady') }}
-              </div>
-              <div v-if="cloudReady" class="auto-post-processing-control">
-                <select
-                  class="select-field sync-mode-select"
-                  :value="configStore.cloudAutoSyncMode ?? 'disabled'"
-                  @change="onAutoSyncChange"
-                >
-                  <option value="disabled">{{ $t('onboarding.cloudSyncDisabled') }}</option>
-                  <option value="edited">{{ $t('advanced.cloudStorage.syncModeEdited') }}</option>
-                  <option value="reviewed">{{ $t('advanced.cloudStorage.syncModeReviewed') }}</option>
-                </select>
-                <label class="checkbox-label">
-                  <input
-                    type="checkbox"
-                    :checked="isWatchNotesOn('yanhekt')"
-                    @change="onWatchSyncChange('yanhekt', $event)"
-                  />
-                  {{ $t('onboarding.cloudWatchSync') }}
-                </label>
-              </div>
-              <p v-if="!isLoggedIn" class="notes-provider-detail notes-muted">{{ $t('onboarding.notes.yanhektSignInFirst') }}</p>
-            </template>
-
-            <template v-else-if="notesProvider === 'obsidian'">
+            <template v-if="notesProvider === 'obsidian'">
               <h3 class="step-title">{{ $t('onboarding.notes.obsidianTitle') }}</h3>
               <p class="step-description">{{ $t('onboarding.notes.obsidianDescription') }}</p>
               <div class="auto-post-processing-control">
@@ -359,7 +309,6 @@ import { useI18n } from 'vue-i18n'
 import { useSettings } from '@features/settings/useSettings'
 import { useCopilotOAuth } from '@features/ai/useCopilotOAuth'
 import { useAuth } from '@features/platform/useAuth'
-import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { configStore } from '@shared/services/configStore'
 import {
   isConfigOnboardingStep,
@@ -394,10 +343,6 @@ const isLegal = computed(() => currentId.value === 'legal')
 const isSignIn = computed(() => currentId.value === 'signIn')
 const isDone = computed(() => currentId.value === 'done')
 const isConfig = computed(() => isConfigOnboardingStep(currentId.value))
-const cloudReady = computed(() => cloudStorageStore.status.value === 'ready')
-const cloudBusy = computed(() =>
-  cloudStorageStore.status.value === 'checking' || cloudStorageStore.status.value === 'repairing'
-)
 // Numbered steps; a later page (notes after notesProvider) shares its step's
 // number and dot.
 const configSteps = computed(() =>
@@ -445,7 +390,6 @@ const {
 
 const {
   isLoggedIn,
-  userId,
   userNickname,
   openBrowserLogin,
   smsChallenge,
@@ -552,20 +496,9 @@ const skipOnboarding = () => {
 }
 const proceed = () => next()
 
-const onInitCloud = () => {
-  cloudStorageStore.setUser(userId.value)
-  void cloudStorageStore.initialize()
-}
-
-const onAutoSyncChange = (event: Event) => {
-  const value = (event.target as HTMLSelectElement).value as 'disabled' | 'edited' | 'reviewed'
-  void window.electronAPI.config.setCloudAutoSyncMode(value)
-}
-
 // ── Notes add-ons ──────────────────────────────────────
 // Same labels as Settings → Add-ons → Notes Provider.
 const PROVIDER_LABEL_KEYS: Record<WatchNotesProviderId, string> = {
-  yanhekt: 'advanced.addons.providerYanhekt',
   obsidian: 'advanced.addons.providerObsidian',
   notion: 'advanced.addons.providerNotion',
 }
@@ -615,14 +548,6 @@ const notion = useNotionConnection()
 watch(currentId, (id) => {
   if (id === 'notesProvider' && notesProvider.value === 'obsidian') void probeObsidianVault()
   if (id === 'notes' && notesProvider.value === 'notion') notion.reset()
-  if (id !== 'notes' || notesProvider.value !== 'yanhekt') return
-  if (!isLoggedIn.value) {
-    const signInIdx = props.steps.findIndex(s => s.id === 'signIn')
-    if (signInIdx >= 0) index.value = signInIdx
-    return
-  }
-  cloudStorageStore.setUser(userId.value)
-  void cloudStorageStore.refresh()
 })
 watch(notesProvider, (provider) => {
   if (provider === 'obsidian') void probeObsidianVault()
@@ -839,24 +764,7 @@ const onSignInBrowserLogin = () => {
   text-decoration: underline;
 }
 
-.cloud-ready-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 4px;
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.cloud-step-description {
-  margin-bottom: 10px;
-}
-
-.cloud-init-btn {
-  width: 100%;
-}
-
-.cloud-inited-row {
+.signin-ready-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -868,37 +776,6 @@ const onSignInBrowserLogin = () => {
   color: var(--success);
   font-size: 12px;
   font-weight: 600;
-}
-
-.cloud-storage-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background-color: var(--text-muted);
-}
-
-.cloud-storage-dot.is-ready { background-color: var(--success); }
-.cloud-storage-dot.is-warning { background-color: var(--warning); }
-.cloud-storage-dot.is-error { background-color: var(--danger); }
-
-.cloud-storage-error {
-  margin: 0 0 10px;
-  font-size: 11px;
-  color: var(--danger);
-}
-
-.auto-post-processing-control .sync-mode-select {
-  border: none;
-  border-radius: 0;
-  border-bottom: 1px solid var(--border-input);
-  background-color: transparent;
-  min-height: unset;
-  padding: 8px 12px;
-}
-
-.auto-post-processing-control .sync-mode-select:focus {
-  box-shadow: none;
 }
 
 /* ── Stepped configuration ────────────────────────────── */
@@ -982,11 +859,6 @@ const onSignInBrowserLogin = () => {
   font-size: 12px;
   line-height: 1.45;
   color: var(--warning);
-}
-
-.notes-muted {
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .notes-notion-sync {

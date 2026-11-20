@@ -12,6 +12,7 @@ import type {
   CustomProviderId
 } from './types';
 import { YANHE2_CAPTION_OFFSET_DEFAULT } from '@common/types';
+import { DEFAULT_WATCH_NOTES_PROVIDER } from '@common/watchNotesProviders';
 
 export const AUTO_CROP_YOLO_INPUT_SIZES = [320, 480, 640, 960, 1280] as const;
 
@@ -201,11 +202,8 @@ export const defaultConfig: AppConfig = {
   enrolledCourses: [],
   onboardingCompleted: false,
   lastOnboardingVersion: null,
-  cloudStorageInitializedUsers: [],
-  cloudAutoSyncMode: 'disabled',
-  cloudAutoResyncMode: 'disabled',
   watchNotesEnabled: false,
-  watchNotesProvider: 'yanhekt',
+  watchNotesProvider: DEFAULT_WATCH_NOTES_PROVIDER,
   obsidianVaultPath: '',
   obsidianSubfolder: 'AutoSlides',
   obsidianAutoCreateNote: false,

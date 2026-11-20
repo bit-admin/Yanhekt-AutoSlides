@@ -338,7 +338,6 @@ import {
   syncPinnedCoursesFromServer,
 } from '@features/course/pinnedCourses'
 import { openPin } from '../course/openPin'
-import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
 import CommunityModal from './CommunityModal.vue'
@@ -389,23 +388,10 @@ const {
   closeSsoModal,
 } = auth
 
-// Cloud-storage launch check (mirrors the auth-token check): once sign-in is
-// verified, check whether the managed note storage is provisioned. Auto
-// re-provisions only for accounts that initialized before (persisted flag);
-// otherwise import/publish surfaces stay gated until an explicit init.
-// Watch userId too so switching accounts (logged-in → logged-in, isLoggedIn
-// unchanged but the badge changes) rebinds cloud storage to the new account.
-// Same [isLoggedIn, userId] trigger also re-syncs Yanhekt course subscriptions
-// into the local pin cache (launch / login / account switch) and tells it whose
-// pins to show. Soft-fails offline and never clears last-known pins on error.
-watch([isLoggedIn, userId], ([loggedIn]) => {
-  if (loggedIn) {
-    cloudStorageStore.setUser(userId.value)
-    void cloudStorageStore.refresh()
-    void syncPinnedCoursesFromServer(userId.value)
-  } else {
-    cloudStorageStore.setUser(null)
-  }
+// Sync pins on launch, sign-in and account switch (which changes userId but
+// not isLoggedIn). Soft-fails offline and keeps last-known pins on error.
+watch([isLoggedIn, userId], ([loggedIn, badge]) => {
+  if (loggedIn) void syncPinnedCoursesFromServer(badge)
 }, { immediate: true })
 
 // Pins also sync with Yanhe 2.0 bookmarks, so a Yanhe 2.0 sign-in (or renewal)

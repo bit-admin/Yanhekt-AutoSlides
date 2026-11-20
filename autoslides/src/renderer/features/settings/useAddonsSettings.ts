@@ -8,15 +8,14 @@ import {
 
 /**
  * Buffered settings for the Add-ons tab:
- * - Watch Notes (notes add-ons): whether watch notes are auto-created and
- *   synced, which provider they go to, the Obsidian provider's vault, notes
- *   folder and auto-create switch, and the Notion connection (applied at once,
- *   not on commit).
+ * - Watch Notes: whether slides are sent to Obsidian or Notion, the Obsidian
+ *   vault, notes folder and auto-create switch, and the Notion connection
+ *   (applied at once, not on commit).
  * - Tools: whether Web Capture and Yuketang appear in the sidebar.
  * - Command Line: whether `autoslides` commands may drive the app (the
  *   wrappers themselves install at once, outside this lifecycle).
- * Self-contained like useCloudSettings — reads/writes config directly and joins
- * the Settings page's prepare/discard/commit lifecycle.
+ * Reads and writes config directly as part of the Settings page's
+ * prepare/discard/commit lifecycle.
  */
 export function useAddonsSettings() {
   const watchNotesEnabled = ref(false)

@@ -12,10 +12,10 @@ import { PostProcessingService, type PostProcessJob } from '@shared/services/pos
 import { tabStore, type PlaybackTab } from '@features/course/tabStore'
 import { seedWatchNoteEntry } from '@features/cloudNotes/watchNotesStore'
 import type { WatchNoteEntry, WatchQueueItem, WatchQueueStatus } from '@features/cloudNotes/watchNotesTypes'
-import { EDITORJS_DOC_VERSION, buildManagedNoteTitle } from '@common/notesTypes'
+import { buildManagedNoteTitle } from '@common/notesTypes'
 import type { LectureIdentity } from '@common/lectureNaming'
 import type { WatchNotesProviderId } from '@common/watchNotesProviders'
-import { demoGallerySlides, demoResultImageDataUri, demoSessionId } from './demoData'
+import { demoGallerySlides, demoSessionId } from './demoData'
 
 let seeded = false
 let watchNotesSeeded = false
@@ -171,15 +171,12 @@ export function seedDemoQueues(): void {
   DownloadService.downloadItems.push(...downloads)
 }
 
-// Which watch-notes provider the demo Notes tab shows. Yanhekt by default (the
-// live editor); the screenshot script switches to Obsidian / Notion to capture
-// the append queue, then back.
-let demoWatchProvider: WatchNotesProviderId = 'yanhekt'
+let demoWatchProvider: WatchNotesProviderId = 'obsidian'
 
-// Renderer-only config for the external providers, never persisted: the Notes
+// Renderer-only config for the notes providers, never persisted: the Notes
 // panel reads these, and nothing is written through their bridges until a
 // button is clicked. A config broadcast would reset them, so callers switch
-// back to Yanhekt right after capturing.
+// back to Obsidian right after capturing.
 const DEMO_VAULT_PATH = '/Users/kate/Documents/Mathematics'
 const DEMO_NOTION_WORKSPACE = "Kate's Notion"
 
@@ -236,64 +233,19 @@ function demoWatchEntry(tab: PlaybackTab): WatchNoteEntry {
       lastError: null,
     }
   }
-  if (demoWatchProvider === 'notion') {
-    return {
-      ...base,
-      provider: 'notion',
-      target: {
-        pageId: 'demo-notion-page',
-        title: 'Functional Analysis',
-        emoji: '📐',
-        url: 'https://www.notion.so/demo',
-      },
-      // Paused by the student: three written, three waiting for Resume.
-      items: demoQueueItems(['appended', 'appended', 'appended', 'queued', 'queued', 'queued']),
-      paused: true,
-      lastError: null,
-    }
-  }
   return {
     ...base,
-    provider: 'yanhekt',
-    noteId: 108,
-    content: {
-      time: Date.now(),
-      version: EDITORJS_DOC_VERSION,
-      blocks: [
-        {
-          type: 'header',
-          data: { text: displayName, level: 2 },
-        },
-        {
-          type: 'paragraph',
-          data: { text: 'T is compact and self-adjoint, so it has an orthonormal eigenbasis. Eigenvalues can accumulate only at 0.' },
-        },
-        {
-          type: 'image',
-          data: {
-            file: { url: demoResultImageDataUri({ name: 'Slide_001.png' }) },
-            caption: 'Spectral theorem — compact self-adjoint',
-            withBorder: false,
-            stretched: false,
-            withBackground: false,
-          },
-        },
-        {
-          type: 'paragraph',
-          data: { text: 'The operator norm equals the spectral radius: ‖T‖ = supₙ |λₙ|. Proof sketch: pick the eigenvector for the largest |λ|.' },
-        },
-        {
-          type: 'image',
-          data: {
-            file: { url: demoResultImageDataUri({ name: 'Slide_002.png' }) },
-            caption: 'Operator norm as max |λ|',
-            withBorder: false,
-            stretched: false,
-            withBackground: false,
-          },
-        },
-      ],
+    provider: 'notion',
+    target: {
+      pageId: 'demo-notion-page',
+      title: 'Functional Analysis',
+      emoji: '📐',
+      url: 'https://www.notion.so/demo',
     },
+    // Paused by the student: three written, three waiting for Resume.
+    items: demoQueueItems(['appended', 'appended', 'appended', 'queued', 'queued', 'queued']),
+    paused: true,
+    lastError: null,
   }
 }
 

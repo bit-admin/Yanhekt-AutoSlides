@@ -157,27 +157,6 @@
       ],
       "description": "App version last acknowledged by finishing or skipping onboarding / What's New. null = never stamped (fresh install, or a v4 upgrade that only has onboardingCompleted). Do not default this to the current app version — absence is how we detect \"updated from before 5.0.0\"."
     },
-    "cloudStorageInitializedUsers": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "cloudAutoSyncMode": {
-      "type": "string",
-      "enum": [
-        "disabled",
-        "edited",
-        "reviewed"
-      ]
-    },
-    "cloudAutoResyncMode": {
-      "type": "string",
-      "enum": [
-        "disabled",
-        "edited"
-      ]
-    },
     "watchNotesEnabled": {
       "type": "boolean"
     },
@@ -812,7 +791,6 @@
     "WatchNotesProviderId": {
       "type": "string",
       "enum": [
-        "yanhekt",
         "obsidian",
         "notion"
       ]

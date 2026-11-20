@@ -278,27 +278,12 @@ export interface AppConfig {
    * is how we detect "updated from before 5.0.0".
    */
   lastOnboardingVersion: string | null;
-  // Badges of accounts that have explicitly initialized AutoSlides cloud storage
-  // (the managed note group + README). The server is the authority on whether the
-  // group exists; this flag only distinguishes "never initialized" (features gated
-  // until the user inits) from "initialized but deleted server-side" (auto re-init).
-  cloudStorageInitializedUsers: string[];
-  // Auto-sync: when a slide folder transitions to reviewed/edited on the Slides
-  // page, auto-import it to Cloud Notes (skipping folders already imported).
-  // 'disabled' (default) turns it off. Only meaningful once cloud storage is ready.
-  cloudAutoSyncMode: 'disabled' | 'edited' | 'reviewed';
-  // Auto-resync: when an already-imported folder is edited again, re-import
-  // (replace) its managed note with the freshly-edited slides. Only 'edited'
-  // (re-review is meaningless). 'disabled' (default) turns it off.
-  cloudAutoResyncMode: 'disabled' | 'edited';
   // Notes add-ons (Settings → Add-ons → Watch Notes): when watching a live stream
   // or a recorded session (manual playback) and slide extraction starts,
   // auto-create a watch note with the chosen provider and append each captured
-  // slide to it. Gates the whole right-panel Notes flow. Default off. Replaces
-  // the Yanhekt-only `cloudWatchSyncEnabled` (migrated once in ConfigService).
+  // slide to it. Gates the whole right-panel Notes flow. Default off.
   watchNotesEnabled: boolean;
-  // Where watch notes go. 'yanhekt' = the ASuser group of Yanhekt cloud notes,
-  // only meaningful once cloud storage is ready.
+  // Where watch notes go: an Obsidian vault or a Notion page.
   watchNotesProvider: WatchNotesProviderId;
   // Obsidian provider. Vault used for auto-created lecture notes (a folder that
   // contains `.obsidian/`; '' = none). A note picked in the right panel may live
@@ -312,8 +297,8 @@ export interface AppConfig {
   // broadcast. The page is picked per lecture in the Notes tab.
   notionConnected: boolean;
   notionWorkspaceName: string;
-  // When true (default), share links / Index publishes embed a compact v3
-  // slide timeline so players can sync. Off falls back to a v2 image-only link.
+  // Stored desktop preference for share links. True embeds a compact v3
+  // slide timeline if one exists; false produces a v2 image-only link.
   cloudShareEmbedTimeline: boolean;
   // Settings → Add-ons → Tools: show the Tools section in the sidebar. Default off.
   showToolsButton: boolean;

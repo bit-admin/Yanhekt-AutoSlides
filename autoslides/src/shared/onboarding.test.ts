@@ -82,11 +82,11 @@ describe('resolveOnboarding', () => {
     expect(d.steps.map(s => s.id)).toEqual(['legal', 'newIn511']);
   });
 
-  it('5.1.0 → 5.1.1 with no new steps → none (legal alone never triggers)', () => {
+  it('5.1.0 → 5.2.3 does not reopen onboarding after retiring the Yanhekt provider', () => {
     const d = resolveOnboarding({
       onboardingCompleted: true,
       lastOnboardingVersion: '5.1.0',
-      appVersion: '5.1.1',
+      appVersion: '5.2.3',
     });
     expect(d).toEqual({ kind: 'none', steps: [] });
   });

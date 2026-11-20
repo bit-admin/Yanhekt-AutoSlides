@@ -43,8 +43,7 @@ export const ONBOARDING_CATALOG: readonly OnboardingStep[] = [
   { id: 'audio', since: '5.0.0' },
   { id: 'ai', since: '5.0.0' },
   { id: 'signIn', since: '5.0.0' },
-  // Notes add-ons: pick Yanhekt / Obsidian / Notion, then that provider's page
-  // (Yanhekt's is the old 5.0.0 `cloud` step).
+  // Notes add-ons: pick Obsidian or Notion, then configure that provider.
   { id: 'notesProvider', since: '5.1.0' },
   { id: 'notes', since: '5.1.0' },
   { id: 'done', since: '5.0.0' },

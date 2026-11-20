@@ -93,13 +93,6 @@
   --overlay-scrim: rgba(0, 0, 0, 0.5);
   --overlay-lightbox: rgba(0, 0, 0, 0.8);
 
-  /* Editor.js text selection. Chromium drops var() inside ::selection, so
-     editorSelection.ts reads these tokens and injects literal colors; keep
-     the light/dark pairs here, not in component CSS. */
-  --editor-selection-bg: #dfddd6;
-  --editor-selection-fg: #151412;
-  --editor-selection-block-bg: rgba(38, 35, 28, 0.12);
-
   /* Brand lockups that must flip between dark-on-light and light-on-dark. */
   --logo-mono-filter: brightness(0.18);
   --logo-clip-filter: none;
@@ -232,10 +225,6 @@
     --overlay-dark: rgba(0, 0, 0, 0.7);
     --overlay-light: rgba(255, 255, 255, 0.15);
 
-    /* Editor.js selection — opaque stand-ins over the dark surface */
-    --editor-selection-bg: #4d4b45;
-    --editor-selection-fg: #ecebe6;
-    --editor-selection-block-bg: rgba(255, 250, 240, 0.16);
 
     --logo-mono-filter: none;
     --logo-clip-filter: brightness(0) invert(1);

@@ -2,20 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   buildManagedNoteTitle,
   buildShareImportTitle,
-  formatGroupDisplayName,
-  formatGroupSettingsTitle,
-  formatNoteDisplayTitle,
-  formatNoteGroupLabel,
-  isManagedNoteTitle,
-  MANAGED_GROUP_NAME,
-  NOTE_GROUP_NAME_MAX,
-  README_NOTE_TITLE,
   managedNoteDisplayName,
-  validateNoteGroupName,
-  managedNoteIdentity,
   shareImportDisplayName,
   splitNoteDisplayName,
-  USER_GROUP_NAME,
 } from './notesTypes';
 
 describe('managed note titles', () => {
@@ -31,18 +20,12 @@ describe('managed note titles', () => {
     ).toBe('c71001l760952 · 电工和电子技术BⅡ 2024秋季');
   });
 
-  it('round-trips folder stem and identity', () => {
+  it('round-trips a folder stem', () => {
     const title = buildManagedNoteTitle('泛函分析_第1周_星期三_第2大节', {
       courseId: 70101,
       sessionId: 850101,
     });
-    expect(managedNoteIdentity(title)).toEqual({
-      courseId: '70101',
-      sessionId: '850101',
-      liveId: undefined,
-    });
     expect(managedNoteDisplayName(title)).toBe('泛函分析_第1周_星期三_第2大节');
-    expect(isManagedNoteTitle(title)).toBe(true);
   });
 
   it('splits a folder-style display name', () => {
@@ -56,11 +39,6 @@ describe('managed note titles', () => {
     });
   });
 
-  it('does not treat a user note as managed', () => {
-    expect(isManagedNoteTitle('My shopping list')).toBe(false);
-    expect(isManagedNoteTitle('AutoSlides Cloud Storage README')).toBe(false);
-  });
-
   it('builds a share-import title from hydrated Yanhekt names', () => {
     expect(
       buildShareImportTitle(
@@ -68,38 +46,6 @@ describe('managed note titles', () => {
         { courseTitle: '操作系统', sessionTitle: '第1周 星期二 第5大节' },
       ),
     ).toBe('c61841s751112 · 操作系统 · 第1周 星期二 第5大节');
-  });
-
-  it('strips the lecture token from managed-group sidebar titles only', () => {
-    const recorded = 'c61838s751030 · 泛函分析 · 第1周 星期三 第2大节';
-    const live = 'c71001l760952 · 电工和电子技术BⅡ · 2024秋季';
-    expect(formatNoteDisplayTitle(recorded, true)).toBe('泛函分析 · 第1周 星期三 第2大节');
-    expect(formatNoteDisplayTitle(live, true)).toBe('电工和电子技术BⅡ · 2024秋季');
-    expect(formatNoteDisplayTitle(recorded, false)).toBe(recorded);
-    expect(formatNoteDisplayTitle('c61838s751030', true)).toBe('c61838s751030');
-    expect(formatNoteDisplayTitle('AS · 泛函分析 · 第1周 星期三 第2大节', true)).toBe(
-      '泛函分析 · 第1周 星期三 第2大节',
-    );
-    expect(formatNoteDisplayTitle(README_NOTE_TITLE, true)).toBe(README_NOTE_TITLE);
-    expect(formatNoteDisplayTitle('My shopping list', true)).toBe('My shopping list');
-  });
-
-  it('maps reserved group names to friendly UI labels and leaves others alone', () => {
-    const translate = (key: string) =>
-      key === 'cloudNotes.managedGroupAsnote'
-        ? 'AutoSlides Database'
-        : key === 'cloudNotes.managedGroupAsuser'
-          ? 'Watch Notes'
-          : key === 'cloudNotes.defaultGroup'
-            ? 'Ungrouped'
-            : key;
-    expect(formatGroupDisplayName(MANAGED_GROUP_NAME, translate)).toBe('AutoSlides Database');
-    expect(formatGroupDisplayName(USER_GROUP_NAME, translate)).toBe('Watch Notes');
-    expect(formatGroupDisplayName('Math', translate)).toBe('Math');
-    expect(formatGroupSettingsTitle(MANAGED_GROUP_NAME, translate)).toBe('AutoSlides Database (ASnote)');
-    expect(formatGroupSettingsTitle(USER_GROUP_NAME, translate)).toBe('Watch Notes (ASuser)');
-    expect(formatNoteGroupLabel({ id: 0, name: '' }, translate)).toBe('Ungrouped');
-    expect(formatNoteGroupLabel({ id: 1, name: MANAGED_GROUP_NAME }, translate)).toBe('AutoSlides Database');
   });
 
   it('turns a hydrated share result into the on-disk folder stem', () => {
@@ -110,26 +56,5 @@ describe('managed note titles', () => {
         lectureMeta: { courseTitle: '操作系统', sessionTitle: '第1周 星期二 第5大节' },
       }),
     ).toBe('操作系统_第1周_星期二_第5大节');
-  });
-});
-
-describe('validateNoteGroupName', () => {
-  const existing = ['Math', '物理'];
-
-  it('rejects empty, over-long, reserved, duplicate, and slash names', () => {
-    expect(validateNoteGroupName('  ', existing)).toBe('empty');
-    expect(validateNoteGroupName('abcdefg', existing)).toBe('tooLong');
-    expect('abcdefg'.length).toBeGreaterThan(NOTE_GROUP_NAME_MAX);
-    expect(validateNoteGroupName('ASnote', existing)).toBe('reserved');
-    expect(validateNoteGroupName('asuser', existing)).toBe('reserved');
-    expect(validateNoteGroupName('math', existing)).toBe('duplicate');
-    expect(validateNoteGroupName('a/b', existing)).toBe('invalidChars');
-    expect(validateNoteGroupName('ab\\c', existing)).toBe('invalidChars');
-    expect(validateNoteGroupName('ab\nc', existing)).toBe('invalidChars');
-  });
-
-  it('accepts a short unique name', () => {
-    expect(validateNoteGroupName('笔记', existing)).toBeNull();
-    expect(validateNoteGroupName('abcdef', existing)).toBeNull();
   });
 });

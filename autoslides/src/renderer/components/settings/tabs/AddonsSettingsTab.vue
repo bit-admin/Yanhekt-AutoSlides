@@ -11,8 +11,7 @@
       </div>
     </div>
 
-    <!-- Provider picker, same segmented row as AI → Service Type. One provider
-         today; the row is built from WATCH_NOTES_PROVIDERS so new ones slot in. -->
+    <!-- Provider picker, same segmented row as AI → Service Type. -->
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.addons.providerLabel') }}</label>
       <div class="setting-description">{{ $t('advanced.addons.providerDescription') }}</div>
@@ -29,19 +28,10 @@
         </button>
       </div>
 
-      <template v-if="tempWatchNotesProvider === 'yanhekt'">
-        <div class="setting-description addon-provider-detail">{{ $t('advanced.addons.providerYanhektDetail') }}</div>
-        <div v-if="!cloudStorageStore.canUse.value" class="addon-provider-warning" role="status">
-          {{ $t('advanced.addons.yanhektNotReady') }}
-          <a href="#" class="external-link" @click.prevent="advanced.activeAdvancedTab.value = 'cloud'">
-            {{ $t('advanced.addons.openCloudSettings') }}
-          </a>
-        </div>
-      </template>
-      <div v-else-if="tempWatchNotesProvider === 'obsidian'" class="setting-description addon-provider-detail">
+      <div v-if="tempWatchNotesProvider === 'obsidian'" class="setting-description addon-provider-detail">
         {{ $t('advanced.addons.providerObsidianDetail') }}
       </div>
-      <template v-else-if="tempWatchNotesProvider === 'notion'">
+      <template v-else>
         <div class="setting-description addon-provider-detail">{{ $t('advanced.addons.providerNotionDetail') }}</div>
         <div v-if="!configStore.notionConnected" class="addon-provider-warning" role="status">
           {{ $t('advanced.addons.notionNotConnected') }}
@@ -151,7 +141,6 @@
 <script setup lang="ts">
 import { WATCH_NOTES_PROVIDERS, type WatchNotesProviderId } from '@common/watchNotesProviders'
 import { configStore } from '@shared/services/configStore'
-import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import NotionConnectSteps from '../NotionConnectSteps.vue'
 import NotionTokenField from '../NotionTokenField.vue'
@@ -159,7 +148,6 @@ import CliCommandsSection from '../CliCommandsSection.vue'
 
 // Typed by provider id, so adding a provider fails to compile until it has a label.
 const PROVIDER_LABEL_KEYS: Record<WatchNotesProviderId, string> = {
-  yanhekt: 'advanced.addons.providerYanhekt',
   obsidian: 'advanced.addons.providerObsidian',
   notion: 'advanced.addons.providerNotion',
 }

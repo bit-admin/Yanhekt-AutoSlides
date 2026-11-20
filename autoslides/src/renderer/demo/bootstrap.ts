@@ -33,12 +33,6 @@ import {
   demoResultImages,
   demoTrashEntries,
   demoCropEntries,
-  demoNoteGroups,
-  demoNotesList,
-  demoNoteDetail,
-  demoNoteImageUrls,
-  demoShortShareUrl,
-  demoNextNoteIdValue,
   demoLectureVideos,
   demoMetadata,
   demoTimeline,
@@ -97,46 +91,6 @@ export function installDemo(): void {
     poster: (kind) => demoPosterDataUri(kind),
     gallerySlides: () => demoGallerySlides(),
   }
-  // Fake Cloud Notes: reads serve fabricated groups/notes/content; writes are
-  // ok no-ops so init()/recreateReadme() complete offline and the list stays
-  // static. The managed notes embed real slide images (see demoNoteDetail).
-  overrides.cloudNotesProvider = {
-    groupList: async () => ({ ok: true, data: demoNoteGroups() }),
-    // Honour keyword so offline demo search mirrors server-side filtering.
-    list: async (params) => {
-      const full = demoNotesList()
-      const kw = params?.keyword?.trim().toLowerCase()
-      if (!kw) return { ok: true as const, data: full }
-      const filtered = full.data.filter((n) => (n.title || '').toLowerCase().includes(kw))
-      return {
-        ok: true as const,
-        data: {
-          ...full,
-          data: filtered,
-          total: filtered.length,
-          last_page: 1,
-          current_page: 1,
-        },
-      }
-    },
-    get: async (id: number) => ({ ok: true, data: demoNoteDetail(id) }),
-    create: async () => ({ ok: true, data: demoNextNoteIdValue() }),
-    updateTitle: async () => ({ ok: true, data: undefined }),
-    updateContent: async () => ({ ok: true, data: undefined }),
-    moveToGroup: async (id: number) => ({ ok: true, data: id }),
-    delete: async () => ({ ok: true, data: undefined }),
-    groupCreate: async () => ({ ok: true, data: undefined }),
-    groupDelete: async () => ({ ok: true, data: undefined }),
-    uploadImage: async () => ({ ok: true, data: { url: demoResultImageDataUri({}) } }),
-    // Sharing offline: mint plausible URLs instead of posting to share.ruc.edu.kg.
-    shortenShareUrl: async (fragment: string) => ({
-      ok: true,
-      data: { url: demoShortShareUrl(fragment) },
-    }),
-  }
-  // Note images are data URIs so they render offline; sharing needs the
-  // public-storage URLs their uploaded counterparts would have had.
-  overrides.noteImageUrls = demoNoteImageUrls
   const lectureVideos = demoLectureVideos()
   overrides.lecturesProvider = {
     listVideos: async () => lectureVideos.map((row) => ({ ...row })),
@@ -175,15 +129,8 @@ export function installDemo(): void {
   overrides.suppressRealWork = true
 
   configStore.watchNotesEnabled = true
-  configStore.watchNotesProvider = 'yanhekt'
-  void window.electronAPI.config.setWatchNotes({ enabled: true, provider: 'yanhekt' }).catch(() => undefined)
-  // Onboarding's cloud step keys off this flag + the managed groups. Demo
-  // groups already exist; stamp Kate as initialized so the step shows ready
-  // + sync/watch toggles instead of an Init button.
-  const initialized = new Set(configStore.cloudStorageInitializedUsers ?? [])
-  initialized.add(DEMO_USER_BADGE)
-  configStore.cloudStorageInitializedUsers = [...initialized]
-  void window.electronAPI.config.setCloudStorageInitialized(DEMO_USER_BADGE, true).catch(() => undefined)
+  configStore.watchNotesProvider = 'obsidian'
+  void window.electronAPI.config.setWatchNotes({ enabled: true, provider: 'obsidian' }).catch(() => undefined)
   const extraAccounts = demoStoredAccounts()
   const kateAccount = {
     badge: DEMO_USER_BADGE,

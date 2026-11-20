@@ -188,21 +188,6 @@
 
         <button
           v-if="currentView === 'folders'"
-          class="btn notes-btn"
-          :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value || cloudStorage.blocked.value"
-          :title="cloudStorageBlockedTip"
-          @click="onImportToNotes"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
-          </svg>
-          {{ $t('trash.importToNotes') }}
-        </button>
-
-        <div v-if="currentView === 'folders'" class="actions-divider"></div>
-
-        <button
-          v-if="currentView === 'folders'"
           class="btn btn--danger-outline delete-btn"
           :disabled="!canClearSelectedFolders || isLoading || isGenerating"
           @click="handleClearSelectedFolders"
@@ -280,19 +265,9 @@
       </template>
     </div>
 
-    <div v-if="isGenerating || imp.importing.value" class="progress-bar-container">
-      <div class="progress-bar" :style="{ width: `${busyProgressPercent}%` }"></div>
+    <div v-if="isGenerating" class="progress-bar-container">
+      <div class="progress-bar" :style="{ width: `${exportProgressPercent}%` }"></div>
     </div>
-
-    <!-- Import progress + conflict resolution (shared with Cloud Notes) -->
-    <ImportProgressModal
-      :open="showNotesModal"
-      :title="$t('trash.importToNotes')"
-      :imp="imp"
-      @close="showNotesModal = false"
-      @done="onDoneNotesModal"
-      @open-note="onOpenConflictNote"
-    />
 
     <div class="footer">
       <div class="footer-left">
@@ -360,21 +335,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useResultsView, type CropRect, type ResultsFolder, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
+import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
 import { usePdfMaker } from '@features/export/usePdfMaker'
 import ResultsExportBar from './ResultsExportBar.vue'
-import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
-import { useNoteImport } from '@features/cloudNotes/useNoteImport'
-import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
-import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
-import { navigationStore } from '@features/course/navigationStore'
 import { configStore } from '@shared/services/configStore'
 import ResultsImageGrid from './ResultsImageGrid.vue'
 import ResultsPreviewModal from './ResultsPreviewModal.vue'
 import FolderListView from './FolderListView.vue'
 import EmptySetState from '../shell/EmptySetState.vue'
 import PageErrorNotice from '../shell/PageErrorNotice.vue'
-import ImportProgressModal from '../cloudnotes/ImportProgressModal.vue'
 
 const { t } = useI18n()
 
@@ -435,10 +404,7 @@ const {
   applyCropToImage,
   restoreCropFromImage,
   formatDate,
-} = useResultsView({
-  onFolderReviewed: (f) => void maybeAutoSync(f, 'reviewed'),
-  onFolderEdited: (f) => void maybeAutoSync(f, 'edited'),
-})
+} = useResultsView()
 
 
 const allFilteredSelected = computed(() => {
@@ -537,161 +503,10 @@ const {
   resetSortOrder,
 } = pdf
 
-// ── Cloud Notes: import (second entry point) ──────────────────────────────
-// Reuses the exact composables the Cloud Notes page uses.
-const cn = useCloudNotes()
-const imp = useNoteImport(cn, {
-  meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
-  slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
+const exportProgressPercent = computed(() => {
+  const { current, total } = generateProgress.value
+  return total > 0 ? (current / total) * 100 : 0
 })
-const showNotesModal = ref(false)
-// An unresolved conflict from the last run — reopening the button should show
-// the modal again instead of silently dropping it.
-const hasNotesConflict = computed(() => imp.queue.value.some((i) => i.status === 'conflict'))
-
-// The shared progress strip is driven by whichever run is active (PDF export or
-// the notes import queue). The notes queue uses image-level progress
-// (imageProgress, matching generateProgress's granularity) so the bar advances
-// continuously as each slide uploads, not just once per folder.
-const busyProgressPercent = computed(() => {
-  if (imp.importing.value) {
-    const { done, total } = imp.imageProgress.value
-    return total > 0 ? (done / total) * 100 : 0
-  }
-  return generateProgress.value.total > 0
-    ? (generateProgress.value.current / generateProgress.value.total) * 100
-    : 0
-})
-
-// Shared cloud-storage state (launch-checked; see cloudStorageStore). Buttons
-// gate on known-bad states only; the action-time guard below re-checks fresh.
-const cloudStorage = cloudStorageStore
-const cloudStorageBlockedTip = computed(() => {
-  if (cloudStorage.status.value === 'not-signed-in') return t('cloudNotes.notSignedIn')
-  if (cloudStorage.status.value === 'uninitialized') return t('cloudNotes.storageNotInitialized')
-  return undefined
-})
-
-/**
- * Ensure the user is signed in and the managed note storage is ready. Never
- * initializes storage for a never-initialized account — that is an explicit
- * user action (Settings → Cloud or the Cloud Notes page); it only auto-repairs
- * when the account initialized before and the group went missing server-side.
- */
-async function ensureManagedStorage(): Promise<boolean> {
-  const st = await cloudStorage.ensureReady()
-  if (st === 'ready') {
-    // Sync this page's local instance so the import queue sees fresh notes/groups.
-    await cn.init()
-    return true
-  }
-  const message =
-    st === 'not-signed-in' ? t('cloudNotes.notSignedIn')
-    : st === 'uninitialized' ? t('cloudNotes.storageNotInitialized')
-    : cloudStorage.lastError.value || t('cloudNotes.storageCheckFailed')
-  await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'info',
-    title: t('trash.importToNotes'),
-    message,
-    buttons: [t('cloudNotes.importClose')],
-  })
-  return false
-}
-
-async function onImportToNotes(): Promise<void> {
-  if (imp.importing.value) return
-
-  // Resume: a previous run left unresolved conflicts — reopen the modal on them
-  // rather than dropping them by starting a fresh run.
-  if (hasNotesConflict.value) {
-    showNotesModal.value = true
-    return
-  }
-
-  if (selectedFolderNames.value.length === 0) return
-  if (!(await ensureManagedStorage())) return
-  imp.reset()
-  // The bottom progress bar (shared with PDF export) already conveys live
-  // progress, so await to completion here rather than opening a modal.
-  await imp.startImport([...selectedFolderNames.value])
-
-  if (hasNotesConflict.value) {
-    showNotesModal.value = true
-    return
-  }
-
-  // No conflicts: summarize like the other batch actions (e.g. Clear Folder)
-  // and clear the queue immediately since nothing needs further resolution.
-  const failed = imp.queue.value.filter((i) => i.status === 'error').length
-  const done = imp.queue.value.length - failed
-  await window.electronAPI.dialog?.showMessageBox?.({
-    type: failed > 0 ? 'warning' : 'info',
-    buttons: ['OK'],
-    title: t('trash.importToNotes'),
-    message: t('trash.notesRunSummary', { done, failed }),
-  })
-  imp.reset()
-  notesRefreshStore.requestNotesRefresh()
-}
-
-
-/**
- * Auto-sync/resync a folder to Cloud Notes when it transitions to reviewed/edited,
- * if a matching mode is enabled in Settings → Cloud. Silent by design: it never
- * prompts (uses the quiet store `ensureReady`, not the dialog-producing
- * `ensureManagedStorage`) and no-ops when cloud storage isn't ready or a manual
- * run is active.
- *
- * Two complementary behaviors route by folder state (never both on one edit):
- * - Sync creates a note for a not-yet-imported folder (`syncFolder` skips if one
- *   already exists). Resync replaces the note of an already-imported folder
- *   (`resyncFolder` skips if none exists). Resync only applies to `edited`.
- * The `r !== 'skipped'` gate stops a folder's first edit from creating a note and
- * then immediately delete-recreating it when both modes are on `edited`.
- */
-async function maybeAutoSync(folder: ResultsFolder, kind: 'reviewed' | 'edited'): Promise<void> {
-  const syncOn = configStore.cloudAutoSyncMode === kind
-  // Resync only replaces a note that auto-sync created, so it requires auto-sync
-  // enabled (the UI enforces this too). Without it, resync would act only on
-  // manually-imported notes — which is not the intended behavior.
-  const resyncOn = kind === 'edited'
-    && configStore.cloudAutoResyncMode === 'edited'
-    && configStore.cloudAutoSyncMode !== 'disabled'
-  if (!syncOn && !resyncOn) return
-  if (imp.importing.value) return
-  if (cloudStorage.status.value !== 'ready') {
-    const st = await cloudStorage.ensureReady()
-    if (st !== 'ready') return
-  }
-  await cn.init()
-  if (syncOn) {
-    // Creates if absent; returns 'skipped' when a managed note already exists.
-    const r = await imp.syncFolder(folder.name)
-    if (r !== 'skipped') {
-      // A note was created (or errored) — refresh the (separate-instance) Cloud
-      // Notes page so it surfaces the new note, same signal manual import uses.
-      if (r === 'synced') notesRefreshStore.requestNotesRefresh()
-      return
-    }
-  }
-  if (resyncOn) {
-    const r = await imp.resyncFolder(folder.name)
-    if (r === 'resynced') notesRefreshStore.requestNotesRefresh()
-  }
-}
-
-function onDoneNotesModal(): void {
-  imp.reset()
-  showNotesModal.value = false
-  notesRefreshStore.requestNotesRefresh()
-}
-
-async function onOpenConflictNote(id?: number): Promise<void> {
-  if (id == null) return
-  showNotesModal.value = false
-  noteOpenRequestStore.requestOpenNote(id)
-  navigationStore.navigate('cloud-notes')
-}
 
 // Custom ordering and course grouping are mutually exclusive: the grouped view
 // imposes its own course-first order, so dragging into a custom order turns
@@ -1040,7 +855,6 @@ const confirmClearTrash = async () => {
 .restore-btn,
 .auto-crop-btn,
 .dedup-btn,
-.notes-btn,
 .clear-btn {
   gap: 5px;
   padding: 6px 10px;
@@ -1052,19 +866,6 @@ const confirmClearTrash = async () => {
   gap: 5px;
   padding: 6px 10px;
   font-weight: 500;
-}
-
-.actions-divider {
-  width: 1px;
-  height: 20px;
-  background-color: var(--border-color);
-  flex-shrink: 0;
-}
-
-/* Disabled: the shared .btn:disabled full-button fade. */
-.notes-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .edit-btn {

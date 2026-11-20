@@ -5,7 +5,6 @@ import { useGeneralSettings } from './useGeneralSettings'
 import { useImageProcessingSettings } from './useImageProcessingSettings'
 import { useNetworkSettings } from './useNetworkSettings'
 import { useExtractorSettings } from './useExtractorSettings'
-import { useCloudSettings } from './useCloudSettings'
 import { useAddonsSettings } from './useAddonsSettings'
 import type {
   AdvancedTabId,
@@ -75,7 +74,6 @@ export function useAdvancedSettings(
   const imageProcessing = useImageProcessingSettings()
   const network = useNetworkSettings({ t })
   const extractor = useExtractorSettings()
-  const cloud = useCloudSettings()
   const addons = useAddonsSettings()
 
   // The Settings page renders these underline tabs. activeAdvancedTab is shared
@@ -87,7 +85,6 @@ export function useAdvancedSettings(
     { id: 'playback' },
     { id: 'network' },
     { id: 'ai' },
-    { id: 'cloud' },
     { id: 'addons' }
   ]
 
@@ -103,7 +100,6 @@ export function useAdvancedSettings(
     imageProcessing.resetTemp()
     network.resetTemp()
     extractor.resetTemp()
-    cloud.resetTemp()
     addons.resetTemp()
 
     await nextTick()
@@ -122,7 +118,6 @@ export function useAdvancedSettings(
         // whole Promise.all and abort the other settings loads.
         log.error('Failed to load extractor settings:', err)
       }),
-      cloud.load(),
       addons.load(),
       onOpenModal ? onOpenModal() : Promise.resolve()
     ])
@@ -139,7 +134,6 @@ export function useAdvancedSettings(
     imageProcessing.resetTemp()
     network.resetTemp()
     extractor.resetTemp()
-    cloud.resetTemp()
     addons.resetTemp()
     tempEnableAIFiltering.value = enableAIFiltering.value
   }
@@ -151,7 +145,6 @@ export function useAdvancedSettings(
       await imageProcessing.save()
       await network.save()
       await extractor.save()
-      await cloud.save()
       await addons.save()
 
       if (onSaveSettings) {
@@ -179,7 +172,6 @@ export function useAdvancedSettings(
     imageProcessing,
     network,
     extractor,
-    cloud,
     addons,
 
     // Settings-page lifecycle

@@ -26,16 +26,6 @@ export const pdfmaker: ElectronAPI['pdfmaker'] = {
   },
 };
 
-export const noteExport: ElectronAPI['noteExport'] = {
-  export: (payload: { title: string; content: string; format: 'pdf' | 'markdown' | 'docx' }) =>
-    invoke('noteExport:export', payload) as Promise<{
-      ok: boolean;
-      path?: string;
-      canceled?: boolean;
-      error?: string;
-    }>,
-};
-
 export const yuketang: ElectronAPI['yuketang'] = {
   exportLesson: (payload: { lessonId?: string; format: 'pdf' | 'images' }) =>
     invoke('yuketang:export', payload),

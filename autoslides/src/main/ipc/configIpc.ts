@@ -380,23 +380,6 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     broadcastConfig();
   });
 
-  ipcMain.handle('config:setCloudStorageInitialized', async (_, badge: string, initialized: boolean) => {
-    configService.setCloudStorageInitialized(badge, initialized);
-    broadcastConfig();
-  });
-
-  ipcMain.handle('config:setCloudAutoSyncMode', async (_, mode: 'disabled' | 'edited' | 'reviewed') => {
-    configService.setCloudAutoSyncMode(mode);
-    broadcastConfig();
-    return configService.getConfig();
-  });
-
-  ipcMain.handle('config:setCloudAutoResyncMode', async (_, mode: 'disabled' | 'edited') => {
-    configService.setCloudAutoResyncMode(mode);
-    broadcastConfig();
-    return configService.getConfig();
-  });
-
   ipcMain.handle('config:setObsidian', async (_, patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => {
     configService.setObsidian(patch ?? {});
     broadcastConfig();
@@ -405,12 +388,6 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setWatchNotes', async (_, patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => {
     configService.setWatchNotes(patch ?? {});
-    broadcastConfig();
-    return configService.getConfig();
-  });
-
-  ipcMain.handle('config:setCloudShareEmbedTimeline', async (_, enabled: boolean) => {
-    configService.setCloudShareEmbedTimeline(enabled);
     broadcastConfig();
     return configService.getConfig();
   });

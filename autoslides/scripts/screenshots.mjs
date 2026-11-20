@@ -2,7 +2,7 @@
 //
 //   npm run package        # once, to produce .vite/ (re-run when app code changes)
 //   npm run screenshots    # drives the unpackaged build in demo mode, writes PNGs
-//   node scripts/screenshots.mjs --only cloud-notes-share   # just that view
+//   node scripts/screenshots.mjs --only drive-placeholder   # just that view
 //
 // We launch the UNPACKAGED Forge build (local electron + .vite/build/main.cjs):
 // the packaged .app disables the EnableNodeCliInspectArguments / RunAsNode fuses,
@@ -236,23 +236,10 @@ async function main() {
     await shot('playback-screen')
   })
 
-  // Watch-mode Notes: the titlebar Notes tab is only offered while a playback
-  // tab is active and watch-sync is on (demo enables it). Capture before we
-  // leave this tab for Search / Workspace pages.
-  await step('watch-notes', async () => {
-    const notesTab = win.locator('.view-switcher .view-tab', { hasText: /notes/i })
-    await notesTab.waitFor({ state: 'visible', timeout: 8000 })
-    await notesTab.click()
-    await win.waitForSelector('.watch-notes-panel .wn-editor-doc', { timeout: 8000 })
-    await win.waitForTimeout(700)
-    await shot('watch-notes')
-    await win.locator('.view-switcher .view-tab').nth(0).click() // back to Task
-  })
-
   // Obsidian / Notion watch notes: no editor, the append queue instead (kept
   // slides with thumbnails, appended / appending / queued, Pause / Resume).
   // The demo hook reseeds the open watch tab for that provider; nothing is
-  // written anywhere. Always switched back to Yanhekt, even on failure.
+  // written anywhere. Always switched back to Obsidian, even on failure.
   const shotExternalNotes = async (provider, name) => {
     try {
       await win.evaluate((p) => window.__demoSetWatchNotesProvider?.(p), provider)
@@ -260,10 +247,10 @@ async function main() {
       await notesTab.waitFor({ state: 'visible', timeout: 8000 })
       await notesTab.click()
       await win.waitForSelector('.external-note-panel .en-row .en-thumb img', { timeout: 8000 })
-      await win.waitForTimeout(800) // right panel narrows from the editor width
+      await win.waitForTimeout(800)
       await shot(name)
     } finally {
-      await win.evaluate(() => window.__demoSetWatchNotesProvider?.('yanhekt')).catch(() => {})
+      await win.evaluate(() => window.__demoSetWatchNotesProvider?.('obsidian')).catch(() => {})
       await win.locator('.view-switcher .view-tab').nth(0).click().catch(() => {}) // back to Task
     }
   }
@@ -361,7 +348,6 @@ async function main() {
       ['advanced-playback', 2],
       ['advanced-network', 3],
       ['advanced-ai', 4],
-      ['advanced-cloud', 5],
     ]
     for (const [name, idx] of tabs) {
       try {
@@ -395,12 +381,12 @@ async function main() {
     // Add-ons tab, once per external notes provider (each shows its own setup
     // plus the Tools section). Picking a provider only edits the unsaved
     // buffer; leaving Settings below discards it.
-    for (const [name, providerIdx] of [['advanced-addons-obsidian', 1], ['advanced-addons-notion', 2]]) {
+    for (const [name, provider] of [['advanced-addons-obsidian', 'Obsidian'], ['advanced-addons-notion', 'Notion']]) {
       try {
         await resetSettings()
-        await win.locator('.settings-segment-btn').nth(6).click() // Add-ons
+        await win.locator('.settings-segment-btn', { hasText: /^Add-ons$/i }).click()
         await win.waitForTimeout(300)
-        await win.locator('.addon-provider-selector .mode-btn').nth(providerIdx).click()
+        await win.locator('.addon-provider-selector .mode-btn', { hasText: provider }).click()
         await win.waitForTimeout(400)
         await expandSettings()
         await win.waitForTimeout(350)
@@ -445,8 +431,8 @@ async function main() {
       console.log(`  ✓ ${name}.png (onboarding, web)`)
     }
     // Opening legal notice (still saved as onboarding-welcome), then the 6
-    // config steps (step 6 has two pages: notes provider, then the demo
-    // default Yanhekt's cloud page), then the All Set card.
+    // config steps (step 6 has two pages: provider, then provider settings),
+    // then the All Set card.
     await shotCard('onboarding-welcome')
     await win.locator('.hero-cta').click() // Agree and Continue → output
     const steps = [
@@ -456,7 +442,7 @@ async function main() {
       'onboarding-ai',
       'onboarding-signin',
       'onboarding-notes-provider',
-      'onboarding-cloud',
+      'onboarding-notes',
     ]
     for (const name of steps) {
       await win.waitForSelector('.onboarding-body', { timeout: 4000 })
@@ -480,22 +466,18 @@ async function main() {
           window.__demoSetSmsChallenge?.(null)
           window.__demoSetLoggedIn?.(true)
         })
-        await win.waitForSelector('.cloud-inited-row', { timeout: 4000 })
+        await win.waitForSelector('.signin-ready-row', { timeout: 4000 })
         await shotCard('onboarding-signin-ready')
       } else if (name === 'onboarding-notes-provider') {
-        // Step 6 page 1 for each provider (Yanhekt / Obsidian / Notion). Picking
-        // one writes it to the demo profile, so end on Yanhekt again: the next
-        // page captured is Yanhekt's cloud storage page.
+        // Capture both provider setup choices; continue to Obsidian settings.
         const providerBtn = (i) => win.locator('.onboarding-body .mode-toggle .mode-btn').nth(i)
-        await shotCard('onboarding-notes-provider')
-        await providerBtn(1).click()
+        await providerBtn(0).click()
         await win.waitForSelector('.onboarding-body .notes-provider-detail .input-group', { timeout: 4000 })
         await shotCard('onboarding-notes-obsidian')
-        await providerBtn(2).click()
+        await providerBtn(1).click()
         await win.waitForSelector('.onboarding-body .notion-steps', { timeout: 4000 })
         await shotCard('onboarding-notes-notion')
         await providerBtn(0).click()
-        await win.waitForTimeout(300)
       } else {
         await shotCard(name)
       }
@@ -598,35 +580,9 @@ async function main() {
     await win.locator('.edit-btn').click()
   })
 
-  // Cloud Notes: three-pane view (groups + note list + editor). The managed
-  // "AS ·" notes embed real slide images; open one so the editor shows them.
-  await step('cloud-notes', async () => {
-    await gotoWorkspace('cloud-notes', '.cloud-notes-tab')
-    await win.waitForSelector('.cn-note-item', { timeout: 8000 })
-    await win.waitForTimeout(600)
-    await shot('cloud-notes')
-
-    // Open the first managed slide note → editor renders its slide images.
-    await win.locator('.cn-note-item', { hasText: /Functional Analysis|Lecture/ }).first().click()
-    await win.waitForSelector('.cn-editor img', { timeout: 8000 })
-    await win.waitForTimeout(900)
-    await shot('cloud-notes-editor')
-  })
-
-  // The Share dialog, on a note that has already been shared AND published, so
-  // all three rows show a URL: the long link, the short link, and the Public
-  // Index page. (Notes 102/103 open on the buttons instead — same dialog, one
-  // step earlier in the flow.)
-  await step('cloud-notes-share', async () => {
-    await gotoWorkspace('cloud-notes', '.cloud-notes-tab')
-    await win.waitForSelector('.cn-note-item', { timeout: 8000 })
-    await win.locator('.cn-note-item', { hasText: 'Complex Analysis' }).first().click()
-    await win.waitForSelector('.cn-editor img', { timeout: 8000 })
-    await win.locator('.cn-share-btn').click()
-    await win.waitForSelector('.cn-share-box .cn-share-url', { timeout: 8000 })
-    await win.waitForTimeout(700)
-    await shot('cloud-notes-share')
-    await win.locator('.cn-share-box .dialog-btn').click()
+  await step('drive-placeholder', async () => {
+    await gotoWorkspace('cloud-notes', '[data-mode="cloud-notes"]')
+    await shot('drive-placeholder')
   })
 
   // Lectures Workspace: library poster wall → course hero → local dual player
@@ -799,13 +755,12 @@ ${list}
 | results-preview.png | results-preview.png | G. 放大预览（编辑模式帧） |
 | results-crop.png | results-crop.png | G. 裁剪模式（裁剪框） |
 | pdfmaker.png | pdfmaker.png | H. 导出（幻灯片页面选择模式 + PDF / PPTX 导出栏） |
-| cloud-notes.png | cloud-notes.png | 云盘（笔记）— 三栏视图（分组 / 笔记列表 / 编辑器） |
-| cloud-notes-editor.png | cloud-notes-editor.png | 云盘（笔记）— 打开托管笔记（嵌入幻灯片图片） |
-| lectures-library.png | lectures-library.png | 讲座库 — 课程海报墙 |
+| drive-placeholder.png | drive-placeholder.png | 工作区 > 云存储（占位页） |
+| lectures-library.png | drive-placeholder.png | drive-placeholder.png | 工作区 > 云存储（占位页） |
+| lectures-library.png | 讲座库 — 课程海报墙 |
 | lectures-list.png | lectures-list.png | 讲座库 — 列表视图 |
 | lectures-course.png | lectures-course.png | 讲座库 — 课程详情 / 分集 |
 | lectures-player.png | lectures-player.png | 讲座库 — 本地双流播放 + 幻灯片章节条 |
-| watch-notes.png | watch-notes.png | 观看模式笔记（右侧 Notes 面板） |
 | watch-notes-obsidian.png, watch-notes-notion.png | 同名 | 随堂笔记：Obsidian / Notion 追加队列（由 __demoSetWatchNotesProvider 换种子） |
 | advanced-general.png | settings-general.png | B & I. 一般设置 |
 | advanced-image.png | settings-image-output.png + settings-postprocess.png + settings-autocrop.png | I. 图像处理（**拆分为 3 张**） |
@@ -813,7 +768,6 @@ ${list}
 | advanced-network.png | settings-network.png | I. 网络 |
 | advanced-ai.png | settings-ai-service.png + settings-ai-behaviour.png | C & I. AI（**拆分为 2 张**） |
 | advanced-ai-ml.png | settings-ai-ml.png | I. AI（ML 模式 / 严格度滑块） |
-| advanced-cloud.png | settings-cloud.png | I. 云存储 |
 | advanced-addons-obsidian.png, advanced-addons-notion.png | settings-addons-obsidian.png, settings-addons-notion.png | 设置 > 扩展（Obsidian / Notion 两种服务） |
 | tools-webcapture.png | tools-webcapture.png | K. 网页捕获 |
 | tools-yuketang.png | tools-yuketang.png | K. 雨课堂 |
@@ -846,8 +800,6 @@ gallery in \`playback-screen.png\` is seeded with fabricated slides.
 - **Slides page** (\`results-*.png\`, \`pdfmaker.png\`) uses **fabricated**
   folders/slides drawn as SVGs — it reads **no real files** (slides, the NO SIGNAL
   not_slide, the PowerPoint-edit frame, and the seeded crop box are all synthetic).
-- **Cloud Notes** (\`cloud-notes*.png\`) use **fabricated** groups/notes — no network.
-  The managed "AS ·" notes embed the same synthetic slide SVGs as the Slides page.
 `
   writeFileSync(path.join(outDir, 'NOTES.md'), notes)
   console.log(`  ✓ NOTES.md`)

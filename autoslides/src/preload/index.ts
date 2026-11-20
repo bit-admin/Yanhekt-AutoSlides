@@ -4,7 +4,7 @@ import { auth, yanhe2, config, windowNs, shell, menu, powerManagement, cache, ap
 import { video, slideVideo, download } from './video';
 import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
-import { pdfmaker, yuketang, noteExport } from './export';
+import { pdfmaker, yuketang } from './export';
 import { api, enrolled, pins } from './course';
 import { update, extractorInstaller } from './update';
 import { webCapture } from './webCapture';
@@ -49,7 +49,6 @@ const electronAPI: ElectronAPI = {
   slideMetadata,
   slideTimeline,
   pdfmaker,
-  noteExport,
   webCapture,
   yuketang,
   autoCrop,

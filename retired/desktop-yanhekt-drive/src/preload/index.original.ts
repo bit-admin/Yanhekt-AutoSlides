@@ -1,0 +1,66 @@
+import { contextBridge } from 'electron';
+import type { ElectronAPI } from './electronApi';
+import { auth, yanhe2, config, windowNs, shell, menu, powerManagement, cache, app, log, dialog } from './platform';
+import { video, slideVideo, download } from './video';
+import { slideExtraction, trash, crop, slideMetadata, slideTimeline, autoCrop, mlClassifier, qtExtractor } from './extraction';
+import { ai, copilot } from './ai';
+import { pdfmaker, yuketang, noteExport } from './export';
+import { api, enrolled, pins } from './course';
+import { update, extractorInstaller } from './update';
+import { webCapture } from './webCapture';
+import { intranet } from './intranet';
+import { localRelay } from './localRelay';
+import { cli } from './cli';
+import { deepLink } from './deepLink';
+import { cloudNotes, notionNotes, obsidianNotes } from './notes';
+import { lectures } from './lectures';
+
+const electronAPI: ElectronAPI = {
+  // Demo mode flag: set by `npm run demo` (DEMO_MODE=1). The main process
+  // forwards it as an `--demo-mode` argv entry (process.env is not reliable in
+  // the Vite-built preload), and we read it here synchronously before mount.
+  isDemoMode: process.argv.includes('--demo-mode'),
+  auth,
+  yanhe2,
+  config,
+  api,
+  pins,
+  enrolled,
+  intranet,
+  localRelay,
+  cli,
+  deepLink,
+  video,
+  slideVideo,
+  download,
+  slideExtraction,
+  dialog,
+  window: windowNs,
+  shell,
+  menu,
+  powerManagement,
+  cache,
+  app,
+  log,
+  ai,
+  copilot,
+  trash,
+  crop,
+  slideMetadata,
+  slideTimeline,
+  pdfmaker,
+  noteExport,
+  webCapture,
+  yuketang,
+  autoCrop,
+  mlClassifier,
+  qtExtractor,
+  extractorInstaller,
+  update,
+  cloudNotes,
+  obsidianNotes,
+  notionNotes,
+  lectures,
+};
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI);

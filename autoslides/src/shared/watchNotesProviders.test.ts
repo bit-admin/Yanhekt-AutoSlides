@@ -1,27 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { migrateLegacyWatchSync, normalizeWatchNotesProvider } from './watchNotesProviders'
+import { isWatchNotesProvider, normalizeWatchNotesProvider, WATCH_NOTES_PROVIDERS } from './watchNotesProviders'
 
-describe('migrateLegacyWatchSync', () => {
-  it('does nothing without the legacy key', () => {
-    expect(migrateLegacyWatchSync(false, undefined)).toBeNull()
-  })
-
-  it('carries an enabled legacy sync over to the Yanhekt provider', () => {
-    expect(migrateLegacyWatchSync(true, true)).toEqual({ watchNotesEnabled: true, watchNotesProvider: 'yanhekt' })
-  })
-
-  it('migrates anything but true as disabled', () => {
-    expect(migrateLegacyWatchSync(true, false)?.watchNotesEnabled).toBe(false)
-    expect(migrateLegacyWatchSync(true, 'true')?.watchNotesEnabled).toBe(false)
-  })
-})
-
-describe('normalizeWatchNotesProvider', () => {
-  it('keeps a known id and falls back for unknown values', () => {
-    expect(normalizeWatchNotesProvider('yanhekt')).toBe('yanhekt')
-    expect(normalizeWatchNotesProvider('obsidian')).toBe('obsidian')
-    expect(normalizeWatchNotesProvider('notion')).toBe('notion')
-    expect(normalizeWatchNotesProvider('evernote')).toBe('yanhekt')
-    expect(normalizeWatchNotesProvider(undefined)).toBe('yanhekt')
+describe('desktop watch notes providers', () => {
+  it('accepts only Obsidian and Notion', () => {
+    for (const provider of WATCH_NOTES_PROVIDERS) {
+      expect(isWatchNotesProvider(provider)).toBe(true)
+      expect(normalizeWatchNotesProvider(provider)).toBe(provider)
+    }
+    expect(isWatchNotesProvider('yanhekt')).toBe(false)
+    expect(normalizeWatchNotesProvider('yanhekt')).toBe('obsidian')
+    expect(normalizeWatchNotesProvider(undefined)).toBe('obsidian')
   })
 })

@@ -562,12 +562,8 @@ export interface ElectronAPI {
     setUserNames: (original: string, display: string) => Promise<void>;
     setLastGreetingId: (id: string) => Promise<void>;
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
-    setCloudStorageInitialized: (badge: string, initialized: boolean) => Promise<void>;
-    setCloudAutoSyncMode: (mode: 'disabled' | 'edited' | 'reviewed') => Promise<AppConfig>;
-    setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => Promise<AppConfig>;
     setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => Promise<AppConfig>;
     setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => Promise<AppConfig>;
-    setCloudShareEmbedTimeline: (enabled: boolean) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
     setCloseToTray: (enabled: boolean) => Promise<AppConfig>;
@@ -1139,15 +1135,6 @@ export interface ElectronAPI {
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
   };
 
-  noteExport: {
-    export: (payload: { title: string; content: string; format: 'pdf' | 'markdown' | 'docx' }) => Promise<{
-      ok: boolean;
-      path?: string;
-      canceled?: boolean;
-      error?: string;
-    }>;
-  };
-
   webCapture: {
     getGuestPreloadPath: () => Promise<string>;
   };
@@ -1208,34 +1195,9 @@ export interface ElectronAPI {
     openPage: (tabId: string) => Promise<NotionResult<void>>;
   };
 
+  /** Share uses the historical cloudNotes namespace. */
   cloudNotes: {
-    list: (params?: import('@common/notesTypes').NoteListParams) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteListResult>>;
-    get: (id: number) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteDetail>>;
-    create: () => Promise<import('@common/notesTypes').NotesResult<number>>;
-    updateTitle: (id: number, title: string, groupId?: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
-    updateContent: (id: number, content: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
-    moveToGroup: (
-      id: number,
-      groupId: number,
-      title: string,
-      content?: string,
-    ) => Promise<import('@common/notesTypes').NotesResult<number>>;
-    delete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
-    groupList: () => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteGroup[]>>;
-    groupCreate: (name: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
-    groupDelete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
     uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
-    /**
-     * One of the calls above, made for the account with this badge: when that
-     * account is no longer the active one nothing is sent and the answer is
-     * `account-changed` (`@common/notesTypes`). `args` are that call's
-     * arguments, as plain values. Use through `ownedNotesApi` in the renderer.
-     */
-    asOwner: (
-      badge: string,
-      method: import('@common/notesTypes').OwnedNoteMethod,
-      args: unknown[],
-    ) => Promise<import('@common/notesTypes').NotesResult<unknown>>;
     uploadImageFromPath: (filePath: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
     exportFolderStatus: (displayName: string, identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
