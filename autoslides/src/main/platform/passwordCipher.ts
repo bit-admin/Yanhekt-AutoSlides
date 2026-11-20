@@ -16,27 +16,31 @@ export type PasswordCipherResult =
 // On Linux without a keyring, Electron falls back to `basic_text`: it still
 // reports encryption as available, but the key is hardcoded, so the result is
 // only obfuscated. Treat that as unavailable rather than store the password.
-function osEncryptionAvailable(): boolean {
-  if (!safeStorage.isEncryptionAvailable()) return false;
+// The async methods replace the sync ones (deprecated in Electron 45, removed
+// in 46); they read ciphertext written by `encryptString`.
+async function osEncryptionAvailable(): Promise<boolean> {
+  if (!(await safeStorage.isAsyncEncryptionAvailable())) return false;
   if (process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text') {
     return false;
   }
   return true;
 }
 
-export function encryptPassword(plain: string): PasswordCipherResult {
-  if (!osEncryptionAvailable()) {
+export async function encryptPassword(plain: string): Promise<PasswordCipherResult> {
+  if (!(await osEncryptionAvailable())) {
     return { ok: false, error: 'encryption_unavailable' };
   }
-  return { ok: true, value: safeStorage.encryptString(plain).toString('base64') };
+  const encrypted = await safeStorage.encryptStringAsync(plain);
+  return { ok: true, value: encrypted.toString('base64') };
 }
 
-export function decryptPassword(encoded: string): PasswordCipherResult {
-  if (!osEncryptionAvailable()) {
+export async function decryptPassword(encoded: string): Promise<PasswordCipherResult> {
+  if (!(await osEncryptionAvailable())) {
     return { ok: false, error: 'encryption_unavailable' };
   }
   try {
-    return { ok: true, value: safeStorage.decryptString(Buffer.from(encoded, 'base64')) };
+    const { result } = await safeStorage.decryptStringAsync(Buffer.from(encoded, 'base64'));
+    return { ok: true, value: result };
   } catch {
     return { ok: false, error: 'decrypt_failed' };
   }

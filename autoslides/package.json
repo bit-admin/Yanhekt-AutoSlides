@@ -45,7 +45,7 @@
     "@typescript-eslint/parser": "^8.48.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "braces": "file:vendor/braces",
-    "electron": "^42.11.18",
+    "electron": "^45.4.1",
     "electron-builder": "^26.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.32.0",
@@ -66,17 +66,11 @@
     "extract-zip": "$extract-zip",
     "braces": "$braces",
     "image-size": "^2.0.4",
-    "@typescript-eslint/typescript-estree": {
-      "minimatch@^10": "^11.0.4"
-    },
     "app-builder-lib": {
       "minimatch@^10": "^11.0.4"
     },
     "@electron/universal": {
       "minimatch@^9": "^11.0.4"
-    },
-    "ts-json-schema-generator": {
-      "glob": "^14.0.3"
     }
   },
   "dependencies": {

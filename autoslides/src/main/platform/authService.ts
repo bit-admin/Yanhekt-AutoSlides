@@ -141,7 +141,7 @@ export class MainAuthService {
     if (!config || !config.getAutoSignIn() || !config.getRememberPassword()) return unavailable;
     const row = config.getSavedLogins().find((candidate) => candidate.badge === account);
     if (!row) return unavailable;
-    const decrypted = decryptPassword(row.passwordEnc);
+    const decrypted = await decryptPassword(row.passwordEnc);
     if (!decrypted.ok || !row.username || !decrypted.value) return unavailable;
     log.debug('Yanhe 2.0 session expired; signing in with the saved password');
     return this.yanhe2Login(account, row.username, decrypted.value);

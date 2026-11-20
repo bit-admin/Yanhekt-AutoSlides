@@ -75,7 +75,7 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
     if (!key) return null;
     const row = configService.getSavedLogins().find((candidate) => candidate.badge === key);
     if (!row) return null;
-    const decrypted = decryptPassword(row.passwordEnc);
+    const decrypted = await decryptPassword(row.passwordEnc);
     if (!decrypted.ok) return null;
     return { username: row.username, password: decrypted.value };
   });
@@ -93,7 +93,7 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
       return { ok: false as const, error: 'invalid' as const };
     }
     if (!configService.getRememberPassword()) return { ok: false as const, error: 'disabled' as const };
-    const encrypted = encryptPassword(secret);
+    const encrypted = await encryptPassword(secret);
     if (!encrypted.ok) return { ok: false as const, error: encrypted.error };
     configService.setSavedLogins(upsertSavedLogin(configService.getSavedLogins(), {
       badge: key,
