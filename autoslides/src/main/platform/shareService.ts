@@ -1,4 +1,5 @@
 import { promises as fs } from 'fs';
+import type { AxiosResponse } from 'axios';
 import path from 'path';
 import { appUserAgent } from '@main/infra/appUserAgent';
 import { httpFetch } from '@main/infra/http';
@@ -15,7 +16,7 @@ import {
   type ShareLectureMeta,
   type UploadedImage,
 } from '@common/notesTypes';
-import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink, payloadHasTimeline } from '@common/shareLink';
+import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink } from '@common/shareLink';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
 import { timelineFromSharePayload } from '@common/shareTimeline';
 import type { ConfigService } from './configService';
@@ -23,6 +24,7 @@ import type { IntranetApiTransport } from './intranetApiTransport';
 
 const log = createLogger('ShareService');
 const UPLOAD_TIMEOUT_MS = 120_000;
+const COSS_TIMEOUT_MS = 30_000;
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const isPng = (bytes: Buffer): boolean => bytes.subarray(0, 8).equals(PNG_SIGNATURE);
@@ -78,7 +80,8 @@ export function mergeShareLectureMeta(
 export class ShareService {
   constructor(
     private readonly configService: Pick<ConfigService, 'getAuthToken' | 'getConfig'>,
-    private readonly cbiz: Pick<IntranetApiTransport, 'send'>,
+    /** Yanhekt hosts (the cbiz upload, COSS reads), through the intranet when it is reachable. */
+    private readonly transport: Pick<IntranetApiTransport, 'send'>,
     private readonly lectureTitles: LectureTitleLookup = async () => null,
   ) {}
 
@@ -125,7 +128,7 @@ export class ShareService {
     form.append('file', new Blob([data as BlobPart], { type: mime || 'application/octet-stream' }), filename || 'image.png');
     form.append('bucket', 'notes');
 
-    const res = await this.cbiz.send<UploadEnvelope>({
+    const res = await this.transport.send<UploadEnvelope>({
       method: 'POST',
       url: 'https://cbiz.yanhekt.cn/v1/minio/upload',
       headers: this.uploadHeaders(),
@@ -221,11 +224,18 @@ export class ShareService {
    * raw bytes are written, best-effort).
    */
   async downloadImageToFolder(url: string, dir: string, filename: string): Promise<void> {
-    const res = await httpFetch(url);
-    if (!res.ok) {
+    // COSS images go over the intranet like the API; other hosts are left as they are.
+    const res = await this.transport.send<ArrayBuffer>({
+      method: 'GET',
+      url,
+      responseType: 'arraybuffer',
+      timeout: COSS_TIMEOUT_MS,
+      validateStatus: () => true,
+    });
+    if (res.status < 200 || res.status >= 300) {
       throw new Error(`Image download failed (${res.status})`);
     }
-    const raw = Buffer.from(await res.arrayBuffer());
+    const raw = Buffer.from(res.data);
     let out: Buffer = raw;
     // A PNG is kept byte for byte: its MD5 is then the one in its URL, which is
     // what lets the cloned folder record the slide as already on Drive.
@@ -284,14 +294,8 @@ export class ShareService {
    * Resolve a long `#fragment` or short `/v1/s/<id>` into a title and ordered
    * slide URLs for a local clone. Lists the public COSS `images` bucket to expand
    * the short hashes. Runs in main to avoid renderer CORS and works without auth.
-   *
-   * `requireTimeline` rejects v2 / no-timeline payloads after decode (and after
-   * the short-link hop) so callers that need `timeline.json` skip the bucket list.
    */
-  async resolveShareLink(
-    link: string,
-    opts?: { requireTimeline?: boolean },
-  ): Promise<ShareImportResult> {
+  async resolveShareLink(link: string): Promise<ShareImportResult> {
     const parsed = parseShareLink(link);
     if (!parsed) throw new Error('invalid-share-link');
 
@@ -306,14 +310,10 @@ export class ShareService {
 
     const payload = decodeSharePayload(fragment);
     if (!payload) throw new Error('invalid-share-link');
-    // Lectures clone needs timeline.json; fail before the public bucket listing.
-    if (opts?.requireTimeline && !payloadHasTimeline(payload)) {
-      throw new Error('share-link-no-timeline');
-    }
 
     const identity = { courseId: payload.c, sessionId: payload.s, liveId: payload.l };
     const [resolved, workerMeta, ownTitles] = await Promise.all([
-      resolveShareImages(payload, (prefix) => this.listCossFolder(prefix)),
+      resolveShareImages(payload, (prefix, onlyHash) => this.listCossFolder(prefix, onlyHash)),
       shortMeta ? Promise.resolve(shortMeta) : this.fetchShareMeta(identity.courseId, identity.sessionId),
       this.ownLectureTitles(identity.courseId, identity.sessionId),
     ]);
@@ -380,18 +380,26 @@ export class ShareService {
 
   /**
    * List one `YYYY/M` folder of the public `images` bucket → map of basename →
-   * bucket-relative key, paginating the S3 ListObjectsV2 response. Node has no
-   * DOMParser, so the keys are pulled out with a small regex (this is the Node
-   * twin of the Worker's DOMParser lister; both feed the shared resolver).
+   * bucket-relative key, paginating the S3 ListObjectsV2 response. With
+   * `onlyHash` (the folder's one distinct hash, chosen by the shared resolver)
+   * one page with the first match is enough. Node has no DOMParser, so the
+   * keys are pulled out with a small regex (this is the Node twin of the
+   * viewer's DOMParser lister; both feed the shared resolver).
    */
-  private async listCossFolder(prefix: string): Promise<Map<string, string>> {
+  private async listCossFolder(prefix: string, onlyHash?: string): Promise<Map<string, string>> {
     const map = new Map<string, string>();
     let token: string | null = null;
 
     do {
-      const res: Response = await httpFetch(buildCossListUrl(prefix, token));
-      if (!res.ok) break;
-      const xml: string = await res.text();
+      const res: AxiosResponse<string> = await this.transport.send<string>({
+        method: 'GET',
+        url: buildCossListUrl(prefix, token, onlyHash),
+        responseType: 'text',
+        timeout: COSS_TIMEOUT_MS,
+        validateStatus: () => true,
+      });
+      if (res.status < 200 || res.status >= 300) break;
+      const xml: string = typeof res.data === 'string' ? res.data : String(res.data ?? '');
 
       for (const m of xml.matchAll(/<Key>([^<]+)<\/Key>/g)) {
         const key = m[1];
@@ -399,8 +407,9 @@ export class ShareService {
         if (base) map.set(base, key);
       }
 
+      if (onlyHash) break;
       const truncated = /<IsTruncated>\s*true\s*<\/IsTruncated>/i.test(xml);
-      const next = xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/);
+      const next: RegExpMatchArray | null = xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/);
       token = truncated ? (next?.[1] ?? null) : null;
     } while (token);
 

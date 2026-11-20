@@ -82,6 +82,11 @@ class DriveUploadQueue {
     return added
   }
 
+  /** Stop every queued or running upload (Stop Sharing). */
+  cancelAll(): void {
+    for (const row of Object.values(this.rows)) if (isActive(row)) this.cancel(row.folderPath)
+  }
+
   cancel(folderPath: string): void {
     const row = this.rows[folderPath]
     if (!row) return

@@ -129,7 +129,9 @@
       "watchNotesEnable": "Enable Watch Notes",
       "providerLabel": "Notes Provider",
       "providerDescription": "Choose where watch notes are saved.",
+      "providerOff": "Off",
       "providerObsidian": "Obsidian",
+      "providerOffDetail": "No notes app is used. Extracted slides stay in your output folder only.",
       "providerObsidianDetail": "Slide images are added to the end of a Markdown note in an Obsidian vault. Nothing else is written to the note, and images follow the vault's attachment folder setting.",
       "obsidianVault": "Vault",
       "obsidianVaultDescription": "Lecture notes are created in this vault. A note you choose in the Notes panel can be in any vault.",
@@ -2038,6 +2040,15 @@
     "someUnrecognised": "{count} folders were left out: they have no metadata.json (made before 5.0.0, or by Web Capture).",
     "publicNoticeTitle": "Uploads Are Public",
     "publicNoticeMessage": "Shared slides are uploaded to Yanhekt's image host.",
-    "publicNoticeDetail": "Anyone with an image's address can open it, and AutoSlides cannot delete uploaded images. Upload only slides you are allowed to share."
+    "publicNoticeDetail": "Anyone with an image's address can open it, and AutoSlides cannot delete uploaded images. Upload only slides you are allowed to share.",
+    "linkOutdated": "Out of date",
+    "linkOutdatedHint": "The slides changed after this link was made. Share Slides again for a link with the changes; this one keeps showing the old slides.",
+    "stopSharing": "Stop Sharing",
+    "stopSharingHint": "Stop the uploads that are waiting or running. Slides already uploaded stay public.",
+    "shareStoppedSignIn": "Sharing stopped because you are signed out of Yanhekt.",
+    "shareFailedMessage": "Some slides could not be shared.",
+    "shareFailedFolder": "{name}: {failed} of {total} slides were not uploaded",
+    "shareFailedFolderError": "{name}: sharing stopped before it finished",
+    "shareFailedRetry": "Run Share Slides again to retry. Slides already uploaded are not sent again."
   }
 }

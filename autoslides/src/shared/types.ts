@@ -2,7 +2,7 @@
 //  - AppConfig and its sub-types (consumed by main, renderer, preload)
 //  - Trash and Crop manifest entries (consumed by main, renderer)
 
-import type { WatchNotesProviderId } from './watchNotesProviders';
+import type { WatchNotesChoice } from './watchNotesProviders';
 import type { CurrentTermSearchSource, EarlierTermSearchSource } from './searchSources';
 
 export type { CurrentTermSearchSource, EarlierTermSearchSource } from './searchSources';
@@ -283,8 +283,9 @@ export interface AppConfig {
   // auto-create a watch note with the chosen provider and append each captured
   // slide to it. Gates the whole right-panel Notes flow. Default off.
   watchNotesEnabled: boolean;
-  // Where watch notes go: an Obsidian vault or a Notion page.
-  watchNotesProvider: WatchNotesProviderId;
+  // Where watch notes go: an Obsidian vault or a Notion page, or 'off' (no
+  // provider; the default since 2026-11-21, and what a retired Yanhekt choice became).
+  watchNotesProvider: WatchNotesChoice;
   // Obsidian provider. Vault used for auto-created lecture notes (a folder that
   // contains `.obsidian/`; '' = none). A note picked in the right panel may live
   // in any vault. Subfolder is vault-relative. Auto-create off (default) means the

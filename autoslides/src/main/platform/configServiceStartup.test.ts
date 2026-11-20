@@ -79,7 +79,7 @@ describe('ConfigService at launch', () => {
       cloudShareEmbedTimeline: false,
     };
     const config = new ConfigService().getConfig();
-    expect(config).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'obsidian' });
+    expect(config).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'off' });
     for (const key of ['cloudStorageInitializedUsers', 'cloudAutoSyncMode', 'cloudAutoResyncMode', 'cloudShareEmbedTimeline']) {
       expect(config).not.toHaveProperty(key);
       expect(disk.data).not.toHaveProperty(key);
@@ -89,7 +89,7 @@ describe('ConfigService at launch', () => {
   it('does not inherit an opt-in from the legacy Yanhekt sync flag', () => {
     disk.data = { cloudWatchSyncEnabled: true };
     const config = new ConfigService().getConfig();
-    expect(config).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'obsidian' });
+    expect(config).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'off' });
     expect(disk.data).not.toHaveProperty('cloudWatchSyncEnabled');
   });
 
@@ -98,6 +98,15 @@ describe('ConfigService at launch', () => {
     const service = new ConfigService();
     service.setWatchNotes({ enabled: false, provider: 'yanhekt' as typeof provider });
     expect(service.getConfig()).toMatchObject({ watchNotesEnabled: true, watchNotesProvider: provider });
+  });
+
+  it('starts a new install with no notes provider, and keeps Off once chosen', () => {
+    disk.data = {};
+    const service = new ConfigService();
+    expect(service.getConfig()).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'off' });
+    service.setWatchNotes({ enabled: true, provider: 'notion' });
+    service.setWatchNotes({ provider: 'off' });
+    expect(service.getConfig()).toMatchObject({ watchNotesEnabled: true, watchNotesProvider: 'off' });
   });
 
   it('leaves a sound account list alone', () => {

@@ -1,8 +1,8 @@
 // How the main process reaches the Yanhekt API hosts (cbiz.yanhekt.cn, and
-// aita.yanhekt.cn for Yanhe 2.0): through the campus intranet when it is
-// reachable, with the public host as fallback in every connection mode.
-// Nothing in the app works without the API, so it never depends on the
-// intranet being up.
+// aita.yanhekt.cn for Yanhe 2.0) and the public image host (coss.yanhekt.cn):
+// through the campus intranet when it is reachable, with the public host as
+// fallback in every connection mode. Nothing in the app works without the
+// API, so it never depends on the intranet being up.
 //
 // Shared by ApiClient, ShareService and the Yanhe 2.0 reads so none of them
 // can route differently. It is host-agnostic: a URL goes to the intranet when

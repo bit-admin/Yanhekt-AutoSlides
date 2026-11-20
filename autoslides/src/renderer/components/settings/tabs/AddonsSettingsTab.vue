@@ -17,7 +17,7 @@
       <div class="setting-description">{{ $t('advanced.addons.providerDescription') }}</div>
       <div class="mode-toggle">
         <button
-          v-for="provider in WATCH_NOTES_PROVIDERS"
+          v-for="provider in WATCH_NOTES_CHOICES"
           :key="provider"
           type="button"
           :class="['mode-btn', { active: tempWatchNotesProvider === provider }]"
@@ -28,7 +28,10 @@
         </button>
       </div>
 
-      <div v-if="tempWatchNotesProvider === 'obsidian'" class="setting-description addon-provider-detail">
+      <div v-if="tempWatchNotesProvider === 'off'" class="setting-description addon-provider-detail">
+        {{ $t('advanced.addons.providerOffDetail') }}
+      </div>
+      <div v-else-if="tempWatchNotesProvider === 'obsidian'" class="setting-description addon-provider-detail">
         {{ $t('advanced.addons.providerObsidianDetail') }}
       </div>
       <template v-else>
@@ -139,7 +142,7 @@
 </template>
 
 <script setup lang="ts">
-import { WATCH_NOTES_PROVIDERS, type WatchNotesProviderId } from '@common/watchNotesProviders'
+import { WATCH_NOTES_CHOICES, type WatchNotesChoice } from '@common/watchNotesProviders'
 import { configStore } from '@shared/services/configStore'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import NotionConnectSteps from '../NotionConnectSteps.vue'
@@ -147,7 +150,8 @@ import NotionTokenField from '../NotionTokenField.vue'
 import CliCommandsSection from '../CliCommandsSection.vue'
 
 // Typed by provider id, so adding a provider fails to compile until it has a label.
-const PROVIDER_LABEL_KEYS: Record<WatchNotesProviderId, string> = {
+const PROVIDER_LABEL_KEYS: Record<WatchNotesChoice, string> = {
+  off: 'advanced.addons.providerOff',
   obsidian: 'advanced.addons.providerObsidian',
   notion: 'advanced.addons.providerNotion',
 }

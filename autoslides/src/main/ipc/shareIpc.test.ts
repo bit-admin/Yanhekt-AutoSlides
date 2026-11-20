@@ -35,15 +35,15 @@ const imageUrl = `${uploaded.host}${uploaded.path}`;
 const courseMeta = { courseTitle: '合成课程', sessionTitle: '合成课时' };
 const payload: SharePayload = { v: 3, c: '1', s: '2', p: '2026/1', n: 7, h: 'abcdef01234567', t: '0:4,1:6,0:7' };
 const fetchMock = vi.mocked(httpFetch);
+const answer = <T>(data: T, status = 200) => ({
+  status, statusText: 'OK', headers: {}, config: { headers: new AxiosHeaders() }, data,
+});
 
 let outputDirectory: string;
 
 function setup(token: string | null = 'fixture-token') {
   const transport = new IntranetApiTransport();
-  const send = vi.spyOn(transport, 'send').mockResolvedValue({
-    status: 200, statusText: 'OK', headers: {}, config: { headers: new AxiosHeaders() },
-    data: { code: 0, data: uploaded },
-  });
+  const send = vi.spyOn(transport, 'send').mockResolvedValue(answer({ code: 0, data: uploaded }));
   const shareService = new ShareService({
     getAuthToken: () => token,
     getConfig: () => ({ ...defaultConfig, outputDirectory }),
@@ -122,14 +122,14 @@ describe('Share through the cloudNotes bridge', () => {
     });
   });
 
-  it('reuses short-link metadata, paginates COSS and restores the timeline', async () => {
-    setup(null);
-    fetchMock
-      .mockResolvedValueOnce(Response.json({ fragment: encodeSharePayload(payload), meta: courseMeta }))
-      .mockResolvedValueOnce(new Response('<IsTruncated>true</IsTruncated><NextContinuationToken>page+2</NextContinuationToken>'))
-      .mockResolvedValueOnce(new Response('<Key>2026/1/abcdef0123456789abcdef0123456789.png</Key>'));
+  it('reuses short-link metadata, paginates COSS over the shared transport and restores the timeline', async () => {
+    const send = setup(null);
+    fetchMock.mockResolvedValueOnce(Response.json({ fragment: encodeSharePayload(payload), meta: courseMeta }));
+    send
+      .mockResolvedValueOnce(answer('<IsTruncated>true</IsTruncated><NextContinuationToken>page+2</NextContinuationToken>'))
+      .mockResolvedValueOnce(answer('<Key>2026/1/abcdef0123456789abcdef0123456789.png</Key>'));
 
-    const result = await cloudNotes.resolveShareLink(`${shareOrigin}/v1/s/Test123`, { requireTimeline: true });
+    const result = await cloudNotes.resolveShareLink(`${shareOrigin}/v1/s/Test123`);
     expect(result).toMatchObject({
       ok: true,
       data: {
@@ -147,19 +147,31 @@ describe('Share through the cloudNotes bridge', () => {
     });
     expect(fetchMock.mock.calls).toEqual([
       [`${shareOrigin}/v1/api/get?id=Test123`, { headers: { 'User-Agent': expect.stringMatching(/^AutoSlides\//) } }],
-      [`${coss}?list-type=2&prefix=2026%2F1%2F&max-keys=1000`],
-      [`${coss}?list-type=2&prefix=2026%2F1%2F&max-keys=1000&continuation-token=page%2B2`],
+    ]);
+    expect(send.mock.calls.map(([request]) => [request.method, request.url, request.responseType])).toEqual([
+      ['GET', `${coss}?list-type=2&prefix=2026%2F1%2F&max-keys=1000`, 'text'],
+      ['GET', `${coss}?list-type=2&prefix=2026%2F1%2F&max-keys=1000&continuation-token=page%2B2`, 'text'],
     ]);
   });
 
-  it('looks up long-link metadata, but rejects a missing required timeline before any listing', async () => {
-    setup();
-    const v2 = buildShareUrl({ ...payload, v: 2, t: undefined });
-    await expect(cloudNotes.resolveShareLink(v2, { requireTimeline: true }))
-      .resolves.toEqual({ ok: false, error: 'share-link-no-timeline' });
-    expect(fetchMock).not.toHaveBeenCalled();
+  it('asks COSS for a folder\'s one distinct hash alone', async () => {
+    const send = setup(null);
+    const single = buildShareUrl({ ...payload, v: 2, t: undefined, h: 'abcdef0abcdef0' });
+    fetchMock.mockResolvedValueOnce(Response.json({ meta: courseMeta }));
+    send.mockResolvedValueOnce(answer('<Key>2026/1/abcdef0123456789abcdef0123456789.png</Key><IsTruncated>true</IsTruncated>'));
 
-    fetchMock.mockResolvedValueOnce(new Response('')).mockResolvedValueOnce(Response.json({ meta: courseMeta }));
+    await expect(cloudNotes.resolveShareLink(single)).resolves.toMatchObject({
+      ok: true, data: { urls: [imageUrl, imageUrl], missing: 0 },
+    });
+    expect(send).toHaveBeenCalledOnce();
+    expect(send.mock.calls[0][0].url).toBe(`${coss}?list-type=2&prefix=2026%2F1%2Fabcdef0&max-keys=1`);
+  });
+
+  it('looks up long-link metadata for a link without a timeline', async () => {
+    const send = setup();
+    const v2 = buildShareUrl({ ...payload, v: 2, t: undefined });
+    send.mockResolvedValueOnce(answer(''));
+    fetchMock.mockResolvedValueOnce(Response.json({ meta: courseMeta }));
     await expect(cloudNotes.resolveShareLink(v2)).resolves.toMatchObject({
       ok: true, data: { title: 'c1s2 · 合成课程 · 合成课时', lectureMeta: courseMeta, timeline: null },
     });
@@ -169,7 +181,7 @@ describe('Share through the cloudNotes bridge', () => {
   });
 
   it('creates distinct local slide folders and downloads an image into the selected folder', async () => {
-    setup();
+    const sendSpy = setup();
     outputDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'autoslides-share-'));
     const identity = { courseId: '1', sessionId: '2' };
     const folderName = 'slides_Example__c1s2';
@@ -183,10 +195,11 @@ describe('Share through the cloudNotes bridge', () => {
       .resolves.toEqual({ ok: true, data: { exists: true, dir: another, folderName: `${folderName} (2)` } });
 
     const bytes = Uint8Array.of(137, 80, 78, 71);
-    fetchMock.mockResolvedValueOnce(new Response(bytes));
+    sendSpy.mockResolvedValueOnce(answer(bytes.buffer));
     await expect(cloudNotes.downloadImageToFolder(imageUrl, another, 'Slide_001.png'))
       .resolves.toEqual({ ok: true, data: undefined });
     await expect(fs.readFile(path.join(another, 'Slide_001.png'))).resolves.toEqual(Buffer.from(bytes));
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(imageUrl);
+    expect(sendSpy).toHaveBeenLastCalledWith(expect.objectContaining({ method: 'GET', url: imageUrl, responseType: 'arraybuffer' }));
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

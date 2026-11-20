@@ -129,7 +129,9 @@
       "watchNotesEnable": "启用随堂笔记",
       "providerLabel": "笔记服务",
       "providerDescription": "选择随堂笔记的保存位置。",
+      "providerOff": "关闭",
       "providerObsidian": "Obsidian",
+      "providerOffDetail": "不使用笔记应用，提取的幻灯片只保存在输出目录中。",
       "providerObsidianDetail": "幻灯片图片会追加到 Obsidian 仓库中某条 Markdown 笔记的末尾，不会写入其他内容。图片位置遵循仓库的附件文件夹设置。",
       "obsidianVault": "仓库",
       "obsidianVaultDescription": "课程笔记会创建在此仓库中。在笔记面板中选择的笔记可以位于任意仓库。",
@@ -2038,6 +2040,15 @@
     "someUnrecognised": "已跳过 {count} 个文件夹：它们没有 metadata.json（5.0.0 之前或由网页捕获生成）。",
     "publicNoticeTitle": "上传内容是公开的",
     "publicNoticeMessage": "分享的幻灯片会上传到延河课堂的图片服务器。",
-    "publicNoticeDetail": "任何知道图片地址的人都能打开它，AutoSlides 也无法删除已上传的图片。请只上传允许分享的幻灯片。"
+    "publicNoticeDetail": "任何知道图片地址的人都能打开它，AutoSlides 也无法删除已上传的图片。请只上传允许分享的幻灯片。",
+    "linkOutdated": "已过时",
+    "linkOutdatedHint": "生成此链接后幻灯片有改动。再次分享幻灯片可得到包含改动的链接；此链接仍显示旧的幻灯片。",
+    "stopSharing": "停止分享",
+    "stopSharingHint": "停止等待中和进行中的上传。已上传的幻灯片仍然公开。",
+    "shareStoppedSignIn": "你已退出延河课堂，分享已停止。",
+    "shareFailedMessage": "部分幻灯片未能分享。",
+    "shareFailedFolder": "{name}：{total} 张中有 {failed} 张未上传",
+    "shareFailedFolderError": "{name}：分享未完成就停止了",
+    "shareFailedRetry": "再次分享幻灯片即可重试，已上传的幻灯片不会重复发送。"
   }
 }

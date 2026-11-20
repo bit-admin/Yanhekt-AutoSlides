@@ -24,11 +24,8 @@ export const cloudNotes: ElectronAPI['cloudNotes'] = {
     invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
   shortenShareUrl: (fragment: string): Promise<NotesResult<{ url: string }>> =>
     invoke('cloudNotes:shortenShareUrl', fragment),
-  resolveShareLink: (
-    link: string,
-    opts?: { requireTimeline?: boolean },
-  ): Promise<NotesResult<ShareImportResult>> =>
-    invoke('cloudNotes:resolveShareLink', link, opts),
+  resolveShareLink: (link: string): Promise<NotesResult<ShareImportResult>> =>
+    invoke('cloudNotes:resolveShareLink', link),
 };
 
 /**

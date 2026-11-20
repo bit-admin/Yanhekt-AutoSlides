@@ -129,7 +129,9 @@
       "watchNotesEnable": "시청 노트 사용",
       "providerLabel": "노트 제공자",
       "providerDescription": "시청 노트를 저장할 위치를 선택합니다.",
+      "providerOff": "끄기",
       "providerObsidian": "Obsidian",
+      "providerOffDetail": "노트 앱을 사용하지 않습니다. 추출한 슬라이드는 출력 폴더에만 저장됩니다.",
       "providerObsidianDetail": "슬라이드 이미지를 Obsidian 보관소에 있는 Markdown 노트의 끝에 추가합니다. 그 밖의 내용은 노트에 쓰지 않으며, 이미지는 보관소의 첨부 파일 폴더 설정을 따릅니다.",
       "obsidianVault": "보관소",
       "obsidianVaultDescription": "강의 노트는 이 보관소에 만들어집니다. 노트 패널에서 고른 노트는 어느 보관소에 있어도 됩니다.",
@@ -2038,6 +2040,15 @@
     "someUnrecognised": "폴더 {count}개를 제외했습니다. metadata.json이 없습니다(5.0.0 이전 또는 웹 캡처로 생성).",
     "publicNoticeTitle": "업로드는 공개됩니다",
     "publicNoticeMessage": "공유하는 슬라이드는 옌허 강의실의 이미지 서버에 업로드됩니다.",
-    "publicNoticeDetail": "이미지 주소를 아는 사람은 누구나 열 수 있고, AutoSlides는 업로드한 이미지를 삭제할 수 없습니다. 공유해도 되는 슬라이드만 업로드하세요."
+    "publicNoticeDetail": "이미지 주소를 아는 사람은 누구나 열 수 있고, AutoSlides는 업로드한 이미지를 삭제할 수 없습니다. 공유해도 되는 슬라이드만 업로드하세요.",
+    "linkOutdated": "오래됨",
+    "linkOutdatedHint": "이 링크를 만든 뒤 슬라이드가 바뀌었습니다. 바뀐 내용이 담긴 링크를 받으려면 슬라이드를 다시 공유하세요. 이 링크는 이전 슬라이드를 계속 보여 줍니다.",
+    "stopSharing": "공유 중지",
+    "stopSharingHint": "대기 중이거나 진행 중인 업로드를 중지합니다. 이미 업로드한 슬라이드는 계속 공개됩니다.",
+    "shareStoppedSignIn": "옌허 강의실에서 로그아웃되어 공유가 중지되었습니다.",
+    "shareFailedMessage": "일부 슬라이드를 공유하지 못했습니다.",
+    "shareFailedFolder": "{name}: 슬라이드 {total}개 중 {failed}개가 업로드되지 않았습니다",
+    "shareFailedFolderError": "{name}: 공유가 끝나기 전에 중지되었습니다",
+    "shareFailedRetry": "슬라이드를 다시 공유하면 재시도합니다. 이미 업로드한 슬라이드는 다시 보내지 않습니다."
   }
 }

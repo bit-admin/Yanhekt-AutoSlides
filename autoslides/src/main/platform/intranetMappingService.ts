@@ -61,6 +61,9 @@ const FAILURE_RECHECK_GAP_MS = 5_000;
  */
 const BUILT_IN_ADDRESSES: Record<string, string[]> = {
   'cbiz.yanhekt.cn': ['10.0.34.22', '10.0.34.21'],
+  // Public image host (share uploads, clone downloads, share-link listing);
+  // campus DNS answered the same two addresses as cbiz (2026-11-21).
+  'coss.yanhekt.cn': ['10.0.34.22', '10.0.34.21'],
   // Live streaming servers
   'clive8.yanhekt.cn': ['10.1.233.208', '10.1.233.201', '10.1.233.210', '10.1.233.207', '10.1.233.209', '10.1.233.206'],
   'clive9.yanhekt.cn': ['10.1.233.206', '10.1.233.207', '10.1.233.210', '10.1.233.208', '10.1.233.209', '10.1.233.201'],

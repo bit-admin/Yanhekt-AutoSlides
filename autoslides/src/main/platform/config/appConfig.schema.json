@@ -161,7 +161,7 @@
       "type": "boolean"
     },
     "watchNotesProvider": {
-      "$ref": "#/definitions/WatchNotesProviderId"
+      "$ref": "#/definitions/WatchNotesChoice"
     },
     "obsidianVaultPath": {
       "type": "string"
@@ -785,9 +785,10 @@
       },
       "description": "One enrolled course on the Recorded page: a Yanhekt course (`id`) with the fields its card shows, so the grid draws without a request."
     },
-    "WatchNotesProviderId": {
+    "WatchNotesChoice": {
       "type": "string",
       "enum": [
+        "off",
         "obsidian",
         "notion"
       ]

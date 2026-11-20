@@ -112,6 +112,7 @@ export interface DriveUploadProgress {
   failed: number;
   /** Slides skipped because their record already matched. */
   skipped: number;
+  /** Why the job stopped: an error message, or `sign-in` when the account was signed out mid-run. */
   error?: string;
 }
 
@@ -119,8 +120,6 @@ export type DriveError =
   | 'sign-in'
   | 'not-recognised'
   | 'not-found'
-  | 'not-uploaded'
-  | 'nothing-to-share'
   | 'too-long'
   | 'last-link'
   | 'current-link'

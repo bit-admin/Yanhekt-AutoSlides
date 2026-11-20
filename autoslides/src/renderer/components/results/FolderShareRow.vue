@@ -13,6 +13,13 @@
       :class="{ 'share-marker--none': !shown.timeline }"
       :title="shown.timeline ? $t('drive.linkTimelineHint') : $t('drive.linkNoTimelineHint')"
     >{{ shown.timeline ? $t('drive.linkTimeline') : $t('drive.linkNoTimeline') }}</span>
+    <!-- No link matches the folder as it is now (a crop, a trash or a new
+         slide since): every version shows the slides from before. -->
+    <span
+      v-if="outdated"
+      class="share-marker share-marker--outdated"
+      :title="$t('drive.linkOutdatedHint')"
+    >{{ $t('drive.linkOutdated') }}</span>
 
     <div class="share-actions">
       <!-- Versions: remove (never the current link), older, n/m, newer. -->
@@ -128,6 +135,7 @@ const index = computed(() => {
 })
 const shown = computed(() => props.shares[index.value])
 const shownUrl = computed(() => shown.value.shortUrl ?? shown.value.longUrl)
+const outdated = computed(() => !props.shares.some((s) => s.current))
 
 const select = (i: number) => {
   const share = props.shares[i]
@@ -283,6 +291,12 @@ onBeforeUnmount(() => {
 .share-marker--none {
   border-style: dashed;
   background: none;
+}
+
+.share-marker--outdated {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 
 .share-actions {

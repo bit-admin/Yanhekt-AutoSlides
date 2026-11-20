@@ -129,7 +129,9 @@
       "watchNotesEnable": "視聴ノートを有効にする",
       "providerLabel": "ノートの保存先",
       "providerDescription": "視聴ノートの保存先を選択します。",
+      "providerOff": "オフ",
       "providerObsidian": "Obsidian",
+      "providerOffDetail": "ノートアプリは使いません。抽出したスライドは出力ディレクトリにのみ保存されます。",
       "providerObsidianDetail": "スライド画像を Obsidian 保管庫内の Markdown ノートの末尾に追加します。それ以外はノートに書き込みません。画像は保管庫の添付ファイル設定に従って保存されます。",
       "obsidianVault": "保管庫",
       "obsidianVaultDescription": "授業ノートはこの保管庫に作成されます。ノートパネルで選んだノートはどの保管庫にあってもかまいません。",
@@ -2038,6 +2040,15 @@
     "someUnrecognised": "{count} 件のフォルダを除外しました。metadata.json がありません（5.0.0 より前、または Web キャプチャで作成）。",
     "publicNoticeTitle": "アップロードは公開されます",
     "publicNoticeMessage": "共有するスライドは延河課堂の画像サーバーにアップロードされます。",
-    "publicNoticeDetail": "画像のアドレスを知っていれば誰でも開くことができ、AutoSlides はアップロードした画像を削除できません。共有してよいスライドだけをアップロードしてください。"
+    "publicNoticeDetail": "画像のアドレスを知っていれば誰でも開くことができ、AutoSlides はアップロードした画像を削除できません。共有してよいスライドだけをアップロードしてください。",
+    "linkOutdated": "古いリンク",
+    "linkOutdatedHint": "このリンクを作成した後にスライドが変更されました。変更を含むリンクにはもう一度スライドを共有してください。このリンクは古いスライドのままです。",
+    "stopSharing": "共有を停止",
+    "stopSharingHint": "待機中と実行中のアップロードを停止します。アップロード済みのスライドは公開されたままです。",
+    "shareStoppedSignIn": "延河課堂からサインアウトしたため、共有を停止しました。",
+    "shareFailedMessage": "一部のスライドを共有できませんでした。",
+    "shareFailedFolder": "{name}：{total} 枚中 {failed} 枚がアップロードされませんでした",
+    "shareFailedFolderError": "{name}：共有が完了する前に停止しました",
+    "shareFailedRetry": "もう一度スライドを共有すると再試行します。アップロード済みのスライドは再送信されません。"
   }
 }

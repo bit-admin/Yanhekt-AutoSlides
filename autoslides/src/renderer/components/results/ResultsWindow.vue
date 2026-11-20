@@ -202,8 +202,20 @@
           {{ $t('lectures.cloneFromLink') }}
         </button>
 
+        <!-- While uploads are queued or running, the same button stops them. -->
         <button
-          v-if="currentView === 'folders'"
+          v-if="currentView === 'folders' && isSharing"
+          class="btn drive-btn"
+          :title="$t('drive.stopSharingHint')"
+          @click="DriveUploads.cancelAll()"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="4" y="4" width="8" height="8" rx="1" fill="currentColor"/>
+          </svg>
+          {{ $t('drive.stopSharing') }}
+        </button>
+        <button
+          v-else-if="currentView === 'folders'"
           class="btn drive-btn"
           :disabled="!isFolderEditMode || selectedFolderNames.length === 0 || isLoading || isGenerating"
           :title="$t('drive.uploadToDriveHint')"
@@ -797,6 +809,8 @@ const handleGlobalClickForActionMenus = (event: MouseEvent) => {
 }
 
 // --- Drive (upload the selected folders) ---
+
+const isSharing = computed(() => DriveUploads.pendingCount.value > 0)
 
 async function handleUploadToDrive() {
   const selected = folders.value.filter((f) => selectedFolderNames.value.includes(f.name))

@@ -34,7 +34,7 @@ import type {
   EarlierTermSearchSource,
 } from '../shared/types';
 import type { CourseIndexSearchResult, CourseIndexStatus } from '../shared/courseIndexTypes';
-import type { WatchNotesProviderId } from '../shared/watchNotesProviders';
+import type { WatchNotesChoice } from '../shared/watchNotesProviders';
 import type { ObsidianResult, ObsidianTargetInfo, ObsidianVaultProbe } from '../shared/obsidianNotesTypes';
 import type { NotionPageList, NotionResult, NotionTargetInfo } from '../shared/notionNotesTypes';
 import type { LogLevel, LogSource } from '../shared/logFormat';
@@ -563,7 +563,7 @@ export interface ElectronAPI {
     setLastGreetingId: (id: string) => Promise<void>;
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
     setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => Promise<AppConfig>;
-    setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => Promise<AppConfig>;
+    setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesChoice }) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
     setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
     setCloseToTray: (enabled: boolean) => Promise<AppConfig>;
@@ -1223,6 +1223,6 @@ export interface ElectronAPI {
     prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     downloadImageToFolder: (url: string, dir: string, filename: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     shortenShareUrl: (fragment: string) => Promise<import('@common/notesTypes').NotesResult<{ url: string }>>;
-    resolveShareLink: (link: string, opts?: { requireTimeline?: boolean }) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ShareImportResult>>;
+    resolveShareLink: (link: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ShareImportResult>>;
   };
 }

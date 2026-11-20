@@ -59,6 +59,22 @@ describe('DriveService', () => {
     expect((record?.uploadedAt ?? '') <= (record?.updatedAt ?? '')).toBe(true);
   });
 
+  it('stops and says so when the account is signed out mid-run', async () => {
+    const { folder, service, uploader } = await setup();
+    uploader.uploadImage.mockRejectedValue(Object.assign(new Error('Not signed in'), { name: 'ShareAuthError' }));
+    const result = await service.uploadFolder(folder, () => {});
+    expect(result).toMatchObject({ ok: true, data: { phase: 'cancelled', error: 'sign-in', done: 0 } });
+    expect(result.ok && result.data.failed).toBeGreaterThan(0);
+  });
+
+  it('marks no link current once the slides change, until they are shared again', async () => {
+    const { folder, service } = await setup();
+    await service.uploadFolder(folder, () => {});
+    expect((await service.folderSummary(folder)).shares.map((s) => s.current)).toEqual([true]);
+    await writeFile(path.join(folder, 'Slide_001.png'), 'one, cropped');
+    expect((await service.folderSummary(folder)).shares.map((s) => s.current)).toEqual([false]);
+  });
+
   it('records a share link version for each fully uploaded state, and shortens one', async () => {
     const { folder, service, uploader } = await setup();
     expect((await service.folderSummary(folder)).shares).toEqual([]);

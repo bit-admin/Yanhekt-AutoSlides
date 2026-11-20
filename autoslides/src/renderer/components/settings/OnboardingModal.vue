@@ -197,7 +197,7 @@
             <p class="step-description">{{ $t('onboarding.notes.providerDescription') }}</p>
             <div class="mode-toggle">
               <button
-                v-for="provider in WATCH_NOTES_PROVIDERS"
+                v-for="provider in WATCH_NOTES_CHOICES"
                 :key="provider"
                 type="button"
                 :class="['mode-btn', { active: notesProvider === provider }]"
@@ -208,7 +208,11 @@
               </button>
             </div>
 
-            <div v-if="notesProvider === 'obsidian'" class="notes-provider-detail">
+            <p v-if="notesProvider === 'off'" class="notes-provider-detail">
+              {{ $t('advanced.addons.providerOffDetail') }}
+            </p>
+
+            <div v-else-if="notesProvider === 'obsidian'" class="notes-provider-detail">
               <label class="notes-field-label">{{ $t('advanced.addons.obsidianVault') }}</label>
               <div class="input-group">
                 <input
@@ -317,8 +321,9 @@ import {
   type OnboardingStep,
 } from '@common/onboarding'
 import {
-  WATCH_NOTES_PROVIDERS,
+  WATCH_NOTES_CHOICES,
   normalizeWatchNotesProvider,
+  type WatchNotesChoice,
   type WatchNotesProviderId,
 } from '@common/watchNotesProviders'
 import { useNotionConnection } from '@features/settings/useNotionConnection'
@@ -479,12 +484,18 @@ onMounted(() => {
   if (ai) void applyLoadedConfig(ai)
 })
 
+// With no provider (Off) the provider's own page has nothing to show.
+const isSkipped = (i: number) => props.steps[i]?.id === 'notes' && notesProvider.value === 'off'
 const next = () => {
-  if (index.value < props.steps.length - 1) index.value += 1
+  let i = index.value + 1
+  while (i < props.steps.length && isSkipped(i)) i += 1
+  if (i < props.steps.length) index.value = i
   else void finish()
 }
 const back = () => {
-  if (index.value > 0) index.value -= 1
+  let i = index.value - 1
+  while (i > 0 && isSkipped(i)) i -= 1
+  if (i >= 0) index.value = i
 }
 const finish = async () => {
   await persistAiChoice()
@@ -498,13 +509,14 @@ const proceed = () => next()
 
 // ── Notes add-ons ──────────────────────────────────────
 // Same labels as Settings → Add-ons → Notes Provider.
-const PROVIDER_LABEL_KEYS: Record<WatchNotesProviderId, string> = {
+const PROVIDER_LABEL_KEYS: Record<WatchNotesChoice, string> = {
+  off: 'advanced.addons.providerOff',
   obsidian: 'advanced.addons.providerObsidian',
   notion: 'advanced.addons.providerNotion',
 }
 const notesProvider = computed(() => normalizeWatchNotesProvider(configStore.watchNotesProvider))
 // Onboarding writes at once, like the other steps (Settings buffers instead).
-const setNotesProvider = (provider: WatchNotesProviderId) => {
+const setNotesProvider = (provider: WatchNotesChoice) => {
   void window.electronAPI.config.setWatchNotes({ provider })
 }
 const isWatchNotesOn = (provider: WatchNotesProviderId) =>

@@ -271,7 +271,11 @@ export class DriveService {
           } catch (error) {
             job.progress.failed++;
             log.warn('Drive upload failed', file.name, error instanceof Error ? error.message : error);
-            if (error instanceof Error && error.name === 'ShareAuthError') job.cancelled = true;
+            // Signed out mid-run: stop, and say why (the renderer words it).
+            if (error instanceof Error && error.name === 'ShareAuthError') {
+              job.cancelled = true;
+              job.progress.error = 'sign-in';
+            }
           }
           emit();
         }

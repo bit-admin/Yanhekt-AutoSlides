@@ -2,9 +2,45 @@
 // are public and permanent (shown every time, nothing remembered), and leaving
 // out folders Drive does not recognise (no metadata.json).
 import { tokenManager } from './authService'
-import { DriveUploads } from './driveUploadQueue'
+import { DriveUploads, type DriveUploadRow } from './driveUploadQueue'
 
 type Translate = (key: string, params?: Record<string, unknown>) => string
+
+const folderNameOf = (folderPath: string): string => folderPath.split(/[\\/]/).filter(Boolean).pop() ?? folderPath
+
+/** What went wrong in a batch of uploads, one line per folder; null when nothing did. */
+export function describeShareFailures(t: Translate, rows: DriveUploadRow[]): { message: string; detail: string } | null {
+  const failed = rows.filter((row) => row.status === 'error' || row.failed > 0 || row.error === 'sign-in')
+  if (failed.length === 0) return null
+  if (failed.some((row) => row.error === 'sign-in')) {
+    return { message: t('drive.shareStoppedSignIn'), detail: t('drive.shareFailedRetry') }
+  }
+  const lines = failed.map((row) => row.status === 'error'
+    ? t('drive.shareFailedFolderError', { name: folderNameOf(row.folderPath) })
+    : t('drive.shareFailedFolder', { name: folderNameOf(row.folderPath), failed: row.failed, total: row.total }))
+  return { message: t('drive.shareFailedMessage', { count: failed.length }), detail: [...lines, '', t('drive.shareFailedRetry')].join('\n') }
+}
+
+// Uploads end one folder at a time; failures are kept until the queue is
+// empty, then told once, whichever page is open.
+let reporting = false
+const finished: DriveUploadRow[] = []
+function reportFailures(t: Translate): void {
+  if (reporting) return
+  reporting = true
+  DriveUploads.onFinished((row) => {
+    finished.push({ ...row })
+    if (DriveUploads.pendingCount.value > 0) return
+    const summary = describeShareFailures(t, finished.splice(0))
+    if (!summary) return
+    void window.electronAPI.dialog.showMessageBox({
+      type: 'warning',
+      message: summary.message,
+      detail: summary.detail,
+      buttons: [t('lectureOutputs.ok')],
+    })
+  })
+}
 
 export interface DriveUploadCandidate {
   path?: string
@@ -37,6 +73,7 @@ export async function startDriveUploads(t: Translate, folders: DriveUploadCandid
     noLink: true,
   })
   if (answer.response !== 1) return 0
+  reportFailures(t)
   const added = DriveUploads.add(usable.map((f) => String(f.path)))
   if (unrecognised > 0) await notify(t('drive.someUnrecognised', { count: unrecognised }))
   return added

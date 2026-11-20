@@ -9,9 +9,9 @@ import * as path from 'path';
 import { app, dialog } from 'electron';
 import { ThemeService, ThemeMode } from './themeService';
 import {
-  isWatchNotesProvider,
+  isWatchNotesChoice,
   normalizeWatchNotesProvider,
-  type WatchNotesProviderId,
+  type WatchNotesChoice,
 } from '@common/watchNotesProviders';
 import {
   AUTO_CROP_YOLO_INPUT_SIZES,
@@ -250,11 +250,12 @@ export class ConfigService {
     }
   }
 
-  // Do not redirect an opt-in for Yanhekt notes to another destination.
-  // Obsidian and Notion selections, and their opt-in flags, remain unchanged.
+  // Do not redirect an opt-in for Yanhekt notes to another destination: a
+  // stored `yanhekt` (or anything unknown) becomes Off and watch notes are
+  // switched off. Off, Obsidian and Notion, and their opt-in flags, remain unchanged.
   private migrateWatchNotes(): void {
     const provider: unknown = this.store.get('watchNotesProvider');
-    if (isWatchNotesProvider(provider)) return;
+    if (isWatchNotesChoice(provider)) return;
     this.store.set('watchNotesEnabled', false);
     this.store.set('watchNotesProvider', normalizeWatchNotesProvider(provider));
   }
@@ -418,8 +419,8 @@ export class ConfigService {
     if (typeof patch.autoCreateNote === 'boolean') this.store.set('obsidianAutoCreateNote', patch.autoCreateNote);
   }
 
-  setWatchNotes(patch: { enabled?: boolean; provider?: WatchNotesProviderId }): void {
-    if (patch.provider !== undefined && !isWatchNotesProvider(patch.provider)) return;
+  setWatchNotes(patch: { enabled?: boolean; provider?: WatchNotesChoice }): void {
+    if (patch.provider !== undefined && !isWatchNotesChoice(patch.provider)) return;
     if (typeof patch.enabled === 'boolean') {
       this.store.set('watchNotesEnabled', patch.enabled);
     }

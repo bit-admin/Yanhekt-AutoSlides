@@ -3,7 +3,7 @@ import { useNotionConnection } from './useNotionConnection'
 import {
   DEFAULT_WATCH_NOTES_PROVIDER,
   normalizeWatchNotesProvider,
-  type WatchNotesProviderId,
+  type WatchNotesChoice,
 } from '@common/watchNotesProviders'
 
 /**
@@ -20,8 +20,8 @@ import {
 export function useAddonsSettings() {
   const watchNotesEnabled = ref(false)
   const tempWatchNotesEnabled = ref(false)
-  const watchNotesProvider = ref<WatchNotesProviderId>(DEFAULT_WATCH_NOTES_PROVIDER)
-  const tempWatchNotesProvider = ref<WatchNotesProviderId>(DEFAULT_WATCH_NOTES_PROVIDER)
+  const watchNotesProvider = ref<WatchNotesChoice>(DEFAULT_WATCH_NOTES_PROVIDER)
+  const tempWatchNotesProvider = ref<WatchNotesChoice>(DEFAULT_WATCH_NOTES_PROVIDER)
   const obsidianVaultPath = ref('')
   const tempObsidianVaultPath = ref('')
   const obsidianSubfolder = ref('AutoSlides')

@@ -6,7 +6,7 @@ import { createSettingsWriter, outputFolderWorkFrom } from './settingsWriter';
 import { broadcastConfig as broadcastConfigSnapshot } from './broadcastConfig';
 import type { AIServiceType } from '@main/platform/configService';
 import type { ConnectionMode, CustomProviderId, LanguageMode, ProxySettings, StoredAccount } from '@common/types';
-import type { WatchNotesProviderId } from '@common/watchNotesProviders';
+import type { WatchNotesChoice } from '@common/watchNotesProviders';
 import { expandTilde } from '@main/infra/pathUtils';
 import { probeOutputDir, recreateOutputDir } from '@main/infra/outputDir';
 import { createLogger } from '@main/infra/logger';
@@ -386,7 +386,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
-  ipcMain.handle('config:setWatchNotes', async (_, patch: { enabled?: boolean; provider?: WatchNotesProviderId }) => {
+  ipcMain.handle('config:setWatchNotes', async (_, patch: { enabled?: boolean; provider?: WatchNotesChoice }) => {
     configService.setWatchNotes(patch ?? {});
     broadcastConfig();
     return configService.getConfig();
