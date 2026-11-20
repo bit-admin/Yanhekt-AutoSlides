@@ -186,6 +186,22 @@
           </div>
         </div>
 
+        <!-- Same spot as the old Import to Notes button: left of Clear Folder. -->
+        <button
+          v-if="currentView === 'folders'"
+          class="btn drive-btn"
+          :disabled="!isFolderEditMode || selectedFolderNames.length === 0 || isLoading || isGenerating"
+          :title="$t('drive.uploadToDriveHint')"
+          @click="handleUploadToDrive"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M8 2l4 4H9v5H7V6H4l4-4zM2 12h12v2H2v-2z" fill="currentColor"/>
+          </svg>
+          {{ $t('drive.uploadToDrive') }}
+        </button>
+
+        <div v-if="currentView === 'folders'" class="actions-divider"></div>
+
         <button
           v-if="currentView === 'folders'"
           class="btn btn--danger-outline delete-btn"
@@ -339,6 +355,8 @@ import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } f
 import { usePdfMaker } from '@features/export/usePdfMaker'
 import ResultsExportBar from './ResultsExportBar.vue'
 import { configStore } from '@shared/services/configStore'
+import { DriveUploads } from '@shared/services/driveUploadQueue'
+import { startDriveUploads } from '@shared/services/driveUploadStart'
 import ResultsImageGrid from './ResultsImageGrid.vue'
 import ResultsPreviewModal from './ResultsPreviewModal.vue'
 import FolderListView from './FolderListView.vue'
@@ -747,12 +765,34 @@ const handleGlobalClickForActionMenus = (event: MouseEvent) => {
   showRemoveDuplicatesMenu.value = false
 }
 
+// --- Drive (upload the selected folders) ---
+
+async function handleUploadToDrive() {
+  const selected = folders.value.filter((f) => selectedFolderNames.value.includes(f.name))
+  await startDriveUploads(t, selected.map((f) => ({ path: f.path, recognised: !!f.metadata })))
+}
+
+// When an upload ends, refresh that folder's footer count in place (a full
+// refresh would reset the list and its scroll position).
+async function refreshDriveCount(folderPath: string) {
+  const folder = folders.value.find((f) => f.path === folderPath)
+  if (!folder) return
+  const result = await window.electronAPI.drive.folder(folderPath)
+  if (!result.ok) return
+  const { uploaded, changed } = result.data.counts
+  folder.drive = uploaded + changed > 0 ? { uploaded, changed } : undefined
+}
+
+let stopDriveListener: (() => void) | null = null
+
 onMounted(() => {
   document.addEventListener('click', handleGlobalClickForActionMenus)
+  stopDriveListener = DriveUploads.onFinished((row) => { void refreshDriveCount(row.folderPath) })
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleGlobalClickForActionMenus)
+  stopDriveListener?.()
 })
 
 const confirmClearTrash = async () => {
@@ -855,11 +895,19 @@ const confirmClearTrash = async () => {
 .restore-btn,
 .auto-crop-btn,
 .dedup-btn,
+.drive-btn,
 .clear-btn {
   gap: 5px;
   padding: 6px 10px;
   color: var(--text-primary);
   font-weight: 500;
+}
+
+.actions-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-color);
+  flex-shrink: 0;
 }
 
 .delete-btn {

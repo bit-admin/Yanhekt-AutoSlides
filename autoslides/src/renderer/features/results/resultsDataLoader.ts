@@ -22,6 +22,8 @@ export interface ResultsDataIO {
   getCropEntries(): Promise<CropEntry[]>;
   // Optional: demo/override providers may omit it (treated as "no metadata").
   getMetadata?(folderPath: string): Promise<SlideMetadata | null>;
+  // Optional: Drive upload counts by folder name (absent = no uploads shown).
+  getDriveCounts?(): Promise<Map<string, { uploaded: number; changed: number }>>;
 }
 
 export function createResultsDataIO(): ResultsDataIO {
@@ -47,6 +49,17 @@ export function createResultsDataIO(): ResultsDataIO {
     getTrashEntries: () => window.electronAPI.trash.getEntries() as Promise<RemovedEntry[]>,
     getCropEntries: () => window.electronAPI.crop.getEntries() as Promise<CropEntry[]>,
     getMetadata: (folderPath) => window.electronAPI.slideMetadata.get(folderPath),
+    getDriveCounts: async () => {
+      const result = await window.electronAPI.drive.folders();
+      const counts = new Map<string, { uploaded: number; changed: number }>();
+      if (!result.ok) return counts;
+      for (const folder of result.data) {
+        if (folder.counts.uploaded + folder.counts.changed > 0) {
+          counts.set(folder.name, { uploaded: folder.counts.uploaded, changed: folder.counts.changed });
+        }
+      }
+      return counts;
+    },
   };
 }
 
@@ -58,10 +71,14 @@ export interface FolderSummariesResult {
 }
 
 export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSummariesResult> {
-  const [activeFolderList, removedEntries, currentCropEntries] = await Promise.all([
+  const [activeFolderList, removedEntries, currentCropEntries, driveCounts] = await Promise.all([
     io.getFolders(),
     io.getTrashEntries(),
     io.getCropEntries(),
+    (io.getDriveCounts?.() ?? Promise.resolve(new Map<string, { uploaded: number; changed: number }>())).catch((error) => {
+      log.warn('Failed to load Drive counts:', error);
+      return new Map<string, { uploaded: number; changed: number }>();
+    }),
   ]);
 
   const activeCounts = await Promise.all(
@@ -92,6 +109,7 @@ export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSumm
       activeCount: count,
       removedCount: 0,
       metadata,
+      ...(driveCounts.has(folder.name) ? { drive: driveCounts.get(folder.name) } : {}),
     });
   }
 

@@ -41,3 +41,50 @@ describe('SlideMetadataService.writeExtraction: registrar number', () => {
     expect((await service.read(dir))?.source.courseNumber).toBeUndefined();
   });
 });
+
+describe('SlideMetadataService: Drive records and shares (version 2)', () => {
+  const record = (url: string) => ({
+    url, md5: url.slice(-36, -4), size: 10, mtimeMs: 1, uploadedAt: '2026-11-20T00:00:00.000Z', updatedAt: '2026-11-20T00:00:00.000Z',
+  });
+  const share = (id: string, createdAt: string) => ({ id, createdAt, longUrl: `https://x/#${id}`, files: ['Slide_001.png'], timeline: true });
+
+  it('records uploads, marks them removed and restored, and keeps both blocks across a re-extraction write', async () => {
+    const dir = await folder();
+    const service = new SlideMetadataService();
+    expect(await service.recordDriveUploads(dir, { 'Slide_001.png': record('u/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png') })).toBe('unchanged');
+
+    await service.writeExtraction(dir, { source: { courseId: '1' }, extraction });
+    await service.recordDriveUploads(dir, { 'Slide_001.png': record('u/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png') });
+    await service.saveShare(dir, share('s1', '2026-11-20T01:00:00.000Z'));
+    await service.markDriveRemoved(dir, ['Slide_001.png', 'Slide_009.png'], true);
+    expect((await service.read(dir))?.drive?.files['Slide_001.png'].removedAt).toEqual(expect.any(String));
+    await service.markDriveRemoved(dir, ['Slide_001.png'], false);
+
+    await service.writeExtraction(dir, { source: { courseId: '1' }, extraction });
+    const stored = await service.read(dir);
+    expect(stored?.version).toBe(2);
+    expect(stored?.drive?.files['Slide_001.png']).not.toHaveProperty('removedAt');
+    expect(stored?.shares?.map((s) => s.id)).toEqual(['s1']);
+
+    await service.removeShare(dir, 's1');
+    expect(await service.read(dir)).not.toHaveProperty('shares');
+  });
+
+  it('hands carried shares to the next folder of the same lecture only', async () => {
+    const service = new SlideMetadataService();
+    const other = await folder();
+    const parent = await folder();
+    const target = path.join(parent, 'slides_课程_第1周__c1s2');
+    service.carryShares('__c1s2', [share('old', '2026-11-01T00:00:00.000Z')]);
+
+    await service.writeExtraction(other, { source: { courseId: '9' }, extraction });
+    expect((await service.read(other))?.shares).toBeUndefined();
+
+    const { mkdir } = await import('fs/promises');
+    await mkdir(target);
+    await service.writeExtraction(target, { source: { courseId: '1', sessionId: '2' }, extraction });
+    expect((await service.read(target))?.shares?.map((s) => s.id)).toEqual(['old']);
+    await service.writeExtraction(target, { source: { courseId: '1', sessionId: '2' }, extraction });
+    expect((await service.read(target))?.shares).toHaveLength(1);
+  });
+});

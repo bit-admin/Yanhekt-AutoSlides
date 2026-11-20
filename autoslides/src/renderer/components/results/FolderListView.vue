@@ -146,6 +146,20 @@
                 <span class="count-value">{{ entry.folder.removedCount }}</span>
                 <span class="count-label">{{ $t('trash.removed') }}</span>
               </span>
+              <!-- Drive: an upload in progress, else the slides still on Drive as they are. -->
+              <template v-if="uploadRow(entry.folder)">
+                <span class="folder-count-separator">/</span>
+                <span class="folder-count-text">
+                  <span class="count-label">{{ uploadLabel(entry.folder) }}</span>
+                </span>
+              </template>
+              <template v-else-if="entry.folder.drive">
+                <span class="folder-count-separator">/</span>
+                <span class="folder-count-text" :title="entry.folder.drive.changed ? $t('drive.changedHint', { count: entry.folder.drive.changed }) : undefined">
+                  <span class="count-value">{{ entry.folder.drive.uploaded }}</span>
+                  <span class="count-label">{{ $t('drive.uploadedCount') }}</span>
+                </span>
+              </template>
             </div>
           </div>
         </div>
@@ -167,6 +181,8 @@
 
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { DriveUploads } from '@shared/services/driveUploadQueue'
 import {
   getCourseId,
   getCourseKey,
@@ -324,6 +340,21 @@ function setFolderItemRef(name: string, el: HTMLButtonElement | null) {
 defineExpose({
   getFolderEl: (name: string): HTMLButtonElement | null => folderItemRefs.get(name) ?? null,
 })
+
+const { t: tDrive } = useI18n()
+
+/** The folder's Drive upload while it is queued or running. */
+function uploadRow(folder: { path?: string }) {
+  if (!folder.path || !DriveUploads.isBusy(folder.path)) return null
+  return DriveUploads.rowOf(folder.path) ?? null
+}
+
+function uploadLabel(folder: { path?: string }): string {
+  const row = uploadRow(folder)
+  if (!row) return ''
+  if (row.status === 'queued' || row.status === 'checking') return tDrive('drive.uploadWaiting')
+  return tDrive('drive.uploadingCount', { done: row.done, total: row.total })
+}
 </script>
 
 <style scoped>

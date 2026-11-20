@@ -32,6 +32,8 @@ import type { TrayService } from '@main/platform/trayService';
 import type { PdfService } from '@main/export/pdfService';
 import type { SlideExtractionService } from '@main/extraction/slideExtractionService';
 import type { SlideMetadataService } from '@main/extraction/slideMetadataService';
+import type { DriveService } from '@main/extraction/driveService';
+import type { LectureOutputs } from '@main/extraction/lectureOutputs';
 import type { SlideTimelineService } from '@main/extraction/slideTimelineService';
 import type { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
@@ -99,6 +101,10 @@ export interface IpcServices {
   /** Developer-mode Yanhekt catalog file in the log folder. */
   yanhektCatalogStore: YanhektCatalogStore;
   shareService: ShareService;
+  /** Drive uploads and share records (metadata.json version 2). */
+  driveService: DriveService;
+  /** What a lecture already has in the output folder (issue #45). */
+  lectureOutputs: LectureOutputs;
   obsidianNotesService: ObsidianNotesService;
   notionNotesService: NotionNotesService;
   cliInstallService: CliInstallService;

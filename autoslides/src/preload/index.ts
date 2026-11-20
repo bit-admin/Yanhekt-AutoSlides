@@ -14,6 +14,7 @@ import { cli } from './cli';
 import { deepLink } from './deepLink';
 import { cloudNotes, notionNotes, obsidianNotes } from './notes';
 import { lectures } from './lectures';
+import { drive, lectureOutputs } from './drive';
 
 const electronAPI: ElectronAPI = {
   // Demo mode flag: set by `npm run demo` (DEMO_MODE=1). The main process
@@ -60,6 +61,8 @@ const electronAPI: ElectronAPI = {
   obsidianNotes,
   notionNotes,
   lectures,
+  drive,
+  lectureOutputs,
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

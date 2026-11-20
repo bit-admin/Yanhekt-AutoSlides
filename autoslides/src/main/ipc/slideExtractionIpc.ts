@@ -61,6 +61,8 @@ export function registerSlideExtractionIpcHandlers(services: IpcServices): void 
       } catch (timelineError) {
         log.warn('Timeline update after trash failed:', timelineError);
       }
+      // Drive records follow the file (the uploaded image itself stays public).
+      await services.slideMetadataService.markDriveRemoved(outputPath, [filename], true);
       return { success: true };
     } catch (error) {
       log.error('Failed to move slide to in-app trash:', error);

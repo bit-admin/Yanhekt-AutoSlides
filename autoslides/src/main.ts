@@ -1,6 +1,6 @@
 // Must stay first: see the file.
 import '@main/cli/earlyDockHide';
-import { app, BrowserWindow, Menu, session } from 'electron';
+import { app, BrowserWindow, Menu, session, shell } from 'electron';
 import { installLocalAccessHeader } from '@main/video/videoProxy/localAccess';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -59,6 +59,8 @@ import { Yanhe2DownloadService } from '@main/video/yanhe2DownloadService';
 import { Yanhe2CaptionSyncService } from '@main/video/yanhe2CaptionSyncService';
 import { slideMetadataService } from '@main/extraction/slideMetadataService';
 import { slideTimelineService } from '@main/extraction/slideTimelineService';
+import { DriveService } from '@main/extraction/driveService';
+import { LectureOutputs } from '@main/extraction/lectureOutputs';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
 import { createSettingsWriter, outputFolderWorkFrom } from '@main/ipc/settingsWriter';
@@ -487,6 +489,12 @@ const shareService = new ShareService(configService, apiTransport, async (course
   const token = configService.getAuthToken();
   return token ? apiClient.getLectureTitles(courseId, sessionId, token) : null;
 });
+const driveService = new DriveService(shareService, slideMetadataService, slideTimelineService, () => !!configService.getAuthToken());
+const lectureOutputs = new LectureOutputs({
+  metadata: slideMetadataService,
+  removeFolders: (names, outputDir) => slideExtractionService.removeFolders(names, outputDir),
+  trashFile: (filePath) => shell.trashItem(filePath),
+});
 const obsidianNotesService = new ObsidianNotesService(configService);
 const notionNotesService = new NotionNotesService(configService);
 const cliInstallService = new CliInstallService();
@@ -639,6 +647,8 @@ if (!cliRun) registerAllIpcHandlers({
   cacheManagementService,
   yanhektCatalogStore,
   shareService,
+  driveService,
+  lectureOutputs,
   obsidianNotesService,
   notionNotesService,
   cliInstallService,

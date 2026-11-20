@@ -1197,6 +1197,25 @@ export interface ElectronAPI {
   };
 
   /** Share uses the historical cloudNotes namespace. */
+  /** Drive (2026-11-20): uploads to Yanhekt's public image host and share records. */
+  drive: {
+    folders: () => Promise<import('@common/driveStatus').DriveResult<import('@common/driveStatus').DriveFolderSummary[]>>;
+    folder: (folderPath: string) => Promise<import('@common/driveStatus').DriveResult<import('@common/driveStatus').DriveFolderSummary>>;
+    /** Resolves when the job ends; progress on `onProgress`. */
+    upload: (folderPath: string, jobId: string) => Promise<import('@common/driveStatus').DriveResult<import('@common/driveStatus').DriveUploadProgress>>;
+    cancel: (jobId: string) => Promise<void>;
+    createShare: (folderPath: string, opts: { timeline: boolean; shorten: boolean }) => Promise<import('@common/driveStatus').DriveResult<import('@common/sidecars/metadata').SlideShareRecord>>;
+    /** After Clone from Share Link: metadata.json (`extractor: 'share'`) and upload records for the slides it downloaded. */
+    recordClone: (folderPath: string, input: { source: import('@common/sidecars/metadata').SlideMetadataSource; slides: Array<{ filename: string; url: string }> }) => Promise<import('@common/driveStatus').DriveResult<null>>;
+    shortenShare: (folderPath: string, id: string) => Promise<import('@common/driveStatus').DriveResult<import('@common/sidecars/metadata').SlideShareRecord>>;
+    removeShare: (folderPath: string, id: string) => Promise<import('@common/driveStatus').DriveResult<null>>;
+    onProgress: (callback: (progress: import('@common/driveStatus').DriveUploadProgress) => void) => () => void;
+  };
+  /** What a lecture already has in the output folder, and moving it aside for a fresh run (issue #45). */
+  lectureOutputs: {
+    probe: (queries: import('@common/lectureOutputs').LectureOutputQuery[]) => Promise<import('@common/lectureOutputs').LectureOutputState[]>;
+    retire: (target: { slidesFolders?: string[]; videoFiles?: string[] }) => Promise<{ removed: number; failed: number }>;
+  };
   cloudNotes: {
     uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
     uploadImageFromPath: (filePath: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;

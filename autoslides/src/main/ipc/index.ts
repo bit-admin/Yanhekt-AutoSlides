@@ -22,6 +22,7 @@ import { registerAppIpcHandlers } from './appIpc';
 import { registerWebCaptureIpcHandlers } from './webCaptureIpc';
 import { registerYuketangIpcHandlers } from './yuketangIpc';
 import { registerShareIpcHandlers } from './shareIpc';
+import { registerDriveIpcHandlers } from './driveIpc';
 import { registerTrashIpcHandlers } from './trashIpc';
 import { registerCropIpcHandlers } from './cropIpc';
 import { registerSlideMetadataIpcHandlers } from './slideMetadataIpc';
@@ -63,6 +64,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerWebCaptureIpcHandlers();
   registerYuketangIpcHandlers(services);
   registerShareIpcHandlers(services);
+  registerDriveIpcHandlers(services);
   registerTrashIpcHandlers(services);
   registerCropIpcHandlers(services);
   registerSlideMetadataIpcHandlers(services);

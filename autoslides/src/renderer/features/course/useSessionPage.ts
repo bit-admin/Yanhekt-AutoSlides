@@ -4,6 +4,16 @@ import { tokenManager } from '@shared/services/authService'
 import { snapshotSession, type SessionSnapshot } from '@shared/services/sessionSnapshot'
 import { DownloadService, type DownloadItem, type DownloadQueueAddResult } from '@shared/services/downloadService'
 import { TaskQueue, type TaskQueueAddResult } from '@shared/services/taskQueueService'
+import {
+  appGateDeps,
+  downloadFileOf,
+  gateMany,
+  gateOne,
+  keepExistingVideo,
+  type EnqueueMode,
+  type GateLecture,
+  type GateManyResult,
+} from '@shared/services/lectureOutputGate'
 import { lectureLabel } from '@common/lectureNaming'
 import type { Course } from './useCourseList'
 import { lookupCourseById, needsListHydration } from './lookupCourseById'
@@ -55,15 +65,15 @@ export interface UseSessionPageReturn {
   loadCourseSessions: () => Promise<void>
 
   // Session actions
-  addToQueue: (session: Session) => void
-  downloadCamera: (session: Session) => void
-  downloadScreen: (session: Session) => void
+  addToQueue: (session: Session) => Promise<void>
+  downloadCamera: (session: Session) => Promise<void>
+  downloadScreen: (session: Session) => Promise<void>
   downloadAudio: (session: Session) => Promise<void>
 
   // Batch actions
-  addAllToQueue: () => void
-  downloadAllCamera: () => void
-  downloadAllScreen: () => void
+  addAllToQueue: () => Promise<void>
+  downloadAllCamera: () => Promise<void>
+  downloadAllScreen: () => Promise<void>
   downloadAllAudio: () => Promise<void>
 
   // Formatting utilities
@@ -117,13 +127,20 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     snapshotSession(session, courseDetails.value)
 
   // Helper: Add session to download queue
-  const addSessionToDownload = (session: Session, videoType: DownloadItem['videoType']): DownloadQueueAddResult => {
+  const downloadNameOf = (session: Session, videoType: DownloadItem['videoType']): string =>
+    `${videoType}_${lectureLabel(course.value?.title, session.title)}`
+
+  const addSessionToDownload = (
+    session: Session,
+    videoType: DownloadItem['videoType'],
+    mode: EnqueueMode = 'download',
+  ): DownloadQueueAddResult => {
     // `name` stays the raw human-readable label — it is sanitized once, later,
     // by buildDownloadFileName (sanitizeDownloadName, which differs from
     // sanitizeFileName on path separators). The ids ride alongside so that
     // helper can disambiguate the .mp4 path at dispatch time.
     return DownloadService.addToQueue({
-      name: `${videoType}_${lectureLabel(course.value?.title, session.title)}`,
+      name: downloadNameOf(session, videoType),
       courseTitle: course.value?.title || t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id.toString(),
@@ -132,8 +149,36 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       courseNumber: courseDetails.value?.number,
       videoType,
       session: snapshotOf(session),
-    })
+    }, mode === 'existing' ? keepExistingVideo : undefined)
   }
+
+  // Issue #45: what each session already has decides whether it is queued.
+  const lectureOf = (session: Session, videoType?: 'camera' | 'screen' | 'audio'): GateLecture => {
+    const sessionId = session.session_id.toString()
+    return {
+      key: sessionId,
+      courseId: course.value?.id != null ? String(course.value.id) : undefined,
+      sessionId,
+      videoFile: videoType
+        ? downloadFileOf({ name: downloadNameOf(session, videoType), courseId: course.value?.id, sessionId }, videoType)
+        : undefined,
+    }
+  }
+  const sessionByKey = (lecture: GateLecture): Session | undefined =>
+    sessions.value.find((s) => s.session_id.toString() === lecture.key)
+
+  const downloadGate = (videoType: 'camera' | 'screen' | 'audio') =>
+    appGateDeps<DownloadQueueAddResult>(t, (lecture, mode) => {
+      const session = sessionByKey(lecture)
+      if (!session) throw new Error(`Session ${lecture.key} is not on this page`)
+      return addSessionToDownload(session, videoType, mode)
+    })
+  const taskGate = () =>
+    appGateDeps<TaskQueueAddResult>(t, (lecture) => {
+      const session = sessionByKey(lecture)
+      if (!session) throw new Error(`Session ${lecture.key} is not on this page`)
+      return addSessionToTask(session)
+    })
 
   // Helper: Add session to task queue
   const addSessionToTask = (session: Session): TaskQueueAddResult => {
@@ -246,8 +291,9 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   }
 
   // Session actions
-  const addToQueue = (session: Session): void => {
-    const result = addSessionToTask(session)
+  const addToQueue = async (session: Session): Promise<void> => {
+    const result = await gateOne(taskGate(), 'task', lectureOf(session))
+    if (!result) return
     if (!result.added) {
       notify(t('sessions.alreadyInTaskQueue'))
     } else {
@@ -255,8 +301,9 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     }
   }
 
-  const downloadCamera = (session: Session): void => {
-    const result = addSessionToDownload(session, 'camera')
+  const downloadCamera = async (session: Session): Promise<void> => {
+    const result = await gateOne(downloadGate('camera'), 'camera', lectureOf(session, 'camera'))
+    if (!result) return
     if (!result.added) {
       notify(t('sessions.alreadyInDownloadQueue'))
     } else {
@@ -264,8 +311,9 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     }
   }
 
-  const downloadScreen = (session: Session): void => {
-    const result = addSessionToDownload(session, 'screen')
+  const downloadScreen = async (session: Session): Promise<void> => {
+    const result = await gateOne(downloadGate('screen'), 'screen', lectureOf(session, 'screen'))
+    if (!result) return
     if (!result.added) {
       notify(t('sessions.alreadyInDownloadQueueScreen'))
     } else {
@@ -290,7 +338,8 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       return
     }
 
-    const result = addSessionToDownload(session, 'audio')
+    const result = await gateOne(downloadGate('audio'), 'audio', lectureOf(session, 'audio'))
+    if (!result) return
     if (!result.added) {
       notify(t('sessions.alreadyInDownloadQueueAudio'))
     } else {
@@ -298,50 +347,49 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     }
   }
 
-  // Batch actions
-  const addAllToQueue = (): void => {
-    let addedCount = 0
-    sessions.value.forEach(session => {
-      const result = addSessionToTask(session)
-      if (result.added) addedCount++
-    })
+  // Batch actions. One summary at the end; already-done sessions can be
+  // redone from it (issue #45).
+  const batchSummary = (addedKey: string, allKey: string) => (r: GateManyResult) => ({
+    title: t('lectureOutputs.batchTitle'),
+    message: [
+      r.added > 0 ? t(addedKey, { count: r.added }) : r.queued > 0 ? t(allKey) : '',
+      t('lectureOutputs.skippedDone', { count: r.skipped }),
+    ].filter(Boolean).join('\n'),
+  })
 
-    if (addedCount > 0) {
-      onSwitchToTask()
-      notify(t('sessions.addedToTaskQueue', { count: addedCount }))
-    } else {
-      notify(t('sessions.allInTaskQueue'))
+  const finishBatch = (
+    r: GateManyResult,
+    addedKey: string,
+    allKey: string,
+    switchTo: () => void,
+  ): void => {
+    if (r.added + r.redone > 0) switchTo()
+    if (r.skipped > 0) {
+      // The gate already showed its summary; only failures to move old outputs are new.
+      if (r.failed > 0) notify(t('lectureOutputs.retireFailed', { count: r.failed }))
+      return
     }
+    if (r.failed > 0) notify(t('lectureOutputs.retireFailed', { count: r.failed }))
+    else if (r.added > 0) notify(t(addedKey, { count: r.added }))
+    else if (r.redone === 0) notify(t(allKey))
   }
 
-  const downloadAllCamera = (): void => {
-    let addedCount = 0
-    sessions.value.forEach(session => {
-      const result = addSessionToDownload(session, 'camera')
-      if (result.added) addedCount++
-    })
-
-    if (addedCount > 0) {
-      onSwitchToDownload()
-      notify(t('sessions.addedToDownloadQueue', { count: addedCount }))
-    } else {
-      notify(t('sessions.allInDownloadQueue'))
-    }
+  const addAllToQueue = async (): Promise<void> => {
+    const keys = ['sessions.addedToTaskQueue', 'sessions.allInTaskQueue'] as const
+    const r = await gateMany(taskGate(), 'task', sessions.value.map((s) => lectureOf(s)), batchSummary(...keys))
+    finishBatch(r, ...keys, () => onSwitchToTask())
   }
 
-  const downloadAllScreen = (): void => {
-    let addedCount = 0
-    sessions.value.forEach(session => {
-      const result = addSessionToDownload(session, 'screen')
-      if (result.added) addedCount++
-    })
+  const downloadAllCamera = async (): Promise<void> => {
+    const keys = ['sessions.addedToDownloadQueue', 'sessions.allInDownloadQueue'] as const
+    const r = await gateMany(downloadGate('camera'), 'camera', sessions.value.map((s) => lectureOf(s, 'camera')), batchSummary(...keys))
+    finishBatch(r, ...keys, () => onSwitchToDownload())
+  }
 
-    if (addedCount > 0) {
-      onSwitchToDownload()
-      notify(t('sessions.addedToDownloadQueueScreen', { count: addedCount }))
-    } else {
-      notify(t('sessions.allInDownloadQueueScreen'))
-    }
+  const downloadAllScreen = async (): Promise<void> => {
+    const keys = ['sessions.addedToDownloadQueueScreen', 'sessions.allInDownloadQueueScreen'] as const
+    const r = await gateMany(downloadGate('screen'), 'screen', sessions.value.map((s) => lectureOf(s, 'screen')), batchSummary(...keys))
+    finishBatch(r, ...keys, () => onSwitchToDownload())
   }
 
   /**
@@ -374,18 +422,9 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       return
     }
 
-    let addedCount = 0
-    withAudio.forEach(session => {
-      const result = addSessionToDownload(session, 'audio')
-      if (result.added) addedCount++
-    })
-
-    if (addedCount > 0) {
-      onSwitchToDownload()
-      notify(t('sessions.addedToDownloadQueueAudio', { count: addedCount }))
-    } else {
-      notify(t('sessions.allInDownloadQueueAudio'))
-    }
+    const keys = ['sessions.addedToDownloadQueueAudio', 'sessions.allInDownloadQueueAudio'] as const
+    const r = await gateMany(downloadGate('audio'), 'audio', withAudio.map((s) => lectureOf(s, 'audio')), batchSummary(...keys))
+    finishBatch(r, ...keys, () => onSwitchToDownload())
   }
 
   // Formatting utilities

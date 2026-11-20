@@ -24,6 +24,9 @@ import type { IntranetApiTransport } from './intranetApiTransport';
 const log = createLogger('ShareService');
 const UPLOAD_TIMEOUT_MS = 120_000;
 
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const isPng = (bytes: Buffer): boolean => bytes.subarray(0, 8).equals(PNG_SIGNATURE);
+
 /** Share uploads require the active Yanhekt account; public share links do not. */
 export class ShareAuthError extends Error {
   constructor() {
@@ -98,7 +101,7 @@ export class ShareService {
    * Upload an image to the public MinIO `notes` bucket; returns the permanent
    * public URL ({host}{path}). Same file hashes deterministically to the same URL.
    */
-  async uploadImage(bytes: ArrayBuffer, filename: string, mime: string): Promise<UploadedImage> {
+  async uploadImage(bytes: ArrayBuffer | Uint8Array, filename: string, mime: string): Promise<UploadedImage> {
     return this.uploadBytes(bytes, filename, mime);
   }
 
@@ -224,7 +227,9 @@ export class ShareService {
     }
     const raw = Buffer.from(await res.arrayBuffer());
     let out: Buffer = raw;
-    if (sharpService.isAvailable()) {
+    // A PNG is kept byte for byte: its MD5 is then the one in its URL, which is
+    // what lets the cloned folder record the slide as already on Drive.
+    if (!isPng(raw) && sharpService.isAvailable()) {
       const sharp = sharpService.getSharp();
       if (sharp) out = await sharp(raw).png().toBuffer();
     }

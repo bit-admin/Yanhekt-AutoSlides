@@ -4,6 +4,7 @@ import { DownloadService } from '@shared/services/downloadService'
 import { PostProcessingService } from '@shared/services/postProcessingService'
 import { TaskQueue } from '@shared/services/taskQueueService'
 import { SlideVideoQueue } from '@shared/services/slideVideoQueue'
+import { DriveUploads } from '@shared/services/driveUploadQueue'
 import { slideExtractionManager } from '@shared/processing/manager'
 
 const UNFINISHED_EXTRACTION = new Set<DownloadItem['extractionStatus']>(['pending', 'extracting', 'normalizing', 'post_processing'])
@@ -27,5 +28,6 @@ export function countOutputFolderWork(): OutputFolderWork {
     tasks: TaskQueue.tasks.filter((task) => task.status === 'queued' || task.status === 'in_progress').length,
     postProcessing: PostProcessingService.jobs.filter((job) => job.status === 'queued' || job.status === 'processing').length,
     slideVideos: SlideVideoQueue.pendingCount.value,
+    driveUploads: DriveUploads.pendingCount.value,
   }
 }

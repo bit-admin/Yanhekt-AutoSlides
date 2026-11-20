@@ -1,6 +1,6 @@
 # Retired: Electron Drive and Yanhekt Notes
 
-The desktop Drive workspace is a placeholder while it is being rebuilt. The old editor and sync depended on Yanhekt accepting note content writes. On 2026-11-20, a direct check reproduced `12101114` on `PUT /v1/note/content` for both a plain paragraph and an image block. Neither write persisted. Note reads and a repeat upload of an existing image worked. Nothing in the retirement deletes existing Yanhekt notes or groups.
+The desktop Drive workspace was rebuilt on 2026-11-20 as image upload and sharing (no notes); see `docs/architecture.md`. The old editor and sync depended on Yanhekt accepting note content writes. On 2026-11-20, a direct check reproduced `12101114` on `PUT /v1/note/content` for both a plain paragraph and an image block. Neither write persisted. Note reads and a repeat upload of an existing image worked. Nothing in the retirement deletes existing Yanhekt notes or groups.
 
 ## What is preserved here
 
@@ -19,7 +19,7 @@ The desktop Drive workspace is a placeholder while it is being rebuilt. The old 
 ## What still runs
 
 - Desktop keeps the `cloud-notes` navigation ID for Drive. Obsidian and Notion Watch Notes stay in **Settings → Add-ons**. An old Yanhekt opt-in is switched **off**, not redirected to another provider; existing Obsidian and Notion settings are preserved.
-- Share does not require a note document. The live desktop implementation is [`ShareService`](../../autoslides/src/main/platform/shareService.ts) (authenticated MinIO upload, short links, link resolution and local folder reconstruction) and [`buildSlideShareLink`](../../autoslides/src/shared/shareCreation.ts) (v2/v3 encoding from uploaded images). `window.electronAPI.cloudNotes` is the historical name of the **Share-only** bridge. It no longer exposes note or group operations. There is no new link-creation UI yet; **Lectures → Clone from Share Link** still accepts existing links with a timeline. The existing embed-timeline preference can be edited under **Settings → Add-ons → Drive → Share Timeline** for future share creation.
+- Share does not require a note document. The live desktop implementation is [`ShareService`](../../autoslides/src/main/platform/shareService.ts) (authenticated MinIO upload, short links, link resolution and local folder reconstruction) and [`buildSlideShareLink`](../../autoslides/src/shared/shareCreation.ts) (v2/v3 encoding from uploaded images). `window.electronAPI.cloudNotes` is the historical name of the **Share-only** bridge. It no longer exposes note or group operations. The new Drive page makes links from uploaded folders (Create Share Link) and opens any link in its Viewer; **Lectures → Clone from Share Link** still accepts links with a timeline. **Settings → Add-ons → Drive → Share Timeline** is the default for the Create Share Link dialog's timeline checkbox.
 - Web Notes and the public Share viewer are separate packages. They were not retired as part of this Electron change.
 
 ## If Drive returns

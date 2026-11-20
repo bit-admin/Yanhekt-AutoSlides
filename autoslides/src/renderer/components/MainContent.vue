@@ -51,9 +51,13 @@
           <ResultsWindow />
         </div>
 
-        <!-- Keep the Drive workspace in place while it is being rebuilt. -->
-        <div v-if="activeNav === 'cloud-notes'" class="mode-container" data-mode="cloud-notes">
-          <EmptySetState :title="t('navigation.cloudNotes')" :hint="t('cloudNotes.rebuilding')" />
+        <!-- Drive (Workspace page — uploads, share links, share viewer).
+             Lazily mounted; kept mounted so the viewer keeps its link. -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'cloud-notes' }]"
+          data-mode="cloud-notes"
+        >
+          <DrivePage v-if="driveMounted" :active="activeNav === 'cloud-notes'" />
         </div>
 
         <!-- Lectures (Workspace page — local .mp4 library + compress/rename).
@@ -176,8 +180,8 @@ import Yanhe2CurriculumPage from '@renderer/components/yanhe2/Yanhe2CurriculumPa
 import Yanhe2PlaybackPage from '@renderer/components/yanhe2/Yanhe2PlaybackPage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
-import EmptySetState from '@renderer/components/shell/EmptySetState.vue'
 import LecturesPage from '@renderer/components/lectures/LecturesPage.vue'
+import DrivePage from '@renderer/components/drive/DrivePage.vue'
 import DeveloperPage from '@renderer/components/developer/DeveloperPage.vue'
 import WebCaptureTab from '@renderer/components/webCapture/WebCaptureTab.vue'
 import YuketangTab from '@renderer/components/export/YuketangTab.vue'
@@ -204,10 +208,12 @@ const { activeNav, courseOpenRequest, recordedGridResetTick } = navigationStore
 // Lectures mounts lazily; kept mounted so the in-page compress queue strip and
 // list selection survive sidebar navigations away and back.
 const lecturesMounted = ref(false)
+const driveMounted = ref(false)
 watch(
   activeNav,
   (nav) => {
     if (nav === 'lectures') lecturesMounted.value = true
+    if (nav === 'cloud-notes') driveMounted.value = true
   },
   { immediate: true }
 )

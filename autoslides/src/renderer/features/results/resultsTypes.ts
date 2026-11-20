@@ -27,6 +27,8 @@ export interface ResultsFolder {
   removedCount: number
   // Per-folder metadata (recorded extractions only); null/undefined = none.
   metadata?: SlideMetadata | null
+  // Drive counts for the footer; absent when the folder has no upload records.
+  drive?: { uploaded: number; changed: number }
 }
 
 export interface BaselineCrop {

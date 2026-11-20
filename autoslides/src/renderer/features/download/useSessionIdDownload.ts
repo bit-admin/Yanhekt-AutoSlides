@@ -6,7 +6,8 @@ import { ApiClient } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import type { DownloadItem } from '@shared/services/downloadService'
 import { createLogger } from '@shared/utils/logger'
-import { queueSessionDownload } from './queueSessionDownload'
+import { appGateDeps, downloadFileOf, gateOne } from '@shared/services/lectureOutputGate'
+import { queueSessionDownload, sessionDownloadName } from './queueSessionDownload'
 const log = createLogger('SessionIdDownload')
 
 export type SessionIdDownloadType = DownloadItem['videoType']
@@ -71,7 +72,21 @@ export function useSessionIdDownload() {
         return
       }
 
-      const result = queueSessionDownload(info, course.title || t('sessions.unknownCourse'), type)
+      const courseTitle = course.title || t('sessions.unknownCourse')
+      // Issue #45: an already-done lecture asks before running again.
+      const kind = type === 'camera' || type === 'audio' ? type : 'screen'
+      const sessionId = String(session.session_id)
+      const result = await gateOne(
+        appGateDeps(t, (_lecture, mode) => queueSessionDownload(info, courseTitle, type, mode)),
+        kind,
+        {
+          key: sessionId,
+          courseId: course.id != null ? String(course.id) : undefined,
+          sessionId,
+          videoFile: downloadFileOf({ name: sessionDownloadName(courseTitle, session.title, type), courseId: course.id, sessionId }, kind),
+        },
+      )
+      if (!result) return
 
       if (!result.added) {
         notify(type === 'screen'
