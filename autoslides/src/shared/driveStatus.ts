@@ -1,8 +1,8 @@
 // Drive (2026-11-20): slides uploaded to Yanhekt's public image host, recorded
 // per folder in metadata.json `drive.files`. Pure rules shared by main and the
 // renderer: whether a slide's upload record still matches its file, and the
-// per-folder counts the Slides footer and the Drive page show.
-import type { SlideDriveFile, SlideMetadata, SlideShareRecord } from './sidecars/metadata';
+// per-folder counts the Slides page shows.
+import type { SlideDriveFile, SlideMetadata } from './sidecars/metadata';
 
 /** A slide on disk as the Drive rules need it. */
 export interface DriveFileStat {
@@ -62,7 +62,7 @@ export function driveFolderCounts(meta: Pick<SlideMetadata, 'drive'> | null | un
   return { total, uploaded, changed, notUploaded, status, lastUploadAt };
 }
 
-/** One folder as the Drive page lists it. */
+/** One folder's upload state, for the Slides page. */
 export interface DriveFolderSummary {
   name: string;
   path: string;
@@ -74,7 +74,6 @@ export interface DriveFolderSummary {
   courseTitle?: string;
   sessionTitle?: string;
   counts: DriveFolderCounts;
-  shares: SlideShareRecord[];
   /** Folder modified time, for sorting. */
   mtimeMs: number;
 }

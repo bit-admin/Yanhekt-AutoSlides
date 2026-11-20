@@ -178,9 +178,6 @@
     "notionWorkspaceName": {
       "type": "string"
     },
-    "cloudShareEmbedTimeline": {
-      "type": "boolean"
-    },
     "showToolsButton": {
       "type": "boolean"
     },

@@ -2,7 +2,7 @@
 //
 //   npm run screenshots:build   # (re)capture into autoslides/out/screenshots
 //   npm run docs:images         # this script: rename/split/copy → ../docs/images
-//   node scripts/process-docs.mjs --only drive-placeholder   # just that capture
+//   node scripts/process-docs.mjs --only pdfmaker   # just that capture
 //
 // What it does:
 //   - COPY: rename each non-split capture 1:1 into docs/images/ (native window shots
@@ -84,7 +84,6 @@ const COPY = {
   'results-preview': 'results-preview',
   'results-crop': 'results-crop',
   pdfmaker: 'pdfmaker',
-  'drive-placeholder': 'drive-placeholder',
   'tools-webcapture': 'tools-webcapture',
   'tools-yuketang': 'tools-yuketang',
   'advanced-general': 'settings-general',

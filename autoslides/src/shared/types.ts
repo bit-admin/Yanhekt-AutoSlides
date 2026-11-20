@@ -297,9 +297,6 @@ export interface AppConfig {
   // broadcast. The page is picked per lecture in the Notes tab.
   notionConnected: boolean;
   notionWorkspaceName: string;
-  // Stored desktop preference for share links. True embeds a compact v3
-  // slide timeline if one exists; false produces a v2 image-only link.
-  cloudShareEmbedTimeline: boolean;
   // Settings → Add-ons → Tools: show the Tools section in the sidebar. Default off.
   showToolsButton: boolean;
   // Settings → Add-ons → Command Line: let `autoslides` commands drive this app

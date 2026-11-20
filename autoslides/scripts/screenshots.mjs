@@ -2,7 +2,7 @@
 //
 //   npm run package        # once, to produce .vite/ (re-run when app code changes)
 //   npm run screenshots    # drives the unpackaged build in demo mode, writes PNGs
-//   node scripts/screenshots.mjs --only drive-placeholder   # just that view
+//   node scripts/screenshots.mjs --only pdfmaker   # just that view
 //
 // We launch the UNPACKAGED Forge build (local electron + .vite/build/main.cjs):
 // the packaged .app disables the EnableNodeCliInspectArguments / RunAsNode fuses,
@@ -152,7 +152,7 @@ async function main() {
   }
 
   // Navigate the main window to a left-panel Workspace page (slides-review /
-  // cloud-notes) via the demo-only hook, then wait for it to render. These
+  // lectures) via the demo-only hook, then wait for it to render. These
   // pages take over the main window (right panel hidden).
   const gotoWorkspace = async (target, readySelector) => {
     await win.evaluate((t) => window.__demoNavigate?.(t), target)
@@ -580,11 +580,6 @@ async function main() {
     await win.locator('.edit-btn').click()
   })
 
-  await step('drive-placeholder', async () => {
-    await gotoWorkspace('cloud-notes', '[data-mode="cloud-notes"]')
-    await shot('drive-placeholder')
-  })
-
   // Lectures Workspace: library poster wall → course hero → local dual player
   // with the Emby-style slide strip (timeline cues from demo sidecars).
   await step('lectures', async () => {
@@ -755,9 +750,7 @@ ${list}
 | results-preview.png | results-preview.png | G. 放大预览（编辑模式帧） |
 | results-crop.png | results-crop.png | G. 裁剪模式（裁剪框） |
 | pdfmaker.png | pdfmaker.png | H. 导出（幻灯片页面选择模式 + PDF / PPTX 导出栏） |
-| drive-placeholder.png | drive-placeholder.png | 工作区 > 云存储（占位页） |
-| lectures-library.png | drive-placeholder.png | drive-placeholder.png | 工作区 > 云存储（占位页） |
-| lectures-library.png | 讲座库 — 课程海报墙 |
+| lectures-library.png | lectures-library.png | 讲座库 — 课程海报墙 |
 | lectures-list.png | lectures-list.png | 讲座库 — 列表视图 |
 | lectures-course.png | lectures-course.png | 讲座库 — 课程详情 / 分集 |
 | lectures-player.png | lectures-player.png | 讲座库 — 本地双流播放 + 幻灯片章节条 |

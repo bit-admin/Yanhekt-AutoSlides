@@ -231,6 +231,7 @@ export class ConfigService {
       'cloudAutoSyncMode',
       'cloudAutoResyncMode',
       'cloudWatchSyncEnabled',
+      'cloudShareEmbedTimeline',
       'yanhektLiveWorkaround',
       'yanhektCourseSnapshotSearch',
       'courseSnapshotPickerTerms',
@@ -366,7 +367,6 @@ export class ConfigService {
       obsidianAutoCreateNote: this.store.get('obsidianAutoCreateNote') ?? false,
       notionConnected: this.getNotionToken() !== null,
       notionWorkspaceName: this.store.get('notionWorkspaceName') ?? '',
-      cloudShareEmbedTimeline: this.store.get('cloudShareEmbedTimeline') ?? true,
       showToolsButton: this.store.get('showToolsButton') ?? false,
       allowCliControl: this.store.get('allowCliControl') ?? true,
       closeToTray: this.getCloseToTray(),
@@ -426,11 +426,6 @@ export class ConfigService {
     if (patch.provider !== undefined) {
       this.store.set('watchNotesProvider', patch.provider);
     }
-  }
-
-  setCloudShareEmbedTimeline(enabled: boolean): void {
-    if (typeof enabled !== 'boolean') throw new TypeError('Share Timeline must be a boolean');
-    this.store.set('cloudShareEmbedTimeline', enabled);
   }
 
   setShowToolsButton(enabled: boolean): void {

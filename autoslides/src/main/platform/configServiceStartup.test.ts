@@ -69,7 +69,7 @@ describe('ConfigService at launch', () => {
     expect(disk.data.accounts).toMatchObject([{ token: 'c'.repeat(32), displayName: '' }]);
   });
 
-  it('disables a retired Yanhekt watch-notes opt-in without removing the share preference', () => {
+  it('disables a retired Yanhekt watch-notes opt-in and drops retired cloud keys', () => {
     disk.data = {
       watchNotesEnabled: true,
       watchNotesProvider: 'yanhekt',
@@ -79,23 +79,11 @@ describe('ConfigService at launch', () => {
       cloudShareEmbedTimeline: false,
     };
     const config = new ConfigService().getConfig();
-    expect(config).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'obsidian', cloudShareEmbedTimeline: false });
-    for (const key of ['cloudStorageInitializedUsers', 'cloudAutoSyncMode', 'cloudAutoResyncMode']) {
+    expect(config).toMatchObject({ watchNotesEnabled: false, watchNotesProvider: 'obsidian' });
+    for (const key of ['cloudStorageInitializedUsers', 'cloudAutoSyncMode', 'cloudAutoResyncMode', 'cloudShareEmbedTimeline']) {
       expect(config).not.toHaveProperty(key);
       expect(disk.data).not.toHaveProperty(key);
     }
-  });
-
-  it('defaults Share Timeline to on and persists either checkbox value', () => {
-    const service = new ConfigService();
-    expect(service.getConfig().cloudShareEmbedTimeline).toBe(true);
-    service.setCloudShareEmbedTimeline(false);
-    const reopened = new ConfigService();
-    expect(reopened.getConfig().cloudShareEmbedTimeline).toBe(false);
-    expect(() => reopened.setCloudShareEmbedTimeline('true' as unknown as boolean)).toThrow(TypeError);
-    expect(reopened.getConfig().cloudShareEmbedTimeline).toBe(false);
-    reopened.setCloudShareEmbedTimeline(true);
-    expect(new ConfigService().getConfig().cloudShareEmbedTimeline).toBe(true);
   });
 
   it('does not inherit an opt-in from the legacy Yanhekt sync flag', () => {

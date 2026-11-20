@@ -209,7 +209,6 @@ export const defaultConfig: AppConfig = {
   obsidianAutoCreateNote: false,
   notionConnected: false,
   notionWorkspaceName: '',
-  cloudShareEmbedTimeline: true,
   showToolsButton: false,
   allowCliControl: true,
   closeToTray: true,

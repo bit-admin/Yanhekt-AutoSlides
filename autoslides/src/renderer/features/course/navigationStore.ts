@@ -2,11 +2,11 @@ import { ref, computed } from 'vue'
 import { activateTab, tabStore } from './tabStore'
 import type { Course } from './useCourseList'
 
-export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'yanhe2-calendar' | 'yanhe2-curriculum' | 'slides-review' | 'cloud-notes' | 'lectures' | 'developer' | 'webcapture' | 'yuketang' | 'settings'
+export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'yanhe2-calendar' | 'yanhe2-curriculum' | 'slides-review' | 'lectures' | 'developer' | 'webcapture' | 'yuketang' | 'settings'
 
 // Workspace and Tools use the full width beside the left panel. Settings and
 // the browsing pages keep the normal three-panel layout.
-const FULL_WIDTH_TARGETS = new Set<NavTarget>(['slides-review', 'cloud-notes', 'lectures', 'developer', 'webcapture', 'yuketang'])
+const FULL_WIDTH_TARGETS = new Set<NavTarget>(['slides-review', 'lectures', 'developer', 'webcapture', 'yuketang'])
 
 export interface CourseOpenRequest {
   mode: 'live' | 'recorded'

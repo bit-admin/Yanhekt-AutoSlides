@@ -30,10 +30,8 @@ async function setup(withMetadata = true) {
       uploads.push(filename);
       return { url: `https://coss.yanhekt.cn/images/2026/11/${md5Of(new Uint8Array(bytes as ArrayBuffer))}.png` };
     }),
-    shortenShareUrl: vi.fn(async () => ({ url: 'https://share.ruc.edu.kg/v1/s/abc' })),
   };
-  const timelines = { read: vi.fn(async () => null) };
-  const service = new DriveService(uploader as never, metadata, timelines as never, () => true);
+  const service = new DriveService(uploader as never, metadata, () => true);
   return { root, folder, metadata, service, uploads, uploader };
 }
 
@@ -77,21 +75,8 @@ describe('DriveService', () => {
     const { folder, service } = await setup(false);
     expect(await service.uploadFolder(folder, () => {})).toMatchObject({ ok: false, error: 'not-recognised' });
     expect((await service.folderSummary(folder)).recognised).toBe(false);
-    const signedOut = new DriveService({} as never, new SlideMetadataService(), { read: async () => null } as never, () => false);
+    const signedOut = new DriveService({} as never, new SlideMetadataService(), () => false);
     expect(await signedOut.uploadFolder(folder, () => {})).toMatchObject({ ok: false, error: 'sign-in' });
-  });
-
-  it('makes a share link only when every slide is uploaded, and records it', async () => {
-    const { folder, service } = await setup();
-    expect(await service.createShare(folder, { timeline: true, shorten: true })).toMatchObject({ ok: false, error: 'not-uploaded', count: 2 });
-    await service.uploadFolder(folder, () => {});
-    const made = await service.createShare(folder, { timeline: true, shorten: true });
-    expect(made).toMatchObject({ ok: true, data: { shortUrl: 'https://share.ruc.edu.kg/v1/s/abc', files: ['Slide_001.png', 'Slide_002.png'], timeline: false } });
-    if (!made.ok) return;
-    expect(made.data.longUrl).toMatch(/^https:\/\/share\.ruc\.edu\.kg\/v1\/?#/);
-    expect((await service.folderSummary(folder)).shares).toHaveLength(1);
-    await service.removeShare(folder, made.data.id);
-    expect((await service.folderSummary(folder)).shares).toHaveLength(0);
   });
 
   it('records a cloned folder: share extractor, and uploads only for bytes its URL names', async () => {

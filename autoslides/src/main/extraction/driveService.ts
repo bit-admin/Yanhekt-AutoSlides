@@ -1,8 +1,7 @@
 /**
- * Drive (2026-11-20): upload a folder's slides to Yanhekt's public image host
- * and make share links from them. The records live in the folder's
- * metadata.json (version 2, `drive` and `shares`), written only through
- * SlideMetadataService.
+ * Drive (2026-11-20): upload a folder's slides to Yanhekt's public image host.
+ * The records live in the folder's metadata.json (version 2, `drive`), written
+ * only through SlideMetadataService.
  *
  * Facts this relies on (checked 2026-11-20, report in REFERENCE): the image
  * URL is `coss.yanhekt.cn/images/<YYYY>/<M>/<md5 of the uploaded bytes>.png`,
@@ -20,7 +19,6 @@ import { createLogger } from '@main/infra/logger';
 import { readOutputDir } from '@main/infra/outputDir';
 import { expandTilde } from '@main/infra/pathUtils';
 import type { ShareService } from '@main/platform/shareService';
-import { buildSlideShareLink } from '@common/shareCreation';
 import { parseCossImageUrl } from '@common/shareLink';
 import {
   driveFileState,
@@ -30,9 +28,8 @@ import {
   type DriveResult,
   type DriveUploadProgress,
 } from '@common/driveStatus';
-import type { SlideDriveFile, SlideMetadata, SlideShareRecord } from '@common/sidecars/metadata';
+import type { SlideDriveFile, SlideMetadata } from '@common/sidecars/metadata';
 import type { SlideMetadataService } from './slideMetadataService';
-import type { SlideTimelineService } from './slideTimelineService';
 
 const log = createLogger('Drive');
 
@@ -45,12 +42,11 @@ export function md5Of(bytes: Uint8Array): string {
   return createHash('md5').update(bytes).digest('hex');
 }
 
-type Uploader = Pick<ShareService, 'uploadImage' | 'shortenShareUrl'>;
+type Uploader = Pick<ShareService, 'uploadImage'>;
 type MetadataStore = Pick<
   SlideMetadataService,
-  'read' | 'writeExtraction' | 'recordDriveUploads' | 'saveShare' | 'removeShare'
+  'read' | 'writeExtraction' | 'recordDriveUploads'
 >;
-type TimelineReader = Pick<SlideTimelineService, 'read'>;
 
 interface UploadJob {
   progress: DriveUploadProgress;
@@ -63,7 +59,6 @@ export class DriveService {
   constructor(
     private readonly uploader: Uploader,
     private readonly metadata: MetadataStore,
-    private readonly timelines: TimelineReader,
     private readonly signedIn: () => boolean,
   ) {}
 
@@ -108,7 +103,7 @@ export class DriveService {
     return { ...meta, drive: { files: { ...records, ...refreshed } } };
   }
 
-  /** One folder's Drive summary (also used after an upload or share change). */
+  /** One folder's Drive summary (also used after an upload). */
   async folderSummary(folderPath: string): Promise<DriveFolderSummary> {
     const resolved = path.resolve(expandTilde(folderPath));
     const files = await this.slideStats(resolved);
@@ -126,7 +121,6 @@ export class DriveService {
       courseTitle: meta?.source.courseTitle,
       sessionTitle: meta?.source.sessionTitle,
       counts: driveFolderCounts(meta, files),
-      shares: meta?.shares ?? [],
       mtimeMs,
     };
   }
@@ -246,53 +240,6 @@ export class DriveService {
   }
 
   /**
-   * Make a share link from the folder's extracted slides. Every one must be
-   * uploaded and unchanged (`not-uploaded` with the count otherwise), so the
-   * link shows what the folder shows.
-   */
-  async createShare(
-    folderPath: string,
-    opts: { timeline: boolean; shorten: boolean },
-  ): Promise<DriveResult<SlideShareRecord>> {
-    const resolved = path.resolve(expandTilde(folderPath));
-    const meta = await this.metadata.read(resolved, { afterWrites: true });
-    if (!meta) return { ok: false, error: 'not-recognised' };
-    const files = await this.slideStats(resolved);
-    if (files.length === 0) return { ok: false, error: 'nothing-to-share' };
-    const settled = await this.settleChanged(resolved, meta, files);
-    const records = settled.drive?.files ?? {};
-    const missing = files.filter((f) => driveFileState(records[f.name], f) !== 'uploaded');
-    if (missing.length > 0) return { ok: false, error: 'not-uploaded', count: missing.length };
-
-    const timeline = opts.timeline ? await this.timelines.read(resolved, { afterWrites: true }) : null;
-    const identity = { courseId: meta.source.courseId, sessionId: meta.source.sessionId, liveId: meta.source.liveId };
-    const link = buildSlideShareLink(
-      identity,
-      files.map((f) => ({ filename: f.name, url: records[f.name].url })),
-      timeline,
-    );
-    if (!link) return { ok: false, error: 'nothing-to-share' };
-
-    const share: SlideShareRecord = {
-      id: randomUUID(),
-      createdAt: new Date().toISOString(),
-      longUrl: link.longUrl,
-      files: files.map((f) => f.name),
-      timeline: !!timeline,
-    };
-    if (opts.shorten && link.canShorten) {
-      try {
-        share.shortUrl = (await this.uploader.shortenShareUrl(link.fragment)).url;
-      } catch (error) {
-        log.warn('Short link failed; keeping the long link', error instanceof Error ? error.message : error);
-      }
-    }
-    const written = await this.metadata.saveShare(resolved, share);
-    if (written === 'failed' || written === 'blocked') return { ok: false, error: 'failed' };
-    return { ok: true, data: share };
-  }
-
-  /**
    * Record a folder made by Clone from Share Link: metadata.json with
    * `extractor: 'share'` and the link's lecture facts, then an upload record
    * for every slide whose bytes are the ones its URL names (the images are on
@@ -324,28 +271,6 @@ export class DriveService {
     }
     await this.metadata.recordDriveUploads(resolved, records);
     return { ok: true, data: null };
-  }
-
-  /** Get a short link for a share made without one. */
-  async shortenShare(folderPath: string, id: string): Promise<DriveResult<SlideShareRecord>> {
-    const resolved = path.resolve(expandTilde(folderPath));
-    const share = (await this.metadata.read(resolved, { afterWrites: true }))?.shares?.find((s) => s.id === id);
-    if (!share) return { ok: false, error: 'not-found' };
-    if (share.shortUrl) return { ok: true, data: share };
-    const fragment = share.longUrl.split('#')[1] ?? '';
-    try {
-      const next = { ...share, shortUrl: (await this.uploader.shortenShareUrl(fragment)).url };
-      await this.metadata.saveShare(resolved, next);
-      return { ok: true, data: next };
-    } catch (error) {
-      return { ok: false, error: 'failed', message: error instanceof Error ? error.message : String(error) };
-    }
-  }
-
-  /** Take a share off the folder's list. The link keeps working. */
-  async removeShare(folderPath: string, id: string): Promise<DriveResult<null>> {
-    const written = await this.metadata.removeShare(path.resolve(expandTilde(folderPath)), id);
-    return written === 'failed' || written === 'blocked' ? { ok: false, error: 'failed' } : { ok: true, data: null };
   }
 }
 

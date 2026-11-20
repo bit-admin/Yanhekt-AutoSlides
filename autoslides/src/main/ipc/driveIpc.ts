@@ -71,12 +71,6 @@ export function registerDriveIpcHandlers(services: IpcServices): void {
     if (typeof jobId === 'string') driveService.cancel(jobId);
   });
 
-  ipcMain.handle('drive:createShare', (_e, folderPath: string, opts: { timeline?: boolean; shorten?: boolean }) =>
-    inFolder(folderPath, (folder) => driveService.createShare(folder, {
-      timeline: opts?.timeline === true,
-      shorten: opts?.shorten !== false,
-    })));
-
   ipcMain.handle('drive:recordClone', (_e, folderPath: string, input: { source?: Record<string, unknown>; slides?: Array<{ filename?: unknown; url?: unknown }> }) =>
     inFolder(folderPath, (folder) => driveService.recordClone(folder, {
       source: plainSource(input?.source),
@@ -84,12 +78,6 @@ export function registerDriveIpcHandlers(services: IpcServices): void {
         ? input.slides.map((s) => ({ filename: String(s?.filename ?? ''), url: String(s?.url ?? '') }))
         : [],
     })));
-
-  ipcMain.handle('drive:shortenShare', (_e, folderPath: string, id: string) =>
-    inFolder(folderPath, (folder) => driveService.shortenShare(folder, String(id))));
-
-  ipcMain.handle('drive:removeShare', (_e, folderPath: string, id: string) =>
-    inFolder(folderPath, (folder) => driveService.removeShare(folder, String(id))));
 
   ipcMain.handle('lectureOutputs:probe', async (_e, queries: LectureOutputQuery[]) => {
     if (!Array.isArray(queries)) return [];

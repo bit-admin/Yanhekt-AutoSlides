@@ -100,21 +100,6 @@
   </div>
 
   <div class="advanced-setting-section">
-    <h4>{{ $t('navigation.cloudNotes') }}</h4>
-    <div class="setting-item">
-      <div id="share-timeline-description" class="setting-description">
-        {{ $t('advanced.cloudStorage.shareTimelineDescription') }}
-      </div>
-      <div class="prevent-sleep-control">
-        <label class="checkbox-label">
-          <input type="checkbox" v-model="tempCloudShareEmbedTimeline" aria-describedby="share-timeline-description" />
-          {{ $t('advanced.cloudStorage.shareTimelineTitle') }}
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <div class="advanced-setting-section">
     <h4>{{ $t('advanced.addons.toolsTitle') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.addons.toolsDescription') }}</div>
@@ -177,7 +162,6 @@ const {
   tempObsidianVaultIsVault,
   selectObsidianVault,
   notion,
-  tempCloudShareEmbedTimeline,
   tempShowToolsButton,
 } = advanced.addons
 </script>
