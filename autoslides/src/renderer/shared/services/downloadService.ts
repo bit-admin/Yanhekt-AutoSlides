@@ -1,5 +1,6 @@
 import { reactive, ref, watch } from 'vue'
 import { buildDownloadFileName } from './downloadNaming'
+import { downloadRowIsUnfinished } from './downloadRowState'
 import { ExtractionQueue } from './extractionQueueService'
 import { ApiClient } from './apiClient'
 import { tokenManager } from './authService'
@@ -218,9 +219,30 @@ class DownloadServiceClass {
     this.notifyExtractionQueueChange()
   }
 
+  /** Whether this lecture's stream still has a row that will write. */
+  isLectureBusy(sessionId: string, videoType: DownloadItem['videoType']): boolean {
+    return this.items.some(item =>
+      lectureKeyOf(item) === String(sessionId) &&
+      item.videoType === videoType &&
+      downloadRowIsUnfinished(item)
+    )
+  }
+
+  /** Drop this lecture's finished rows, so a requested fresh run can be queued. */
+  dropFinishedLecture(sessionId: string, videoType: DownloadItem['videoType']): void {
+    for (let i = this.items.length - 1; i >= 0; i--) {
+      const item = this.items[i]
+      if (lectureKeyOf(item) !== String(sessionId) || item.videoType !== videoType) continue
+      if (item.status !== 'completed' || downloadRowIsUnfinished(item)) continue
+      this.items.splice(i, 1)
+      this.runners.delete(item.id)
+    }
+  }
+
   clearCompleted(): void {
+    // A finished video whose extraction is waiting or running is not finished.
     const toRemove = this.items.filter(item =>
-      item.status === 'completed' || item.status === 'error'
+      (item.status === 'completed' || item.status === 'error') && !downloadRowIsUnfinished(item)
     )
     toRemove.forEach(item => {
       // Errored/cancelled downloads (cancel maps to 'error') leave orphaned temp
@@ -259,8 +281,14 @@ class DownloadServiceClass {
       this.items.push(item)
     }
 
+    // The extraction the failed download took down comes back with it. One the
+    // student cancelled stays cancelled.
+    const row = this.items.find(entry => entry.id === id)
+    if (row) ExtractionQueue.restoreAfterDownloadRetry(row)
+
     // Process the queue to start the retry if there's capacity
     this.processQueue()
+    this.notifyExtractionQueueChange()
     return true
   }
 

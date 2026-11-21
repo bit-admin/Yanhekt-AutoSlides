@@ -2031,7 +2031,10 @@
     "batchDownloadAgainDetail": "再ダウンロードすると、現在のファイルを先にシステムのゴミ箱へ移動します。",
     "reextractThese": "これらを再抽出",
     "downloadTheseAgain": "これらを再ダウンロード",
-    "retireFailed": "{count} 件はシステムのゴミ箱へ移動できなかったため、やり直していません。"
+    "retireFailed": "{count} 件はシステムのゴミ箱へ移動できなかったため、やり直していません。",
+    "redoFailedTitle": "やり直せませんでした",
+    "redoBusy": "{count} 件はまだキューにあるため、変更していません。",
+    "redoNotQueued": "{count} 件の古い出力はシステムのゴミ箱へ移動しましたが、新しい実行をキューに追加できませんでした。"
   },
   "drive": {
     "uploadToDrive": "スライドを共有",

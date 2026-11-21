@@ -6,6 +6,7 @@ import { DownloadService, type DownloadItem, type DownloadQueueAddResult } from 
 import { TaskQueue, type TaskQueueAddResult } from '@shared/services/taskQueueService'
 import {
   appGateDeps,
+  describeRedoProblems,
   downloadFileOf,
   gateMany,
   gateOne,
@@ -172,12 +173,18 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       const session = sessionByKey(lecture)
       if (!session) throw new Error(`Session ${lecture.key} is not on this page`)
       return addSessionToDownload(session, videoType, mode)
+    }, {
+      isBusy: (lecture) => DownloadService.isLectureBusy(lecture.sessionId, videoType),
+      dropFinished: (lecture) => DownloadService.dropFinishedLecture(lecture.sessionId, videoType),
     })
   const taskGate = () =>
     appGateDeps<TaskQueueAddResult>(t, (lecture) => {
       const session = sessionByKey(lecture)
       if (!session) throw new Error(`Session ${lecture.key} is not on this page`)
       return addSessionToTask(session)
+    }, {
+      isBusy: (lecture) => TaskQueue.isLectureBusy(lecture.sessionId),
+      dropFinished: (lecture) => TaskQueue.dropFinishedLecture(lecture.sessionId),
     })
 
   // Helper: Add session to task queue
@@ -364,13 +371,14 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     switchTo: () => void,
   ): void => {
     if (r.added + r.redone > 0) switchTo()
-    if (r.skipped > 0) {
-      // The gate already showed its summary; only failures to move old outputs are new.
-      if (r.failed > 0) notify(t('lectureOutputs.retireFailed', { count: r.failed }))
+    // The gate's summary covered what was skipped; what went wrong in a redo is new.
+    const problems = describeRedoProblems(t, r)
+    if (problems.length > 0) {
+      notify(problems.join('\n'))
       return
     }
-    if (r.failed > 0) notify(t('lectureOutputs.retireFailed', { count: r.failed }))
-    else if (r.added > 0) notify(t(addedKey, { count: r.added }))
+    if (r.skipped > 0) return
+    if (r.added > 0) notify(t(addedKey, { count: r.added }))
     else if (r.redone === 0) notify(t(allKey))
   }
 

@@ -90,6 +90,13 @@ describe('reduceExtraction', () => {
       })
     })
 
+    it('DOWNLOAD_RETRIED restores only an extraction the download failure cancelled', () => {
+      expect(reduceExtraction('cancelled', { type: 'DOWNLOAD_RETRIED', cancelledByDownload: true }))
+        .toEqual({ status: 'pending', progress: 0, error: '' })
+      expect(reduceExtraction('cancelled', { type: 'DOWNLOAD_RETRIED', cancelledByDownload: false })).toBeNull()
+      expect(reduceExtraction('completed', { type: 'DOWNLOAD_RETRIED', cancelledByDownload: true })).toBeNull()
+    })
+
     it('DOWNLOAD_FAILED is a no-op when not pending', () => {
       expect(reduceExtraction('extracting', { type: 'DOWNLOAD_FAILED', error: 'x' })).toBeNull()
     })

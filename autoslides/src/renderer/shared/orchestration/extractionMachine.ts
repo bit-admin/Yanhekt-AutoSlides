@@ -17,6 +17,7 @@ import type { ExtractionStatus } from '@shared/services/downloadService'
 export type ExtractionEvent =
   | { type: 'MARK_PENDING' }
   | { type: 'DOWNLOAD_FAILED'; error: string }
+  | { type: 'DOWNLOAD_RETRIED'; cancelledByDownload: boolean }
   | { type: 'EXTRACT_STARTED' }
   | { type: 'EXTRACT_PROGRESS'; percent: number }
   | { type: 'EXTRACT_FAILED'; error: string }
@@ -57,7 +58,13 @@ export function reduceExtraction(
   // Terminal immutability — nothing escapes completed / error / cancelled.
   // This is what makes CANCEL "win": once an in-flight stage flips the status
   // to 'cancelled', any later advance event (FINISH, NORMALIZE_STARTED, …) that
-  // lost the race with a clean exit becomes a no-op.
+  // lost the race with a clean exit becomes a no-op. The one way back: retrying
+  // the download whose failure cancelled this extraction (not a student's Cancel).
+  if (event.type === 'DOWNLOAD_RETRIED') {
+    return current === 'cancelled' && event.cancelledByDownload
+      ? { status: 'pending', progress: 0, error: '' }
+      : null
+  }
   if (isTerminalExtraction(current)) return null
 
   switch (event.type) {

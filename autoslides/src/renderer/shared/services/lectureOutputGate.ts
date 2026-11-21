@@ -85,6 +85,16 @@ export interface GateDeps<R extends { added: boolean }> {
   retire: (target: { slidesFolders: string[]; videoFiles: string[] }) => Promise<{ removed: number; failed: number }>
   ask: (options: { title: string; message: string; detail?: string; buttons: string[]; defaultId: number; cancelId: number }) => Promise<number>
   enqueue: (lecture: GateLecture, mode: EnqueueMode) => R
+  /** The queue row this lecture would replace: still running, or finished. */
+  queue: GateQueue
+}
+
+/** What a fresh run needs from the queue it goes into. */
+export interface GateQueue {
+  /** A row for this lecture will still write, so its output must not be moved. */
+  isBusy: (lecture: GateLecture) => boolean
+  /** Remove this lecture's finished rows; they would refuse the new attempt. */
+  dropFinished: (lecture: GateLecture) => void
 }
 
 async function stateOf<R extends { added: boolean }>(deps: GateDeps<R>, lecture: GateLecture): Promise<LectureOutputState | undefined> {
@@ -121,8 +131,36 @@ export async function gateOne<R extends { added: boolean }>(
     cancelId: 0,
   })
   if (answer !== 1) return null
-  return redo(deps, decision.reason, kind, lecture, state)
+  const outcome = await redo(deps, decision.reason, kind, lecture, state)
+  if (outcome.status === 'queued') return outcome.result
+  await deps.ask({
+    title: t('lectureOutputs.redoFailedTitle'),
+    message: t(REDO_PROBLEM[outcome.status], { count: 1 }),
+    buttons: [t('lectureOutputs.ok')],
+    defaultId: 0,
+    cancelId: 0,
+  })
+  return null
 }
+
+type RedoOutcome<R> =
+  | { status: 'queued'; result: R }
+  /** Still in the queue: nothing was moved. */
+  | { status: 'busy' }
+  /** The old output could not be moved, so nothing was queued. */
+  | { status: 'retire-failed' }
+  /** The old output is in the system bin, but the new run was not queued. */
+  | { status: 'not-queued' }
+
+const REDO_PROBLEM = {
+  busy: 'lectureOutputs.redoBusy',
+  'retire-failed': 'lectureOutputs.retireFailed',
+  'not-queued': 'lectureOutputs.redoNotQueued',
+} as const
+
+// A redo holds its lecture from before the move until the new row exists, so
+// a second click cannot move or queue the same output meanwhile.
+const redoing = new Set<string>()
 
 async function redo<R extends { added: boolean }>(
   deps: GateDeps<R>,
@@ -130,11 +168,22 @@ async function redo<R extends { added: boolean }>(
   kind: QueueKind,
   lecture: GateLecture,
   state: LectureOutputState | undefined,
-): Promise<R | null> {
-  const plan = redoPlan(reason, kind, lecture, state)
-  const outcome = await deps.retire(plan.retire)
-  if (outcome.failed > 0) return null
-  return deps.enqueue(lecture, plan.mode)
+): Promise<RedoOutcome<R>> {
+  const slot = `${kind}:${lecture.key}`
+  if (redoing.has(slot) || deps.queue.isBusy(lecture)) return { status: 'busy' }
+  redoing.add(slot)
+  try {
+    const plan = redoPlan(reason, kind, lecture, state)
+    const moved = await deps.retire(plan.retire).catch(() => null)
+    if (!moved || moved.failed > 0) return { status: 'retire-failed' }
+    deps.queue.dropFinished(lecture)
+    const result = deps.enqueue(lecture, plan.mode)
+    return result.added ? { status: 'queued', result } : { status: 'not-queued' }
+  } catch {
+    return { status: 'not-queued' }
+  } finally {
+    redoing.delete(slot)
+  }
 }
 
 export interface GateManyResult {
@@ -147,6 +196,10 @@ export interface GateManyResult {
   redone: number
   /** Could not be moved aside, so not redone. */
   failed: number
+  /** Still in the queue, so left unchanged. */
+  busy: number
+  /** Moved to the system bin, but the new run was not queued. */
+  notQueued: number
 }
 
 /**
@@ -166,7 +219,7 @@ export async function gateMany<R extends { added: boolean }>(
   } catch { /* cannot tell: queue everything as before */ }
   const byKey = new Map(states.map((s) => [s.key, s]))
 
-  const result: GateManyResult = { added: 0, queued: 0, skipped: 0, redone: 0, failed: 0 }
+  const result: GateManyResult = { added: 0, queued: 0, skipped: 0, redone: 0, failed: 0, busy: 0, notQueued: 0 }
   const skipped: Array<{ lecture: GateLecture; reason: 'extracted' | 'downloaded' }> = []
   for (const lecture of lectures) {
     const decision = decideQueue(kind, extracts, byKey.get(lecture.key))
@@ -194,13 +247,12 @@ export async function gateMany<R extends { added: boolean }>(
   if (answer !== 1) return result
 
   for (const { lecture, reason } of skipped) {
-    const added = await redo(deps, reason, kind, lecture, byKey.get(lecture.key))
-    if (added?.added) {
-      result.redone++
-      result.skipped--
-    } else if (!added) {
-      result.failed++
-    }
+    const outcome = await redo(deps, reason, kind, lecture, byKey.get(lecture.key))
+    result.skipped--
+    if (outcome.status === 'queued') result.redone++
+    else if (outcome.status === 'busy') result.busy++
+    else if (outcome.status === 'retire-failed') result.failed++
+    else result.notQueued++
   }
   return result
 }
@@ -218,14 +270,25 @@ export function downloadFileOf(
 /** A download row's runner that keeps the video already on disk (it then extracts as usual). */
 export const keepExistingVideo = async (): Promise<void> => {}
 
+/** Words for the redo outcomes a batch reports after its summary dialog. */
+export function describeRedoProblems(t: Translate, result: GateManyResult): string[] {
+  return [
+    result.failed > 0 ? t(REDO_PROBLEM['retire-failed'], { count: result.failed }) : '',
+    result.busy > 0 ? t(REDO_PROBLEM.busy, { count: result.busy }) : '',
+    result.notQueued > 0 ? t(REDO_PROBLEM['not-queued'], { count: result.notQueued }) : '',
+  ].filter(Boolean)
+}
+
 /** The gate's real dependencies: main for state and the trash, the app dialog for questions. */
 export function appGateDeps<R extends { added: boolean }>(
   t: Translate,
   enqueue: (lecture: GateLecture, mode: EnqueueMode) => R,
+  queue: GateQueue,
 ): GateDeps<R> {
   return {
     t,
     enqueue,
+    queue,
     willAutoExtract: () => ExtractionQueue.willAutoExtract(),
     probe: (lectures) => window.electronAPI.lectureOutputs.probe(lectures.map((l) => ({
       key: String(l.key),

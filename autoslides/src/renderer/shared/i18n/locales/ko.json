@@ -2031,7 +2031,10 @@
     "batchDownloadAgainDetail": "다시 다운로드하면 현재 파일을 먼저 시스템 휴지통으로 옮깁니다.",
     "reextractThese": "이 강의 다시 추출",
     "downloadTheseAgain": "이 강의 다시 다운로드",
-    "retireFailed": "{count}개는 시스템 휴지통으로 옮기지 못해 다시 처리하지 않았습니다."
+    "retireFailed": "{count}개는 시스템 휴지통으로 옮기지 못해 다시 처리하지 않았습니다.",
+    "redoFailedTitle": "다시 처리하지 못했습니다",
+    "redoBusy": "{count}개는 아직 대기열에 있어 변경하지 않았습니다.",
+    "redoNotQueued": "{count}개의 이전 출력은 시스템 휴지통으로 옮겼지만 새 작업을 대기열에 추가하지 못했습니다."
   },
   "drive": {
     "uploadToDrive": "슬라이드 공유",
