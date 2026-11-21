@@ -942,6 +942,7 @@
     "emptyStream": "{stream} has no video on Yanhekt's server. Check whether it plays on the Yanhekt website."
   },
   "sessions": {
+    "courseDetails": "Course Details",
     "pin": "Pin course",
     "unpin": "Unpin",
     "backToCourses": "Back to Courses",
@@ -1485,6 +1486,8 @@
     }
   },
   "searchPage": {
+    "previousPage": "Previous Page",
+    "nextPage": "Next Page",
     "semesterFall": "Fall {year}",
     "semesterSpring": "Spring {year}",
     "termRangeFall": "{range} Fall",
@@ -2070,6 +2073,8 @@
     "redoNotQueued": "{count} lecture's old output is in the system bin, but its new run was not queued. | {count} lectures' old outputs are in the system bin, but their new runs were not queued."
   },
   "drive": {
+    "linkOlder": "Older Version",
+    "linkOlderHint": "A newer link matches this folder as it is now. This link shows the slides from before.",
     "uploadToDrive": "Share Slides",
     "shareSkipped": "Share Slides skips {count} folder with no extracted slides or no metadata. | Share Slides skips {count} folders with no extracted slides or no metadata.",
     "uploadToDriveHint": "Upload the selected folders' slides and make share links",

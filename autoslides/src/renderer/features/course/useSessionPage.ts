@@ -21,6 +21,7 @@ import { lookupCourseById, needsListHydration } from './lookupCourseById'
 import { upgradePinnedCourse } from './pinnedCourses'
 import { createLogger } from '@shared/utils/logger';
 import { localeTag } from '@shared/i18n'
+import { createLatest } from '@shared/utils/latest'
 const log = createLogger('SessionPage');
 
 /** The slice of `Course` the sessions page consumes (a thin/pinned course may carry only this). */
@@ -128,8 +129,12 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     snapshotSession(session, courseDetails.value)
 
   // Helper: Add session to download queue
+  // The canonical title once the course has loaded: a course opened by id alone
+  // has none in `course`, and this becomes the file name and its existing-file check.
+  const canonicalTitle = (): string | undefined => courseDetails.value?.title || undefined
+
   const downloadNameOf = (session: Session, videoType: DownloadItem['videoType']): string =>
-    `${videoType}_${lectureLabel(course.value?.title, session.title)}`
+    `${videoType}_${lectureLabel(canonicalTitle(), session.title)}`
 
   const addSessionToDownload = (
     session: Session,
@@ -142,7 +147,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     // helper can disambiguate the .mp4 path at dispatch time.
     return DownloadService.addToQueue({
       name: downloadNameOf(session, videoType),
-      courseTitle: course.value?.title || t('sessions.unknownCourse'),
+      courseTitle: canonicalTitle() || t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id.toString(),
       courseId: course.value?.id,
@@ -191,8 +196,8 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const addSessionToTask = (session: Session): TaskQueueAddResult => {
     // Display label only — the real folder is named by useSlideExtraction.
     return TaskQueue.addToQueue({
-      name: `slides_${lectureLabel(course.value?.title, session.title)}`,
-      courseTitle: course.value?.title || t('sessions.unknownCourse'),
+      name: `slides_${lectureLabel(canonicalTitle(), session.title)}`,
+      courseTitle: canonicalTitle() || t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id.toString(),
       courseId: course.value?.id || 'unknown',
@@ -214,6 +219,13 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     showCourseDetails.value = !showCourseDetails.value
   }
 
+  const sessionLoads = createLatest()
+  const clearLoaded = (): void => {
+    sessions.value = []
+    courseInfo.value = null
+    fetchedCourseInfo.value = {}
+  }
+
   // Data Loading
   const loadCourseSessions = async (): Promise<void> => {
     if (!course.value) {
@@ -221,13 +233,17 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       return
     }
 
+    // The page shows one account's answer: a newer load or a sign-out drops this one.
+    const current = sessionLoads.begin()
     const token = tokenManager.getToken()
     if (!token) {
+      clearLoaded()
       errorMessage.value = ''
       isLoading.value = false
       return
     }
 
+    clearLoaded()
     isLoading.value = true
     errorMessage.value = ''
 
@@ -241,6 +257,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
         : Promise.resolve(null)
 
       const [response, listCourse] = await Promise.all([infoPromise, listPromise])
+      if (!current()) return
       courseInfo.value = response
       sessions.value = response.videos
 
@@ -283,12 +300,13 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
         participant_count: listCourse?.participant_count,
       })
     } catch (error: unknown) {
+      if (!current()) return
       log.error('Failed to load course sessions:', error)
       const errorMsg = error instanceof Error ? error.message : t('sessions.failedToLoadSessions')
       errorMessage.value = errorMsg
       sessions.value = []
     } finally {
-      isLoading.value = false
+      if (current()) isLoading.value = false
     }
   }
 

@@ -132,7 +132,7 @@ export function useGreeting() {
         const result = selectGreeting({
           lastGreetingId: config.lastGreetingId,
           userOriginalNickname: nickname ?? config.userOriginalNickname ?? '',
-          userDisplayName: nickname ? toDisplayName(nickname) : config.userDisplayName ?? '',
+          userDisplayName: nickname !== undefined ? (nickname && toDisplayName(nickname)) : config.userDisplayName ?? '',
           preferredLanguage
         })
         window.electronAPI.config.setLastGreetingId(result.id)

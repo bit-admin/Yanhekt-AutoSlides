@@ -80,7 +80,7 @@
         />
         <div class="detail-backdrop-scrim" aria-hidden="true" />
 
-        <button type="button" class="detail-back" @click="emit('back-courses')">
+        <button type="button" class="detail-back" :aria-label="$t('lectures.libraryBack')" :title="$t('lectures.libraryBack')" @click="emit('back-courses')">
           <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
             <path d="M10 3L5 8l5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>

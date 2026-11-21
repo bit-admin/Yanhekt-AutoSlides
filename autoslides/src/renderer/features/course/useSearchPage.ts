@@ -61,6 +61,7 @@ const totalPages = ref(1)
 const isLoading = ref(false)
 const errorMessage = ref('')
 const hasSearched = ref(false)
+const resultsStale = ref(false)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 // Only the newest search writes. A search goes stale the moment what is asked
@@ -72,6 +73,8 @@ const searches = createLatest()
 const dropInFlight = () => {
   searches.cancel()
   isLoading.value = false
+  // The rows on screen answer the previous question until the new one lands.
+  resultsStale.value = true
 }
 
 const cancelPendingSearch = () => {
@@ -106,6 +109,7 @@ const executeSearch = async (resetPage = true) => {
   // Not a Yanhekt search: `useYanhe2Search` follows the keyword on its own.
   if (mode.value === 'yanhe2') {
     dropInFlight()
+    resultsStale.value = false
     return
   }
 
@@ -116,6 +120,7 @@ const executeSearch = async (resetPage = true) => {
     results.value = []
     hasSearched.value = false
     isLoading.value = false
+    resultsStale.value = false
     return
   }
 
@@ -137,7 +142,10 @@ const executeSearch = async (resetPage = true) => {
     if (picked && (isEarlierTerm(picked.id) || configStore.currentTermSearchSource !== 'yanhekt')) {
       await searchIndex(termKeyOfOption(picked), token, current)
       // An answer for an account that has since changed ends its own spinner.
-      if (newest()) isLoading.value = false
+      if (newest()) {
+        isLoading.value = false
+        resultsStale.value = false
+      }
       return
     }
   }
@@ -213,7 +221,10 @@ const searchIndex = async (term: string, token: string, current: () => boolean) 
     errorMessage.value = (error instanceof Error && error.message) || 'Failed to search courses'
     results.value = []
   } finally {
-    if (current()) isLoading.value = false
+    if (current()) {
+      isLoading.value = false
+      resultsStale.value = false
+    }
   }
 }
 
@@ -225,6 +236,7 @@ watch(() => [configStore.currentTermSearchSource, configStore.earlierTermSearchS
 // Search-as-you-type: debounce while the Search page is active.
 watch(keyword, () => {
   dropInFlight()
+  currentPage.value = 1
   if (navigationStore.activeNav.value !== 'search') return
   cancelPendingSearch()
   debounceTimer = setTimeout(() => {
@@ -234,6 +246,7 @@ watch(keyword, () => {
 })
 
 const goToPage = async (page: number) => {
+  if (resultsStale.value) return
   if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
     currentPage.value = page
     await executeSearch(false)
@@ -274,6 +287,11 @@ const setSemesters = (ids: number[]) => {
 // does nothing: tabbing past the field must not leave the page.
 const handleSidebarFocus = async () => {
   navigationStore.navigate('search')
+  // Text typed on another page has not been searched yet.
+  if (resultsStale.value && hasSearched.value) {
+    await executeSearch()
+    return
+  }
   if (!hasSearched.value && !isLoading.value) {
     if (mode.value === 'recorded' && !semesterInitialized.value) {
       await selectLatestSemester()
@@ -317,6 +335,7 @@ export function useSearchPage() {
     currentPage,
     totalPages,
     isLoading,
+    resultsStale,
     errorMessage,
     hasSearched,
     executeSearch,

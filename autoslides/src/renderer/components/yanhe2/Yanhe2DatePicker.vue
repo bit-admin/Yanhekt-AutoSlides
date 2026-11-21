@@ -1,12 +1,14 @@
 <template>
   <div ref="rootRef" class="date-picker">
     <button
+      ref="triggerRef"
       type="button"
       class="date-trigger"
       :class="{ open: isOpen }"
-      :aria-label="$t('yanhe2Calendar.pickDate')"
+      :aria-label="`${$t('yanhe2Calendar.pickDate')}: ${fullDate(modelValue)}`"
       :aria-expanded="isOpen"
       @click="toggle"
+      @keydown.esc="closeToTrigger"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -20,7 +22,7 @@
       </svg>
     </button>
 
-    <div v-if="isOpen" class="date-menu">
+    <div v-if="isOpen" class="date-menu" @keydown.esc.stop="closeToTrigger">
       <div class="month-head">
         <button type="button" class="btn btn--icon" :title="$t('yanhe2Calendar.previousMonth')" :aria-label="$t('yanhe2Calendar.previousMonth')" @click="stepMonth(-1)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15,18 9,12 15,6"/></svg>
@@ -30,7 +32,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9,18 15,12 9,6"/></svg>
         </button>
       </div>
-      <div class="month-grid">
+      <div ref="gridRef" class="month-grid" @keydown="onGridKeydown">
         <span v-for="name in weekdayNames" :key="name" class="weekday">{{ name }}</span>
         <button
           v-for="cell in cells"
@@ -43,6 +45,9 @@
             'in-week': week && cell.inWeek,
           }]"
           :aria-pressed="week ? cell.inWeek : cell.date === modelValue"
+          :aria-label="fullDate(cell.date)"
+          :data-date="cell.date"
+          :tabindex="cell.date === focusDate ? 0 : -1"
           @click="choose(cell.date)"
         >
           {{ cell.day }}
@@ -58,7 +63,7 @@
 // popup, which follows none of our tokens). Picking a day, the grid's rows start on
 // Sunday. With `week`, the model is the Monday that starts the school week, so
 // the rows start on Monday too and the chosen week is one whole row.
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, nextTick } from 'vue'
 import { localeTag } from '@shared/i18n'
 import { shiftDate, weekStartOf } from '@common/yanhe2Calendar'
 
@@ -84,9 +89,38 @@ const month = ref(`${props.modelValue.slice(0, 7)}-01`)
 
 const utc = (date: string) => new Date(`${date}T00:00:00Z`)
 
+const triggerRef = ref<HTMLButtonElement | null>(null)
+const gridRef = ref<HTMLElement | null>(null)
+/** The one day in the Tab order; arrow keys move it. */
+const focusDate = ref(props.modelValue)
+
+const fullDate = (date: string): string =>
+  new Intl.DateTimeFormat(localeTag(), { dateStyle: 'full', timeZone: 'UTC' }).format(utc(date))
+
 function toggle(): void {
-  if (!isOpen.value) month.value = `${props.modelValue.slice(0, 7)}-01`
+  if (!isOpen.value) {
+    month.value = `${props.modelValue.slice(0, 7)}-01`
+    focusDate.value = props.modelValue
+  }
   isOpen.value = !isOpen.value
+}
+
+function closeToTrigger(): void {
+  if (!isOpen.value) return
+  isOpen.value = false
+  triggerRef.value?.focus()
+}
+
+function onGridKeydown(event: KeyboardEvent): void {
+  const step: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }
+  const delta = step[event.key]
+  if (!delta) return
+  event.preventDefault()
+  const next = shiftDate(focusDate.value, delta)
+  focusDate.value = next
+  // Walking past the grid's edge turns the month.
+  if (next.slice(0, 7) !== month.value.slice(0, 7)) month.value = `${next.slice(0, 7)}-01`
+  void nextTick(() => gridRef.value?.querySelector<HTMLElement>(`[data-date="${next}"]`)?.focus())
 }
 
 function stepMonth(delta: number): void {
@@ -97,7 +131,7 @@ function stepMonth(delta: number): void {
 
 function choose(date: string): void {
   emit('update:modelValue', props.week ? weekStartOf(date) : date)
-  isOpen.value = false
+  closeToTrigger()
 }
 
 const monthTitle = computed(() =>

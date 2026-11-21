@@ -19,6 +19,7 @@
         <div
           v-for="course in paginatedCourses"
           :key="course.id"
+          v-press="courseDisplayTitle(course)"
           class="course-card"
           @click="selectCourse(course)"
         >
@@ -48,6 +49,8 @@
       <div v-if="isLoggedIn && !isLoading && courses.length > 0" class="pagination">
         <button
           :disabled="currentPage === 1"
+          :aria-label="$t('searchPage.previousPage')"
+          :title="$t('searchPage.previousPage')"
           @click="goToPage(currentPage - 1)"
           class="btn page-btn"
         >
@@ -58,6 +61,8 @@
         <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
         <button
           :disabled="currentPage === totalPages"
+          :aria-label="$t('searchPage.nextPage')"
+          :title="$t('searchPage.nextPage')"
           @click="goToPage(currentPage + 1)"
           class="btn page-btn"
         >
@@ -71,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { vPress } from '@shared/ui/press'
 import { ref, toRef, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseList } from '@features/course/useCourseList'

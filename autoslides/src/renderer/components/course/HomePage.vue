@@ -488,8 +488,9 @@ watch([isLoggedIn, userId], ([loggedIn]) => {
     loadGreeting(userNickname.value)
     loadPersonalRows()
   } else {
+    // Signed out: a greeting with no name, never the last account's.
     resetGreeting()
-    greetingText.value = ''
+    loadGreeting('')
     clearPersonalRows()
     clearThumbnails()
   }

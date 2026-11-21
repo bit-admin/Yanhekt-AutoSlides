@@ -48,6 +48,8 @@ export function useYanhe2Search(options: {
   const problem = ref<Yanhe2SearchProblem | null>(null)
   /** True once the grid on screen is a real answer, so "no courses" is not shown before one. */
   const loaded = ref(false)
+  /** The rows on screen answer an older search; they stay visible but do nothing. */
+  const stale = ref(false)
 
   /** The text the page number belongs to: a search for anything else starts at page 1. */
   let pagedText = ''
@@ -71,6 +73,7 @@ export function useYanhe2Search(options: {
     results.value = []
     page.value = 1
     pageCount.value = 1
+    stale.value = false
     loading.value = false
     problem.value = null
     loaded.value = false
@@ -121,7 +124,10 @@ export function useYanhe2Search(options: {
         results.value = []
       }
     } finally {
-      if (mine === ticket) loading.value = false
+      if (mine === ticket) {
+        loading.value = false
+        stale.value = false
+      }
     }
   }
 
@@ -133,7 +139,7 @@ export function useYanhe2Search(options: {
   }
 
   function goToPage(next: number): void {
-    if (next < 1 || next > pageCount.value || next === page.value) return
+    if (stale.value || next < 1 || next > pageCount.value || next === page.value) return
     page.value = next
     void load()
   }
@@ -142,6 +148,11 @@ export function useYanhe2Search(options: {
   // under Live or Recorded is picked up when the page switches over.
   watch(keyword, () => {
     if (!active.value) return
+    // An answer to the old text must not land during the debounce.
+    ticket += 1
+    loading.value = false
+    stale.value = true
+    page.value = 1
     cancelPending()
     debounceTimer = setTimeout(() => {
       debounceTimer = null
@@ -171,6 +182,7 @@ export function useYanhe2Search(options: {
     loading,
     problem,
     loaded,
+    stale,
     refresh: load,
     setTerm,
     goToPage,
