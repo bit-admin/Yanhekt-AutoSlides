@@ -6,6 +6,8 @@
         v-model="query"
         type="search"
         class="text-input np-search"
+        :aria-label="$t('cloudNotes.watchNotes.external.notionSearchPlaceholder')"
+        @keydown.esc.stop="emit('cancel')"
         :placeholder="$t('cloudNotes.watchNotes.external.notionSearchPlaceholder')"
       />
       <button type="button" class="btn btn--ghost btn--sm" @click="emit('cancel')">
@@ -35,8 +37,8 @@
         </li>
       </ul>
 
-      <p v-if="loading" class="np-note">{{ $t('cloudNotes.watchNotes.external.notionLoading') }}</p>
-      <p v-else-if="error" class="np-note np-error">{{ errorText }}</p>
+      <p v-if="loading" class="np-note" role="status">{{ $t('cloudNotes.watchNotes.external.notionLoading') }}</p>
+      <p v-else-if="error" class="np-note np-error" role="alert">{{ errorText }}</p>
       <div v-else-if="rows.length === 0" class="np-note">
         <p>{{ searching ? $t('cloudNotes.watchNotes.external.notionNoMatch') : $t('cloudNotes.watchNotes.external.notionNoPages') }}</p>
         <button type="button" class="np-link" @click="openConnections">
@@ -109,6 +111,8 @@ const rows = computed(() => {
   }))
 })
 
+let browseCursor: string | null = null
+
 async function fetchInto(target: typeof allPages, cursor: string | null, gen: number, limit: number): Promise<void> {
   let next = cursor
   let fetched = 0
@@ -158,17 +162,22 @@ function loadMore(): Promise<void> {
     : run((gen) => fetchInto(allPages, cursor, gen, BROWSE_LIMIT))
 }
 
-watch(query, () => {
+watch(query, (_text, previous) => {
   if (debounce) clearTimeout(debounce)
+  // Leaving browsing: remember where the tree stopped.
+  if (!previous.trim() && !loading.value) browseCursor = nextCursor.value
+  // Whatever was on the way, and the old matches, no longer answer this text.
+  generation++
+  searchPages.value = []
+  error.value = null
   // Back to browsing: the tree is still loaded, no need to refetch it.
   if (!searching.value && allPages.value.length > 0) {
-    generation++
     loading.value = false
-    error.value = null
-    searchPages.value = []
-    nextCursor.value = null
+    nextCursor.value = browseCursor
     return
   }
+  nextCursor.value = null
+  loading.value = true
   debounce = setTimeout(() => void reload(), 300)
 })
 

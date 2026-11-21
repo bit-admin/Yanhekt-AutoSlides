@@ -942,6 +942,7 @@
     "emptyStream": "{stream}은(는) 옌허커탕 서버에 영상이 없습니다. 옌허커탕 웹사이트에서 재생되는지 확인하세요."
   },
   "sessions": {
+    "courseDetails": "강의 세부 정보",
     "pin": "강의 고정",
     "unpin": "고정 해제",
     "backToCourses": "강의로 돌아가기",
@@ -1485,6 +1486,8 @@
     }
   },
   "searchPage": {
+    "previousPage": "이전 페이지",
+    "nextPage": "다음 페이지",
     "semesterFall": "{year}년 가을학기",
     "semesterSpring": "{year}년 봄학기",
     "termRangeFall": "{range} 가을학기",
@@ -2070,6 +2073,8 @@
     "redoNotQueued": "{count}개의 이전 출력은 시스템 휴지통으로 옮겼지만 새 작업을 대기열에 추가하지 못했습니다."
   },
   "drive": {
+    "linkOlder": "이전 버전",
+    "linkOlderHint": "이 폴더의 현재 내용과 일치하는 새 링크가 있습니다. 이 링크는 이전 슬라이드를 보여 줍니다.",
     "uploadToDrive": "슬라이드 공유",
     "shareSkipped": "슬라이드를 공유할 때 추출된 슬라이드나 메타데이터가 없는 폴더 {count}개를 건너뜁니다.",
     "uploadToDriveHint": "선택한 폴더의 슬라이드를 업로드하고 공유 링크를 만듭니다",

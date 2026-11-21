@@ -110,10 +110,11 @@
         :title="$t('courses.noResults')"
       />
 
-      <div v-else-if="!yanhe2Problem" class="courses-grid custom-scrollbar">
+      <div v-else-if="!yanhe2Problem" class="courses-grid custom-scrollbar" :class="{ 'results-stale': yanhe2Stale }" :inert="yanhe2Stale" :aria-busy="yanhe2Stale">
         <div
           v-for="course in yanhe2Results"
           :key="course.courseId"
+          v-press="course.title"
           class="course-card"
           @click="openYanhe2Course(course)"
         >
@@ -129,7 +130,9 @@
 
       <div v-if="yanhe2SignedIn && !yanhe2Loading && yanhe2Results.length > 0" class="pagination">
         <button
-          :disabled="yanhe2Page === 1"
+          :disabled="yanhe2Stale || yanhe2Page === 1"
+          :aria-label="$t('searchPage.previousPage')"
+          :title="$t('searchPage.previousPage')"
           @click="goToYanhe2Page(yanhe2Page - 1)"
           class="btn page-btn"
         >
@@ -139,7 +142,9 @@
         </button>
         <span class="page-info">{{ yanhe2Page }} / {{ yanhe2PageCount }}</span>
         <button
-          :disabled="yanhe2Page === yanhe2PageCount"
+          :disabled="yanhe2Stale || yanhe2Page === yanhe2PageCount"
+          :aria-label="$t('searchPage.nextPage')"
+          :title="$t('searchPage.nextPage')"
           @click="goToYanhe2Page(yanhe2Page + 1)"
           class="btn page-btn"
         >
@@ -166,10 +171,11 @@
 
       <EmptySetState v-else-if="!errorMessage && hasSearched && results.length === 0" :title="$t('courses.noResults')" />
 
-      <div v-else-if="!errorMessage" class="courses-grid custom-scrollbar">
+      <div v-else-if="!errorMessage" class="courses-grid custom-scrollbar" :class="{ 'results-stale': resultsStale }" :inert="resultsStale" :aria-busy="resultsStale">
         <div
           v-for="course in results"
           :key="course.id"
+          v-press="courseDisplayTitle(course)"
           class="course-card"
           @click="selectResult(course)"
         >
@@ -198,7 +204,9 @@
 
       <div v-if="isLoggedIn && !isLoading && results.length > 0" class="pagination">
         <button
-          :disabled="currentPage === 1"
+          :disabled="resultsStale || currentPage === 1"
+          :aria-label="$t('searchPage.previousPage')"
+          :title="$t('searchPage.previousPage')"
           @click="goToPage(currentPage - 1)"
           class="btn page-btn"
         >
@@ -208,7 +216,9 @@
         </button>
         <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
         <button
-          :disabled="currentPage === totalPages"
+          :disabled="resultsStale || currentPage === totalPages"
+          :aria-label="$t('searchPage.nextPage')"
+          :title="$t('searchPage.nextPage')"
           @click="goToPage(currentPage + 1)"
           class="btn page-btn"
         >
@@ -222,6 +232,7 @@
 </template>
 
 <script setup lang="ts">
+import { vPress } from '@shared/ui/press'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Yanhe2Course } from '@common/yanhe2Curriculum'
@@ -268,6 +279,7 @@ const {
   currentPage,
   totalPages,
   isLoading,
+  resultsStale,
   errorMessage,
   hasSearched,
   goToPage,
@@ -294,6 +306,7 @@ const {
   loading: yanhe2Loading,
   problem: yanhe2Problem,
   loaded: yanhe2Loaded,
+  stale: yanhe2Stale,
   refresh: refreshYanhe2,
   setTerm: setYanhe2Term,
   goToPage: goToYanhe2Page,
@@ -670,5 +683,8 @@ const openYanhe2Course = (course: Yanhe2Course) => {
   .courses-grid {
     grid-template-columns: 1fr;
   }
+}
+.results-stale {
+  opacity: 0.55;
 }
 </style>

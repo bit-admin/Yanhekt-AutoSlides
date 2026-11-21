@@ -1,6 +1,6 @@
 <template>
   <div class="semester-select" ref="rootRef">
-    <button class="semester-trigger" :class="{ open: isOpen }" @click="isOpen = !isOpen">
+    <button ref="triggerRef" class="semester-trigger" :class="{ open: isOpen }" :aria-expanded="isOpen" aria-haspopup="true" @click="isOpen = !isOpen" @keydown.esc="closeToTrigger">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
         <line x1="16" y1="2" x2="16" y2="6"/>
@@ -13,7 +13,7 @@
       </svg>
     </button>
 
-    <div v-if="isOpen" class="semester-menu custom-scrollbar">
+    <div v-if="isOpen" class="semester-menu custom-scrollbar" @keydown.esc.stop="closeToTrigger">
       <div v-if="allowAll" class="semester-group">
         <button
           class="semester-option semester-option--all"
@@ -124,19 +124,27 @@ const selectedLabel = computed(() => {
   return t('searchPage.semestersSelected', { count: props.modelValue.length })
 })
 
+const triggerRef = ref<HTMLButtonElement | null>(null)
+// The focused option goes away with the menu.
+const closeToTrigger = () => {
+  if (!isOpen.value) return
+  isOpen.value = false
+  triggerRef.value?.focus()
+}
+
 // Choosing "All semesters" clears every individual selection (empty = all).
 const chooseAll = () => {
   if (props.modelValue.length > 0) {
     emit('update:modelValue', [])
   }
-  if (props.single) isOpen.value = false
+  if (props.single) closeToTrigger()
 }
 
 // Toggling a semester keeps the menu open so several can be picked at once.
 const toggle = (id: number) => {
   if (props.single) {
     if (!props.modelValue.includes(id)) emit('update:modelValue', [id])
-    isOpen.value = false
+    closeToTrigger()
     return
   }
   const next = props.modelValue.includes(id)
@@ -177,6 +185,12 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDocumentMouseD
   outline: none;
   transition: border-color 0.2s;
   max-width: 220px;
+}
+
+.semester-trigger:focus-visible,
+.semester-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .semester-trigger:hover,

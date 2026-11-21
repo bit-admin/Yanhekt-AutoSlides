@@ -942,6 +942,7 @@
     "emptyStream": "{stream}在延河课堂服务器上没有视频内容，可前往延河课堂网页确认能否播放。"
   },
   "sessions": {
+    "courseDetails": "课程详情",
     "pin": "置顶课程",
     "unpin": "取消置顶",
     "backToCourses": "返回课程",
@@ -1485,6 +1486,8 @@
     }
   },
   "searchPage": {
+    "previousPage": "上一页",
+    "nextPage": "下一页",
     "semesterFall": "{year}年秋季学期",
     "semesterSpring": "{year}年春季学期",
     "termRangeFall": "{range} 秋季学期",
@@ -2070,6 +2073,8 @@
     "redoNotQueued": "有 {count} 节的旧输出已移到系统废纸篓，但新任务未能加入队列。"
   },
   "drive": {
+    "linkOlder": "旧版本",
+    "linkOlderHint": "有更新的链接与此文件夹当前内容一致。此链接显示的是之前的幻灯片。",
     "uploadToDrive": "分享幻灯片",
     "shareSkipped": "分享幻灯片时将跳过 {count} 个文件夹：缺少已提取的幻灯片或元数据。",
     "uploadToDriveHint": "上传所选文件夹的幻灯片并生成分享链接",

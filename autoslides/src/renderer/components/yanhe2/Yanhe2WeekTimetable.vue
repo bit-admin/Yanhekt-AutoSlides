@@ -6,13 +6,15 @@
       :aria-label="$t('yanhe2Calendar.timetable')"
       :style="{ gridTemplateColumns: `32px repeat(${columns.length}, minmax(0, 1fr))` }"
     >
-      <div class="corner"></div>
-      <div v-for="column in columns" :key="column.key" class="period-head" role="columnheader">
-        <span class="period-name">{{ column.label }}</span>
-        <span v-if="column.begin" class="period-time">{{ column.begin }} – {{ column.end }}</span>
+      <div class="table-row" role="row">
+        <div class="corner" role="columnheader"></div>
+        <div v-for="column in columns" :key="column.key" class="period-head" role="columnheader">
+          <span class="period-name">{{ column.label }}</span>
+          <span v-if="column.begin" class="period-time">{{ column.begin }} – {{ column.end }}</span>
+        </div>
       </div>
 
-      <template v-for="(day, index) in days" :key="day.day">
+      <div v-for="(day, index) in days" :key="day.day" class="table-row" role="row">
         <div :class="['day-head', { today: day.day === today }]" role="rowheader">
           <span class="day-name">{{ weekdayOf(day.day) }}</span>
           <span class="day-number">{{ Number(day.day.slice(8)) }}</span>
@@ -25,7 +27,7 @@
         >
           <Yanhe2SessionCard v-for="s in column.cells[index]" :key="s.subId" :session="s" />
         </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>
@@ -99,6 +101,11 @@ const weekdayOf = (day: string) =>
 </script>
 
 <style scoped>
+/* Rows exist for assistive tech; the cells stay on the grid. */
+.table-row {
+  display: contents;
+}
+
 /* Same gutter as the course grids: the scrollbar sits beside the table, not on its edge. */
 .timetable-scroll {
   flex: 1;

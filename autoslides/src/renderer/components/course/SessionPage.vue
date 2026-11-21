@@ -36,7 +36,7 @@
             <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
           </svg>
         </button>
-        <button @click="toggleCourseDetails" class="btn expand-btn">
+        <button @click="toggleCourseDetails" class="btn expand-btn" :aria-expanded="showCourseDetails" :aria-label="$t('sessions.courseDetails')" :title="$t('sessions.courseDetails')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showCourseDetails }">
             <polyline points="6,9 12,15 18,9"/>
           </svg>
@@ -146,6 +146,7 @@
             <div
               v-for="session in sessions"
               :key="session.session_id"
+              v-press="session.title"
               class="session-item"
               @click="selectSession(session)"
             >
@@ -231,7 +232,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, toRef } from 'vue'
+import { vPress } from '@shared/ui/press'
+import { computed, onMounted, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
 import { isPinned, togglePinnedCourse } from '@features/course/pinnedCourses'
@@ -257,7 +259,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { isLoggedIn } = useAuth()
+const { isLoggedIn, userId } = useAuth()
 
 const {
   sessions,
@@ -315,6 +317,11 @@ const findOnYanhe2 = async () => {
 
 onMounted(() => {
   loadCourseSessions()
+})
+
+// Same login, other account: this list and its actions belong to the old one.
+watch([isLoggedIn, userId], () => {
+  void loadCourseSessions()
 })
 </script>
 
@@ -432,18 +439,6 @@ onMounted(() => {
   flex-direction: column;
   min-height: 0;
   padding: 0 24px 16px;
-}
-
-.placeholder {
-  color: var(--text-secondary);
-  font-style: italic;
-  margin-bottom: 16px;
-}
-
-.course-info, .instructor-info {
-  margin: 8px 0;
-  font-size: 14px;
-  color: var(--text-secondary);
 }
 
 .main-content {

@@ -942,6 +942,7 @@
     "emptyStream": "{stream}は延河課堂のサーバーに動画がありません。延河課堂のウェブサイトで再生できるか確認してください。"
   },
   "sessions": {
+    "courseDetails": "コースの詳細",
     "pin": "コースをピン留め",
     "unpin": "ピン留めを解除",
     "backToCourses": "コースに戻る",
@@ -1485,6 +1486,8 @@
     }
   },
   "searchPage": {
+    "previousPage": "前のページ",
+    "nextPage": "次のページ",
     "semesterFall": "{year}年秋学期",
     "semesterSpring": "{year}年春学期",
     "termRangeFall": "{range} 秋学期",
@@ -2070,6 +2073,8 @@
     "redoNotQueued": "{count} 件の古い出力はシステムのゴミ箱へ移動しましたが、新しい実行をキューに追加できませんでした。"
   },
   "drive": {
+    "linkOlder": "古いバージョン",
+    "linkOlderHint": "このフォルダーの現在の内容には新しいリンクが対応しています。このリンクは以前のスライドを表示します。",
     "uploadToDrive": "スライドを共有",
     "shareSkipped": "抽出済みのスライドまたはメタデータがないフォルダー {count} 件は共有しません。",
     "uploadToDriveHint": "選択したフォルダのスライドをアップロードして共有リンクを作成します",

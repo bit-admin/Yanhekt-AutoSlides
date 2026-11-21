@@ -2,11 +2,14 @@
   <div class="settings-page">
     <!-- Section switcher: a centered iOS-style segmented pill (single row). -->
     <div class="settings-tabs-wrap">
-      <div class="settings-segment" role="tablist">
+      <div class="settings-segment" role="tablist" :aria-label="$t('titlebar.settings')" @keydown="onTabKeydown">
         <button
           v-for="tab in advanced.advancedSettingsTabs"
           :key="tab.id"
           role="tab"
+          :id="`settings-tab-${tab.id}`"
+          :aria-controls="`settings-panel-${tab.id}`"
+          :tabindex="advanced.activeAdvancedTab.value === tab.id ? 0 : -1"
           :aria-selected="advanced.activeAdvancedTab.value === tab.id"
           @click="advanced.activeAdvancedTab.value = tab.id"
           :class="['settings-segment-btn', { active: advanced.activeAdvancedTab.value === tab.id }]"
@@ -18,22 +21,22 @@
 
     <!-- Scrollable body -->
     <div class="settings-body custom-scrollbar" :inert="isSaving || isLoading" :aria-busy="isSaving || isLoading">
-      <div v-show="advanced.activeAdvancedTab.value === 'general'" class="tab-content">
+      <div v-show="advanced.activeAdvancedTab.value === 'general'" id="settings-panel-general" class="tab-content" role="tabpanel" aria-labelledby="settings-tab-general">
         <GeneralSettingsTab />
       </div>
-      <div v-show="advanced.activeAdvancedTab.value === 'imageProcessing'" class="tab-content">
+      <div v-show="advanced.activeAdvancedTab.value === 'imageProcessing'" id="settings-panel-imageProcessing" class="tab-content" role="tabpanel" aria-labelledby="settings-tab-imageProcessing">
         <ImageProcessingSettingsTab />
       </div>
-      <div v-show="advanced.activeAdvancedTab.value === 'playback'" class="tab-content">
+      <div v-show="advanced.activeAdvancedTab.value === 'playback'" id="settings-panel-playback" class="tab-content" role="tabpanel" aria-labelledby="settings-tab-playback">
         <PlaybackSettingsTab />
       </div>
-      <div v-show="advanced.activeAdvancedTab.value === 'network'" class="tab-content">
+      <div v-show="advanced.activeAdvancedTab.value === 'network'" id="settings-panel-network" class="tab-content" role="tabpanel" aria-labelledby="settings-tab-network">
         <NetworkSettingsTab />
       </div>
-      <div v-show="advanced.activeAdvancedTab.value === 'ai'" class="tab-content">
+      <div v-show="advanced.activeAdvancedTab.value === 'ai'" id="settings-panel-ai" class="tab-content" role="tabpanel" aria-labelledby="settings-tab-ai">
         <AISettingsTab />
       </div>
-      <div v-show="advanced.activeAdvancedTab.value === 'addons'" class="tab-content">
+      <div v-show="advanced.activeAdvancedTab.value === 'addons'" id="settings-panel-addons" class="tab-content" role="tabpanel" aria-labelledby="settings-tab-addons">
         <AddonsSettingsTab />
       </div>
     </div>
@@ -60,7 +63,7 @@
 // a sibling of LeftPanel under the same root — can inject the same bundle the
 // gear button's state belongs to. Buffered edits commit on Save, discard on
 // Cancel, and discard when the user navigates away without choosing either.
-import { onUnmounted, ref, watch } from 'vue'
+import { nextTick, onUnmounted, ref, watch } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
 import GeneralSettingsTab from './tabs/GeneralSettingsTab.vue'
@@ -125,6 +128,20 @@ watch(
 
 // Save persists the buffered edits and stays on the page. Cancel reverts the UI
 // to the currently-saved config (drops buffered edits) and also stays.
+const onTabKeydown = (event: KeyboardEvent) => {
+  const tabs = advanced.advancedSettingsTabs
+  const at = tabs.findIndex((tab) => tab.id === advanced.activeAdvancedTab.value)
+  const next = event.key === 'ArrowRight' ? (at + 1) % tabs.length
+    : event.key === 'ArrowLeft' ? (at + tabs.length - 1) % tabs.length
+      : event.key === 'Home' ? 0
+        : event.key === 'End' ? tabs.length - 1
+          : -1
+  if (next < 0) return
+  event.preventDefault()
+  advanced.activeAdvancedTab.value = tabs[next].id
+  void nextTick(() => document.getElementById(`settings-tab-${tabs[next].id}`)?.focus())
+}
+
 const onSave = async () => {
   if (isSaving.value) return
   isSaving.value = true
@@ -152,6 +169,7 @@ onUnmounted(() => {
 
 <style scoped>
 .settings-page {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -170,6 +188,10 @@ onUnmounted(() => {
 
 .settings-segment {
   display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+  box-sizing: border-box;
   gap: 2px;
   padding: 3px;
   background-color: var(--bg-elevated);
@@ -178,7 +200,7 @@ onUnmounted(() => {
 }
 
 .settings-segment-btn {
-  padding: 6px 16px;
+  padding: 6px clamp(8px, 2cqi, 16px);
   border: none;
   border-radius: 7px;
   background: transparent;
@@ -206,7 +228,7 @@ onUnmounted(() => {
   overflow-y: auto;
   /* Wide left/right gutters so the form rows sit in a comfortable inset column
      rather than spanning edge-to-edge. */
-  padding: 16px 96px 28px;
+  padding: 16px clamp(16px, 9cqi, 96px) 28px;
 }
 
 .tab-content {

@@ -20,6 +20,12 @@
       class="share-marker share-marker--outdated"
       :title="$t('drive.linkOutdatedHint')"
     >{{ $t('drive.linkOutdated') }}</span>
+    <!-- Another version matches the folder as it is now; this one does not. -->
+    <span
+      v-else-if="!shown.current"
+      class="share-marker share-marker--outdated"
+      :title="$t('drive.linkOlderHint')"
+    >{{ $t('drive.linkOlder') }}</span>
 
     <div class="share-actions">
       <!-- Versions: remove (never the current link), older, n/m, newer. -->
@@ -160,7 +166,9 @@ const open = () => {
   void window.electronAPI.shell.openExternal(shownUrl.value)
 }
 
-const copied = ref(false)
+// Which URL was copied, so the tick does not follow to another version.
+const copiedUrl = ref('')
+const copied = computed(() => copiedUrl.value === shownUrl.value)
 let copiedTimer: ReturnType<typeof setTimeout> | null = null
 
 const copy = async () => {
@@ -170,9 +178,9 @@ const copy = async () => {
     log.warn('Copy failed', error)
     return
   }
-  copied.value = true
+  copiedUrl.value = shownUrl.value
   if (copiedTimer) clearTimeout(copiedTimer)
-  copiedTimer = setTimeout(() => { copied.value = false }, 1500)
+  copiedTimer = setTimeout(() => { copiedUrl.value = '' }, 1500)
 }
 
 const shortening = ref(false)
