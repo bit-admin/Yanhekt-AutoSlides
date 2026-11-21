@@ -160,7 +160,7 @@
                 </div>
                 <div class="session-info">
                   <div class="session-title">{{ session.title }}</div>
-                  <div class="session-meta">
+                  <div class="session-meta" :title="session.started_at ? formatDate(session.started_at) : undefined">
                     <span v-if="session.week_number && session.day" class="session-time">
                       {{ $t('sessions.weekNumber', { n: session.week_number }) }}, {{ getDayName(session.day) }}
                     </span>
@@ -449,6 +449,7 @@ watch([isLoggedIn, userId], () => {
 }
 
 .sessions-container {
+  container-type: inline-size;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -520,6 +521,8 @@ watch([isLoggedIn, userId], () => {
 .session-meta {
   display: flex;
   gap: 12px;
+  min-width: 0;
+  overflow: hidden;
   font-size: 12px;
   color: var(--text-secondary);
 }
@@ -529,11 +532,15 @@ watch([isLoggedIn, userId], () => {
 }
 
 .session-time {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--text-secondary);
   font-weight: 500;
 }
 
 .session-duration {
+  flex-shrink: 0;
   color: var(--text-secondary);
 }
 
@@ -628,6 +635,21 @@ watch([isLoggedIn, userId], () => {
 
 .loading-state {
   padding: 48px 16px;
+}
+
+/* Measured on the list, since the side panels decide its width, not the window. */
+@container (max-width: 720px) {
+  .batch-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The row's date is the first thing to go; it stays in the meta line's tooltip. */
+@container (max-width: 640px) {
+  .session-date {
+    display: none;
+  }
 }
 
 
