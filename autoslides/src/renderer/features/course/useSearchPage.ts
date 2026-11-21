@@ -179,7 +179,10 @@ const executeSearch = async (resetPage = true) => {
     errorMessage.value = (error instanceof Error && error.message) || 'Failed to search courses'
     results.value = []
   } finally {
-    if (newest()) isLoading.value = false
+    if (newest()) {
+      isLoading.value = false
+      resultsStale.value = false
+    }
   }
 }
 
@@ -243,6 +246,12 @@ watch(keyword, () => {
     debounceTimer = null
     executeSearch()
   }, SEARCH_DEBOUNCE_MS)
+})
+
+// Text typed elsewhere waits for this page; coming back by any route runs it,
+// so the grid is never left dimmed and locked.
+watch(() => navigationStore.activeNav.value, (nav) => {
+  if (nav === 'search' && resultsStale.value && hasSearched.value && debounceTimer === null) void executeSearch()
 })
 
 const goToPage = async (page: number) => {
