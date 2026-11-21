@@ -1,4 +1,4 @@
-import { ref, shallowRef, computed, onBeforeUnmount, onMounted, type Ref, type ShallowRef } from 'vue'
+import { ref, shallowRef, computed, onBeforeUnmount, type Ref, type ShallowRef } from 'vue'
 import {
   slideExtractionManager,
   type SlideExtractionHandle,
@@ -6,6 +6,7 @@ import {
 } from '@shared/processing'
 import { sanitizeFileName } from '@common/sanitizeFileName'
 import { configStore } from '@shared/services/configStore'
+import { createGuestClient, type GuestClient } from '@shared/services/guestView'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('WebCapture');
 
@@ -30,12 +31,10 @@ export interface CustomRegion {
   height: number
 }
 
-type WebviewTag = Electron.WebviewTag
-
 export interface WebCapturePreset {
   labelKey: string
   url: string
-  beforeNavigate?: (webview: WebviewTag) => Promise<void>
+  beforeNavigate?: (guest: GuestClient) => Promise<void>
   blockSelectors?: string[]
   videoSelectors?: { urlPattern: string; selector: string }[]
 }
@@ -55,12 +54,12 @@ const PRESETS: WebCapturePreset[] = [
       { urlPattern: '/session', selector: '#video_id_topPlayer_html5_api' },
       { urlPattern: '/live', selector: '#video_id_mainPlayer_html5_api' },
     ],
-    beforeNavigate: async (webview) => {
+    beforeNavigate: async (guest) => {
       const token = await window.electronAPI.config.getAuthToken()
       if (!token) return
       const expiredAt = Date.now() + 7 * 24 * 60 * 60 * 1000
       const payload = JSON.stringify({ login: true, token, expired_at: expiredAt })
-      await webview.executeJavaScript(
+      await guest.executeJavaScript(
         `try { localStorage.setItem('auth', ${JSON.stringify(payload)}); 'ok'; } catch(e) { 'err:' + e.message; }`
       )
     },
@@ -82,7 +81,6 @@ export function useWebCapture() {
   const powerHolderId = `webCapture:${instanceId}`
   const lifetime = new AbortController()
   // ---- Reactive state ----
-  const preloadPath = ref<string>('')
   const currentUrl = ref('')
   const pendingUrl = ref('')
   const pageTitle = ref('')
@@ -105,7 +103,7 @@ export function useWebCapture() {
   const extractedSlides: Ref<ExtractedSlide[]> = ref([])
   const slideExtractorInstance: ShallowRef<SlideExtractionHandle | null> = shallowRef(null)
   let captureInterval: ReturnType<typeof setInterval> | null = null
-  let webviewRef: WebviewTag | null = null
+  const guest = createGuestClient('webCapture')
   let slideExtractedHandler: ((event: Event) => void) | null = null
 
   const canStart = computed(
@@ -116,48 +114,15 @@ export function useWebCapture() {
 
   const regionOverridesSelector = computed(() => !!customRegion.value)
 
-  // ---- Preload path bootstrap ----
-  onMounted(async () => {
-    try {
-      preloadPath.value = await window.electronAPI.webCapture.getGuestPreloadPath()
-    } catch (err) {
-      log.error('Failed to resolve guest preload path:', err)
-    }
-  })
-
-  // ---- Webview binding ----
-  const attachWebview = (el: WebviewTag | null) => {
-    if (webviewRef === el) return
-    if (webviewRef) detachWebview()
-    webviewRef = el
-    if (!el) return
-    el.addEventListener('ipc-message', onIpcMessage as EventListener)
-    el.addEventListener('page-title-updated', onPageTitleUpdated as EventListener)
-    el.addEventListener('did-navigate', onDidNavigate as EventListener)
-    el.addEventListener('did-navigate-in-page', onDidNavigate as EventListener)
-    el.addEventListener('did-finish-load', onDidFinishLoad as EventListener)
-  }
-
-  const detachWebview = () => {
-    if (!webviewRef) return
-    webviewRef.removeEventListener('ipc-message', onIpcMessage as EventListener)
-    webviewRef.removeEventListener('page-title-updated', onPageTitleUpdated as EventListener)
-    webviewRef.removeEventListener('did-navigate', onDidNavigate as EventListener)
-    webviewRef.removeEventListener('did-navigate-in-page', onDidNavigate as EventListener)
-    webviewRef.removeEventListener('did-finish-load', onDidFinishLoad as EventListener)
-    webviewRef = null
-  }
-
-  const onPageTitleUpdated = (event: Event) => {
-    const title = (event as Event & { title: string }).title || ''
+  // ---- Guest events ----
+  guest.on('message', ({ channel, payload }) => onGuestMessage(channel, payload))
+  guest.on('page-title-updated', ({ title }) => {
     pageTitle.value = title
-    if (!courseNameDirty.value) {
-      courseName.value = title
-    }
-  }
+    if (!courseNameDirty.value) courseName.value = title
+  })
+  guest.on('did-finish-load', () => onDidFinishLoad())
 
-  const onDidNavigate = (event: Event) => {
-    const url = (event as Event & { url: string }).url
+  const onDidNavigate = ({ url }: { url: string }) => {
     if (url) currentUrl.value = url
     // Reset per-session picker + region state on cross-origin navigation.
     if (captureState.value !== 'running') {
@@ -169,15 +134,17 @@ export function useWebCapture() {
       applyPresetRules(url)
     }
   }
+  guest.on('did-navigate', onDidNavigate)
+  guest.on('did-navigate-in-page', onDidNavigate)
 
   const applyPresetRules = (url: string) => {
-    if (!activePreset || !webviewRef) return
+    if (!activePreset) return
     // Inject blocking CSS via the guest preload.
     if (activePreset.blockSelectors?.length) {
       const css = activePreset.blockSelectors
         .map((s) => `${s} { display: none !important; }`)
         .join('\n')
-      webviewRef.executeJavaScript(
+      guest.executeJavaScript(
         `(() => { let s = document.getElementById('__autoslides_preset_block'); if (!s) { s = document.createElement('style'); s.id = '__autoslides_preset_block'; document.head.appendChild(s); } s.textContent = ${JSON.stringify(css)}; })()`
       ).catch(() => {/* page may not be ready yet */})
     }
@@ -202,46 +169,31 @@ export function useWebCapture() {
     const target = normalizeUrl(raw ?? pendingUrl.value)
     if (!target) return
     currentUrl.value = target
-    try {
-      webviewRef?.loadURL?.(target)
-    } catch {
-      // Webview may not yet be fully mounted; :src binding will pick this up.
-    }
+    guest.loadURL(target).catch((err) => log.debug('Navigation refused:', err))
   }
 
   const navigatePreset = async (preset: WebCapturePreset) => {
-    if (!webviewRef) return
     activePreset = preset
     const origin = new URL(preset.url).origin
     currentUrl.value = origin
-    webviewRef.loadURL(origin)
-    await new Promise<void>((resolve) => {
-      const onStop = () => {
-        webviewRef?.removeEventListener('did-stop-loading', onStop)
-        resolve()
-      }
-      webviewRef!.addEventListener('did-stop-loading', onStop)
-    })
+    const stopped = guest.once('did-stop-loading')
+    await guest.loadURL(origin)
+    await stopped
     if (preset.beforeNavigate) {
-      await preset.beforeNavigate(webviewRef)
+      await preset.beforeNavigate(guest)
     }
     pendingUrl.value = preset.url
     currentUrl.value = preset.url
-    webviewRef.loadURL(preset.url)
+    await guest.loadURL(preset.url)
   }
 
-  const goBack = () => {
-    if (webviewRef?.canGoBack?.()) webviewRef.goBack()
-  }
-  const goForward = () => {
-    if (webviewRef?.canGoForward?.()) webviewRef.goForward()
-  }
-  const reload = () => webviewRef?.reload?.()
+  const goBack = () => { void guest.goBack() }
+  const goForward = () => { void guest.goForward() }
+  const reload = () => { void guest.reload() }
 
   // ---- Guest → host IPC routing ----
-  const onIpcMessage = (event: Event) => {
-    const { channel, args } = event as Event & { channel: string; args: unknown[] }
-    const payload = args?.[0] as Record<string, unknown> | undefined
+  const onGuestMessage = (channel: string, rawPayload: unknown) => {
+    const payload = rawPayload as Record<string, unknown> | undefined
     switch (channel) {
       case 'video:detected': {
         detectedVideo.value = payload as unknown as DetectedVideoInfo
@@ -308,24 +260,20 @@ export function useWebCapture() {
 
   // ---- Picker / blocker / region ----
   const pickVideoSelector = () => {
-    if (!webviewRef) return
     pickerActive.value = 'pick'
-    webviewRef.send('picker:start')
+    void guest.send('picker:start')
   }
   const startBlocker = () => {
-    if (!webviewRef) return
     pickerActive.value = 'block'
-    webviewRef.send('blocker:start')
+    void guest.send('blocker:start')
   }
   const cancelPicker = () => {
-    if (!webviewRef) return
-    if (pickerActive.value === 'pick') webviewRef.send('picker:cancel')
-    else if (pickerActive.value === 'block') webviewRef.send('blocker:cancel')
+    if (pickerActive.value === 'pick') void guest.send('picker:cancel')
+    else if (pickerActive.value === 'block') void guest.send('blocker:cancel')
     pickerActive.value = null
   }
   const clearBlocks = () => {
-    if (!webviewRef) return
-    webviewRef.send('blocker:clear')
+    void guest.send('blocker:clear')
     blockedSelectors.value = []
   }
   const setRegion = (region: CustomRegion | null) => {
@@ -351,8 +299,7 @@ export function useWebCapture() {
   }
 
   const confirmAndStart = async () => {
-    const guest = webviewRef
-    if (captureState.value !== 'confirming' || !guest) return
+    if (captureState.value !== 'confirming') return
     captureState.value = 'starting'
     // Reset capture mode: region forces capturePage, otherwise default to inject.
     captureMode.value = customRegion.value ? 'capturePage' : 'inject'
@@ -437,17 +384,14 @@ export function useWebCapture() {
   const capturePageTick = async (targetW: number, targetH: number) => {
     const extractor = slideExtractorInstance.value
     const interval = captureInterval
-    if (!webviewRef || !extractor) return
+    if (!extractor) return
     try {
-      // Spread to plain object — Vue Proxy can't be structured-cloned across webview IPC.
+      // Spread to plain object — a Vue Proxy can't be structured-cloned across IPC.
       const rect = customRegion.value
         ? { x: customRegion.value.x, y: customRegion.value.y, width: customRegion.value.width, height: customRegion.value.height }
         : undefined
-      const image = await webviewRef.capturePage(rect)
-      if (!image || image.isEmpty()) return
-      const size = image.getSize()
-      if (!size.width || !size.height) return
-      const dataUrl = image.toDataURL()
+      const dataUrl = await guest.capturePage(rect)
+      if (!dataUrl) return
       const imageData = await dataUrlToImageData(dataUrl, targetW, targetH)
       if (!imageData || interval !== captureInterval) return
       await extractor.pushFrame(imageData)
@@ -510,7 +454,7 @@ export function useWebCapture() {
     captureState.value = 'stopping'
     clearCapture()
     try {
-      await webviewRef?.send('capture:stop')
+      await guest.send('capture:stop')
     } catch (err) {
       log.debug('Capture guest closed before stop:', err)
     } finally {
@@ -528,7 +472,7 @@ export function useWebCapture() {
     else if (captureState.value === 'starting') void releasePowerHolder()
     clearCapture()
     slideExtractionManager.remove(instanceId)
-    detachWebview()
+    guest.dispose()
     captureState.value = 'idle'
   })
 
@@ -549,7 +493,6 @@ export function useWebCapture() {
 
   return {
     // State
-    preloadPath,
     currentUrl,
     pendingUrl,
     pageTitle,
@@ -569,8 +512,8 @@ export function useWebCapture() {
     canStart,
     regionOverridesSelector,
 
-    // Webview wiring
-    attachWebview,
+    // Embedded page
+    guest,
 
     // Navigation
     presets: PRESETS,

@@ -1,10 +1,10 @@
 /**
- * Guest preload for the "Sign in with browser" <webview> (BrowserLoginView).
+ * Guest preload for the "Sign in with browser" guest view (BrowserLoginView).
  *
  * On the BIT CAS login page it reports focus and typing in the username and
  * password fields, so the host can draw the saved-logins menu over the page,
  * and it fills both fields when the user picks a row. It does nothing on any
- * other origin — the same webview ends up on yanhekt.cn after sign-in.
+ * other origin — the same guest ends up on yanhekt.cn after sign-in.
  *
  * This runs in the preload's isolated world. The page's own scripts cannot
  * read the saved usernames, cannot fake a pick, and see a password only once
@@ -16,19 +16,20 @@
  * is on. Both are bound with ngModel, which listens to `input` events. A hidden
  * duplicate username input is filtered out by `isShown`.
  *
- * Guest -> Host (ipcRenderer.sendToHost):
+ * Guest -> Host (GUEST_MESSAGE_CHANNEL, relayed by main):
  *   autofill:focus { field, rect, username }
  *   autofill:rect  { rect }                    field moved (scroll/resize)
  *   autofill:input { field, username }
  *   autofill:blur
  *   autofill:key   { key }                     only while the host menu is open
  *   autofill:filled                            after a fill; the host closes the menu
- * Host -> Guest (webview.send):
+ * Host -> Guest (via main):
  *   autofill:state { open, highlighted }
  *   autofill:fill  { username, password }
  */
 
 import { ipcRenderer } from 'electron';
+import { GUEST_MESSAGE_CHANNEL } from '@common/guestView';
 
 const SSO_ORIGIN = 'https://sso.bit.edu.cn';
 
@@ -120,26 +121,26 @@ document.addEventListener('focusin', (event) => {
   const el = event.target as HTMLInputElement;
   state.focused = el;
   if (state.quiet) return;
-  ipcRenderer.sendToHost('autofill:focus', { field, rect: rectOf(el), username: currentUsername() });
+  ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'autofill:focus', { field, rect: rectOf(el), username: currentUsername() });
 }, true);
 
 document.addEventListener('focusout', (event) => {
   if (!onSsoPage() || event.target !== state.focused) return;
   state.focused = null;
   if (state.quiet) return;
-  ipcRenderer.sendToHost('autofill:blur');
+  ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'autofill:blur');
 }, true);
 
 document.addEventListener('input', (event) => {
   if (!onSsoPage() || state.quiet) return;
   const field = fieldOf(event.target);
   if (!field) return;
-  ipcRenderer.sendToHost('autofill:input', { field, username: currentUsername() });
+  ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'autofill:input', { field, username: currentUsername() });
 }, true);
 
 const reportRect = () => {
   if (!onSsoPage() || !state.focused) return;
-  ipcRenderer.sendToHost('autofill:rect', { rect: rectOf(state.focused) });
+  ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'autofill:rect', { rect: rectOf(state.focused) });
 };
 window.addEventListener('scroll', reportRect, true);
 window.addEventListener('resize', reportRect);
@@ -154,7 +155,7 @@ window.addEventListener('keydown', (event) => {
   event.preventDefault();
   event.stopImmediatePropagation();
   if (key === 'Enter') state.swallowEnterKeyup = true;
-  ipcRenderer.sendToHost('autofill:key', { key });
+  ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'autofill:key', { key });
 }, true);
 
 window.addEventListener('keyup', (event) => {
@@ -185,8 +186,8 @@ ipcRenderer.on('autofill:fill', (_event, payload: unknown) => {
   } finally {
     state.quiet = false;
   }
-  // The host's webview.focus() before the fill restores focus to the field
+  // The host's guest focus call before the fill restores focus to the field
   // the user left, which reports as an ordinary focus and reopens the menu.
   // This arrives after that report, so the menu ends closed.
-  ipcRenderer.sendToHost('autofill:filled');
+  ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'autofill:filled');
 });

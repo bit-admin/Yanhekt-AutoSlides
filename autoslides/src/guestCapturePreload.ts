@@ -1,8 +1,8 @@
 /**
  * Guest preload for the Web Capture add-on.
- * Loaded into every page rendered inside the Add-ons "Web Capture" <webview>.
+ * Loaded into every page rendered inside the Add-ons "Web Capture" guest view.
  *
- * Host -> Guest (via webview.send):
+ * Host -> Guest (via main):
  *   capture:start  { selector?, downsampleW, downsampleH }
  *   capture:tick
  *   capture:stop
@@ -10,7 +10,7 @@
  *   blocker:start | blocker:cancel | blocker:clear
  *   detect:video
  *
- * Guest -> Host (via ipcRenderer.sendToHost):
+ * Guest -> Host (via GUEST_MESSAGE_CHANNEL, relayed by main):
  *   video:detected { selector, width, height, rect }
  *   video:none
  *   frame          { width, height, buffer }
@@ -23,6 +23,7 @@
  */
 
 import { ipcRenderer } from 'electron';
+import { GUEST_MESSAGE_CHANNEL } from '@common/guestView';
 
 type CaptureConfig = {
   selector?: string;
@@ -125,13 +126,13 @@ function reportDetectedVideo(): void {
   const v = findBestVideo();
   if (!v) {
     state.detectedSelector = null;
-    ipcRenderer.sendToHost('video:none');
+    ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'video:none');
     return;
   }
   const selector = buildSelector(v);
   state.detectedSelector = selector;
   const rect = v.getBoundingClientRect();
-  ipcRenderer.sendToHost('video:detected', {
+  ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'video:detected', {
     selector,
     width: v.videoWidth,
     height: v.videoHeight,
@@ -156,7 +157,7 @@ function captureTick(): void {
   if (!state.captureActive || !state.captureConfig) return;
   const video = resolveCaptureVideo();
   if (!video) {
-    ipcRenderer.sendToHost('capture:noVideo');
+    ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'capture:noVideo');
     return;
   }
   if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
@@ -177,7 +178,7 @@ function captureTick(): void {
   try {
     ctx.drawImage(video, 0, 0, targetW, targetH);
     const imageData = ctx.getImageData(0, 0, targetW, targetH);
-    ipcRenderer.sendToHost('frame', {
+    ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'frame', {
       width: imageData.width,
       height: imageData.height,
       buffer: imageData.data.buffer,
@@ -185,7 +186,7 @@ function captureTick(): void {
   } catch (err) {
     const name = (err as { name?: string })?.name;
     if (name === 'SecurityError') {
-      ipcRenderer.sendToHost('capture:tainted');
+      ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'capture:tainted');
       state.captureActive = false;
       return;
     }
@@ -260,10 +261,10 @@ function onPickerClick(e: MouseEvent): void {
   const mode = state.pickerMode;
   stopPicker();
   if (mode === 'pick') {
-    ipcRenderer.sendToHost('picker:result', { selector });
+    ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'picker:result', { selector });
   } else {
     injectBlockStyle(selector);
-    ipcRenderer.sendToHost('blocker:result', { selector });
+    ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'blocker:result', { selector });
   }
 }
 
@@ -274,7 +275,7 @@ function onPickerKey(e: KeyboardEvent): void {
     e.stopPropagation();
     const mode = state.pickerMode;
     stopPicker();
-    ipcRenderer.sendToHost(mode === 'pick' ? 'picker:cancel' : 'blocker:cancel');
+    ipcRenderer.send(GUEST_MESSAGE_CHANNEL, mode === 'pick' ? 'picker:cancel' : 'blocker:cancel');
   }
 }
 
@@ -363,14 +364,14 @@ ipcRenderer.on('picker:start', () => startPicker('pick'));
 ipcRenderer.on('picker:cancel', () => {
   const wasActive = state.pickerMode === 'pick';
   stopPicker();
-  if (wasActive) ipcRenderer.sendToHost('picker:cancel');
+  if (wasActive) ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'picker:cancel');
 });
 
 ipcRenderer.on('blocker:start', () => startPicker('block'));
 ipcRenderer.on('blocker:cancel', () => {
   const wasActive = state.pickerMode === 'block';
   stopPicker();
-  if (wasActive) ipcRenderer.sendToHost('blocker:cancel');
+  if (wasActive) ipcRenderer.send(GUEST_MESSAGE_CHANNEL, 'blocker:cancel');
 });
 ipcRenderer.on('blocker:clear', () => {
   clearInjectedBlocks();

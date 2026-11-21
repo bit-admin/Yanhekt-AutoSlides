@@ -1,6 +1,6 @@
 // Puts the proxy settings into effect on both network stacks: main-process
 // requests (`infra/proxyRouting.ts`) and Chromium's sessions, which carry the
-// windows, the sign-in and capture webviews, and the renderer's own loads.
+// windows, the sign-in and capture guest views, and the renderer's own loads.
 import { app, session, type Session } from 'electron';
 import type { ProxyMode, ProxySettings } from '@common/types';
 import { normalizeProxyUrl } from '@common/proxyUrl';

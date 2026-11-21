@@ -41,7 +41,7 @@ import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('Yanhe2');
 
-/** The browser sign-in webview's partition, shared with the main account's. */
+/** The browser sign-in guest view's partition, shared with the main account's. */
 const BROWSER_PARTITION = 'persist:browserlogin';
 
 export class Yanhe2Service {

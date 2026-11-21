@@ -67,26 +67,19 @@
       </button>
     </div>
 
-    <!-- Webview -->
-    <div class="webview-container">
-      <webview
-        ref="webviewRef"
-        src="https://www.yuketang.cn/web"
-        partition="persist:yuketang"
-        allowpopups
-        class="yuketang-webview"
-        @did-navigate="onNavigate"
-        @did-navigate-in-page="onNavigate"
-        @did-stop-loading="onStopLoading"
-      ></webview>
+    <!-- Embedded site -->
+    <div class="guest-container">
+      <GuestSurface kind="yuketang" :url="YUKETANG_HOME" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useYuketang } from '@features/export/useYuketang'
+import { createGuestClient } from '@shared/services/guestView'
+import GuestSurface from '@renderer/components/shell/GuestSurface.vue'
 
 const { t } = useI18n()
 
@@ -104,7 +97,8 @@ const {
   openExportResult,
 } = useYuketang()
 
-const webviewRef = ref<Electron.WebviewTag | null>(null)
+const YUKETANG_HOME = 'https://www.yuketang.cn/web'
+const guest = createGuestClient('yuketang')
 
 // Map status message keys to i18n translations
 const displayStatus = computed(() => {
@@ -130,26 +124,16 @@ const displayStatus = computed(() => {
 })
 
 // Navigation
-const goBack = () => {
-  const webview = webviewRef.value
-  if (webview?.canGoBack?.()) {
-    webview.goBack()
-  }
-}
+const goBack = () => { void guest.goBack() }
+const goHome = () => { void guest.loadURL(YUKETANG_HOME) }
 
-const goHome = () => {
-  const webview = webviewRef.value
-  webview?.loadURL?.('https://www.yuketang.cn/web')
-}
-
-const onNavigate = (event: Event) => {
-  scheduleNavigationEvaluation((event as Event & { url: string }).url)
-}
-
-const onStopLoading = () => {
-  const url = webviewRef.value?.getURL()
+guest.on('did-navigate', (event) => scheduleNavigationEvaluation(event.url))
+guest.on('did-navigate-in-page', (event) => scheduleNavigationEvaluation(event.url))
+guest.on('did-stop-loading', async () => {
+  const url = await guest.getURL()
   if (url) scheduleNavigationEvaluation(url, 0)
-}
+})
+onBeforeUnmount(() => guest.dispose())
 </script>
 
 <style scoped>
@@ -254,16 +238,10 @@ const onStopLoading = () => {
   background-color: var(--focus-ring);
 }
 
-/* Webview Container */
-.webview-container {
+/* Embedded site */
+.guest-container {
   flex: 1;
   overflow: hidden;
 }
 
-.yuketang-webview {
-  display: flex;
-  width: 100%;
-  height: 100%;
-  border: none;
-}
 </style>

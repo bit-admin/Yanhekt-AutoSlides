@@ -1,4 +1,6 @@
 // Must stay first: see the file.
+import { GuestViewManager } from '@main/platform/guestViewManager';
+import { registerGuestViewIpcHandlers } from '@main/ipc/guestViewIpc';
 import '@main/cli/earlyDockHide';
 import { app, BrowserWindow, Menu, session, shell } from 'electron';
 import { installLocalAccessHeader } from '@main/video/videoProxy/localAccess';
@@ -196,7 +198,8 @@ app.setName('AutoSlides');
 let quitRequested = false;
 
 let mainWindowRef: BrowserWindow | null = null;
-const toolGuestLog = createLogger('ToolWebviews');
+const guestViews = new GuestViewManager(__dirname);
+registerGuestViewIpcHandlers(guestViews);
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -222,28 +225,13 @@ const createWindow = () => {
       nodeIntegration: false,
       contextIsolation: true,
       backgroundThrottling: false,
-      webviewTag: true,
       // Demo mode flag (npm run demo → DEMO_MODE=1), forwarded as an argv entry
       // the preload reads reliably (process.env is not dependable there).
       ...demoWebPreferences()
     }
   });
 
-  // Keep tool links that request a new window inside their guest. Do not
-  // change the browser sign-in guest or install this on the shell itself.
-  const toolSessions = new Set([
-    session.fromPartition('persist:webcapture'),
-    session.fromPartition('persist:yuketang'),
-  ]);
-  mainWindow.webContents.on('did-attach-webview', (_event, guest) => {
-    if (!toolSessions.has(guest.session)) return;
-    guest.setWindowOpenHandler(({ url }) => {
-      if (/^https?:\/\//i.test(url)) {
-        void guest.loadURL(url).catch(() => toolGuestLog.debug('Guest link did not load'));
-      }
-      return { action: 'deny' };
-    });
-  });
+  guestViews.attach(mainWindow);
 
   mainWindowRef = mainWindow;
   mainWindow.on('closed', () => {

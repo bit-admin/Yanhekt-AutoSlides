@@ -40,35 +40,9 @@
       </button>
     </div>
 
-    <!-- Webview Container -->
-    <div ref="containerRef" class="webview-container">
-      <!-- Mounted once the guest preload path is known: a webview reads its
-           preload attribute only when it first loads. -->
-      <webview
-        v-if="guestPreload !== null"
-        ref="webviewRef"
-        :src="loginUrl"
-        :preload="guestPreload || undefined"
-        partition="persist:browserlogin"
-        class="login-webview"
-        @did-navigate="onNavigate"
-        @did-navigate-in-page="onNavigateInPage"
-        @did-start-loading="menu.close()"
-        @dom-ready="onDomReady"
-        @ipc-message="onGuestMessage"
-      ></webview>
-
-      <!-- Saved-logins menu over the CAS form, placed under the field the
-           guest preload reported. -->
-      <SavedLoginMenu
-        v-if="menu.visible.value && menuStyle"
-        class="autofill-flyout"
-        :style="menuStyle"
-        :rows="menu.matches.value"
-        :highlight="menu.highlight.value"
-        @hover="menu.highlight.value = $event"
-        @pick="pick"
-      />
+    <!-- Embedded sign-in page. Mounted after any old session is cleared. -->
+    <div ref="containerRef" class="guest-container">
+      <GuestSurface v-if="guestReady" kind="browserLogin" :url="loginUrl" />
     </div>
 
     <!-- Status Bar -->
@@ -89,12 +63,14 @@
 <script setup lang="ts">
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('BrowserLoginView');
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useSavedLoginMenu, type SavedLoginRow } from '@features/platform/useSavedLoginMenu';
 import { useAuth, type BrowserLoginTarget } from '@features/platform/useAuth';
 import { describeYanhe2Failure } from '@features/platform/yanhe2AccountUi';
 import { YANHE2_CASAPI_CAS_URL, YANHE2_CASAPI_ENTRY_URL, YANHE2_ORIGIN } from '@common/yanhe2';
-import SavedLoginMenu from './SavedLoginMenu.vue';
+import { createGuestClient } from '@shared/services/guestView';
+import GuestSurface from '@renderer/components/shell/GuestSurface.vue';
 
 const props = withDefaults(defineProps<{ target?: BrowserLoginTarget }>(), { target: 'yanhekt' });
 
@@ -121,10 +97,10 @@ const targetUrl = isYanhe2 ? `${YANHE2_ORIGIN}/` : 'https://www.yanhekt.cn/';
 const reachedTarget = (url: string): boolean =>
   url.startsWith(targetUrl) && !(isYanhe2 && /\/(casapi|yjlogin)\//.test(url));
 
-const webviewRef = ref<Electron.WebviewTag | null>(null);
+const { t } = useI18n();
+const guest = createGuestClient('browserLogin');
 const containerRef = ref<HTMLElement | null>(null);
-// null = still resolving; '' = unavailable (the webview then loads without it).
-const guestPreload = ref<string | null>(null);
+const guestReady = ref(false);
 const currentUrl = ref(loginUrl);
 const statusMessage = ref('');
 const statusType = ref<'info' | 'success' | 'error'>('info');
@@ -147,18 +123,14 @@ const closeBrowser = () => {
 };
 
 const loadLoginPage = () => {
-  if (webviewRef.value) {
-    webviewRef.value.src = loginUrl;
-    currentUrl.value = loginUrl;
-    showStatus('Loading login page...', 'info');
-  }
+  void guest.loadURL(loginUrl);
+  currentUrl.value = loginUrl;
+  showStatus('Loading login page...', 'info');
 };
 
 const refresh = () => {
-  if (webviewRef.value) {
-    webviewRef.value.reload();
-    showStatus('Refreshing...', 'info');
-  }
+  void guest.reload();
+  showStatus('Refreshing...', 'info');
 };
 
 // Yanhe 2.0: the token is the `_token` cookie, which main reads straight from
@@ -192,10 +164,8 @@ const adoptYanhe2Session = async (manual: boolean): Promise<boolean> => {
 };
 
 const extractToken = async (): Promise<string | null> => {
-  if (!webviewRef.value) return null;
-
   try {
-    const result = await webviewRef.value.executeJavaScript(`
+    const result = await guest.executeJavaScript<string | null>(`
       (function() {
         try {
           const auth = localStorage.getItem('auth');
@@ -233,19 +203,17 @@ const getTokenManually = async () => {
 };
 
 const clearBrowserData = async () => {
-  if (!webviewRef.value) return;
-
   showStatus('Clearing browser data...', 'info');
 
   try {
     // Clear localStorage for yanhekt.cn
-    await webviewRef.value.executeJavaScript(`
+    await guest.executeJavaScript(`
       (function() {
         try {
           localStorage.clear();
           sessionStorage.clear();
         } catch (e) {
-          log.error('Failed to clear storage:', e);
+          // The page may not allow storage access.
         }
       })()
     `);
@@ -290,10 +258,10 @@ const stopAutoTokenCheck = () => {
 };
 
 // ---- Saved-logins menu ------------------------------------------------------
-// The guest preload (src/webviewSsoPreload.ts) reports the CAS fields; the
-// menu itself is host UI drawn over the webview. A password is decrypted and
-// sent to the guest only when the user picks a row, and only while the
-// webview is still on the SSO origin.
+// The guest preload (src/guestSsoPreload.ts) reports the CAS fields; the menu
+// is a separate native view above the page. A password is decrypted and sent
+// to the guest only when the user picks a row, and only while the guest is
+// still on the SSO origin.
 
 const SSO_ORIGIN = 'https://sso.bit.edu.cn';
 const MENU_MIN_WIDTH = 240;
@@ -309,17 +277,35 @@ const autofillQuery = ref('');
 const autofillRect = ref<GuestRect | null>(null);
 const menu = useSavedLoginMenu(autofillQuery);
 
-const menuStyle = computed(() => {
+const themeToken = (name: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+// Everything here is a fresh plain object: it crosses IPC.
+watch([menu.visible, menu.matches, menu.highlight, autofillRect], () => {
   const rect = autofillRect.value;
-  if (!rect) return null;
+  if (!menu.visible.value || !rect) {
+    void window.electronAPI.guestView.setMenu(null);
+    return;
+  }
   const containerWidth = containerRef.value?.clientWidth ?? 0;
   const width = Math.max(rect.width, MENU_MIN_WIDTH);
   const maxLeft = Math.max(8, containerWidth - width - 8);
-  return {
-    left: `${Math.min(Math.max(rect.left, 8), maxLeft)}px`,
-    top: `${rect.bottom + 4}px`,
-    width: `${width}px`,
-  };
+  void window.electronAPI.guestView.setMenu({
+    heading: t('auth.passwords'),
+    rows: menu.matches.value.map((row) => ({ username: row.username, badge: row.badge })),
+    highlight: menu.highlight.value,
+    left: Math.min(Math.max(rect.left, 8), maxLeft),
+    top: rect.bottom + 4,
+    width,
+    theme: {
+      background: themeToken('--bg-modal'),
+      text: themeToken('--text-primary'),
+      muted: themeToken('--text-muted'),
+      border: themeToken('--border-color'),
+      selected: themeToken('--bg-selected'),
+      shadow: themeToken('--shadow-lg'),
+    },
+  });
 });
 
 const parseRect = (value: unknown): GuestRect | null => {
@@ -330,16 +316,13 @@ const parseRect = (value: unknown): GuestRect | null => {
 };
 
 const sendToGuest = (channel: string, payload: unknown) => {
-  try {
-    webviewRef.value?.send(channel, payload);
-  } catch {
-    // The guest is between pages; the next focus report resyncs it.
-  }
+  // A guest between pages misses this; the next focus report resyncs it.
+  guest.send(channel, payload).catch(() => undefined);
 };
 
-const isOnSsoPage = () => {
+const isOnSsoPage = async () => {
   try {
-    return new URL(webviewRef.value?.getURL() ?? '').origin === SSO_ORIGIN;
+    return new URL(await guest.getURL()).origin === SSO_ORIGIN;
   } catch {
     return false;
   }
@@ -352,18 +335,27 @@ watch([menu.visible, menu.highlight], ([visible, highlight]) => {
 });
 
 const pick = async (row: SavedLoginRow) => {
+  cancelBlurClose();
   menu.close();
-  if (!isOnSsoPage()) return;
+  if (!(await isOnSsoPage())) return;
   const saved = await menu.reveal(row);
-  if (!saved || !isOnSsoPage()) return;
-  webviewRef.value?.focus();
+  if (!saved || !(await isOnSsoPage())) return;
+  await guest.focus();
   sendToGuest('autofill:fill', { username: saved.username, password: saved.password });
 };
 
-const onGuestMessage = (event: Electron.IpcMessageEvent) => {
-  const payload = (event.args?.[0] ?? {}) as Record<string, unknown>;
-  switch (event.channel) {
+// Clicking the native menu blurs the field just before the pick arrives.
+let blurCloseTimer: ReturnType<typeof setTimeout> | null = null;
+const cancelBlurClose = () => {
+  if (blurCloseTimer) clearTimeout(blurCloseTimer);
+  blurCloseTimer = null;
+};
+
+const onGuestMessage = (channel: string, rawPayload: unknown) => {
+  const payload = (rawPayload ?? {}) as Record<string, unknown>;
+  switch (channel) {
     case 'autofill:focus': {
+      cancelBlurClose();
       const rect = parseRect(payload.rect);
       if (!rect) return;
       autofillRect.value = rect;
@@ -382,6 +374,9 @@ const onGuestMessage = (event: Electron.IpcMessageEvent) => {
       if (payload.field === 'password') menu.close();
       break;
     case 'autofill:blur':
+      cancelBlurClose();
+      blurCloseTimer = setTimeout(() => menu.close(), 150);
+      break;
     case 'autofill:filled':
       menu.close();
       break;
@@ -394,11 +389,11 @@ const onGuestMessage = (event: Electron.IpcMessageEvent) => {
   }
 };
 
-const onNavigate = (event: Electron.DidNavigateEvent) => {
+const onNavigate = (event: { url: string }) => {
   currentUrl.value = event.url;
 
   if (isYanhe2 && event.url.startsWith(`${YANHE2_ORIGIN}/yjlogin/`)) {
-    webviewRef.value?.loadURL(YANHE2_CASAPI_CAS_URL);
+    void guest.loadURL(YANHE2_CASAPI_CAS_URL);
     return;
   }
 
@@ -409,7 +404,7 @@ const onNavigate = (event: Electron.DidNavigateEvent) => {
   }
 };
 
-const onNavigateInPage = (event: Electron.DidNavigateInPageEvent) => {
+const onNavigateInPage = (event: { url: string }) => {
   currentUrl.value = event.url;
 
   if (reachedTarget(event.url)) {
@@ -434,16 +429,25 @@ onMounted(async () => {
       log.warn('Could not clear the previous Yanhe 2.0 browser session:', error);
     }
   }
-  try {
-    guestPreload.value = await window.electronAPI.auth.getBrowserLoginPreloadPath();
-  } catch (error) {
-    log.warn('Browser sign-in preload unavailable; saved logins will not be offered:', error);
-    guestPreload.value = '';
-  }
+  guestReady.value = true;
+});
+
+guest.on('did-navigate', onNavigate);
+guest.on('did-navigate-in-page', onNavigateInPage);
+guest.on('did-start-loading', () => menu.close());
+guest.on('dom-ready', onDomReady);
+guest.on('message', ({ channel, payload }) => onGuestMessage(channel, payload));
+guest.on('menu-hover', ({ index }) => { menu.highlight.value = index; });
+guest.on('menu-pick', ({ index }) => {
+  const row = menu.matches.value[index];
+  if (row) void pick({ badge: row.badge, username: row.username });
 });
 
 onUnmounted(() => {
   stopAutoTokenCheck();
+  cancelBlurClose();
+  void window.electronAPI.guestView.setMenu(null);
+  guest.dispose();
 });
 </script>
 
@@ -480,21 +484,11 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-.webview-container {
+.guest-container {
   flex: 1;
+  min-height: 0;
   position: relative;
   overflow: hidden;
-}
-
-.login-webview {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-.autofill-flyout {
-  position: absolute;
-  z-index: var(--z-dropdown);
 }
 
 .status-bar {

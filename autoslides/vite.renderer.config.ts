@@ -109,14 +109,7 @@ export default defineConfig(({ mode }) => ({
   // trigger cold-start re-optimization while the main window is loading.
   cacheDir: 'node_modules/.vite-main',
   plugins: [
-    vue({
-      template: {
-        compilerOptions: {
-          // Treat webview as a custom element (Electron's webview tag)
-          isCustomElement: (tag) => tag === 'webview'
-        }
-      }
-    }),
+    vue(),
     vendorFilesDevServer(),
     vendorFilesBuildCopy(),
     dropBundledOrtWasm()

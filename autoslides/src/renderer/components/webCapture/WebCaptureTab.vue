@@ -128,18 +128,9 @@
       <span class="status-message">{{ displayStatus }}</span>
     </div>
 
-    <!-- Webview area -->
-    <div class="webview-container">
-      <webview
-        v-if="preloadPath"
-        ref="webviewEl"
-        :preload="preloadPath"
-        src="about:blank"
-        partition="persist:webcapture"
-        allowpopups
-        class="capture-webview"
-      ></webview>
-      <div v-else class="webview-placeholder">{{ $t('webCapture.initializing') }}</div>
+    <!-- Embedded page -->
+    <div class="guest-container">
+      <GuestSurface kind="webCapture" url="about:blank" :occluded="guestOccluded" />
       <RegionOverlay
         v-if="regionDrawMode"
         :hint="$t('webCapture.regionHint')"
@@ -148,18 +139,6 @@
         @commit="onRegionCommit"
         @cancel="cancelRegionDraw"
       />
-      <div
-        v-if="customRegion && !regionDrawMode"
-        class="region-indicator"
-        :style="{
-          left: customRegion.x + 'px',
-          top: customRegion.y + 'px',
-          width: customRegion.width + 'px',
-          height: customRegion.height + 'px',
-        }"
-      >
-        <span class="region-indicator-label">{{ customRegion.width }}×{{ customRegion.height }}</span>
-      </div>
     </div>
 
     <!-- Confirm name modal -->
@@ -189,11 +168,11 @@ import { useI18n } from 'vue-i18n'
 import { useWebCapture, webCaptureBusy, type WebCapturePreset } from '@features/webCapture/useWebCapture'
 import { sanitizeFileName } from '@common/sanitizeFileName'
 import RegionOverlay from './RegionOverlay.vue'
+import GuestSurface from '@renderer/components/shell/GuestSurface.vue'
 
 const { t } = useI18n()
 
 const {
-  preloadPath,
   pendingUrl,
   pageTitle,
   courseName,
@@ -212,7 +191,7 @@ const {
   canStart,
   regionOverridesSelector,
   presets,
-  attachWebview,
+  guest,
   navigate,
   navigatePreset,
   goBack,
@@ -234,7 +213,6 @@ const {
   onUserSelectorInput,
 } = useWebCapture()
 
-const webviewEl = ref<Electron.WebviewTag | null>(null)
 const modalInputRef = ref<HTMLInputElement | null>(null)
 const presetOpen = ref(false)
 
@@ -275,8 +253,16 @@ const focusModal = async () => {
   modalInputRef.value?.select()
 }
 
-// When the guest preload path becomes available, Vue mounts the webview.
-watch(webviewEl, attachWebview, { flush: 'post' })
+// Native views paint above the DOM, so UI over the page needs it frozen.
+const guestOccluded = computed(() =>
+  presetOpen.value || regionDrawMode.value || captureState.value === 'confirming'
+)
+
+// The region outline is native too, and stays out of captured frames.
+watch([customRegion, regionDrawMode], ([region, drawing]) => {
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--control-accent').trim()
+  void guest.setOutline(region && !drawing ? { ...region } : null, color || '#2a78d6')
+}, { flush: 'post' })
 
 watch(captureState, (val) => {
   if (val === 'confirming') void focusModal()
@@ -418,46 +404,11 @@ watch(captureState, (val) => {
   white-space: nowrap;
 }
 
-.webview-container {
+.guest-container {
   position: relative;
   flex: 1;
   overflow: hidden;
   background-color: var(--bg-page-alt);
-}
-
-.capture-webview {
-  width: 100%;
-  height: 100%;
-  border: none;
-  display: flex;
-}
-
-.webview-placeholder {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.region-indicator {
-  position: absolute;
-  border: 2px dashed var(--accent);
-  pointer-events: none;
-  z-index: var(--z-dropdown);
-}
-
-.region-indicator-label {
-  position: absolute;
-  top: -18px;
-  left: 0;
-  font-size: 10px;
-  color: var(--text-on-fill);
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 1px 5px;
-  border-radius: 3px;
-  white-space: nowrap;
 }
 
 .modal-overlay {

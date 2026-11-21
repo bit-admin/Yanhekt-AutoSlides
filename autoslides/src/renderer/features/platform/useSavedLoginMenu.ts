@@ -8,8 +8,8 @@ export interface SavedLoginRow {
 
 /**
  * State for the saved-logins menu shared by the SSO form
- * (`SsoCredentialFields`) and the browser sign-in view, where the menu is drawn
- * over a <webview>. The row list carries usernames only; a password is
+ * (`SsoCredentialFields`) and the browser sign-in view, where the menu is a
+ * native view above the page. The row list carries usernames only; a password is
  * decrypted by `reveal()` once the user has picked a row.
  *
  * `query` is the username typed so far. It filters rows by prefix.

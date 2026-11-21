@@ -1,5 +1,4 @@
 import { BrowserWindow, ipcMain, session } from 'electron';
-import path from 'node:path';
 import type { IpcServices } from './types';
 import type { DevSsoControl, DevSsoStartRequest } from '@common/devSso';
 import { broadcastConfig } from './broadcastConfig';
@@ -108,13 +107,6 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
     const key = typeof badge === 'string' ? badge.trim() : '';
     if (!key) return;
     configService.setSavedLogins(forgetSavedLogin(configService.getSavedLogins(), key));
-  });
-
-  // Guest preload for the browser sign-in <webview>: reports the CAS
-  // username/password fields so the saved-logins menu can be drawn over them.
-  ipcMain.handle('auth:getBrowserLoginPreloadPath', async () => {
-    const absolute = path.join(__dirname, 'webviewSsoPreload.cjs');
-    return new URL(`file://${absolute}`).toString();
   });
 
   ipcMain.handle('auth:clearBrowserData', async () => {

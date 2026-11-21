@@ -7,7 +7,7 @@
   >
     <!-- macOS-style password menu: a key heading and one row per remembered
          account. Rows pick on mousedown and the panel prevents it, so focus
-         stays in the field (or the <webview>) that opened the menu. Hosts
+         stays in the field that opened the menu. Hosts
          position the root through their own class, so this comment must stay
          inside the root: a comment above it makes a second root in dev builds
          and the host class is dropped. -->

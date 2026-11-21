@@ -11,6 +11,7 @@
  * metadata, sidecars, Yanhekt API models); only bridge-specific shapes are
  * declared here.
  */
+import type { GuestEvent, GuestKind, GuestMenuState, GuestRect } from '@common/guestView';
 import type { PinRequest } from '@common/pins';
 import type { DevApiRequest, DevApiResponse } from '@common/devApi';
 import type { DevSsoControl, DevSsoSnapshot, DevSsoStartRequest } from '@common/devSso';
@@ -398,8 +399,6 @@ export interface ElectronAPI {
     getSavedLogin: (badge: string) => Promise<{ username: string; password: string } | null>;
     saveSavedLogin: (badge: string, username: string, password: string) => Promise<SaveSavedLoginResult>;
     forgetSavedLogin: (badge: string) => Promise<void>;
-    /** file:// URL of the guest preload for the browser sign-in <webview>. */
-    getBrowserLoginPreloadPath: () => Promise<string>;
     /** Developer → SSO (developer mode only). State is redacted in main; nothing is stored. */
     devSsoState: () => Promise<DevSsoSnapshot>;
     /** Start a run, replacing any current one. */
@@ -498,7 +497,7 @@ export interface ElectronAPI {
      */
     captionSync: (account: string, query: Yanhe2SubtitleQuery) => Promise<Yanhe2CaptionSyncResult>;
     prepareBrowserSignIn: () => Promise<void>;
-    /** `reason: 'pending'` until the browser sign-in webview holds a token. */
+    /** `reason: 'pending'` until the browser sign-in guest view holds a token. */
     adoptBrowserSession: (account: string) => Promise<Yanhe2SignInResult>;
   };
 
@@ -1126,8 +1125,19 @@ export interface ElectronAPI {
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
   };
 
-  webCapture: {
-    getGuestPreloadPath: () => Promise<string>;
+  guestView: {
+    open: (kind: GuestKind, url: string) => Promise<void>;
+    close: (kind: GuestKind) => Promise<void>;
+    layout: (kind: GuestKind, rect: GuestRect | null) => Promise<void>;
+    navigate: (kind: GuestKind, action: 'load' | 'reload' | 'back' | 'forward', url?: string) => Promise<void>;
+    getUrl: (kind: GuestKind) => Promise<string>;
+    send: (kind: GuestKind, channel: string, payload?: unknown) => Promise<void>;
+    executeJavaScript: (kind: GuestKind, code: string) => Promise<unknown>;
+    focus: (kind: GuestKind) => Promise<void>;
+    capture: (kind: GuestKind, rect?: GuestRect | null) => Promise<string>;
+    setOutline: (kind: GuestKind, rect: GuestRect | null, color: string) => Promise<void>;
+    setMenu: (state: GuestMenuState | null) => Promise<void>;
+    onEvent: (callback: (event: GuestEvent) => void) => () => void;
   };
 
   yuketang: {

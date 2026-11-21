@@ -290,7 +290,7 @@ renderer.ts → App.vue
 - **Main** (`src/main.ts`): lifecycle, `BrowserWindow`, one `IpcServices` bag, one `registerAllIpcHandlers(services)` call. Privileged `asmedia://` scheme is registered **before** `app.ready`.
 - **Preload** (`src/preload/`): twelve domain modules spread in `index.ts` (`platform`, `video`, `extraction`, `ai`, `export`, `course`, `update`, `webCapture`, `intranet`, `localRelay`, `notes`, `lectures`). The contract is `src/preload/electronApi.ts` (`ElectronAPI`). Each exported namespace is typed `ElectronAPI['<ns>']`, so a method added on only one side fails `tsc` in preload. `src/vite-env.d.ts` only maps it onto `Window`.
 - **Renderer** (`src/renderer.ts`): load `configStore` then mount. No Pinia — module-level `reactive`/`ref` singletons.
-- **Tools**: Web Capture and Yuketang are Info-tab pages, mounted on first visit and kept alive across navigation. Each keeps its own guest `<webview>` session; Web Capture uses `src/webviewCapturePreload.ts`. Guest links that open popups stay in the corresponding tool guest.
+- **Tools**: Web Capture and Yuketang are Info-tab pages, mounted on first visit and kept alive across navigation. Each keeps its own guest session in a main-process `WebContentsView` (`main/platform/guestViewManager.ts`, placed by `components/shell/GuestSurface.vue`); Web Capture uses `src/guestCapturePreload.ts`. Guest links that open popups stay in the corresponding tool guest.
 - **Demo**: `src/renderer/demo/` + `src/main/demo/`. Production never imports it. Inversion of control through `@shared/overrideRegistry` (empty `overrides` object; demo bootstrap is the only writer). Deleting both `demo/` trees plus the documented guarded hooks leaves a working real app. ESLint forbids production imports of `@renderer/demo`. Screenshot-only: `window.__demoSetWatchNotesProvider` reseeds the open watch tab as Obsidian or Notion (`seedWatchNoteEntry` takes any provider's entry). No override slot — the panel does not call those bridges until a button is clicked.
 
 Forge unpacks native bits from asar (`*.node`, `sharp`, `@img`) so Node can load binaries. ONNX Runtime Web's plain WASM pair (`ort-wasm/`) stays inside app.asar and the workers load it from there. postPackage keeps only the Chromium locale packs for the app's languages (`scripts/chromium-locales.mjs`): `en`, `en_GB`, `zh_CN`, `zh_TW`, `ja`, `ko` `.lproj` on macOS (before re-signing), `locales/{en-US,en-GB,zh-CN,zh-TW,ja,ko}.pak` on Windows and Linux. Chromium falls back to English for any other system language. Extra resources include the auto-crop detector, model licences, and the pinned FFmpeg bundle in `media-tools` (no FFprobe since 2026-11-19). Forge prepares checksum-pinned binaries for the explicit target before start/package, keeps them outside ASAR, and checks the packaged tools before signing. Runtime uses only the bundle, never PATH/system FFmpeg. Pins, commands and source/license responsibilities: [Media tools](media-tools.md). Packaged builds flip Electron fuses (`RunAsNode: false`, `OnlyLoadAppFromAsar: true`, …).
@@ -417,7 +417,7 @@ features/lectures/          ← features/course/, video/
 
 ```
 src/
-├── main.ts | renderer.ts | webviewCapturePreload.ts | webviewSsoPreload.ts | App.vue
+├── main.ts | renderer.ts | guestCapturePreload.ts | guestSsoPreload.ts | guestMenuPreload.ts | App.vue
 ├── main/           ai/ demo/ download/ export/ extraction/ infra/ ipc/ platform/ video/
 ├── preload/        electronApi.ts + domain modules + index.ts
 ├── renderer/       components/ demo/ features/ shared/

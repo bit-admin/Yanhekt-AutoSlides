@@ -20,7 +20,6 @@ export const auth: ElectronAPI['auth'] = {
   saveSavedLogin: (badge: string, username: string, password: string) =>
     invoke('auth:saveSavedLogin', badge, username, password),
   forgetSavedLogin: (badge: string) => invoke('auth:forgetSavedLogin', badge),
-  getBrowserLoginPreloadPath: () => invoke('auth:getBrowserLoginPreloadPath'),
   devSsoState: () => invoke('auth:devSsoState'),
   devSsoStart: (request) => invoke('auth:devSsoStart', request),
   devSsoControl: (action) => invoke('auth:devSsoControl', action),

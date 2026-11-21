@@ -203,13 +203,18 @@ const config: ForgeConfig = {
           target: 'preload',
         },
         {
-          entry: 'src/webviewCapturePreload.ts',
-          config: 'vite.webviewPreload.config.ts',
+          entry: 'src/guestCapturePreload.ts',
+          config: 'vite.guestPreload.config.ts',
           target: 'preload',
         },
         {
-          entry: 'src/webviewSsoPreload.ts',
-          config: 'vite.webviewPreload.config.ts',
+          entry: 'src/guestSsoPreload.ts',
+          config: 'vite.guestPreload.config.ts',
+          target: 'preload',
+        },
+        {
+          entry: 'src/guestMenuPreload.ts',
+          config: 'vite.guestPreload.config.ts',
           target: 'preload',
         },
       ],
