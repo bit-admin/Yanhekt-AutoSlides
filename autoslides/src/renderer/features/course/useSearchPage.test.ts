@@ -122,6 +122,26 @@ describe('the Search page and answers that arrive late', () => {
     expect(search.isLoading.value).toBe(false)
   })
 
+  it('unlocks the results once a search answers', async () => {
+    search.keyword.value = 'a'
+    await nextTick()
+    expect(search.resultsStale.value).toBe(true)
+    await vi.runAllTimersAsync()
+    calls[0].answer.resolve(page('1'))
+    await vi.runAllTimersAsync()
+    expect(ids(search.results.value)).toEqual(['1'])
+    expect(search.resultsStale.value).toBe(false)
+  })
+
+  it('unlocks the results when a search fails', async () => {
+    search.keyword.value = 'b'
+    await nextTick()
+    await vi.runAllTimersAsync()
+    calls[0].answer.reject(new Error('failed'))
+    await vi.runAllTimersAsync()
+    expect(search.resultsStale.value).toBe(false)
+  })
+
   it('lets only the newest of two overlapping searches write', async () => {
     const first = search.executeSearch()
     const second = search.executeSearch()
