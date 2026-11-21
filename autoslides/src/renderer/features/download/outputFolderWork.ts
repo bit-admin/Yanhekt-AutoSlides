@@ -5,6 +5,7 @@ import { PostProcessingService } from '@shared/services/postProcessingService'
 import { TaskQueue } from '@shared/services/taskQueueService'
 import { SlideVideoQueue } from '@shared/services/slideVideoQueue'
 import { DriveUploads } from '@shared/services/driveUploadQueue'
+import { activeClones } from '@shared/services/cloneActivity'
 import { slideExtractionManager } from '@shared/processing/manager'
 
 export { downloadRowIsUnfinished }
@@ -22,5 +23,6 @@ export function countOutputFolderWork(): OutputFolderWork {
     postProcessing: PostProcessingService.jobs.filter((job) => job.status === 'queued' || job.status === 'processing').length,
     slideVideos: SlideVideoQueue.pendingCount.value,
     driveUploads: DriveUploads.pendingCount.value,
+    clones: activeClones.value,
   }
 }

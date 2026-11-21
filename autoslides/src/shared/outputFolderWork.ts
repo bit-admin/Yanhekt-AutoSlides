@@ -22,13 +22,15 @@ export interface OutputFolderWork {
   slideVideos: number
   /** Drive uploads queued or running (they write metadata.json in their folders). */
   driveUploads: number
+  /** Clone Slides from Link runs in progress. */
+  clones: number
 }
 
-export const NO_OUTPUT_FOLDER_WORK: OutputFolderWork = { downloads: 0, extractions: 0, tasks: 0, postProcessing: 0, slideVideos: 0, driveUploads: 0 }
+export const NO_OUTPUT_FOLDER_WORK: OutputFolderWork = { downloads: 0, extractions: 0, tasks: 0, postProcessing: 0, slideVideos: 0, driveUploads: 0, clones: 0 }
 
 /** How many unfinished things the counts add up to. */
 export const outputFolderWorkTotal = (work: OutputFolderWork): number =>
-  work.downloads + work.extractions + work.tasks + work.postProcessing + work.slideVideos + work.driveUploads
+  work.downloads + work.extractions + work.tasks + work.postProcessing + work.slideVideos + work.driveUploads + work.clones
 
 export const hasOutputFolderWork = (work: OutputFolderWork): boolean => outputFolderWorkTotal(work) > 0
 
@@ -45,6 +47,7 @@ export function describeOutputFolderWork(work: OutputFolderWork): string {
     work.postProcessing && plural(work.postProcessing, 'post-processing job', 'post-processing jobs'),
     work.slideVideos && plural(work.slideVideos, 'slide video', 'slide videos'),
     work.driveUploads && plural(work.driveUploads, 'Drive upload', 'Drive uploads'),
+    work.clones && plural(work.clones, 'slide clone', 'slide clones'),
   ].filter((part): part is string => !!part)
   if (parts.length <= 1) return parts[0] ?? 'nothing'
   return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
@@ -75,6 +78,7 @@ export function parseOutputFolderBusy(error: unknown): OutputFolderWork | null {
       postProcessing: count(raw.postProcessing),
       slideVideos: count(raw.slideVideos),
       driveUploads: count(raw.driveUploads),
+      clones: count(raw.clones),
     }
   } catch {
     return null

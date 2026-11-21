@@ -1224,7 +1224,10 @@ export interface ElectronAPI {
     uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
     uploadImageFromPath: (filePath: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
     exportFolderStatus: (displayName: string, identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
-    prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
+    /** A hidden folder a clone is built in, so a failure never touches an existing one. */
+    prepareCloneStage: () => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
+    publishCloneStage: (stageDir: string, displayName: string, mode: 'fresh' | 'create', identity?: import('@common/lectureNaming').LectureIdentity) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
+    discardCloneStage: (stageDir: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     downloadImageToFolder: (url: string, dir: string, filename: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     shortenShareUrl: (fragment: string) => Promise<import('@common/notesTypes').NotesResult<{ url: string }>>;
     resolveShareLink: (link: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ShareImportResult>>;

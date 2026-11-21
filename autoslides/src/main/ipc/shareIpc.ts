@@ -31,8 +31,14 @@ export function registerShareIpcHandlers({ shareService }: IpcServices): void {
   ipcMain.handle('cloudNotes:exportFolderStatus', (_e, displayName: string, identity?: LectureIdentity) =>
     run(() => shareService.exportFolderStatus(displayName, identity)));
 
-  ipcMain.handle('cloudNotes:prepareExportFolder', (_e, displayName: string, mode: 'fresh' | 'create', identity?: LectureIdentity) =>
-    run(() => shareService.prepareExportFolder(displayName, mode, identity)));
+  ipcMain.handle('cloudNotes:prepareCloneStage', () =>
+    run(() => shareService.prepareCloneStage()));
+
+  ipcMain.handle('cloudNotes:publishCloneStage', (_e, stageDir: string, displayName: string, mode: 'fresh' | 'create', identity?: LectureIdentity) =>
+    run(() => shareService.publishCloneStage(stageDir, displayName, mode, identity)));
+
+  ipcMain.handle('cloudNotes:discardCloneStage', (_e, stageDir: string) =>
+    run(() => shareService.discardCloneStage(stageDir)));
 
   ipcMain.handle('cloudNotes:downloadImageToFolder', (_e, url: string, dir: string, filename: string) =>
     run(() => shareService.downloadImageToFolder(url, dir, filename)));
