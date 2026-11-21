@@ -70,6 +70,9 @@ function applyVerifiedUser(userData: UserData, token: string, fallbackNickname =
   })
 }
 
+// Bumped by every edit of the token field, so an older Verify answer is ignored.
+let manualTokenRun = 0
+
 export interface UseAuthReturn {
   // State
   isLoggedIn: Ref<boolean>
@@ -85,7 +88,7 @@ export interface UseAuthReturn {
   manualToken: Ref<string>
   showToken: Ref<boolean>
   isVerifyingManualToken: Ref<boolean>
-  tokenVerificationStatus: Ref<{ type: 'success' | 'error'; message: string } | null>
+  tokenVerificationStatus: Ref<{ type: 'success' | 'error'; message: string; params?: Record<string, string> } | null>
 
   // Browser login state (shared across all instances)
   isBrowserLoginActive: Ref<boolean>
@@ -149,7 +152,7 @@ export function useAuth(): UseAuthReturn {
   const manualToken = ref('')
   const showToken = ref(false)
   const isVerifyingManualToken = ref(false)
-  const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
+  const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string; params?: Record<string, string> } | null>(null)
 
   // The signed-in account's remembered password, edited from Settings. Kept on
   // this instance (the one App.vue provides to the settings page), not shared:
@@ -437,58 +440,58 @@ export function useAuth(): UseAuthReturn {
     showToken.value = !showToken.value
   }
 
+  // The field is a draft. Only a verified token becomes the active one, and it
+  // is always the exact text that was sent for verification.
   const onTokenInput = () => {
+    manualTokenRun += 1
+    isVerifyingManualToken.value = false
     tokenVerificationStatus.value = null
-    if (manualToken.value.trim()) {
-      tokenManager.saveToken(manualToken.value.trim())
-    } else {
-      tokenManager.clearToken()
-    }
   }
 
   const verifyManualToken = async () => {
-    if (!manualToken.value.trim()) return
+    const candidate = manualToken.value.trim()
+    if (!candidate) return
 
+    const run = ++manualTokenRun
+    const account = `${isLoggedIn.value}:${userId.value}`
+    // An edit, a reload of the field or an account change makes this answer old.
+    const isCurrent = () => run === manualTokenRun && account === `${isLoggedIn.value}:${userId.value}`
     isVerifyingManualToken.value = true
     tokenVerificationStatus.value = null
 
     try {
-      const result = await apiClient.verifyToken(manualToken.value.trim())
+      const result = await apiClient.verifyToken(candidate)
+      if (!isCurrent()) return
 
       if (result.valid && result.userData) {
         tokenVerificationStatus.value = {
           type: 'success',
-          message: `Token verified successfully for ${result.userData.nickname || 'user'}`
+          message: 'advanced.tokenVerified',
+          params: { name: result.userData.nickname || 'User' },
         }
-
-        applyVerifiedUser(result.userData, manualToken.value.trim())
-
+        applyVerifiedUser(result.userData, candidate)
         log.debug('Manual token verification successful')
       } else {
         tokenVerificationStatus.value = {
           type: 'error',
-          message: result.networkError ? 'Network error during verification' : 'Invalid token'
-        }
-
-        if (!result.networkError) {
-          tokenManager.clearToken()
-          manualToken.value = ''
+          message: result.networkError ? 'advanced.tokenNetworkError' : 'advanced.tokenInvalid',
         }
       }
     } catch (error) {
       log.error('Token verification error:', error)
-      tokenVerificationStatus.value = {
-        type: 'error',
-        message: 'Verification failed: Network error or server exception'
+      if (isCurrent()) {
+        tokenVerificationStatus.value = { type: 'error', message: 'advanced.tokenVerifyFailed' }
       }
     } finally {
-      isVerifyingManualToken.value = false
+      if (run === manualTokenRun) isVerifyingManualToken.value = false
     }
   }
 
   // Settings entry: show the stored token, or nothing. Never keep text left over
   // from an earlier visit (an account signed out since then, say).
   const loadManualToken = () => {
+    manualTokenRun += 1
+    isVerifyingManualToken.value = false
     manualToken.value = tokenManager.getToken() ?? ''
   }
 

@@ -17,7 +17,7 @@
     </div>
 
     <!-- Scrollable body -->
-    <div class="settings-body custom-scrollbar">
+    <div class="settings-body custom-scrollbar" :inert="isSaving || isLoading" :aria-busy="isSaving || isLoading">
       <div v-show="advanced.activeAdvancedTab.value === 'general'" class="tab-content">
         <GeneralSettingsTab />
       </div>
@@ -48,8 +48,8 @@
       >
         {{ $t(`advanced.${footerFeedback}`) }}
       </span>
-      <button class="btn" :disabled="isSaving" @click="onCancel">{{ $t('advanced.cancel') }}</button>
-      <button class="btn btn--primary" :disabled="isSaving" @click="onSave">{{ $t('advanced.save') }}</button>
+      <button class="btn" :disabled="isSaving || isLoading" @click="onCancel">{{ $t('advanced.cancel') }}</button>
+      <button class="btn btn--primary" :disabled="isSaving || isLoading" @click="onSave">{{ $t('advanced.save') }}</button>
     </footer>
   </div>
 </template>
@@ -88,6 +88,24 @@ const showFooterFeedback = (kind: FooterFeedback, duration = 2000) => {
   }, duration)
 }
 
+// While the drafts are being filled the form takes no edits, so a late answer
+// cannot overwrite one. The cap keeps a stuck load from locking the page.
+const LOAD_LOCK_MS = 4000
+const isLoading = ref(false)
+let loadRun = 0
+const reload = async () => {
+  const run = ++loadRun
+  isLoading.value = true
+  try {
+    await Promise.race([
+      advanced.prepareSettings(),
+      new Promise((resolve) => setTimeout(resolve, LOAD_LOCK_MS)),
+    ])
+  } finally {
+    if (run === loadRun) isLoading.value = false
+  }
+}
+
 // Refresh buffers/loads on entry; discard buffered edits when leaving the page by
 // any route (sidebar nav, gear button elsewhere) without Save/Cancel. The page is
 // lazily mounted on first visit, so the immediate run sees activeNav === 'settings'.
@@ -97,7 +115,7 @@ watch(
   (nav, prev) => {
     if (nav === 'settings') {
       footerFeedback.value = null
-      void advanced.prepareSettings()
+      void reload()
     } else if (prev === 'settings') {
       advanced.discardSettings()
     }
@@ -121,9 +139,9 @@ const onSave = async () => {
 // Cancel re-runs the page-entry load rather than discardSettings(): several
 // buffers (AI tab incl. model chain + prompts, auto-crop/YOLO params) have no
 // in-memory committed copy and are only re-seeded from config by the loads.
-const onCancel = () => {
-  if (isSaving.value) return
-  void advanced.prepareSettings()
+const onCancel = async () => {
+  if (isSaving.value || isLoading.value) return
+  await reload()
   showFooterFeedback('discarded')
 }
 

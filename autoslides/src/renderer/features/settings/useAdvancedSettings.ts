@@ -66,7 +66,7 @@ export function useAdvancedSettings(
   options: UseAdvancedSettingsOptions,
   onOpenModal?: () => Promise<void>,
   onSaveSettings?: () => Promise<void>,
-  t?: (key: string) => string
+  t?: (key: string, params?: Record<string, unknown>) => string
 ) {
   const { enableAIFiltering, tempEnableAIFiltering } = options
 
@@ -89,11 +89,16 @@ export function useAdvancedSettings(
   ]
 
   let advancedSettingsOpenRequestId = 0
+  let committing = false
+  let discardAfterCommit = false
+  let commitInFlight: Promise<void> = Promise.resolve()
 
   // Entering the Settings page: copy config → temp buffers and kick off the
   // async loads (network interfaces, extractor verify, AI/pHash, …). Called by
   // SettingsPage each time the page becomes active.
   const prepareSettings = async () => {
+    // A save reads its drafts group by group: never reset them under it.
+    await commitInFlight
     const requestId = ++advancedSettingsOpenRequestId
 
     general.resetTemp()
@@ -128,6 +133,10 @@ export function useAdvancedSettings(
   // in-page Cancel calls prepareSettings instead. Bumps the request id so any
   // in-flight prepare loads are ignored. Idempotent.
   const discardSettings = () => {
+    if (committing) {
+      discardAfterCommit = true
+      return
+    }
     advancedSettingsOpenRequestId++
 
     general.resetTemp()
@@ -138,26 +147,47 @@ export function useAdvancedSettings(
     tempEnableAIFiltering.value = enableAIFiltering.value
   }
 
-  // Persist buffered edits (Save). Throws are surfaced to the user as today.
+  // Persist buffered edits (Save). The groups are independent writes, so a
+  // failure part-way says which were saved. Leaving the page meanwhile waits
+  // for the save, because each group reads its drafts only when it is reached.
   const commitSettings = async () => {
+    committing = true
+    let finishCommit = () => {}
+    commitInFlight = new Promise<void>((resolve) => { finishCommit = resolve })
+    const groups: Array<[AdvancedTabId, () => Promise<unknown>]> = [
+      ['general', general.save],
+      ['imageProcessing', imageProcessing.save],
+      ['network', network.save],
+      ['playback', extractor.save],
+      ['addons', addons.save],
+    ]
+    const saved: AdvancedTabId[] = []
+    let current: AdvancedTabId = 'general'
     try {
-      await general.save()
-      await imageProcessing.save()
-      await network.save()
-      await extractor.save()
-      await addons.save()
-
-      if (onSaveSettings) {
-        await onSaveSettings()
+      for (const [tab, save] of groups) {
+        current = tab
+        await save()
+        saved.push(tab)
       }
+      current = 'ai'
+      if (onSaveSettings) await onSaveSettings()
     } catch (error) {
       log.error('Failed to save advanced settings:', error)
-      // A mid-sequence failure leaves earlier groups saved — tell the user
-      // which error stopped the save instead of failing silently. Rethrow so
-      // the Settings footer does not flash "Applied" after a failed commit.
+      // Rethrow so the Settings footer does not flash "Applied" after a failed commit.
       const detail = error instanceof Error ? error.message : String(error)
-      void window.electronAPI.dialog?.showErrorBox?.('Settings', `Failed to save settings: ${detail}`)
+      const name = (tab: AdvancedTabId) => t?.(`advanced.tabs.${tab}`) ?? tab
+      const message = saved.length > 0
+        ? t?.('advanced.savePartial', { saved: saved.map(name).join(', '), failed: name(current) }) ?? 'Some settings were saved.'
+        : t?.('advanced.saveFailed', { failed: name(current) }) ?? 'Settings were not saved.'
+      void window.electronAPI.dialog?.showErrorBox?.(t?.('advanced.saveFailedTitle') ?? 'Settings', `${message}\n\n${detail}`)
       throw error
+    } finally {
+      committing = false
+      finishCommit()
+      if (discardAfterCommit) {
+        discardAfterCommit = false
+        discardSettings()
+      }
     }
   }
 
