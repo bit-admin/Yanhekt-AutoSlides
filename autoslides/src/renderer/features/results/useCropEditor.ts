@@ -440,6 +440,31 @@ export function useCropEditor(deps: CropEditorDeps) {
       : { mode: 'resize', startX: point.x, startY: point.y, originRect: { ...cropRectPx.value }, handle: mode }
   }
 
+  /** Arrow keys move the selection; Shift+arrows change its size. */
+  const nudgeCrop = (event: KeyboardEvent) => {
+    const rect = cropRectPx.value
+    const step: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+    }
+    const arrow = step[event.key]
+    if (!isCropMode.value || !rect || !arrow) return
+    event.preventDefault()
+    const { width: maxW, height: maxH } = cropImageNaturalSize.value
+    const stride = Math.max(1, Math.round(Math.max(maxW, maxH) / 200))
+    const [dx, dy] = [arrow[0] * stride, arrow[1] * stride]
+    cropRectPx.value = event.shiftKey
+      ? {
+          ...rect,
+          width: Math.max(minimumCropSize, Math.min(maxW - rect.x, rect.width + dx)),
+          height: Math.max(minimumCropSize, Math.min(maxH - rect.y, rect.height + dy)),
+        }
+      : {
+          ...rect,
+          x: Math.max(0, Math.min(maxW - rect.width, rect.x + dx)),
+          y: Math.max(0, Math.min(maxH - rect.height, rect.y + dy)),
+        }
+  }
+
   const handleGlobalCropPointerMove = (event: PointerEvent) => {
     if (!cropInteraction.value) return
 
@@ -565,6 +590,7 @@ export function useCropEditor(deps: CropEditorDeps) {
     startAutoCropMode,
     handleCropStagePointerDown,
     startCropInteraction,
+    nudgeCrop,
     applyCrop,
     restoreCrop,
   }

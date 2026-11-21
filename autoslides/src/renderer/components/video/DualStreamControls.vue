@@ -3,6 +3,7 @@
     <div v-if="streamCount > 1" class="stream-selector">
       <label>{{ $t('playback.selectStream') }}</label>
       <select
+        :aria-label="$t('playback.selectStream')"
         :value="selectedStream"
         @change="onStreamChange($event)"
         :disabled="shouldDisableControls"
@@ -19,6 +20,7 @@
     <div v-if="mode === 'recorded'" class="playback-rate-control">
       <label>{{ $t('playback.playbackSpeed') }}</label>
       <select
+        :aria-label="$t('playback.playbackSpeed')"
         :value="currentPlaybackRate"
         @change="onRateChange($event)"
         :disabled="shouldDisableControls"

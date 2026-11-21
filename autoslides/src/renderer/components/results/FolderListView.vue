@@ -81,6 +81,7 @@
         type="button"
         class="folder-item"
         :class="{ 'folder-item-grouped': isGroupingActive, 'folder-item-edit': isFolderEditMode }"
+        :aria-pressed="isFolderEditMode ? selectedFolderNames.includes(entry.folder.name) : undefined"
         :ref="(el) => setFolderItemRef(entry.folder.name, el as HTMLButtonElement | null)"
         :draggable="isFolderEditMode && !isGenerating"
         @click="isFolderEditMode ? emit('toggle-selection', entry.folder.name) : emit('open-folder', entry.folder)"
@@ -93,6 +94,8 @@
         <div v-if="isFolderEditMode" class="folder-checkbox">
           <input
             type="checkbox"
+            tabindex="-1"
+            aria-hidden="true"
             :checked="selectedFolderNames.includes(entry.folder.name)"
             @click.stop
             @change="emit('toggle-selection', entry.folder.name)"

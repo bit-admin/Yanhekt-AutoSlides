@@ -3,10 +3,12 @@
     <div
       v-for="slide in slides"
       :key="slide.id"
+      v-press="slide.title"
       class="slide-thumbnail"
       @click="$emit('preview', slide)"
     >
       <img v-if="slide.dataUrl" :src="slide.dataUrl" :alt="slide.title" />
+      <div v-else-if="slide.failed" class="thumbnail-pending thumbnail-failed">{{ $t('playback.slideImageFailed') }}</div>
       <div v-else class="thumbnail-pending"></div>
       <div class="thumbnail-overlay">
         <div class="slide-info">
@@ -17,7 +19,8 @@
           v-if="deletable"
           @click.stop="$emit('delete', slide)"
           class="delete-btn"
-          :title="`Move ${slide.title} to trash`"
+          :title="$t('playback.moveToTrashTip')"
+          :aria-label="`${$t('playback.moveToTrash')}: ${slide.title}`"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
@@ -32,6 +35,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends GallerySlide">
+import { vPress } from '@shared/ui/press'
 import type { GallerySlide } from '@features/video/gallerySlide'
 
 withDefaults(defineProps<{
@@ -81,6 +85,15 @@ defineEmits<{
 /* An image that is still on its way (Yanhe 2.0 server slides). */
 .thumbnail-pending {
   background-color: var(--bg-subtle);
+}
+
+.thumbnail-failed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 .thumbnail-overlay {

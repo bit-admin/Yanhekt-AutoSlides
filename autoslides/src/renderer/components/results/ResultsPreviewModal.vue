@@ -4,7 +4,7 @@
        as the page, exactly as before the extraction. -->
   <div v-if="previewItem" class="preview-modal-overlay" @click="emit('close')">
     <div v-dialog="{ label: $t('playback.close'), close: isCropMode ? undefined : () => emit('close') }" class="preview-modal" :class="{ 'metadata-visible': showPreviewMetadata, 'crop-mode': isCropMode }" @click.stop>
-      <button class="preview-close-btn" @click="emit('close')">
+      <button class="preview-close-btn" :aria-label="$t('playback.close')" :title="$t('playback.close')" @click="emit('close')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
@@ -37,6 +37,11 @@
               <div
                 v-if="isCropMode && cropRectPx"
                 class="crop-selection"
+                tabindex="0"
+                role="group"
+                :aria-label="$t('trash.cropKeyboardHint')"
+                :title="$t('trash.cropKeyboardHint')"
+                @keydown="nudgeCrop"
                 :style="cropSelectionStyle"
                 @pointerdown.stop="startCropInteraction('move', $event)"
               >
@@ -48,6 +53,8 @@
                   v-for="handle in cropHandles"
                   :key="handle"
                   type="button"
+                  tabindex="-1"
+                  aria-hidden="true"
                   class="crop-handle"
                   :class="`crop-handle-${handle}`"
                   @pointerdown.stop="startCropInteraction(handle, $event)"
@@ -315,6 +322,7 @@ const {
   startAutoCropMode,
   handleCropStagePointerDown,
   startCropInteraction,
+  nudgeCrop,
   applyCrop,
   restoreCrop,
 } = useCropEditor({

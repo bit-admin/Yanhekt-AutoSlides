@@ -42,7 +42,7 @@
             <path d="M3 21v-5h5"/>
           </svg>
         </button>
-        <button @click="showDetails = !showDetails" class="btn expand-btn">
+        <button @click="showDetails = !showDetails" class="btn expand-btn" :aria-expanded="showDetails" :aria-label="$t('sessions.courseDetails')" :title="$t('sessions.courseDetails')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showDetails }">
             <polyline points="6,9 12,15 18,9"/>
           </svg>
@@ -84,6 +84,7 @@
       <div v-if="loading" class="loading-state">
         <div class="spinner spinner--lg"></div>
         <p>{{ $t('playback.loadingVideoStreams') }}</p>
+        <button v-if="isCinemaMode" class="btn" @click="toggleCinemaMode">{{ $t('playback.exitCinemaMode') }}</button>
       </div>
 
       <div v-else-if="problem" class="loading-state error-state">
@@ -96,6 +97,7 @@
           <p class="error-message">{{ problemMessage }}</p>
         </div>
         <button @click="load" class="btn btn--primary btn--lg">{{ $t('playback.retry') }}</button>
+        <button v-if="isCinemaMode" class="btn" @click="toggleCinemaMode">{{ $t('playback.exitCinemaMode') }}</button>
       </div>
 
       <div v-else-if="playback" class="video-content" :data-playback-mode="mode">
@@ -201,6 +203,7 @@
               @toggle-captions="toggleCaptions"
               @toggle-pip="togglePipFromMenu"
               @pointer-over-controls="pointerOverControls = $event"
+              @focus-within-controls="focusWithinControls = $event"
             />
           </div>
 
@@ -280,6 +283,7 @@
               @toggle-captions="toggleCaptions"
               @swap-order="swapOrder"
               @pointer-over-controls="pointerOverControls = $event"
+              @focus-within-controls="focusWithinControls = $event"
             />
           </div>
 
@@ -367,6 +371,10 @@
                 </div>
                 <!-- Offered on the captions' terms: no button on a lecture whose timing could not be measured. -->
                 <div v-else-if="galleryView === 'transcript'" class="slide-actions">
+                  <template v-if="captionTimingUnknown">
+                    <span class="timing-note" role="status">{{ $t('yanhe2Playback.timingUnknown') }}</span>
+                    <button class="btn" @click="retryCaptionTiming">{{ $t('playback.retry') }}</button>
+                  </template>
                   <button v-if="captionsAvailable" class="btn btn--primary" :disabled="preparingSubtitles" @click="downloadSubtitles">
                     <svg v-if="!preparingSubtitles" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -381,6 +389,9 @@
                   {{ $t('playback.retry') }}
                 </button>
                 <div v-else-if="serverSlides.length > 0" class="slide-actions">
+                  <button v-if="failedSlideCount > 0" class="btn" @click="retryFailedSlides">
+                    {{ $t('yanhe2Playback.retryFailedSlides', { count: failedSlideCount }) }}
+                  </button>
                   <button class="btn btn--primary" :disabled="savingSlides" @click="saveSlides">
                     <svg v-if="!savingSlides" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -511,6 +522,7 @@ import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { streamFallbackMessageKey } from '@features/video/streamFallback'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
+import { useCinemaMode } from '@features/video/useCinemaMode'
 import type { VideoStream } from '@features/video/useVideoPlayer'
 import { configStore } from '@shared/services/configStore'
 import { layoutStore } from '@shared/services/layoutStore'
@@ -637,7 +649,7 @@ const problemMessage = computed(() => {
 
 // Server slides. Shown as they come: Yanhe 2.0 neither filters nor
 // deduplicates them, and their times are on the screen recording's clock.
-const { slides: serverSlides, state: slidesState, load: loadSlides } = useYanhe2Slides({
+const { slides: serverSlides, state: slidesState, load: loadSlides, failedCount: failedSlideCount, retryFailed: retryFailedSlides } = useYanhe2Slides({
   account: props.account,
   courseId: props.session.courseId,
   subId: props.session.subId,
@@ -649,6 +661,7 @@ const gallerySlides = computed<GallerySlide[]>(() =>
     title: t('yanhe2Playback.slideTitle', { n: index + 1 }),
     timestamp: String(slide.seconds),
     dataUrl: slide.src,
+    failed: slide.failed,
   })),
 )
 // By id, not by object: the list is rebuilt as each image arrives, and an open
@@ -943,6 +956,8 @@ const {
   captionsOn,
   caption,
   toggle: toggleCaptions,
+  timingUnknown: captionTimingUnknown,
+  retryTiming: retryCaptionTiming,
 } = useYanhe2Captions({
   account: props.account,
   courseId: props.session.courseId,
@@ -1026,7 +1041,7 @@ const setRateFromPanel = (rate: number) => {
   showSpeedPanel.value = false
 }
 
-const { controlsVisible, pointerOverControls, showControls, onPlayerPointerLeave } = useControlsVisibility({
+const { controlsVisible, pointerOverControls, focusWithinControls, showControls, onPlayerPointerLeave } = useControlsVisibility({
   isPlaying,
   persistSources: [showSpeedPanel, showMorePanel, showAudioPanel],
 })
@@ -1065,22 +1080,7 @@ const togglePictureInPicture = async () => {
 
 // Cinema mode: collapse both side panels and hide the header, restoring the
 // panels to what they were on the way out.
-const isCinemaMode = ref(false)
-let preCinemaLeftCollapsed = false
-let preCinemaRightCollapsed = false
-const toggleCinemaMode = () => {
-  if (isCinemaMode.value) {
-    layoutStore.leftCollapsed = preCinemaLeftCollapsed
-    layoutStore.rightCollapsed = preCinemaRightCollapsed
-    isCinemaMode.value = false
-  } else {
-    preCinemaLeftCollapsed = layoutStore.leftCollapsed
-    preCinemaRightCollapsed = layoutStore.rightCollapsed
-    layoutStore.leftCollapsed = true
-    layoutStore.rightCollapsed = true
-    isCinemaMode.value = true
-  }
-}
+const { isCinemaMode, toggleCinemaMode } = useCinemaMode(() => !!props.isVisible)
 const toggleCinemaFromMenu = () => {
   toggleCinemaMode()
   showMorePanel.value = false
@@ -1140,11 +1140,14 @@ onUnmounted(() => {
   slideExtraction.cleanupSlideExtraction()
   void perf.cleanupAll()
   detachVideoListeners?.()
-  if (isCinemaMode.value) toggleCinemaMode()
 })
 </script>
 
-<style scoped src="../video/playbackPageChrome.css"></style>
+<style scoped src="../video/playbackPageChrome.css">.timing-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+</style>
 
 <style scoped>
 /* The download button's busy state: a hairline ring in place of the arrow. */

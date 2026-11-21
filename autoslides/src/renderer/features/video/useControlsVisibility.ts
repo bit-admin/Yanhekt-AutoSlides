@@ -23,11 +23,14 @@ export function useControlsVisibility(options: UseControlsVisibilityOptions) {
 
   const controlsVisible = ref(true)
   const pointerOverControls = ref(false)
+  // Keyboard focus in the bar keeps it up, as the pointer does.
+  const focusWithinControls = ref(false)
   let controlsHideTimer: ReturnType<typeof setTimeout> | null = null
 
   const controlsShouldPersist = () =>
     !isPlaying.value ||
     pointerOverControls.value ||
+    focusWithinControls.value ||
     persistSources.some((source) => source.value)
 
   const clearControlsTimer = () => {
@@ -57,7 +60,7 @@ export function useControlsVisibility(options: UseControlsVisibilityOptions) {
     controlsVisible.value = false
   }
 
-  watch([isPlaying, pointerOverControls, ...persistSources], () => {
+  watch([isPlaying, pointerOverControls, focusWithinControls, ...persistSources], () => {
     if (controlsShouldPersist()) {
       clearControlsTimer()
       controlsVisible.value = true
@@ -71,6 +74,7 @@ export function useControlsVisibility(options: UseControlsVisibilityOptions) {
   return {
     controlsVisible,
     pointerOverControls,
+    focusWithinControls,
     showControls,
     onPlayerPointerLeave,
   }

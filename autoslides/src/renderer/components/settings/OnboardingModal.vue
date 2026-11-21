@@ -222,7 +222,7 @@
                   :placeholder="$t('advanced.addons.obsidianVaultPlaceholder')"
                   :title="configStore.obsidianVaultPath"
                 />
-                <button type="button" class="btn btn--primary" @click="selectObsidianVault">{{ $t('settings.browse') }}</button>
+                <button type="button" class="btn" @click="selectObsidianVault">{{ $t('settings.browse') }}</button>
               </div>
               <p v-if="configStore.obsidianVaultPath && obsidianVaultIsVault === false" class="notes-warning" role="status">
                 {{ $t('advanced.addons.obsidianNotAVault') }}

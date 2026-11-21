@@ -115,6 +115,11 @@ export function useYanhe2Captions(options: {
   })
   const toggle = () => { captionsOn.value = !captionsOn.value }
 
+  /** The transcript exists but its timing could not be measured: no captions, no subtitle file. */
+  const timingUnknown = computed(() => hasTranscript.value && fixedDelay.value === null && sync.value === 'unknown')
+  /** Measure again, on request only. */
+  const retryTiming = () => { if (sync.value === 'unknown') void measure() }
+
   // `lines` and `delay` are also what the page's transcript view reads.
-  return { lines, delay, hasTranscript, available, syncing, captionsOn, caption, toggle }
+  return { lines, delay, hasTranscript, available, syncing, captionsOn, caption, toggle, timingUnknown, retryTiming }
 }

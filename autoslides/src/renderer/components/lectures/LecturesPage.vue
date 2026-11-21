@@ -145,7 +145,7 @@
             class="btn"
             @click="() => queue.cancelCurrent()"
           >
-            {{ $t('lectures.cancelMakeVideo') }}
+            {{ queue.queuedCount.value > 0 ? $t('lectures.cancelAllVideos', { count: queue.queuedCount.value + 1 }) : $t('lectures.cancelMakeVideo') }}
           </button>
         </div>
       </div>
@@ -154,9 +154,17 @@
           <span class="queue-label queue-label--error">
             {{ $t('lectures.makeVideoFailed', { count: queue.failed.value.length }) }}
           </span>
-          <span class="queue-name" :title="queue.failed.value[0].error">
+          <span class="queue-name" role="alert" :title="queue.failed.value.map((job) => `${job.target.displayName}: ${job.error}`).join('\n')">
             {{ queue.failed.value[0].target.displayName }}: {{ queue.failed.value[0].error }}
           </span>
+          <span v-if="queue.cancelledCount.value > 0" class="queue-pending">
+            {{ $t('lectures.videosCancelled', { count: queue.cancelledCount.value }) }}
+          </span>
+        </div>
+      </div>
+      <div v-else-if="queue.cancelledCount.value > 0" class="queue-status">
+        <div class="queue-status-main">
+          <span class="queue-label" role="status">{{ $t('lectures.videosCancelled', { count: queue.cancelledCount.value }) }}</span>
         </div>
       </div>
       <div
@@ -164,7 +172,7 @@
         class="progress-bar-container"
         :title="`${activeJob.target.displayName} — ${activeJob.progress}%`"
       >
-        <div class="progress-bar" :style="{ width: `${activeJob.progress}%` }"></div>
+        <div class="footer-progress-fill" :style="{ width: `${activeJob.progress}%` }"></div>
       </div>
 
       <div v-if="viewMode === 'list'" class="footer">
@@ -608,7 +616,7 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
-.progress-bar {
+.footer-progress-fill {
   height: 100%;
   background: var(--accent);
   transition: width 0.2s ease;

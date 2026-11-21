@@ -55,7 +55,7 @@
             <path d="M3 21v-5h5"/>
           </svg>
         </button>
-        <button @click="toggleCourseDetails" class="btn expand-btn">
+        <button @click="toggleCourseDetails" class="btn expand-btn" :aria-expanded="showDetails" :aria-label="$t('sessions.courseDetails')" :title="$t('sessions.courseDetails')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showDetails }">
             <polyline points="6,9 12,15 18,9"/>
           </svg>
@@ -108,6 +108,7 @@
       <div v-if="loading" class="loading-state">
         <div class="spinner spinner--lg"></div>
         <p>{{ $t('playback.loadingVideoStreams') }}</p>
+        <button v-if="isCinemaMode" class="btn" @click="toggleCinemaMode">{{ $t('playback.exitCinemaMode') }}</button>
       </div>
 
       <div v-else-if="error" class="loading-state error-state">
@@ -130,6 +131,7 @@
           </div>
         </div>
         <button @click="retryLoad" class="btn btn--primary btn--lg">{{ $t('playback.retry') }}</button>
+        <button v-if="isCinemaMode" class="btn" @click="toggleCinemaMode">{{ $t('playback.exitCinemaMode') }}</button>
       </div>
 
       <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode" :data-extractor-instance="slideExtraction.extractorInstanceId.value">
@@ -234,7 +236,7 @@
           >
             {{ $t('playback.browserNotSupported') }}
           </video>
-          <BufferingOverlay v-if="isBuffering" />
+          <BufferingOverlay v-if="isBuffering && !isRetrying" />
           <!-- Retry Indicator -->
           <div v-if="isRetrying" class="retry-indicator">
             <div class="retry-spinner"></div>
@@ -281,6 +283,7 @@
             @toggle-cinema="toggleCinemaFromMenu"
             @toggle-pip="togglePipFromMenu"
             @pointer-over-controls="pointerOverControls = $event"
+            @focus-within-controls="focusWithinControls = $event"
           />
         </div>
 
@@ -343,6 +346,8 @@
             :class="{ 'controls-hidden': !controlsVisible }"
             @mouseenter="pointerOverControls = true"
             @mouseleave="pointerOverControls = false"
+            @focusin="focusWithinControls = true"
+            @focusout="onDualBarFocusOut"
           >
             <div class="dual-controls-main-row">
               <div class="dual-controls-left">
@@ -361,7 +366,7 @@
                   </svg>
                 </button>
 
-                <span class="dual-time">{{ formatPlaybackTime(dualCurrentTime) }} / {{ dualCanSeek ? formatPlaybackTime(dualDuration) : $t('playback.dual.live') }}</span>
+                <span class="dual-time">{{ formatPlaybackTime(dualCurrentTime) }} / {{ dualCanSeek ? formatPlaybackTime(dualDuration) : props.mode === 'live' ? $t('playback.dual.live') : '—' }}</span>
               </div>
 
               <div class="dual-controls-right">
@@ -546,6 +551,8 @@
               :value="dualCurrentTime"
               :style="{ '--dual-progress': dualSeekProgress }"
               :disabled="shouldDisableControls || !dualCanSeek"
+              :aria-label="$t('playback.seek')"
+              :aria-valuetext="`${formatPlaybackTime(dualCurrentTime)} / ${formatPlaybackTime(dualDuration)}`"
               @input="onDualSeekInput"
             />
 
@@ -682,6 +689,7 @@ import { usePlaybackDownload } from '@features/download/usePlaybackDownload'
 import { usePerformanceOptimization } from '@features/video/usePerformanceOptimization'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
+import { useCinemaMode } from '@features/video/useCinemaMode'
 import { useSlideGallery } from '@features/video/useSlideGallery'
 import { audioModeLabelKey } from '@features/video/audioMode'
 import PostProcessingProgressBar from './PostProcessingProgressBar.vue'
@@ -720,9 +728,11 @@ const isPictureInPicture = ref(false)
 // Cinema mode: collapse both side panels and hide the page chrome (header,
 // warnings, slide gallery) so only the player fills the main content. The
 // panels' pre-cinema collapse state is captured so exiting restores it exactly.
-const isCinemaMode = ref(false)
-let preCinemaLeftCollapsed = false
-let preCinemaRightCollapsed = false
+const { isCinemaMode, toggleCinemaMode } = useCinemaMode(() => !!props.isVisible)
+const onDualBarFocusOut = (event: FocusEvent) => {
+  const bar = event.currentTarget as HTMLElement
+  if (!(event.relatedTarget instanceof Node) || !bar.contains(event.relatedTarget)) focusWithinControls.value = false
+}
 const isVideoContainerCollapsed = ref(false)
 const showMorePlaybackSpeed = ref(false)
 const dualVideoContainer = ref<HTMLElement | null>(null)
@@ -1073,23 +1083,6 @@ const onLeavePictureInPicture = () => {
   isVideoContainerCollapsed.value = false
 }
 
-// Cinema mode toggle
-const toggleCinemaMode = () => {
-  if (isCinemaMode.value) {
-    // Exit: restore the panels to whatever they were before cinema.
-    layoutStore.leftCollapsed = preCinemaLeftCollapsed
-    layoutStore.rightCollapsed = preCinemaRightCollapsed
-    isCinemaMode.value = false
-  } else {
-    // Enter: remember the current collapse state, then collapse both panels.
-    preCinemaLeftCollapsed = layoutStore.leftCollapsed
-    preCinemaRightCollapsed = layoutStore.rightCollapsed
-    layoutStore.leftCollapsed = true
-    layoutStore.rightCollapsed = true
-    isCinemaMode.value = true
-  }
-}
-
 // Delegate methods to composables
 const {
   switchStream,
@@ -1415,7 +1408,7 @@ const setPlaybackRateFromPanel = (rate: number) => {
 
 // Auto-hide the control overlay (single + dual) — see useControlsVisibility.
 // The three popover flags keep the controls pinned while open.
-const { controlsVisible, pointerOverControls, showControls, onPlayerPointerLeave } =
+const { controlsVisible, pointerOverControls, focusWithinControls, showControls, onPlayerPointerLeave } =
   useControlsVisibility({
     isPlaying,
     persistSources: [showSpeedPanel, showDualAudioPanel, showDualMorePanel],

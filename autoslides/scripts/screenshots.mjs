@@ -470,14 +470,15 @@ async function main() {
         await shotCard('onboarding-signin-ready')
       } else if (name === 'onboarding-notes-provider') {
         // Capture both provider setup choices; continue to Obsidian settings.
-        const providerBtn = (i) => win.locator('.onboarding-body .mode-toggle .mode-btn').nth(i)
-        await providerBtn(0).click()
+        // By name: the row is Off, Obsidian, Notion.
+        const providerBtn = (name) => win.locator('.onboarding-body .mode-toggle .mode-btn', { hasText: name })
+        await providerBtn('Obsidian').click()
         await win.waitForSelector('.onboarding-body .notes-provider-detail .input-group', { timeout: 4000 })
         await shotCard('onboarding-notes-obsidian')
-        await providerBtn(1).click()
+        await providerBtn('Notion').click()
         await win.waitForSelector('.onboarding-body .notion-steps', { timeout: 4000 })
         await shotCard('onboarding-notes-notion')
-        await providerBtn(0).click()
+        await providerBtn('Obsidian').click()
       } else {
         await shotCard(name)
       }
@@ -509,20 +510,10 @@ async function main() {
       await tools.getByRole('button', { name: label, exact: true }).click()
       await win.waitForSelector(`[data-mode="${target}"]:not(.mode-hidden) ${readySelector}`)
       await win.waitForSelector('.layout > .right-panel.collapsed')
-      if (target === 'yuketang') {
-        // The live site can render a login QR anywhere in its guest. Hide the
-        // whole guest in this capture instead of redacting a fixed rectangle.
-        const style = await win.addStyleTag({ content: '.yuketang-webview { display: none !important; }' })
-        try {
-          await win.waitForSelector('.yuketang-webview', { state: 'hidden' })
-          await shot(name)
-          yuketangGuestHidden = true
-        } finally {
-          await style.evaluate((element) => element.remove())
-        }
-      } else {
-        await shot(name)
-      }
+      // The guest is a native view that CSS cannot hide, and the live Yuketang
+      // site can show a login QR in it. Take no capture of that page: the flag
+      // stays false and process-docs keeps the existing docs image.
+      if (target !== 'yuketang') await shot(name)
     } finally {
       // Keep the extra nav rows out of later captures unless already enabled.
       await win.evaluate(async (enabled) => {
@@ -532,8 +523,8 @@ async function main() {
     }
   }
 
-  await step('tools-webcapture', () => captureTool('tools-webcapture', 'Web Capture', 'webcapture', '.capture-webview'))
-  await step('tools-yuketang', () => captureTool('tools-yuketang', 'Yuketang', 'yuketang', '.yuketang-webview'))
+  await step('tools-webcapture', () => captureTool('tools-webcapture', 'Web Capture', 'webcapture', '.guest-surface'))
+  await step('tools-yuketang', () => captureTool('tools-yuketang', 'Yuketang', 'yuketang', '.guest-surface'))
 
   // Slides Review: folder list → image grid → may_be_slide_edit preview → crop
   // mode (demo data; reads no real files).
@@ -677,9 +668,8 @@ async function main() {
     await win.waitForSelector('.signin-menu', { timeout: 6000 })
     // `.signin-option` also covers the UserMenuLinks rows — match by text.
     await win.locator('.signin-menu .signin-option', { hasText: /browser|浏览器/i }).click()
-    // BrowserLoginView mounts a <webview> pointed at the live SSO page. The
-    // webview tag isn't a "visible" DOM node to Playwright, so wait for its
-    // container, then give the page generous time to load over the network.
+    // BrowserLoginView opens a native guest on the live SSO page. Playwright
+    // cannot see into it, so wait for the container and give the page time.
     await win.waitForSelector('.browser-login-view', { timeout: 10000 })
     await win.waitForTimeout(9000)
     await shot('login')

@@ -8,6 +8,9 @@
     :class="{ 'controls-hidden': !controlsVisible }"
     @mouseenter="emit('pointer-over-controls', true)"
     @mouseleave="emit('pointer-over-controls', false)"
+    @focusin="emit('focus-within-controls', true)"
+    @focusout="onFocusOut"
+    @keydown.esc="closeOpenPanel"
   >
     <div class="dual-controls-main-row">
       <div class="dual-controls-left">
@@ -15,6 +18,7 @@
           class="dual-icon-button"
           @click="emit('toggle-playback')"
           :disabled="shouldDisableControls"
+          :aria-label="isPlaying ? $t('playback.dual.pause') : $t('playback.dual.play')"
           :title="isPlaying ? $t('playback.dual.pause') : $t('playback.dual.play')"
         >
           <svg v-if="!isPlaying" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -26,7 +30,7 @@
           </svg>
         </button>
 
-        <span class="dual-time">{{ formatTime(currentTime) }} / {{ canSeek ? formatTime(duration) : $t('playback.dual.live') }}</span>
+        <span class="dual-time">{{ formatTime(currentTime) }} / {{ canSeek ? formatTime(duration) : mode === 'live' ? $t('playback.dual.live') : '—' }}</span>
       </div>
 
       <div class="dual-controls-right">
@@ -72,6 +76,8 @@
         <div v-if="hasMicAudio || audioSources" class="dual-popover-anchor">
           <button
             class="dual-icon-button"
+            :aria-expanded="showAudioPanel"
+            :aria-label="$t('playback.dual.audioSource')"
             @click="emit('toggle-audio-panel')"
             :disabled="shouldDisableControls || shouldVideoMute"
             :title="$t('playback.dual.audioSource')"
@@ -89,6 +95,7 @@
               :key="source.value"
               class="dual-popover-option"
               :class="{ active: pickedAudio === source.value }"
+              :aria-pressed="pickedAudio === source.value"
               @click="emit('pick-audio', source.value)"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -101,6 +108,7 @@
             <button
               class="dual-popover-option"
               :class="{ active: audioSource === 'video' }"
+              :aria-pressed="audioSource === 'video'"
               @click="emit('set-audio-source', 'video')"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -115,6 +123,7 @@
             <button
               class="dual-popover-option"
               :class="{ active: audioSource === 'mic' }"
+              :aria-pressed="audioSource === 'mic'"
               @click="emit('set-audio-source', 'mic')"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -133,6 +142,8 @@
         <div v-if="mode === 'recorded'" class="dual-popover-anchor">
           <button
             class="dual-speed-button"
+            :aria-expanded="showSpeedPanel"
+            :aria-label="$t('playback.playbackSpeed')"
             @click="emit('toggle-speed-panel')"
             :disabled="shouldDisableControls"
             :title="$t('playback.playbackSpeed')"
@@ -145,6 +156,7 @@
               :key="rate"
               class="dual-popover-option"
               :class="{ active: Number(currentPlaybackRate) === rate }"
+              :aria-pressed="Number(currentPlaybackRate) === rate"
               @click="emit('set-playback-rate', rate)"
             >
               <span>{{ rate }}x</span>
@@ -191,6 +203,8 @@
         <div class="dual-popover-anchor">
           <button
             class="dual-icon-button"
+            :aria-expanded="showMorePanel"
+            :aria-label="$t('playback.dual.moreOptions')"
             @click="emit('toggle-more-panel')"
             :disabled="shouldDisableControls"
             :title="$t('playback.dual.moreOptions')"
@@ -248,13 +262,15 @@
       :value="currentTime"
       :style="{ '--dual-progress': seekProgress }"
       :disabled="shouldDisableControls || !canSeek"
+      :aria-label="$t('playback.seek')"
+      :aria-valuetext="`${formatTime(currentTime)} / ${formatTime(duration)}`"
       @input="onSeekInput"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   mode: 'live' | 'recorded'
   isPlaying: boolean
   controlsVisible: boolean
@@ -321,7 +337,29 @@ const emit = defineEmits<{
   (e: 'toggle-pip'): void
   (e: 'toggle-captions'): void
   (e: 'pointer-over-controls', over: boolean): void
+  (e: 'focus-within-controls', within: boolean): void
 }>()
+
+const onFocusOut = (event: FocusEvent) => {
+  const bar = event.currentTarget as HTMLElement
+  if (!(event.relatedTarget instanceof Node) || !bar.contains(event.relatedTarget)) {
+    emit('focus-within-controls', false)
+  }
+}
+
+// Escape closes the open popover and hands focus back to the button that opened it.
+const closeOpenPanel = (event: KeyboardEvent) => {
+  const open = props.showSpeedPanel ? 'toggle-speed-panel' as const
+    : props.showAudioPanel ? 'toggle-audio-panel' as const
+      : props.showMorePanel ? 'toggle-more-panel' as const
+        : null
+  if (!open) return
+  event.preventDefault()
+  event.stopPropagation()
+  const anchor = (event.target as HTMLElement).closest('.dual-popover-anchor')
+  emit(open as 'toggle-speed-panel')
+  anchor?.querySelector<HTMLElement>(':scope > button')?.focus()
+}
 
 const onSeekInput = (event: Event) => {
   emit('seek-input', Number((event.target as HTMLInputElement).value))
