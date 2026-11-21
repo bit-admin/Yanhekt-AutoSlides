@@ -731,7 +731,7 @@
       "unknown": "未知"
     },
     "info": {
-      "participants": "参与者"
+      "participants": "{count} 位参与者"
     },
     "loading": "加载课程中…",
     "noResults": "未找到课程",
@@ -855,7 +855,7 @@
     "liveMuted": "直播静音",
     "recordedMuted": "录播静音",
     "slideExtraction": "幻灯片提取",
-    "slides": "张幻灯片",
+    "slides": "{count} 张幻灯片",
     "extracted": "已提取",
     "clearAll": "全部清除",
     "postProcess": "执行后处理",
@@ -929,7 +929,7 @@
     "academicTerm": "学期",
     "college": "学院",
     "participants": "参与者",
-    "participantsCount": "参与者",
+    "participantsCount": "{count} 位参与者",
     "loadingSessions": "加载课时中…",
     "noSessions": "未找到课时",
     "noSessionsHint": "延河课堂没有返回这门课程的课时。你可能没有观看权限，或者它还没有录像。",
@@ -1959,7 +1959,7 @@
     "noRecording": "这节课没有可播放的录像。",
     "serverSlides": "服务端幻灯片",
     "serverTranscript": "服务端转写",
-    "transcriptLines": "句",
+    "transcriptLines": "{count} 句",
     "captionsSyncing": "正在同步字幕…",
     "downloadSubtitles": "下载字幕",
     "subtitlesAlreadyQueued": "这份字幕已在下载队列中",

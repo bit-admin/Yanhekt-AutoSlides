@@ -34,15 +34,15 @@ export function getCurrentLocale(): 'en' | 'zh' | 'ja' | 'ko' {
 }
 
 const LOCALE_TAGS: Record<'en' | 'zh' | 'ja' | 'ko', string> = {
-  en: 'en-US',
+  en: 'en-GB',
   zh: 'zh-CN',
   ja: 'ja-JP',
   ko: 'ko-KR'
 }
 
-/** BCP 47 tag for the active UI locale — pass to `toLocale*()` / `Intl` instead of a hardcoded 'en-US'. */
+/** BCP 47 tag for the active UI locale, for use with `toLocale*()` and `Intl`. */
 export function localeTag(): string {
-  return LOCALE_TAGS[getCurrentLocale()] ?? 'en-US'
+  return LOCALE_TAGS[getCurrentLocale()] ?? LOCALE_TAGS.en
 }
 
 // Helper function to detect system language

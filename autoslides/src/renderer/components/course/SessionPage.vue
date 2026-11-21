@@ -63,9 +63,9 @@
           <span class="detail-label">{{ $t('sessions.college') }}</span>
           <span class="detail-value">{{ courseDetails.college_name }}</span>
         </div>
-        <div class="course-detail-item" v-if="courseDetails?.participant_count !== undefined">
+        <div class="course-detail-item" v-if="participantCount(courseDetails?.participant_count) !== null">
           <span class="detail-label">{{ $t('sessions.participants') }}</span>
-          <span class="detail-value">{{ courseDetails.participant_count }} {{ $t('sessions.participantsCount') }}</span>
+          <span class="detail-value">{{ $t('sessions.participantsCount', { count: participantCount(courseDetails?.participant_count) ?? 0 }) }}</span>
         </div>
       </div>
     </div>
@@ -236,6 +236,7 @@ import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
 import { isPinned, togglePinnedCourse } from '@features/course/pinnedCourses'
 import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames'
+import { participantCount } from '@shared/i18n/participantCount'
 import { useAuth } from '@features/platform/useAuth'
 import { yanhe2ActiveBadge } from '@features/platform/yanhe2AccountUi'
 import { openYanhe2Twin } from '../yanhe2/openCourseTwin'

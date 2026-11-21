@@ -255,7 +255,7 @@ const apply = async () => {
   if (failed > 0) {
     void window.electronAPI.dialog?.showMessageBox?.({
       type: 'warning',
-      message: t('lectures.renamePartialResult', { failed }),
+      message: t('lectures.renamePartialResult', { failed }, failed),
     })
   }
   emit('done')

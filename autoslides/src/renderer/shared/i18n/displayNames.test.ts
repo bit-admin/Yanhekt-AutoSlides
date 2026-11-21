@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { setI18nLanguage } from './index'
+import { participantCount } from './participantCount'
 import {
   courseDisplayTitle,
   academicTermLabel,
@@ -86,6 +87,20 @@ describe('usableEnglishTitle', () => {
     expect(usableEnglishTitle(undefined)).toBeUndefined()
     expect(usableEnglishTitle(null)).toBeUndefined()
     expect(usableEnglishTitle('   ')).toBeUndefined()
+  })
+})
+
+describe('participantCount', () => {
+  it('keeps numbers and numeric strings', () => {
+    expect(participantCount(0)).toBe(0)
+    expect(participantCount(61)).toBe(61)
+    expect(participantCount('61')).toBe(61)
+  })
+
+  it('rejects values that are not a count', () => {
+    for (const value of [undefined, null, '', ' ', 'many', -1, 1.5, Number.NaN]) {
+      expect(participantCount(value)).toBeNull()
+    }
   })
 })
 

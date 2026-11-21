@@ -1,4 +1,5 @@
 import { ref, type Ref, type ShallowRef } from 'vue'
+import { localeTag } from '@shared/i18n'
 import type { ExtractedSlide, SlideExtractionHandle } from '@shared/processing'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('SlideGallery');
@@ -41,7 +42,7 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
   const formatSlideTime = (timestamp: string): string => {
     try {
       const date = new Date(timestamp)
-      return date.toLocaleTimeString()
+      return date.toLocaleTimeString(localeTag())
     } catch {
       return timestamp
     }

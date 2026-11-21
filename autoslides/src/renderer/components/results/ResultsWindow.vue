@@ -484,6 +484,7 @@ const {
 const mixedSlideSelection = computed(() => selectedActiveItems.value.length > 0 && selectedRemovedItems.value.length > 0)
 const slideActionNotice = ref<{ key: string; params: Record<string, number> } | null>(null)
 watch(() => selectedIds.value.length, (count) => { if (count > 0) slideActionNotice.value = null })
+watch([currentView, () => currentFolder.value?.path], () => { slideActionNotice.value = null })
 
 const allFilteredSelected = computed(() => {
   if (filteredItems.value.length === 0) return false
@@ -657,12 +658,10 @@ const isKnownEmpty = (folder: (typeof selectedFolders.value)[number]) => !folder
 const exportSkippedCount = computed(() => exportOutcome.value?.skipped ?? selectedFolders.value.filter(
   (folder) => !folder.path || (pdf.outputMode.value === 'single' && isKnownEmpty(folder)),
 ).length)
-const emptySeparateFolders = computed(() => pdf.outputMode.value === 'batch' && !exportOutcome.value
+const emptySeparateFolders = computed(() => pdf.outputMode.value === 'batch'
   ? selectedFolders.value.filter((folder) => folder.path && isKnownEmpty(folder)).length
   : 0)
-// Unlike the notice count, this ignores a shown export outcome: the button stays off either way.
-const separateExportBlocked = computed(() => pdf.outputMode.value === 'batch'
-  && selectedFolders.value.some((folder) => !!folder.path && isKnownEmpty(folder)))
+const separateExportBlocked = computed(() => emptySeparateFolders.value > 0)
 const exportNoticeId = computed(() => exportSkippedCount.value > 0 || emptySeparateFolders.value > 0
   ? 'slides-export-note'
   : undefined)

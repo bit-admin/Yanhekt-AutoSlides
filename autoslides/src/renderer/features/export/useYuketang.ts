@@ -10,6 +10,7 @@ export interface UseYuketangReturn {
   statusMessage: Ref<string>
   latestExportDir: Ref<string>
   latestPdfPath: Ref<string>
+  exportedPresentationCount: Ref<number>
   classCapture: Ref<{ presentationId: string; hasAuthorization: boolean }>
   canExport: ComputedRef<boolean>
   handleNavigation: (url: string) => void
@@ -29,6 +30,7 @@ export function useYuketang(): UseYuketangReturn {
   const statusMessage = ref('defaultStatus')
   const latestExportDir = ref('')
   const latestPdfPath = ref('')
+  const exportedPresentationCount = ref(0)
   const classCapture = ref<{ presentationId: string; hasAuthorization: boolean }>({
     presentationId: '',
     hasAuthorization: false,
@@ -138,6 +140,7 @@ export function useYuketang(): UseYuketangReturn {
         return
       }
 
+      exportedPresentationCount.value = result.presentationCount
       statusMessage.value = 'exported'
       latestExportDir.value = result.lessonDir
       if (result.pdfPath) {
@@ -210,6 +213,7 @@ export function useYuketang(): UseYuketangReturn {
     statusMessage,
     latestExportDir,
     latestPdfPath,
+    exportedPresentationCount,
     classCapture,
     canExport,
     handleNavigation,

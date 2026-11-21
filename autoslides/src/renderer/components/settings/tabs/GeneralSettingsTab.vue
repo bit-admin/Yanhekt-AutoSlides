@@ -410,6 +410,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { localeTag } from '@shared/i18n'
 import type { CurrentTermSearchSource, EarlierTermSearchSource } from '@common/searchSources'
 import type { CourseIndexStatus } from '@common/courseIndexTypes'
 import { useSettingsContext } from '@features/settings/settingsContext'
@@ -422,7 +423,7 @@ import {
   yanhe2VerifyStatus,
 } from '@features/platform/yanhe2AccountUi'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const { auth, settings, advanced, cache } = useSettingsContext()
 
 const {
@@ -538,13 +539,14 @@ const courseIndexStatusText = computed(() => {
   if (!status) return ''
   if (!status.hasKey) return t('advanced.courseIndexNoKey')
   const parts: string[] = []
+  const tag = localeTag()
   if (status.terms.length === 0 || !status.generatedAt) parts.push(t('advanced.courseIndexNone'))
   else {
-    const date = new Date(status.generatedAt).toLocaleDateString(locale.value)
+    const date = new Date(status.generatedAt).toLocaleDateString(tag)
     parts.push(t('advanced.courseIndexHeld', { count: status.terms.length, date }))
   }
   if (status.lastError) parts.push(t('advanced.courseIndexCheckFailed', { error: status.lastError }))
-  else if (status.checkedAt) parts.push(t('advanced.courseIndexChecked', { time: new Date(status.checkedAt).toLocaleString(locale.value) }))
+  else if (status.checkedAt) parts.push(t('advanced.courseIndexChecked', { time: new Date(status.checkedAt).toLocaleString(tag) }))
   return parts.join(' ')
 })
 

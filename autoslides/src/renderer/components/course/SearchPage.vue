@@ -189,8 +189,8 @@
             <p class="course-time">{{ academicTermLabel(course.school_year, course.semester, course.time) }}</p>
             <p class="course-section" v-if="mode === 'live' && course.session?.section_group_title">{{ course.session.section_group_title }}</p>
             <p class="course-section" v-if="mode === 'recorded' && course.college_name">{{ course.college_name }}</p>
-            <p class="course-participants" v-if="course.participant_count !== undefined">
-              {{ course.participant_count }} {{ $t('courses.info.participants') }}
+            <p class="course-participants" v-if="participantCount(course.participant_count) !== null">
+              {{ $t('courses.info.participants', { count: participantCount(course.participant_count) ?? 0 }) }}
             </p>
           </div>
         </div>
@@ -230,6 +230,7 @@ import { useSearchPage, type IndexNotice } from '@features/course/useSearchPage'
 import { useOpenById } from '@features/course/useOpenById'
 import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
 import { courseDisplayTitle, academicTermLabel, courseTitleSizeClass } from '@shared/i18n/displayNames'
+import { participantCount } from '@shared/i18n/participantCount'
 import type { SemesterOption } from '@shared/services/apiClient'
 import { useAuth } from '@features/platform/useAuth'
 import {

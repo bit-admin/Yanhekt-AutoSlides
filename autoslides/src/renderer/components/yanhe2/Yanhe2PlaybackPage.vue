@@ -310,7 +310,7 @@
                       <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                     </svg>
                     <span class="counter-text">
-                      {{ isSlideExtractionEnabled ? extractedSlides.length : 0 }} {{ $t('playback.slides') }}
+                      {{ $t('playback.slides', { count: isSlideExtractionEnabled ? extractedSlides.length : 0 }) }}
                       <span v-if="isSlideExtractionEnabled" class="counter-status">{{ $t('playback.extracted') }}</span>
                     </span>
                   </div>
@@ -321,7 +321,7 @@
                     <line x1="4" y1="12" x2="20" y2="12"/>
                     <line x1="4" y1="18" x2="14" y2="18"/>
                   </svg>
-                  <span class="counter-text">{{ transcriptLines.length }} {{ $t('yanhe2Playback.transcriptLines') }}</span>
+                  <span class="counter-text">{{ $t('yanhe2Playback.transcriptLines', { count: transcriptLines.length }) }}</span>
                 </div>
                 <div v-else-if="slidesState === 'ready' && serverSlides.length > 0" class="slide-counter">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -329,7 +329,7 @@
                     <circle cx="9" cy="9" r="2"/>
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                   </svg>
-                  <span class="counter-text">{{ serverSlides.length }} {{ $t('playback.slides') }}</span>
+                  <span class="counter-text">{{ $t('playback.slides', { count: serverSlides.length }) }}</span>
                 </div>
               </div>
 

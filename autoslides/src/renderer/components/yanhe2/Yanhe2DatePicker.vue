@@ -59,7 +59,7 @@
 // Sunday. With `week`, the model is the Monday that starts the school week, so
 // the rows start on Monday too and the chosen week is one whole row.
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { localeTag } from '@shared/i18n'
 import { shiftDate, weekStartOf } from '@common/yanhe2Calendar'
 
 const props = defineProps<{
@@ -76,7 +76,6 @@ const emit = defineEmits<{
   (e: 'update:modelValue', date: string): void
 }>()
 
-const { locale } = useI18n()
 
 const isOpen = ref(false)
 const rootRef = ref<HTMLElement | null>(null)
@@ -102,14 +101,14 @@ function choose(date: string): void {
 }
 
 const monthTitle = computed(() =>
-  new Intl.DateTimeFormat(locale.value, { year: 'numeric', month: 'long', timeZone: 'UTC' }).format(utc(month.value)),
+  new Intl.DateTimeFormat(localeTag(), { year: 'numeric', month: 'long', timeZone: 'UTC' }).format(utc(month.value)),
 )
 
 // 2023-12-31 was a Sunday.
 const firstWeekday = computed(() => (props.week ? 1 : 0))
 
 const weekdayNames = computed(() => {
-  const format = new Intl.DateTimeFormat(locale.value, { weekday: 'narrow', timeZone: 'UTC' })
+  const format = new Intl.DateTimeFormat(localeTag(), { weekday: 'narrow', timeZone: 'UTC' })
   return Array.from({ length: 7 }, (_, i) => format.format(utc(shiftDate('2023-12-31', i + firstWeekday.value))))
 })
 

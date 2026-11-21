@@ -1,4 +1,5 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { localeTag } from '@shared/i18n'
 import { getSlideFolderDisplayLabel } from '@shared/utils/toolWindowFolders'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
@@ -862,7 +863,7 @@ export function useResultsView() {
     if (!value) return ''
 
     try {
-      return new Date(value).toLocaleString()
+      return new Date(value).toLocaleString(localeTag())
     } catch {
       return value
     }

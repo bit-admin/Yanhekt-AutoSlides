@@ -378,6 +378,7 @@
 // subtitles, and its camera, screen and mic recordings through Download.
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { localeTag } from '@shared/i18n'
 import { beijingClock, beijingDate, lessonRange, type Yanhe2CalendarSession } from '@common/yanhe2Calendar'
 import type { Yanhe2Course } from '@common/yanhe2Curriculum'
 import type { Yanhe2DownloadKind } from '@common/yanhe2Download'
@@ -416,7 +417,7 @@ import SignedOutPanel from '../shell/SignedOutPanel.vue'
 import { openYanhektTwin } from './openCourseTwin'
 import { openYanhe2Session } from './openYanhe2Session'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const {
   courses,
@@ -507,7 +508,7 @@ const sessionTitle = (s: Yanhe2CalendarSession) => {
       : t('yanhe2Calendar.lessons', { from: range.from, to: range.to })
   if (!s.startAt) return s.subTitle || s.title
   // The session's Beijing day, formatted as UTC so the viewer's zone cannot shift it.
-  const day = new Intl.DateTimeFormat(locale.value, {
+  const day = new Intl.DateTimeFormat(localeTag(), {
     weekday: 'short',
     year: 'numeric',
     month: 'short',

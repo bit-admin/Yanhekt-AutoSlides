@@ -82,9 +82,9 @@
           <span class="detail-label">{{ $t('sessions.college') }}</span>
           <span class="detail-value">{{ course.college_name }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.participant_count !== undefined">
+        <div class="course-detail-item" v-if="participantCount(course?.participant_count) !== null">
           <span class="detail-label">{{ $t('sessions.participants') }}</span>
-          <span class="detail-value">{{ course.participant_count }} {{ $t('sessions.participantsCount') }}</span>
+          <span class="detail-value">{{ $t('sessions.participantsCount', { count: participantCount(course?.participant_count) ?? 0 }) }}</span>
         </div>
         <div class="course-detail-item" v-if="session">
           <span class="detail-label">{{ $t('playback.sessionDate') }}</span>
@@ -576,7 +576,7 @@
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                   </svg>
                   <span class="counter-text">
-                    {{ isSlideExtractionEnabled ? extractedSlides.length : 0 }} {{ $t('playback.slides') }}
+                    {{ $t('playback.slides', { count: isSlideExtractionEnabled ? extractedSlides.length : 0 }) }}
                     <span v-if="isSlideExtractionEnabled" class="counter-status">{{ $t('playback.extracted') }}</span>
                   </span>
                 </div>
@@ -661,9 +661,11 @@
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PlaybackPage');
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
+import { localeTag } from '@shared/i18n'
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
 import { courseDisplayTitle, academicTermLabel } from '@shared/i18n/displayNames'
+import { participantCount } from '@shared/i18n/participantCount'
 import { tabStore } from '@features/course/tabStore'
 import { liveStreamOf } from '@features/course/courseSelection'
 import { hydrateLiveTitles } from '@features/course/liveCourseTitles'
@@ -1422,7 +1424,7 @@ const { controlsVisible, pointerOverControls, showControls, onPlayerPointerLeave
 const formatDate = (dateString: string): string => {
   try {
     const date = new Date(dateString)
-    return date.toLocaleString()
+    return date.toLocaleString(localeTag())
   } catch {
     return dateString
   }

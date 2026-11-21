@@ -1,4 +1,5 @@
 import { computed, ref } from 'vue'
+import { localeTag } from '@shared/i18n'
 import type { IntranetDomainTest, IntranetMapping, IntranetTestMeta, NetworkInterfaceInfo } from './settingsTypes'
 import { configStore } from '@shared/services/configStore'
 import { tokenManager } from '@shared/services/authService'
@@ -53,7 +54,7 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
       intranetTestMeta.value = {
         resolvedByCampusDns: status.resolvedByCampusDns,
         interfaceIp: status.interfaceIp,
-        at: new Date().toLocaleTimeString(),
+        at: new Date().toLocaleTimeString(localeTag()),
       }
 
       // One call per domain, so each row fills in as soon as its own addresses answer.

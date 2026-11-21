@@ -187,6 +187,7 @@
 // at the panel's normal width (App.vue widens only for the Yanhekt editor).
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { localeTag } from '@shared/i18n'
 import { configStore } from '@shared/services/configStore'
 import { watchNotesStore } from '@features/cloudNotes/watchNotesStore'
 import type { ExternalWatchNoteEntry, WatchQueueStatus } from '@features/cloudNotes/watchNotesTypes'
@@ -194,7 +195,7 @@ import NotionPagePicker from './NotionPagePicker.vue'
 
 const props = defineProps<{ entry: ExternalWatchNoteEntry }>()
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const obsidian = window.electronAPI.obsidianNotes
 const notion = window.electronAPI.notionNotes
 const isMac = navigator.userAgent.includes('Mac')
@@ -267,7 +268,7 @@ function statusLabel(status: WatchQueueStatus): string {
 }
 
 function timeOf(ms: number): string {
-  return new Date(ms).toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return new Date(ms).toLocaleTimeString(localeTag(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 const errorText = computed(() => {

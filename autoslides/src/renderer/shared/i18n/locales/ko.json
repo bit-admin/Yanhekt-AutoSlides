@@ -731,7 +731,7 @@
       "unknown": "알 수 없음"
     },
     "info": {
-      "participants": "참가자"
+      "participants": "참가자 {count}명"
     },
     "loading": "강의 불러오는 중…",
     "noResults": "강의를 찾을 수 없습니다",
@@ -855,7 +855,7 @@
     "liveMuted": "라이브 음소거됨",
     "recordedMuted": "녹화 음소거됨",
     "slideExtraction": "슬라이드 추출",
-    "slides": "슬라이드",
+    "slides": "슬라이드 {count}장",
     "extracted": "추출됨",
     "clearAll": "모두 지우기",
     "postProcess": "후처리",
@@ -929,7 +929,7 @@
     "academicTerm": "학기",
     "college": "대학",
     "participants": "참가자",
-    "participantsCount": "참가자",
+    "participantsCount": "참가자 {count}명",
     "loadingSessions": "세션 불러오는 중…",
     "noSessions": "세션을 찾을 수 없습니다",
     "noSessionsHint": "Yanhekt에서 이 강의의 세션을 반환하지 않았습니다. 시청 권한이 없거나 아직 녹화가 없을 수 있습니다.",
@@ -1959,7 +1959,7 @@
     "noRecording": "이 강의에는 재생할 녹화본이 없습니다.",
     "serverSlides": "서버 슬라이드",
     "serverTranscript": "서버 전사본",
-    "transcriptLines": "줄",
+    "transcriptLines": "{count}줄",
     "captionsSyncing": "자막을 동기화하는 중…",
     "downloadSubtitles": "자막 다운로드",
     "subtitlesAlreadyQueued": "이 자막은 이미 다운로드 대기열에 있습니다",

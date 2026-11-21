@@ -731,7 +731,7 @@
       "unknown": "不明"
     },
     "info": {
-      "participants": "参加者"
+      "participants": "参加者 {count} 人"
     },
     "loading": "コースを読み込み中…",
     "noResults": "コースが見つかりません",
@@ -855,7 +855,7 @@
     "liveMuted": "ライブミュート",
     "recordedMuted": "録画ミュート",
     "slideExtraction": "スライド抽出",
-    "slides": "スライド",
+    "slides": "スライド {count} 枚",
     "extracted": "抽出済み",
     "clearAll": "すべてクリア",
     "postProcess": "後処理",
@@ -929,7 +929,7 @@
     "academicTerm": "学期",
     "college": "学部",
     "participants": "参加者",
-    "participantsCount": "参加者",
+    "participantsCount": "参加者 {count} 人",
     "loadingSessions": "セッションを読み込み中…",
     "noSessions": "セッションが見つかりません",
     "noSessionsHint": "延河課堂はこのコースのセッションを返しませんでした。視聴する権限がないか、まだ録画がない可能性があります。",
@@ -1959,7 +1959,7 @@
     "noRecording": "この講義には再生できる録画がありません。",
     "serverSlides": "サーバースライド",
     "serverTranscript": "サーバー文字起こし",
-    "transcriptLines": "行",
+    "transcriptLines": "{count} 行",
     "captionsSyncing": "字幕を同期しています…",
     "downloadSubtitles": "字幕をダウンロード",
     "subtitlesAlreadyQueued": "この字幕はすでにダウンロードキューにあります",

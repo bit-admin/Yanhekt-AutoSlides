@@ -137,6 +137,7 @@
 import { computed } from 'vue'
 import { periodNumber } from '@common/yanhe2Calendar'
 import { useI18n } from 'vue-i18n'
+import { localeTag } from '@shared/i18n'
 import { navigationStore } from '@features/course/navigationStore'
 import {
   requestYanhe2SsoSignIn,
@@ -154,7 +155,7 @@ import Yanhe2WeekTimetable from './Yanhe2WeekTimetable.vue'
 
 const VIEWS: Yanhe2CalendarView[] = ['all', 'mine']
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const {
   view,
@@ -213,10 +214,10 @@ const periodLabel = (name: string) => {
 
 // Dates are plain `YYYY-MM-DD`; format them as UTC so the viewer's zone cannot shift the day.
 const dayLabel = (day: string) =>
-  new Intl.DateTimeFormat(locale.value, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
+  new Intl.DateTimeFormat(localeTag(), { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
     .format(new Date(`${day}T00:00:00Z`))
 const shortDate = (day: string) =>
-  new Intl.DateTimeFormat(locale.value, { month: 'short', day: 'numeric', timeZone: 'UTC' })
+  new Intl.DateTimeFormat(localeTag(), { month: 'short', day: 'numeric', timeZone: 'UTC' })
     .format(new Date(`${day}T00:00:00Z`))
 </script>
 

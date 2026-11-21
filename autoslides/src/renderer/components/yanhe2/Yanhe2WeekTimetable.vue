@@ -38,6 +38,7 @@
 // or late-evening slot) gets an extra Other Times column, shown only when needed.
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { localeTag } from '@shared/i18n'
 import {
   YANHE2_TIMETABLE,
   timetablePeriodOf,
@@ -53,7 +54,7 @@ const props = defineProps<{
   today: string
 }>()
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 interface Column {
   key: string
@@ -94,7 +95,7 @@ const columns = computed<Column[]>(() => {
 
 // Dates are plain `YYYY-MM-DD`; format them as UTC so the viewer's zone cannot shift the day.
 const weekdayOf = (day: string) =>
-  new Intl.DateTimeFormat(locale.value, { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
+  new Intl.DateTimeFormat(localeTag(), { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day}T00:00:00Z`))
 </script>
 
 <style scoped>

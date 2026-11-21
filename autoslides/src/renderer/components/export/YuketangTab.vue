@@ -97,6 +97,7 @@ const {
   statusMessage,
   latestExportDir,
   latestPdfPath,
+  exportedPresentationCount,
   canExport,
   scheduleNavigationEvaluation,
   startExport,
@@ -121,7 +122,7 @@ const displayStatus = computed(() => {
     case 'exporting':
       return t('yuketang.exporting')
     case 'exported':
-      return t('yuketang.exported', { count: 1, format: exportFormat.value.toUpperCase() })
+      return t('yuketang.exported', { count: exportedPresentationCount.value, format: exportFormat.value.toUpperCase() })
     default:
       // Raw progress message or error from main process
       return msg

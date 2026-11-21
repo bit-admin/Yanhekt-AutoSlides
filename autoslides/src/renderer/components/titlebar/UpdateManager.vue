@@ -146,6 +146,7 @@
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('UpdateManager');
 import { ref, onMounted, onUnmounted } from 'vue'
+import { localeTag } from '@shared/i18n'
 import { useI18n } from 'vue-i18n'
 import '../../assets/github-markdown.css'
 import QuarantineNotice from '../shell/QuarantineNotice.vue'
@@ -250,7 +251,7 @@ onUnmounted(() => {
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString)
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+  return date.toLocaleDateString(localeTag(), { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 const formatBytes = (bytes: number): string => {

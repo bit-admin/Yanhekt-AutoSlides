@@ -172,6 +172,7 @@
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractorInstallModal');
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { localeTag } from '@shared/i18n'
 import { useI18n } from 'vue-i18n'
 import { compareSemver } from '@common/semver'
 import '../../assets/github-markdown.css'
@@ -259,7 +260,7 @@ function formatBytes(bytes: number): string {
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString()
+    return new Date(iso).toLocaleDateString(localeTag())
   } catch {
     return iso
   }

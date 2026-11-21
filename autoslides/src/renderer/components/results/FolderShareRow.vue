@@ -108,6 +108,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { localeTag } from '@shared/i18n'
 import type { DriveShareLink } from '@common/driveStatus'
 import { createLogger } from '@shared/utils/logger'
 
@@ -124,7 +125,7 @@ const emit = defineEmits<{
   (e: 'changed'): void
 }>()
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 // The version picked with the arrows; null follows the newest, so a new
 // upload's link shows up without touching the arrows.
@@ -146,7 +147,7 @@ const select = (i: number) => {
 const versionHint = computed(() => t('drive.linkVersion', {
   index: index.value + 1,
   count: props.shares.length,
-  date: new Date(shown.value.createdAt).toLocaleString(locale.value),
+  date: new Date(shown.value.createdAt).toLocaleString(localeTag()),
 }))
 
 const shortenHint = computed(() => {
