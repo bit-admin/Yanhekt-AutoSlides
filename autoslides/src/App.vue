@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+import { fitPanels, MIN_LEFT_PANEL, MIN_MAIN_PANE, MIN_RIGHT_PANEL } from '@shared/ui/panelLayout'
 import { ref, computed, watch, onMounted, onBeforeUnmount, onUnmounted, nextTick, provide } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TitleBar from '@renderer/components/titlebar/TitleBar.vue'
@@ -297,6 +298,9 @@ if (isDemoMode()) {
 const leftWidth = ref(255)
 const rightWidth = ref(340)
 const mainWidth = ref(845)
+// What the user last chose. A narrow window borrows from these and gives it back.
+let chosenLeft = leftWidth.value
+let chosenRight = rightWidth.value
 
 // leftWidth/rightWidth/mainWidth stay the expanded baseline that the resize
 // logic operates on (preserving the invariant innerWidth === left+main+right).
@@ -360,23 +364,24 @@ const nudgePanel = (type: 'left' | 'right', event: KeyboardEvent) => {
   if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
   event.preventDefault()
   const delta = event.key === 'ArrowRight' ? PANEL_KEY_STEP : -PANEL_KEY_STEP
-  const total = window.innerWidth
+  if (type === 'left') choosePanelWidth('left', leftWidth.value + delta, window.innerWidth)
+  else choosePanelWidth('right', rightWidth.value - delta, window.innerWidth)
+}
+
+/** Record a width the user picked, within what leaves the center pane its minimum. */
+const choosePanelWidth = (type: 'left' | 'right', raw: number, total: number) => {
   if (type === 'left') {
-    leftWidth.value = Math.min(Math.max(200, leftWidth.value + delta), total - rightWidth.value - 500)
+    chosenLeft = Math.max(MIN_LEFT_PANEL, Math.min(raw, total - renderedRight.value - MIN_MAIN_PANE))
   } else {
-    rightWidth.value = Math.min(Math.max(250, rightWidth.value - delta), total - leftWidth.value - 500)
+    chosenRight = Math.max(MIN_RIGHT_PANEL, Math.min(raw, total - renderedLeft.value - MIN_MAIN_PANE))
   }
-  mainWidth.value = total - leftWidth.value - rightWidth.value
+  updateSizes()
 }
 
 const handleResize = (event: MouseEvent) => {
   if (!isResizing) return
 
   const deltaX = event.clientX - startX
-  const minLeft = 200
-  const minRight = 250
-  const minMain = 500
-  const dividerWidth = 0 // dividers overlap panel edges, zero layout width
   // Drag a divider past its min by this margin to snap the panel collapsed
   // (Finder-style). Dragging back out past the margin re-expands it — the
   // mousemove listener lives on document, so the drag survives the divider
@@ -385,30 +390,26 @@ const handleResize = (event: MouseEvent) => {
 
   if (resizeType === 'left') {
     const rawLeftWidth = startLeftWidth + deltaX
-    if (rawLeftWidth < minLeft - collapseGap) {
+    if (rawLeftWidth < MIN_LEFT_PANEL - collapseGap) {
       // Keep the baseline at min so re-expanding (drag-out or toggle) restores
       // a sensible width rather than a sliver.
       layoutStore.leftCollapsed = true
-      leftWidth.value = minLeft
-      mainWidth.value = containerWidth - leftWidth.value - rightWidth.value - dividerWidth
+      chosenLeft = MIN_LEFT_PANEL
+      updateSizes()
       return
     }
     layoutStore.leftCollapsed = false
-    const maxLeftWidth = containerWidth - rightWidth.value - minMain - dividerWidth
-    leftWidth.value = Math.min(Math.max(minLeft, rawLeftWidth), maxLeftWidth)
-    mainWidth.value = containerWidth - leftWidth.value - rightWidth.value - dividerWidth
+    choosePanelWidth('left', rawLeftWidth, containerWidth)
   } else if (resizeType === 'right') {
     const rawRightWidth = startRightWidth - deltaX
-    if (rawRightWidth < minRight - collapseGap) {
+    if (rawRightWidth < MIN_RIGHT_PANEL - collapseGap) {
       layoutStore.rightCollapsed = true
-      rightWidth.value = minRight
-      mainWidth.value = containerWidth - leftWidth.value - rightWidth.value - dividerWidth
+      chosenRight = MIN_RIGHT_PANEL
+      updateSizes()
       return
     }
     layoutStore.rightCollapsed = false
-    const maxRightWidth = containerWidth - leftWidth.value - minMain - dividerWidth
-    rightWidth.value = Math.min(Math.max(minRight, rawRightWidth), maxRightWidth)
-    mainWidth.value = containerWidth - leftWidth.value - rightWidth.value - dividerWidth
+    choosePanelWidth('right', rawRightWidth, containerWidth)
   }
 }
 
@@ -422,31 +423,20 @@ const stopResize = () => {
 }
 
 const updateSizes = () => {
-  const totalWidth = window.innerWidth
-  const minLeft = 200
-  const minRight = 250
-  const minMain = 500
-  const dividerWidth = 0 // dividers overlap panel edges, zero layout width
-
-  const availableWidth = totalWidth - dividerWidth
-  const totalMinWidth = minLeft + minRight + minMain
-
-  if (availableWidth < totalMinWidth) {
-    const ratio = availableWidth / totalMinWidth
-    leftWidth.value = Math.floor(minLeft * ratio)
-    rightWidth.value = Math.floor(minRight * ratio)
-    mainWidth.value = availableWidth - leftWidth.value - rightWidth.value
-  } else {
-    // Keep the left/right panel widths fixed at their baseline; the main content
-    // absorbs the difference between the panel total and the window width. This
-    // keeps the default sidebar widths stable regardless of window size (e.g. a
-    // wider default window doesn't inflate the panels — only the content grows).
-    const currentTotal = leftWidth.value + rightWidth.value + mainWidth.value
-    if (Math.abs(currentTotal - availableWidth) > 5) {
-      mainWidth.value = availableWidth - leftWidth.value - rightWidth.value
-    }
-  }
+  const fit = fitPanels({
+    total: window.innerWidth,
+    left: chosenLeft,
+    right: chosenRight,
+    leftShown: !layoutStore.leftCollapsed,
+    rightShown: !rightHidden.value,
+  })
+  leftWidth.value = fit.left
+  rightWidth.value = fit.right
+  mainWidth.value = fit.main
 }
+
+// Showing a panel in a narrow window has to make room for it too.
+watch([() => layoutStore.leftCollapsed, rightHidden], updateSizes)
 
 onMounted(() => {
   // Use nextTick to ensure the DOM has been rendered.
