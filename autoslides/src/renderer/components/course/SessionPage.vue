@@ -167,8 +167,11 @@
                     <span v-if="session.duration" class="session-duration">
                       {{ formatDuration(session.duration) }}
                     </span>
-                    <span v-if="session.started_at" class="session-date">
+                    <span v-if="session.started_at" class="session-date session-date--full">
                       {{ formatDate(session.started_at) }}
+                    </span>
+                    <span v-if="session.started_at" class="session-date session-date--short">
+                      {{ formatShortDate(session.started_at) }}
                     </span>
                   </div>
                 </div>
@@ -281,7 +284,8 @@ const {
   downloadAllAudio,
   formatDuration,
   getDayName,
-  formatDate
+  formatDate,
+  formatShortDate
 } = useSessionPage({
   course: toRef(() => props.course),
   t,
@@ -548,6 +552,10 @@ watch([isLoggedIn, userId], () => {
   color: var(--text-muted);
 }
 
+.session-date--short {
+  display: none;
+}
+
 .batch-actions {
   display: flex;
   gap: 8px;
@@ -645,10 +653,16 @@ watch([isLoggedIn, userId], () => {
   }
 }
 
-/* The row's date is the first thing to go; it stays in the meta line's tooltip. */
+/* The title already names the week and day, so that goes first. The date
+   shortens to month and day; the full one stays in the meta line's tooltip. */
 @container (max-width: 640px) {
-  .session-date {
+  .session-time,
+  .session-date--full {
     display: none;
+  }
+
+  .session-date--short {
+    display: inline;
   }
 }
 

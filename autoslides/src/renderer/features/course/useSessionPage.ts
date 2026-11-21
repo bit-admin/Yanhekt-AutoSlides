@@ -82,6 +82,7 @@ export interface UseSessionPageReturn {
   formatDuration: (seconds: number) => string
   getDayName: (day: number) => string
   formatDate: (dateString: string) => string
+  formatShortDate: (dateString: string) => string
 }
 
 export function useSessionPage(options: UseSessionPageOptions): UseSessionPageReturn {
@@ -476,6 +477,13 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     return `${t('sessions.day')} ${day}`
   }
 
+  /** Month and day, for a row too narrow for the full date and time. */
+  const formatShortDate = (dateString: string): string => {
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return dateString
+    return date.toLocaleDateString(localeTag(), { month: 'short', day: 'numeric' })
+  }
+
   const formatDate = (dateString: string): string => {
     try {
       const date = new Date(dateString)
@@ -525,6 +533,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     // Formatting utilities
     formatDuration,
     getDayName,
-    formatDate
+    formatDate,
+    formatShortDate
   }
 }
