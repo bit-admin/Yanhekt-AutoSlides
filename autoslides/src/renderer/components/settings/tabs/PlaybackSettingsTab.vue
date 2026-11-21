@@ -25,7 +25,7 @@
 
     <!-- Extractor binary path -->
     <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
+      <label for="settings-playback-advanced-qtextractor-section" class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
       <div class="setting-description extractor-description">
         {{ $t('advanced.qtExtractor.sectionDescription') }}
         <a
@@ -132,7 +132,7 @@
         </div>
 
         <div class="extractor-path-row">
-          <input
+          <input id="settings-playback-advanced-qtextractor-section"
             type="text"
             class="extractor-path-input"
             :value="qtExtractorResolvedPath || qtExtractorBinaryPath"
@@ -174,9 +174,9 @@
     <h4>{{ $t('advanced.download') }}</h4>
     <div class="setting-grid">
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.concurrentDownloadLimit') }}</label>
+        <label for="settings-playback-advanced-concurrentdownloadlimit" class="setting-label">{{ $t('advanced.concurrentDownloadLimit') }}</label>
         <div class="setting-description">{{ $t('advanced.concurrentDownloadDescription') }}</div>
-        <select
+        <select id="settings-playback-advanced-concurrentdownloadlimit"
           v-model="tempMaxConcurrentDownloads"
           class="select-field"
           @change="updateMaxConcurrentDownloads"
@@ -185,9 +185,9 @@
         </select>
       </div>
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.downloadMaxWorkers') }}</label>
+        <label for="settings-playback-advanced-downloadmaxworkers" class="setting-label">{{ $t('advanced.downloadMaxWorkers') }}</label>
         <div class="setting-description">{{ $t('advanced.downloadMaxWorkersDescription') }}</div>
-        <select
+        <select id="settings-playback-advanced-downloadmaxworkers"
           v-model="tempDownloadMaxWorkers"
           class="select-field"
           @change="updateDownloadMaxWorkers"
@@ -196,8 +196,8 @@
         </select>
       </div>
       <div class="setting-item full-width">
-        <label class="setting-label">{{ $t('advanced.downloadNumRetries') }}</label>
-        <select
+        <label for="settings-playback-advanced-downloadnumretries" class="setting-label">{{ $t('advanced.downloadNumRetries') }}</label>
+        <select id="settings-playback-advanced-downloadnumretries"
           v-model="tempDownloadNumRetries"
           class="select-field"
           @change="updateDownloadNumRetries"
@@ -213,9 +213,9 @@
     <!-- Two per row, like the auto-crop parameters; related settings share a row. -->
     <div class="setting-grid">
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.videoErrorRetryCount') }}</label>
+        <label for="settings-playback-advanced-videoerrorretrycount" class="setting-label">{{ $t('advanced.videoErrorRetryCount') }}</label>
         <div class="setting-description">{{ $t('advanced.videoErrorDescription') }}</div>
-        <select
+        <select id="settings-playback-advanced-videoerrorretrycount"
           v-model="tempVideoRetryCount"
           class="select-field"
           @change="updateVideoRetryCount"
@@ -224,9 +224,9 @@
         </select>
       </div>
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.videoTokenRefresh') }}</label>
+        <label for="settings-playback-advanced-videotokenrefresh" class="setting-label">{{ $t('advanced.videoTokenRefresh') }}</label>
         <div class="setting-description">{{ $t('advanced.videoTokenRefreshDescription') }}</div>
-        <select
+        <select id="settings-playback-advanced-videotokenrefresh"
           v-model="tempVideoTokenRefreshSeconds"
           class="select-field"
         >
@@ -260,19 +260,19 @@
         </div>
       </div>
       <div class="setting-item" :class="{ 'full-width': tempYanhe2CaptionMode !== 'offset' }">
-        <label class="setting-label">{{ $t('advanced.yanhe2Captions') }}</label>
+        <label for="settings-playback-advanced-yanhe2captions" class="setting-label">{{ $t('advanced.yanhe2Captions') }}</label>
         <div class="setting-description">{{ $t('advanced.yanhe2CaptionsDescription') }}</div>
-        <select v-model="tempYanhe2CaptionMode" class="select-field">
+        <select id="settings-playback-advanced-yanhe2captions" v-model="tempYanhe2CaptionMode" class="select-field">
           <option value="auto">{{ $t('advanced.yanhe2CaptionsAuto') }}</option>
           <option value="offset">{{ $t('advanced.yanhe2CaptionsFixedDelay') }}</option>
         </select>
       </div>
       <div v-if="tempYanhe2CaptionMode === 'offset'" class="setting-item">
-        <label class="setting-label">{{ $t('advanced.yanhe2CaptionDelay') }}</label>
+        <label for="settings-playback-advanced-yanhe2captiondelay" class="setting-label">{{ $t('advanced.yanhe2CaptionDelay') }}</label>
         <div class="setting-description">{{ $t('advanced.yanhe2CaptionDelayDescription') }}</div>
         <div class="slide-interval-group">
           <div class="slide-interval-input-wrapper">
-            <input
+            <input id="settings-playback-advanced-yanhe2captiondelay"
               v-model.number="tempYanhe2CaptionOffsetSeconds"
               type="number"
               class="slide-interval-input"
@@ -364,9 +364,9 @@
       </div>
     </div>
     <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.homePreviewSeek') }}</label>
+      <label for="settings-playback-advanced-homepreviewseek" class="setting-label">{{ $t('advanced.homePreviewSeek') }}</label>
       <div class="setting-description">{{ $t('advanced.homePreviewSeekDescription') }}</div>
-      <select
+      <select id="settings-playback-advanced-homepreviewseek"
         v-model="tempPreviewSeekSeconds"
         class="select-field"
         :disabled="!tempPreviewFromVideo"

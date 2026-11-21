@@ -18,10 +18,23 @@
     </div>
     <div v-if="!isLoggedIn" class="home-welcome">
       <HomeWelcomeDemo />
+      <ul class="home-demo-summary">
+        <li>{{ $t('home.intro.watch') }}</li>
+        <li>{{ $t('home.intro.detect') }}</li>
+        <li>{{ $t('home.intro.dedupe') }}</li>
+        <li>{{ $t('home.intro.seek') }}</li>
+        <li>{{ $t('home.intro.export') }}</li>
+        <li>{{ $t('home.intro.credit') }}</li>
+      </ul>
       <div class="home-welcome-copy">
       <h1 class="home-greeting">{{ greetingText }}</h1>
       <p class="home-tagline">{{ $t('courses.welcome.subtitle') }}</p>
-      <button type="button" class="home-yanhekt-cta" @click="openSsoModal">
+      <button
+        type="button"
+        class="home-yanhekt-cta"
+        :aria-label="`${$t('home.signInTo')} ${$t('navigation.appName')}`"
+        @click="openSsoModal"
+      >
         <span>{{ $t('home.signInTo') }}</span>
         <svg class="home-yanhekt-wordmark" viewBox="54 5 95 31" aria-hidden="true">
           <g fill="currentColor">
@@ -523,6 +536,18 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Read by screen readers in place of the animated demo's captions. */
+.home-demo-summary {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .home-page {
   height: 100%;
   overflow-y: auto;

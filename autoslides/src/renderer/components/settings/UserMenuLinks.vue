@@ -1,7 +1,7 @@
 <template>
   <div class="menu-links">
     <!-- Feedback flyout (hover to open) -->
-    <div class="menu-link-flyout">
+    <div v-flyout class="menu-link-flyout">
       <button type="button" class="signin-option">
         <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M2.5 2A1.5 1.5 0 0 0 1 3.5v6A1.5 1.5 0 0 0 2.5 11H4v2.5a.5.5 0 0 0 .82.384L7.714 11H13.5A1.5 1.5 0 0 0 15 9.5v-6A1.5 1.5 0 0 0 13.5 2h-11z"/>
@@ -63,7 +63,7 @@
     <div class="menu-links-separator"></div>
 
     <!-- AutoSlides product links (hover flyout). Yanhekt stays first-class below. -->
-    <div class="menu-link-flyout">
+    <div v-flyout class="menu-link-flyout">
       <button type="button" class="signin-option">
         <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10"/>
@@ -189,6 +189,7 @@
 </template>
 
 <script setup lang="ts">
+import { vFlyout } from '@shared/ui/flyout'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('UserMenuLinks');
 import { useI18n } from 'vue-i18n'
@@ -410,6 +411,11 @@ const openFeedbackEmail = async () => {
 .menu-link-flyout:hover .menu-link-flyout-panel {
   visibility: visible;
   opacity: 1;
+}
+
+.menu-link-flyout[data-dismissed] .menu-link-flyout-panel {
+  visibility: hidden;
+  opacity: 0;
 }
 
 /* First flyout (Feedback) lines up with the parent dropup's top border

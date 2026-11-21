@@ -333,7 +333,7 @@
               </div>
             </div>
 
-            <BufferingOverlay v-if="isBuffering" />
+            <BufferingOverlay v-if="isBuffering && !isRetrying" />
 
             <div v-if="isRetrying" class="retry-indicator">
               <div class="retry-spinner"></div>
@@ -1792,19 +1792,6 @@ onUnmounted(async () => {
 <style scoped src="./playbackPageChrome.css"></style>
 
 <style scoped>
-/* Details toggle section */
-.details-toggle {
-  margin-top: 12px;
-}
-
-.details-section {
-  margin-top: 12px;
-  padding: 12px;
-  background-color: var(--bg-elevated);
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
-}
-
 .detail-item {
   margin: 6px 0;
   font-size: 14px;
@@ -1843,12 +1830,6 @@ onUnmounted(async () => {
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .stream-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
   .video-player {
     min-height: 250px;
   }

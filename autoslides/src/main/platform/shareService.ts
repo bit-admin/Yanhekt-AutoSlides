@@ -20,6 +20,7 @@ import {
 import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink } from '@common/shareLink';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
 import { timelineFromSharePayload } from '@common/shareTimeline';
+import { SLIDE_METADATA_FILENAME } from '@common/slideMetadataTypes';
 import type { ConfigService } from './configService';
 import type { IntranetApiTransport } from './intranetApiTransport';
 
@@ -31,6 +32,9 @@ const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0
 const isPng = (bytes: Buffer): boolean => bytes.subarray(0, 8).equals(PNG_SIGNATURE);
 
 const CLONE_STAGE_PREFIX = '.autoslides-clone-';
+/** A stage touched this recently may belong to another running instance. */
+const CLONE_STAGE_IDLE_MS = 60 * 60 * 1000;
+const CLONE_STAGE_NAME = /^\.autoslides-clone-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** The path when it is a clone stage directly inside the output folder, else null. */
 export function cloneStageInside(outputDir: string, stageDir: unknown): string | null {
@@ -245,6 +249,35 @@ export class ShareService {
   /** Remove an unfinished stage. */
   async discardCloneStage(stageDir: string): Promise<void> {
     await fs.rm(this.cloneStagePath(stageDir), { recursive: true, force: true });
+  }
+
+  /**
+   * Remove stages a crash left half-downloaded. `metadata.json` is written only
+   * after every image, and an old folder is never moved before it exists, so a
+   * stage that has one may be the only copy of a replaced lecture and is kept.
+   * Run once at startup. Recently written stages wait for a later launch, since
+   * a dev or demo instance can run beside another one.
+   */
+  async removeAbandonedCloneStages(now = Date.now()): Promise<number> {
+    const root = this.exportBaseDir();
+    let removed = 0;
+    const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !CLONE_STAGE_NAME.test(entry.name)) continue;
+      const stage = path.join(root, entry.name);
+      try {
+        if (now - (await fs.lstat(stage)).mtimeMs < CLONE_STAGE_IDLE_MS) continue;
+      } catch {
+        continue;
+      }
+      try {
+        await fs.lstat(path.join(stage, SLIDE_METADATA_FILENAME));
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') continue;
+        await fs.rm(stage, { recursive: true, force: true }).then(() => { removed += 1; }, () => undefined);
+      }
+    }
+    return removed;
   }
 
   private cloneStagePath(stageDir: string): string {

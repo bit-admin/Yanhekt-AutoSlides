@@ -13,9 +13,9 @@
 
     <!-- Provider picker, same segmented row as AI → Service Type. -->
     <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.addons.providerLabel') }}</label>
+      <span id="settings-addons-provider" class="setting-label">{{ $t('advanced.addons.providerLabel') }}</span>
       <div class="setting-description">{{ $t('advanced.addons.providerDescription') }}</div>
-      <div class="mode-toggle">
+      <div class="mode-toggle" role="group" aria-labelledby="settings-addons-provider">
         <button
           v-for="provider in WATCH_NOTES_CHOICES"
           :key="provider"
@@ -61,10 +61,10 @@
          any vault; this vault is where lecture notes are created. -->
     <template v-if="tempWatchNotesProvider === 'obsidian'">
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.addons.obsidianVault') }}</label>
+        <label for="settings-addons-advanced-addons-obsidianvault" class="setting-label">{{ $t('advanced.addons.obsidianVault') }}</label>
         <div class="setting-description">{{ $t('advanced.addons.obsidianVaultDescription') }}</div>
         <div class="input-group">
-          <input
+          <input id="settings-addons-advanced-addons-obsidianvault"
             :value="tempObsidianVaultPath"
             type="text"
             readonly
@@ -80,9 +80,9 @@
       </div>
 
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.addons.obsidianFolder') }}</label>
+        <label for="settings-addons-advanced-addons-obsidianfolder" class="setting-label">{{ $t('advanced.addons.obsidianFolder') }}</label>
         <div class="setting-description">{{ $t('advanced.addons.obsidianFolderDescription') }}</div>
-        <input
+        <input id="settings-addons-advanced-addons-obsidianfolder"
           v-model="tempObsidianSubfolder"
           type="text"
           class="text-input addon-path-input"

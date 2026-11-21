@@ -556,6 +556,7 @@ app.whenReady().then(() => {
     return;
   }
   initializePowerManagement();
+  void shareService.removeAbandonedCloneStages();
   windowManager.setupYuketangClassCapture((state) => {
     const win = mainWindowRef;
     if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) {
