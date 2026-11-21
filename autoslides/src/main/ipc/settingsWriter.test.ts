@@ -10,7 +10,7 @@ import type { IntranetMappingService } from '@main/platform/intranetMappingServi
 import { broadcastConfig } from './broadcastConfig'
 import { createSettingsWriter } from './settingsWriter'
 
-const idle: OutputFolderWork = { downloads: 0, extractions: 0, tasks: 0, postProcessing: 0, slideVideos: 0, driveUploads: 0 }
+const idle: OutputFolderWork = { downloads: 0, extractions: 0, tasks: 0, postProcessing: 0, slideVideos: 0, driveUploads: 0, clones: 0 }
 
 function writerWith(work: () => Promise<OutputFolderWork | null>) {
   const setOutputDirectory = vi.fn()

@@ -34,7 +34,7 @@ describe('countOutputFolderWork', () => {
     state.jobs = [{ status: 'processing' }, { status: 'failed' }]
     state.slideVideos = 2
     state.driveUploads = 1
-    expect(countOutputFolderWork()).toEqual({ downloads: 3, extractions: 1, tasks: 2, postProcessing: 1, slideVideos: 2, driveUploads: 1 })
+    expect(countOutputFolderWork()).toEqual({ downloads: 3, extractions: 1, tasks: 2, postProcessing: 1, slideVideos: 2, driveUploads: 1, clones: 0 })
   })
 
   it('treats a finished row as done', () => {

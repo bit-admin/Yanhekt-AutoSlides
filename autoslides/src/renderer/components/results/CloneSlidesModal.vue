@@ -67,7 +67,16 @@
         <p v-if="shareExp.item.value.missing > 0" class="clone-hint" role="status">
           {{ $t(shareExp.item.value.timeline ? 'lectures.cloneMissingSlidesAndTimeline' : 'lectures.cloneMissingSlides', { count: shareExp.item.value.missing }) }}
         </p>
+        <p v-if="failureText" class="clone-error" role="alert">{{ failureText }}</p>
         <div class="dialog-actions">
+          <button
+            v-if="canRetry"
+            type="button"
+            class="btn dialog-btn"
+            @click="shareExp.retry()"
+          >
+            {{ $t('lectures.cloneRetry') }}
+          </button>
           <button
             v-if="shareExp.exporting.value"
             type="button"
@@ -91,7 +100,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { parseShareLink } from '@common/shareLink'
 import { useShareLinkExport, type ShareExportItem } from '@features/cloudNotes/useShareLinkExport'
@@ -110,6 +119,21 @@ const inputEl = ref<HTMLInputElement | null>(null)
 
 onMounted(() => {
   void nextTick(() => inputEl.value?.focus())
+})
+
+const failureText = computed(() => {
+  const row = shareExp.item.value
+  if (row?.status !== 'error') return ''
+  switch (row.failure) {
+    case 'cancelled': return t('lectures.cloneCancelledUnchanged')
+    case 'old-kept': return t('lectures.cloneOldKept')
+    case 'stage-kept': return t('lectures.cloneStageKept', { path: row.stagedDir ?? '' })
+    default: return t('lectures.cloneFailedUnchanged')
+  }
+})
+const canRetry = computed(() => {
+  const row = shareExp.item.value
+  return !shareExp.exporting.value && row?.status === 'error' && !!row.mode && row.failure !== 'stage-kept'
 })
 
 function statusText(item: ShareExportItem): string {
@@ -193,6 +217,7 @@ function finish(cloned: boolean): void {
 
 .clone-error {
   margin: -6px 0 0;
+  overflow-wrap: anywhere;
   font-size: 12px;
   color: var(--danger);
   line-height: 1.4;

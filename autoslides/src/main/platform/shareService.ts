@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import type { AxiosResponse } from 'axios';
 import path from 'path';
@@ -28,6 +29,17 @@ const COSS_TIMEOUT_MS = 30_000;
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const isPng = (bytes: Buffer): boolean => bytes.subarray(0, 8).equals(PNG_SIGNATURE);
+
+const CLONE_STAGE_PREFIX = '.autoslides-clone-';
+
+/** The path when it is a clone stage directly inside the output folder, else null. */
+export function cloneStageInside(outputDir: string, stageDir: unknown): string | null {
+  if (typeof stageDir !== 'string' || !stageDir) return null;
+  const root = path.resolve(expandTilde(outputDir));
+  const resolved = path.resolve(expandTilde(stageDir));
+  if (path.dirname(resolved) !== root) return null;
+  return path.basename(resolved).startsWith(CLONE_STAGE_PREFIX) ? resolved : null;
+}
 
 /** Share uploads require the active Yanhekt account; public share links do not. */
 export class ShareAuthError extends Error {
@@ -168,7 +180,7 @@ export class ShareService {
    * Local `slides_<displayName>[__c<id>s<id>]` folder path for shared slides.
    *
    * The lecture identity distinguishes same-titled courses, just as it does for
-   * freshly extracted slides. With no identity, prepareExportFolder can add a
+   * freshly extracted slides. With no identity, publishCloneStage can add a
    * ` (N)` suffix to preserve an existing folder.
    */
   private slidesFolderPath(displayName: string, identity: LectureIdentity = {}): string {
@@ -195,26 +207,50 @@ export class ShareService {
   }
 
   /**
-   * Create the destination folder and return its path. `fresh` uses the base
-   * `slides_<name>` path (caller is responsible for clearing a prior folder via
-   * trash.removeFolders); `create` resolves a unique ` (N)` suffix so an existing
-   * folder is preserved alongside the new export.
+   * A hidden folder beside the slides folders for one clone. Nothing scans it,
+   * and the rename that publishes it stays on one volume. The old folder is not
+   * touched until every image and sidecar is in here.
    */
-  async prepareExportFolder(
+  async prepareCloneStage(): Promise<ExportFolderInfo> {
+    const root = this.exportBaseDir();
+    const folderName = `${CLONE_STAGE_PREFIX}${randomUUID()}`;
+    const dir = path.join(root, folderName);
+    await ensureWritableOutputDir(root, dir);
+    return { exists: true, dir, folderName };
+  }
+
+  /**
+   * Move a finished stage to its real name. `fresh` needs the base name to be
+   * free (the caller has moved any old folder to the bin); `create` takes the
+   * next free ` (N)` name, keeping an existing folder.
+   */
+  async publishCloneStage(
+    stageDir: string,
     displayName: string,
     mode: 'fresh' | 'create',
     identity: LectureIdentity = {},
   ): Promise<ExportFolderInfo> {
-    let dir = this.slidesFolderPath(displayName, identity);
+    const stage = this.cloneStagePath(stageDir);
+    const base = this.slidesFolderPath(displayName, identity);
+    let dir = base;
     if (mode === 'create') {
-      let n = 2;
-      while (await this.pathExists(dir)) {
-        dir = `${this.slidesFolderPath(displayName, identity)} (${n})`;
-        n += 1;
-      }
+      for (let n = 2; await this.pathExists(dir); n += 1) dir = `${base} (${n})`;
+    } else if (await this.pathExists(dir)) {
+      throw new Error('clone-target-exists');
     }
-    await ensureWritableOutputDir(this.exportBaseDir(), dir);
+    await fs.rename(stage, dir);
     return { exists: true, dir, folderName: path.basename(dir) };
+  }
+
+  /** Remove an unfinished stage. */
+  async discardCloneStage(stageDir: string): Promise<void> {
+    await fs.rm(this.cloneStagePath(stageDir), { recursive: true, force: true });
+  }
+
+  private cloneStagePath(stageDir: string): string {
+    const stage = cloneStageInside(this.exportBaseDir(), stageDir);
+    if (!stage) throw new Error('invalid-clone-stage');
+    return stage;
   }
 
   /**

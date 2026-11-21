@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick, provide } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, onUnmounted, nextTick, provide } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TitleBar from '@renderer/components/titlebar/TitleBar.vue'
 import LeftPanel from '@renderer/components/settings/LeftPanel.vue'
@@ -82,23 +82,28 @@ import { PostProcessingService } from '@shared/services/postProcessingService'
 import { SlideVideoQueue } from '@shared/services/slideVideoQueue'
 import { webCaptureBusy } from '@features/webCapture/useWebCapture'
 import { yuketangExportBusy } from '@features/export/useYuketang'
+import { countOutputFolderWork } from '@features/download/outputFolderWork'
+import { hasOutputFolderWork } from '@common/outputFolderWork'
+import { slideExtractionManager } from '@shared/processing/manager'
 
 // Whether any long-running work is active. Drives the main-process warning shown
-// when the user tries to close the window or quit while work is in flight.
-// Extraction statuses that count as "still working" on a download row.
-const ACTIVE_EXTRACTION = new Set(['pending', 'extracting', 'normalizing', 'post_processing'])
+// when the user tries to close the window or quit while work is in flight. It
+// starts from the same inventory that guards the output folder.
+// Extraction pipelines are not reactive, so their count is sampled.
+const runningExtractions = ref(0)
+const sampleExtractions = (): void => {
+  runningExtractions.value = slideExtractionManager.getAll().filter((pipeline) => pipeline.isActive).length
+}
+sampleExtractions()
+const extractionSampler = window.setInterval(sampleExtractions, 1000)
+onBeforeUnmount(() => window.clearInterval(extractionSampler))
+
 const isBusy = computed(() => {
-  const tasksBusy = TaskQueue.isProcessing || TaskQueue.inProgressCount > 0
-  const downloadsBusy = DownloadService.downloadItems.some(item =>
-    item.status === 'queued' ||
-    item.status === 'downloading' ||
-    item.status === 'processing' ||
-    (item.extractionStatus !== undefined && ACTIVE_EXTRACTION.has(item.extractionStatus))
-  )
-  const postProcessingBusy = PostProcessingService.isProcessing || PostProcessingService.activeJobCount > 0
-  // Quitting kills FFmpeg mid-video; the queued ones would be lost too.
-  const slideVideosBusy = SlideVideoQueue.hasWork.value
-  return tasksBusy || downloadsBusy || postProcessingBusy || slideVideosBusy ||
+  // A task that is only waiting in a stopped queue does not warn on quit.
+  const work = { ...countOutputFolderWork(), extractions: runningExtractions.value, tasks: TaskQueue.inProgressCount }
+  return hasOutputFolderWork(work) ||
+    TaskQueue.isProcessing ||
+    PostProcessingService.isProcessing ||
     webCaptureBusy.value || yuketangExportBusy.value
 })
 

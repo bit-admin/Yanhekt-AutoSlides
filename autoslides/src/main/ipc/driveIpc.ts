@@ -5,6 +5,7 @@ import { expandTilde } from '@main/infra/pathUtils';
 import type { DriveResult } from '@common/driveStatus';
 import type { SlideMetadataSource } from '@common/sidecars/metadata';
 import type { LectureOutputQuery } from '@common/lectureOutputs';
+import { cloneStageInside } from '@main/platform/shareService';
 import type { IpcServices } from './types';
 
 const log = createLogger('DriveIpc');
@@ -78,12 +79,22 @@ export function registerDriveIpcHandlers(services: IpcServices): void {
     inFolder(folderPath, (folder) => driveService.removeShare(folder, String(id ?? ''))));
 
   ipcMain.handle('drive:recordClone', (_e, folderPath: string, input: { source?: Record<string, unknown>; slides?: Array<{ filename?: unknown; url?: unknown }> }) =>
-    inFolder(folderPath, (folder) => driveService.recordClone(folder, {
-      source: plainSource(input?.source),
-      slides: Array.isArray(input?.slides)
-        ? input.slides.map((s) => ({ filename: String(s?.filename ?? ''), url: String(s?.url ?? '') }))
-        : [],
-    })));
+    // A clone records its sidecars while it is still in its hidden stage.
+    (async (): Promise<DriveResult<null>> => {
+      const folder = cloneStageInside(outputDir(), folderPath);
+      if (!folder) return { ok: false, error: 'not-found' };
+      try {
+        return await driveService.recordClone(folder, {
+          source: plainSource(input?.source),
+          slides: Array.isArray(input?.slides)
+            ? input.slides.map((s) => ({ filename: String(s?.filename ?? ''), url: String(s?.url ?? '') }))
+            : [],
+        });
+      } catch (error) {
+        log.error('Drive call failed', error);
+        return { ok: false, error: 'failed', message: error instanceof Error ? error.message : String(error) };
+      }
+    })());
 
   ipcMain.handle('lectureOutputs:probe', async (_e, queries: LectureOutputQuery[]) => {
     if (!Array.isArray(queries)) return [];

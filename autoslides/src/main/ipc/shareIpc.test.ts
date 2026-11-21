@@ -64,11 +64,11 @@ afterEach(async () => {
 });
 
 describe('Share through the cloudNotes bridge', () => {
-  it('exposes and registers only the seven Share operations', () => {
+  it('exposes and registers only the Share operations', () => {
     setup();
     const methods = [
-      'downloadImageToFolder', 'exportFolderStatus', 'prepareExportFolder', 'resolveShareLink',
-      'shortenShareUrl', 'uploadImage', 'uploadImageFromPath',
+      'discardCloneStage', 'downloadImageToFolder', 'exportFolderStatus', 'prepareCloneStage',
+      'publishCloneStage', 'resolveShareLink', 'shortenShareUrl', 'uploadImage', 'uploadImageFromPath',
     ];
     expect(Object.keys(cloudNotes).sort()).toEqual(methods);
     expect([...handlers.keys()].sort()).toEqual(methods.map((name) => `cloudNotes:${name}`));
@@ -180,26 +180,45 @@ describe('Share through the cloudNotes bridge', () => {
     });
   });
 
-  it('creates distinct local slide folders and downloads an image into the selected folder', async () => {
+  it('builds a clone in a hidden stage and publishes it under the lecture folder name', async () => {
     const sendSpy = setup();
     outputDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'autoslides-share-'));
     const identity = { courseId: '1', sessionId: '2' };
     const folderName = 'slides_Example__c1s2';
     const dir = path.join(outputDirectory, folderName);
-    const another = `${dir} (2)`;
     await expect(cloudNotes.exportFolderStatus('Example', identity))
       .resolves.toEqual({ ok: true, data: { exists: false, dir, folderName } });
-    await expect(cloudNotes.prepareExportFolder('Example', 'fresh', identity))
-      .resolves.toEqual({ ok: true, data: { exists: true, dir, folderName } });
-    await expect(cloudNotes.prepareExportFolder('Example', 'create', identity))
-      .resolves.toEqual({ ok: true, data: { exists: true, dir: another, folderName: `${folderName} (2)` } });
 
+    const stage = await cloudNotes.prepareCloneStage();
+    if (!stage.ok) throw new Error('stage');
+    expect(stage.data.folderName.startsWith('.')).toBe(true);
     const bytes = Uint8Array.of(137, 80, 78, 71);
     sendSpy.mockResolvedValueOnce(answer(bytes.buffer));
-    await expect(cloudNotes.downloadImageToFolder(imageUrl, another, 'Slide_001.png'))
+    await expect(cloudNotes.downloadImageToFolder(imageUrl, stage.data.dir, 'Slide_001.png'))
       .resolves.toEqual({ ok: true, data: undefined });
-    await expect(fs.readFile(path.join(another, 'Slide_001.png'))).resolves.toEqual(Buffer.from(bytes));
+    await expect(cloudNotes.publishCloneStage(stage.data.dir, 'Example', 'fresh', identity))
+      .resolves.toEqual({ ok: true, data: { exists: true, dir, folderName } });
+    await expect(fs.readFile(path.join(dir, 'Slide_001.png'))).resolves.toEqual(Buffer.from(bytes));
+    await expect(fs.access(stage.data.dir)).rejects.toThrow();
     expect(sendSpy).toHaveBeenLastCalledWith(expect.objectContaining({ method: 'GET', url: imageUrl, responseType: 'arraybuffer' }));
     expect(fetchMock).not.toHaveBeenCalled();
+
+    // The name is taken now: fresh refuses, create keeps both.
+    const second = await cloudNotes.prepareCloneStage();
+    if (!second.ok) throw new Error('stage');
+    await expect(cloudNotes.publishCloneStage(second.data.dir, 'Example', 'fresh', identity))
+      .resolves.toMatchObject({ ok: false, error: 'clone-target-exists' });
+    await expect(cloudNotes.publishCloneStage(second.data.dir, 'Example', 'create', identity))
+      .resolves.toEqual({ ok: true, data: { exists: true, dir: `${dir} (2)`, folderName: `${folderName} (2)` } });
+  });
+
+  it('refuses to publish or discard anything but a clone stage', async () => {
+    setup();
+    outputDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'autoslides-share-'));
+    const real = path.join(outputDirectory, 'slides_Keep__c1s2');
+    await fs.mkdir(real);
+    await expect(cloudNotes.discardCloneStage(real)).resolves.toMatchObject({ ok: false, error: 'invalid-clone-stage' });
+    await expect(cloudNotes.publishCloneStage(real, 'Other', 'fresh')).resolves.toMatchObject({ ok: false });
+    await expect(fs.access(real)).resolves.toBeUndefined();
   });
 });

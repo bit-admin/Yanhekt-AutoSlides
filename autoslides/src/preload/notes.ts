@@ -18,8 +18,12 @@ export const cloudNotes: ElectronAPI['cloudNotes'] = {
   // opaque DataCloneError on the structured-clone hop (see CLAUDE.md).
   exportFolderStatus: (displayName: string, identity?: LectureIdentity): Promise<NotesResult<ExportFolderInfo>> =>
     invoke('cloudNotes:exportFolderStatus', displayName, identity),
-  prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: LectureIdentity): Promise<NotesResult<ExportFolderInfo>> =>
-    invoke('cloudNotes:prepareExportFolder', displayName, mode, identity),
+  prepareCloneStage: (): Promise<NotesResult<ExportFolderInfo>> =>
+    invoke('cloudNotes:prepareCloneStage'),
+  publishCloneStage: (stageDir: string, displayName: string, mode: 'fresh' | 'create', identity?: LectureIdentity): Promise<NotesResult<ExportFolderInfo>> =>
+    invoke('cloudNotes:publishCloneStage', stageDir, displayName, mode, identity),
+  discardCloneStage: (stageDir: string): Promise<NotesResult<void>> =>
+    invoke('cloudNotes:discardCloneStage', stageDir),
   downloadImageToFolder: (url: string, dir: string, filename: string): Promise<NotesResult<void>> =>
     invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
   shortenShareUrl: (fragment: string): Promise<NotesResult<{ url: string }>> =>
