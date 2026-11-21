@@ -150,7 +150,7 @@ function onAddAccount() {
   border: 1px solid var(--border-input);
   border-radius: 8px;
   background-color: var(--bg-card);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px var(--shadow-md);
   z-index: var(--z-overlay);
   visibility: hidden;
   opacity: 0;

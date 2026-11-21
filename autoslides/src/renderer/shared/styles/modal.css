@@ -109,7 +109,7 @@
 .dialog-help {
   margin: -6px 0 0;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   line-height: 1.4;
   text-align: center;
 }
