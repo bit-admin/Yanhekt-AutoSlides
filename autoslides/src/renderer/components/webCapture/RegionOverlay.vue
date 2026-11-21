@@ -2,6 +2,10 @@
   <div
     ref="overlayRef"
     class="region-overlay"
+    tabindex="0"
+    role="application"
+    :aria-label="keyboardHint"
+    @keydown="onKeydown"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -10,7 +14,8 @@
     <div v-if="rect" class="region-rect" :style="rectStyle"></div>
     <div class="region-hint" @pointerdown.stop @pointerup.stop>
       <span v-if="!rect">{{ hintText }}</span>
-      <span v-else>{{ Math.round(rect.width / 10) * 10 }}×{{ Math.round(rect.height / 10) * 10 }}</span>
+      <span v-else>{{ Math.round(rect.width) }}×{{ Math.round(rect.height) }}</span>
+      <span class="region-key-hint">{{ keyboardHint }}</span>
       <div class="region-actions">
         <button class="btn btn--primary" @click.stop="onConfirm" :disabled="!rect">{{ useRegionLabel || 'Use Region' }}</button>
         <button class="overlay-cancel-btn" @click.stop="onCancel">{{ cancelLabel || 'Cancel' }}</button>
@@ -20,7 +25,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 interface Rect {
   x: number
@@ -29,7 +34,7 @@ interface Rect {
   height: number
 }
 
-const props = defineProps<{ hint?: string; useRegionLabel?: string; cancelLabel?: string }>()
+const props = defineProps<{ hint?: string; keyHint?: string; useRegionLabel?: string; cancelLabel?: string }>()
 const emit = defineEmits<{
   (e: 'commit', rect: Rect): void
   (e: 'cancel'): void
@@ -95,6 +100,43 @@ const onPointerUp = () => {
   }
 }
 
+const keyboardHint = computed(() => props.keyHint || 'Arrow keys move the region, Shift+arrows resize it, Enter uses it')
+onMounted(() => overlayRef.value?.focus({ preventScroll: true }))
+
+const MIN_SIZE = 8
+const KEY_STEP = 10
+const ARROWS: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+}
+
+// The same rectangle a drag makes, for students who do not use a pointer.
+const onKeydown = (event: KeyboardEvent) => {
+  if (event.target !== overlayRef.value) return
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    onCancel()
+  } else if (event.key === 'Enter') {
+    event.preventDefault()
+    onConfirm()
+  }
+  const arrow = ARROWS[event.key]
+  const el = overlayRef.value
+  if (!arrow || !el) return
+  event.preventDefault()
+  const { width: maxW, height: maxH } = el.getBoundingClientRect()
+  const current = rect.value ?? { x: maxW * 0.25, y: maxH * 0.25, width: maxW * 0.5, height: maxH * 0.5 }
+  const [dx, dy] = arrow
+  if (event.shiftKey) {
+    const width = Math.max(MIN_SIZE, Math.min(maxW - current.x, current.width + dx * KEY_STEP))
+    const height = Math.max(MIN_SIZE, Math.min(maxH - current.y, current.height + dy * KEY_STEP))
+    rect.value = { ...current, width, height }
+  } else {
+    const x = Math.max(0, Math.min(maxW - current.width, current.x + dx * KEY_STEP))
+    const y = Math.max(0, Math.min(maxH - current.height, current.y + dy * KEY_STEP))
+    rect.value = { ...current, x, y }
+  }
+}
+
 const onConfirm = () => {
   if (!rect.value) return
   emit('commit', {
@@ -112,6 +154,15 @@ const onCancel = () => {
 </script>
 
 <style scoped>
+.region-overlay:focus {
+  outline: none;
+}
+
+.region-key-hint {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
 .region-overlay {
   position: absolute;
   inset: 0;

@@ -1309,6 +1309,10 @@
     "cancel": "キャンセル"
   },
   "webCapture": {
+    "urlLabel": "ページのアドレス",
+    "modeVideo": "動画",
+    "modePage": "ページ全体",
+    "regionKeyHint": "矢印キーで移動、Shift+矢印キーでサイズ変更、Enter で確定、Esc でキャンセル。",
     "back": "戻る",
     "forward": "進む",
     "reload": "再読込",
@@ -1340,8 +1344,8 @@
     "cancel": "キャンセル",
     "confirmTitle": "コース名を確認",
     "confirmDesc": "スライドは以下に保存されます",
-    "captureModeSwitched": "クロスオリジンメディアのためインジェクトキャプチャがブロックされました。capturePage モードに切り替えます",
-    "noVideoFallback": "<video> 要素が見つかりません。capturePage モードに切り替えます",
+    "captureModeSwitched": "この動画は直接読み取れないため、表示中のページのキャプチャに切り替えました。",
+    "noVideoFallback": "動画が見つからないため、表示中のページのキャプチャに切り替えました。",
     "capturingStatus": "キャプチャ中 ({mode})",
     "stoppedStatus": "停止しました。{n} 枚保存済み。",
     "presetYanhekt": "延河課堂",

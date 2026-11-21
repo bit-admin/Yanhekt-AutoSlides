@@ -1309,6 +1309,10 @@
     "cancel": "취소"
   },
   "webCapture": {
+    "urlLabel": "페이지 주소",
+    "modeVideo": "동영상",
+    "modePage": "전체 페이지",
+    "regionKeyHint": "화살표 키로 이동, Shift+화살표 키로 크기 조절, Enter로 사용, Esc로 취소합니다.",
     "back": "뒤로",
     "forward": "앞으로",
     "reload": "새로고침",
@@ -1340,8 +1344,8 @@
     "cancel": "취소",
     "confirmTitle": "강좌 이름 확인",
     "confirmDesc": "슬라이드가 저장될 위치",
-    "captureModeSwitched": "교차 출처 미디어로 인해 인젝트 캡처가 차단되어 capturePage 모드로 전환합니다",
-    "noVideoFallback": "<video> 요소를 찾을 수 없어 capturePage 모드로 전환합니다",
+    "captureModeSwitched": "이 동영상을 직접 읽을 수 없어 보이는 페이지 캡처로 전환했습니다.",
+    "noVideoFallback": "동영상을 찾지 못해 보이는 페이지 캡처로 전환했습니다.",
     "capturingStatus": "캡처 중 ({mode})",
     "stoppedStatus": "중지됨. {n}개 저장됨.",
     "presetYanhekt": "Yanhekt",

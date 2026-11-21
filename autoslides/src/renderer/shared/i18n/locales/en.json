@@ -1309,6 +1309,10 @@
     "cancel": "Cancel"
   },
   "webCapture": {
+    "urlLabel": "Page Address",
+    "modeVideo": "Video",
+    "modePage": "Whole Page",
+    "regionKeyHint": "Arrow keys move the region, Shift+arrows resize it, Enter uses it, Esc cancels.",
     "back": "Back",
     "forward": "Forward",
     "reload": "Reload",
@@ -1340,8 +1344,8 @@
     "cancel": "Cancel",
     "confirmTitle": "Confirm Course Name",
     "confirmDesc": "Slides will be saved under",
-    "captureModeSwitched": "Inject capture blocked by cross-origin media; switching to capturePage",
-    "noVideoFallback": "No <video> found; switching to capturePage",
+    "captureModeSwitched": "This video cannot be read directly, so capture switched to the visible page.",
+    "noVideoFallback": "No video found, so capture switched to the visible page.",
     "capturingStatus": "Capturing ({mode})",
     "stoppedStatus": "Stopped. Saved {n} slide. | Stopped. Saved {n} slides.",
     "presetYanhekt": "Yanhekt",

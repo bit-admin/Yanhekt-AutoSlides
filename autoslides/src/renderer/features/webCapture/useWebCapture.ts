@@ -83,6 +83,7 @@ export function useWebCapture() {
   // ---- Reactive state ----
   const currentUrl = ref('')
   const pendingUrl = ref('')
+  const urlDraftDirty = ref(false)
   const pageTitle = ref('')
   const courseName = ref('')
   const courseNameDirty = ref(false)
@@ -103,6 +104,7 @@ export function useWebCapture() {
   const extractedSlides: Ref<ExtractedSlide[]> = ref([])
   const slideExtractorInstance: ShallowRef<SlideExtractionHandle | null> = shallowRef(null)
   let captureInterval: ReturnType<typeof setInterval> | null = null
+  let captureTiming: { width: number; height: number; intervalMs: number } | null = null
   const guest = createGuestClient('webCapture')
   let slideExtractedHandler: ((event: Event) => void) | null = null
 
@@ -123,7 +125,14 @@ export function useWebCapture() {
   guest.on('did-finish-load', () => onDidFinishLoad())
 
   const onDidNavigate = ({ url }: { url: string }) => {
-    if (url) currentUrl.value = url
+    if (url) {
+      // The address box follows the page unless the student is typing in it.
+      if (!urlDraftDirty.value || pendingUrl.value === currentUrl.value) {
+        pendingUrl.value = url
+        urlDraftDirty.value = false
+      }
+      currentUrl.value = url
+    }
     // Reset per-session picker + region state on cross-origin navigation.
     if (captureState.value !== 'running') {
       detectedVideo.value = null
@@ -169,10 +178,13 @@ export function useWebCapture() {
     const target = normalizeUrl(raw ?? pendingUrl.value)
     if (!target) return
     currentUrl.value = target
+    pendingUrl.value = target
+    urlDraftDirty.value = false
     guest.loadURL(target).catch((err) => log.debug('Navigation refused:', err))
   }
 
   const navigatePreset = async (preset: WebCapturePreset) => {
+    urlDraftDirty.value = false
     activePreset = preset
     const origin = new URL(preset.url).origin
     currentUrl.value = origin
@@ -208,17 +220,11 @@ export function useWebCapture() {
         break
       }
       case 'capture:tainted': {
-        statusMessage.value = 'webCapture.captureModeSwitched'
-        statusParams.value = {}
-        captureMode.value = 'capturePage'
+        fallBackToPageCapture('webCapture.captureModeSwitched')
         break
       }
       case 'capture:noVideo': {
-        if (captureMode.value === 'inject') {
-          captureMode.value = 'capturePage'
-          statusMessage.value = 'webCapture.noVideoFallback'
-          statusParams.value = {}
-        }
+        fallBackToPageCapture('webCapture.noVideoFallback')
         break
       }
       case 'picker:result': {
@@ -354,6 +360,7 @@ export function useWebCapture() {
       const downsampleH = slideConfig?.downsampleHeight || 270
       const intervalMs = slideConfig?.checkInterval || 2000
 
+      captureTiming = { width: downsampleW, height: downsampleH, intervalMs }
       if (captureMode.value === 'inject') {
         const selectorToUse = userSelector.value.trim() || detectedVideo.value?.selector || ''
         await guest.send('capture:start', {
@@ -362,14 +369,17 @@ export function useWebCapture() {
           downsampleH,
         })
         if (lifetime.signal.aborted) return
-        captureInterval = setInterval(() => { void guest.send('capture:tick') }, intervalMs)
+        // The guest may already have reported that it cannot capture.
+        if (captureMode.value === 'inject') {
+          captureInterval = setInterval(() => { void guest.send('capture:tick') }, intervalMs)
+        }
       } else {
         captureInterval = setInterval(() => { void capturePageTick(downsampleW, downsampleH) }, intervalMs)
       }
 
       captureState.value = 'running'
       statusMessage.value = 'webCapture.capturingStatus'
-      statusParams.value = { mode: captureMode.value }
+      statusParams.value = { mode: captureMode.value === 'inject' ? 'webCapture.modeVideo' : 'webCapture.modePage' }
     } catch (err) {
       clearCapture()
       await releasePowerHolder()
@@ -379,6 +389,19 @@ export function useWebCapture() {
       statusParams.value = {}
       captureState.value = 'idle'
     }
+  }
+
+  /** One switch: the mode, the loop that runs and the status change together. */
+  const fallBackToPageCapture = (status: string) => {
+    if (captureMode.value !== 'inject' || !captureTiming) return
+    if (captureState.value !== 'running' && captureState.value !== 'starting') return
+    captureMode.value = 'capturePage'
+    void guest.send('capture:stop').catch((err) => log.debug('Capture guest closed before stop:', err))
+    if (captureInterval) clearInterval(captureInterval)
+    const { width, height, intervalMs } = captureTiming
+    captureInterval = setInterval(() => { void capturePageTick(width, height) }, intervalMs)
+    statusMessage.value = status
+    statusParams.value = {}
   }
 
   const capturePageTick = async (targetW: number, targetH: number) => {
@@ -429,6 +452,7 @@ export function useWebCapture() {
     })
 
   const clearCapture = () => {
+    captureTiming = null
     if (captureInterval) {
       clearInterval(captureInterval)
       captureInterval = null
@@ -495,6 +519,7 @@ export function useWebCapture() {
     // State
     currentUrl,
     pendingUrl,
+    urlDraftDirty,
     pageTitle,
     courseName,
     detectedVideo,
