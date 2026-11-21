@@ -179,7 +179,7 @@
           </div>
         </div>
 
-        <div class="player-panel">
+        <div v-release-pointer-focus class="player-panel">
         <DualStreamControls
           v-model:selected-stream="selectedStream"
           v-model:current-playback-rate="currentPlaybackRate"
@@ -689,6 +689,7 @@ import { usePlaybackDownload } from '@features/download/usePlaybackDownload'
 import { usePerformanceOptimization } from '@features/video/usePerformanceOptimization'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
+import { vReleasePointerFocus } from '@features/video/releasePointerFocus'
 import { useCinemaMode } from '@features/video/useCinemaMode'
 import { useSlideGallery } from '@features/video/useSlideGallery'
 import { audioModeLabelKey } from '@features/video/audioMode'

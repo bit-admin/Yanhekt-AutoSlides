@@ -5,6 +5,7 @@
     (floating top bar + bottom overlay) rather than a separate app toolbar.
   -->
   <div
+    v-release-pointer-focus
     class="lecture-player"
     tabindex="0"
     ref="rootEl"
@@ -609,6 +610,7 @@
 <script setup lang="ts">
 import { activeDialog } from '@shared/ui/dialog'
 import { isPressable } from '@features/video/useVideoKeyboard'
+import { vReleasePointerFocus } from '@features/video/releasePointerFocus'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
