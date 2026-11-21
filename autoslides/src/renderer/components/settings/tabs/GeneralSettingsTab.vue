@@ -239,7 +239,7 @@
         </button>
       </div>
       <div v-if="tokenVerificationStatus" :class="['token-status', tokenVerificationStatus.type]">
-        {{ tokenVerificationStatus.message }}
+        {{ $t(tokenVerificationStatus.message, tokenVerificationStatus.params ?? {}) }}
       </div>
     </div>
     <!-- The pasted session is attached to the signed-in account, so it needs one. -->
@@ -443,6 +443,7 @@ const {
   toggleTokenVisibility,
   onTokenInput,
   verifyManualToken,
+  loadManualToken,
   accountPassword,
   showAccountPassword,
   isSavingAccountPassword,
@@ -478,6 +479,8 @@ const {
 watch([isLoggedIn, userId, rememberPassword], () => {
   void loadAccountPassword()
 })
+// The token field is a draft of the current account's token.
+watch([isLoggedIn, userId], () => loadManualToken())
 
 const {
   cacheStats,
