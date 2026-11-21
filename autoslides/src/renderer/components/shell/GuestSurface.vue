@@ -9,12 +9,15 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { GuestKind, GuestRect } from '@common/guestView'
+import { activeDialog, onDialogsChanged } from '@shared/ui/dialog'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('GuestSurface')
 const HIT_TEST_STEP = 48
 const HIT_TEST_INSET = 8
 const SYNC_THROTTLE_MS = 120
+// The still is decoration: the page never waits longer than this to get out of the way.
+const SNAPSHOT_WAIT_MS = 80
 
 const props = withDefaults(defineProps<{ kind: GuestKind; url: string; occluded?: boolean }>(), {
   occluded: false,
@@ -62,15 +65,22 @@ const freeze = async () => {
   if (frozen) return
   frozen = true
   const token = ++freezeToken
-  let image = ''
-  try {
-    image = await api().capture(props.kind)
-  } catch (error) {
+  const capture = api().capture(props.kind).catch((error) => {
     log.debug('Snapshot skipped:', error)
-  }
+    return ''
+  })
+  const image = await Promise.race([
+    capture,
+    new Promise<string>((resolve) => setTimeout(() => resolve(''), SNAPSHOT_WAIT_MS)),
+  ])
   if (disposed || token !== freezeToken) return
-  snapshot.value = image
+  if (image) snapshot.value = image
   sendLayout(null)
+  if (!image) {
+    // A slow still can still fill the box behind the overlay.
+    const late = await capture
+    if (!disposed && token === freezeToken && late) snapshot.value = late
+  }
 }
 
 const thaw = () => {
@@ -89,12 +99,25 @@ const sync = () => {
     sendLayout(null)
     return
   }
-  if (props.occluded || isCovered(el, box)) {
+  if (props.occluded || activeDialog() || isCovered(el, box)) {
     void freeze()
     return
   }
   thaw()
-  sendLayout({ x: box.left, y: box.top, width: box.width, height: box.height })
+  sendLayout(boundsClearOfDividers(box))
+}
+
+// Panel resize handles straddle the box's edges and must keep their whole hit area.
+const boundsClearOfDividers = (box: DOMRect): GuestRect => {
+  let left = box.left
+  let right = box.right
+  for (const divider of document.querySelectorAll<HTMLElement>('.layout > .divider')) {
+    const edge = divider.getBoundingClientRect()
+    if (edge.bottom <= box.top || edge.top >= box.bottom) continue
+    if (edge.left <= left && edge.right > left) left = edge.right
+    if (edge.right >= right && edge.left < right) right = edge.left
+  }
+  return { x: left, y: box.top, width: Math.max(1, right - left), height: box.height }
 }
 
 const scheduleSync = () => {
@@ -106,6 +129,7 @@ const scheduleSync = () => {
 }
 
 watch(() => props.occluded, sync, { flush: 'post' })
+const stopDialogWatch = onDialogsChanged(sync)
 
 onMounted(async () => {
   resizeObserver = new ResizeObserver(sync)
@@ -132,6 +156,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  stopDialogWatch()
   disposed = true
   if (throttle) clearTimeout(throttle)
   resizeObserver?.disconnect()
