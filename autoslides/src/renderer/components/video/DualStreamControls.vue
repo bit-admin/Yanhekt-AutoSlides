@@ -123,7 +123,8 @@ function onRateChange(event: Event) {
   padding: 12px 16px;
   background-color: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
 
 .stream-selector {
@@ -135,6 +136,7 @@ function onRateChange(event: Event) {
 .stream-selector label {
   font-weight: 500;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .stream-selector select {
@@ -199,6 +201,7 @@ function onRateChange(event: Event) {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
 }
 
 /* Icon-only square controls (Cinema Mode + Picture-in-Picture). */
