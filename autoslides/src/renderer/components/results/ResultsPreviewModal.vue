@@ -3,7 +3,7 @@
        lifetime (v-if is INSIDE) so the auto-crop worker client lives as long
        as the page, exactly as before the extraction. -->
   <div v-if="previewItem" class="preview-modal-overlay" @click="emit('close')">
-    <div class="preview-modal" :class="{ 'metadata-visible': showPreviewMetadata, 'crop-mode': isCropMode }" @click.stop>
+    <div v-dialog="{ label: $t('playback.close'), close: isCropMode ? undefined : () => emit('close') }" class="preview-modal" :class="{ 'metadata-visible': showPreviewMetadata, 'crop-mode': isCropMode }" @click.stop>
       <button class="preview-close-btn" @click="emit('close')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -190,6 +190,7 @@
 </template>
 
 <script setup lang="ts">
+import { vDialog } from '@shared/ui/dialog'
 import { computed, onBeforeUnmount, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { appearancesForFile, timelineOnPlayerClock, type SlideTimeline } from '@common/sidecars'

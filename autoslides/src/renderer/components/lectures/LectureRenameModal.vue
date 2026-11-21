@@ -1,6 +1,6 @@
 <template>
-  <div class="modal-overlay" @click.self="emit('close')">
-    <div class="dialog-box lec-rename-box" @click.stop>
+  <div class="modal-overlay" @click.self="dismiss">
+    <div v-dialog="{ close: dismiss, busy: isApplying }" class="dialog-box lec-rename-box" @click.stop>
       <h3 class="dialog-title">{{ $t('lectures.renameModalTitle') }}</h3>
       <p class="dialog-help">
         {{ $t('lectures.renameModalHint') }}
@@ -62,6 +62,7 @@
 </template>
 
 <script setup lang="ts">
+import { vDialog } from '@shared/ui/dialog'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LectureRenameOptions } from '@common/types'
@@ -236,6 +237,11 @@ const previews = computed<PreviewRow[]>(() => {
 
   return [...rows, ...alone]
 })
+
+// A rename batch keeps writing until it ends, so nothing dismisses it meanwhile.
+const dismiss = () => {
+  if (!isApplying.value) emit('close')
+}
 
 const apply = async () => {
   isApplying.value = true

@@ -325,6 +325,7 @@ import { createLogger } from '@shared/utils/logger';
 const log = createLogger('TitleBar');
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { isPlaybackTabClosable } from '@features/video/tabClosable';
 import UpdateManager from './UpdateManager.vue';
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore';
 import { watchNotesStore } from '@features/cloudNotes/watchNotesStore';
@@ -380,11 +381,7 @@ const infoTabLabel = computed(() => {
 
 // A task tab can't be closed while its task is in progress — mirrors the
 // disabled Back button inside the PlaybackPage. Manual tabs are always closable.
-const isTabClosable = (tab: PlaybackTab): boolean => {
-  if (tab.origin !== 'task' || !tab.taskId) return true;
-  const task = taskQueueState.value.tasks.find(t => t.id === tab.taskId);
-  return !task || task.status !== 'in_progress';
-};
+const isTabClosable = (tab: PlaybackTab): boolean => isPlaybackTabClosable(tab);
 
 // Module-singleton ref: stays in sync with the App-level browser-login state.
 const { isBrowserLoginActive } = useAuth();
@@ -1269,7 +1266,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   border-radius: 8px;
   box-shadow: var(--shadow-md);
   padding: 4px;
-  z-index: var(--z-super-modal);
+  z-index: var(--z-flyout);
   -webkit-app-region: no-drag;
 }
 

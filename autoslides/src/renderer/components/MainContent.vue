@@ -5,11 +5,13 @@
            Shown whenever no playback tab is active (activeTabId === null). -->
       <div
         :class="['mode-container', { 'mode-hidden': tabStore.state.activeTabId !== null }]"
+        :inert="tabStore.state.activeTabId !== null"
         data-tab="info"
       >
         <!-- Home Page -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'home' }]"
+          :inert="activeNav !== 'home'"
           data-mode="home"
         >
           <HomePage />
@@ -18,6 +20,7 @@
         <!-- Search Page -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'search' }]"
+          :inert="activeNav !== 'search'"
           data-mode="search"
         >
           <SearchPage />
@@ -27,6 +30,7 @@
              Lazily mounted; it reads aita only while it is the active page. -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'yanhe2-calendar' }]"
+          :inert="activeNav !== 'yanhe2-calendar'"
           data-mode="yanhe2-calendar"
         >
           <Yanhe2CalendarPage v-if="yanhe2CalendarMounted" />
@@ -36,6 +40,7 @@
              Same shape as the Calendar: lazily mounted, reads only while active. -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'yanhe2-curriculum' }]"
+          :inert="activeNav !== 'yanhe2-curriculum'"
           data-mode="yanhe2-curriculum"
         >
           <Yanhe2CurriculumPage v-if="yanhe2CurriculumMounted" />
@@ -46,6 +51,7 @@
              as the export selection. -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'slides-review' }]"
+          :inert="activeNav !== 'slides-review'"
           data-mode="slides-review"
         >
           <ResultsWindow />
@@ -55,6 +61,7 @@
              Lazily mounted; kept mounted so the compress queue UI stays alive. -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'lectures' }]"
+          :inert="activeNav !== 'lectures'"
           data-mode="lectures"
         >
           <LecturesPage v-if="lecturesMounted" />
@@ -65,6 +72,7 @@
              a sidebar hop. -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'developer' }]"
+          :inert="activeNav !== 'developer'"
           data-mode="developer"
         >
           <DeveloperPage v-if="developerMounted" />
@@ -91,6 +99,7 @@
              (network interfaces, extractor verify, …) doesn't run at startup. -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'settings' }]"
+          :inert="activeNav !== 'settings'"
           data-mode="settings"
         >
           <SettingsPage v-if="settingsMounted" />
@@ -99,6 +108,7 @@
         <!-- Live Mode (browsing only — playback opens in a tab) -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'live' }]"
+          :inert="activeNav !== 'live'"
           data-mode="live"
         >
           <CoursePage :mode="'live'" />
@@ -107,6 +117,7 @@
         <!-- Recorded Mode (course grid → sessions list) -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'recorded' }]"
+          :inert="activeNav !== 'recorded'"
           data-mode="recorded"
         >
           <CoursePage
@@ -132,6 +143,7 @@
         v-for="tab in tabStore.state.tabs"
         :key="tab.id"
         :class="['mode-container', { 'mode-hidden': tabStore.state.activeTabId !== tab.id }]"
+        :inert="tabStore.state.activeTabId !== tab.id"
         data-tab="playback"
       >
         <Yanhe2PlaybackPage
@@ -158,6 +170,7 @@
 </template>
 
 <script setup lang="ts">
+import { isPlaybackTabClosable } from '@features/video/tabClosable'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('MainContent');
 import { ref, watch, onMounted, onUnmounted } from 'vue'
@@ -345,6 +358,8 @@ const backToCourses = () => {
 // (the old pre-tabs behavior: back went to the sessions/browse page). The tab
 // chip's "×" keeps the browser-like neighbor fallback in tabStore.closeTab.
 const handleTabBack = (tabId: string) => {
+  const tab = tabStore.state.tabs.find((item) => item.id === tabId)
+  if (tab && !isPlaybackTabClosable(tab)) return
   tabStore.closeTab(tabId)
   tabStore.activateTab(null)
 }

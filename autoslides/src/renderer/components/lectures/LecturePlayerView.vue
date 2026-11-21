@@ -607,6 +607,8 @@
 </template>
 
 <script setup lang="ts">
+import { activeDialog } from '@shared/ui/dialog'
+import { isPressable } from '@features/video/useVideoKeyboard'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -958,6 +960,9 @@ const toggleFullscreen = async () => {
 const onKeydown = (event: KeyboardEvent) => {
   const tag = (event.target as HTMLElement)?.tagName
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
+  if (activeDialog()) return
+  // Space on a focused control presses that control.
+  if (event.code === 'Space' && event.target instanceof Element && isPressable(event.target)) return
 
   if (event.code === 'Space') {
     event.preventDefault()

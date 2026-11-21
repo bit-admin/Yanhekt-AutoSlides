@@ -1,6 +1,6 @@
 <template>
   <div v-if="slide" ref="modalEl" class="slide-modal" @click="$emit('close')">
-    <div class="modal-content" @click.stop>
+    <div v-dialog="{ close: () => $emit('close') }" class="modal-content" @click.stop>
       <div class="modal-header">
         <h3>{{ slide.title }}</h3>
         <div class="modal-actions">
@@ -44,6 +44,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends GallerySlide">
+import { activeDialog, vDialog } from '@shared/ui/dialog'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { GallerySlide } from '@features/video/gallerySlide'
@@ -118,9 +119,10 @@ const copySlide = async (slide: GallerySlide) => {
 // Cmd/Ctrl+C copies the previewed slide, unless the user has selected text
 // (e.g. the file name) or is typing in a field — then the native copy wins.
 // Every playback tab stays mounted, so a background tab can hold an open
-// preview too: only the one actually on screen (has layout boxes) answers.
+// preview too: only the dialog that owns input answers.
 const onKeydown = (event: KeyboardEvent) => {
-  if (!props.slide || !modalEl.value?.getClientRects().length) return
+  const dialog = modalEl.value?.querySelector('[role="dialog"]')
+  if (!props.slide || !dialog || activeDialog() !== dialog || event.defaultPrevented) return
   if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'c') return
   const target = event.target as HTMLElement | null
   if (target?.closest('input, textarea, [contenteditable="true"]')) return

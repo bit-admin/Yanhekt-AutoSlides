@@ -172,6 +172,8 @@
   --z-player-chrome: 50;
   --z-modal: 1000;
   --z-titlebar: 1000;
+  /* Body-level menus: above the title bar, below a blocking installer. */
+  --z-flyout: 5000;
   --z-super-modal: 10000;
 }
 

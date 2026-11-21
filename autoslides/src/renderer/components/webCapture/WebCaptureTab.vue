@@ -143,7 +143,7 @@
 
     <!-- Confirm name modal -->
     <div v-if="captureState === 'confirming'" class="modal-overlay" @click.self="cancelStart">
-      <div class="dialog-box webcapture-confirm-box" role="dialog" aria-modal="true" aria-labelledby="webcapture-confirm-title" @keydown.esc.stop="cancelStart" @click.stop>
+      <div v-dialog="{ close: cancelStart }" class="dialog-box webcapture-confirm-box" aria-labelledby="webcapture-confirm-title" @click.stop>
         <h3 id="webcapture-confirm-title" class="dialog-title">{{ $t('webCapture.confirmTitle') }}</h3>
         <p class="dialog-help">{{ $t('webCapture.confirmDesc') }} <code>slides_{{ sanitizedPreview }}</code>.</p>
         <input
@@ -163,6 +163,7 @@
 </template>
 
 <script setup lang="ts">
+import { vDialog } from '@shared/ui/dialog'
 import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWebCapture, webCaptureBusy, type WebCapturePreset } from '@features/webCapture/useWebCapture'

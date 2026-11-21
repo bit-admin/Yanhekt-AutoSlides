@@ -29,7 +29,7 @@
   <!-- While an SMS code is pending, a stray overlay click must not throw the
        half-finished flow away; the × (which cancels it properly) still does. -->
   <div v-else class="signin-overlay" @click="onOverlayClick">
-    <div class="signin-card" @click.stop>
+    <div v-dialog="{ close: showClose ? requestClose : undefined }" class="signin-card" @click.stop>
       <button
         v-if="showClose"
         type="button"
@@ -81,6 +81,7 @@
 </template>
 
 <script setup lang="ts">
+import { vDialog } from '@shared/ui/dialog'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '@features/platform/useAuth'
@@ -221,7 +222,10 @@ watch(succeeded, (done) => {
   position: relative;
   width: 460px;
   max-width: calc(100vw - 48px);
-  min-height: 344px;
+  min-height: min(344px, calc(100vh - 48px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
   background-color: var(--bg-modal);
   border: 1px solid var(--border-color);
   border-radius: 16px;

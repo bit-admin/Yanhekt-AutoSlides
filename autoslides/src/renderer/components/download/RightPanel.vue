@@ -3,6 +3,7 @@
     <div class="content-area">
       <div
         :class="['tab-container', 'custom-scrollbar', { 'tab-hidden': rightPanelStore.currentTab !== 'task' }]"
+        :inert="rightPanelStore.currentTab !== 'task'"
         data-tab="task"
       >
         <TaskQueuePanel
@@ -13,6 +14,7 @@
 
       <div
         :class="['tab-container', 'custom-scrollbar', { 'tab-hidden': rightPanelStore.currentTab !== 'download' }]"
+        :inert="rightPanelStore.currentTab !== 'download'"
         data-tab="download"
       >
         <DownloadQueuePanel
@@ -23,6 +25,7 @@
 
       <div
         :class="['tab-container', { 'tab-hidden': rightPanelStore.currentTab !== 'notes' }]"
+        :inert="rightPanelStore.currentTab !== 'notes'"
         data-tab="notes"
       >
         <WatchNotesPanel />
