@@ -10,10 +10,6 @@
 
 /* Single-stream custom control bar reuses the .dual-controls-* styling and
    overlays the bottom of the (position: relative) .video-container. */
-.single-controls-section {
-  padding-bottom: 8px;
-}
-
 /* Inline volume control (single-stream bar). */
 .single-volume {
   display: flex;
@@ -68,7 +64,6 @@
 }
 
 .dual-speed-popover {
-  min-width: 0;
   max-height: 220px;
   overflow-y: auto;
 }

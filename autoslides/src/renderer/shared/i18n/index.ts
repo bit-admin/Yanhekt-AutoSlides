@@ -26,6 +26,8 @@ export const i18n = createI18n({
 // Helper function to set locale
 export function setI18nLanguage(locale: 'en' | 'zh' | 'ja' | 'ko') {
   i18n.global.locale.value = locale
+  // Screen readers and CJK font selection read this, not the i18n locale.
+  if (typeof document !== 'undefined') document.documentElement.lang = LOCALE_TAGS[locale]
 }
 
 // Helper function to get current locale

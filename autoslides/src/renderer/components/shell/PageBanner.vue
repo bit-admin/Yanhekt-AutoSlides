@@ -150,6 +150,11 @@ const emit = defineEmits<{
   white-space: nowrap;
 }
 
+.page-banner--warning .page-banner-link,
+.page-banner--danger .page-banner-link {
+  color: var(--link-on-notice);
+}
+
 .page-banner .page-banner-link:hover {
   text-decoration: underline;
 }

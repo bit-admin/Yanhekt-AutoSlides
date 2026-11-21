@@ -324,7 +324,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   transition: all 0.2s;
 }
 
-.download-item.row-highlight,
+.download-item-wrapper.row-highlight .download-item,
 .download-item:hover {
   border-color: var(--border-strong);
   box-shadow: 0 1px 3px var(--shadow-sm);

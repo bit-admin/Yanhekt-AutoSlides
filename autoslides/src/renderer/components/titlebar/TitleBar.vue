@@ -1029,7 +1029,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow-md);
   z-index: var(--z-titlebar);
   padding: 4px 0;
   margin-top: 2px;
@@ -1264,7 +1264,7 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px var(--shadow-md);
   padding: 4px;
   z-index: var(--z-flyout);
   -webkit-app-region: no-drag;
@@ -1409,20 +1409,20 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 
 /* Windows 11 style hover effects */
 .control-button.minimize:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--hover-tint-strong);
 }
 
 .control-button.maximize:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--hover-tint-strong);
 }
 
 .control-button.close:hover {
-  background: #c42b1c;
+  background: var(--window-close);
   color: var(--text-on-fill);
 }
 
 .control-button.close:active {
-  background: #a23216;
+  background: var(--window-close-active);
   color: var(--text-on-fill);
 }
 

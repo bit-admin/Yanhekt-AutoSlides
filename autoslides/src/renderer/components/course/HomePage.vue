@@ -578,8 +578,7 @@ onUnmounted(() => {
 .home-tagline {
   margin: 8px 0 0;
   font-size: 13px;
-  color: var(--text-muted);
-  opacity: 0.75;
+  color: var(--text-secondary);
 }
 
 .home-banners {

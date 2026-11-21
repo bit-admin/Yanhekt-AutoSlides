@@ -80,6 +80,9 @@
      --danger inside a confirm footer. */
   --danger: #d0342c;
   --danger-hover: #b02820;
+  /* A destructive button's fill, under --text-on-fill in both themes. */
+  --danger-fill: #c5322a;
+  --danger-fill-hover: #a82720;
   --success: #1f8f4e;
   --success-hover: #17703d;
   --warning: #b8700e;
@@ -138,6 +141,11 @@
   /* Form controls */
   --focus-ring: rgba(38, 35, 28, 0.10);
   --link-color: var(--control-accent);
+  /* The Windows-style close button, the same in both themes. */
+  --window-close: #c42b1c;
+  --window-close-active: #a23216;
+  /* A link on a tinted warning or danger notice. */
+  --link-on-notice: #1a5aa8;
 
   /* Hover tint (semi-transparent overlays for hover/active states) */
   --hover-tint: rgba(38, 35, 28, 0.05);
@@ -219,6 +227,8 @@
     /* Status */
     --danger: #f0625a;
     --danger-hover: #f47a73;
+    --danger-fill: #c5322a;
+    --danger-fill-hover: #a82720;
     --success: #5cc27a;
     --success-hover: #75d08f;
     --warning: #e8a33d;
@@ -263,5 +273,6 @@
 
     /* Form controls */
     --focus-ring: rgba(255, 250, 240, 0.12);
+    --link-on-notice: #a5cdfa;
   }
 }
