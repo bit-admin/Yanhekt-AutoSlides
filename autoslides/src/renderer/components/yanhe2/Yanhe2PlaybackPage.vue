@@ -112,7 +112,7 @@
           </div>
         </div>
 
-        <div class="player-panel">
+        <div v-release-pointer-focus class="player-panel">
           <DualStreamControls
             :selected-stream="selected"
             :current-playback-rate="playbackRate"
@@ -522,6 +522,7 @@ import { useBufferingIndicator } from '@features/video/useBufferingIndicator'
 import { streamFallbackMessageKey } from '@features/video/streamFallback'
 import { useControlsVisibility } from '@features/video/useControlsVisibility'
 import { useVideoKeyboard } from '@features/video/useVideoKeyboard'
+import { vReleasePointerFocus } from '@features/video/releasePointerFocus'
 import { useCinemaMode } from '@features/video/useCinemaMode'
 import type { VideoStream } from '@features/video/useVideoPlayer'
 import { configStore } from '@shared/services/configStore'
