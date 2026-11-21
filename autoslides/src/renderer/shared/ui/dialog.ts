@@ -22,6 +22,13 @@ interface Entry {
 }
 
 const stack: Entry[] = []
+const listeners = new Set<() => void>()
+
+/** Called at once when a dialog opens or closes, for native views that must get out of the way. */
+export function onDialogsChanged(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => { listeners.delete(listener) }
+}
 let nextId = 0
 
 const FOCUSABLE = [
@@ -115,6 +122,7 @@ export const vDialog: Directive<HTMLElement, DialogOptions | undefined> = {
     // The surface itself, so Enter cannot press a destructive button by accident.
     // A component that focuses a field does so right after this.
     if (isShown(el) && !el.contains(document.activeElement)) el.focus({ preventScroll: true })
+    listeners.forEach((listener) => listener())
   },
   updated(el, binding) {
     const entry = stack.find((item) => item.el === el)
@@ -130,6 +138,7 @@ export const vDialog: Directive<HTMLElement, DialogOptions | undefined> = {
       document.removeEventListener('keydown', onKeydown)
       document.removeEventListener('focusin', onFocusIn)
     }
+    queueMicrotask(() => listeners.forEach((listener) => listener()))
     const back = entry.returnFocus
     if (back instanceof HTMLElement && back.isConnected && !back.closest('[inert]') && el.contains(document.activeElement)) {
       queueMicrotask(() => back.focus({ preventScroll: true }))

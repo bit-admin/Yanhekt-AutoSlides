@@ -24,6 +24,24 @@ const SPECS: Record<GuestKind, { partition: string; preload?: string; keepPopups
 };
 
 const MENU_MARGIN = 12;
+
+/**
+ * Where the saved-logins menu goes: below its field, above it when that has
+ * more room, and never past the window (the menu scrolls inside what it gets).
+ * `y` and `height` include the transparent margin around the panel.
+ */
+export function placeGuestMenu(input: {
+  top: number; anchorTop: number; height: number; windowHeight: number; margin: number;
+}): { y: number; height: number } {
+  const { top, anchorTop, height, windowHeight, margin } = input;
+  const below = Math.max(0, windowHeight - top - margin);
+  const above = Math.max(0, anchorTop - margin);
+  if (height <= below || below >= above) {
+    return { y: top - margin, height: Math.min(height, below) + margin * 2 };
+  }
+  const shown = Math.min(height, above);
+  return { y: anchorTop - shown - margin, height: shown + margin * 2 };
+}
 const OUTLINE_WIDTH = 2;
 const MENU_PAGE = 'data:text/html;charset=utf-8,<!doctype html><html><body></body></html>';
 
@@ -209,6 +227,10 @@ export class GuestViewManager {
     contents.on('did-start-loading', () => this.emit({ kind, type: 'did-start-loading' }));
     contents.on('did-stop-loading', () => this.emit({ kind, type: 'did-stop-loading' }));
     contents.on('did-finish-load', () => this.emit({ kind, type: 'did-finish-load' }));
+    contents.on('did-fail-load', (_e, errorCode, _description, url, isMainFrame) => {
+      // -3 is a load replaced by another navigation.
+      if (isMainFrame && errorCode !== -3) this.emit({ kind, type: 'did-fail-load', url, errorCode });
+    });
     contents.on('dom-ready', () => this.emit({ kind, type: 'dom-ready' }));
     contents.on('page-title-updated', (_e, title) => this.emit({ kind, type: 'page-title-updated', title }));
     contents.ipc.on(GUEST_MESSAGE_CHANNEL, (event, channel: unknown, payload: unknown) => {
@@ -299,11 +321,19 @@ export class GuestViewManager {
     }
     const zoom = this.window.webContents.getZoomFactor();
     const menu = scaleGuestRect({ x: state.left, y: state.top, width: state.width, height: this.menuHeight }, zoom);
+    const anchorTop = (state.anchorTop ?? state.top) * zoom;
+    const placed = placeGuestMenu({
+      top: guest.bounds.y + menu.y,
+      anchorTop: guest.bounds.y + anchorTop,
+      height: menu.height,
+      windowHeight: this.window.getContentBounds().height,
+      margin: MENU_MARGIN,
+    });
     view.setBounds({
       x: guest.bounds.x + menu.x - MENU_MARGIN,
-      y: guest.bounds.y + menu.y - MENU_MARGIN,
+      y: placed.y,
       width: menu.width + MENU_MARGIN * 2,
-      height: menu.height + MENU_MARGIN * 2,
+      height: placed.height,
     });
     view.webContents.setZoomFactor(zoom);
     // Re-adding moves it above the sign-in page.

@@ -64,6 +64,19 @@
     }
   },
   "browserLogin": {
+    "statusReady": "準備完了",
+    "statusLoading": "サインインページを読み込み中…",
+    "statusRefreshing": "更新中…",
+    "statusYanhe2SignedIn": "Yanhe 2.0 にサインインしました。",
+    "statusNoToken": "トークンが見つかりません。先にサインインを完了してください。",
+    "statusExtracting": "トークンを読み取り中…",
+    "statusTokenFound": "トークンが見つかりました。",
+    "statusClearing": "ブラウザーデータを消去中…",
+    "statusCleared": "ブラウザーデータを消去しました。サインインページを再読み込みしています…",
+    "statusClearFailed": "ブラウザーデータを消去できませんでした。",
+    "statusTokenDetected": "トークンを検出しました。",
+    "statusCheckingToken": "サインインしました。トークンを確認中…",
+    "statusLoadFailed": "ページを読み込めませんでした。接続を確認して更新してください。",
     "close": "閉じる",
     "loginPage": "ログインページ",
     "refresh": "更新",
@@ -1309,6 +1322,7 @@
     "cancel": "キャンセル"
   },
   "webCapture": {
+    "loadFailed": "ページを読み込めませんでした。",
     "urlLabel": "ページのアドレス",
     "modeVideo": "動画",
     "modePage": "ページ全体",

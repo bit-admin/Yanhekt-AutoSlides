@@ -12,6 +12,8 @@ export type GuestEvent =
   | { kind: GuestKind; type: 'did-navigate' | 'did-navigate-in-page'; url: string }
   | { kind: GuestKind; type: 'did-start-loading' | 'did-stop-loading' | 'did-finish-load' | 'dom-ready' }
   | { kind: GuestKind; type: 'page-title-updated'; title: string }
+  /** The main frame could not load (never a navigation the page itself replaced). */
+  | { kind: GuestKind; type: 'did-fail-load'; url: string; errorCode: number }
   | { kind: GuestKind; type: 'message'; channel: string; payload: unknown }
   | { kind: GuestKind; type: 'menu-hover' | 'menu-pick'; index: number };
 
@@ -32,6 +34,8 @@ export interface GuestMenuState {
   left: number;
   top: number;
   width: number;
+  /** Top of the field it belongs to: the menu opens above it when there is more room. */
+  anchorTop?: number;
   theme: GuestMenuTheme;
 }
 

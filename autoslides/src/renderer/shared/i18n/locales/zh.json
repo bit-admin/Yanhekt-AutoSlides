@@ -64,6 +64,19 @@
     }
   },
   "browserLogin": {
+    "statusReady": "就绪",
+    "statusLoading": "正在加载登录页…",
+    "statusRefreshing": "正在刷新…",
+    "statusYanhe2SignedIn": "已登录延河 2.0。",
+    "statusNoToken": "未找到令牌，请先完成登录。",
+    "statusExtracting": "正在读取令牌…",
+    "statusTokenFound": "已找到令牌。",
+    "statusClearing": "正在清除浏览器数据…",
+    "statusCleared": "浏览器数据已清除，正在重新加载登录页…",
+    "statusClearFailed": "无法清除浏览器数据。",
+    "statusTokenDetected": "已检测到令牌。",
+    "statusCheckingToken": "已登录，正在检查令牌…",
+    "statusLoadFailed": "页面无法加载。请检查网络后点击刷新。",
     "close": "关闭",
     "loginPage": "登录页",
     "refresh": "刷新",
@@ -1309,6 +1322,7 @@
     "cancel": "取消"
   },
   "webCapture": {
+    "loadFailed": "页面无法加载。",
     "urlLabel": "页面地址",
     "modeVideo": "视频",
     "modePage": "整个页面",

@@ -64,6 +64,19 @@
     }
   },
   "browserLogin": {
+    "statusReady": "Ready",
+    "statusLoading": "Loading sign-in page…",
+    "statusRefreshing": "Refreshing…",
+    "statusYanhe2SignedIn": "Signed in to Yanhe 2.0.",
+    "statusNoToken": "No token found. Complete sign-in first.",
+    "statusExtracting": "Reading token…",
+    "statusTokenFound": "Token found.",
+    "statusClearing": "Clearing browser data…",
+    "statusCleared": "Browser data cleared. Reloading sign-in page…",
+    "statusClearFailed": "Could not clear browser data.",
+    "statusTokenDetected": "Token detected.",
+    "statusCheckingToken": "Signed in. Checking for token…",
+    "statusLoadFailed": "The page could not load. Check your connection, then choose Refresh.",
     "close": "Close",
     "loginPage": "Login Page",
     "refresh": "Refresh",
@@ -1309,6 +1322,7 @@
     "cancel": "Cancel"
   },
   "webCapture": {
+    "loadFailed": "The page could not load.",
     "urlLabel": "Page Address",
     "modeVideo": "Video",
     "modePage": "Whole Page",

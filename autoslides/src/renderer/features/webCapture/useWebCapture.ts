@@ -144,6 +144,11 @@ export function useWebCapture() {
     }
   }
   guest.on('did-navigate', onDidNavigate)
+  guest.on('did-fail-load', () => {
+    if (captureState.value === 'running') return
+    statusMessage.value = 'webCapture.loadFailed'
+    statusParams.value = {}
+  })
   guest.on('did-navigate-in-page', onDidNavigate)
 
   const applyPresetRules = (url: string) => {

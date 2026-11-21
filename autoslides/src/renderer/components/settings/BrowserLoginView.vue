@@ -55,7 +55,7 @@
         </svg>
         <span class="url-text">{{ currentUrl }}</span>
       </div>
-      <span :class="['status-message', statusType]">{{ statusMessage || 'Ready' }}</span>
+      <span :class="['status-message', statusType]" role="status">{{ statusMessage || (pageLoading ? $t('browserLogin.statusLoading') : $t('browserLogin.statusReady')) }}</span>
     </div>
   </div>
 </template>
@@ -105,14 +105,23 @@ const currentUrl = ref(loginUrl);
 const statusMessage = ref('');
 const statusType = ref<'info' | 'success' | 'error'>('info');
 
+let loadFailed = false;
 let autoTokenCheckInterval: ReturnType<typeof setInterval> | null = null;
 
+const pageLoading = ref(true);
+let statusTimer: ReturnType<typeof setTimeout> | null = null;
+
+// One timer: an earlier message's timeout must not clear a later one.
 const showStatus = (message: string, type: 'info' | 'success' | 'error' = 'info', duration = 3000) => {
+  if (statusTimer) clearTimeout(statusTimer);
+  statusTimer = null;
   statusMessage.value = message;
   statusType.value = type;
   if (duration > 0) {
-    setTimeout(() => {
+    statusTimer = setTimeout(() => {
       statusMessage.value = '';
+      statusType.value = 'info';
+      statusTimer = null;
     }, duration);
   }
 };
@@ -125,12 +134,12 @@ const closeBrowser = () => {
 const loadLoginPage = () => {
   void guest.loadURL(loginUrl);
   currentUrl.value = loginUrl;
-  showStatus('Loading login page...', 'info');
+  showStatus(t('browserLogin.statusLoading'), 'info');
 };
 
 const refresh = () => {
   void guest.reload();
-  showStatus('Refreshing...', 'info');
+  showStatus(t('browserLogin.statusRefreshing'), 'info');
 };
 
 // Yanhe 2.0: the token is the `_token` cookie, which main reads straight from
@@ -143,7 +152,7 @@ const adoptYanhe2Session = async (manual: boolean): Promise<boolean> => {
   try {
     const result = await window.electronAPI.yanhe2.adoptBrowserSession(userId.value);
     if (result.success) {
-      showStatus('Signed in to Yanhe 2.0.', 'success');
+      showStatus(t('browserLogin.statusYanhe2SignedIn'), 'success');
       stopAutoTokenCheck();
       emit('yanhe2-signed-in');
       return true;
@@ -152,7 +161,7 @@ const adoptYanhe2Session = async (manual: boolean): Promise<boolean> => {
       stopAutoTokenCheck();
       showStatus(describeYanhe2Failure(result), 'error', 0);
     } else if (manual) {
-      showStatus('No token found. Please complete login first.', 'error', 5000);
+      showStatus(t('browserLogin.statusNoToken'), 'error', 5000);
     }
     return false;
   } catch (error) {
@@ -187,7 +196,7 @@ const extractToken = async (): Promise<string | null> => {
 };
 
 const getTokenManually = async () => {
-  showStatus('Extracting token...', 'info');
+  showStatus(t('browserLogin.statusExtracting'), 'info');
   if (isYanhe2) {
     await adoptYanhe2Session(true);
     return;
@@ -195,15 +204,15 @@ const getTokenManually = async () => {
   const token = await extractToken();
 
   if (token) {
-    showStatus('Token found!', 'success');
+    showStatus(t('browserLogin.statusTokenFound'), 'success');
     emit('token-received', token);
   } else {
-    showStatus('No token found. Please complete login first.', 'error', 5000);
+    showStatus(t('browserLogin.statusNoToken'), 'error', 5000);
   }
 };
 
 const clearBrowserData = async () => {
-  showStatus('Clearing browser data...', 'info');
+  showStatus(t('browserLogin.statusClearing'), 'info');
 
   try {
     // Clear localStorage for yanhekt.cn
@@ -222,7 +231,7 @@ const clearBrowserData = async () => {
     // This is done via IPC to the main process
     await window.electronAPI.auth.clearBrowserData();
 
-    showStatus('Browser data cleared. Reloading login page...', 'success');
+    showStatus(t('browserLogin.statusCleared'), 'success');
 
     // Reload login page after clearing
     setTimeout(() => {
@@ -230,7 +239,7 @@ const clearBrowserData = async () => {
     }, 500);
   } catch (error) {
     log.error('Failed to clear browser data:', error);
-    showStatus('Failed to clear browser data', 'error');
+    showStatus(t('browserLogin.statusClearFailed'), 'error');
   }
 };
 
@@ -243,7 +252,7 @@ const startAutoTokenCheck = () => {
     }
     const token = await extractToken();
     if (token) {
-      showStatus('Token detected automatically!', 'success');
+      showStatus(t('browserLogin.statusTokenDetected'), 'success');
       stopAutoTokenCheck();
       emit('token-received', token);
     }
@@ -296,6 +305,7 @@ watch([menu.visible, menu.matches, menu.highlight, autofillRect], () => {
     highlight: menu.highlight.value,
     left: Math.min(Math.max(rect.left, 8), maxLeft),
     top: rect.bottom + 4,
+    anchorTop: rect.top - 4,
     width,
     theme: {
       background: themeToken('--bg-modal'),
@@ -399,7 +409,7 @@ const onNavigate = (event: { url: string }) => {
 
   // Check if we've reached the target URL
   if (reachedTarget(event.url)) {
-    showStatus('Login successful! Checking for token...', 'info', 0);
+    showStatus(t('browserLogin.statusCheckingToken'), 'info', 0);
     startAutoTokenCheck();
   }
 };
@@ -408,7 +418,7 @@ const onNavigateInPage = (event: { url: string }) => {
   currentUrl.value = event.url;
 
   if (reachedTarget(event.url)) {
-    showStatus('Login successful! Checking for token...', 'info', 0);
+    showStatus(t('browserLogin.statusCheckingToken'), 'info', 0);
     startAutoTokenCheck();
   }
 };
@@ -434,7 +444,24 @@ onMounted(async () => {
 
 guest.on('did-navigate', onNavigate);
 guest.on('did-navigate-in-page', onNavigateInPage);
-guest.on('did-start-loading', () => menu.close());
+guest.on('did-start-loading', () => {
+  menu.close();
+  pageLoading.value = true;
+  // A new attempt replaces the failure it is retrying.
+  if (loadFailed) {
+    loadFailed = false;
+    showStatus(t('browserLogin.statusLoading'), 'info', 0);
+  }
+});
+guest.on('did-stop-loading', () => {
+  pageLoading.value = false;
+  if (!loadFailed && statusMessage.value === t('browserLogin.statusLoading')) showStatus('', 'info', 0);
+});
+guest.on('did-fail-load', () => {
+  loadFailed = true;
+  pageLoading.value = false;
+  showStatus(t('browserLogin.statusLoadFailed'), 'error', 0);
+});
 guest.on('dom-ready', onDomReady);
 guest.on('message', ({ channel, payload }) => onGuestMessage(channel, payload));
 guest.on('menu-hover', ({ index }) => { menu.highlight.value = index; });
@@ -444,6 +471,7 @@ guest.on('menu-pick', ({ index }) => {
 });
 
 onUnmounted(() => {
+  if (statusTimer) clearTimeout(statusTimer);
   stopAutoTokenCheck();
   cancelBlurClose();
   void window.electronAPI.guestView.setMenu(null);

@@ -33,6 +33,8 @@ function render(state: GuestMenuState): void {
     borderRadius: '10px',
     background: theme.background,
     boxShadow: `0 4px 10px ${theme.shadow}`,
+    maxHeight: `calc(100vh - ${MARGIN * 2}px)`,
+    overflowY: 'auto',
   });
   panel.addEventListener('mousedown', (event) => event.preventDefault());
 
@@ -72,7 +74,9 @@ function render(state: GuestMenuState): void {
   });
 
   document.body.replaceChildren(panel);
-  report({ type: 'size', height: Math.ceil(panel.getBoundingClientRect().height) });
+  // The whole list, even when the window gives it less room and it scrolls.
+  report({ type: 'size', height: panel.scrollHeight + 2 });
+  panel.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
 }
 
 ipcRenderer.on(GUEST_MENU_RENDER_CHANNEL, (_event, state: GuestMenuState) => render(state));
