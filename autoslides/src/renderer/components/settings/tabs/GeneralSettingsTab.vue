@@ -2,9 +2,9 @@
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.tabs.general') }}</h4>
     <div class="setting-item">
-      <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
+      <label for="settings-general-settings-outputdirectory" class="setting-label">{{ $t('settings.outputDirectory') }}</label>
       <div class="input-group">
-        <input
+        <input id="settings-general-settings-outputdirectory"
           :value="outputDirectory"
           type="text"
           readonly
@@ -17,9 +17,9 @@
     </div>
 
     <div class="setting-item">
-      <label class="setting-label">{{ $t('settings.connectionMode') }}</label>
+      <span id="settings-general-connection-mode" class="setting-label">{{ $t('settings.connectionMode') }}</span>
       <div class="setting-description">{{ $t('settings.connectionModeDescription') }}</div>
-      <div class="mode-toggle">
+      <div class="mode-toggle" role="group" aria-labelledby="settings-general-connection-mode">
         <button
           @click="tempConnectionMode = 'auto'"
           :class="['mode-btn', { active: tempConnectionMode === 'auto' }]"
@@ -44,8 +44,8 @@
     <div class="setting-item">
       <div class="two-col-row">
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('settings.audioMode') }}</label>
-          <select v-model="tempMuteMode" class="select-field">
+          <label for="settings-general-settings-audiomode" class="setting-label">{{ $t('settings.audioMode') }}</label>
+          <select id="settings-general-settings-audiomode" v-model="tempMuteMode" class="select-field">
             <option value="normal">{{ $t('settings.normal') }}</option>
             <option value="mute_all">{{ $t('settings.muteAll') }}</option>
             <option value="mute_live">{{ $t('settings.muteLive') }}</option>
@@ -53,8 +53,8 @@
           </select>
         </div>
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
-          <select v-model="tempTaskSpeed" class="select-field">
+          <label for="settings-general-settings-taskspeed" class="setting-label">{{ $t('settings.taskSpeed') }}</label>
+          <select id="settings-general-settings-taskspeed" v-model="tempTaskSpeed" class="select-field">
             <option v-for="n in 16" :key="n" :value="n">{{ n }}x</option>
           </select>
         </div>
@@ -64,15 +64,15 @@
     <div class="setting-item">
       <div class="two-col-row">
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('settings.parallelTasks') }}</label>
-          <select v-model.number="tempParallelTasks" class="select-field">
+          <label for="settings-general-settings-paralleltasks" class="setting-label">{{ $t('settings.parallelTasks') }}</label>
+          <select id="settings-general-settings-paralleltasks" v-model.number="tempParallelTasks" class="select-field">
             <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
           </select>
           <div class="setting-description">{{ $t('settings.parallelTasksDescription') }}</div>
         </div>
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('settings.maxManualTabs') }}</label>
-          <select v-model.number="tempMaxManualTabs" class="select-field">
+          <label for="settings-general-settings-maxmanualtabs" class="setting-label">{{ $t('settings.maxManualTabs') }}</label>
+          <select id="settings-general-settings-maxmanualtabs" v-model.number="tempMaxManualTabs" class="select-field">
             <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
           </select>
           <div class="setting-description">{{ $t('settings.maxManualTabsDescription') }}</div>
@@ -160,14 +160,14 @@
       </div>
     </div>
     <div v-if="isLoggedIn && rememberPassword" class="setting-item">
-      <label class="setting-label">{{ $t('advanced.password') }}</label>
+      <label for="settings-general-advanced-password" class="setting-label">{{ $t('advanced.password') }}</label>
       <div class="setting-description">
         {{ accountPasswordUsername
           ? $t('advanced.passwordDescriptionFor', { username: accountPasswordUsername })
           : $t('advanced.passwordDescription') }}
       </div>
       <div class="input-group">
-        <input
+        <input id="settings-general-advanced-password"
           v-model="accountPassword"
           :type="showAccountPassword ? 'text' : 'password'"
           autocomplete="off"
@@ -213,10 +213,10 @@
       </div>
     </div>
     <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.token') }}</label>
+      <label for="settings-general-advanced-token" class="setting-label">{{ $t('advanced.token') }}</label>
       <div class="setting-description">{{ $t('advanced.tokenDescription') }}</div>
       <div class="input-group">
-        <input
+        <input id="settings-general-advanced-token"
           v-model="manualToken"
           :type="showToken ? 'text' : 'password'"
           autocomplete="off"
@@ -244,10 +244,10 @@
     </div>
     <!-- The pasted session is attached to the signed-in account, so it needs one. -->
     <div v-if="isLoggedIn" class="setting-item">
-      <label class="setting-label">{{ $t('advanced.yanhe2Cookies') }}</label>
+      <label for="settings-general-advanced-yanhe2cookies" class="setting-label">{{ $t('advanced.yanhe2Cookies') }}</label>
       <div class="setting-description">{{ $t('advanced.yanhe2CookiesDescription') }}</div>
       <div class="input-group">
-        <input
+        <input id="settings-general-advanced-yanhe2cookies"
           v-model="yanhe2Cookies"
           :type="yanhe2CookiesVisible ? 'text' : 'password'"
           autocomplete="off"
@@ -291,9 +291,9 @@
     <div class="setting-item">
       <div class="two-col-row">
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('settings.theme') }}</label>
+          <label for="settings-general-settings-theme" class="setting-label">{{ $t('settings.theme') }}</label>
           <div class="theme-selector">
-            <select v-model="tempThemeMode" class="select-field">
+            <select id="settings-general-settings-theme" v-model="tempThemeMode" class="select-field">
               <option value="system">{{ $t('settings.followSystem') }}</option>
               <option value="light">{{ $t('settings.light') }}</option>
               <option value="dark">{{ $t('settings.dark') }}</option>
@@ -301,9 +301,9 @@
           </div>
         </div>
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('settings.language') }}</label>
+          <label for="settings-general-settings-language" class="setting-label">{{ $t('settings.language') }}</label>
           <div class="language-selector">
-            <select v-model="tempLanguageMode" class="select-field">
+            <select id="settings-general-settings-language" v-model="tempLanguageMode" class="select-field">
               <option value="system">{{ $t('settings.followSystem') }}</option>
               <option value="en">{{ $t('settings.english') }}</option>
               <option value="zh">{{ $t('settings.chinese') }}</option>

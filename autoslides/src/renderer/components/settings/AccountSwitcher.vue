@@ -1,5 +1,5 @@
 <template>
-  <div class="account-switcher">
+  <div v-flyout class="account-switcher">
     <button type="button" class="signin-option account-switcher-trigger" aria-haspopup="true">
       <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -55,6 +55,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { vFlyout } from '@shared/ui/flyout'
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
 import { useAuth } from '@features/platform/useAuth'
@@ -171,6 +172,11 @@ function onAddAccount() {
 .account-switcher:hover .account-flyout {
   visibility: visible;
   opacity: 1;
+}
+
+.account-switcher[data-dismissed] .account-flyout {
+  visibility: hidden;
+  opacity: 0;
 }
 
 .account-row {

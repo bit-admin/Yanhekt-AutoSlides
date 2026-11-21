@@ -19,11 +19,11 @@
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.imageProcessing') }}</h4>
     <div class="setting-item">
-      <label class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
+      <label for="settings-imageprocessing-settings-slidedetectioninterval" class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
       <div class="setting-description">{{ $t('settings.slideDetectionDescription') }}</div>
       <div class="slide-interval-group">
         <div class="slide-interval-input-wrapper">
-          <input
+          <input id="settings-imageprocessing-settings-slidedetectioninterval"
             v-model.number="tempSlideCheckInterval"
             type="number"
             min="500"
@@ -61,10 +61,10 @@
     </div>
 
     <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.ssimThreshold') }}</label>
+      <label for="settings-imageprocessing-advanced-ssimthreshold" class="setting-label">{{ $t('advanced.ssimThreshold') }}</label>
       <div class="setting-description">{{ $t('advanced.ssimDescription') }}</div>
       <div class="ssim-input-group">
-        <input
+        <input id="settings-imageprocessing-advanced-ssimthreshold"
           v-model.number="tempSsimThreshold"
           type="number"
           min="0.9"
@@ -223,10 +223,10 @@
     </div>
 
     <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.pHashThreshold') }}</label>
+      <label for="settings-imageprocessing-advanced-phashthreshold" class="setting-label">{{ $t('advanced.pHashThreshold') }}</label>
       <div class="setting-description">{{ $t('advanced.pHashDescription') }}</div>
       <div class="phash-threshold-input-wrapper">
-        <input
+        <input id="settings-imageprocessing-advanced-phashthreshold"
           v-model.number="tempPHashThreshold"
           type="number"
           min="0"
@@ -332,9 +332,9 @@
     <div class="setting-description">{{ $t('advanced.autoCrop.description') }}</div>
 
     <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.autoCrop.detectorMode') }}</label>
+      <label for="settings-imageprocessing-advanced-autocrop-detectormode" class="setting-label">{{ $t('advanced.autoCrop.detectorMode') }}</label>
       <div class="setting-description">{{ $t('advanced.autoCrop.detectorModeDescription') }}</div>
-      <select v-model="tempAutoCropDetectorMode" class="select-field">
+      <select id="settings-imageprocessing-advanced-autocrop-detectormode" v-model="tempAutoCropDetectorMode" class="select-field">
         <option value="canny_then_yolo">{{ $t('advanced.autoCrop.cannyThenYolo') }}</option>
         <option value="canny_only">{{ $t('advanced.autoCrop.cannyOnly') }}</option>
         <option value="yolo_only">{{ $t('advanced.autoCrop.yoloOnly') }}</option>
@@ -345,78 +345,78 @@
       <h5>{{ $t('advanced.autoCrop.canny.title') }}</h5>
 
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.autoCrop.aspectTolerance') }}</label>
+        <label for="settings-imageprocessing-advanced-autocrop-aspecttolerance" class="setting-label">{{ $t('advanced.autoCrop.aspectTolerance') }}</label>
         <div class="setting-description">{{ $t('advanced.autoCrop.aspectToleranceDescription') }}</div>
         <div class="slide-interval-input-wrapper">
-          <input v-model.number="tempAutoCropAspectTolerance" type="number" min="0" max="1" step="0.01" class="slide-interval-input" />
+          <input id="settings-imageprocessing-advanced-autocrop-aspecttolerance" v-model.number="tempAutoCropAspectTolerance" type="number" min="0" max="1" step="0.01" class="slide-interval-input" />
         </div>
       </div>
 
       <div class="setting-grid auto-crop-grid">
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-blackthreshold" class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.blackThresholdDescription') }}</div>
           <div class="slide-interval-input-wrapper">
-            <input v-model.number="tempAutoCropBlackThreshold" type="number" min="0" max="255" step="1" class="slide-interval-input" />
+            <input id="settings-imageprocessing-advanced-autocrop-blackthreshold" v-model.number="tempAutoCropBlackThreshold" type="number" min="0" max="255" step="1" class="slide-interval-input" />
             <span class="interval-unit">{{ $t('advanced.autoCrop.grayLevelUnit') }}</span>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.autoCrop.maxBorderFrac') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-maxborderfrac" class="setting-label">{{ $t('advanced.autoCrop.maxBorderFrac') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.maxBorderFracDescription') }}</div>
           <div class="slide-interval-input-wrapper">
-            <input v-model.number="tempAutoCropMaxBorderFrac" type="number" min="0" max="0.5" step="0.01" class="slide-interval-input" />
+            <input id="settings-imageprocessing-advanced-autocrop-maxborderfrac" v-model.number="tempAutoCropMaxBorderFrac" type="number" min="0" max="0.5" step="0.01" class="slide-interval-input" />
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.autoCrop.cannyLowThreshold') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-cannylowthreshold" class="setting-label">{{ $t('advanced.autoCrop.cannyLowThreshold') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.cannyLowThresholdDescription') }}</div>
           <div class="slide-interval-input-wrapper">
-            <input v-model.number="tempAutoCropCannyLowThreshold" type="number" min="0" max="255" step="1" class="slide-interval-input" />
+            <input id="settings-imageprocessing-advanced-autocrop-cannylowthreshold" v-model.number="tempAutoCropCannyLowThreshold" type="number" min="0" max="255" step="1" class="slide-interval-input" />
             <span class="interval-unit">{{ $t('advanced.autoCrop.grayLevelUnit') }}</span>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.autoCrop.cannyHighThreshold') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-cannyhighthreshold" class="setting-label">{{ $t('advanced.autoCrop.cannyHighThreshold') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.cannyHighThresholdDescription') }}</div>
           <div class="slide-interval-input-wrapper">
-            <input v-model.number="tempAutoCropCannyHighThreshold" type="number" min="0" max="255" step="1" class="slide-interval-input" />
+            <input id="settings-imageprocessing-advanced-autocrop-cannyhighthreshold" v-model.number="tempAutoCropCannyHighThreshold" type="number" min="0" max="255" step="1" class="slide-interval-input" />
             <span class="interval-unit">{{ $t('advanced.autoCrop.grayLevelUnit') }}</span>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMin') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-arearatiomin" class="setting-label">{{ $t('advanced.autoCrop.areaRatioMin') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMinDescription') }}</div>
           <div class="slide-interval-input-wrapper">
-            <input v-model.number="tempAutoCropAreaRatioMin" type="number" min="0" max="1" step="0.01" class="slide-interval-input" />
+            <input id="settings-imageprocessing-advanced-autocrop-arearatiomin" v-model.number="tempAutoCropAreaRatioMin" type="number" min="0" max="1" step="0.01" class="slide-interval-input" />
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMax') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-arearatiomax" class="setting-label">{{ $t('advanced.autoCrop.areaRatioMax') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMaxDescription') }}</div>
           <div class="slide-interval-input-wrapper">
-            <input v-model.number="tempAutoCropAreaRatioMax" type="number" min="0" max="1" step="0.01" class="slide-interval-input" />
+            <input id="settings-imageprocessing-advanced-autocrop-arearatiomax" v-model.number="tempAutoCropAreaRatioMax" type="number" min="0" max="1" step="0.01" class="slide-interval-input" />
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.autoCrop.marginFrac') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-marginfrac" class="setting-label">{{ $t('advanced.autoCrop.marginFrac') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.marginFracDescription') }}</div>
           <div class="slide-interval-input-wrapper">
-            <input v-model.number="tempAutoCropMarginFrac" type="number" min="0" max="0.5" step="0.005" class="slide-interval-input" />
+            <input id="settings-imageprocessing-advanced-autocrop-marginfrac" v-model.number="tempAutoCropMarginFrac" type="number" min="0" max="0.5" step="0.005" class="slide-interval-input" />
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.autoCrop.fillRatioMin') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-fillratiomin" class="setting-label">{{ $t('advanced.autoCrop.fillRatioMin') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.fillRatioMinDescription') }}</div>
           <div class="slide-interval-input-wrapper">
-            <input v-model.number="tempAutoCropFillRatioMin" type="number" min="0" max="1" step="0.01" class="slide-interval-input" />
+            <input id="settings-imageprocessing-advanced-autocrop-fillratiomin" v-model.number="tempAutoCropFillRatioMin" type="number" min="0" max="1" step="0.01" class="slide-interval-input" />
           </div>
         </div>
       </div>
@@ -427,11 +427,11 @@
 
       <div class="setting-grid auto-crop-grid">
         <div class="setting-item full-width">
-          <label class="setting-label">{{ $t('advanced.autoCrop.yolo.confidenceThreshold') }}</label>
+          <label for="settings-imageprocessing-advanced-autocrop-yolo-confidencethreshold" class="setting-label">{{ $t('advanced.autoCrop.yolo.confidenceThreshold') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.yolo.confidenceThresholdDescription') }}</div>
           <div class="slide-interval-group">
             <div class="slide-interval-input-wrapper">
-              <input
+              <input id="settings-imageprocessing-advanced-autocrop-yolo-confidencethreshold"
                 v-model.number="tempAutoCropYoloConfidenceThreshold"
                 type="number"
                 min="0.05"
@@ -446,11 +446,11 @@
         <div class="setting-item full-width">
           <div class="two-col-row">
             <div class="two-col-item">
-              <label class="setting-label">{{ $t('advanced.autoCrop.yolo.iouThreshold') }}</label>
+              <label for="settings-imageprocessing-advanced-autocrop-yolo-iouthreshold" class="setting-label">{{ $t('advanced.autoCrop.yolo.iouThreshold') }}</label>
               <div class="setting-description">{{ $t('advanced.autoCrop.yolo.iouThresholdDescription') }}</div>
               <div class="slide-interval-group">
                 <div class="slide-interval-input-wrapper">
-                  <input
+                  <input id="settings-imageprocessing-advanced-autocrop-yolo-iouthreshold"
                     v-model.number="tempAutoCropYoloIouThreshold"
                     type="number"
                     min="0.1"
@@ -463,11 +463,11 @@
             </div>
 
             <div class="two-col-item">
-              <label class="setting-label">{{ $t('advanced.autoCrop.yolo.inputSize') }}</label>
+              <label for="settings-imageprocessing-advanced-autocrop-yolo-inputsize" class="setting-label">{{ $t('advanced.autoCrop.yolo.inputSize') }}</label>
               <div class="setting-description">{{ $t('advanced.autoCrop.yolo.inputSizeDescription') }}</div>
               <div class="slide-interval-group">
                 <div class="slide-interval-input-wrapper">
-                  <select v-model.number="tempAutoCropYoloInputSize" class="slide-interval-input slide-interval-select">
+                  <select id="settings-imageprocessing-advanced-autocrop-yolo-inputsize" v-model.number="tempAutoCropYoloInputSize" class="slide-interval-input slide-interval-select">
                     <option v-for="s in autoCropYoloInputSizes" :key="s" :value="s">{{ s }}</option>
                   </select>
                   <span class="interval-unit">px</span>

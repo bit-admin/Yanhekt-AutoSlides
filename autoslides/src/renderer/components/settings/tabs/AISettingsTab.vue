@@ -110,12 +110,12 @@
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.ai.serviceSettings') }}</h4>
     <div class="setting-item">
-      <label class="setting-label">{{ $t('advanced.ai.serviceType') }}</label>
+      <span id="settings-ai-service-type" class="setting-label">{{ $t('advanced.ai.serviceType') }}</span>
       <div class="setting-description">
         {{ $t('advanced.ai.serviceTypeDescription') }}
         <a href="#" @click.prevent="openCustomServiceDocs" class="external-link">{{ $t('advanced.ai.customServiceDocsLink') }}</a>
       </div>
-      <div class="mode-toggle">
+      <div class="mode-toggle" role="group" aria-labelledby="settings-ai-service-type">
         <button
           @click="tempAiServiceType = 'builtin'"
           :class="['mode-btn', { active: tempAiServiceType === 'builtin' }]"
@@ -298,9 +298,9 @@
 
       <!-- Model name input (always visible in copilot mode) -->
       <div class="setting-item copilot-model-setting">
-        <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
+        <label for="settings-ai-advanced-ai-modelname" class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
         <div class="input-group">
-          <input
+          <input id="settings-ai-advanced-ai-modelname"
             v-model="tempCopilotModelName"
             type="text"
             class="text-input model-name-input"
@@ -319,9 +319,9 @@
     <!-- Custom API Settings (shown only when custom is selected) -->
     <div v-if="tempAiServiceType === 'custom'" class="custom-api-settings">
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.ai.apiBaseUrl') }}</label>
+        <label for="settings-ai-advanced-ai-apibaseurl" class="setting-label">{{ $t('advanced.ai.apiBaseUrl') }}</label>
         <div class="input-group">
-          <input
+          <input id="settings-ai-advanced-ai-apibaseurl"
             v-model="tempAiCustomApiBaseUrl"
             type="text"
             class="text-input api-url-input"
@@ -337,9 +337,9 @@
       </div>
 
       <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.ai.apiKey') }}</label>
+        <label for="settings-ai-advanced-ai-apikey" class="setting-label">{{ $t('advanced.ai.apiKey') }}</label>
         <div class="input-group">
-          <input
+          <input id="settings-ai-advanced-ai-apikey"
             v-model="tempAiCustomApiKey"
             :type="showApiKey ? 'text' : 'password'"
             class="text-input api-key-input"
@@ -359,9 +359,9 @@
       </div>
 
       <div class="setting-item" v-if="currentCustomProvider !== 'modelscope'">
-        <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
+        <label for="settings-ai-advanced-ai-modelname-2" class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
         <div class="input-group">
-          <input
+          <input id="settings-ai-advanced-ai-modelname-2"
             v-model="tempAiCustomModelName"
             type="text"
             class="text-input model-name-input"
@@ -371,7 +371,7 @@
       </div>
 
       <div class="setting-item" v-else>
-        <label class="setting-label">{{ $t('advanced.ai.modelChain') }}</label>
+        <label for="settings-ai-advanced-ai-modelchain" class="setting-label">{{ $t('advanced.ai.modelChain') }}</label>
         <div class="model-chain-hint">{{ $t('advanced.ai.modelChainHint') }}</div>
 
         <ul v-if="tempCustomModelChain.length > 0" class="model-chain-list">
@@ -382,7 +382,7 @@
             :class="{ 'is-exhausted': exhaustedModels.includes(model) }"
           >
             <div class="model-chain-index">{{ idx + 1 }}</div>
-            <input
+            <input id="settings-ai-advanced-ai-modelchain"
               type="text"
               class="model-chain-input"
               :value="model"
@@ -477,10 +477,10 @@
       <div class="two-col-row">
         <!-- Rate Limit Setting -->
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('advanced.ai.rateLimit') }}</label>
+          <label for="settings-ai-advanced-ai-ratelimit" class="setting-label">{{ $t('advanced.ai.rateLimit') }}</label>
           <div class="slide-interval-group">
             <div class="slide-interval-input-wrapper">
-              <input
+              <input id="settings-ai-advanced-ai-ratelimit"
                 v-model.number="tempAiRateLimit"
                 type="number"
                 min="1"
@@ -495,10 +495,10 @@
 
         <!-- Max Concurrent Requests Setting -->
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('advanced.ai.maxConcurrent') }}</label>
+          <label for="settings-ai-advanced-ai-maxconcurrent" class="setting-label">{{ $t('advanced.ai.maxConcurrent') }}</label>
           <div class="slide-interval-group">
             <div class="slide-interval-input-wrapper">
-              <input
+              <input id="settings-ai-advanced-ai-maxconcurrent"
                 v-model.number="tempAiMaxConcurrent"
                 type="number"
                 min="1"
@@ -517,10 +517,10 @@
       <div class="two-col-row">
         <!-- Min Time Between Requests Setting -->
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('advanced.ai.minTime') }}</label>
+          <label for="settings-ai-advanced-ai-mintime" class="setting-label">{{ $t('advanced.ai.minTime') }}</label>
           <div class="slide-interval-group">
             <div class="slide-interval-input-wrapper">
-              <input
+              <input id="settings-ai-advanced-ai-mintime"
                 v-model.number="tempAiMinTime"
                 type="number"
                 min="0"
@@ -536,10 +536,10 @@
 
         <!-- Batch Size Setting -->
         <div class="two-col-item">
-          <label class="setting-label">{{ $t('advanced.ai.batchSize') }}</label>
+          <label for="settings-ai-advanced-ai-batchsize" class="setting-label">{{ $t('advanced.ai.batchSize') }}</label>
           <div class="slide-interval-group">
             <div class="slide-interval-input-wrapper">
-              <input
+              <input id="settings-ai-advanced-ai-batchsize"
                 v-model.number="tempAiBatchSize"
                 type="number"
                 min="1"
@@ -786,7 +786,7 @@
     <template v-if="!tempDistinguishMaybeSlide">
       <div class="setting-item">
         <div class="setting-label-with-reset">
-          <label class="setting-label">{{ $t('advanced.ai.promptLive') }}</label>
+          <label for="settings-ai-prompt-live-simple" class="setting-label">{{ $t('advanced.ai.promptLive') }}</label>
           <button @click="resetAiPrompt('live', 'simple')" class="reset-btn" :title="$t('settings.resetToDefault')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -800,7 +800,7 @@
           {{ $t('advanced.ai.promptLiveDescription') }}
           <code class="json-example">{"classification": "slide"}</code> {{ $t('advanced.ai.or') }} <code class="json-example">{"classification": "not_slide"}</code>
         </div>
-        <textarea
+        <textarea id="settings-ai-prompt-live-simple"
           v-model="tempAiPromptLive"
           class="ai-prompt-textarea"
           rows="6"
@@ -810,7 +810,7 @@
 
       <div class="setting-item">
         <div class="setting-label-with-reset">
-          <label class="setting-label">{{ $t('advanced.ai.promptRecorded') }}</label>
+          <label for="settings-ai-prompt-recorded-simple" class="setting-label">{{ $t('advanced.ai.promptRecorded') }}</label>
           <button @click="resetAiPrompt('recorded', 'simple')" class="reset-btn" :title="$t('settings.resetToDefault')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -824,7 +824,7 @@
           {{ $t('advanced.ai.promptRecordedDescription') }}
           <code class="json-example">{"image_0": "slide", "image_1": "not_slide", ...}</code>
         </div>
-        <textarea
+        <textarea id="settings-ai-prompt-recorded-simple"
           v-model="tempAiPromptRecorded"
           class="ai-prompt-textarea"
           rows="6"
@@ -837,7 +837,7 @@
     <template v-else>
       <div class="setting-item">
         <div class="setting-label-with-reset">
-          <label class="setting-label">{{ $t('advanced.ai.promptLive') }}</label>
+          <label for="settings-ai-prompt-live-distinguish" class="setting-label">{{ $t('advanced.ai.promptLive') }}</label>
           <button @click="resetAiPrompt('live', 'distinguish')" class="reset-btn" :title="$t('settings.resetToDefault')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -853,7 +853,7 @@
           <code class="json-example">{"classification": "not_slide"}</code> {{ $t('advanced.ai.or') }}
           <code class="json-example">{"classification": "may_be_slide_edit"}</code>
         </div>
-        <textarea
+        <textarea id="settings-ai-prompt-live-distinguish"
           v-model="tempAiPromptLiveDistinguish"
           class="ai-prompt-textarea"
           rows="6"
@@ -863,7 +863,7 @@
 
       <div class="setting-item">
         <div class="setting-label-with-reset">
-          <label class="setting-label">{{ $t('advanced.ai.promptRecorded') }}</label>
+          <label for="settings-ai-prompt-recorded-distinguish" class="setting-label">{{ $t('advanced.ai.promptRecorded') }}</label>
           <button @click="resetAiPrompt('recorded', 'distinguish')" class="reset-btn" :title="$t('settings.resetToDefault')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -877,7 +877,7 @@
           {{ $t('advanced.ai.promptRecordedDescription') }}
           <code class="json-example">{"image_0": "slide", "image_1": "not_slide", "image_2": "may_be_slide_edit", ...}</code>
         </div>
-        <textarea
+        <textarea id="settings-ai-prompt-recorded-distinguish"
           v-model="tempAiPromptRecordedDistinguish"
           class="ai-prompt-textarea"
           rows="6"

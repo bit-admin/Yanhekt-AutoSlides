@@ -121,18 +121,18 @@
     <div class="setting-description proxy-intro">{{ $t('advanced.proxyDescription') }}</div>
     <div class="setting-grid">
       <div v-for="group in proxyGroups" :key="group.key" class="setting-item">
-        <label class="setting-label">{{ $t(group.label) }}</label>
+        <label :for="`settings-network-proxy-${group.key}`" class="setting-label">{{ $t(group.label) }}</label>
         <div class="setting-description">{{ $t(group.description) }}</div>
-        <select v-model="group.model.value" class="select-field">
+        <select :id="`settings-network-proxy-${group.key}`" v-model="group.model.value" class="select-field">
           <option v-for="mode in PROXY_MODES" :key="mode" :value="mode">
             {{ $t(`advanced.proxyMode.${mode}`) }}
           </option>
         </select>
       </div>
       <div v-if="proxyCustomInUse" class="setting-item full-width">
-        <label class="setting-label">{{ $t('advanced.proxyCustomUrl') }}</label>
+        <label for="settings-network-advanced-proxycustomurl" class="setting-label">{{ $t('advanced.proxyCustomUrl') }}</label>
         <div class="setting-description">{{ $t('advanced.proxyCustomUrlDescription') }}</div>
-        <input
+        <input id="settings-network-advanced-proxycustomurl"
           v-model="tempProxyCustomUrl"
           type="text"
           class="text-input proxy-url-input"
@@ -251,7 +251,7 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('advanced.localRelayWhitelistTitle') }}</label>
+          <label for="settings-network-advanced-localrelaywhitelisttitle" class="setting-label">{{ $t('advanced.localRelayWhitelistTitle') }}</label>
           <div class="token-whitelist">
             <!-- Pinned current-token row -->
             <div
@@ -285,7 +285,7 @@
             </div>
           </div>
           <div class="token-add-row">
-            <input
+            <input id="settings-network-advanced-localrelaywhitelisttitle"
               v-model="newWhitelistToken"
               type="text"
               class="text-input token-add-input"
