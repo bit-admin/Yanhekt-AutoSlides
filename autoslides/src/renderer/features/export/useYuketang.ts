@@ -7,6 +7,7 @@ export interface UseYuketangReturn {
   lessonId: Ref<string>
   isExporting: Ref<boolean>
   exportFormat: Ref<'pdf' | 'images'>
+  lastExportFormat: Ref<'pdf' | 'images' | null>
   statusMessage: Ref<string>
   latestExportDir: Ref<string>
   latestPdfPath: Ref<string>
@@ -27,6 +28,8 @@ export function useYuketang(): UseYuketangReturn {
   const currentPageMode = ref<'none' | 'lesson' | 'class'>('none')
   const lessonId = ref('')
   const exportFormat = ref<'pdf' | 'images'>('pdf')
+  // What the finished export was, whatever the picker says now.
+  const lastExportFormat = ref<'pdf' | 'images' | null>(null)
   const statusMessage = ref('defaultStatus')
   const latestExportDir = ref('')
   const latestPdfPath = ref('')
@@ -79,27 +82,37 @@ export function useYuketang(): UseYuketangReturn {
     }
   }
 
+  // Progress owns the status line while an export runs.
+  function setReadiness(status: string) {
+    if (!isExporting.value) statusMessage.value = status
+  }
+
   function handleNavigation(url: string) {
-    latestExportDir.value = ''
+    // The last result belongs to the page it was made from.
+    if (!isExporting.value) {
+      latestExportDir.value = ''
+      latestPdfPath.value = ''
+      lastExportFormat.value = null
+    }
 
     const extracted = extractLessonId(url)
     if (extracted) {
       currentPageMode.value = 'lesson'
       lessonId.value = extracted
-      statusMessage.value = 'lessonReady'
+      setReadiness('lessonReady')
       return
     }
 
     if (isClassFullscreenUrl(url)) {
       currentPageMode.value = 'class'
       lessonId.value = ''
-      statusMessage.value = hasReadyClassCapture() ? 'classReady' : 'classWaiting'
+      setReadiness(hasReadyClassCapture() ? 'classReady' : 'classWaiting')
       return
     }
 
     currentPageMode.value = 'none'
     lessonId.value = ''
-    statusMessage.value = 'defaultStatus'
+    setReadiness('defaultStatus')
   }
 
   function scheduleNavigationEvaluation(url: string, delayMs = 180) {
@@ -118,14 +131,16 @@ export function useYuketang(): UseYuketangReturn {
     isExporting.value = true
     latestExportDir.value = ''
     latestPdfPath.value = ''
+    lastExportFormat.value = null
     statusMessage.value = 'exporting'
+    const format = exportFormat.value
 
     try {
       const payload: {
         lessonId?: string
         format: 'pdf' | 'images'
       } = {
-        format: exportFormat.value,
+        format,
       }
 
       if (currentPageMode.value === 'lesson' && /^\d+$/.test(lessonId.value)) {
@@ -141,6 +156,7 @@ export function useYuketang(): UseYuketangReturn {
       }
 
       exportedPresentationCount.value = result.presentationCount
+      lastExportFormat.value = format
       statusMessage.value = 'exported'
       latestExportDir.value = result.lessonDir
       if (result.pdfPath) {
@@ -187,7 +203,7 @@ export function useYuketang(): UseYuketangReturn {
       classCapture.value = data
       // If we're on a class fullscreen page, update status
       if (currentPageMode.value === 'class') {
-        statusMessage.value = hasReadyClassCapture() ? 'classReady' : 'classWaiting'
+        setReadiness(hasReadyClassCapture() ? 'classReady' : 'classWaiting')
       }
     })
 
@@ -210,6 +226,7 @@ export function useYuketang(): UseYuketangReturn {
     lessonId,
     isExporting,
     exportFormat,
+    lastExportFormat,
     statusMessage,
     latestExportDir,
     latestPdfPath,

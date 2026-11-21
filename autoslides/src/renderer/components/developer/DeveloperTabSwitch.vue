@@ -8,7 +8,9 @@
       class="mode-pill"
       :class="{ active: modelValue === tab.id }"
       :aria-selected="modelValue === tab.id"
+      :tabindex="modelValue === tab.id ? 0 : -1"
       @click="emit('update:modelValue', tab.id)"
+      @keydown="onKeydown($event, tab.id)"
     >
       {{ $t(tab.label) }}
     </button>
@@ -28,6 +30,18 @@ const tabs: Array<{ id: DevTab; label: string }> = [
   { id: 'api', label: 'developer.tabs.api' },
   { id: 'sso', label: 'developer.tabs.sso' },
 ]
+
+const onKeydown = (event: KeyboardEvent, id: DevTab) => {
+  const at = tabs.findIndex((tab) => tab.id === id)
+  const next = event.key === 'ArrowRight' ? (at + 1) % tabs.length
+    : event.key === 'ArrowLeft' ? (at + tabs.length - 1) % tabs.length
+      : event.key === 'Home' ? 0
+        : event.key === 'End' ? tabs.length - 1
+          : -1
+  if (next < 0) return
+  event.preventDefault()
+  emit('update:modelValue', tabs[next].id)
+}
 </script>
 
 <style scoped>

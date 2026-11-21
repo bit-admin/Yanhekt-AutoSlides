@@ -17,8 +17,9 @@
 
         <!-- Lesson ID -->
         <div class="lesson-id-group">
-          <label class="field-label">{{ $t('yuketang.lessonId') }}</label>
+          <label class="field-label" for="yuketang-lesson-id">{{ $t('yuketang.lessonId') }}</label>
           <input
+            id="yuketang-lesson-id"
             class="text-input lesson-id-input"
             :value="lessonId"
             :placeholder="$t('yuketang.lessonIdPlaceholder')"
@@ -30,8 +31,8 @@
       <div class="toolbar-right">
         <!-- Format -->
         <div class="format-group">
-          <label class="field-label">{{ $t('yuketang.format') }}</label>
-          <select v-model="exportFormat" class="select-field">
+          <label class="field-label" for="yuketang-format">{{ $t('yuketang.format') }}</label>
+          <select id="yuketang-format" v-model="exportFormat" class="select-field" :disabled="isExporting">
             <option value="pdf">{{ $t('yuketang.formatPdf') }}</option>
             <option value="images">{{ $t('yuketang.formatImages') }}</option>
           </select>
@@ -54,7 +55,7 @@
 
     <!-- Status Bar -->
     <div class="status-bar">
-      <span class="status-message">{{ displayStatus }}</span>
+      <span class="status-message" role="status" :title="displayStatus">{{ displayStatus }}</span>
       <button
         v-if="latestExportDir || latestPdfPath"
         class="open-folder-btn"
@@ -87,6 +88,7 @@ const {
   lessonId,
   isExporting,
   exportFormat,
+  lastExportFormat,
   statusMessage,
   latestExportDir,
   latestPdfPath,
@@ -116,7 +118,7 @@ const displayStatus = computed(() => {
     case 'exporting':
       return t('yuketang.exporting')
     case 'exported':
-      return t('yuketang.exported', { count: exportedPresentationCount.value, format: exportFormat.value.toUpperCase() })
+      return t('yuketang.exported', { count: exportedPresentationCount.value, format: t(lastExportFormat.value === 'images' ? 'yuketang.formatImages' : 'yuketang.formatPdf') })
     default:
       // Raw progress message or error from main process
       return msg

@@ -20,21 +20,24 @@
       <input
         class="text-input url-input"
         :value="pendingUrl"
-        @input="(e) => pendingUrl = (e.target as HTMLInputElement).value"
+        @input="(e) => { pendingUrl = (e.target as HTMLInputElement).value; urlDraftDirty = true }"
         @keydown.enter="navigate()"
+        :aria-label="$t('webCapture.urlLabel')"
         :placeholder="$t('webCapture.urlPlaceholder')"
         spellcheck="false"
       />
       <button class="btn" @click="navigate()" :disabled="!pendingUrl.trim()">{{ $t('webCapture.go') }}</button>
       <div class="preset-dropdown">
-        <button class="btn secondary-btn preset-toggle" @click.stop="presetOpen = !presetOpen">
+        <button ref="presetToggle" class="btn secondary-btn preset-toggle" :aria-expanded="presetOpen" @click.stop="presetOpen = !presetOpen" @keydown.esc="closePresetToToggle">
           {{ $t('webCapture.presets') }}
           <svg width="10" height="10" viewBox="0 0 10 10">
             <path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
-        <ul v-if="presetOpen" class="preset-menu">
-          <li v-for="p in presets" :key="p.url" @click="onSelectPreset(p)">{{ $t(p.labelKey) }}</li>
+        <ul v-if="presetOpen" class="preset-menu" @keydown.esc.stop="closePresetToToggle">
+          <li v-for="p in presets" :key="p.url">
+            <button type="button" class="preset-option" @click="onSelectPreset(p)">{{ $t(p.labelKey) }}</button>
+          </li>
         </ul>
       </div>
     </div>
@@ -42,8 +45,9 @@
     <!-- Second toolbar: course + selector + capture actions -->
     <div class="toolbar action-toolbar">
       <div class="field-group">
-        <label class="field-label">{{ $t('webCapture.name') }}</label>
+        <label class="field-label" for="webcapture-name">{{ $t('webCapture.name') }}</label>
         <input
+          id="webcapture-name"
           class="text-input"
           :value="courseName"
           @input="(e) => onCourseNameInput((e.target as HTMLInputElement).value)"
@@ -51,9 +55,11 @@
         />
       </div>
       <div class="field-group grow" :class="{ faded: regionOverridesSelector }">
-        <label class="field-label">{{ $t('webCapture.selector') }}</label>
+        <label class="field-label" for="webcapture-selector">{{ $t('webCapture.selector') }}</label>
         <input
+          id="webcapture-selector"
           class="text-input"
+          :disabled="regionOverridesSelector"
           :value="userSelector"
           @input="(e) => onUserSelectorInput((e.target as HTMLInputElement).value)"
           :placeholder="regionOverridesSelector ? $t('webCapture.regionOverride') : (detectedVideo?.selector || 'video')"
@@ -119,13 +125,13 @@
 
     <!-- Status strip -->
     <div class="status-bar">
-      <span class="status-chip">{{ $t('webCapture.modeLabel') }}: <b>{{ captureMode }}</b></span>
+      <span class="status-chip">{{ $t('webCapture.modeLabel') }}: <b>{{ $t(captureMode === 'inject' ? 'webCapture.modeVideo' : 'webCapture.modePage') }}</b></span>
       <span class="status-chip" v-if="detectedVideo">{{ $t('webCapture.detected') }}: {{ detectedVideo.width }}×{{ detectedVideo.height }}</span>
       <span class="status-chip" v-else-if="captureState === 'idle'">{{ $t('webCapture.noVideoDetected') }}</span>
       <span class="status-chip" v-if="customRegion">{{ $t('webCapture.regionLabel') }}: {{ customRegion.width }}×{{ customRegion.height }}</span>
       <span class="status-chip">{{ $t('webCapture.ticks') }}: {{ tickCount }}</span>
       <span class="status-chip">{{ $t('webCapture.saved') }}: {{ savedCount }}</span>
-      <span class="status-message">{{ displayStatus }}</span>
+      <span class="status-message" role="status">{{ displayStatus }}</span>
     </div>
 
     <!-- Embedded page -->
@@ -134,6 +140,7 @@
       <RegionOverlay
         v-if="regionDrawMode"
         :hint="$t('webCapture.regionHint')"
+        :keyHint="$t('webCapture.regionKeyHint')"
         :useRegionLabel="$t('webCapture.useRegion')"
         :cancelLabel="$t('webCapture.cancel')"
         @commit="onRegionCommit"
@@ -150,7 +157,8 @@
           class="text-input modal-input"
           :value="courseName"
           @input="(e) => onCourseNameInput((e.target as HTMLInputElement).value)"
-          @keydown.enter="confirmAndStart"
+          @keydown.enter="courseName.trim() && confirmAndStart()"
+          :aria-labelledby="'webcapture-confirm-title'"
           ref="modalInputRef"
         />
         <div class="dialog-actions">
@@ -175,6 +183,7 @@ const { t } = useI18n()
 
 const {
   pendingUrl,
+  urlDraftDirty,
   pageTitle,
   courseName,
   detectedVideo,
@@ -217,6 +226,13 @@ const {
 const modalInputRef = ref<HTMLInputElement | null>(null)
 const presetOpen = ref(false)
 
+const presetToggle = ref<HTMLButtonElement | null>(null)
+const closePresetToToggle = () => {
+  if (!presetOpen.value) return
+  presetOpen.value = false
+  presetToggle.value?.focus()
+}
+
 const onSelectPreset = (preset: WebCapturePreset) => {
   presetOpen.value = false
   void navigatePreset(preset)
@@ -233,7 +249,8 @@ const displayStatus = computed(() => {
   const key = statusMessage.value
   if (!key) return ''
   if (key.startsWith('webCapture.')) {
-    return t(key, statusParams.value)
+    const params = statusParams.value
+    return t(key, typeof params.mode === 'string' ? { ...params, mode: t(params.mode) } : params)
   }
   return key
 })
@@ -330,14 +347,20 @@ watch(captureState, (val) => {
   z-index: var(--z-sticky);
 }
 
-.preset-menu li {
+.preset-option {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
   padding: 4px 12px;
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.preset-menu li:hover {
+.preset-option:hover, .preset-option:focus-visible {
   background-color: var(--focus-ring);
   color: var(--accent);
 }

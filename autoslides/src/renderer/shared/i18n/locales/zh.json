@@ -1309,6 +1309,10 @@
     "cancel": "取消"
   },
   "webCapture": {
+    "urlLabel": "页面地址",
+    "modeVideo": "视频",
+    "modePage": "整个页面",
+    "regionKeyHint": "方向键移动区域，Shift+方向键调整大小，Enter 确认，Esc 取消。",
     "back": "后退",
     "forward": "前进",
     "reload": "刷新",
@@ -1340,8 +1344,8 @@
     "cancel": "取消",
     "confirmTitle": "确认课程名称",
     "confirmDesc": "课件将保存至",
-    "captureModeSwitched": "跨域媒体阻止注入捕获，已切换为 capturePage 模式。",
-    "noVideoFallback": "未找到 <video> 元素，已切换为 capturePage 模式。",
+    "captureModeSwitched": "无法直接读取此视频，已改为捕获可见页面。",
+    "noVideoFallback": "未找到视频，已改为捕获可见页面。",
     "capturingStatus": "捕获中 ({mode})",
     "stoppedStatus": "已停止，共保存 {n} 张课件。",
     "presetYanhekt": "延河课堂",
