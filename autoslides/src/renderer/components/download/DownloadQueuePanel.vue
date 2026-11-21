@@ -3,14 +3,14 @@
     <div class="section-header">
       <h3>{{ $t('downloads.downloadList') }}</h3>
       <div class="queue-controls">
-        <button @click="cancelAllDownloads" class="btn btn--sm btn--danger-outline cancel-all-btn" title="Cancel All">
+        <button @click="cancelAllDownloads" class="btn btn--sm btn--danger-outline cancel-all-btn" :title="$t('downloads.cancelAll')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
           {{ $t('downloads.cancelAll') }}
         </button>
-        <button @click="clearCompleted" class="btn btn--sm clear-btn" title="Clear Completed">
+        <button @click="clearCompleted" class="btn btn--sm clear-btn" :title="$t('downloads.clear')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
             <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
@@ -80,7 +80,7 @@
             <button
               @click="retryDownload(item.id)"
               class="btn--icon retry-item-btn"
-              title="Retry"
+              :title="$t('playback.retry')" :aria-label="`${$t('playback.retry')}: ${item.name}`"
               v-if="item.status === 'error'"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -91,7 +91,7 @@
             <button
               @click="cancelDownload(item.id)"
               class="btn--icon cancel-item-btn"
-              title="Cancel"
+              :title="$t('advanced.cancel')" :aria-label="`${$t('advanced.cancel')}: ${item.name}`"
               v-if="item.status !== 'completed' && item.status !== 'error'"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -115,7 +115,7 @@
               <span v-else-if="item.extractionStatus === 'normalizing'">{{ $t('downloads.extraction.normalizing') }}</span>
               <span v-else-if="item.extractionStatus === 'post_processing'">{{ $t('downloads.extraction.completed') }}</span>
               <span v-else-if="item.extractionStatus === 'completed'">{{ $t('downloads.extraction.completed') }}</span>
-              <span v-else-if="item.extractionStatus === 'error'">{{ item.extractionError || $t('downloads.extraction.error') }}</span>
+              <span v-else-if="item.extractionStatus === 'error'" :title="item.extractionError">{{ item.extractionError || $t('downloads.extraction.error') }}</span>
               <span v-else-if="item.extractionStatus === 'cancelled'">{{ $t('downloads.extraction.cancelled') }}</span>
             </span>
             <button

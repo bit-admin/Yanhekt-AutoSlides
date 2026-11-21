@@ -758,6 +758,7 @@
     "signInToLoad": "로그인하여 강의 불러오기"
   },
   "tasks": {
+    "removeRow": "제거",
     "taskList": "작업 목록",
     "start": "시작",
     "pause": "일시정지",
@@ -831,6 +832,8 @@
     "upToDateBanner": "최신 버전입니다! 설치된 버전: v{currentVersion}"
   },
   "playback": {
+    "seek": "탐색",
+    "slideImageFailed": "이미지를 불러오지 못했습니다",
     "gallery": {
       "deleteConfirmTitle": "슬라이드 삭제",
       "deleteConfirmMessage": "\"{name}\"을(를) 삭제하시겠습니까?",
@@ -1098,6 +1101,7 @@
     }
   },
   "trash": {
+    "cropKeyboardHint": "화살표 키로 선택 영역을 이동하고 Shift+화살표 키로 크기를 조절합니다.",
     "refresh": "새로고침",
     "restore": "복원",
     "delete": "삭제",
@@ -1540,6 +1544,8 @@
     "yanhe2Curriculum": "커리큘럼"
   },
   "lectures": {
+    "cancelAllVideos": "모두 취소({count})",
+    "videosCancelled": "동영상 {count}개를 취소했습니다.",
     "refresh": "새로고침",
     "select": "선택",
     "doneSelecting": "완료",
@@ -1986,6 +1992,10 @@
     "downloadsAllNone": "추가된 다운로드가 없습니다. 이 강의들은 녹화본이 없거나 이미 대기열에 있습니다."
   },
   "yanhe2Playback": {
+    "retryFailedSlides": "실패한 {count}개 다시 시도",
+    "timingUnknown": "타이밍을 측정하지 못해 여기 시간이 이를 수 있습니다.",
+    "followPlayback": "재생 따라가기",
+    "transcript": "자막 원문",
     "errorSignedOut": "연하 2.0 세션이 종료되었습니다. 계정 메뉴에서 연하 2.0에 다시 로그인한 후 다시 시도하세요.",
     "errorFailed": "연하 2.0에서 이 강의를 가져오지 못했습니다. 나중에 다시 시도하세요.",
     "errorPlayer": "스트림 재생이 중단되었습니다. 연결을 확인한 후 다시 시도하세요.",

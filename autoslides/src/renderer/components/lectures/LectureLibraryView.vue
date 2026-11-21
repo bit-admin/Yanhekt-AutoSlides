@@ -518,12 +518,6 @@ watch(
   font-size: 13px;
 }
 
-.lib-empty-hint {
-  font-size: 12px !important;
-  max-width: 380px;
-  line-height: 1.45;
-}
-
 /* ── Shows grid ──────────────────────────────────────────────────── */
 .shows-grid {
   display: grid;

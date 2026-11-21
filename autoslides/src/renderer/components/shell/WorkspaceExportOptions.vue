@@ -111,6 +111,9 @@ function onFocusOut(event: FocusEvent): void {
   flex-direction: column;
   gap: 10px;
   min-width: 260px;
+  /* Scrolls rather than clips when little of the pane is left below it. */
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
   padding: 10px;
   border: 1px solid var(--border-input);
   border-radius: 6px;

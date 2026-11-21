@@ -314,7 +314,7 @@
     </div>
 
     <div v-if="isGenerating" class="progress-bar-container">
-      <div class="progress-bar" :style="{ width: `${exportProgressPercent}%` }"></div>
+      <div class="footer-progress-fill" :style="{ width: `${exportProgressPercent}%` }"></div>
     </div>
 
     <div class="footer">
@@ -1206,7 +1206,7 @@ const confirmClearTrash = async () => {
   overflow: hidden;
 }
 
-.progress-bar {
+.footer-progress-fill {
   height: 100%;
   background-color: var(--accent);
   transition: width 0.15s ease-out;

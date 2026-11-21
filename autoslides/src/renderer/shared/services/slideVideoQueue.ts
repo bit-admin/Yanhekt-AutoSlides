@@ -5,7 +5,7 @@
 // only; a reload drops the queue (accepted limit, same as the other renderer
 // queues).
 
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import type { SlideVideoOptions } from '@common/slideVideo'
 import { createLogger } from '@shared/utils/logger'
 
@@ -48,8 +48,12 @@ class SlideVideoQueueClass {
   /** Jobs that failed in the last batch, until the next one starts. */
   readonly failed = computed(() => this.items.filter((job) => job.status === 'error'))
 
+  /** How many videos the last Cancel stopped, until the next batch. */
+  readonly cancelledCount = ref(0)
+
   /** Queue each target once; returns how many were added (the rest were already queued). */
   enqueue(targets: SlideVideoTarget[], options: SlideVideoOptions): number {
+    this.cancelledCount.value = 0
     if (!this.running) this.clearFinished()
     const pendingFolders = new Set(this.pendingFolders.value)
     let added = 0
@@ -72,7 +76,14 @@ class SlideVideoQueueClass {
 
   async cancelCurrent(): Promise<void> {
     // Queued jobs go too: Cancel means stop making videos.
-    for (const job of this.items) if (job.status === 'queued') job.status = 'cancelled'
+    let stopped = this.activeJob.value ? 1 : 0
+    for (const job of this.items) {
+      if (job.status === 'queued') {
+        job.status = 'cancelled'
+        stopped += 1
+      }
+    }
+    this.cancelledCount.value = stopped
     try {
       await window.electronAPI.slideVideo.cancel()
     } catch (error) {

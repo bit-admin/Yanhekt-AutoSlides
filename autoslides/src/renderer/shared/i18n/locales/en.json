@@ -758,6 +758,7 @@
     "signInToLoad": "Sign In to Load Courses"
   },
   "tasks": {
+    "removeRow": "Remove",
     "taskList": "Task List",
     "start": "Start",
     "pause": "Pause",
@@ -831,6 +832,8 @@
     "upToDateBanner": "You're up to date! Installed version: v{currentVersion}"
   },
   "playback": {
+    "seek": "Seek",
+    "slideImageFailed": "Image did not load",
     "gallery": {
       "deleteConfirmTitle": "Delete Slide",
       "deleteConfirmMessage": "Are you sure you want to delete \"{name}\"?",
@@ -1098,6 +1101,7 @@
     }
   },
   "trash": {
+    "cropKeyboardHint": "Arrow keys move the selection. Shift+arrows change its size.",
     "refresh": "Refresh",
     "restore": "Restore",
     "delete": "Delete",
@@ -1540,6 +1544,8 @@
     "yanhe2Curriculum": "Curriculum"
   },
   "lectures": {
+    "cancelAllVideos": "Cancel All ({count})",
+    "videosCancelled": "Cancelled {count} video. | Cancelled {count} videos.",
     "refresh": "Refresh",
     "select": "Select",
     "doneSelecting": "Done",
@@ -1986,6 +1992,10 @@
     "downloadsAllNone": "No downloads were added. These lectures have no recording or are already queued."
   },
   "yanhe2Playback": {
+    "retryFailedSlides": "Retry {count} Failed",
+    "timingUnknown": "Timing could not be measured, so times here may be early.",
+    "followPlayback": "Follow Playback",
+    "transcript": "Transcript",
     "errorSignedOut": "Your Yanhe 2.0 session has ended. Sign in to Yanhe 2.0 again from the account menu, then retry.",
     "errorFailed": "Yanhe 2.0 did not return this lecture. Try again later.",
     "errorPlayer": "This stream stopped playing. Check your connection and try again.",

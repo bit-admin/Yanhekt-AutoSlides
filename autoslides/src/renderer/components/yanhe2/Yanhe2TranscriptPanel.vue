@@ -1,18 +1,29 @@
 <template>
   <!-- Display only: nothing here seeks, searches, copies or exports. -->
-  <div
-    ref="scroller"
-    class="transcript-panel custom-scrollbar"
-    @pointerenter="reading = true"
-    @pointerleave="reading = false"
-  >
+  <div class="transcript-wrap">
+    <button v-if="heldByUser" type="button" class="btn btn--sm transcript-follow" @click="resumeFollow">
+      {{ $t('yanhe2Playback.followPlayback') }}
+    </button>
     <div
-      v-for="(line, index) in lines"
-      :key="index"
-      :class="['transcript-line', { current: index === currentIndex, spoken: index < currentIndex }]"
+      ref="scroller"
+      class="transcript-panel custom-scrollbar"
+      tabindex="0"
+      role="region"
+      :aria-label="$t('yanhe2Playback.transcript')"
+      @pointerenter="reading = true"
+      @pointerleave="reading = false"
+      @wheel.passive="heldByUser = true"
+      @keydown="onKeydown"
     >
-      <span class="transcript-time">{{ formatTime(line.begin + shift) }}</span>
-      <span class="transcript-text">{{ line.text }}</span>
+      <div
+        v-for="(line, index) in lines"
+        :key="index"
+        :class="['transcript-line', { current: index === currentIndex, spoken: index < currentIndex }]"
+        :aria-current="index === currentIndex ? 'true' : undefined"
+      >
+        <span class="transcript-time">{{ formatTime(line.begin + shift) }}</span>
+        <span class="transcript-text">{{ line.text }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -36,6 +47,16 @@ const props = defineProps<{
 
 const scroller = ref<HTMLElement | null>(null)
 const reading = ref(false)
+// Scrolled away by wheel or keyboard: stays put until Follow Playback.
+const heldByUser = ref(false)
+const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '])
+const onKeydown = (event: KeyboardEvent) => {
+  if (SCROLL_KEYS.has(event.key)) heldByUser.value = true
+}
+const resumeFollow = () => {
+  heldByUser.value = false
+  follow(true)
+}
 
 /**
  * How far below the column's top edge the current row is kept: room for the
@@ -51,16 +72,28 @@ const follow = (smooth: boolean) => {
   if (!box || !row) return
   // The column is the rows' offset parent (`position: relative`).
   const top = row.offsetTop - LEAD_PX
-  box.scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'auto' })
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  box.scrollTo({ top: Math.max(0, top), behavior: smooth && !calm ? 'smooth' : 'auto' })
 }
 
 onMounted(() => follow(false))
 watch(() => props.currentIndex, () => {
-  if (!reading.value) void nextTick(() => follow(true))
+  if (!reading.value && !heldByUser.value) void nextTick(() => follow(true))
 })
 </script>
 
 <style scoped>
+.transcript-wrap {
+  position: relative;
+}
+
+.transcript-follow {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  z-index: var(--z-raised);
+}
+
 .transcript-panel {
   position: relative;
   max-height: min(60vh, 520px);

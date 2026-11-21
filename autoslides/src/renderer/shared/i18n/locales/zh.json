@@ -758,6 +758,7 @@
     "signInToLoad": "登录后加载课程"
   },
   "tasks": {
+    "removeRow": "移除",
     "taskList": "任务列表",
     "start": "开始",
     "pause": "暂停",
@@ -831,6 +832,8 @@
     "upToDateBanner": "已是最新版本！已安装版本：v{currentVersion}"
   },
   "playback": {
+    "seek": "跳转",
+    "slideImageFailed": "图片未能加载",
     "gallery": {
       "deleteConfirmTitle": "删除幻灯片",
       "deleteConfirmMessage": "确定要删除“{name}”吗？",
@@ -1098,6 +1101,7 @@
     }
   },
   "trash": {
+    "cropKeyboardHint": "方向键移动选区，Shift+方向键调整大小。",
     "refresh": "刷新",
     "restore": "恢复",
     "delete": "删除",
@@ -1540,6 +1544,8 @@
     "yanhe2Curriculum": "课程"
   },
   "lectures": {
+    "cancelAllVideos": "全部取消（{count}）",
+    "videosCancelled": "已取消 {count} 个视频。",
     "refresh": "刷新",
     "select": "选择",
     "doneSelecting": "完成",
@@ -1986,6 +1992,10 @@
     "downloadsAllNone": "没有添加任何下载。这些课没有录像，或已在队列中。"
   },
   "yanhe2Playback": {
+    "retryFailedSlides": "重试 {count} 张失败图片",
+    "timingUnknown": "无法测得时间偏移，此处时间可能偏早。",
+    "followPlayback": "跟随播放",
+    "transcript": "文字稿",
     "errorSignedOut": "延河 2.0 会话已结束。请在账号菜单中重新登录延河 2.0，然后重试。",
     "errorFailed": "延河 2.0 没有返回这节课。请稍后重试。",
     "errorPlayer": "视频流已停止播放。请检查网络连接后重试。",

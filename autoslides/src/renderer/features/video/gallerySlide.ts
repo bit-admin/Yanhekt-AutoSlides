@@ -10,4 +10,6 @@ export interface GallerySlide {
   timestamp: string
   /** Anything an `<img>` can load: a data, blob or http(s) URL. Empty while the image is still loading. */
   dataUrl: string
+  /** The image could not be loaded, so the tile says so instead of looking pending. */
+  failed?: boolean
 }

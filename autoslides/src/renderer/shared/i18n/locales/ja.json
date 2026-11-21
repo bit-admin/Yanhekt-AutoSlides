@@ -758,6 +758,7 @@
     "signInToLoad": "サインインしてコースを読み込む"
   },
   "tasks": {
+    "removeRow": "削除",
     "taskList": "タスクリスト",
     "start": "開始",
     "pause": "一時停止",
@@ -831,6 +832,8 @@
     "upToDateBanner": "最新状態です！インストール済みバージョン: v{currentVersion}"
   },
   "playback": {
+    "seek": "シーク",
+    "slideImageFailed": "画像を読み込めませんでした",
     "gallery": {
       "deleteConfirmTitle": "スライドを削除",
       "deleteConfirmMessage": "「{name}」を削除しますか？",
@@ -1098,6 +1101,7 @@
     }
   },
   "trash": {
+    "cropKeyboardHint": "矢印キーで選択範囲を移動、Shift+矢印キーでサイズ変更。",
     "refresh": "更新",
     "restore": "復元",
     "delete": "削除",
@@ -1540,6 +1544,8 @@
     "yanhe2Curriculum": "カリキュラム"
   },
   "lectures": {
+    "cancelAllVideos": "すべてキャンセル（{count}）",
+    "videosCancelled": "{count} 本の動画をキャンセルしました。",
     "refresh": "更新",
     "select": "選択",
     "doneSelecting": "完了",
@@ -1986,6 +1992,10 @@
     "downloadsAllNone": "ダウンロードは追加されませんでした。これらの講義には録画がないか、すでにキューにあります。"
   },
   "yanhe2Playback": {
+    "retryFailedSlides": "失敗した {count} 件を再試行",
+    "timingUnknown": "タイミングを測定できなかったため、ここの時刻は早い場合があります。",
+    "followPlayback": "再生に追従",
+    "transcript": "文字起こし",
     "errorSignedOut": "延河 2.0 のセッションが終了しました。アカウントメニューから延河 2.0 に再度サインインして、もう一度お試しください。",
     "errorFailed": "延河 2.0 からこの講義を取得できませんでした。しばらくしてからもう一度お試しください。",
     "errorPlayer": "ストリームの再生が停止しました。接続を確認して、もう一度お試しください。",

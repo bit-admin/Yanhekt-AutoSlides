@@ -70,23 +70,19 @@
     <div v-if="errorMessage" class="player-error" :class="{ 'beside-transcript': showTranscript }">
       <span>{{ errorMessage }}</span>
       <div class="player-error-actions">
-        <button
-          v-for="path in failedPaths"
-          :key="path"
-          type="button"
-          class="btn btn--primary btn--sm"
-          @click="openExternally(path)"
-        >
-          {{ $t('lectures.openExternally') }}
-        </button>
-        <button
-          v-if="failedPaths[0]"
-          type="button"
-          class="btn btn--sm"
-          @click="reveal(failedPaths[0])"
-        >
-          {{ $t('lectures.revealInFolder') }}
-        </button>
+        <template v-for="(path, i) in failedPaths" :key="path">
+          <button
+            type="button"
+            :class="['btn', 'btn--sm', { 'btn--primary': i === 0 }]"
+            :title="path"
+            @click="openExternally(path)"
+          >
+            {{ $t('lectures.openExternally') }}<template v-if="failedPaths.length > 1">: {{ fileNameOf(path) }}</template>
+          </button>
+          <button type="button" class="btn btn--sm" :title="path" @click="reveal(path)">
+            {{ $t('lectures.revealInFolder') }}<template v-if="failedPaths.length > 1">: {{ fileNameOf(path) }}</template>
+          </button>
+        </template>
       </div>
     </div>
 
@@ -164,6 +160,8 @@
         :class="{ 'controls-hidden': !controlsVisible && isPlaying }"
         @mouseenter="pointerOverControls = true"
         @mouseleave="pointerOverControls = false"
+        @focusin="onControlsFocusIn"
+        @focusout="onControlsFocusOut"
       >
         <div class="meta-row">
           <div class="meta-left">
@@ -195,6 +193,8 @@
           :value="currentTime"
           :style="{ '--dual-progress': seekProgress }"
           :disabled="!canSeek"
+          :aria-label="$t('playback.seek')"
+          :aria-valuenow="currentTime"
           @input="onSeekInput"
         />
 
@@ -804,10 +804,24 @@ const screenPaneLabel = computed(() => {
   return screenIsOnline.value ? `${base} (${t('lectures.streamOnline')})` : base
 })
 
+const fileNameOf = (path: string): string => path.split(/[\\/]/).pop() ?? path
+
 // Controls auto-hide
 const controlsVisible = ref(true)
 const pointerOverControls = ref(false)
 let hideTimer: ReturnType<typeof setTimeout> | null = null
+
+// Keyboard focus in the bar keeps it up, as the pointer does.
+const onControlsFocusIn = () => {
+  pointerOverControls.value = true
+  showControls()
+}
+const onControlsFocusOut = (event: FocusEvent) => {
+  const bar = event.currentTarget as HTMLElement
+  if (event.relatedTarget instanceof Node && bar.contains(event.relatedTarget)) return
+  pointerOverControls.value = false
+  showControls()
+}
 
 const showControls = () => {
   controlsVisible.value = true
