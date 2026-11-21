@@ -2,7 +2,7 @@
   <div class="playback-page" :class="{ 'cinema-mode': isCinemaMode }">
     <div class="header">
       <div class="header-main">
-        <button @click="emit('back')" class="btn back-btn">
+        <button @click="emit('back')" class="btn back-btn" :disabled="isTaskRunning">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
@@ -1107,8 +1107,10 @@ const videoKeyboard = useVideoKeyboard({
   mode: props.session.status === 'live' ? 'live' : 'recorded',
   seekSeconds: 5,
   volumeStep: 0.05,
+  isActive: () => !!props.isVisible,
   isModalOpen: () => !!previewedSlide.value || !!selectedSlide.value,
-  isDisabled: () => !props.isVisible || !masterVideo.value,
+  // A running task owns the video: its driver seeks and plays, the keys do not.
+  isDisabled: () => isTaskRunning.value || !masterVideo.value,
   isAnyFullscreen: () => isFullscreen.value,
   seekBy: (delta) => seekTo(currentTime.value + delta),
   togglePlayback,

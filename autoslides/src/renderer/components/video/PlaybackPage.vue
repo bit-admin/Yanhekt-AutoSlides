@@ -1237,11 +1237,12 @@ const adjustVolumeActive = (delta: number) => {
 }
 
 // Capture-phase keymap — see useVideoKeyboard. Attached/detached from this
-// page's mounted/unmounted hooks so N mounted tabs keep N listeners, as before.
+// page's mounted/unmounted hooks; only the tab on screen acts.
 const videoKeyboard = useVideoKeyboard({
   mode: props.mode,
   seekSeconds: SEEK_SECONDS,
   volumeStep: VOLUME_STEP,
+  isActive: () => !!props.isVisible,
   isModalOpen: () => !!selectedSlide.value,
   isDisabled: () => shouldDisableControls.value,
   isAnyFullscreen: () => isSingleFullscreen.value || isDualFullscreen.value,

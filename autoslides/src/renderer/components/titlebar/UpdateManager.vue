@@ -1,7 +1,8 @@
 <template>
+  <Teleport to="body">
   <!-- Update Modal -->
   <div v-if="showUpdateModal" class="modal-overlay installer-modal-overlay" @click="closeUpdateModal">
-    <div class="modal-content installer-modal update-modal" @click.stop>
+    <div v-dialog="{ close: closeUpdateModal }" class="modal-content installer-modal update-modal" @click.stop>
       <div class="modal-header">
         <h3>{{ $t('titlebar.updateModal.title') }}</h3>
         <button @click="closeUpdateModal" class="btn--icon">
@@ -140,9 +141,11 @@
     @close="closeExtractorModal"
     @skip="skipFor7Days"
   />
+  </Teleport>
 </template>
 
 <script setup lang="ts">
+import { vDialog } from '@shared/ui/dialog'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('UpdateManager');
 import { ref, onMounted, onUnmounted } from 'vue'

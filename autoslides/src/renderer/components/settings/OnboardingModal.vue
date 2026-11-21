@@ -1,6 +1,6 @@
 <template>
   <div class="onboarding-overlay">
-    <div class="onboarding-card" :data-onboarding-kind="kind">
+    <div ref="cardEl" v-dialog class="onboarding-card" :data-onboarding-kind="kind">
       <button
         v-if="isSignIn && !isLoggedIn"
         type="button"
@@ -14,7 +14,7 @@
         </svg>
       </button>
       <!-- Legal notice: opens every first-run and What's New. One way forward
-           (agree); Skip only skips the setup steps after it. -->
+           (agree). Skip Setup is offered on the steps after it. -->
       <template v-if="isLegal">
         <div class="legal-page">
           <h2 class="hero-title legal-title">{{ $t('onboarding.welcomeTitle') }}</h2>
@@ -52,7 +52,6 @@
             <span v-if="i > 0" class="legal-dot" aria-hidden="true">•</span>
             <a class="legal-link" :href="link.url" @click.prevent="openLegal(link.url)">{{ $t(`onboarding.legal.${link.key}`) }}</a>
           </template>
-          <button v-if="hasSetupSteps" class="skip-link legal-skip" @click="finish">{{ $t('onboarding.legal.skipSetup') }}</button>
         </div>
       </template>
 
@@ -281,6 +280,7 @@
 
         <div v-if="!(isSignIn && !isLoggedIn)" class="onboarding-footer">
           <button class="btn" :disabled="index === 0" @click="back">{{ $t('onboarding.back') }}</button>
+          <button type="button" class="skip-link onboarding-skip" @click="finish">{{ $t('onboarding.legal.skipSetup') }}</button>
           <button class="btn btn--primary" @click="next">
             {{ $t('onboarding.next') }}
           </button>
@@ -306,9 +306,10 @@
 </template>
 
 <script setup lang="ts">
+import { vDialog } from '@shared/ui/dialog'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('OnboardingModal');
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettings } from '@features/settings/useSettings'
 import { useCopilotOAuth } from '@features/ai/useCopilotOAuth'
@@ -355,8 +356,6 @@ const configSteps = computed(() =>
 )
 const currentStepId = computed(() => onboardingStepOf(currentId.value))
 const configIndex = computed(() => configSteps.value.findIndex(s => s.id === currentStepId.value))
-// A What's New that is only the legal notice has nothing to skip.
-const hasSetupSteps = computed(() => configSteps.value.length > 0)
 
 const LEGAL_ITEMS = ['copyright', 'affiliation'] as const
 // Canonical legal docs live on the web service (same as Help → Legal Notices).
@@ -507,6 +506,15 @@ const skipOnboarding = () => {
 }
 const proceed = () => next()
 
+// Each step replaces the card's content, including whatever had focus.
+const cardEl = ref<HTMLElement | null>(null)
+watch(index, () => {
+  void nextTick(() => {
+    cardEl.value?.scrollTo({ top: 0 })
+    cardEl.value?.focus({ preventScroll: true })
+  })
+})
+
 // ── Notes add-ons ──────────────────────────────────────
 // Same labels as Settings → Add-ons → Notes Provider.
 const PROVIDER_LABEL_KEYS: Record<WatchNotesChoice, string> = {
@@ -594,7 +602,10 @@ const onSignInBrowserLogin = () => {
   position: relative;
   width: 460px;
   max-width: calc(100vw - 48px);
-  min-height: 360px;
+  min-height: min(360px, calc(100vh - 48px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  box-sizing: border-box;
   background-color: var(--bg-modal);
   border: 1px solid var(--border-color);
   border-radius: 16px;
@@ -703,14 +714,6 @@ const onSignInBrowserLogin = () => {
 
 .legal-dot {
   color: var(--text-muted);
-}
-
-/* Scoped under the footer so it beats the later .skip-link margin-top. */
-.legal-footer .legal-skip {
-  margin: 0 0 0 auto;
-  padding: 0;
-  font-size: 11px;
-  line-height: inherit;
 }
 
 /* ── Hero (all-set page) ──────────────────────────────── */
@@ -1009,9 +1012,14 @@ const onSignInBrowserLogin = () => {
   width: 100%;
 }
 
+.onboarding-footer .onboarding-skip {
+  margin: 0 auto 0 4px;
+}
+
 .onboarding-footer {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 8px;
   margin-top: 24px;
   padding-top: 18px;

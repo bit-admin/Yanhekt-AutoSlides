@@ -12,7 +12,7 @@
     <TitleBar />
 
     <div class="layout">
-      <div class="left-panel" :class="{ collapsed: layoutStore.leftCollapsed }" :style="{ width: renderedLeft + 'px' }">
+      <div class="left-panel" :class="{ collapsed: layoutStore.leftCollapsed }" :inert="layoutStore.leftCollapsed" :style="{ width: renderedLeft + 'px' }">
         <LeftPanel />
       </div>
       <!-- Divider hidden while the panel is collapsed so a 0-width panel can't
@@ -37,7 +37,7 @@
       </div>
       <div v-if="!isBrowserLoginActive && !rightHidden" class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
-      <div v-show="!isBrowserLoginActive" class="right-panel" :class="{ collapsed: rightHidden }" :style="{ width: renderedRight + 'px' }">
+      <div v-show="!isBrowserLoginActive" class="right-panel" :class="{ collapsed: rightHidden }" :inert="rightHidden" :style="{ width: renderedRight + 'px' }">
         <RightPanel ref="rightPanelRef" />
       </div>
     </div>

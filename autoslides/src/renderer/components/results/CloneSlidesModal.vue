@@ -1,7 +1,7 @@
 <template>
   <!-- Slides → Clone Slides from Link: rebuild a slides folder from a share link. -->
   <div class="modal-overlay" @click.self="onOverlay">
-    <div class="dialog-box clone-box" @click.stop>
+    <div v-dialog="{ close: onOverlay, busy: busy() }" class="dialog-box clone-box" @click.stop>
       <h3 class="dialog-title">{{ $t('lectures.cloneModalTitle') }}</h3>
       <p class="dialog-help">{{ $t('lectures.cloneModalHint') }}</p>
 
@@ -100,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { vDialog } from '@shared/ui/dialog'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { parseShareLink } from '@common/shareLink'

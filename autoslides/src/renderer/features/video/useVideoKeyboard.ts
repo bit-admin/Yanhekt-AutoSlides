@@ -1,9 +1,13 @@
+import { activeDialog } from '@shared/ui/dialog'
+
 export interface VideoKeyboardOptions {
   mode: 'live' | 'recorded'
   /** Seconds per ArrowLeft/ArrowRight step. */
   seekSeconds: number
   /** Volume delta per ArrowUp/ArrowDown step. */
   volumeStep: number
+  /** True while this player is the one on screen. Tabs stay mounted, so only one answers. */
+  isActive: () => boolean
   /** True while a modal (slide preview) is open — keymap disabled. */
   isModalOpen: () => boolean
   /** True while playback controls are disabled (task mode) — keymap disabled. */
@@ -26,20 +30,27 @@ export interface VideoKeyboardOptions {
  *
  * The caller controls listener lifetime via attach()/detach() from its own
  * mounted/unmounted hooks — deliberately NOT self-registering, so the attach
- * point stays after the page's awaited config loads, and each mounted
- * PlaybackPage (one per tab) keeps its own listener exactly as before.
+ * point stays after the page's awaited config loads. Every mounted player
+ * has a listener, and `isActive` lets only the one on screen act.
  */
+/** A control that Space activates by itself. */
+export const isPressable = (target: Element): boolean =>
+  !!target.closest('button, a[href], summary, [role="button"], [role="tab"], [role="menuitem"], [role="option"]')
+
 export function useVideoKeyboard(options: VideoKeyboardOptions) {
   const handleVideoKeydown = (event: KeyboardEvent) => {
+    if (event.defaultPrevented || !options.isActive()) return
     if (event.ctrlKey || event.metaKey || event.altKey) return
 
     const target = event.target as HTMLElement | null
     if (target) {
       const tag = target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return
+      // Space on a focused control presses that control.
+      if (event.key === ' ' && isPressable(target)) return
     }
 
-    if (options.isModalOpen()) return
+    if (activeDialog() || options.isModalOpen()) return
     if (options.isDisabled()) return
 
     const recordedOnly = options.mode === 'recorded'

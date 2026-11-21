@@ -1,6 +1,6 @@
 <template>
   <div v-if="visible" class="modal-overlay installer-modal-overlay" @click="onClose">
-    <div class="modal-content installer-modal extractor-install-modal" @click.stop>
+    <div v-dialog="{ close: onClose }" class="modal-content installer-modal extractor-install-modal" @click.stop>
       <div class="modal-header">
         <h3>
           {{
@@ -169,6 +169,7 @@
 </template>
 
 <script setup lang="ts">
+import { vDialog } from '@shared/ui/dialog'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractorInstallModal');
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
