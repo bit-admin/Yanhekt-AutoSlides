@@ -174,7 +174,10 @@ export function useLecturesPage() {
   const selectedSlideVideos = computed(() => slideVideoTargets(files.value, selectedPaths.value))
 
   const renameTargets = computed(() => selectedItems.value.filter(isRenamableLectureFile))
-  const renameSkippedCount = computed(() => selectedItems.value.length - renameTargets.value.length)
+  const renameSkippedFolders = computed(() => selectedItems.value.filter((item) => item.slidesFolder).length)
+  const renameSkippedCount = computed(
+    () => selectedItems.value.length - renameTargets.value.length - renameSkippedFolders.value,
+  )
 
   const toggleSelectMode = () => {
     isSelectMode.value = !isSelectMode.value
@@ -229,6 +232,7 @@ export function useLecturesPage() {
     selectedItems,
     selectedSlideVideos,
     renameTargets,
+    renameSkippedFolders,
     renameSkippedCount,
     queue: SlideVideoQueue,
     loadVideos,

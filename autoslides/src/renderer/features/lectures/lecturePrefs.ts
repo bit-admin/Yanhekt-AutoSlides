@@ -7,5 +7,4 @@ export const DEFAULT_RENAME: LectureRenameOptions = {
   includeSchoolYear: false,
   includeCollege: false,
   includeClassrooms: false,
-  renameSubtitles: true,
 }

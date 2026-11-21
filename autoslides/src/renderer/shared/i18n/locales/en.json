@@ -1609,6 +1609,7 @@
     "makeVideoSkipped": "Make Video skips {count} session: missing a slide timeline or audio. | Make Video skips {count} sessions: missing a slide timeline or audio.",
     "makeVideoUnlinked": "Make Video skips {count} file not linked to a session. | Make Video skips {count} files not linked to a session.",
     "makeVideoQueuedSelection": "Make Video: {count} session already queued. | Make Video: {count} sessions already queued.",
+    "renameSkippedSlides": "Rename skips {count} slides folder, which keeps its name. | Rename skips {count} slides folders, which keep their names.",
     "renameSkipped": "Rename skips {count} item that isn’t a recognised lecture file. | Rename skips {count} items that aren’t recognised lecture files.",
     "makeVideoStart": "Start",
     "makeVideoAlreadyQueued": "Those sessions are already in the Make Video queue",

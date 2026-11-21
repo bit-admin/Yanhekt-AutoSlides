@@ -175,9 +175,11 @@
             <span v-for="notice in makeVideoNotices" :id="notice.id" :key="notice.id">
               {{ $t(notice.key, { count: notice.count }) }}
             </span>
-            <span v-if="renameNoticeId" :id="renameNoticeId">
-              {{ $t('lectures.renameSkipped', { count: renameSkippedCount }) }}
-            </span>
+            <template v-if="isSelectMode">
+              <span v-for="notice in renameNotices" :id="notice.id" :key="notice.id">
+                {{ $t(notice.key, { count: notice.count }) }}
+              </span>
+            </template>
           </div>
         </div>
         <label class="group-toggle">
@@ -189,7 +191,6 @@
       <LectureRenameModal
         v-if="showRenameModal"
         :items="renameTargets"
-        :subtitles="subtitles"
         :existing-names="[...videos, ...subtitles].map((v) => v.name)"
         @close="showRenameModal = false"
         @done="onRenameDone"
@@ -233,6 +234,7 @@ const {
   groups,
   selectedSlideVideos,
   renameTargets,
+  renameSkippedFolders,
   renameSkippedCount,
   queue,
   loadVideos,
@@ -303,8 +305,12 @@ const makeVideoNotices = computed(() => {
   ].filter((notice) => notice.count > 0)
 })
 const skipNoticeId = computed(() => makeVideoNotices.value.map((notice) => notice.id).join(' ') || undefined)
+const renameNotices = computed(() => [
+  { id: 'lecture-rename-skip-folders-note', key: 'lectures.renameSkippedSlides', count: renameSkippedFolders.value },
+  { id: 'lecture-rename-skip-note', key: 'lectures.renameSkipped', count: renameSkippedCount.value },
+].filter((notice) => notice.count > 0))
 const renameNoticeId = computed(
-  () => isSelectMode.value && renameSkippedCount.value > 0 ? 'lecture-rename-skip-note' : undefined,
+  () => isSelectMode.value ? renameNotices.value.map((notice) => notice.id).join(' ') || undefined : undefined,
 )
 
 const canRename = computed(

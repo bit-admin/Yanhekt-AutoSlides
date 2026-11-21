@@ -39,16 +39,6 @@
         </div>
       </div>
 
-      <!-- Only about subtitle files that were not selected themselves. -->
-      <label
-        v-if="videoItems.length > 0"
-        class="lec-toggle"
-        :class="{ 'lec-toggle--disabled': !hasSubtitles }"
-      >
-        <input type="checkbox" v-model="options.renameSubtitles" :disabled="!hasSubtitles" />
-        <span>{{ $t('lectures.renameSubtitles') }}</span>
-      </label>
-
       <div class="dialog-actions">
         <button
           type="button"
@@ -98,10 +88,8 @@ const log = createLogger('LectureRenameModal')
 const { t } = useI18n()
 
 const props = defineProps<{
-  /** The selected files: videos, and subtitle files selected in their own right. */
+  /** The selected files. Only these are renamed. */
   items: LectureVideoItem[]
-  /** Every subtitle file in the output dir; the ones belonging to a selected video can follow it. */
-  subtitles: LectureVideoItem[]
   /** All basenames currently in the output dir (for collision avoidance). */
   existingNames: string[]
 }>()
@@ -166,27 +154,18 @@ const lectureKey = (item: LectureVideoItem) =>
 
 const videoItems = computed(() => props.items.filter((item) => !item.isSubtitle && isRenamableLectureFile(item)))
 
-const selectedPaths = computed(() => new Set(props.items.map((item) => item.path)))
-
-/** Subtitle files of the selected videos, by the video they are named after. */
+/** Selected subtitle files of the selected videos, by the video they are named after. */
 const subtitlesByVideo = computed(() => {
   const wanted = new Set(videoItems.value.map(lectureKey))
   const map = new Map<string, LectureVideoItem[]>()
-  for (const subtitle of props.subtitles) {
-    if (!isRenamableLectureFile(subtitle)) continue
+  for (const subtitle of props.items) {
+    if (!subtitle.isSubtitle || !isRenamableLectureFile(subtitle)) continue
     const key = lectureKey(subtitle)
     if (!wanted.has(key)) continue
     map.set(key, [...(map.get(key) ?? []), subtitle])
   }
   return map
 })
-
-/** The checkbox decides for the subtitle files that were not selected themselves. */
-const hasSubtitles = computed(() =>
-  [...subtitlesByVideo.value.values()].some((list) =>
-    list.some((subtitle) => !selectedPaths.value.has(subtitle.path)),
-  ),
-)
 
 /** The Emby-style name for a file, before collisions are settled. */
 const targetName = (item: LectureVideoItem): string => {
@@ -241,13 +220,10 @@ const previews = computed<PreviewRow[]>(() => {
     if (followed.has(key)) return [row]
     followed.add(key)
     // The subtitle takes the video's whole new name, tags included, so a
-    // player opening the video still finds it. A selected one always follows.
-    const following = (subtitlesByVideo.value.get(key) ?? []).filter(
-      (subtitle) => options.renameSubtitles || selectedPaths.value.has(subtitle.path),
-    )
+    // player opening the video still finds it.
     return [
       row,
-      ...following.map((subtitle) =>
+      ...(subtitlesByVideo.value.get(key) ?? []).map((subtitle) =>
         claim(subtitle, subtitleNameForVideo(row.toName, subtitle.ext)),
       ),
     ]
@@ -305,11 +281,6 @@ const apply = async () => {
   color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
-}
-
-.lec-toggle--disabled {
-  color: var(--text-muted);
-  cursor: default;
 }
 
 .lec-toggle input {
