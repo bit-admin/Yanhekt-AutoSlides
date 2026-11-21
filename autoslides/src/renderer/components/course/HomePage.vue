@@ -66,6 +66,7 @@
         <div
           v-for="c in pinnedRecordedCourses"
           :key="'pin:' + c.id"
+          v-press="courseDisplayTitle(c)"
           class="saved-card saved-card--recorded"
           @click="openPin(c)"
         >
@@ -81,6 +82,7 @@
           </div>
           <button
             class="saved-remove"
+            :aria-label="$t('sessions.unpin')"
             :title="$t('sessions.unpin')"
             @click.stop="removePinnedCourse(c.id)"
           >
@@ -93,6 +95,7 @@
         <div
           v-for="entry in mergedSavedSearches"
           :key="entry.mode + ':' + entry.keyword"
+          v-press="entry.keyword"
           :class="['saved-card', `saved-card--${entry.mode}`]"
           @click="openSavedSearch(entry.keyword, entry.mode)"
         >
@@ -108,6 +111,7 @@
           </div>
           <button
             class="saved-remove"
+            :aria-label="$t('courses.savedSearches.remove')"
             :title="$t('courses.savedSearches.remove')"
             @click.stop="removeSavedSearch(entry.mode, entry.keyword)"
           >
@@ -138,12 +142,15 @@
           <button
             type="button"
             class="saved-mode-toggle"
-            :aria-label="$t('courses.savedSearches.modeLabel')"
+            :aria-label="`${$t('courses.savedSearches.modeLabel')}: ${$t(newSearchMode === 'live' ? 'navigation.live' : 'navigation.recorded')}`"
+            @keydown.enter.prevent="confirmAddSearch"
+            @keydown.esc.prevent="closeAddSearch"
+            @blur="onSearchBlur"
             @mousedown.prevent
             @click="newSearchMode = newSearchMode === 'recorded' ? 'live' : 'recorded'"
           >{{ $t(newSearchMode === 'live' ? 'navigation.live' : 'navigation.recorded') }}</button>
         </div>
-        <div v-else class="saved-card saved-card--add" @click="openAddSearch">
+        <div v-else v-press class="saved-card saved-card--add" @click="openAddSearch">
           <span class="saved-icon saved-icon--add">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"/>
@@ -166,6 +173,7 @@
           <div
             v-for="course in liveStreams"
             :key="course.id"
+            v-press="courseDisplayTitle(course)"
             class="preview-card"
             v-intersect="() => loadThumbnail('live', course)"
             @click="openCourse('live', course)"
@@ -212,6 +220,7 @@
           <div
             v-for="course in recordings"
             :key="course.id"
+            v-press="courseDisplayTitle(course)"
             class="preview-card"
             v-intersect="() => loadThumbnail('recorded', course)"
             @click="openCourse('recorded', course)"
@@ -245,7 +254,7 @@
 
     <Teleport to="body">
       <div
-        v-if="addingSearch && searchError"
+        v-if="addingSearch && searchError && navigationStore.activeNav.value === 'home'"
         class="saved-inline-error"
         role="alert"
         :style="searchErrorStyle"
@@ -255,6 +264,8 @@
 </template>
 
 <script setup lang="ts">
+import { vPress } from '@shared/ui/press'
+import { navigationStore } from '@features/course/navigationStore'
 import { ref, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGreeting } from '@features/platform/useGreeting'
@@ -278,7 +289,7 @@ import HomeWelcomeDemo from './HomeWelcomeDemo.vue'
 
 const { t } = useI18n()
 const { greetingText, loadGreeting, resetGreeting } = useGreeting()
-const { isLoggedIn, userId, openSsoModal } = useAuth()
+const { isLoggedIn, userId, openSsoModal, userNickname } = useAuth()
 const { openSavedSearch } = useSearchPage()
 const {
   liveStreams,
@@ -428,8 +439,11 @@ const confirmAddSearch = () => {
   addSavedSearch(newSearchMode.value, newKeyword.value)
   closeAddSearch()
 }
-const onSearchBlur = () => {
+const onSearchBlur = (event: FocusEvent) => {
   if (suppressSearchBlur) return
+  // Tab between the keyword and its Live/Recorded choice is still editing.
+  const next = event.relatedTarget
+  if (next instanceof Element && next.closest('.saved-card--editing')) return
   if (!newKeyword.value.trim()) {
     closeAddSearch()
     return
@@ -449,11 +463,17 @@ watch(newSearchMode, () => {
   nextTick(syncSearchErrorPos)
 })
 watch(addingSearch, (open) => {
-  if (open) window.addEventListener('resize', syncSearchErrorPos)
-  else window.removeEventListener('resize', syncSearchErrorPos)
+  if (open) {
+    window.addEventListener('resize', syncSearchErrorPos)
+    window.addEventListener('scroll', syncSearchErrorPos, true)
+  } else {
+    window.removeEventListener('resize', syncSearchErrorPos)
+    window.removeEventListener('scroll', syncSearchErrorPos, true)
+  }
 })
 onUnmounted(() => {
   window.removeEventListener('resize', syncSearchErrorPos)
+  window.removeEventListener('scroll', syncSearchErrorPos, true)
 })
 
 // Watch userId too: switching accounts stays logged-in (isLoggedIn unchanged),
@@ -465,9 +485,11 @@ watch([isLoggedIn, userId], ([loggedIn]) => {
     clearPersonalRows()
     clearThumbnails()
     resetGreeting()
-    loadGreeting()
+    loadGreeting(userNickname.value)
     loadPersonalRows()
   } else {
+    resetGreeting()
+    greetingText.value = ''
     clearPersonalRows()
     clearThumbnails()
   }
@@ -771,7 +793,8 @@ onUnmounted(() => {
   transition: background 0.15s;
 }
 
-.saved-card:hover .saved-remove {
+.saved-card:hover .saved-remove,
+.saved-card:focus-within .saved-remove {
   display: flex;
 }
 

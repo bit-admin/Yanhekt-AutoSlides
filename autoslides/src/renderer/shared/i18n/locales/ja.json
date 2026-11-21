@@ -991,6 +991,9 @@
     "unknownCourse": "不明なコース"
   },
   "titlebar": {
+    "resizeLeftPanel": "左パネルのサイズを変更",
+    "resizeRightPanel": "右パネルのサイズを変更",
+    "restoreWindow": "元に戻す",
     "file": "ファイル",
     "edit": "編集",
     "view": "表示",

@@ -9,69 +9,69 @@
       <div v-if="isMacOS" class="traffic-lights-space"></div>
 
       <!-- Menu bar for non-macOS platforms -->
-      <div v-if="!isMacOS" class="menu-bar">
-      <div class="menu-item" @click="toggleFileMenu" ref="fileMenuTrigger">
+      <div v-if="!isMacOS" class="menu-bar" @keydown="onMenuKeydown">
+      <div class="menu-item" role="button" tabindex="0" aria-haspopup="true" :aria-expanded="showFileMenu" @click="toggleFileMenu" ref="fileMenuTrigger">
         {{ $t('titlebar.file') }}
         <div v-if="showFileMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option" @click="showAbout">{{ $t('titlebar.aboutAutoSlides') }}</div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="showAbout">{{ $t('titlebar.aboutAutoSlides') }}</div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="openSettings">{{ $t('titlebar.settings') }} <span class="shortcut">Ctrl+,</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="openSettings">{{ $t('titlebar.settings') }} <span class="shortcut">Ctrl+,</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option disabled">{{ $t('titlebar.new') }} <span class="shortcut">Ctrl+N</span></div>
-          <div class="menu-option disabled">{{ $t('titlebar.open') }} <span class="shortcut">Ctrl+O</span></div>
+          <div class="menu-option disabled" role="menuitem" aria-disabled="true">{{ $t('titlebar.new') }} <span class="shortcut">Ctrl+N</span></div>
+          <div class="menu-option disabled" role="menuitem" aria-disabled="true">{{ $t('titlebar.open') }} <span class="shortcut">Ctrl+O</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="closeWindow">{{ $t('titlebar.close') }}</div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="closeWindow">{{ $t('titlebar.close') }}</div>
         </div>
       </div>
 
-      <div class="menu-item" @click="toggleEditMenu" ref="editMenuTrigger">
+      <div class="menu-item" role="button" tabindex="0" aria-haspopup="true" :aria-expanded="showEditMenu" @click="toggleEditMenu" ref="editMenuTrigger">
         {{ $t('titlebar.edit') }}
         <div v-if="showEditMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option" @click="executeEdit('undo')">{{ $t('titlebar.undo') }} <span class="shortcut">Ctrl+Z</span></div>
-          <div class="menu-option" @click="executeEdit('redo')">{{ $t('titlebar.redo') }} <span class="shortcut">Ctrl+Y</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="executeEdit('undo')">{{ $t('titlebar.undo') }} <span class="shortcut">Ctrl+Z</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="executeEdit('redo')">{{ $t('titlebar.redo') }} <span class="shortcut">Ctrl+Y</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="executeEdit('cut')">{{ $t('titlebar.cut') }} <span class="shortcut">Ctrl+X</span></div>
-          <div class="menu-option" @click="executeEdit('copy')">{{ $t('titlebar.copy') }} <span class="shortcut">Ctrl+C</span></div>
-          <div class="menu-option" @click="executeEdit('paste')">{{ $t('titlebar.paste') }} <span class="shortcut">Ctrl+V</span></div>
-          <div class="menu-option" @click="executeEdit('selectAll')">{{ $t('titlebar.selectAll') }} <span class="shortcut">Ctrl+A</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="executeEdit('cut')">{{ $t('titlebar.cut') }} <span class="shortcut">Ctrl+X</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="executeEdit('copy')">{{ $t('titlebar.copy') }} <span class="shortcut">Ctrl+C</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="executeEdit('paste')">{{ $t('titlebar.paste') }} <span class="shortcut">Ctrl+V</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="executeEdit('selectAll')">{{ $t('titlebar.selectAll') }} <span class="shortcut">Ctrl+A</span></div>
         </div>
       </div>
 
-      <div class="menu-item" @click="toggleViewMenu" ref="viewMenuTrigger">
+      <div class="menu-item" role="button" tabindex="0" aria-haspopup="true" :aria-expanded="showViewMenu" @click="toggleViewMenu" ref="viewMenuTrigger">
         {{ $t('titlebar.view') }}
         <div v-if="showViewMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option" @click="menuReload">{{ $t('titlebar.reload') }} <span class="shortcut">Ctrl+R</span></div>
-          <div class="menu-option" @click="menuForceReload">{{ $t('titlebar.forceReload') }} <span class="shortcut">Ctrl+Shift+R</span></div>
-          <div class="menu-option" @click="menuToggleDevTools">{{ $t('titlebar.toggleDevTools') }} <span class="shortcut">F12</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="menuReload">{{ $t('titlebar.reload') }} <span class="shortcut">Ctrl+R</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="menuForceReload">{{ $t('titlebar.forceReload') }} <span class="shortcut">Ctrl+Shift+R</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="menuToggleDevTools">{{ $t('titlebar.toggleDevTools') }} <span class="shortcut">F12</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="menuResetZoom">{{ $t('titlebar.resetZoom') }} <span class="shortcut">Ctrl+0</span></div>
-          <div class="menu-option" @click="menuZoomIn">{{ $t('titlebar.zoomIn') }} <span class="shortcut">Ctrl++</span></div>
-          <div class="menu-option" @click="menuZoomOut">{{ $t('titlebar.zoomOut') }} <span class="shortcut">Ctrl+-</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="menuResetZoom">{{ $t('titlebar.resetZoom') }} <span class="shortcut">Ctrl+0</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="menuZoomIn">{{ $t('titlebar.zoomIn') }} <span class="shortcut">Ctrl++</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="menuZoomOut">{{ $t('titlebar.zoomOut') }} <span class="shortcut">Ctrl+-</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="menuToggleFullscreen">{{ $t('titlebar.toggleFullscreen') }} <span class="shortcut">F11</span></div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="menuToggleFullscreen">{{ $t('titlebar.toggleFullscreen') }} <span class="shortcut">F11</span></div>
         </div>
       </div>
 
-      <div class="menu-item" @click="toggleHelpMenu" ref="helpMenuTrigger">
+      <div class="menu-item" role="button" tabindex="0" aria-haspopup="true" :aria-expanded="showHelpMenu" @click="toggleHelpMenu" ref="helpMenuTrigger">
         {{ $t('titlebar.help') }}
         <div v-if="showHelpMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option menu-option--submenu">
+          <div class="menu-option menu-option--submenu" role="menuitem" tabindex="0" aria-haspopup="true">
             <span>{{ $t('titlebar.autoslides') }}</span>
             <svg class="menu-option-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="9 18 15 12 9 6" />
             </svg>
             <div class="dropdown-menu dropdown-submenu">
-              <div class="menu-option" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
-              <div class="menu-option" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
-              <div class="menu-option" @click="openAutoSlidesWeb">{{ $t('titlebar.openAutoSlidesWeb') }}</div>
-              <div class="menu-option" @click="openPublicIndex">{{ $t('titlebar.publicIndex') }}</div>
+              <div class="menu-option" role="menuitem" tabindex="0" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
+              <div class="menu-option" role="menuitem" tabindex="0" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
+              <div class="menu-option" role="menuitem" tabindex="0" @click="openAutoSlidesWeb">{{ $t('titlebar.openAutoSlidesWeb') }}</div>
+              <div class="menu-option" role="menuitem" tabindex="0" @click="openPublicIndex">{{ $t('titlebar.publicIndex') }}</div>
             </div>
           </div>
-          <div class="menu-option" @click="openYanhekt">{{ $t('titlebar.openYanhekt') }}</div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="openYanhekt">{{ $t('titlebar.openYanhekt') }}</div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="openTermsAndConditions">{{ $t('titlebar.termsAndConditions') }}</div>
+          <div class="menu-option" role="menuitem" tabindex="0" @click="openTermsAndConditions">{{ $t('titlebar.termsAndConditions') }}</div>
         </div>
       </div>
       </div>
@@ -135,7 +135,11 @@
         :key="tab.id"
         :class="['tab-chip', { active: tabStore.state.activeTabId === tab.id }]"
         @click="tabStore.activateTab(tab.id)"
+        @keydown.delete.prevent="isTabClosable(tab) && tabStore.closeTab(tab.id)"
         :title="tab.title"
+        :aria-label="tab.title"
+        :aria-keyshortcuts="isTabClosable(tab) ? 'Delete' : undefined"
+        :aria-current="tabStore.state.activeTabId === tab.id ? 'page' : undefined"
       >
         <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
         <span class="tab-chip-label">{{ tab.title }}</span>
@@ -193,7 +197,10 @@
           :key="tab.id"
           :class="['tab-overflow-item', { active: tabStore.state.activeTabId === tab.id }]"
           @click="selectOverflowTab(tab.id)"
+          @keydown.delete.prevent="isTabClosable(tab) && tabStore.closeTab(tab.id)"
           :title="tab.title"
+          :aria-label="tab.title"
+          :aria-keyshortcuts="isTabClosable(tab) ? 'Delete' : undefined"
         >
           <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
           <span class="tab-overflow-item-label">{{ tab.title }}</span>
@@ -298,17 +305,17 @@
 
       <!-- Window controls for non-macOS -->
       <div v-if="!isMacOS" class="window-controls">
-        <button class="control-button minimize" @click="minimizeWindow" :title="$t('titlebar.minimize')">
+        <button class="control-button minimize" @click="minimizeWindow" :title="$t('titlebar.minimize')" :aria-label="$t('titlebar.minimize')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <rect x="2" y="5" width="8" height="2" fill="currentColor"/>
           </svg>
         </button>
-        <button class="control-button maximize" @click="maximizeWindow" :title="$t('titlebar.maximize')">
+        <button class="control-button maximize" @click="maximizeWindow" :title="$t(windowMaximized ? 'titlebar.restoreWindow' : 'titlebar.maximize')" :aria-label="$t(windowMaximized ? 'titlebar.restoreWindow' : 'titlebar.maximize')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="none"/>
           </svg>
         </button>
-        <button class="control-button close" @click="closeWindow" :title="$t('titlebar.close')">
+        <button class="control-button close" @click="closeWindow" :title="$t('titlebar.close')" :aria-label="$t('titlebar.close')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5"/>
           </svg>
@@ -584,8 +591,10 @@ const helpMenuTrigger = ref<HTMLElement>();
 const updateManager = ref<InstanceType<typeof UpdateManager> | null>(null);
 
 onMounted(() => {
+  window.addEventListener('keydown', onSettingsShortcut);
   // Detect platform using userAgent as navigator.platform is deprecated
   isMacOS.value = navigator.userAgent.toLowerCase().includes('mac');
+  if (!isMacOS.value) void window.electronAPI.window.isMaximized().then(updateMaximizeIcon).catch(() => {});
 
   // Add click listener to close menus when clicking outside
   document.addEventListener('click', handleOutsideClick);
@@ -605,6 +614,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', onSettingsShortcut);
   document.removeEventListener('click', handleOutsideClick);
   stripObserver?.disconnect();
   stripObserver = null;
@@ -634,23 +644,62 @@ const closeAllMenus = () => {
 
 // Menu toggle functions
 const toggleFileMenu = () => {
+  const wasOpen = showFileMenu.value;
   closeAllMenus();
-  showFileMenu.value = !showFileMenu.value;
+  showFileMenu.value = !wasOpen;
 };
 
 const toggleEditMenu = () => {
+  const wasOpen = showEditMenu.value;
   closeAllMenus();
-  showEditMenu.value = !showEditMenu.value;
+  showEditMenu.value = !wasOpen;
 };
 
 const toggleViewMenu = () => {
+  const wasOpen = showViewMenu.value;
   closeAllMenus();
-  showViewMenu.value = !showViewMenu.value;
+  showViewMenu.value = !wasOpen;
 };
 
 const toggleHelpMenu = () => {
+  const wasOpen = showHelpMenu.value;
   closeAllMenus();
-  showHelpMenu.value = !showHelpMenu.value;
+  showHelpMenu.value = !wasOpen;
+};
+
+// Keyboard for the custom menu bar (Windows and Linux have no native one).
+const onMenuKeydown = (event: KeyboardEvent) => {
+  const target = event.target as HTMLElement;
+  const trigger = target.closest<HTMLElement>('.menu-item');
+  if (event.key === 'Escape') {
+    if (!showFileMenu.value && !showEditMenu.value && !showViewMenu.value && !showHelpMenu.value) return;
+    event.preventDefault();
+    closeAllMenus();
+    trigger?.focus();
+    return;
+  }
+  if (event.key === 'Enter' || event.key === ' ') {
+    if (!target.matches('.menu-item, .menu-option') || target.matches('.menu-option--submenu')) return;
+    event.preventDefault();
+    target.click();
+    if (target.matches('.menu-option')) trigger?.focus();
+    return;
+  }
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+  const options = [...(trigger?.querySelectorAll<HTMLElement>('.menu-option[tabindex="0"]') ?? [])]
+    .filter((option) => option.getClientRects().length > 0);
+  if (options.length === 0) return;
+  event.preventDefault();
+  const at = options.indexOf(target);
+  const step = event.key === 'ArrowDown' ? 1 : -1;
+  options[at === -1 ? 0 : (at + step + options.length) % options.length].focus();
+};
+
+// Windows and Linux remove the native menu, so its Ctrl+, lives here.
+const onSettingsShortcut = (event: KeyboardEvent) => {
+  if (isMacOS.value || !event.ctrlKey || event.shiftKey || event.altKey || event.key !== ',') return;
+  event.preventDefault();
+  openSettings();
 };
 
 // Window control functions for non-macOS platforms
@@ -683,9 +732,9 @@ const closeWindow = async () => {
 };
 
 // Update maximize button icon based on window state
+const windowMaximized = ref(false);
 const updateMaximizeIcon = (isMaximized: boolean) => {
-  // This could be used to change the icon between maximize and restore
-  log.debug('Window maximized state:', isMaximized);
+  windowMaximized.value = isMaximized;
 };
 
 // Link button handlers
@@ -1110,8 +1159,15 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   height: 100%;
 }
 
-.menu-option--submenu:hover .dropdown-submenu {
+.menu-option--submenu:hover .dropdown-submenu,
+.menu-option--submenu:focus-within .dropdown-submenu {
   display: block;
+}
+
+.menu-item:focus-visible,
+.menu-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 /* Drag region - allows window dragging */

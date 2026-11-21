@@ -991,6 +991,9 @@
     "unknownCourse": "알 수 없는 강의"
   },
   "titlebar": {
+    "resizeLeftPanel": "왼쪽 패널 크기 조정",
+    "resizeRightPanel": "오른쪽 패널 크기 조정",
+    "restoreWindow": "이전 크기로 복원",
     "file": "파일",
     "edit": "편집",
     "view": "보기",

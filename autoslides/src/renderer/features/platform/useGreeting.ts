@@ -1,3 +1,4 @@
+import { toDisplayName } from './usePinyinName'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
@@ -108,7 +109,9 @@ export function useGreeting() {
   const { t, locale } = useI18n()
   const greetingText = ref('')
 
-  const loadGreeting = async () => {
+  // `nickname` is the identity just verified: the stored names arrive later by
+  // broadcast, and could still be the previous account's.
+  const loadGreeting = async (nickname?: string) => {
     if (!sessionPromise) {
       sessionPromise = (async () => {
         const config = configStore
@@ -128,8 +131,8 @@ export function useGreeting() {
 
         const result = selectGreeting({
           lastGreetingId: config.lastGreetingId,
-          userOriginalNickname: config.userOriginalNickname ?? '',
-          userDisplayName: config.userDisplayName ?? '',
+          userOriginalNickname: nickname ?? config.userOriginalNickname ?? '',
+          userDisplayName: nickname ? toDisplayName(nickname) : config.userDisplayName ?? '',
           preferredLanguage
         })
         window.electronAPI.config.setLastGreetingId(result.id)

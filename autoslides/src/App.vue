@@ -17,7 +17,7 @@
       </div>
       <!-- Divider hidden while the panel is collapsed so a 0-width panel can't
            be drag-resized. -->
-      <div v-if="!layoutStore.leftCollapsed" class="divider left-divider" @mousedown="startResize('left', $event)"></div>
+      <div v-if="!layoutStore.leftCollapsed" class="divider left-divider" role="separator" tabindex="0" aria-orientation="vertical" :aria-label="$t('titlebar.resizeLeftPanel')" :aria-valuenow="renderedLeft" aria-valuemin="200" @keydown="nudgePanel('left', $event)" @mousedown="startResize('left', $event)"></div>
 
       <!-- Browser Login View (replaces MainContent and RightPanel) -->
       <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (renderedMain + renderedRight) + 'px' }">
@@ -35,7 +35,7 @@
       <div v-show="!isBrowserLoginActive" class="main-content" :style="{ width: renderedMain + 'px' }">
         <MainContent @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
       </div>
-      <div v-if="!isBrowserLoginActive && !rightHidden" class="divider right-divider" @mousedown="startResize('right', $event)"></div>
+      <div v-if="!isBrowserLoginActive && !rightHidden" class="divider right-divider" role="separator" tabindex="0" aria-orientation="vertical" :aria-label="$t('titlebar.resizeRightPanel')" :aria-valuenow="renderedRight" aria-valuemin="250" @keydown="nudgePanel('right', $event)" @mousedown="startResize('right', $event)"></div>
 
       <div v-show="!isBrowserLoginActive" class="right-panel" :class="{ collapsed: rightHidden }" :inert="rightHidden" :style="{ width: renderedRight + 'px' }">
         <RightPanel ref="rightPanelRef" />
@@ -352,6 +352,21 @@ const startResize = (type: string, event: MouseEvent) => {
   document.addEventListener('mousemove', handleResize)
   document.addEventListener('mouseup', stopResize)
   event.preventDefault()
+}
+
+// Arrow keys do what a short drag does, within the same limits (no collapse).
+const PANEL_KEY_STEP = 16
+const nudgePanel = (type: 'left' | 'right', event: KeyboardEvent) => {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+  event.preventDefault()
+  const delta = event.key === 'ArrowRight' ? PANEL_KEY_STEP : -PANEL_KEY_STEP
+  const total = window.innerWidth
+  if (type === 'left') {
+    leftWidth.value = Math.min(Math.max(200, leftWidth.value + delta), total - rightWidth.value - 500)
+  } else {
+    rightWidth.value = Math.min(Math.max(250, rightWidth.value - delta), total - leftWidth.value - 500)
+  }
+  mainWidth.value = total - leftWidth.value - rightWidth.value
 }
 
 const handleResize = (event: MouseEvent) => {

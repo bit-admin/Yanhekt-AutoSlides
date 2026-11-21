@@ -506,6 +506,12 @@
   cursor: not-allowed;
 }
 
+/* A clickable card reached by keyboard (v-press). */
+[data-press]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* Reduced motion: state changes land at once. Spinners keep turning, because
    they are the only sign that work is still running. */
 @media (prefers-reduced-motion: reduce) {
