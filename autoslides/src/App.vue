@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { fitPanels, MIN_LEFT_PANEL, MIN_MAIN_PANE, MIN_RIGHT_PANEL } from '@shared/ui/panelLayout'
+import { fitPanels, MAX_LEFT_PANEL, MIN_LEFT_PANEL, MIN_MAIN_PANE, MIN_RIGHT_PANEL } from '@shared/ui/panelLayout'
 import { ref, computed, watch, onMounted, onBeforeUnmount, onUnmounted, nextTick, provide } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TitleBar from '@renderer/components/titlebar/TitleBar.vue'
@@ -371,7 +371,7 @@ const nudgePanel = (type: 'left' | 'right', event: KeyboardEvent) => {
 /** Record a width the user picked, within what leaves the center pane its minimum. */
 const choosePanelWidth = (type: 'left' | 'right', raw: number, total: number) => {
   if (type === 'left') {
-    chosenLeft = Math.max(MIN_LEFT_PANEL, Math.min(raw, total - renderedRight.value - MIN_MAIN_PANE))
+    chosenLeft = Math.max(MIN_LEFT_PANEL, Math.min(raw, MAX_LEFT_PANEL, total - renderedRight.value - MIN_MAIN_PANE))
   } else {
     chosenRight = Math.max(MIN_RIGHT_PANEL, Math.min(raw, total - renderedLeft.value - MIN_MAIN_PANE))
   }

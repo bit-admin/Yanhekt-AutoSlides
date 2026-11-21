@@ -1,4 +1,6 @@
 export const MIN_LEFT_PANEL = 200
+/** The left panel is a navigator: past this it only takes room from the content. */
+export const MAX_LEFT_PANEL = 360
 export const MIN_RIGHT_PANEL = 250
 export const MIN_MAIN_PANE = 500
 
@@ -18,7 +20,7 @@ export interface PanelFitInput {
  * hidden panel's width is added back when the center pane is rendered.
  */
 export function fitPanels({ total, left, right, leftShown, rightShown }: PanelFitInput) {
-  let fittedLeft = Math.max(MIN_LEFT_PANEL, left)
+  let fittedLeft = Math.min(MAX_LEFT_PANEL, Math.max(MIN_LEFT_PANEL, left))
   let fittedRight = Math.max(MIN_RIGHT_PANEL, right)
   const minimum = (leftShown ? MIN_LEFT_PANEL : 0) + (rightShown ? MIN_RIGHT_PANEL : 0) + MIN_MAIN_PANE
 
