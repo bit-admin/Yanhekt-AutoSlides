@@ -991,6 +991,9 @@
     "unknownCourse": "Unknown Course"
   },
   "titlebar": {
+    "resizeLeftPanel": "Resize Left Panel",
+    "resizeRightPanel": "Resize Right Panel",
+    "restoreWindow": "Restore",
     "file": "File",
     "edit": "Edit",
     "view": "View",

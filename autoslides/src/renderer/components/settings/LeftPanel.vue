@@ -13,26 +13,27 @@
               type="text"
               class="nav-search-input"
               :placeholder="$t('navigation.searchPlaceholder')"
-              @focus="handleSidebarFocus"
+              :aria-label="$t('navigation.searchPlaceholder')"
+              @click="handleSidebarFocus"
               @keyup.enter="handleSidebarEnter"
             />
           </div>
-          <div class="nav-group-title">{{ $t('navigation.appName') }}</div>
-          <nav class="nav-items">
-            <button :class="['nav-item', { active: activeNav === 'home' }]" @click="navigate('home')">
+          <div id="nav-label-main" class="nav-group-title">{{ $t('navigation.appName') }}</div>
+          <nav class="nav-items" aria-labelledby="nav-label-main">
+            <button :class="['nav-item', { active: activeNav === 'home' }]" :aria-current="activeNav === 'home' ? 'page' : undefined" @click="navigate('home')">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
               <span>{{ $t('navigation.home') }}</span>
             </button>
-            <button :class="['nav-item', { active: activeNav === 'live' }]" @click="navigate('live')">
+            <button :class="['nav-item', { active: activeNav === 'live' }]" :aria-current="activeNav === 'live' ? 'page' : undefined" @click="navigate('live')">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
               </svg>
               <span>{{ $t('navigation.live') }}</span>
             </button>
-            <button :class="['nav-item', { active: activeNav === 'recorded' && !activePinnedId }]" @click="navigate('recorded')">
+            <button :class="['nav-item', { active: activeNav === 'recorded' && !activePinnedId }]" :aria-current="activeNav === 'recorded' && !activePinnedId ? 'page' : undefined" @click="navigate('recorded')">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                 <line x1="8" y1="21" x2="16" y2="21"/>
@@ -43,9 +44,9 @@
           </nav>
         </div>
 
-        <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.yanhe2') }}</div>
-        <nav class="nav-items">
-          <button :class="['nav-item', { active: activeNav === 'yanhe2-calendar' }]" @click="navigate('yanhe2-calendar')">
+        <div id="nav-label-yanhe2" class="nav-group-title nav-group-title--spaced">{{ $t('navigation.yanhe2') }}</div>
+        <nav class="nav-items" aria-labelledby="nav-label-yanhe2">
+          <button :class="['nav-item', { active: activeNav === 'yanhe2-calendar' }]" :aria-current="activeNav === 'yanhe2-calendar' ? 'page' : undefined" @click="navigate('yanhe2-calendar')">
             <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
               <line x1="16" y1="2" x2="16" y2="6"/>
@@ -54,7 +55,7 @@
             </svg>
             <span>{{ $t('navigation.yanhe2Calendar') }}</span>
           </button>
-          <button :class="['nav-item', { active: activeNav === 'yanhe2-curriculum' && !activePinnedId }]" @click="navigate('yanhe2-curriculum')">
+          <button :class="['nav-item', { active: activeNav === 'yanhe2-curriculum' && !activePinnedId }]" :aria-current="activeNav === 'yanhe2-curriculum' && !activePinnedId ? 'page' : undefined" @click="navigate('yanhe2-curriculum')">
             <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
@@ -63,9 +64,9 @@
           </button>
         </nav>
 
-        <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.workspace') }}</div>
-        <nav class="nav-items">
-          <button :class="['nav-item', { active: activeNav === 'slides-review' }]" @click="navigate('slides-review')">
+        <div id="nav-label-workspace" class="nav-group-title nav-group-title--spaced">{{ $t('navigation.workspace') }}</div>
+        <nav class="nav-items" aria-labelledby="nav-label-workspace">
+          <button :class="['nav-item', { active: activeNav === 'slides-review' }]" :aria-current="activeNav === 'slides-review' ? 'page' : undefined" @click="navigate('slides-review')">
             <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
               <circle cx="8.5" cy="8.5" r="1.5"/>
@@ -73,7 +74,7 @@
             </svg>
             <span>{{ $t('navigation.slidesReview') }}</span>
           </button>
-          <button :class="['nav-item', { active: activeNav === 'lectures' }]" @click="navigate('lectures')">
+          <button :class="['nav-item', { active: activeNav === 'lectures' }]" :aria-current="activeNav === 'lectures' ? 'page' : undefined" @click="navigate('lectures')">
             <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="5" width="18" height="14" rx="2"/>
               <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/>
@@ -83,6 +84,7 @@
           <button
             v-if="configStore.developerMode"
             :class="['nav-item', { active: activeNav === 'developer' }]"
+            :aria-current="activeNav === 'developer' ? 'page' : undefined"
             @click="navigate('developer')"
           >
             <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -125,7 +127,7 @@
           <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.pinned') }}</div>
           <div class="nav-items">
             <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
-              <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPin(c)" :title="courseDisplayTitle(c)">
+              <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" :aria-current="activePinnedId === c.id ? 'page' : undefined" @click="openPin(c)" :title="courseDisplayTitle(c)">
                 <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -1012,7 +1014,8 @@ defineExpose({
   transition: opacity 0.15s, color 0.15s, background-color 0.15s;
 }
 
-.pinned-row:hover .pinned-unpin {
+.pinned-row:hover .pinned-unpin,
+.pinned-row:focus-within .pinned-unpin {
   opacity: 1;
 }
 

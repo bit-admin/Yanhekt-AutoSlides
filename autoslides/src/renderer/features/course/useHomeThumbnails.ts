@@ -13,6 +13,8 @@ const log = createLogger('HomeThumbnails');
 const apiClient = new ApiClient()
 const thumbnails = reactive<Record<string, string>>({})
 const inFlight = new Set<string>()
+// Moves on when the cache is cleared, so an older account's answer is dropped.
+let generation = 0
 
 async function loadThumbnail(mode: 'live' | 'recorded', course: Course): Promise<void> {
   const id = course.id
@@ -24,6 +26,7 @@ async function loadThumbnail(mode: 'live' | 'recorded', course: Course): Promise
   const token = tokenManager.getToken()
   if (!token) return
 
+  const run = generation
   inFlight.add(id)
   try {
     let screenUrl: string | undefined
@@ -65,17 +68,18 @@ async function loadThumbnail(mode: 'live' | 'recorded', course: Course): Promise
       token
     })
 
-    if (dataUrl) {
+    if (dataUrl && run === generation) {
       thumbnails[id] = dataUrl
     }
   } catch (error) {
     log.warn('Failed to load home thumbnail:', error)
   } finally {
-    inFlight.delete(id)
+    if (run === generation) inFlight.delete(id)
   }
 }
 
 function clearThumbnails(): void {
+  generation += 1
   for (const key of Object.keys(thumbnails)) delete thumbnails[key]
   inFlight.clear()
 }

@@ -269,8 +269,9 @@ const setSemesters = (ids: number[]) => {
 }
 
 
-// Focusing the sidebar search bar opens the Search page; the first visit runs
-// an initial search immediately (empty keyword is a valid search).
+// Clicking the sidebar search bar opens the Search page; the first visit runs
+// an initial search immediately (empty keyword is a valid search). Focus alone
+// does nothing: tabbing past the field must not leave the page.
 const handleSidebarFocus = async () => {
   navigationStore.navigate('search')
   if (!hasSearched.value && !isLoading.value) {
@@ -282,6 +283,7 @@ const handleSidebarFocus = async () => {
 }
 
 const handleSidebarEnter = () => {
+  navigationStore.navigate('search')
   executeSearch()
 }
 

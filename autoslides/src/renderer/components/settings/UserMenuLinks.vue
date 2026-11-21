@@ -406,6 +406,7 @@ const openFeedbackEmail = async () => {
   height: 100%;
 }
 
+.menu-link-flyout:focus-within .menu-link-flyout-panel,
 .menu-link-flyout:hover .menu-link-flyout-panel {
   visibility: visible;
   opacity: 1;

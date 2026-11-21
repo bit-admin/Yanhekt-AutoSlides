@@ -1,6 +1,6 @@
 <template>
   <div class="account-switcher">
-    <button type="button" class="signin-option account-switcher-trigger">
+    <button type="button" class="signin-option account-switcher-trigger" aria-haspopup="true">
       <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
         <circle cx="9" cy="7" r="4"/>
@@ -167,6 +167,7 @@ function onAddAccount() {
   height: 100%;
 }
 
+.account-switcher:focus-within .account-flyout,
 .account-switcher:hover .account-flyout {
   visibility: visible;
   opacity: 1;
