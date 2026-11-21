@@ -117,7 +117,8 @@
       <button
         class="btn btn--primary"
         @click="handleMakePdf"
-        :disabled="exportControlsDisabled || selectedCount === 0"
+        :disabled="exportControlsDisabled || !hasOnDiskSelection || blocked"
+        :aria-describedby="noticeId"
       >
         <svg v-if="!pdf.isGenerating.value" width="16" height="16" viewBox="0 0 16 16">
           <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1H4V8zm0 2h8v1H4v-1zm0 2h5v1H4v-1z" fill="currentColor"/>
@@ -140,12 +141,15 @@ import WorkspaceExportOptions from '../shell/WorkspaceExportOptions.vue'
 const props = defineProps<{
   pdf: ReturnType<typeof usePdfMaker>
   isFolderEditMode: boolean
-  selectedCount: number
+  noticeId?: string
+  /** Export can't start (the footer notice says why), e.g. Separate mode with an empty folder. */
+  blocked?: boolean
 }>()
 
 const { t } = useI18n()
 
 const exportControlsDisabled = computed(() => !props.isFolderEditMode || props.pdf.isGenerating.value)
+const hasOnDiskSelection = computed(() => props.pdf.selectedFolders.value.some((folder) => !!folder.path))
 
 const formatSizeOption = (size: string) => {
   const [w, h] = size.split('x')
@@ -175,7 +179,7 @@ const toggleSortOrder = () => {
 }
 
 const handleMakePdf = async () => {
-  if (props.selectedCount === 0) return
+  if (exportControlsDisabled.value || !hasOnDiskSelection.value || props.blocked) return
 
   const result = await props.pdf.makePdf()
 

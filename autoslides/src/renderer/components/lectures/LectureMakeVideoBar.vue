@@ -71,7 +71,7 @@
           type="button"
           class="btn btn--primary"
           :disabled="!canMakeVideo"
-          :aria-describedby="showSkipped ? 'slide-video-export-note' : undefined"
+          :aria-describedby="skipNoticeId"
           @click="emit('start', { ...options })"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -82,10 +82,6 @@
         </button>
       </div>
     </div>
-
-    <p v-if="showSkipped" id="slide-video-export-note" class="video-export-note">
-      {{ $t('lectures.makeVideoSkipped', { count: skipped }) }}
-    </p>
   </div>
 </template>
 
@@ -106,8 +102,7 @@ const { t } = useI18n()
 const props = defineProps<{
   isSelectMode: boolean
   canMakeVideo: boolean
-  /** Selected sessions that cannot make one (no timeline, or no audio). */
-  skipped: number
+  skipNoticeId?: string
 }>()
 const emit = defineEmits<{
   (e: 'start', options: SlideVideoOptions): void
@@ -115,7 +110,6 @@ const emit = defineEmits<{
 
 // Like the Slides export row, these options are only kept for the page session.
 const options = reactive<SlideVideoOptions>({ ...DEFAULT_SLIDE_VIDEO_OPTIONS })
-const showSkipped = computed(() => props.canMakeVideo && props.skipped > 0)
 const actionHintKey = computed(() => {
   if (!props.isSelectMode) return 'lectures.makeVideoSelectFirst'
   return props.canMakeVideo ? 'lectures.makeVideoHelp' : 'lectures.makeVideoNeeds'
@@ -161,13 +155,5 @@ const repeatLabel = (seconds: number): string =>
   align-self: flex-end;
   gap: 8px;
   margin-inline-start: auto;
-}
-
-.video-export-note {
-  flex-basis: 100%;
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 11px;
-  line-height: 1.4;
 }
 </style>

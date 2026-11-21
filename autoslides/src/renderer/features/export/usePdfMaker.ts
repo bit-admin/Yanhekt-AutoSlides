@@ -76,6 +76,9 @@ export function usePdfMaker<T extends PdfSourceFolder>(deps: {
   const includeCover = ref(true)
   const isGenerating = ref(false)
   const generateProgress = ref({ current: 0, total: 0 })
+  const exportOutcome = ref<{ skipped: number; partial?: { saved: number; notAttempted: number } } | null>(null)
+  // Keyed by content: a folder reload hands over a new array with the same names.
+  watch([() => deps.selectedNames.value.join('\n'), outputMode, outputFormat], () => { exportOutcome.value = null })
 
   const sizeOptions = computed(() =>
     aspectRatio.value === '16:9' ? SIZE_OPTIONS_16_9 : SIZE_OPTIONS_4_3
@@ -128,6 +131,11 @@ export function usePdfMaker<T extends PdfSourceFolder>(deps: {
     return [...deps.folders.value].sort(compareToolFolderEntries)
   })
 
+  const selectedFolders = computed(() => {
+    const names = new Set(deps.selectedNames.value)
+    return sortedFolders.value.filter((folder) => names.has(folder.name))
+  })
+
   const displaySize = computed(() => {
     const [w, h] = customSize.value.split('x')
     return w && h ? `${w}×${h}` : customSize.value
@@ -159,17 +167,17 @@ export function usePdfMaker<T extends PdfSourceFolder>(deps: {
     return { width, height }
   }
 
-  async function getSelectedFolderEntries(): Promise<FolderEntry[]> {
+  async function getFolderEntries(selection: readonly T[], mode: PdfOutputMode): Promise<FolderEntry[]> {
     const entries: FolderEntry[] = []
-    const selectedFolders = sortedFolders.value.filter(
-      (folder) => folder.path && deps.selectedNames.value.includes(folder.name)
-    )
-
-    for (const folder of selectedFolders) {
-      const folderPath = folder.path as string
+    for (const folder of selection) {
+      const folderPath = folder.path
+      if (!folderPath) continue
       const folderImages = overrides.resultsProvider
         ? await overrides.resultsProvider.getImages(folderPath)
         : await window.electronAPI.pdfmaker.getImages(folderPath)
+      // Separate files still require slides in every on-disk folder; combined
+      // exports omit empty folders so they don't contribute a cover or title.
+      if (mode === 'single' && folderImages.length === 0) continue
       const sortedImagePaths = folderImages
         .sort((a, b) => compareToolImages(a.name, b.name))
         .map((image) => image.path)
@@ -202,10 +210,10 @@ export function usePdfMaker<T extends PdfSourceFolder>(deps: {
   }
 
   async function makePdf(): Promise<PdfMakeResult> {
-    if (deps.selectedNames.value.length === 0) {
-      return { success: false, error: 'No folders selected' }
-    }
-
+    const selection = selectedFolders.value
+    const mode = outputMode.value
+    const format = outputFormat.value
+    exportOutcome.value = null
     isGenerating.value = true
     generateProgress.value = { current: 0, total: 0 }
     progressCleanup = window.electronAPI.pdfmaker.onProgress((progress) => {
@@ -213,15 +221,24 @@ export function usePdfMaker<T extends PdfSourceFolder>(deps: {
     })
 
     try {
-      const folderEntries = await getSelectedFolderEntries()
+      const folderEntries = await getFolderEntries(selection, mode)
+      if (folderEntries.length === 0) return { success: false, error: t('pdfmaker.noSlidesToExport') }
       const options = buildPdfOptions()
-      return await window.electronAPI.pdfmaker.makePdf(folderEntries, {
+      const result = await window.electronAPI.pdfmaker.makePdf(folderEntries, {
         ...options,
-        outputMode: outputMode.value,
-        outputFormat: outputFormat.value,
+        outputMode: mode,
+        outputFormat: format,
         includeCover: includeCover.value,
         copyrightText: includeCover.value ? t('pdfmaker.coverCopyright') : undefined,
       })
+      const skipped = selection.length - folderEntries.length
+      if (result.success) {
+        exportOutcome.value = { skipped }
+      } else if (result.failedFolder && result.paths) {
+        const saved = result.paths.length
+        exportOutcome.value = { skipped, partial: { saved, notAttempted: folderEntries.length - saved - 1 } }
+      }
+      return result
     } catch (error) {
       log.error('Failed to make PDF:', error)
       return {
@@ -248,6 +265,8 @@ export function usePdfMaker<T extends PdfSourceFolder>(deps: {
 
   return {
     sortedFolders,
+    selectedFolders,
+    exportOutcome,
     useCustomOrder,
     reduceEnabled,
     aspectRatio,

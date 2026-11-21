@@ -453,6 +453,19 @@
   color: var(--text-primary);
 }
 
+/* === Workspace footer selection and notices === */
+
+.workspace-footer-count {
+  white-space: nowrap;
+}
+
+.workspace-footer-notices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
 /* === Group-by-course toggle (footer chip) === */
 
 .group-toggle {

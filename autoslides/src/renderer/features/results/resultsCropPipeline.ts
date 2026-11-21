@@ -15,7 +15,7 @@ import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ResultsCropPipeline');
 
 export interface ResultsCropIO {
-  restoreFromTrash(ids: string[]): Promise<unknown>;
+  restoreFromTrash(ids: string[]): Promise<{ restoredIds: string[] }>;
   readImageBuffer(path: string): Promise<Uint8Array>;
   applyCrop(path: string, rect: CropRect, autoCropped: boolean): Promise<unknown>;
 }
@@ -37,6 +37,7 @@ export interface AutoCropPipelineResult {
   cropped: number;
   noDetection: number;
   failed: number;
+  restoreFailed: number;
   croppedItems: CroppedItem[];
 }
 
@@ -44,14 +45,22 @@ export interface BaselineCropPipelineResult {
   cropped: number;
   outOfBounds: number;
   failed: number;
+  restoreFailed: number;
   croppedItems: CroppedItem[];
 }
 
-async function restorePending(io: ResultsCropIO, targets: AutoCropTarget[]): Promise<void> {
-  const restoreIds = targets.filter((t) => t.needsRestore && t.id).map((t) => t.id as string);
+async function restorePending(io: ResultsCropIO, targets: AutoCropTarget[]): Promise<AutoCropTarget[]> {
+  const restoreIds = targets.flatMap((target) => target.needsRestore && target.id ? [target.id] : []);
+  let restored = new Set<string>();
   if (restoreIds.length > 0) {
-    await io.restoreFromTrash(restoreIds);
+    try {
+      restored = new Set((await io.restoreFromTrash(restoreIds)).restoredIds);
+    } catch (error) {
+      log.error('Failed to restore slides before cropping:', error);
+    }
   }
+  // A failed restore may mean a different file already occupies originalPath.
+  return targets.filter((target) => !target.needsRestore || (target.id != null && restored.has(target.id)));
 }
 
 async function readImageData(io: ResultsCropIO, path: string): Promise<ImageData> {
@@ -69,12 +78,15 @@ export async function runResultsAutoCropPipeline(
     cropped: 0,
     noDetection: 0,
     failed: 0,
+    restoreFailed: 0,
     croppedItems: [],
   };
 
-  await restorePending(io, targets);
+  const ready = await restorePending(io, targets);
+  result.restoreFailed = targets.length - ready.length;
+  result.failed = result.restoreFailed;
 
-  for (const target of targets) {
+  for (const target of ready) {
     if (!target.originalPath) {
       result.failed++;
       continue;
@@ -110,12 +122,15 @@ export async function runBaselineCropPipeline(
     cropped: 0,
     outOfBounds: 0,
     failed: 0,
+    restoreFailed: 0,
     croppedItems: [],
   };
 
-  await restorePending(io, targets);
+  const ready = await restorePending(io, targets);
+  result.restoreFailed = targets.length - ready.length;
+  result.failed = result.restoreFailed;
 
-  for (const target of targets) {
+  for (const target of ready) {
     if (!target.originalPath) {
       result.failed++;
       continue;

@@ -424,37 +424,37 @@ export function useResultsView() {
     previewItem.value = null
   }
 
-  async function deleteSelected() {
-    if (selectedActiveItems.value.length === 0) return
-
+  async function deleteSelected(items: readonly ResultsItem[]) {
+    let moved = 0
+    let attempted = 0
     isLoading.value = true
     try {
-      for (const item of selectedActiveItems.value) {
-        if (item.imagePath) {
-          await window.electronAPI.pdfmaker.deleteImage(item.imagePath)
+      for (const item of items) {
+        if (!item.imagePath) continue
+        attempted += 1
+        try {
+          if ((await window.electronAPI.pdfmaker.deleteImage(item.imagePath)).success) moved += 1
+        } catch (error) {
+          log.error('Failed to move image to trash:', error)
         }
       }
-
-      await refresh()
-    } catch (error) {
-      log.error('Failed to delete selected images:', error)
+      return { moved, failed: attempted - moved }
     } finally {
-      isLoading.value = false
+      await refresh()
     }
   }
 
   async function restoreSelected() {
-    if (selectedRemovedItems.value.length === 0) return
-
+    const ids = [...new Set(selectedRemovedItems.value.map((item) => item.id))]
     isLoading.value = true
     try {
-      const ids = selectedRemovedItems.value.map((item) => item.id)
-      await window.electronAPI.trash.restore(ids)
-      await refresh()
+      const { restored, failed } = await window.electronAPI.trash.restore(ids)
+      return { restored, failed, unavailable: ids.length - restored - failed }
     } catch (error) {
       log.error('Failed to restore selected images:', error)
+      return null
     } finally {
-      isLoading.value = false
+      await refresh()
     }
   }
 
@@ -517,6 +517,7 @@ export function useResultsView() {
     outOfBounds: number
     deduped: number
     failed: number
+    restoreFailed: number
   }
 
   /**
@@ -533,7 +534,7 @@ export function useResultsView() {
     requireFolder: boolean
     errorLabel: string
   }): Promise<CropActionResult> {
-    const summary: CropActionResult = { cropped: 0, noDetection: 0, outOfBounds: 0, deduped: 0, failed: 0 }
+    const summary: CropActionResult = { cropped: 0, noDetection: 0, outOfBounds: 0, deduped: 0, failed: 0, restoreFailed: 0 }
     if (!opts.canRun) return summary
     const baselineRect = opts.pipeline === 'baseline' ? baselineCrop.value?.rect : undefined
     if (opts.pipeline === 'baseline' && !baselineRect) return summary
@@ -545,7 +546,7 @@ export function useResultsView() {
     try {
       const targets = buildCropTargets(opts.scope)
       let pHashThreshold: number | null = null
-      let cropResult: { cropped: number; failed: number; croppedItems: CroppedItem[] }
+      let cropResult: { cropped: number; failed: number; restoreFailed: number; croppedItems: CroppedItem[] }
 
       if (opts.pipeline === 'auto') {
         const cfg = await readDetectConfig()
@@ -560,6 +561,7 @@ export function useResultsView() {
       }
       summary.cropped = cropResult.cropped
       summary.failed = cropResult.failed
+      summary.restoreFailed = cropResult.restoreFailed
 
       if (opts.dedup && cropResult.croppedItems.length > 0) {
         if (pHashThreshold === null) pHashThreshold = (await readDetectConfig()).pHashThreshold
@@ -590,7 +592,8 @@ export function useResultsView() {
       requireFolder: false,
       errorLabel: 'auto-crop selected items',
     })
-    return { cropped: s.cropped, noDetection: s.noDetection, deduped: s.deduped, failed: s.failed }
+    const { cropped, noDetection, deduped, failed, restoreFailed } = s
+    return { cropped, noDetection, deduped, failed, restoreFailed }
   }
 
   async function autoCropSelectedActive(): Promise<{ cropped: number; noDetection: number; failed: number }> {
@@ -666,7 +669,8 @@ export function useResultsView() {
       requireFolder: false,
       errorLabel: 'apply baseline crop to selected',
     })
-    return { cropped: s.cropped, outOfBounds: s.outOfBounds, deduped: s.deduped, failed: s.failed }
+    const { cropped, outOfBounds, deduped, failed, restoreFailed } = s
+    return { cropped, outOfBounds, deduped, failed, restoreFailed }
   }
 
   async function restoreAndApplyBaselineSelected(): Promise<{ cropped: number; outOfBounds: number; failed: number }> {
@@ -766,9 +770,11 @@ export function useResultsView() {
   }
 
   async function clearTrash(ids?: string[]) {
+    // An explicit empty selection (e.g. Keep AI Filtered – Edit) clears nothing.
+    if (ids?.length === 0) return
     isLoading.value = true
     try {
-      if (ids && ids.length > 0) {
+      if (ids !== undefined) {
         await window.electronAPI.trash.clearEntries(ids)
       } else {
         await window.electronAPI.trash.clear()

@@ -42,7 +42,8 @@ class SlideVideoQueueClass {
   readonly activeJob = computed(() => this.items.find((job) => job.id === this.activeJobId) ?? null)
   readonly queuedCount = computed(() => this.items.filter((job) => job.status === 'queued').length)
   /** Queued or running: each will still write into the output folder. */
-  readonly pendingCount = computed(() => this.items.filter(isPending).length)
+  readonly pendingFolders = computed(() => new Set(this.items.filter(isPending).map((job) => job.target.slidesFolder)))
+  readonly pendingCount = computed(() => this.pendingFolders.value.size)
   readonly hasWork = computed(() => this.pendingCount.value > 0)
   /** Jobs that failed in the last batch, until the next one starts. */
   readonly failed = computed(() => this.items.filter((job) => job.status === 'error'))
@@ -50,9 +51,11 @@ class SlideVideoQueueClass {
   /** Queue each target once; returns how many were added (the rest were already queued). */
   enqueue(targets: SlideVideoTarget[], options: SlideVideoOptions): number {
     if (!this.running) this.clearFinished()
+    const pendingFolders = new Set(this.pendingFolders.value)
     let added = 0
     for (const target of targets) {
-      if (this.items.some((job) => isPending(job) && job.target.slidesFolder === target.slidesFolder)) continue
+      if (pendingFolders.has(target.slidesFolder)) continue
+      pendingFolders.add(target.slidesFolder)
       this.items.push({
         id: `slidevideo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         // Plain copies: the job is sent over IPC (Recurring #1).

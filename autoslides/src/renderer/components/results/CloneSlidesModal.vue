@@ -64,6 +64,9 @@
         <p v-if="shareExp.item.value.status === 'conflict'" class="clone-hint">
           {{ $t('cloudNotes.exportConflictHint') }}
         </p>
+        <p v-if="shareExp.item.value.missing > 0" class="clone-hint" role="status">
+          {{ $t(shareExp.item.value.timeline ? 'lectures.cloneMissingSlidesAndTimeline' : 'lectures.cloneMissingSlides', { count: shareExp.item.value.missing }) }}
+        </p>
         <div class="dialog-actions">
           <button
             v-if="shareExp.exporting.value"
@@ -95,7 +98,7 @@ import { useShareLinkExport, type ShareExportItem } from '@features/cloudNotes/u
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'cloned'): void
+  (e: 'cloned', outcome: { missing: number; timelineOmitted: boolean }): void
 }>()
 
 const { t } = useI18n()
@@ -170,9 +173,10 @@ function onOverlay(): void {
 
 function finish(cloned: boolean): void {
   if (busy()) return
+  const row = shareExp.item.value
   shareExp.skipConflict()
   shareExp.reset()
-  if (cloned) emit('cloned')
+  if (cloned && row) emit('cloned', { missing: row.missing, timelineOmitted: row.missing > 0 && !!row.timeline })
   else emit('close')
 }
 </script>

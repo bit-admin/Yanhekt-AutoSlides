@@ -36,6 +36,11 @@ export function lectureListFileKind(item: LectureVideoItem): LectureListFileKind
   return item.videoType ?? (isLectureAudioExt(item.ext) ? 'audio' : 'other')
 }
 
+/** Renaming needs a session and a stream type; slides folders keep their original names. */
+export function isRenamableLectureFile(item: LectureVideoItem): boolean {
+  return !item.slidesFolder && item.recognised && !!item.courseId && !!item.sessionId && !!item.videoType
+}
+
 const fileOrder: Record<LectureListFileKind, number> = {
   screen: 0, slidesVideo: 1, camera: 2, audio: 3, subtitles: 4, slides: 5, other: 6,
 }

@@ -10,7 +10,7 @@ import { overrides } from '@shared/overrideRegistry'
 import { createLatest } from '@shared/utils/latest'
 import { createLogger } from '@shared/utils/logger'
 import { SlideVideoQueue } from '@shared/services/slideVideoQueue'
-import { buildLectureListGroups } from './lectureListModel'
+import { buildLectureListGroups, isRenamableLectureFile } from './lectureListModel'
 import { slideVideoTargets } from './slideVideoModel'
 
 const log = createLogger('LecturesPage')
@@ -173,10 +173,8 @@ export function useLecturesPage() {
   /** Sessions touched by the selection, and which of them can make a slide video. */
   const selectedSlideVideos = computed(() => slideVideoTargets(files.value, selectedPaths.value))
 
-  /** Rename works on files; a slides folder keeps its name (Slides and the player find it by it). */
-  const selectedRecognised = computed(() =>
-    selectedItems.value.filter((v) => v.recognised && !v.slidesFolder),
-  )
+  const renameTargets = computed(() => selectedItems.value.filter(isRenamableLectureFile))
+  const renameSkippedCount = computed(() => selectedItems.value.length - renameTargets.value.length)
 
   const toggleSelectMode = () => {
     isSelectMode.value = !isSelectMode.value
@@ -230,7 +228,8 @@ export function useLecturesPage() {
     groups,
     selectedItems,
     selectedSlideVideos,
-    selectedRecognised,
+    renameTargets,
+    renameSkippedCount,
     queue: SlideVideoQueue,
     loadVideos,
     toggleSelectMode,

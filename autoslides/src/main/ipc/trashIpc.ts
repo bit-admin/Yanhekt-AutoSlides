@@ -16,7 +16,7 @@ export async function restoreTrash(
   deps: RestoreDeps,
   ids: string[],
   outputDir: string,
-): Promise<{ restored: number; failed: number }> {
+): Promise<{ restored: number; failed: number; restoredIds: string[] }> {
   const outcome = await deps.slideExtractionService.restoreTrashEntries(ids, outputDir);
   const folders = new Set(outcome.restored.map(entry => path.dirname(entry.originalPath)));
   for (const folderPath of folders) {
@@ -38,7 +38,11 @@ export async function restoreTrash(
       log.warn(`Timeline restoreCanonical failed for ${entry.filename}:`, timelineError);
     }
   }
-  return { restored: outcome.restored.length, failed: outcome.failed.length };
+  return {
+    restored: outcome.restored.length,
+    failed: outcome.failed.length,
+    restoredIds: outcome.restored.map((entry) => entry.id),
+  };
 }
 
 export function registerTrashIpcHandlers(services: IpcServices): void {

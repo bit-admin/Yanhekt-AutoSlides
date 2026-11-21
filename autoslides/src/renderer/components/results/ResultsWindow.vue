@@ -66,6 +66,7 @@
           class="btn btn--danger-outline delete-btn"
           @click="confirmDelete"
           :disabled="selectedActiveItems.length === 0 || isLoading"
+          :aria-describedby="mixedSlideSelection ? 'slides-delete-skip' : undefined"
         >
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
@@ -80,8 +81,9 @@
         >
           <button
             class="btn restore-btn action-split-main"
-            @click="restoreSelected"
+            @click="handleRestoreSelected"
             :disabled="selectedRemovedItems.length === 0 || isLoading"
+            :aria-describedby="mixedSlideSelection ? 'slides-restore-skip' : undefined"
           >
             <svg width="16" height="16" viewBox="0 0 16 16">
               <path d="M8 2L4 6h3v6h2V6h3L8 2z" fill="currentColor"/>
@@ -217,7 +219,8 @@
         <button
           v-else-if="currentView === 'folders'"
           class="btn drive-btn"
-          :disabled="!isFolderEditMode || selectedFolderNames.length === 0 || isLoading || isGenerating"
+          :disabled="!isFolderEditMode || shareTargets.length === 0 || isLoading || isGenerating"
+          :aria-describedby="shareSkippedCount > 0 ? 'slides-share-skip' : undefined"
           :title="$t('drive.uploadToDriveHint')"
           @click="handleUploadToDrive"
         >
@@ -258,7 +261,8 @@
       v-if="currentView === 'folders'"
       :pdf="pdf"
       :is-folder-edit-mode="isFolderEditMode"
-      :selected-count="selectedFolderNames.length"
+      :notice-id="exportNoticeId"
+      :blocked="separateExportBlocked"
     />
 
     <div class="content-area custom-scrollbar" ref="contentAreaRef">
@@ -316,8 +320,8 @@
     <div class="footer">
       <div class="footer-left">
         <template v-if="currentView === 'folders'">
-          <span v-if="!isFolderEditMode">{{ $t('trash.total') }}: {{ sortedFolders.length }}</span>
-          <span v-else>{{ $t('trash.selected') }}: {{ selectedFolderNames.length }} / {{ $t('trash.total') }}: {{ sortedFolders.length }} / {{ $t('pdfmaker.totalImages') }}: {{ selectedImageCount }}</span>
+          <span v-if="!isFolderEditMode" class="workspace-footer-count">{{ $t('trash.total') }}: {{ sortedFolders.length }}</span>
+          <span v-else class="workspace-footer-count">{{ $t('trash.selected') }}: {{ selectedFolderNames.length }} / {{ $t('trash.total') }}: {{ sortedFolders.length }} / {{ $t('pdfmaker.totalImages') }}: {{ selectedImageCount }}</span>
         </template>
         <template v-else>
           <button
@@ -327,8 +331,25 @@
           >
             {{ allFilteredSelected ? $t('trash.clearSelection') : $t('trash.selectAll') }}
           </button>
-          <span>{{ $t('trash.selected') }}: {{ selectedIds.length }} / {{ $t('trash.total') }}: {{ filteredItems.length }}</span>
+          <span class="workspace-footer-count">{{ $t('trash.selected') }}: {{ selectedIds.length }} / {{ $t('trash.total') }}: {{ filteredItems.length }}</span>
         </template>
+        <div class="workspace-footer-notices">
+          <template v-if="currentView === 'folders' && isFolderEditMode">
+            <div v-if="exportNoticeId" :id="exportNoticeId" class="workspace-footer-notices">
+              <span v-if="exportSkippedCount > 0">{{ $t(exportOutcome ? 'pdfmaker.exportSkippedDone' : 'pdfmaker.exportSkipped', { count: exportSkippedCount }) }}</span>
+              <span v-if="emptySeparateFolders > 0">{{ $t('pdfmaker.exportEmptySeparate', { count: emptySeparateFolders }) }}</span>
+            </div>
+            <span v-if="exportOutcome?.partial">{{ $t('pdfmaker.exportPartial', exportOutcome.partial) }}</span>
+            <span v-if="shareSkippedCount > 0" id="slides-share-skip">
+              {{ $t('drive.shareSkipped', { count: shareSkippedCount }) }}
+            </span>
+          </template>
+          <template v-else-if="mixedSlideSelection">
+            <span id="slides-delete-skip">{{ $t('trash.deleteSkipped', { count: selectedRemovedItems.length }) }}</span>
+            <span id="slides-restore-skip">{{ $t('trash.restoreSkipped', { count: selectedActiveItems.length }) }}</span>
+          </template>
+          <span v-if="slideActionNotice" role="status">{{ $t(slideActionNotice.key, slideActionNotice.params) }}</span>
+        </div>
       </div>
 
       <div v-if="currentView === 'images'" class="size-slider-group">
@@ -460,6 +481,9 @@ const {
   formatDate,
 } = useResultsView()
 
+const mixedSlideSelection = computed(() => selectedActiveItems.value.length > 0 && selectedRemovedItems.value.length > 0)
+const slideActionNotice = ref<{ key: string; params: Record<string, number> } | null>(null)
+watch(() => selectedIds.value.length, (count) => { if (count > 0) slideActionNotice.value = null })
 
 const allFilteredSelected = computed(() => {
   if (filteredItems.value.length === 0) return false
@@ -550,6 +574,8 @@ const groupByCourse = ref(true)
 const pdf = usePdfMaker({ folders, selectedNames: selectedFolderNames })
 const {
   sortedFolders,
+  selectedFolders,
+  exportOutcome,
   useCustomOrder,
   isGenerating,
   generateProgress,
@@ -626,16 +652,26 @@ function toggleFolderSelection(name: string) {
 
 // --- Export bar (PDF/PPTX generation over the folder selection) ---
 
-const selectedImageCount = computed(() =>
-  folders.value
-    .filter((f) => selectedFolderNames.value.includes(f.name))
-    .reduce((sum, f) => sum + f.activeCount, 0)
-)
+const selectedImageCount = computed(() => selectedFolders.value.reduce((sum, f) => sum + f.activeCount, 0))
+const isKnownEmpty = (folder: (typeof selectedFolders.value)[number]) => !folder.activeCountUnavailable && folder.activeCount === 0
+const exportSkippedCount = computed(() => exportOutcome.value?.skipped ?? selectedFolders.value.filter(
+  (folder) => !folder.path || (pdf.outputMode.value === 'single' && isKnownEmpty(folder)),
+).length)
+const emptySeparateFolders = computed(() => pdf.outputMode.value === 'batch' && !exportOutcome.value
+  ? selectedFolders.value.filter((folder) => folder.path && isKnownEmpty(folder)).length
+  : 0)
+// Unlike the notice count, this ignores a shown export outcome: the button stays off either way.
+const separateExportBlocked = computed(() => pdf.outputMode.value === 'batch'
+  && selectedFolders.value.some((folder) => !!folder.path && isKnownEmpty(folder)))
+const exportNoticeId = computed(() => exportSkippedCount.value > 0 || emptySeparateFolders.value > 0
+  ? 'slides-export-note'
+  : undefined)
 
 // The toolbar Refresh is a full reset of the folder list: it also drops the
 // custom export order and folder selection (matching the old Slides Export
 // refresh). Internal refreshes after item actions keep both.
 async function handleRefresh() {
+  slideActionNotice.value = null
   if (currentView.value === 'folders') {
     resetSortOrder()
     selectedFolderNames.value = []
@@ -645,9 +681,13 @@ async function handleRefresh() {
 
 const showCloneModal = ref(false)
 
-async function onCloneDone() {
+async function onCloneDone({ missing, timelineOmitted }: { missing: number; timelineOmitted: boolean }) {
   showCloneModal.value = false
   await refresh()
+  slideActionNotice.value = missing > 0 ? {
+    key: timelineOmitted ? 'lectures.cloneMissingSlidesAndTimeline' : 'lectures.cloneMissingSlides',
+    params: { count: missing },
+  } : null
 }
 
 async function handleClearSelectedFolders() {
@@ -679,7 +719,8 @@ async function handleClearSelectedFolders() {
 }
 
 const confirmDelete = async () => {
-  if (selectedActiveItems.value.length === 0) return
+  const targets = selectedActiveItems.value
+  if (targets.length === 0 || isLoading.value) return
 
   const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
     type: 'question',
@@ -687,12 +728,29 @@ const confirmDelete = async () => {
     defaultId: 1,
     cancelId: 0,
     title: t('trash.confirmDeleteTitle'),
-    message: t('trash.confirmDelete', { count: selectedActiveItems.value.length }),
+    message: t('trash.confirmDelete', { count: targets.length }),
   })
 
   if (confirmed?.response === 1) {
-    await deleteSelected()
+    slideActionNotice.value = null
+    const result = await deleteSelected(targets)
+    if (result.failed > 0) slideActionNotice.value = { key: 'trash.deleteBatchPartial', params: result }
   }
+}
+
+async function handleRestoreSelected() {
+  if (selectedRemovedItems.value.length === 0 || isLoading.value) return
+  slideActionNotice.value = null
+  const result = await restoreSelected()
+  if (!result) {
+    slideActionNotice.value = { key: 'trash.restoreBatchUnknown', params: {} }
+  } else if (result.failed > 0 || result.unavailable > 0) {
+    slideActionNotice.value = { key: 'trash.restoreBatchPartial', params: result }
+  }
+}
+
+function showCropSkipNotice(count: number) {
+  if (count > 0) slideActionNotice.value = { key: 'trash.cropRestoreSkipped', params: { count } }
 }
 
 const handleAutoCropSelected = async () => {
@@ -700,6 +758,7 @@ const handleAutoCropSelected = async () => {
   if (!canAutoCropSelected.value) return
 
   const summary = await autoCropSelected({ removeDuplicates: dedupAfterCropActions.value })
+  showCropSkipNotice(summary.restoreFailed)
   await window.electronAPI.dialog?.showMessageBox?.({
     type: 'info',
     buttons: ['OK'],
@@ -733,6 +792,7 @@ const handleBaselineAction = async () => {
   if (!canApplyBaselineSelected.value) return
 
   const summary = await applyBaselineToSelected({ removeDuplicates: dedupAfterCropActions.value })
+  showCropSkipNotice(summary.restoreFailed)
   clearBaselineCrop()
   await window.electronAPI.dialog?.showMessageBox?.({
     type: 'info',
@@ -811,10 +871,13 @@ const handleGlobalClickForActionMenus = (event: MouseEvent) => {
 // --- Drive (upload the selected folders) ---
 
 const isSharing = computed(() => DriveUploads.pendingCount.value > 0)
+const shareTargets = computed(() => selectedFolders.value.flatMap(
+  (folder) => folder.path && folder.metadata && !isKnownEmpty(folder) ? [folder.path] : [],
+))
+const shareSkippedCount = computed(() => selectedFolders.value.length - shareTargets.value.length)
 
 async function handleUploadToDrive() {
-  const selected = folders.value.filter((f) => selectedFolderNames.value.includes(f.name))
-  await startDriveUploads(t, selected.map((f) => ({ path: f.path, recognised: !!f.metadata })))
+  await startDriveUploads(t, shareTargets.value)
 }
 
 // When an upload ends, refresh that folder's footer count in place (a full
@@ -869,7 +932,7 @@ const confirmClearTrash = async () => {
         .map((e) => e.id)
       await clearTrash(idsToClear)
     } else {
-      await clearTrash(isFolderScoped ? currentFolderRemovedIds.value : undefined)
+      await clearTrash(isFolderScoped ? scopeIds : undefined)
     }
   }
 }
@@ -1154,6 +1217,7 @@ const confirmClearTrash = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   padding: 8px 16px;
   background-color: var(--bg-elevated);
   border-top: 1px solid var(--border-color);
@@ -1163,8 +1227,9 @@ const confirmClearTrash = async () => {
 
 .footer-left {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 12px;
+  min-width: 0;
   font-variant-numeric: tabular-nums;
 }
 

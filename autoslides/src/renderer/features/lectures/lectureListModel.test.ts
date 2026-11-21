@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { formatLectureVideoDisplayName, isLectureSubtitleExt, parseLectureVideoName } from '@common/lectureVideoNaming'
-import { buildLectureListGroups, shouldShowLectureListFileName } from './lectureListModel'
+import { buildLectureListGroups, isRenamableLectureFile, shouldShowLectureListFileName } from './lectureListModel'
 
 const file = (name: string) => {
   const parsed = parseLectureVideoName(name)
@@ -17,6 +17,13 @@ const file = (name: string) => {
 
 const stem = '测试_课程_第1周_星期三_第2大节'
 const legacy = (prefix: string, tail: string) => file(`${prefix}${stem}__c101s201${tail}`)
+
+it('allows Rename only for files with both a session and a stream type', () => {
+  const screen = legacy('screen_', '.mp4')
+  const slides = { ...legacy('slides_', ''), slidesFolder: { imageCount: 4, hasTimeline: true } }
+  expect([screen, legacy('screen_', '.srt'), slides, legacy('', '.aac'), file('camera_test.mp4')]
+    .filter(isRenamableLectureFile).map((item) => item.ext)).toEqual(['.mp4', '.srt'])
+})
 
 describe('buildLectureListGroups', () => {
   it('keeps every file in a fixed order within its session, independent of scan order', () => {

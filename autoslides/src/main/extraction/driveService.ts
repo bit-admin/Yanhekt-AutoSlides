@@ -68,18 +68,26 @@ export class DriveService {
   ) {}
 
   /** `Slide_*.png` files of a folder with size and modified time, in name order. */
-  private async slideStats(folderPath: string): Promise<DriveFileStat[]> {
+  private async slideStats(folderPath: string, strict = false): Promise<DriveFileStat[]> {
     let names: string[];
     try {
-      names = (await fs.readdir(folderPath)).filter(isSlideFile).sort();
-    } catch {
+      names = (await fs.readdir(folderPath, { withFileTypes: true }))
+        // Symlinks pass here; the stat below follows them and keeps only files.
+        .filter((entry) => (entry.isFile() || entry.isSymbolicLink()) && isSlideFile(entry.name))
+        .map((entry) => entry.name).sort();
+    } catch (error) {
+      if (strict) throw error;
       return [];
     }
     const stats = await Promise.all(names.map(async (name) => {
       try {
         const stat = await fs.stat(path.join(folderPath, name));
-        return stat.isFile() ? { name, size: stat.size, mtimeMs: stat.mtimeMs } : null;
-      } catch {
+        if (!stat.isFile()) return null;
+        return { name, size: stat.size, mtimeMs: stat.mtimeMs };
+      } catch (error) {
+        // A slide that vanished since the listing (trashed, moved, broken link)
+        // is left out even in strict mode; any other failure stops a strict scan.
+        if (strict && (error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
         return null;
       }
     }));
@@ -247,7 +255,8 @@ export class DriveService {
     emit();
 
     try {
-      const files = await this.slideStats(resolved);
+      const files = await this.slideStats(resolved, true);
+      if (files.length === 0) throw new Error('No extracted slides to share');
       const settled = await this.settleChanged(resolved, meta, files);
       const records = settled.drive?.files ?? {};
       const pending = files.filter((f) => driveFileState(records[f.name], f) !== 'uploaded');
@@ -262,12 +271,9 @@ export class DriveService {
           const file = pending[next++];
           try {
             const record = await this.uploadOne(resolved, file, records[file.name]);
-            if (record) {
-              await this.metadata.recordDriveUploads(resolved, { [file.name]: record });
-              job.progress.done++;
-            } else {
-              job.progress.failed++;
-            }
+            const saved = record && await this.metadata.recordDriveUploads(resolved, { [file.name]: record });
+            if (saved === 'written') job.progress.done++;
+            else job.progress.failed++;
           } catch (error) {
             job.progress.failed++;
             log.warn('Drive upload failed', file.name, error instanceof Error ? error.message : error);

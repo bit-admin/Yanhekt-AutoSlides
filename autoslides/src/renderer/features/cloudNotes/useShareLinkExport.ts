@@ -20,6 +20,8 @@ export interface ShareExportItem {
   downloaded: number
   /** Total images to write. */
   total: number
+  /** Referenced images that could not be resolved. */
+  missing: number
   /** Destination folder (resolved on conflict-check / prepare). */
   dir?: string
   /** Basename of the existing/destination folder (used for replace cleanup). */
@@ -112,7 +114,9 @@ export function useShareLinkExport() {
     }).catch(() => null)
     if (!recorded?.ok) log.warn('Clone metadata was not written', prep.data.dir)
     // JSON-clone: `row` is inside a ref (DataCloneError otherwise, CLAUDE.md).
-    if (row.timeline) {
+    // A partial clone compacts image numbers. The original timeline would
+    // associate some timestamps with the wrong images.
+    if (row.timeline && row.missing === 0) {
       try {
         await window.electronAPI.slideTimeline.write(prep.data.dir, JSON.parse(JSON.stringify(row.timeline)))
       } catch { /* best-effort */ }
@@ -134,7 +138,7 @@ export function useShareLinkExport() {
         sessionId: result.identity?.sessionId,
         liveId: result.identity?.liveId,
       }
-      const row: ShareExportItem = {
+      item.value = {
         title: result.title,
         displayName: shareImportDisplayName(result),
         identity,
@@ -142,10 +146,11 @@ export function useShareLinkExport() {
         status: 'pending',
         downloaded: 0,
         total: result.urls.length,
+        missing: result.missing,
         timeline: result.timeline ?? null,
         lectureMeta: result.lectureMeta ? JSON.parse(JSON.stringify(result.lectureMeta)) : null,
       }
-      item.value = row
+      const row = item.value
 
       if (row.urls.length === 0) { row.status = 'error'; row.error = 'empty'; return }
 

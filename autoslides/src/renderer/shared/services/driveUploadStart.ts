@@ -1,6 +1,5 @@
-// Starting Drive uploads from any page: sign-in check, the notice that uploads
-// are public and permanent (shown every time, nothing remembered), and leaving
-// out folders Drive does not recognise (no metadata.json).
+// Start sharing the folders the workspace selected after checking sign-in and
+// showing the public, permanent upload warning (every time, nothing remembered).
 import { tokenManager } from './authService'
 import { DriveUploads, type DriveUploadRow } from './driveUploadQueue'
 
@@ -42,24 +41,13 @@ function reportFailures(t: Translate): void {
   })
 }
 
-export interface DriveUploadCandidate {
-  path?: string
-  /** Whether the folder has metadata.json. */
-  recognised: boolean
-}
-
-/** Queue the folders; resolves with how many were queued (0 when the student declined or nothing qualified). */
-export async function startDriveUploads(t: Translate, folders: DriveUploadCandidate[]): Promise<number> {
-  const notify = (message: string) =>
-    window.electronAPI.dialog.showMessageBox({ type: 'info', message, buttons: [t('lectureOutputs.ok')] })
+/** Queue folders already checked for eligibility by the workspace. */
+export async function startDriveUploads(t: Translate, folderPaths: string[]): Promise<number> {
+  if (folderPaths.length === 0) return 0
   if (!tokenManager.getToken()) {
-    await notify(t('drive.signInRequired'))
-    return 0
-  }
-  const usable = folders.filter((f): f is DriveUploadCandidate & { path: string } => f.recognised && !!f.path)
-  const unrecognised = folders.length - usable.length
-  if (usable.length === 0) {
-    await notify(t('drive.noneRecognised'))
+    await window.electronAPI.dialog.showMessageBox({
+      type: 'info', message: t('drive.signInRequired'), buttons: [t('lectureOutputs.ok')],
+    })
     return 0
   }
   const answer = await window.electronAPI.dialog.showMessageBox({
@@ -74,7 +62,5 @@ export async function startDriveUploads(t: Translate, folders: DriveUploadCandid
   })
   if (answer.response !== 1) return 0
   reportFailures(t)
-  const added = DriveUploads.add(usable.map((f) => String(f.path)))
-  if (unrecognised > 0) await notify(t('drive.someUnrecognised', { count: unrecognised }))
-  return added
+  return DriveUploads.add(folderPaths)
 }

@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, utimes, writeFile } from 'fs/promises';
+import { mkdtemp, mkdir, rm, symlink, utimes, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -57,6 +57,16 @@ describe('DriveService', () => {
     const record = (await metadata.read(folder))?.drive?.files['Slide_002.png'];
     expect(record?.md5).toBe(md5Of(Buffer.from('two, cropped')));
     expect((record?.uploadedAt ?? '') <= (record?.updatedAt ?? '')).toBe(true);
+  });
+
+  it('shares symlinked slides and leaves out one whose target is gone', async () => {
+    const { root, folder, service, uploads } = await setup();
+    await writeFile(path.join(root, 'three.png'), 'three');
+    await symlink(path.join(root, 'three.png'), path.join(folder, 'Slide_003.png'));
+    await symlink(path.join(root, 'missing.png'), path.join(folder, 'Slide_004.png'));
+    const result = await service.uploadFolder(folder, () => {});
+    expect(result).toMatchObject({ ok: true, data: { phase: 'done', total: 3, done: 3 } });
+    expect([...uploads].sort()).toEqual(['Slide_001.png', 'Slide_002.png', 'Slide_003.png']);
   });
 
   it('stops and says so when the account is signed out mid-run', async () => {
@@ -139,6 +149,21 @@ describe('DriveService', () => {
     uploader.uploadImage.mockResolvedValueOnce({ url: 'https://coss.yanhekt.cn/images/2026/11/00000000000000000000000000000000.png' });
     const result = await service.uploadFolder(folder, () => {});
     expect(result).toMatchObject({ ok: true, data: { done: 1, failed: 1 } });
+  });
+
+  it('reports empty folders and upload records that could not be saved', async () => {
+    const { folder, service, metadata, uploads } = await setup();
+    for (const name of ['Slide_001.png', 'Slide_002.png']) await rm(path.join(folder, name));
+    expect(await service.uploadFolder(folder, () => {})).toMatchObject({
+      ok: true, data: { phase: 'error', error: 'No extracted slides to share' },
+    });
+    expect(uploads).toEqual([]);
+
+    await writeFile(path.join(folder, 'Slide_001.png'), 'one');
+    vi.spyOn(metadata, 'recordDriveUploads').mockResolvedValueOnce('blocked');
+    expect(await service.uploadFolder(folder, () => {})).toMatchObject({
+      ok: true, data: { done: 0, failed: 1, total: 1 },
+    });
   });
 
   it('refuses unrecognised folders and signed-out uploads', async () => {

@@ -25,6 +25,8 @@ export interface ResultsFolder {
   name: string
   path?: string
   activeCount: number
+  /** A failed scan is not evidence that the on-disk folder is empty. */
+  activeCountUnavailable?: boolean
   removedCount: number
   // Per-folder metadata (recorded extractions only); null/undefined = none.
   metadata?: SlideMetadata | null
@@ -50,6 +52,7 @@ export interface AutoCropActionSummary {
   noDetection: number
   deduped: number
   failed: number
+  restoreFailed: number
 }
 
 export interface BaselineCropActionSummary {
@@ -57,6 +60,7 @@ export interface BaselineCropActionSummary {
   outOfBounds: number
   deduped: number
   failed: number
+  restoreFailed: number
 }
 
 export interface DedupActionSummary {

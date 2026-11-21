@@ -69,6 +69,7 @@
             v-if="viewMode === 'list'"
             class="action-btn action-btn--secondary"
             :disabled="!canRename"
+            :aria-describedby="renameNoticeId"
             @click="openRename"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -83,7 +84,7 @@
         v-show="viewMode === 'list'"
         :is-select-mode="isSelectMode"
         :can-make-video="canMakeVideo"
-        :skipped="selectedSlideVideos.missingSlides + selectedSlideVideos.missingAudio"
+        :skip-notice-id="skipNoticeId"
         @start="onMakeVideoStart"
       />
 
@@ -168,8 +169,16 @@
 
       <div v-if="viewMode === 'list'" class="footer">
         <div class="footer-left">
-          <span v-if="isSelectMode">{{ $t('trash.selected') }}: {{ selectedPaths.length }} / {{ $t('trash.total') }}: {{ files.length }}</span>
-          <span v-else>{{ $t('trash.total') }}: {{ files.length }}</span>
+          <span v-if="isSelectMode" class="workspace-footer-count">{{ $t('trash.selected') }}: {{ selectedPaths.length }} / {{ $t('trash.total') }}: {{ files.length }}</span>
+          <span v-else class="workspace-footer-count">{{ $t('trash.total') }}: {{ files.length }}</span>
+          <div class="workspace-footer-notices">
+            <span v-for="notice in makeVideoNotices" :id="notice.id" :key="notice.id">
+              {{ $t(notice.key, { count: notice.count }) }}
+            </span>
+            <span v-if="renameNoticeId" :id="renameNoticeId">
+              {{ $t('lectures.renameSkipped', { count: renameSkippedCount }) }}
+            </span>
+          </div>
         </div>
         <label class="group-toggle">
           <input type="checkbox" v-model="groupByCourse" />
@@ -179,7 +188,7 @@
 
       <LectureRenameModal
         v-if="showRenameModal"
-        :items="selectedRecognised"
+        :items="renameTargets"
         :subtitles="subtitles"
         :existing-names="[...videos, ...subtitles].map((v) => v.name)"
         @close="showRenameModal = false"
@@ -223,7 +232,8 @@ const {
   showRenameModal,
   groups,
   selectedSlideVideos,
-  selectedRecognised,
+  renameTargets,
+  renameSkippedCount,
   queue,
   loadVideos,
   toggleSelectMode,
@@ -281,8 +291,24 @@ const canMakeVideo = computed(
   () => viewMode.value === 'list' && isSelectMode.value && selectedSlideVideos.value.targets.length > 0,
 )
 
+const makeVideoNotices = computed(() => {
+  if (!isSelectMode.value || viewMode.value !== 'list') return []
+  const { missingSlides, missingAudio, unlinkedFiles, targets } = selectedSlideVideos.value
+  const pendingFolders = queue.pendingFolders.value
+  const alreadyQueued = targets.filter((target) => pendingFolders.has(target.slidesFolder)).length
+  return [
+    { id: 'slide-video-export-note', key: 'lectures.makeVideoSkipped', count: missingSlides + missingAudio },
+    { id: 'slide-video-unlinked-note', key: 'lectures.makeVideoUnlinked', count: unlinkedFiles },
+    { id: 'slide-video-queued-note', key: 'lectures.makeVideoQueuedSelection', count: alreadyQueued },
+  ].filter((notice) => notice.count > 0)
+})
+const skipNoticeId = computed(() => makeVideoNotices.value.map((notice) => notice.id).join(' ') || undefined)
+const renameNoticeId = computed(
+  () => isSelectMode.value && renameSkippedCount.value > 0 ? 'lecture-rename-skip-note' : undefined,
+)
+
 const canRename = computed(
-  () => viewMode.value === 'list' && isSelectMode.value && selectedRecognised.value.length > 0,
+  () => viewMode.value === 'list' && isSelectMode.value && renameTargets.value.length > 0,
 )
 
 const setViewMode = (mode: LecturesViewMode) => {
@@ -597,7 +623,7 @@ onMounted(async () => {
 
 .footer-left {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 10px;
   min-width: 0;
   font-variant-numeric: tabular-nums;

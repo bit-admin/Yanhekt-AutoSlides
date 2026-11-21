@@ -17,6 +17,8 @@ export interface SlideVideoSelection {
   missingSlides: number
   /** Selected sessions with slides but neither a screen recording nor mic audio. */
   missingAudio: number
+  /** Selected files that cannot be matched to a lecture session. */
+  unlinkedFiles: number
 }
 
 const newest = (a: LectureVideoItem | undefined, b: LectureVideoItem): LectureVideoItem =>
@@ -32,9 +34,12 @@ const sessionKey = (item: LectureVideoItem): string | null =>
 export function slideVideoTargets(files: LectureVideoItem[], selectedPaths: string[]): SlideVideoSelection {
   const selected = new Set(selectedPaths)
   const wanted = new Set<string>()
+  let unlinkedFiles = 0
   for (const item of files) {
-    const key = selected.has(item.path) ? sessionKey(item) : null
+    if (!selected.has(item.path)) continue
+    const key = sessionKey(item)
     if (key) wanted.add(key)
+    else unlinkedFiles += 1
   }
 
   const sessions = new Map<string, { folder?: LectureVideoItem; screen?: LectureVideoItem; mic?: LectureVideoItem }>()
@@ -55,7 +60,7 @@ export function slideVideoTargets(files: LectureVideoItem[], selectedPaths: stri
     }
   }
 
-  const result: SlideVideoSelection = { targets: [], missingSlides: 0, missingAudio: 0 }
+  const result: SlideVideoSelection = { targets: [], missingSlides: 0, missingAudio: 0, unlinkedFiles }
   for (const [key, session] of sessions) {
     if (!session.folder) result.missingSlides += 1
     else if (!session.screen && !session.mic) result.missingAudio += 1

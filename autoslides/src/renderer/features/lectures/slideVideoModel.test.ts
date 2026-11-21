@@ -39,7 +39,19 @@ describe('slideVideoTargets', () => {
       }],
       missingSlides: 0,
       missingAudio: 0,
+      unlinkedFiles: 0,
     })
+  })
+
+  it('counts only selected unlinked files and counts each linked session once', () => {
+    const unlinked = file('untitled.mp4')
+    const courseOnly = file('screen_test__c1.mp4')
+    const noSlides = file('screen_test__c1s20.mp4')
+    const noSlidesSubtitle = file('screen_test__c1s20.srt')
+    const files = [slides, screen, unlinked, courseOnly, noSlides, noSlidesSubtitle]
+    const result = slideVideoTargets(files, [screen, unlinked, noSlides, noSlidesSubtitle].map((item) => item.path))
+    expect(result.targets.map((target) => target.key)).toEqual(['1:10'])
+    expect(result).toMatchObject({ missingSlides: 1, missingAudio: 0, unlinkedFiles: 1 })
   })
 
   it('needs a timeline and some audio', () => {

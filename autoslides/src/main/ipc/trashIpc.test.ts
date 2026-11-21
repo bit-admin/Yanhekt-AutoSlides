@@ -44,6 +44,7 @@ describe('restoring from the trash', () => {
     expect(await restoreTrash(services, ['a/Slide_001.png', 'b/Slide_002.png'], '/out')).toEqual({
       restored: 1,
       failed: 1,
+      restoredIds: ['a/Slide_001.png'],
     });
     expect(staged).toEqual(['/out/a']);
     expect(timeline).toEqual(['/out/a/Slide_001.png']);
@@ -60,7 +61,9 @@ describe('restoring from the trash', () => {
 
   it('still reports the restore when the timeline cannot be updated', async () => {
     const { services, timeline } = deps({ restored: [entry('a', 'Slide_001.png')], failed: [] }, true);
-    expect(await restoreTrash(services, ['a/Slide_001.png'], '/out')).toEqual({ restored: 1, failed: 0 });
+    expect(await restoreTrash(services, ['a/Slide_001.png'], '/out')).toEqual({
+      restored: 1, failed: 0, restoredIds: ['a/Slide_001.png'],
+    });
     expect(timeline).toHaveLength(1);
   });
 });

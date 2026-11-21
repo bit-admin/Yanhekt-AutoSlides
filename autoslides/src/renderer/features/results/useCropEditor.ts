@@ -496,7 +496,8 @@ export function useCropEditor(deps: CropEditorDeps) {
       targetPath = item.imagePath
     } else if (item.status === 'removed' && item.reason === 'ai_filtered_edit' && item.originalPath) {
       try {
-        await window.electronAPI.trash.restore([item.id])
+        const { restoredIds } = await window.electronAPI.trash.restore([item.id])
+        if (!restoredIds.includes(item.id)) throw new Error('The slide was not restored')
         targetPath = item.originalPath
       } catch (error) {
         log.error('Failed to restore item before crop:', error)

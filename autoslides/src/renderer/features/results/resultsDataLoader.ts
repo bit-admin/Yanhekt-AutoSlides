@@ -91,7 +91,7 @@ export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSumm
 
   const activeCounts = await Promise.all(
     activeFolderList.map(async (folder) => {
-      let count = 0;
+      let count: number | undefined;
       try {
         const images = await io.getImages(folder.path);
         count = images.length;
@@ -114,7 +114,8 @@ export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSumm
     folderMap.set(folder.name, {
       name: folder.name,
       path: folder.path,
-      activeCount: count,
+      activeCount: count ?? 0,
+      activeCountUnavailable: count === undefined,
       removedCount: 0,
       metadata,
       ...(driveCounts.has(folder.name) ? { drive: driveCounts.get(folder.name) } : {}),

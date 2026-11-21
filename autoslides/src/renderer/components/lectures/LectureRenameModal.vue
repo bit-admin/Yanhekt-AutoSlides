@@ -88,6 +88,7 @@ import {
   hydrateCourseMetas,
   type LectureCourseMeta,
 } from '@features/lectures/lectureCourseMetaCache'
+import { isRenamableLectureFile } from '@features/lectures/lectureListModel'
 import { DEFAULT_RENAME } from '@features/lectures/lecturePrefs'
 import type { LectureVideoItem } from '@features/lectures/useLecturesPage'
 import { overrides } from '@shared/overrideRegistry'
@@ -163,10 +164,7 @@ interface PreviewRow {
 const lectureKey = (item: LectureVideoItem) =>
   `${item.courseId}:${item.sessionId}:${item.videoType}`
 
-const renamable = (item: LectureVideoItem) =>
-  item.recognised && !!item.courseId && !!item.sessionId && !!item.videoType
-
-const videoItems = computed(() => props.items.filter((item) => !item.isSubtitle && renamable(item)))
+const videoItems = computed(() => props.items.filter((item) => !item.isSubtitle && isRenamableLectureFile(item)))
 
 const selectedPaths = computed(() => new Set(props.items.map((item) => item.path)))
 
@@ -175,7 +173,7 @@ const subtitlesByVideo = computed(() => {
   const wanted = new Set(videoItems.value.map(lectureKey))
   const map = new Map<string, LectureVideoItem[]>()
   for (const subtitle of props.subtitles) {
-    if (!renamable(subtitle)) continue
+    if (!isRenamableLectureFile(subtitle)) continue
     const key = lectureKey(subtitle)
     if (!wanted.has(key)) continue
     map.set(key, [...(map.get(key) ?? []), subtitle])
@@ -257,7 +255,7 @@ const previews = computed<PreviewRow[]>(() => {
 
   // Subtitle files selected without their video are renamed on their own.
   const alone = props.items
-    .filter((item) => item.isSubtitle && renamable(item) && !followed.has(lectureKey(item)))
+    .filter((item) => item.isSubtitle && isRenamableLectureFile(item) && !followed.has(lectureKey(item)))
     .map((subtitle) => claim(subtitle, targetName(subtitle)))
 
   return [...rows, ...alone]
