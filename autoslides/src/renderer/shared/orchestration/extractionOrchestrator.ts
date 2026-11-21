@@ -150,6 +150,15 @@ export class ExtractionOrchestrator {
   }
 
   /**
+   * A retried download brings back the extraction its failure cancelled, with
+   * the settings frozen when it was queued. Only that cancel records an error;
+   * a student's own Cancel Extraction does not, and stays cancelled.
+   */
+  restoreAfterDownloadRetry(item: DownloadItem): void {
+    this.apply(item, { type: 'DOWNLOAD_RETRIED', cancelledByDownload: !!item.extractionError })
+  }
+
+  /**
    * Subscribe to global IPC events. Called once on first activation.
    */
   private attachListeners(): void {

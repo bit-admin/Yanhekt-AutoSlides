@@ -219,11 +219,28 @@ class TaskQueueService {
     this.state.activeTaskIds = []
   }
 
-  // Clear completed and error tasks
-  clearCompleted(): void {
+  /** A row that will still write: waiting, running, or its post-processing is not done. */
+  private isUnfinished(task: TaskItem): boolean {
+    if (task.status === 'queued' || task.status === 'in_progress') return true
+    const job = task.postProcessJobId ? PostProcessingService.getJob(task.postProcessJobId) : undefined
+    return job?.status === 'queued' || job?.status === 'processing'
+  }
+
+  /** Whether this lecture still has a task row that will write. */
+  isLectureBusy(sessionId: string): boolean {
+    return this.state.tasks.some(task => String(task.sessionId) === String(sessionId) && this.isUnfinished(task))
+  }
+
+  /** Drop this lecture's finished rows, so a requested fresh run can be queued. */
+  dropFinishedLecture(sessionId: string): void {
     this.state.tasks = this.state.tasks.filter(
-      task => task.status !== 'completed' && task.status !== 'error'
+      task => String(task.sessionId) !== String(sessionId) || this.isUnfinished(task)
     )
+  }
+
+  // Clear completed and error tasks whose post-processing is also done
+  clearCompleted(): void {
+    this.state.tasks = this.state.tasks.filter(task => this.isUnfinished(task))
   }
 
   // Remove specific task

@@ -2031,7 +2031,10 @@
     "batchDownloadAgainDetail": "Downloading again moves their current files to the system bin first.",
     "reextractThese": "Re-extract These",
     "downloadTheseAgain": "Download These Again",
-    "retireFailed": "{count} lecture was not redone because its output could not be moved to the system bin. | {count} lectures were not redone because their output could not be moved to the system bin."
+    "retireFailed": "{count} lecture was not redone because its output could not be moved to the system bin. | {count} lectures were not redone because their output could not be moved to the system bin.",
+    "redoFailedTitle": "Could Not Redo Lecture",
+    "redoBusy": "{count} lecture was left unchanged because it is still in the queue. | {count} lectures were left unchanged because they are still in the queue.",
+    "redoNotQueued": "{count} lecture's old output is in the system bin, but its new run was not queued. | {count} lectures' old outputs are in the system bin, but their new runs were not queued."
   },
   "drive": {
     "uploadToDrive": "Share Slides",

@@ -2031,7 +2031,10 @@
     "batchDownloadAgainDetail": "重新下载会先把它们现有的文件移到系统废纸篓。",
     "reextractThese": "重新提取这些课",
     "downloadTheseAgain": "重新下载这些课",
-    "retireFailed": "有 {count} 节无法移到系统废纸篓，因此没有重新处理。"
+    "retireFailed": "有 {count} 节无法移到系统废纸篓，因此没有重新处理。",
+    "redoFailedTitle": "无法重新处理",
+    "redoBusy": "有 {count} 节仍在队列中，未作更改。",
+    "redoNotQueued": "有 {count} 节的旧输出已移到系统废纸篓，但新任务未能加入队列。"
   },
   "drive": {
     "uploadToDrive": "分享幻灯片",

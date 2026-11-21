@@ -8,6 +8,7 @@ vi.mock('./authService', () => ({ tokenManager: { getToken: () => '' } }))
 vi.mock('./configStore', () => ({ configStore: {} }))
 vi.mock('./extractionQueueService', () => ({ ExtractionQueue: {
   setJobProvider: vi.fn(), markPendingIfApplicable: vi.fn(), ensureWorker: vi.fn(), notifyChange: vi.fn(),
+  restoreAfterDownloadRetry: vi.fn(),
 } }))
 vi.mock('@shared/utils/logger', () => ({ createLogger: () => ({ debug: vi.fn(), error: vi.fn() }) }))
 
@@ -71,4 +72,18 @@ it('can finish a single-stage audio download with no content length', async () =
   expect(item).toMatchObject({ status: 'downloading', progress: 0 })
   complete('/test/recording.aac')
   expect(item).toMatchObject({ status: 'completed', progress: 100 })
+})
+
+it('Clear keeps a finished download whose extraction is waiting or running', async () => {
+  const { item, complete } = await queue('camera')
+  complete('/out/video.mp4')
+  const row = DownloadService.downloadItems.find((entry) => entry.id === item.id)!
+  for (const status of ['pending', 'extracting', 'normalizing', 'post_processing'] as const) {
+    row.extractionStatus = status
+    DownloadService.clearCompleted()
+    expect(DownloadService.downloadItems).toContain(row)
+  }
+  row.extractionStatus = 'completed'
+  DownloadService.clearCompleted()
+  expect(DownloadService.downloadItems).not.toContain(row)
 })
