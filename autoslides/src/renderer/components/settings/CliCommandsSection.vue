@@ -141,7 +141,8 @@
               <span class="cli-usage">
                 <code>{{ row.code }}</code>
                 <span v-if="row.argKey" class="cli-arg">&lt;{{ $t(row.argKey) }}&gt;</span>
-                <span v-else-if="row.arg" class="cli-arg">&lt;{{ row.arg }}&gt;</span>
+                <!-- A long list of choices wraps after a `|`, inside its own column. -->
+                <span v-else-if="row.arg" class="cli-arg">&lt;<template v-for="(choice, index) in row.arg.split('|')" :key="choice"><template v-if="index > 0">|<wbr /></template>{{ choice }}</template>&gt;</span>
               </span>
               <span class="cli-usage-description">{{ $t(row.descriptionKey) }}</span>
             </div>
@@ -470,6 +471,7 @@ onMounted(async () => {
   min-width: 0;
   font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
   color: var(--text-primary);
+  overflow-wrap: anywhere;
   user-select: text;
 }
 

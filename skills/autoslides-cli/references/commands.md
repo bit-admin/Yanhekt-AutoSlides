@@ -54,7 +54,7 @@ Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `c
 
 ### `yanhe2`
 
-Yanhe 2.0 as the account signed in to the app. That account needs a Yanhe 2.0 session; without one, every action but `status` fails with `yanhe2_sign_in_required` (exit 4). The command never starts a sign-in. Ids are Yanhe 2.0's own.
+Yanhe 2.0 as the account signed in to the app. That account needs a Yanhe 2.0 session; without one, every action but `status` fails with `yanhe2_sign_in_required` (exit 4). The command never starts a sign-in. Ids are Yanhe 2.0's own, and links are not accepted.
 
 | Action | Arguments and options | `data` |
 |---|---|---|

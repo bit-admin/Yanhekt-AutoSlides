@@ -42,7 +42,7 @@ Progress and notices go to stderr; ignore them or show them to the user. Branch 
 
 ## Ids and links
 
-- Courses and sessions are numbers. A Yanhekt link works anywhere the id does: `https://www.yanhekt.cn/course/<id>`, `https://www.yanhekt.cn/session/<id>`.
+- Courses and sessions are numbers. Outside `yanhe2`, a Yanhekt link works anywhere the id does: `https://www.yanhekt.cn/course/<id>`, `https://www.yanhekt.cn/session/<id>`. `yanhe2` takes ids only, no links.
 - A bare number means whatever the command expects: a course for `course`, a session for `session` and `download`. Use `download --course <id>` for a whole course.
 - `download -` reads session ids from stdin, one per line.
 
@@ -72,6 +72,10 @@ autoslides yanhe2 status --json
 autoslides yanhe2 mine --json
 autoslides yanhe2 course 70101 --json
 autoslides yanhe2 download 70101 850101 --stream both --json
+
+# Yanhe 2.0 Calendar: your classes this week, or one page of every class that day
+autoslides yanhe2 calendar --json
+autoslides yanhe2 calendar 2026-09-21 --all --limit 20 --page 1 --json
 
 # Settings the commands follow
 autoslides config --json
