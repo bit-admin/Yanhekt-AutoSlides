@@ -2,8 +2,22 @@
   <!-- Slides → Clone Slides from Link: rebuild a slides folder from a share link. -->
   <div class="modal-overlay" @click.self="onOverlay">
     <div v-dialog="{ close: onOverlay, busy: busy() }" class="dialog-box clone-box" @click.stop>
-      <h3 class="dialog-title">{{ $t('lectures.cloneModalTitle') }}</h3>
-      <p class="dialog-help">{{ $t('lectures.cloneModalHint') }}</p>
+      <template v-if="browserUrl">
+        <h3 class="dialog-title">{{ $t('lectures.cloneNoLectureTitle') }}</h3>
+        <p class="dialog-help">{{ $t('lectures.cloneNoLectureBody') }}</p>
+        <div class="dialog-actions">
+          <button type="button" class="btn dialog-btn" @click="browserUrl = ''">
+            {{ $t('trash.cancel') }}
+          </button>
+          <button type="button" class="btn btn--primary dialog-btn" @click="openInBrowser">
+            {{ $t('lectures.cloneOpenInBrowser') }}
+          </button>
+        </div>
+      </template>
+
+      <template v-else>
+        <h3 class="dialog-title">{{ $t('lectures.cloneModalTitle') }}</h3>
+        <p class="dialog-help">{{ $t('lectures.cloneModalHint') }}</p>
 
       <template v-if="!shareExp.item.value">
         <input
@@ -95,6 +109,7 @@
           </button>
         </div>
       </template>
+      </template>
     </div>
   </div>
 </template>
@@ -103,7 +118,7 @@
 import { vDialog } from '@shared/ui/dialog'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { parseShareLink } from '@common/shareLink'
+import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
 import { useShareLinkExport, type ShareExportItem } from '@features/cloudNotes/useShareLinkExport'
 
 const emit = defineEmits<{
@@ -117,6 +132,21 @@ const link = ref('')
 const error = ref('')
 const resolving = ref(false)
 const inputEl = ref<HTMLInputElement | null>(null)
+/** Set when the link names no lecture: the viewer page to offer instead of a clone. */
+const browserUrl = ref('')
+
+/** Rebuilt on our own origin, so a pasted link can never open some other site. */
+function viewerUrl(raw: string): string {
+  const parsed = parseShareLink(raw)
+  if (parsed?.shortId) return `${SHARE_ORIGIN}${SHARE_PATH}/s/${parsed.shortId}`
+  return parsed?.fragment ? `${SHARE_ORIGIN}${SHARE_PATH}/#${parsed.fragment}` : ''
+}
+
+function openInBrowser(): void {
+  void window.electronAPI.shell.openExternal(browserUrl.value)
+  browserUrl.value = ''
+  emit('close')
+}
 
 onMounted(() => {
   void nextTick(() => inputEl.value?.focus())
@@ -173,7 +203,9 @@ async function onClone(): Promise<void> {
     // gives a slides-only folder.
     const res = await window.electronAPI.cloudNotes.resolveShareLink(raw)
     if (!res.ok) {
-      error.value = errorForResolve(res.error)
+      const url = res.error === 'share-link-no-lecture' ? viewerUrl(raw) : ''
+      if (url) browserUrl.value = url
+      else error.value = errorForResolve(res.error)
       return
     }
     if (res.data.urls.length === 0) {
@@ -192,6 +224,10 @@ function busy(): boolean {
 
 function onOverlay(): void {
   if (busy()) return
+  if (browserUrl.value) {
+    browserUrl.value = ''
+    return
+  }
   if (shareExp.item.value?.status === 'conflict') return
   finish(shareExp.item.value?.status === 'done')
 }

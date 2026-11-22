@@ -155,6 +155,17 @@ describe('Share through the cloudNotes bridge', () => {
     ]);
   });
 
+  it('declines a link that names no session or live lecture, before reading COSS', async () => {
+    const send = setup(null);
+    const images = { v: 2 as const, p: payload.p, n: payload.n, h: payload.h };
+    for (const link of [buildShareUrl(images), buildShareUrl({ ...images, c: '1' })]) {
+      await expect(cloudNotes.resolveShareLink(link))
+        .resolves.toEqual({ ok: false, error: 'share-link-no-lecture' });
+    }
+    expect(send).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('asks COSS for a folder\'s one distinct hash alone', async () => {
     const send = setup(null);
     const single = buildShareUrl({ ...payload, v: 2, t: undefined, h: 'abcdef0abcdef0' });

@@ -379,6 +379,9 @@ export class ShareService {
 
     const payload = decodeSharePayload(fragment);
     if (!payload) throw new Error('invalid-share-link');
+    // A clone is filed by its lecture. Without one, every clone would land in
+    // the same `slides` folder; the renderer offers the browser viewer instead.
+    if (!payload.s && !payload.l) throw new Error('share-link-no-lecture');
 
     const identity = { courseId: payload.c, sessionId: payload.s, liveId: payload.l };
     const [resolved, workerMeta, ownTitles] = await Promise.all([
