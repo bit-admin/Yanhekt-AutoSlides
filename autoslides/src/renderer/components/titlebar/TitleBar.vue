@@ -130,25 +130,34 @@
         </svg>
         <span class="tab-chip-label">{{ infoTabLabel }}</span>
       </button>
-      <button
+      <!-- Open and Close are sibling buttons; Open's hit area fills the chip. -->
+      <div
         v-for="tab in visibleTabs"
         :key="tab.id"
-        :class="['tab-chip', { active: tabStore.state.activeTabId === tab.id }]"
-        @click="tabStore.activateTab(tab.id)"
-        @keydown.delete.prevent="isTabClosable(tab) && tabStore.closeTab(tab.id)"
-        :title="tab.title"
-        :aria-label="tab.title"
-        :aria-keyshortcuts="isTabClosable(tab) ? 'Delete' : undefined"
-        :aria-current="tabStore.state.activeTabId === tab.id ? 'page' : undefined"
+        :class="['tab-chip', 'tab-chip--split', { active: tabStore.state.activeTabId === tab.id }]"
+        @keydown.delete.prevent="closeChip(tab)"
       >
-        <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
-        <span class="tab-chip-label">{{ tab.title }}</span>
-        <span
+        <button
+          type="button"
+          class="tab-chip-main"
+          @click="tabStore.activateTab(tab.id)"
+          :title="tab.title"
+          :aria-label="tab.title"
+          :aria-keyshortcuts="isTabClosable(tab) ? 'Delete' : undefined"
+          :aria-current="tabStore.state.activeTabId === tab.id ? 'page' : undefined"
+        >
+          <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
+          <span class="tab-chip-label">{{ tab.title }}</span>
+        </button>
+        <button
+          type="button"
           :class="['tab-chip-close', { disabled: !isTabClosable(tab) }]"
-          @click.stop="isTabClosable(tab) && tabStore.closeTab(tab.id)"
+          :disabled="!isTabClosable(tab)"
+          @click="closeChip(tab, $event)"
           :title="isTabClosable(tab) ? $t('tabs.close') : $t('tabs.closeDisabledTask')"
-        >×</span>
-      </button>
+          :aria-label="`${isTabClosable(tab) ? $t('tabs.close') : $t('tabs.closeDisabledTask')}: ${tab.title}`"
+        >×</button>
+      </div>
 
       <!-- Overflow: tabs that don't fit live in a dropdown opened by this chip.
            The menu is teleported to <body> so it escapes the strip's
@@ -192,24 +201,32 @@
         :style="overflowMenuStyle"
         @click.stop
       >
-        <button
+        <div
           v-for="tab in overflowTabs"
           :key="tab.id"
           :class="['tab-overflow-item', { active: tabStore.state.activeTabId === tab.id }]"
-          @click="selectOverflowTab(tab.id)"
-          @keydown.delete.prevent="isTabClosable(tab) && tabStore.closeTab(tab.id)"
-          :title="tab.title"
-          :aria-label="tab.title"
-          :aria-keyshortcuts="isTabClosable(tab) ? 'Delete' : undefined"
+          @keydown.delete.prevent="closeChip(tab)"
         >
-          <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
-          <span class="tab-overflow-item-label">{{ tab.title }}</span>
-          <span
+          <button
+            type="button"
+            class="tab-chip-main"
+            @click="selectOverflowTab(tab.id)"
+            :title="tab.title"
+            :aria-label="tab.title"
+            :aria-keyshortcuts="isTabClosable(tab) ? 'Delete' : undefined"
+          >
+            <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
+            <span class="tab-overflow-item-label">{{ tab.title }}</span>
+          </button>
+          <button
+            type="button"
             :class="['tab-chip-close', { disabled: !isTabClosable(tab) }]"
-            @click.stop="isTabClosable(tab) && tabStore.closeTab(tab.id)"
+            :disabled="!isTabClosable(tab)"
+            @click="closeChip(tab, $event)"
             :title="isTabClosable(tab) ? $t('tabs.close') : $t('tabs.closeDisabledTask')"
-          >×</span>
-        </button>
+            :aria-label="`${isTabClosable(tab) ? $t('tabs.close') : $t('tabs.closeDisabledTask')}: ${tab.title}`"
+          >×</button>
+        </div>
       </div>
     </Teleport>
 
@@ -538,6 +555,16 @@ const toggleOverflow = () => {
 const selectOverflowTab = (id: string) => {
   tabStore.activateTab(id);
   showOverflow.value = false;
+};
+
+/** A keyboard close leaves focus on the tab now showing, not on nothing. */
+const closeChip = async (tab: PlaybackTab, click?: MouseEvent) => {
+  if (!isTabClosable(tab)) return;
+  tabStore.closeTab(tab.id);
+  if (click && click.detail > 0) return;
+  await nextTick();
+  const active = infoRef.value?.parentElement?.querySelector<HTMLElement>('.tab-chip.active .tab-chip-main');
+  (active ?? infoRef.value)?.focus();
 };
 
 let stripObserver: ResizeObserver | null = null;
@@ -1264,12 +1291,61 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   background-color: var(--text-muted);
 }
 
+.tab-chip--split,
+.tab-overflow-item {
+  position: relative;
+  box-sizing: border-box;
+}
+
+.tab-chip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tab-overflow-item .tab-chip-main {
+  gap: 8px;
+}
+
+/* The whole chip opens the tab; Close sits above this layer. */
+.tab-chip-main::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+}
+
+.tab-chip-main:focus-visible {
+  outline: none;
+}
+
+.tab-chip-main:focus-visible::after {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .tab-chip-close {
+  position: relative;
+  z-index: var(--z-base);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 16px;
   height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
   border-radius: 4px;
   font-size: 15px;
   line-height: 1;
@@ -1280,6 +1356,11 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
 .tab-chip-close:hover {
   background-color: var(--bg-subtle);
   color: var(--text-primary);
+}
+
+.tab-chip-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
 }
 
 /* Task tabs can't be closed while the task is running (mirrors the disabled
