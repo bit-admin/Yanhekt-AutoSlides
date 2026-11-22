@@ -39,6 +39,7 @@ export { RendererBridge } from './control/rendererBridge';
 export { controlSocketPath } from './control/protocol';
 export { launchApp } from './control/client';
 export { EXIT as CLI_EXIT } from './errors';
+export { flushOutput as flushCliOutput } from './terminal';
 export type { CliContext } from './types';
 
 function schemaCommand(mode: CliMode): CliCommand {

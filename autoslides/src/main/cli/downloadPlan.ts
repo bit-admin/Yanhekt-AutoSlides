@@ -173,7 +173,7 @@ export function plannedFile(outputDir: string, lecture: Lecture, stream: CliStre
 }
 
 /** The run's error when any item failed: one reason keeps its own exit code (3 for not found…); a mix is 1. */
-export function failureOf(items: readonly Item[], noun = 'downloads'): CliError | undefined {
+export function failureOf(items: readonly Pick<Item, 'status' | 'error'>[], noun = 'downloads'): CliError | undefined {
   const failed = items.filter((i) => i.status === 'failed');
   if (failed.length === 0) return undefined;
   const codes = new Set(failed.map((i) => i.error?.code ?? 'failed'));

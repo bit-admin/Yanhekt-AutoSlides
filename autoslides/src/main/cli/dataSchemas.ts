@@ -134,6 +134,8 @@ const downloadRow = obj(
     course_title: str,
     session_title: str,
     kind: oneOfStrings('screen', 'camera', 'audio'),
+    source: oneOfStrings('yanhekt', 'yanhe2'),
+    yanhe2: orNull(obj({ course_id: str, session_id: str })),
     status: oneOfStrings('queued', 'downloading', 'processing', 'completed', 'failed', 'cancelled', 'removed'),
     progress: num,
     path: strOrNull,
@@ -151,6 +153,76 @@ export const DOWNLOADS_SCHEMA = {
     obj({ output_dir: strOrNull, items: list(downloadRow) }),
     obj({ action: oneOfStrings('cancel', 'retry'), items: list({ allOf: [downloadRow, obj({ changed: bool })] }) }),
     obj({ removed: int }),
+  ],
+};
+
+const yanhe2Course = obj({ id: str, title: str, teacher: str, college: str, term: str });
+const yanhe2Session = obj({
+  id: str,
+  course_id: str,
+  title: str,
+  subtitle: str,
+  teacher: str,
+  room: str,
+  started_at: strOrNull,
+  ended_at: strOrNull,
+  status: oneOfStrings('upcoming', 'live', 'processing', 'playable', 'ended', 'unknown'),
+});
+const yanhe2Page = { page: int, last_page: int, total: int, courses: list(yanhe2Course) };
+const yanhe2Item = obj(
+  {
+    item_id: strOrNull,
+    course_id: str,
+    session_id: str,
+    course_title: strOrNull,
+    session_title: strOrNull,
+    stream: orNull(oneOfStrings('screen', 'camera', 'audio')),
+    status: oneOfStrings('downloaded', 'skipped', 'planned', 'queued', 'failed'),
+    path: strOrNull,
+    error: obj({ code: str, message: str }),
+  },
+  ['error'],
+);
+
+/** One shape per `yanhe2` action; a bare `yanhe2` answers with the action names. */
+export const YANHE2_SCHEMA = {
+  anyOf: [
+    obj({ actions: list(str) }),
+    obj({ signed_in: bool, account: strOrNull, badge: strOrNull, expires_at: strOrNull }),
+    obj({ terms: list(obj({ id: str, name: str, current: bool })) }),
+    obj({ keyword: str, term_id: strOrNull, ...yanhe2Page }),
+    obj({ account: strOrNull, ...yanhe2Page }),
+    obj({ course: yanhe2Course, sessions: list(yanhe2Session), note: str }, ['note']),
+    obj({
+      session: obj({
+        id: str,
+        course_id: str,
+        title: str,
+        subtitle: str,
+        teacher: str,
+        room: str,
+        started_at: strOrNull,
+        ended_at: strOrNull,
+        duration: num,
+        status: oneOfStrings('upcoming', 'live', 'processing', 'playable', 'ended', 'unknown'),
+        streams: obj({ screen: bool, camera: bool, mic: bool }),
+      }),
+    }),
+    obj({
+      view: { const: 'all_courses' },
+      date: str,
+      page: int,
+      last_page: int,
+      total: int,
+      periods: list(obj({ name: str, begin: str, end: str, sessions: list(yanhe2Session) })),
+    }),
+    obj({
+      view: { const: 'my_courses' },
+      start: str,
+      end: str,
+      days: list(obj({ date: str, sessions: list(yanhe2Session) })),
+    }),
+    obj({ output_dir: str, dry_run: bool, waited: bool, items: list(yanhe2Item) }),
   ],
 };
 

@@ -31,8 +31,14 @@ describe('the Download panel rows the command line sees', () => {
     item({ id: 'subtitles', videoType: 'subtitles' }),
   ]
 
-  it('are the Yanhekt streams and mic stem only, whatever the session id says', () => {
-    expect(queue.filter(isCliItem).map((i) => i.id)).toEqual(['screen', 'camera', 'audio'])
+  it('are the recordings of both sites, never a transcript or Developer media', () => {
+    const dev = item({ id: 'dev', videoType: 'screen', devMedia: { url: 'https://example.invalid/a.mp4', account: 'a', outputName: 'a' } } as Partial<DownloadItem> & Pick<DownloadItem, 'id' | 'videoType'>)
+    expect([...queue, dev].filter(isCliItem).map((i) => i.id)).toEqual(['screen', 'camera', 'audio', 'y2-screen', 'y2-camera', 'y2-audio', 'y2-only'])
+  })
+
+  it('say which site a row comes from, with its Yanhe 2.0 ids', () => {
+    const row = listed(item({ id: 'y', videoType: 'screen', sessionId: '', yanhe2 }) as CliItem)
+    expect(row).toMatchObject({ source: 'yanhe2', sessionId: '', yanhe2: { courseId: '9001', sessionId: '9101' } })
   })
 
   it('are told as plain values', () => {
@@ -43,6 +49,8 @@ describe('the Download panel rows the command line sees', () => {
       progress: 0,
       error: 'HTTP 500',
       kind: 'screen',
+      source: 'yanhekt',
+      yanhe2: null,
       name: 'screen_课程-第1讲',
       sessionId: '850101',
       courseId: '70101',

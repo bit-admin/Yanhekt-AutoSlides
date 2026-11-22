@@ -66,7 +66,8 @@ import { useAuth, type SmsChallengeState } from '@features/platform/useAuth'
 import { useSettings } from '@features/settings/useSettings'
 import { useAdvancedSettings } from '@features/settings/useAdvancedSettings'
 import { useCacheManagement } from '@features/platform/useCacheManagement'
-import { reloadYanhe2JwtField } from '@features/platform/yanhe2AccountUi'
+import { reloadYanhe2JwtField, whenYanhe2SessionSettled } from '@features/platform/yanhe2AccountUi'
+import { queueYanhe2Stream } from '@features/yanhe2/yanhe2Download'
 import { useAISettings } from '@features/ai/useAISettings'
 import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import { settingsContextKey } from '@features/settings/settingsContext'
@@ -447,7 +448,10 @@ onMounted(() => {
   window.addEventListener('resize', updateSizes)
 
   // `autoslides` commands: answer main once the app (and its queue) is up.
-  const uninstallCliControl = installCliControlHandler()
+  const uninstallCliControl = installCliControlHandler({
+    whenSessionSettled: whenYanhe2SessionSettled,
+    queueStream: queueYanhe2Stream,
+  })
   // `autoslides://` links: main holds one until this says it is ready.
   const uninstallDeepLink = installDeepLinkHandler()
 

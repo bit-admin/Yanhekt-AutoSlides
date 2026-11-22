@@ -26,7 +26,7 @@ const TOKEN_OPTIONS: OptionSpec[] = [
 ];
 
 /** Every option a command accepts, in help order. */
-export function commandOptions(command: CliCommand): OptionSpec[] {
+export function commandOptions(command: Omit<CliCommand, 'run'>): OptionSpec[] {
   return [
     ...command.options,
     ...(command.tokenUse ? TOKEN_OPTIONS : []),
@@ -51,6 +51,7 @@ const INTRO: Record<CliMode, string[]> = {
     'Drive the AutoSlides app. Commands run inside the app, which starts if it',
     'is not running and must be signed in to Yanhekt. They follow its settings:',
     'network route, anonymous requests, output folder, auto-extraction.',
+    'Yanhe 2.0 is under its own command, \'yanhe2\', because its ids are separate.',
   ],
 };
 
@@ -58,7 +59,7 @@ const EXIT_LINE = 'Exit codes: 0 ok, 1 failed, 2 usage, 3 not found, 4 sign-in n
 
 const fill = (text: string, program: string): string => text.replace(/\{program\}/g, program);
 
-export function commandHelp(id: string, command: CliCommand, program: string): string {
+export function commandHelp(id: string, command: Omit<CliCommand, 'run'>, program: string): string {
   const options = commandOptions(command);
   const width = Math.max(...options.map((o) => optionLabel(o).length));
   return [
@@ -108,7 +109,7 @@ const AUTH: Record<CliMode, object> = {
     note: 'A token is read only when a request needs one: the personal lists (a course\'s sessions for course and download --course, the account\'s courses for mine), search when it reads the AutoSlides Index online, and session or download for an earlier term\'s session, which Yanhekt no longer serves by id (it is taken from its course\'s session list). Without a token those fail with auth_required. Everything else is anonymous: current-term session lookups, course details, search on Yanhekt or the course index on this computer, and video downloads.',
   },
   app: {
-    note: 'Every command runs inside AutoSlides (started if it is not running) as the account it is signed in with. A command that talks to Yanhekt fails with sign_in_required while the app is signed out; config, and downloads other than retry, stay inside the app and work signed out. Requests follow its Settings > Network (route, prefer anonymous requests). Command-line control can be turned off in Settings > Add-ons > Command Line (error cli_control_disabled).',
+    note: 'Every command runs inside AutoSlides (started if it is not running) as the account it is signed in with. A command that talks to Yanhekt fails with sign_in_required while the app is signed out; config, and downloads other than retry, stay inside the app and work signed out. Requests follow its Settings > Network (route, prefer anonymous requests). The yanhe2 command also needs that account\'s Yanhe 2.0 session (error yanhe2_sign_in_required), which it never starts itself; yanhe2 status reports it. Command-line control can be turned off in Settings > Add-ons > Command Line (error cli_control_disabled).',
   },
 };
 

@@ -10,6 +10,29 @@ export const out = (text: string): void => {
   process.stdout.write(`${text}\n`);
 };
 
+/**
+ * Resolves once everything written so far has left the process. `app.exit`
+ * drops what is still queued, which cuts a large answer short when stdout is a
+ * pipe. A reader that has gone away (EPIPE) counts as done.
+ */
+export function flushOutput(streams: readonly NodeJS.WriteStream[] = [process.stdout, process.stderr]): Promise<void> {
+  const ignore = (): void => {};
+  return Promise.all(
+    streams.map(
+      (stream) =>
+        new Promise<void>((resolve) => {
+          if (stream.destroyed || !stream.writable) {
+            resolve();
+            return;
+          }
+          stream.on('error', ignore);
+          stream.once('error', () => resolve());
+          stream.write('', () => resolve());
+        }),
+    ),
+  ).then(() => undefined);
+}
+
 let noticesWritten = false;
 
 export const info = (text: string): void => {

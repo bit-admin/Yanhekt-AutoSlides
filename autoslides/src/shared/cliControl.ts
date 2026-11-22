@@ -11,14 +11,14 @@
 // Every payload here is plain JSON (it crosses IPC).
 import type { SessionDownloadInfo } from './apiTypes';
 import type { OutputFolderWork } from './outputFolderWork';
+import type { Yanhe2DownloadKind, Yanhe2DownloadTarget } from './yanhe2Download';
 
 export type CliDownloadStream = 'screen' | 'camera';
 
 /**
- * The rows the command line sees: the two streams and the mic stem, when they
- * are Yanhekt downloads. Yanhe 2.0 rows (its recordings and transcripts) are
- * not listed, followed or changed, since the command line covers Yanhekt only
- * while Yanhe 2.0 is in beta; `clearDownloads` is the panel's button and
+ * The rows the command line sees: the two streams and the mic stem, from
+ * Yanhekt or Yanhe 2.0. Transcripts and the Developer page's media are not
+ * listed, followed or changed; `clearDownloads` is the panel's button and
  * clears them like any finished row.
  */
 export type CliQueueKind = CliDownloadStream | 'audio';
@@ -26,6 +26,10 @@ export type CliQueueKind = CliDownloadStream | 'audio';
 /** One row of the Download panel, as `autoslides downloads` lists it. */
 export interface CliQueueItem extends CliDownloadUpdate {
   kind: CliQueueKind;
+  /** Where the media comes from. `sessionId` / `courseId` stay Yanhekt's either way. */
+  source: 'yanhekt' | 'yanhe2';
+  /** The Yanhe 2.0 ids of a `yanhe2` row; null on a Yanhekt one. */
+  yanhe2: { courseId: string; sessionId: string } | null;
   /** The name it is queued under; the file name is built from it (`@common/downloadNaming`). */
   name: string;
   sessionId: string;
@@ -45,6 +49,18 @@ export interface CliQueueChange {
   state: CliDownloadState;
 }
 
+/** One stream of a Yanhe 2.0 recording, after main prepared it. */
+export interface CliYanhe2Queue {
+  account: string;
+  /** aita course id. */
+  courseId: string;
+  /** aita session id. */
+  subId: string;
+  kind: Yanhe2DownloadKind;
+  target: Yanhe2DownloadTarget;
+  courseNumber: string;
+}
+
 export interface CliControlMethods {
   /** Waits for the launch-time sign-in (and auto sign-in) to finish. */
   signInState: { params: Record<string, never>; result: { signedIn: boolean } };
@@ -57,7 +73,15 @@ export interface CliControlMethods {
      */
     result: (CliDownloadUpdate & { added: boolean }) | { blocked: true };
   };
-  /** The Download panel's Yanhekt rows, in order. */
+  /** Waits for the launch-time Yanhe 2.0 check and renewal; main then reads the session itself. */
+  yanhe2SignInState: { params: Record<string, never>; result: { settled: true } };
+  /** Add one stream of a prepared Yanhe 2.0 recording to the Download panel, as its own buttons do. */
+  queueYanhe2Download: {
+    params: CliYanhe2Queue;
+    /** `blocked`: as for `queueDownload`. */
+    result: (CliDownloadUpdate & { added: boolean }) | { blocked: true };
+  };
+  /** The Download panel's recording rows, in order. */
   listDownloads: { params: Record<string, never>; result: { items: CliQueueItem[] } };
   /** Report these items' progress until they end, as for a queued one. Answers their state now. */
   followDownloads: { params: { itemIds: string[] }; result: CliDownloadUpdate[] };

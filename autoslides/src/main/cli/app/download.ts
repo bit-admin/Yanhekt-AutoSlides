@@ -41,7 +41,7 @@ interface Following extends Followed {
   filePath: string;
 }
 
-function outputDirOf(ctx: AppCommandContext): string {
+export function outputDirOf(ctx: Pick<AppCommandContext, 'configService'>): string {
   // Not created here, as in the terminal: a missing folder is usually a disconnected drive.
   const dir = ctx.configService.getConfig().outputDirectory;
   if (!dir || !fs.existsSync(dir)) {
@@ -147,8 +147,8 @@ async function serve(input: CommandInput, ctx: AppCommandContext): Promise<Comma
         stream,
       });
       if ('blocked' in queued) {
-        // The row belongs to the app, not to this command: reported, never followed.
-        const message = 'AutoSlides is already downloading this recording itself; it cannot be followed from the command line';
+        // A row the command line does not see: reported, never followed.
+        const message = 'AutoSlides already has this recording in a download row the command line cannot follow';
         ctx.term.info(message);
         items.push({ ...base, status: 'failed', path: null, error: { code: 'failed', message } });
         continue;

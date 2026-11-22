@@ -226,6 +226,7 @@ const USAGE_ROWS: UsageRow[] = [
   { code: '--no-wait', descriptionKey: 'advanced.addons.cliOptNoWait', option: true },
   { code: 'autoslides downloads', arg: 'wait|cancel|retry|clear', descriptionKey: 'advanced.addons.cliUsageAppDownloads' },
   { code: 'autoslides config', argKey: 'advanced.addons.cliArgSettingKey', descriptionKey: 'advanced.addons.cliUsageAppConfig' },
+  { code: 'autoslides yanhe2', arg: 'status|terms|search|mine|course|session|calendar|download', descriptionKey: 'advanced.addons.cliUsageAppYanhe2' },
 ]
 
 const UNSUPPORTED_KEYS: Record<CliUnsupportedReason, string> = {

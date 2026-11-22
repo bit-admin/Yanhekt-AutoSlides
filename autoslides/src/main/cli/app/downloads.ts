@@ -4,9 +4,11 @@
 // there at once, and the other way round.
 //
 // Items are named by their item id (from `--json`), or by a session id or link,
-// which takes every row of that session. An app-only command: `yhdl` has no
-// queue. Yanhekt rows only: the renderer leaves Yanhe 2.0 transcripts out.
-// Works while signed out, except `retry`, which downloads again.
+// which takes every row of that session. A session id here is always Yanhekt's
+// (the two sites' ids can collide), so a Yanhe 2.0 row with no Yanhekt session
+// is named by its item id. An app-only command: `yhdl` has no queue. The
+// renderer leaves transcripts out. Works while signed out, except `retry`,
+// which downloads again.
 import type { CliDownloadUpdate, CliQueueItem } from '@common/cliControl';
 import { parseSessionInput } from '@common/sessionInput';
 import { CliError } from '../errors';
@@ -34,6 +36,8 @@ interface Row {
   course_title: string;
   session_title: string;
   kind: CliQueueItem['kind'];
+  source: CliQueueItem['source'];
+  yanhe2: { course_id: string; session_id: string } | null;
   status: Status;
   progress: number;
   path: string | null;
@@ -44,7 +48,7 @@ interface Row {
 }
 
 const ROW_SHAPE =
-  '{ item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", status: RowStatus, progress: 0-100, path: string|null (the file written; null until completed), error?, added_at, completed_at: string|null, extraction: { state, progress, error? }|null }';
+  '{ item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", source: "yanhekt"|"yanhe2", yanhe2: { course_id, session_id }|null, status: RowStatus, progress: 0-100, path: string|null (the file written; null until completed), error?, added_at, completed_at: string|null, extraction: { state, progress, error? }|null }';
 
 function statusOf(update: Pick<CliDownloadUpdate, 'state' | 'error'>): Status {
   if (update.state === 'error') return update.error === CANCELLED ? 'cancelled' : 'failed';
@@ -65,6 +69,8 @@ function rowOf(item: CliQueueItem): Row {
     course_title: item.courseTitle,
     session_title: item.sessionTitle,
     kind: item.kind,
+    source: item.source,
+    yanhe2: item.yanhe2 ? { course_id: item.yanhe2.courseId, session_id: item.yanhe2.sessionId } : null,
     status,
     progress: item.progress,
     path: item.state === 'completed' ? (item.filePath ?? null) : null,
@@ -251,8 +257,8 @@ export const appDownloadsCommand: AppCommand = {
   args: '[list|wait|cancel|retry|clear] [item, session id or link…]',
   description: [
     'The AutoSlides Download panel, as it is in the window. With no action,',
-    'list its rows. Name rows by item id (from --json) or by a session id or',
-    'link, which takes every row of that session.',
+    'list its rows. Name rows by item id (from --json) or by a Yanhekt session',
+    'id or link, which takes every row of that session.',
     '',
     '  list    List the rows (all, or the ones named)',
     '  wait    Wait until the named rows, or everything unfinished, end.',

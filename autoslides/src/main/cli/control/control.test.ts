@@ -213,6 +213,8 @@ describe('a command sent to the app', () => {
       apiClient: {} as never,
       courseLookup: {} as never,
       enrolledCoursesService: {} as never,
+      yanhe2Service: {} as never,
+      yanhe2DownloadService: {} as never,
       renderer: {} as never,
       commands: { echo },
       version: 'test',
@@ -409,7 +411,7 @@ describe('autoslides on the command line', () => {
     expect(code).toBe(0);
     const schema = JSON.parse(stdout);
     expect(schema.runs_in).toBe('the AutoSlides app');
-    expect(schema.commands.map((c: { name: string }) => c.name)).toEqual(['search', 'mine', 'course', 'session', 'download', 'downloads', 'terms', 'whoami', 'config', 'schema']);
+    expect(schema.commands.map((c: { name: string }) => c.name)).toEqual(['search', 'mine', 'course', 'session', 'download', 'downloads', 'terms', 'whoami', 'config', 'yanhe2', 'schema']);
     for (const command of schema.commands) {
       const names = command.options.map((o: { name: string }) => o.name);
       expect(names).not.toContain('--token');
@@ -430,6 +432,14 @@ describe('autoslides on the command line', () => {
     const { error } = JSON.parse(stdout);
     expect(error.message).toBe('downloads needs the AutoSlides app');
     expect(error.hint).toBe("'autoslides downloads' runs it there.");
+  });
+
+  it('keeps Yanhe 2.0 off yhdl and points to autoslides', async () => {
+    const { code, stdout } = await run(['yanhe2', 'mine', '--json'], 'yhdl');
+    expect(code).toBe(2);
+    const { error } = JSON.parse(stdout);
+    expect(error.message).toBe('yanhe2 needs the AutoSlides app');
+    expect(error.hint).toBe("'autoslides yanhe2' runs it there.");
   });
 
   it('takes no flag to choose an account: the app\'s sign-in is the only one', async () => {

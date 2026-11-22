@@ -12,6 +12,8 @@ import type { ApiClient } from '@main/platform/apiClient';
 import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import type { ConfigService } from '@main/platform/configService';
 import type { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
+import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
+import type { Yanhe2DownloadService } from '@main/video/yanhe2DownloadService';
 import { createLogger } from '@main/infra/logger';
 import type { AppCommand, AppCommandContext, AppSettingsWriter } from '../app/types';
 import { toCliError } from '../classifyError';
@@ -30,6 +32,8 @@ export interface CliControlServerDeps {
   apiClient: ApiClient;
   courseLookup: CourseLookup;
   enrolledCoursesService: EnrolledCoursesService;
+  yanhe2Service: Yanhe2Service;
+  yanhe2DownloadService: Yanhe2DownloadService;
   renderer: RendererBridge;
   commands: Readonly<Record<string, AppCommand>>;
   /** This app's version; a command sent from another version is refused. */
@@ -180,6 +184,8 @@ export class CliControlServer {
       apiClient: this.deps.apiClient,
       courseLookup: this.deps.courseLookup,
       enrolledCoursesService: this.deps.enrolledCoursesService,
+      yanhe2Service: this.deps.yanhe2Service,
+      yanhe2DownloadService: this.deps.yanhe2DownloadService,
       renderer: rendererFor(this.deps.renderer, signal),
       signal,
       term: {

@@ -21,13 +21,12 @@ export function snapshot(itemId: string, item: DownloadItem | undefined): CliDow
 export type CliItem = DownloadItem & { videoType: CliQueueItem['kind'] }
 
 /**
- * The command line covers Yanhekt only (Yanhe 2.0 is in beta), so a row counts
- * by where its media comes from: never a Yanhe 2.0 recording (`yanhe2`, even
- * when the lecture has a Yanhekt session id) and never a transcript. Such rows
- * are not listed, followed or changed from there. Clear Completed is the
- * panel's own button and clears every finished row.
+ * The command line sees recordings, from Yanhekt or Yanhe 2.0: never a
+ * transcript or the Developer page's media. Those are not listed, followed or
+ * changed from there. Clear Completed is the panel's own button and clears
+ * every finished row.
  */
-export const isCliItem = (item: DownloadItem): item is CliItem => !item.yanhe2 && !item.devMedia && item.videoType !== 'subtitles'
+export const isCliItem = (item: DownloadItem): item is CliItem => !item.devMedia && item.videoType !== 'subtitles'
 
 // A whole row, again as primitives only.
 export function listed(item: CliItem): CliQueueItem {
@@ -42,6 +41,8 @@ export function listed(item: CliItem): CliQueueItem {
   return {
     ...snapshot(item.id, item),
     kind: item.videoType,
+    source: item.yanhe2 ? 'yanhe2' : 'yanhekt',
+    yanhe2: item.yanhe2 ? { courseId: String(item.yanhe2.courseId), sessionId: String(item.yanhe2.subId) } : null,
     name: item.name,
     sessionId: String(item.sessionId),
     courseId: item.courseId != null ? String(item.courseId) : null,

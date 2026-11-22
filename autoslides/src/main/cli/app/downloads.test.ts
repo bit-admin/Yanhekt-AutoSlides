@@ -12,6 +12,8 @@ const OUT = path.join(path.sep, 'out');
 const row = (over: Partial<CliQueueItem> & Pick<CliQueueItem, 'itemId' | 'state'>): CliQueueItem => ({
   progress: 0,
   kind: 'screen',
+  source: 'yanhekt',
+  yanhe2: null,
   name: 'screen_课程-第1讲',
   sessionId: '850101',
   courseId: '70101',
@@ -101,6 +103,11 @@ const serve = (positionals: string[], app: ReturnType<typeof fakeApp>, options: 
   appDownloadsCommand.serve(input(positionals, options, json), app.ctx);
 
 describe('autoslides downloads', () => {
+  it('never takes a number for a Yanhe 2.0 id', async () => {
+    const items = [row({ itemId: 'y', state: 'queued', sessionId: '', source: 'yanhe2', yanhe2: { courseId: '9001', sessionId: '850199' } })];
+    await expect(appDownloadsCommand.serve({ program: 'autoslides', positionals: ['list', '850199'], options: {}, json: true }, fakeApp(items).ctx)).rejects.toMatchObject({ code: 'not_found' });
+  });
+
   const queue = (): CliQueueItem[] => [
     row({ itemId: 'a', state: 'completed', progress: 100, completedAt: Date.UTC(2026, 9, 1), filePath: path.join(path.sep, 'then', 'screen_课程-第1讲__c70101s850101.mp4') }),
     row({ itemId: 'b', state: 'downloading', progress: 40, kind: 'camera', name: 'camera_课程-第1讲' }),

@@ -10,7 +10,7 @@
  * student id (the badge). Main refuses to attach any other.
  */
 
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import type { Yanhe2ProfileSummary, Yanhe2SignInResult } from '@common/yanhe2'
 import { configStore } from '@shared/services/configStore'
 import { isDemoMode } from '@shared/services/runtimeEnv'
@@ -341,6 +341,24 @@ async function refreshYanhe2Session(badge: string): Promise<void> {
   }
 }
 
+/** Checks still running, so a command-line request can wait for the launch-time one. */
+const refreshesRunning = new Set<Promise<void>>()
+
+function startRefresh(badge: string): void {
+  const run = refreshYanhe2Session(badge).finally(() => refreshesRunning.delete(run))
+  refreshesRunning.add(run)
+}
+
+/**
+ * Resolves once no session check or renewal is running. The tick lets the
+ * account watcher start the check for a sign-in that has only just settled.
+ * An SMS challenge counts as settled: it waits for the user in the window.
+ */
+export async function whenYanhe2SessionSettled(): Promise<void> {
+  await nextTick()
+  while (refreshesRunning.size > 0) await Promise.all(refreshesRunning)
+}
+
 let installed = false
 let expiryTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -387,7 +405,7 @@ export function installYanhe2Session(): void {
   watch(activeBadge, (badge, previous) => {
     if (badge !== previous) closeYanhe2SsoModal()
     if (badge) {
-      void refreshYanhe2Session(badge)
+      startRefresh(badge)
       return
     }
     phaseTicket++
@@ -420,7 +438,7 @@ export function installYanhe2Session(): void {
     expiryTimer = setTimeout(() => {
       expiryTimer = null
       now.value = Date.now()
-      void refreshYanhe2Session(badge)
+      startRefresh(badge)
     }, expiresAt - Date.now() + 1000)
   }, { immediate: true })
 }

@@ -3,6 +3,8 @@ import type { CourseLookup } from '@main/platform/courseIndex/courseLookup';
 import type { SettingsWriter } from '@main/ipc/settingsWriter';
 import type { ConfigService } from '@main/platform/configService';
 import type { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
+import type { Yanhe2Service } from '@main/platform/yanhe2/yanhe2Service';
+import type { Yanhe2DownloadService } from '@main/video/yanhe2DownloadService';
 import type { AppRenderer } from '../control/rendererBridge';
 import type { CliCommand, CommandInput, CommandResult } from '../types';
 
@@ -29,6 +31,9 @@ export interface AppCommandContext {
   /** Course index search and lookups (Settings → General → Search). */
   courseLookup: CourseLookup;
   enrolledCoursesService: EnrolledCoursesService;
+  /** Yanhe 2.0 reads, on the intranet route. Its results stay in main unless a command picks fields out. */
+  yanhe2Service: Yanhe2Service;
+  yanhe2DownloadService: Yanhe2DownloadService;
   /** The renderer, with every request bound to `signal`. */
   renderer: AppRenderer;
   term: AppTerminal;

@@ -7,6 +7,7 @@ import { appDownloadsCommand } from './downloads';
 import { appCourseCommand, appMineCommand, appSessionCommand, appTermsCommand, appWhoamiCommand } from './lookups';
 import { appSearchCommand } from './search';
 import type { AppCommand } from './types';
+import { appYanhe2Command } from './yanhe2';
 
 export const APP_COMMANDS: Record<Exclude<CliAppCommandId, 'schema'>, AppCommand> = {
   search: appSearchCommand,
@@ -18,6 +19,7 @@ export const APP_COMMANDS: Record<Exclude<CliAppCommandId, 'schema'>, AppCommand
   terms: appTermsCommand,
   whoami: appWhoamiCommand,
   config: appConfigCommand,
+  yanhe2: appYanhe2Command,
 };
 
 export type { AppCommand, AppCommandContext } from './types';

@@ -1,6 +1,6 @@
 ---
 name: autoslides-cli
-description: Drive the AutoSlides desktop app and fetch Yanhekt (www.yanhekt.cn) lecture recordings from the command line with `autoslides` and `yhdl`. Use when asked to find a Yanhekt course or session, list enrolled courses, download recorded lectures, watch or manage the AutoSlides Download panel, or read or change AutoSlides settings such as the output folder or connection mode.
+description: Drive the AutoSlides desktop app and fetch Yanhekt (www.yanhekt.cn) and Yanhe 2.0 (aita.yanhekt.cn) lecture recordings from the command line with `autoslides` and `yhdl`. Use when asked to find a Yanhekt or Yanhe 2.0 course or session, list enrolled courses, download recorded lectures, watch or manage the AutoSlides Download panel, or read or change AutoSlides settings such as the output folder or connection mode.
 ---
 
 # AutoSlides command line
@@ -14,7 +14,7 @@ AutoSlides installs two commands (Settings > Add-ons > Command Line > Install):
 
 Prefer `autoslides` unless the user asks for a separate folder or route for one run, or the app is unavailable. `autoslides` takes no per-run overrides (no `--output`, `--intranet`, `--token`); those exist only on `yhdl`.
 
-Only Yanhekt is covered. Yanhe 2.0 (aita.yanhekt.cn) is not reachable from either command. Do not try to work around that.
+Yanhe 2.0 (aita.yanhekt.cn) is under `autoslides yanhe2` only: browsing and recording downloads. `yhdl` is Yanhekt only. Yanhe 2.0 subtitles, server slides and tasks are not available from either command. Its ids are not Yanhekt ids, so never pass one to a command outside `yanhe2`.
 
 ## Always use `--json`
 
@@ -33,8 +33,8 @@ Progress and notices go to stderr; ignore them or show them to the user. Branch 
 | 1 | `failed`, `output_folder_busy` | read the message; for downloads, `data.items` says which failed. `output_folder_busy`: `output_dir` was not changed because downloads, extractions, tasks, post-processing or Lectures slide videos are still running; wait for them (`autoslides downloads wait`) or ask the user before cancelling anything |
 | 2 | `usage` | the command line was wrong and nothing ran; fix the arguments (see `--help`) |
 | 3 | `not_found`, `no_recording`, `expired`, `term_unavailable` | wrong id, the session has no recording yet, an earlier-term session that the course index on this computer or its course's session list cannot supply, or the course index does not hold that term; do not retry unchanged |
-| 4 | `sign_in_required` (autoslides), `auth_required` (yhdl) | ask the user to sign in to Yanhekt in the AutoSlides window, then run it again |
-| 5 | `network` | Yanhekt or the AutoSlides Index could not be reached; check the connection or `connection_mode` |
+| 4 | `sign_in_required` (autoslides), `auth_required` (yhdl), `yanhe2_sign_in_required` (`autoslides yanhe2`) | ask the user to sign in to Yanhekt, or for the last code to Yanhe 2.0, in the AutoSlides window, then run it again |
+| 5 | `network` | Yanhekt, Yanhe 2.0 or the AutoSlides Index could not be reached; check the connection or `connection_mode` |
 | 6 | `app_not_running`, `cli_control_disabled`, `app_version_mismatch` | the app could not start, the user turned off Allow Command-Line Control, or the running app is another version than the command (an update waiting for a restart); ask the user |
 | 130 | `interrupted` | stopped by Ctrl-C. An `autoslides` download keeps going in the app |
 
@@ -66,6 +66,12 @@ autoslides download --course 70101 --dry-run --json
 autoslides downloads --json
 autoslides downloads wait --json
 autoslides downloads retry --all --json
+
+# Yanhe 2.0: a session is always named with its course
+autoslides yanhe2 status --json
+autoslides yanhe2 mine --json
+autoslides yanhe2 course 70101 --json
+autoslides yanhe2 download 70101 850101 --stream both --json
 
 # Settings the commands follow
 autoslides config --json

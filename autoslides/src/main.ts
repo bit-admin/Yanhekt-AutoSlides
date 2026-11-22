@@ -80,6 +80,7 @@ import {
   RendererBridge,
   controlSocketPath,
   createCliInterrupts,
+  flushCliOutput,
   launchApp,
   parseCliInvocation,
   runCli,
@@ -499,6 +500,8 @@ const cliControlServer = new CliControlServer({
   apiClient,
   courseLookup,
   enrolledCoursesService,
+  yanhe2Service,
+  yanhe2DownloadService,
   renderer: cliControlBridge,
   commands: APP_COMMANDS,
   version: app.getVersion(),
@@ -552,7 +555,11 @@ app.whenReady().then(() => {
       launchApp: () => launchApp(app.isPackaged),
       setVerbose: () => setLoggerConsoleMode('all'),
       onInterrupt: cliInterrupts.onInterrupt,
-    }).then(exitCli);
+    }).then(async (code) => {
+      // Ctrl-C during this wait still exits at once, through `interrupt`.
+      await flushCliOutput();
+      exitCli(code);
+    });
     return;
   }
   initializePowerManagement();

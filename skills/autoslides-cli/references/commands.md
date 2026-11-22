@@ -15,6 +15,7 @@ Every command takes `--json` and `-h/--help`. `autoslides schema` and `yhdl sche
 | `download <session…\|->` | `-s/--stream screen\|camera\|both` (default screen), `--course <id or link>`, `--dry-run`, `-f/--force`, `--no-wait` | yes | `{ output_dir, dry_run, waited, items: [Item] }` |
 | `downloads [action] [row…]` | actions `list` (default), `wait`, `cancel`, `retry`, `clear`; `--all` with cancel or retry | only `retry` | see below |
 | `config [key [value]]` | — | no | see below |
+| `yanhe2 <action>` | see "`yanhe2`" below | yes, plus a Yanhe 2.0 session | by action |
 | `schema` | — | no | the full contract |
 
 With no arguments, `autoslides` just opens the app.
@@ -41,15 +42,32 @@ Both commands read the selected saved account's cached enrolled courses (all kno
 
 ### `downloads`
 
-Name rows by `item_id` (from `downloads --json`) or by a session id or link, which takes every row of that session. A session with no rows is `not_found`.
+Name rows by `item_id` (from `downloads --json`) or by a Yanhekt session id or link, which takes every row of that session. A session with no rows is `not_found`. A number here is never a Yanhe 2.0 id: name a Yanhe 2.0 row by its `item_id`.
 
 - `list` and `wait`: `{ output_dir, items: [Row] }`. `wait` with no rows named waits for everything unfinished; if nothing is running it answers at once with "Nothing is downloading." It exits 1 if a row it waited for failed. Without `--json`, `wait` prints each finished file's path on stdout; with `--json`, stdout is the one JSON answer and the paths are in `items[].path`.
 - `cancel` and `retry`: `{ action, items: [Row & { changed: boolean }] }`. `changed: false` means the row was already finished (cancel) or was not failed or cancelled (retry). One of `--all` or a row is required.
 - `clear`: `{ removed }`. It removes every finished and failed row, like the panel's Clear Completed.
 
-`Row = { item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", status, progress: 0-100, path, error?, added_at, completed_at, extraction: { state, progress, error? } | null }`
+`Row = { item_id, session_id, course_id, course_title, session_title, kind: "screen"|"camera"|"audio", source: "yanhekt"|"yanhe2", yanhe2: { course_id, session_id } | null, status, progress: 0-100, path, error?, added_at, completed_at, extraction: { state, progress, error? } | null }`
 
-Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `cancelled` or `removed`. A row's `path` is the file the download wrote, in the folder it started with (`output_dir` cannot change while a row is unfinished); it is `null` until the row is `completed`.
+Row `status` is `queued`, `downloading`, `processing`, `completed`, `failed`, `cancelled` or `removed`. A row's `path` is the file the download wrote, in the folder it started with (`output_dir` cannot change while a row is unfinished); it is `null` until the row is `completed`. On a `yanhe2` row, `session_id` and `course_id` are the same lecture's Yanhekt ids (`""` / empty when Yanhekt lacks it); its Yanhe 2.0 ids are in `yanhe2`.
+
+### `yanhe2`
+
+Yanhe 2.0 as the account signed in to the app. That account needs a Yanhe 2.0 session; without one, every action but `status` fails with `yanhe2_sign_in_required` (exit 4). The command never starts a sign-in. Ids are Yanhe 2.0's own.
+
+| Action | Arguments and options | `data` |
+|---|---|---|
+| `status` | — | `{ signed_in, account, badge, expires_at }` |
+| `terms` | — | `{ terms: [{ id, name, current }] }` |
+| `search <keyword…>` | `--term <id from terms>` (default every term), `--page <n>` | `{ keyword, term_id, page, last_page, total, courses: [Course] }` |
+| `mine` | `--limit <1-100>` (default 20), `--page <n>` | `{ account, page, last_page, total, courses: [Course] }` |
+| `course <course>` | — | `{ course: Course, sessions: [Session], note? }` |
+| `session <course> <session>` | — | `{ session: Session & { duration, streams: { screen, camera, mic } } }` |
+| `calendar [YYYY-MM-DD]` | the Calendar page's two views. Default **My Courses**: your classes in the Monday-Sunday week of that date (today in Beijing). `--all` **All Courses**: every class that day, often hundreds, paged with `--limit <1-100>` (default 20) and `--page <n>` | `{ view: "my_courses", start, end, days: [{ date, sessions }] }`, or with `--all` `{ view: "all_courses", date, page, last_page, total, periods: [{ name, begin, end, sessions }] }` |
+| `download <course> <session…>` or `download <course> --all` | `-s/--stream screen\|camera\|audio\|both` (default screen; both = screen + camera), `--dry-run`, `-f/--force`, `--no-wait` | `{ output_dir, dry_run, waited, items: [{ item_id, course_id, session_id, course_title, session_title, stream, status, path, error? }] }` |
+
+`Course = { id, title, teacher, college, term }`. `Session = { id, course_id, title, subtitle, teacher, room, started_at, ended_at, status }`, with `status` one of `upcoming`, `live`, `processing`, `playable`, `ended`, `unknown`. Only `playable` sessions can be downloaded; `--all` takes those. Yanhe 2.0 can list a stream it does not have: `session` still shows it, and its download fails with `no_recording` (exit 3), so try another `--stream`. In `download` items, `course_id` and `session_id` are Yanhe 2.0's, and `item_id` is the Download panel row (null when nothing was queued). Files are named as the same lecture's Yanhekt download, so both sites share one file; a lecture Yanhekt lacks has no ids in its name.
 
 ### `config`
 
@@ -76,7 +94,7 @@ Booleans also take `on`/`off`, `yes`/`no` and `1`/`0`. `custom` uses `proxy_url`
 
 ## `yhdl` (terminal only)
 
-The same lookup commands (`search`, `mine`, `course`, `session`, `terms`, `whoami`, `schema`) and `download`, run without the app. It has no `downloads` or `config`: those answer "needs the AutoSlides app".
+The same lookup commands (`search`, `mine`, `course`, `session`, `terms`, `whoami`, `schema`) and `download`, run without the app. It has no `downloads`, `config` or `yanhe2`: those answer "needs the AutoSlides app".
 
 - **Anonymous by default.** A token is read only when a request needs one: `mine`, the session list of `course`, `download --course`, `search` when it reads the online Index, and `session` / `download` for an earlier term's session (see "Where `search` looks"). Without one these fail with `auth_required` (exit 4). The token comes from, in order: `--token <token>`, `--account <name or student number>` (an account saved in AutoSlides), `YANHEKT_TOKEN`, then the account signed in to the app. A token is never saved or printed. `whoami` reports which one would be used, offline.
 - **Route.** Public network unless `--intranet` (strict: no fallback to public). `--interface <name or IPv4>` picks the interface, only with `--intranet`. The app's Connection Mode is ignored; its proxy settings (`proxy_campus`, `proxy_other`, `proxy_url`) apply.

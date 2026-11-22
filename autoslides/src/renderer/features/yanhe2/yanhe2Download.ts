@@ -11,10 +11,11 @@
  * course is missing too) and the download goes ahead (owner ruling 2026-10-21).
  */
 import { reactive, ref } from 'vue'
+import type { CliYanhe2Queue } from '@common/cliControl'
 import { lectureLabel } from '@common/lectureNaming'
 import type { Yanhe2DownloadKind, Yanhe2DownloadRefusal } from '@common/yanhe2Download'
 import { i18n } from '@shared/i18n'
-import { DownloadService } from '@shared/services/downloadService'
+import { DownloadService, type DownloadQueueAddResult } from '@shared/services/downloadService'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('Yanhe2Download')
@@ -71,6 +72,21 @@ function alreadyQueuedText(kinds: Yanhe2DownloadKind[]): string {
   return t('sessions.alreadyInDownloadQueue')
 }
 
+/** One stream's download row. The buttons here and `autoslides yanhe2 download` both add it this way. */
+export function queueYanhe2Stream(request: CliYanhe2Queue): DownloadQueueAddResult {
+  const { account, courseId, subId, kind, target, courseNumber } = request
+  return DownloadService.addToQueue({
+    name: `${kind}_${lectureLabel(target.courseTitle, target.sessionTitle)}`,
+    courseTitle: target.courseTitle,
+    sessionTitle: target.sessionTitle,
+    sessionId: target.sessionId,
+    courseId: target.courseId,
+    courseNumber: courseNumber || undefined,
+    videoType: kind,
+    yanhe2: { account, courseId, subId },
+  })
+}
+
 /**
  * Check one lecture and add a download row for each stream asked for that it
  * has. A stream it lacks is skipped; none at all is `no_recording`.
@@ -86,19 +102,10 @@ async function ask(request: Yanhe2DownloadRequest, kinds: Yanhe2DownloadKind[]):
     const wanted = kinds.filter((kind) => prepared.streams.includes(kind))
     if (wanted.length === 0) return { kind: 'no_recording' }
 
-    const { target } = prepared
+    const { target, courseNumber } = prepared
     let firstAdded: string | undefined
     for (const kind of wanted) {
-      const added = DownloadService.addToQueue({
-        name: `${kind}_${lectureLabel(target.courseTitle, target.sessionTitle)}`,
-        courseTitle: target.courseTitle,
-        sessionTitle: target.sessionTitle,
-        sessionId: target.sessionId,
-        courseId: target.courseId,
-        courseNumber: prepared.courseNumber || undefined,
-        videoType: kind,
-        yanhe2: { account, courseId: request.courseId, subId },
-      })
+      const added = queueYanhe2Stream({ account, courseId: request.courseId, subId, kind, target, courseNumber })
       if (added.added && !firstAdded) firstAdded = added.item.id
     }
     return firstAdded ? { kind: 'added', itemId: firstAdded } : { kind: 'already_queued' }
