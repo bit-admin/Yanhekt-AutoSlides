@@ -78,7 +78,7 @@ export function registerDriveIpcHandlers(services: IpcServices): void {
   ipcMain.handle('drive:removeShare', (_e, folderPath: string, id: string) =>
     inFolder(folderPath, (folder) => driveService.removeShare(folder, String(id ?? ''))));
 
-  ipcMain.handle('drive:recordClone', (_e, folderPath: string, input: { source?: Record<string, unknown>; slides?: Array<{ filename?: unknown; url?: unknown }> }) =>
+  ipcMain.handle('drive:recordClone', (_e, folderPath: string, input: { source?: Record<string, unknown>; slides?: Array<{ filename?: unknown; url?: unknown }>; sourceLink?: { longUrl?: unknown; shortUrl?: unknown } }) =>
     // A clone records its sidecars while it is still in its hidden stage.
     (async (): Promise<DriveResult<null>> => {
       const folder = cloneStageInside(outputDir(), folderPath);
@@ -89,6 +89,9 @@ export function registerDriveIpcHandlers(services: IpcServices): void {
           slides: Array.isArray(input?.slides)
             ? input.slides.map((s) => ({ filename: String(s?.filename ?? ''), url: String(s?.url ?? '') }))
             : [],
+          sourceLink: input?.sourceLink
+            ? { longUrl: String(input.sourceLink.longUrl ?? ''), shortUrl: String(input.sourceLink.shortUrl ?? '') }
+            : undefined,
         });
       } catch (error) {
         log.error('Drive call failed', error);

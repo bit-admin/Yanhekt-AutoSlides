@@ -395,6 +395,12 @@ export class ShareService {
       missing: resolved.length - urls.length,
       lectureMeta,
       timeline: timelineFromSharePayload(payload),
+      ...(parsed.shortId ? {
+        sourceLink: {
+          longUrl: `${SHARE_ORIGIN}${SHARE_PATH}#${fragment}`,
+          shortUrl: `${SHARE_ORIGIN}${SHARE_PATH}/s/${parsed.shortId}`,
+        },
+      } : {}),
     };
   }
 

@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { shareImportDisplayName } from '@common/notesTypes'
-import type { ShareImportResult, ShareLectureMeta } from '@common/notesTypes'
+import type { ShareImportResult, ShareLectureMeta, ShareSourceLink } from '@common/notesTypes'
 import type { LectureIdentity } from '@common/lectureNaming'
 import type { SlideTimeline } from '@common/sidecars'
 import { activeClones } from '@shared/services/cloneActivity'
@@ -39,6 +39,8 @@ export interface ShareExportItem {
   timeline?: SlideTimeline | null
   /** Lecture facts from the link, for the folder's metadata.json. */
   lectureMeta?: ShareLectureMeta | null
+  /** The short link cloned from, kept in the folder's metadata.json. */
+  sourceLink?: ShareSourceLink
   error?: string
   failure?: ShareExportFailure
   /** How this clone was asked to land, for Retry. */
@@ -139,7 +141,10 @@ export function useShareLinkExport() {
       }
       // metadata.json (`extractor: 'share'`) makes the folder a recognised
       // slides folder, and its slides count as uploaded already. Plain values only.
-      const recorded = await window.electronAPI.drive.recordClone(stage, { source: sourceOf(row), slides: written }).catch(() => null)
+      const sourceLink = row.sourceLink
+        ? { longUrl: row.sourceLink.longUrl, shortUrl: row.sourceLink.shortUrl }
+        : undefined
+      const recorded = await window.electronAPI.drive.recordClone(stage, { source: sourceOf(row), slides: written, sourceLink }).catch(() => null)
       if (!recorded?.ok) { log.warn('Clone metadata was not written'); fail(row, 'unchanged', 'metadata'); return }
       // A partial clone compacts image numbers, so the original timeline would
       // point some timestamps at the wrong images: it is left out on purpose.
@@ -222,6 +227,7 @@ export function useShareLinkExport() {
         missing: result.missing,
         timeline: result.timeline ?? null,
         lectureMeta: result.lectureMeta ? JSON.parse(JSON.stringify(result.lectureMeta)) : null,
+        sourceLink: result.sourceLink,
       }
       const row = item.value
 
