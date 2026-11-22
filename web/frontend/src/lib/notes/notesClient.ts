@@ -33,7 +33,7 @@ export interface CloudNotesProvider {
   list(params?: NoteListParams): Promise<NotesResult<NoteListResult>>;
   get(id: number): Promise<NotesResult<NoteDetail>>;
   create(): Promise<NotesResult<number>>;
-  updateTitle(id: number, title: string, groupId?: number): Promise<NotesResult<void>>;
+  updateTitle(id: number, title: string): Promise<NotesResult<void>>;
   updateContent(id: number, content: string): Promise<NotesResult<void>>;
   moveToGroup(
     id: number,
@@ -180,15 +180,9 @@ export const notesClient: CloudNotesProvider = {
     });
   },
 
-  /**
-   * Update a note's title and optionally assign it to a group.
-   * Only group ids ≥ 1 are accepted by the server — omit the field to leave
-   * the current group alone (never send 0; that errors with "笔记分组ID不能小于1").
-   */
-  updateTitle(id: number, title: string, groupId?: number) {
-    const body: Record<string, unknown> = { id, title };
-    if (groupId !== undefined && groupId > 0) body.note_group_id = groupId;
-    return run(() => request<void>('PUT', '/v1/note', body));
+  /** Update a note's title without changing its folder. */
+  updateTitle(id: number, title: string) {
+    return run(() => request<void>('PUT', '/v1/note', { id, title }));
   },
 
   /** Replace a note's content (stringified Editor.js document). */

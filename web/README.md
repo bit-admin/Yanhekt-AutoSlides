@@ -4,7 +4,7 @@
 
   # AutoSlides Web
 
-  **浏览器里的延河课堂客户端｜免安装｜边看边提取幻灯片｜导出 PDF 与云端笔记**
+  **浏览器里的延河课堂客户端｜免安装｜边看边提取幻灯片｜导出 PDF｜管理延河课堂笔记**
 
   <p>
     <img src="https://img.shields.io/badge/Cloudflare%20Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Workers">
@@ -34,7 +34,7 @@
 
 ## ✨ 这是什么
 
-AutoSlides Web 是 [AutoSlides 桌面版](../README.md) 的浏览器版本，运行在 [learn.ruc.edu.kg](https://learn.ruc.edu.kg) 👈 打开网页就能用：浏览与播放延河课堂的直播和录播，一边看一边把幻灯片提取出来，导出 PDF / ZIP，或同步到延河课堂的云端笔记。手机、平板、电脑都可以，不需要安装任何东西。
+AutoSlides Web 是 [AutoSlides 桌面版](../README.md) 的浏览器版本，运行在 [learn.ruc.edu.kg](https://learn.ruc.edu.kg) 👈 打开网页就能用：浏览与播放延河课堂的直播和录播，一边看一边把幻灯片提取出来，导出 PDF / ZIP，也可以在独立的笔记工作区管理延河课堂笔记。手机、平板、电脑都可以，不需要安装任何东西。
 
 幻灯片的提取、去重和 AI 过滤全部在你自己的浏览器里完成，提取结果保存在浏览器的本地数据库（IndexedDB）中，不会上传到本站服务器。
 
@@ -124,7 +124,7 @@ AutoSlides Web 是 [AutoSlides 桌面版](../README.md) 的浏览器版本，运
 
 播放器下方的提取面板是本站的核心：打开开关后，浏览器会实时比对视频画面（SSIM），把变化的板书或课件保存成图片，右侧条带会即时显示已捕获的幻灯片。整个过程在本地完成，不需要先下载视频。
 
-后处理会自动去掉重复画面；开启 AI 过滤后，模型还会剔除非幻灯片画面，并把「编辑模式」截图单独归入可恢复的回收分类。开启云笔记同步时，通过后处理的幻灯片会自动追加到一条云端笔记里。
+后处理会自动去掉重复画面；开启 AI 过滤后，模型还会剔除非幻灯片画面，并把「编辑模式」截图单独归入可恢复的回收分类。
 
 <p align="center">
   <img src="docs/player-extract.png" width="70%" alt="幻灯片提取面板" />
@@ -156,17 +156,15 @@ AutoSlides Web 是 [AutoSlides 桌面版](../README.md) 的浏览器版本，运
 
 ### 笔记
 
-延河课堂云端笔记的读写界面：富文本编辑、分组管理、关键词搜索，自动保存。随堂提取的幻灯片会同步到 `随堂笔记`（ASuser）分组，按课程节次各成一条笔记。
+登录后可在「笔记」中查看和编辑延河课堂笔记，按文件夹整理、搜索或导出为 PDF / Markdown。原有笔记与分组仍保留在延河课堂，所有分组都作为普通文件夹显示。提取幻灯片不会自动创建或更新笔记。
 
-<p align="center">
-  <img src="docs/notes.png" width="70%" alt="笔记" />
-</p>
+笔记中的延河课堂图片可以生成分享链接，笔记正文不会被分享。手动插入图片会将图片上传到延河课堂的公开存储，请勿上传私密图片。笔记自动保存仍依赖延河课堂的服务；保存失败时，可以在编辑器里重试。
 
 <br>
 
 ### 设置
 
-主题与语言、幻灯片提取的自动后处理、AI 过滤的服务来源（内置 / GitHub Copilot / 自定义），以及云端笔记的托管分组状态。
+主题与语言、幻灯片提取的自动后处理、以及 AI 过滤的服务来源（内置 / GitHub Copilot / 自定义）。
 
 <p align="center">
   <img src="docs/settings.png" width="45%" alt="设置" />

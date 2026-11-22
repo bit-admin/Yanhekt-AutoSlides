@@ -13,15 +13,16 @@ vi.mock('../../lib/notes/notesClient', () => {
       get: wait('get'),
       updateContent: wait('updateContent'),
       moveToGroup: wait('moveToGroup'),
+      groupDelete: wait('groupDelete'),
     },
   };
 });
-vi.mock('../../stores/cloudStorageStore', () => ({ cloudStorageStore: { adoptFromGroups: () => {} } }));
 vi.mock('../../lib/notes/noteErrors', () => ({ noteErrorText: (error: string) => error }));
 
 import { useCloudNotes } from './useCloudNotes';
+import { formatNoteGroupLabel, validateNoteGroupName } from '../../lib/notes/notesTypes';
 
-const row = (id: number, title: string) => ({ id, title, note_group_id: 0 });
+const row = (id: number, title: string, groupId = 0) => ({ id, title, note_group_id: groupId });
 const page = (...rows: unknown[]) => ({ ok: true, data: { data: rows, last_page: 1 } });
 const take = (name: string): Pending => {
   const index = pending.findIndex((call) => call.name === name);
@@ -34,6 +35,42 @@ const flush = async (): Promise<void> => {
 
 beforeEach(() => {
   pending.length = 0;
+});
+
+describe('ordinary Notes folders', () => {
+  it('lists former AutoSlides groups by their actual names and filters their notes normally', async () => {
+    const folders = [{ id: 2, name: 'ASnote' }, { id: 3, name: 'ASuser' }, { id: 4, name: 'Study' }];
+    const cn = useCloudNotes();
+    const load = cn.init();
+    take('groupList').answer({ ok: true, data: folders });
+    take('list').answer(page(row(1, 'Existing note', 2), row(2, 'Another note', 3), row(3, 'Loose note')));
+    await load;
+
+    expect(cn.groups.value).toEqual([{ id: 0, name: '' }, ...folders]);
+    expect(cn.groups.value.map((folder) => formatNoteGroupLabel(folder, () => 'Ungrouped')))
+      .toEqual(['Ungrouped', 'ASnote', 'ASuser', 'Study']);
+    cn.setGroup(2);
+    expect(cn.notes.value.map((note) => note.id)).toEqual([1]);
+    cn.setGroup(0);
+    expect(cn.notes.value.map((note) => note.id)).toEqual([3]);
+
+    // Deletion removes the folder, not its notes, which fall back to Ungrouped.
+    const deletion = cn.deleteGroup(2);
+    const request = take('groupDelete');
+    expect(request.args).toEqual([2]);
+    request.answer({ ok: true });
+    await flush();
+    take('groupList').answer({ ok: true, data: folders.slice(1) });
+    expect(await deletion).toBe(true);
+    expect(cn.notes.value.map((note) => note.id)).toEqual([1, 3]);
+  });
+
+  it('enforces the same naming rules for every folder', () => {
+    for (const name of ['ASnote', 'ASuser', 'Study']) {
+      expect(validateNoteGroupName(name, [])).toBeNull();
+      expect(validateNoteGroupName(name, [name.toLowerCase()])).toBe('duplicate');
+    }
+  });
 });
 
 describe('the web Notes page across a change of identity', () => {

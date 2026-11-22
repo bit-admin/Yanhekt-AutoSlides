@@ -121,7 +121,7 @@ Electron can also expose a **LAN relay** (`localRelayService`) with Worker-compa
 | Pixels | `slides_*` folders on disk (PNG) | IndexedDB `ArrayBuffer` (field still named `blob`) |
 | Provenance | colocated `metadata.json` | same schema, stored on the folder record |
 | Timeline | colocated `timeline.json` | reconstructed for share; in-memory during watch |
-| Export | PDF (PDFKit) / PPTX. Watch Notes append kept slides to Obsidian or Notion | PDF (`pdf-lib`) / ZIP (`fflate`) / Notes sync (Yanhekt only) |
+| Export | PDF (PDFKit) / PPTX. Watch Notes append kept slides to Obsidian or Notion | PDF (`pdf-lib`) / ZIP (`fflate`); extraction stays separate from Notes |
 
 ### Identity
 
@@ -167,10 +167,7 @@ Do not unify these. Code ids stay frozen.
 
 Retired user-visible names: “Results View”, “Cloud Notes”, “Cloud Index”. Do not put them in new copy.
 
-Yanhekt managed groups (6-char server limit, lookup by reserved name):
-
-- `ASnote` — **AutoSlides Database** / AutoSlides 数据库 (slide import/export target)
-- `ASuser` — **Watch Notes** / 随堂笔记. Web uses this group; desktop Obsidian and Notion never touch it. The old desktop Drive implementation also used these groups.
+Legacy Yanhekt groups `ASnote` and `ASuser` are ordinary folders in web Notes. Neither app provisions or repairs them.
 
 ### UI copy
 
@@ -536,7 +533,7 @@ Slide extraction is the same SSIM pipeline in Web Workers; pixels live in Indexe
 
 Post-processing on web: same phases; auto-crop + 3b are **hardcoded on** when AI filtering is enabled (no web toggles). Phase-3 builtin AI is same-origin `POST /api/ai/chat/completions`. Copilot/custom still call those hosts from the browser (CORS-open).
 
-Web Notes and watch-mode ASuser sync still use Yanhekt’s note contract. Web has no Obsidian or Notion provider. `notesContent` must preserve `timeline` on save so existing desktop-imported notes are not stripped.
+Web Notes keeps ordinary Yanhekt note and folder CRUD, search, PDF/Markdown export, and image sharing. It does not create, rename, or delete old groups on upgrade. The editor still sends content saves to Yanhekt and offers a retry if a save fails. The playback extraction toggle starts immediately with the configured AI settings; capture and post-processing never write notes. Manual image inserts still use MinIO; the public-storage notice is dismissible for one Notes visit, not persisted. Image share links are built from existing note images, with legacy timeline support (§10.4).
 
 PDF bookmarks use UTF-16 hex outlines so CJK folder names need no embedded font; body CJK still needs standalone TTF (not `.ttc` / CFF). See `frontend/public/fonts/README.md`.
 
@@ -550,10 +547,10 @@ Worker tests (`npm test`): `resumeSeal` round-trip/expiry/tamper; Yanhekt golden
 
 ### Differences vs desktop (the ones that cause bugs)
 
-1. No right panel, no task/download queues, no download-by-session-id row, no local filesystem, no Qt extractor, no Lectures compress, no Web Capture or Yuketang tools, no Obsidian/Notion watch notes, no persistent log file, no local ONNX ML (LLM only).
+1. No right panel, no task/download queues, no download-by-session-id row, no local filesystem, no Qt extractor, no Lectures compress, no Web Capture or Yuketang tools, no Watch Notes, no persistent log file, no local ONNX ML (LLM only).
 2. Native HLS on Safari/iOS.
 3. `String()` at every Yanhekt id boundary.
-4. Drive vs Notes, Pinned vs Subscribed (intentional).
+4. Notes is web-only; Pinned vs Subscribed is intentional.
 5. IndexedDB ArrayBuffer rule.
 6. Two-request SMS instead of a parked cookie jar.
 7. Recorded playback is a policy, not a localhost port.
@@ -1359,7 +1356,7 @@ Best-effort revoke. Desktop `ApiClient.revokeToken` / web `revokeToken` fire-and
 
 #### Notes (`/v1/note*`) — always auth, `61101113` if not
 
-Web `notesClient` via the Worker allowlist. The former desktop client is archived. Group filter is **client-side** (list ignores `groupId`); `keyword=` **is** server-side. Group names max **6** characters (`ASnote` / `ASuser`). `note_group_id: 0` is rejected (`笔记分组ID不能小于1`); ungroup = create + copy + delete.
+Web `notesClient` via the Worker allowlist. The former desktop client is archived. Group filter is **client-side** (list ignores `groupId`); `keyword=` **is** server-side. Folder names max **6** characters; no reserved names in AutoSlides Web. `note_group_id: 0` is rejected (`笔记分组ID不能小于1`); ungroup = create + copy + delete.
 
 | Method | Path | Body / query | `data` we read |
 |---|---|---|---|
@@ -1369,7 +1366,7 @@ Web `notesClient` via the Worker allowlist. The former desktop client is archive
 | `PUT` | `/v1/note` | `{ id, title, note_group_id? }` | `code: 0` |
 | `PUT` | `/v1/note/content` | `{ id, content }` | `code: 0` |
 | `DELETE` | `/v1/note` | `{ id }` | `code: 0` |
-| `GET` | `/v1/note/group/list?with_note=false` | — | Array `{ id, name, notes, user_id? }`. Lookup managed groups **by name**, not id |
+| `GET` | `/v1/note/group/list?with_note=false` | — | Array `{ id, name, notes, user_id? }` |
 | `POST` | `/v1/note/group` | `{ name }` | `code: 0` (no id; re-list) |
 | `DELETE` | `/v1/note/group` | `{ id }` | `code: 0` |
 
@@ -1452,9 +1449,11 @@ Canonical: `autoslides/src/shared/shareLink.ts` (copies in `web/` and `share/`, 
 
 Consumers: Lectures slides strip (`deriveCues`); Slides preview Metadata (`appearancesForFile`); v3 share links.
 
-### 10.4 Managed note content
+### 10.4 Legacy Yanhekt note metadata
 
-Every AutoSlides-imported **Yanhekt** Editor.js note ends with a `code` block under sentinel `autoslides`, carrying `slides` (folder `metadata.json` or null), `timeline` (full `timeline.json` or null), and `note` (displayName / imageCount / importedAt / shareUrl). `noteImageUrls` ignores the block. Watch-mode titles look like `c70101s850101 · 泛函分析 · 第1周 星期三 第2大节` (live uses `l`). Disk `slides_*` folder names are unchanged. Obsidian watch notes are not this document: main appends `![](<vault-relative path>)` only, images under the vault's attachment folder. Notion watch notes are image blocks on a page the student picked; the token never leaves main.
+Previously imported Yanhekt Editor.js notes carry a `code` block with an `autoslides` key (`slides`, `timeline`, `note`). The web editor leaves the document intact; `noteImageShare.ts` reads the optional legacy timeline and lecture IDs to keep generating compatible v3 links. Ordinary image-only shares use v2. Neither app generates these legacy blocks or applies special-group rules anymore.
+
+Desktop Watch Notes are not this document: Obsidian appends `![](<vault-relative path>)` with images under the attachment folder; Notion appends image blocks to the selected page (token stays in main).
 
 ---
 
@@ -1475,7 +1474,7 @@ Desktop toggles: `enableAIFiltering`, `distinguishMaybeSlide`, `enableAutoCropAI
 
 Automated crops call `crop:apply(..., autoCropped=true, isAutomated=true)` → `setCropped` only, never the human `edited` latch.
 
-AI dispatch in watch mode is **arity-based**: 1 image → single-image endpoint + `'live'`-keyed prompt; >1 → batch + `'recorded'`-keyed prompt. Storage keys stay `live`/`recorded`. Kept frames then go to the active watch-notes sink (Yanhekt editor, or the Obsidian/Notion queue).
+AI dispatch in watch mode is **arity-based**: 1 image → single-image endpoint + `'live'`-keyed prompt; >1 → batch + `'recorded'`-keyed prompt. Storage keys stay `live`/`recorded`. On desktop, kept frames can then go to the active Obsidian or Notion watch-notes sink.
 
 **Stage 3 — auto-crop detector** (`autoCrop/`). Modes: `canny_then_yolo` (default), `canny_only`, `yolo_only`. YOLO is `onnxruntime-web` single-threaded (no SharedArrayBuffer). Built-in model in `resources/models/`; custom copies to `<userData>/models/` and self-heals to built-in if missing. Developer workspace lab draws a red box in memory — no disk writes.
 
@@ -1527,7 +1526,7 @@ Watch `[isLoggedIn, userId]`, not `isLoggedIn` alone.
 
 ### Watch extraction vs Watch Notes
 
-`trigger: 'watch'` folders are incomplete by nature (`isWatchExtraction`). Watch **Notes** are a separate path, gated by post-processing, and on desktop they follow `watchNotesProvider`: Obsidian or Notion. Web is Yanhekt only. The legacy desktop `cloudWatchSyncEnabled` key is discarded without enrolling the user in another provider.
+`trigger: 'watch'` folders are incomplete by nature (`isWatchExtraction`). Watch **Notes** are a separate path, gated by post-processing, and on desktop they follow `watchNotesProvider`: Obsidian or Notion. Web has no Watch Notes. The legacy desktop `cloudWatchSyncEnabled` key is discarded without enrolling the user in another provider.
 
 ### macOS "Quit and Install"
 

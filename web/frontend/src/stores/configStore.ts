@@ -62,14 +62,6 @@ export interface WebConfig {
   // Run post-processing (pHash phases) automatically after each saved slide
   // during watch-mode extraction. Desktop parity: `autoPostProcessingLive`.
   autoPostProcessingLive: boolean;
-  // Auto-create a cloud note (ASuser group) while extracting and append the
-  // captured slides. Desktop parity: `cloudWatchSyncEnabled`.
-  cloudWatchSyncEnabled: boolean;
-  // Per-badge intent that cloud storage (ASnote + ASuser) was initialized.
-  // Server group list is still the authority; this only distinguishes
-  // "never initialized" from "was initialized, group deleted → repair".
-  // Desktop parity: `cloudStorageInitializedUsers`.
-  cloudStorageInitializedUsers: string[];
   // AI filtering (post-processing phase 3). Desktop parity: `enableAIFiltering`
   // + the aiFiltering config block, LLM-only and simplified for the web.
   aiFilteringEnabled: boolean;
@@ -101,8 +93,6 @@ const defaults = (): WebConfig => ({
   relayEndpoint: "",
   resumeFromServerProgress: true,
   autoPostProcessingLive: true,
-  cloudWatchSyncEnabled: false,
-  cloudStorageInitializedUsers: [],
   aiFilteringEnabled: true,
   aiServiceType: "builtin",
   aiCopilotToken: "",
@@ -117,7 +107,11 @@ const defaults = (): WebConfig => ({
 });
 
 function load(): WebConfig {
-  const stored = readJSON<Partial<WebConfig>>(STORAGE_KEY, {});
+  const stored = readJSON<Partial<WebConfig> & Record<string, unknown>>(STORAGE_KEY, {}) ?? {};
+  // Ignore retired preferences in older blobs. The next ordinary config save
+  // drops them from localStorage; loading config does not touch any notes.
+  delete stored.cloudWatchSyncEnabled;
+  delete stored.cloudStorageInitializedUsers;
   const merged: WebConfig = { ...defaults(), ...stored };
 
   // One-time migration: an earlier build persisted the locale under its own
@@ -133,11 +127,6 @@ function load(): WebConfig {
   // https://relay.ruc.edu.kg) and is kept. Invalid values collapse to built-in.
   const rawRelay = (merged.relayEndpoint || "").trim().replace(/\/+$/, "");
   merged.relayEndpoint = rawRelay ? normalizeRelayEndpoint(rawRelay) || "" : "";
-
-  // Heal pre-init configs that never had the flag array.
-  if (!Array.isArray(merged.cloudStorageInitializedUsers)) {
-    merged.cloudStorageInitializedUsers = [];
-  }
 
   if (
     merged.notesFontSet !== "default" &&
@@ -200,8 +189,6 @@ export function persistConfig(): void {
     relayEndpoint: (configStore.relayEndpoint || "").trim(),
     resumeFromServerProgress: !!configStore.resumeFromServerProgress,
     autoPostProcessingLive: configStore.autoPostProcessingLive,
-    cloudWatchSyncEnabled: configStore.cloudWatchSyncEnabled,
-    cloudStorageInitializedUsers: [...configStore.cloudStorageInitializedUsers],
     aiFilteringEnabled: configStore.aiFilteringEnabled,
     aiServiceType: configStore.aiServiceType,
     aiCopilotToken: configStore.aiCopilotToken,
@@ -214,24 +201,4 @@ export function persistConfig(): void {
     notesSmallText: !!configStore.notesSmallText,
     notesFullWidth: !!configStore.notesFullWidth,
   });
-}
-
-/** Whether this account badge has previously initialized cloud storage. */
-export function isCloudStorageInitialized(badge: string): boolean {
-  if (!badge) return false;
-  return (configStore.cloudStorageInitializedUsers ?? []).includes(badge);
-}
-
-/**
- * Persist per-badge cloud-storage init intent. The server group list remains the
- * authority on whether ASnote/ASuser exist; this flag only drives repair vs.
- * "never initialized".
- */
-export function setCloudStorageInitialized(badge: string, initialized: boolean): void {
-  if (!badge) return;
-  const set = new Set(configStore.cloudStorageInitializedUsers ?? []);
-  if (initialized) set.add(badge);
-  else set.delete(badge);
-  configStore.cloudStorageInitializedUsers = [...set];
-  persistConfig();
 }

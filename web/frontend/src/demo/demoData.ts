@@ -23,7 +23,6 @@ import type {
   UserData,
 } from "../lib/api";
 import type { NoteDetail, NoteGroup, NoteListResult, NoteSummary } from "../lib/notes/notesTypes";
-import { MANAGED_GROUP_NAME, USER_GROUP_NAME } from "../lib/notes/notesTypes";
 
 /** A well-formed 32-hex string: the Worker's own gate would accept its shape. */
 export const DEMO_TOKEN = "0123456789abcdef0123456789abcdef";
@@ -481,9 +480,8 @@ export function demoDefaultSemester() {
 // ------------------------------------------------------------------ notes ---
 
 const NOTE_GROUPS: NoteGroup[] = [
-  { id: 1, name: MANAGED_GROUP_NAME },
-  { id: 2, name: USER_GROUP_NAME },
-  // Group names are capped at 6 characters by the server.
+  // Folder names are capped at 6 characters by the server.
+  { id: 2, name: "Math" },
   { id: 3, name: "Study" },
 ];
 
@@ -510,20 +508,14 @@ function image(url: string, caption: string) {
   return { type: "image", data: { file: { url }, caption, withBorder: false, stretched: false, withBackground: false } };
 }
 
-/** Title of a note AutoSlides manages, e.g. "c501s50109 · Functional Analysis · Lecture 9". */
-function managedTitle(courseId: string, week: number): string {
-  const course = findCourse(courseId);
-  return `c${courseId}s${demoSessionId(courseId, week)} · ${course?.title} · Lecture ${week}`;
-}
-
 const DEMO_NOTES: DemoNote[] = [
   {
     id: 1201,
-    title: managedTitle("501", 9),
+    title: "Functional Analysis · Lecture 9",
     groupId: 2,
     blocks: [
       header("Functional Analysis · Lecture 9"),
-      paragraph("Watch-mode notes: slides captured while the lecture played."),
+      paragraph("Review compact operators and the Fredholm alternative before the next problem set."),
       image(
         slideSvg(
           "Compact Operators",
@@ -544,7 +536,7 @@ const DEMO_NOTES: DemoNote[] = [
   },
   {
     id: 1202,
-    title: managedTitle("401", 11),
+    title: "Real Analysis · Lecture 11",
     groupId: 2,
     blocks: [
       header("Real Analysis · Lecture 11"),
@@ -577,7 +569,7 @@ const DEMO_NOTES: DemoNote[] = [
       header("Midterm review outline"),
       paragraph("1. Normed spaces and completeness. 2. Bounded operators. 3. Duality and weak convergence."),
       { type: "delimiter", data: {} },
-      paragraph("Worked examples are in the <b>Lecture 9</b> watch-mode note."),
+      paragraph("Worked examples are in the <b>Lecture 9</b> note."),
     ],
   },
 ];

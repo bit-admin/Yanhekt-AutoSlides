@@ -11,7 +11,7 @@ import Table from '@editorjs/table';
 import { notesClient } from '../../lib/notes/notesClient';
 import { noteErrorText } from '../../lib/notes/noteErrors';
 import { syncEditorJsSelectionStyles } from '../../lib/notes/editorSelection';
-import { createNoteSaveChain, type NoteSaveChain } from '../../lib/notes/noteSaveChain';
+import { createNoteSaveChain, saveRetryDelayMs, type NoteSaveChain } from '../../lib/notes/noteSaveChain';
 import { readNoteContent } from '../../lib/notes/noteContent';
 import type { useCloudNotes } from './useCloudNotes';
 
@@ -32,7 +32,7 @@ export function useNoteEditor(
 ) {
   const editableTitle = ref('');
   const editorHolder = ref<HTMLElement | null>(null);
-  const saveStatus = ref<'idle' | 'saving' | 'saved'>('idle');
+  const saveStatus = ref<'idle' | 'saving' | 'saved' | 'failed'>('idle');
   let editor: EditorJS | null = null;
   /** True once the editor has loaded a note and is ready to accept user edits. */
   let editorReady = false;
@@ -50,6 +50,19 @@ export function useNoteEditor(
   let savedFlashTimer: ReturnType<typeof setTimeout> | undefined;
   // Yanhekt's reason for the last failed save of the note on screen.
   let lastSaveFailure = '';
+  // The banner that failure put up, so a later recovery can take it down.
+  let saveFailureBanner = '';
+  // Autosave backoff for the note on screen. Retry Save and leaving the note
+  // still try at once.
+  let saveFailures = 0;
+  let nextAutosaveAt = 0;
+
+  function resetSaveFailures(): void {
+    lastSaveFailure = '';
+    saveFailureBanner = '';
+    saveFailures = 0;
+    nextAutosaveAt = 0;
+  }
 
   function startChain(noteId: number, baselineBlocks: string): void {
     const mine: NoteSaveChain = createNoteSaveChain((content) => cn.saveContent(noteId, content), {
@@ -61,13 +74,19 @@ export function useNoteEditor(
         if (chain !== mine) return;
         // A failed save never reads as saved: the note stays dirty, and the
         // banner says the changes were not saved, with Yanhekt's reason.
-        saveStatus.value = saved ? 'saved' : 'idle';
+        saveStatus.value = saved ? 'saved' : 'failed';
         if (!saved) {
+          saveFailures += 1;
+          nextAutosaveAt = Date.now() + saveRetryDelayMs(saveFailures);
           lastSaveFailure = cn.error.value;
-          if (lastSaveFailure) cn.error.value = t('cloudNotes.changesNotSaved', { reason: lastSaveFailure });
+          if (lastSaveFailure) {
+            saveFailureBanner = t('cloudNotes.changesNotSaved', { reason: lastSaveFailure });
+            cn.error.value = saveFailureBanner;
+          }
           return;
         }
-        lastSaveFailure = '';
+        if (saveFailureBanner && cn.error.value === saveFailureBanner) cn.error.value = '';
+        resetSaveFailures();
         if (savedFlashTimer) clearTimeout(savedFlashTimer);
         savedFlashTimer = setTimeout(() => {
           if (saveStatus.value === 'saved') saveStatus.value = 'idle';
@@ -101,15 +120,39 @@ export function useNoteEditor(
     return saves.save({ blocks: JSON.stringify(data.blocks), content: JSON.stringify(data) });
   }
 
-  /** Debounced auto-save triggered by Editor.js onChange. */
+  /**
+   * Debounced auto-save triggered by Editor.js onChange. After a failed save it
+   * waits out the backoff; further typing does not extend or shorten that wait.
+   */
   function scheduleSave(): void {
     if (!editorReady) return;
     const noteId = cn.selectedNoteId.value;
     if (noteId == null) return;
+    const wait = Math.max(1000, nextAutosaveAt - Date.now());
+    if (saveTimer && wait > 1000) return;
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      void flushSave(noteId);
-    }, 1000);
+      saveTimer = undefined;
+      // A write that failed while this timer ran has moved the next attempt.
+      if (Date.now() < nextAutosaveAt) scheduleSave();
+      else void flushSave(noteId);
+    }, wait);
+  }
+
+  /** Save the note being left. Its title and the reason when edits were lost. */
+  async function flushLeaving(noteId: number): Promise<{ title: string; reason: string } | null> {
+    const title = cn.selectedNote.value?.title ?? '';
+    return (await flushSave(noteId)) ? null : { title, reason: lastSaveFailure };
+  }
+
+  /** Close the open note after saving it, unless `stillClosing` says otherwise by then. */
+  async function closeNote(stillClosing: () => boolean): Promise<void> {
+    const id = cn.selectedNoteId.value;
+    if (id == null) return;
+    const lost = await flushLeaving(id);
+    if (cn.selectedNoteId.value !== id || !stillClosing()) return;
+    cn.closeNote();
+    if (lost) cn.error.value = t('cloudNotes.leftUnsaved', lost);
   }
 
   async function destroyEditor(): Promise<void> {
@@ -138,6 +181,7 @@ export function useNoteEditor(
     await destroyEditor();
     if (!editorHolder.value) return;
     saveStatus.value = 'idle';
+    resetSaveFailures();
     const noteId = cn.selectedNoteId.value;
     const read = readNoteContent(content);
     // Content this editor cannot read is shown empty and locked. Editing it
@@ -202,10 +246,7 @@ export function useNoteEditor(
     // names the note whose changes were lost.
     const prevId = cn.selectedNoteId.value;
     let lost: { title: string; reason: string } | null = null;
-    if (prevId != null && prevId !== id) {
-      const title = cn.selectedNote.value?.title ?? '';
-      if (!(await flushSave(prevId))) lost = { title, reason: lastSaveFailure };
-    }
+    if (prevId != null && prevId !== id) lost = await flushLeaving(prevId);
     const detail = await cn.openNote(id);
     if (lost && cn.selectedNoteId.value === id) {
       cn.error.value = t('cloudNotes.leftUnsaved', lost);
@@ -266,6 +307,7 @@ export function useNoteEditor(
     destroyEditor,
     mountEditor,
     openNote,
+    closeNote,
     onSaveTitle,
     currentNoteContent,
   };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createNoteSaveChain, type NoteSnapshot } from './noteSaveChain'
+import { createNoteSaveChain, saveRetryDelayMs, type NoteSnapshot } from './noteSaveChain'
 
 const snap = (text: string): NoteSnapshot => ({ blocks: text, content: `doc:${text}` })
 
@@ -22,7 +22,28 @@ function fakeServer() {
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0))
 
+describe('autosave backoff', () => {
+  it('waits longer after each failure, up to five minutes', () => {
+    expect([0, 1, 2, 3, 4, 9].map(saveRetryDelayMs)).toEqual([0, 30_000, 60_000, 120_000, 300_000, 300_000])
+  })
+})
+
 describe('the saves of one note', () => {
+  it('reports the note as saved when a failed edit is undone, without a write', async () => {
+    const server = fakeServer()
+    const settled: boolean[] = []
+    const chain = createNoteSaveChain(server.write, { onSettled: (saved) => settled.push(saved) })
+    chain.setBaseline('v0')
+    const failed = chain.save(snap('v1'))
+    await tick()
+    server.writes[0].finish(false)
+    expect(await failed).toBe(false)
+    expect(await chain.save(snap('v0'))).toBe(true)
+    expect(server.writes).toHaveLength(1)
+    expect(settled).toEqual([false, true])
+    expect(chain.dirty).toBe(false)
+  })
+
   it('sends nothing when the content is what was loaded', async () => {
     const server = fakeServer()
     const chain = createNoteSaveChain(server.write)

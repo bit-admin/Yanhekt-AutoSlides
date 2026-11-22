@@ -10,23 +10,14 @@ import CoursePage from "../components/course/CoursePage.vue";
 import SearchPage from "../components/course/SearchPage.vue";
 import RecordedCourseRoute from "../components/course/RecordedCourseRoute.vue";
 
-// Lazy: the player, Settings, and the full-page workspaces. Each is the ONLY
-// path by which a heavy dependency enters the graph, so a static import here
-// would put it in the entry chunk and charge every visitor for it:
-//
-//   PlayerRoute         → PlaybackPage → hls.js          (~618 kB minified)
-//   NotesPage           → Editor.js + its tools          (~394 kB)
-//   SlidesPage          → the extraction/export pipeline
-//   AppsPage            → the vendored github-markdown stylesheets
-//   SettingsPage        → cloudStorageStore → the lib/notes client stack
+// Lazy: the player, Settings, and the full-page workspaces. This keeps heavy
+// dependencies like hls.js, Editor.js, and export tools out of the entry chunk.
+// Settings is also an infrequent destination, unlike the eager browse tabs.
 //
 // vue-router awaits the loader inside the navigation guard, so the view still
 // renders in one paint — there is no flash of an empty route. KeepAlive keeps
 // working on the cached ones (Slides/Notes): it unwraps the async component
 // before matching its `include` list by name.
-// Settings is a sidebar entry but a rare destination, not something you flip
-// between — and it was the one eager route dragging the cloud-storage/notes
-// client stack (cloudStorageStore → lib/notes/*, ~37 kB) into first paint.
 const SettingsPage = () => import("../components/SettingsPage.vue");
 const SlidesPage = () => import("../components/slides/SlidesPage.vue");
 const NotesPage = () => import("../components/notes/NotesPage.vue");

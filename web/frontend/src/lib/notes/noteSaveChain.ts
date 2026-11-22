@@ -45,6 +45,17 @@ export interface NoteSaveChainHooks {
   onSettled?: (saved: boolean) => void
 }
 
+const SAVE_RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 300_000]
+
+/**
+ * How long autosave waits after this many failures in a row. Yanhekt's content
+ * write is often down, so new edits must not send a request every second.
+ */
+export function saveRetryDelayMs(failures: number): number {
+  if (failures <= 0) return 0
+  return SAVE_RETRY_DELAYS_MS[Math.min(failures, SAVE_RETRY_DELAYS_MS.length) - 1]
+}
+
 export function createNoteSaveChain(
   write: (content: string) => Promise<boolean>,
   hooks: NoteSaveChainHooks = {},
@@ -90,7 +101,14 @@ export function createNoteSaveChain(
     },
     save(snapshot) {
       if (closed) return Promise.resolve(false)
-      if (!draining && !pending && snapshot.blocks === baseline) return Promise.resolve(true)
+      if (!draining && !pending && snapshot.blocks === baseline) {
+        // Edited back to what is saved after a failure: the note is in sync again.
+        if (failed) {
+          failed = false
+          hooks.onSettled?.(true)
+        }
+        return Promise.resolve(true)
+      }
       pending = snapshot
       if (!draining) {
         draining = drain().finally(() => {

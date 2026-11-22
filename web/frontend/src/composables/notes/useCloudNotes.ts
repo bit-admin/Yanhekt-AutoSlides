@@ -1,10 +1,8 @@
 import { computed, ref } from 'vue';
 import type { NoteSummary, NoteDetail, NoteGroup, NotesResult } from '../../lib/notes/notesTypes';
-import { isAutoSlidesGroupName, isManagedGroupName } from '../../lib/notes/notesTypes';
 import { notesClient } from '../../lib/notes/notesClient';
 import { noteErrorText } from '../../lib/notes/noteErrors';
 import { UNGROUP_KEPT_BOTH } from '../../lib/notes/noteUngroup';
-import { cloudStorageStore } from '../../stores/cloudStorageStore';
 
 const PAGE_SIZE = 20;
 /** Page size used when fetching the full note set (server honours large sizes). */
@@ -15,19 +13,9 @@ const MAX_FETCH_PAGES = 20;
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
- * Reactive state + actions for the Notes page. Ported from the desktop
- * useCloudNotes (autoslides/src/renderer/features/cloudNotes/useCloudNotes.ts);
- * the data source is the fetch-backed notesClient instead of the Electron IPC
- * bridge, and the desktop-only README recreation is dropped.
- *
- * Grouping model: the server's note/list endpoint ignores any groupId filter,
- * so we load the complete note set once (paging note/list with empty keyword)
- * into `allNotes` and filter by group + paginate client-side. Keyword search is
- * server-side: a non-empty keyword pages note/list with `keyword=` into
- * `searchResults`, then the same client group/page slice runs over that buffer.
- * Export/import keep using the full catalog via loadAll() + allNotes. List rows
- * carry no content, so both sets stay light. The Editor.js wiring lives in the
- * component; this composable owns the data.
+ * The Yanhekt note list ignores group filters, so all folders use the same
+ * catalog and local pagination. Keyword matches come from the server and use
+ * the same local group filter. List rows carry no editor content.
  */
 export function useCloudNotes() {
   const groups = ref<NoteGroup[]>([]);
@@ -78,16 +66,6 @@ export function useCloudNotes() {
   };
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null);
-
-  /** Managed groups — ASuser (Watch Notes) first, then ASnote (AutoSlides Database). */
-  const managedGroups = computed(() =>
-    groups.value
-      .filter((g) => isAutoSlidesGroupName(g.name))
-      .slice()
-      .sort((a, b) => Number(isManagedGroupName(a.name)) - Number(isManagedGroupName(b.name))),
-  );
-  /** Everything else: the default (Ungrouped) group + user-created groups. */
-  const otherGroups = computed(() => groups.value.filter((g) => !isAutoSlidesGroupName(g.name)));
 
   /** Unwrap a result envelope; routes auth/errors into reactive state. */
   function unwrap<T>(res: NotesResult<T>): T | null {
@@ -150,12 +128,7 @@ export function useCloudNotes() {
     const res = await notesClient.groupList();
     if (!alive()) return;
     const data = unwrap(res);
-    if (data) {
-      groups.value = data;
-      // Share this list with the storage store so it can adopt ASnote/ASuser
-      // without a second groupList round-trip.
-      cloudStorageStore.adoptFromGroups(data);
-    }
+    if (data) groups.value = [{ id: 0, name: '' }, ...data.filter((group) => group.id !== 0)];
   }
 
   /**
@@ -422,6 +395,7 @@ export function useCloudNotes() {
           if (n.note_group_id === id) n.note_group_id = 0;
         }
       }
+      if (selectedNote.value?.note_group_id === id) selectedNote.value.note_group_id = 0;
       if (activeGroupId.value === id) {
         activeGroupId.value = '';
         page.value = 1;
@@ -484,8 +458,6 @@ export function useCloudNotes() {
   return {
     // state
     groups,
-    managedGroups,
-    otherGroups,
     allNotes,
     notes,
     selectedNote,

@@ -2,9 +2,9 @@
 // Web changes: output goes to an IndexedDB folder (no output directory /
 // ensureDirectory), metadata is written via slideStore (always watch-mode —
 // there is no task queue on the web), slides arrive through the adapter's
-// onSlideExtracted callback instead of window CustomEvents, and
-// post-processing is triggered manually via executePostProcessing (desktop
-// gallery parity), running detached so navigation doesn't cancel it.
+// onSlideExtracted callback instead of window CustomEvents. Post-processing
+// runs automatically after each slide when enabled, or via the gallery
+// button. It runs detached so navigation doesn't cancel it.
 
 import { computed, ref, shallowRef, type Ref } from 'vue'
 import {
@@ -27,7 +27,6 @@ import {
   postProcessingStatus,
 } from '../../lib/postProcessing/runner'
 import { configStore } from '../../stores/configStore'
-import { watchNotesStore } from '../../stores/watchNotesStore'
 import type { Course } from '../useCourseList'
 import type { SessionData } from '../../lib/api'
 import { demoHooks } from '../../lib/demoRegistry'
@@ -236,11 +235,6 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     if (isSlideExtractionEnabled.value) {
       try {
         const input = await buildExtractionInput()
-        // Start note sync before the pipeline so early slides have an entry to
-        // buffer into (no-op unless the Settings toggle is on).
-        if (currentFolder.value) {
-          void watchNotesStore.onExtractionStarted(currentFolder.value, extractorInstanceId.value)
-        }
         const handle = await slideExtractionManager.run(input, {
           onStatusChanged: (status) => {
             slideExtractionStatus.value = {
@@ -254,19 +248,12 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
             extractedSlides.value.push(slide)
             const folder = currentFolder.value
             if (!folder) return
-            // Watch-note first: buffer/upload decisions read the same auto-p-p
-            // gate, and buffering must precede the pass that may clear the slide.
-            watchNotesStore.onSlideExtracted(folder, extractorInstanceId.value, `${slide.title}.png`)
             if (configStore.autoPostProcessingLive !== false) {
               void triggerAutoPostProcessing(folder, mode, galleryHooks)
             }
           },
           onSlidesCleared: () => {
             extractedSlides.value = []
-            if (currentFolder.value) watchNotesStore.onSlidesCleared(currentFolder.value)
-          },
-          onStopped: () => {
-            if (currentFolder.value) watchNotesStore.onExtractionStopped(currentFolder.value)
           },
           onError: (error) => {
             if (error instanceof CanvasTaintedError) {

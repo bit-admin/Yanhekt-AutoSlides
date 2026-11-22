@@ -34,6 +34,7 @@
           class="ns-search"
           :value="keyword"
           :placeholder="$t('cloudNotes.searchPlaceholder')"
+          :aria-label="$t('cloudNotes.searchPlaceholder')"
           @input="onSearchInput"
         />
       </div>
@@ -52,6 +53,7 @@
         type="button"
         class="ns-row"
         :class="{ active: activeGroupId === '' }"
+        :aria-pressed="activeGroupId === ''"
         @click="emit('set-group', '')"
       >
         <svg class="ns-row-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -61,31 +63,14 @@
         <span class="ns-row-label">{{ $t('cloudNotes.allNotes') }}</span>
       </button>
 
-      <div v-if="managedGroups.length > 0" class="ns-section">
-        <div class="ns-section-label">{{ $t('cloudNotes.managedSection') }}</div>
-        <button
-          v-for="g in managedGroups"
-          :key="g.id"
-          type="button"
-          class="ns-row"
-          :class="{ active: activeGroupId === g.id }"
-          :title="groupLabel(g)"
-          @click="emit('set-group', g.id)"
-        >
-          <svg class="ns-row-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-          </svg>
-          <span class="ns-row-label">{{ groupLabel(g) }}</span>
-        </button>
-      </div>
-
       <div class="ns-section">
         <div class="ns-section-label">{{ $t('cloudNotes.otherGroupsSection') }}</div>
-        <div v-for="g in otherGroups" :key="g.id" class="ns-row-wrap">
+        <div v-for="g in groups" :key="g.id" class="ns-row-wrap">
           <button
             type="button"
             class="ns-row"
             :class="{ active: activeGroupId === g.id }"
+            :aria-pressed="activeGroupId === g.id"
             :title="groupLabel(g)"
             @click="emit('set-group', g.id)"
           >
@@ -168,6 +153,7 @@
           type="button"
           class="ns-row ns-page-row"
           :class="{ active: selectedNoteId === note.id, 'is-opening': openingNoteId === note.id }"
+          :aria-current="selectedNoteId === note.id ? 'page' : undefined"
           :title="noteListTitle(note)"
           @click="emit('open-note', note.id)"
         >
@@ -214,7 +200,6 @@ import { nextTick, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
-  formatNoteDisplayTitle,
   formatNoteGroupLabel,
   NOTE_GROUP_NAME_MAX,
   validateNoteGroupName,
@@ -232,8 +217,7 @@ function groupLabel(g: { id: number; name: string }): string {
 const props = defineProps<{
   keyword: string
   activeGroupId: number | ''
-  managedGroups: NoteGroup[]
-  otherGroups: NoteGroup[]
+  groups: NoteGroup[]
   notes: NoteSummary[]
   selectedNoteId: number | null
   loading: boolean
@@ -260,8 +244,7 @@ const emit = defineEmits<{
 }>()
 
 function noteListTitle(note: NoteSummary): string {
-  const managed = props.managedGroups.some((g) => g.id === note.note_group_id)
-  return formatNoteDisplayTitle(note.title, managed) || t('cloudNotes.untitled')
+  return note.title?.trim() || t('cloudNotes.untitled')
 }
 
 function onSearchInput(e: Event): void {
@@ -277,7 +260,7 @@ let suppressBlur = false
 let committing = false
 
 function existingNames(): string[] {
-  return [...props.managedGroups, ...props.otherGroups].map((g) => g.name)
+  return props.groups.map((g) => g.name)
 }
 
 function nameMessage(raw: string): string {

@@ -14,8 +14,7 @@
       :style="sidebarStyle"
       :keyword="cn.keyword.value"
       :active-group-id="cn.activeGroupId.value"
-      :managed-groups="cn.managedGroups.value"
-      :other-groups="cn.otherGroups.value"
+      :groups="cn.groups.value"
       :notes="cn.notes.value"
       :selected-note-id="cn.selectedNoteId.value"
       :loading="cn.loading.value"
@@ -88,44 +87,40 @@
 
     <template v-else>
       <NotesEditorCanvas
-        :has-note="!!cn.selectedNote.value"
+        :note-id="cn.selectedNoteId.value"
         :title="ed.editableTitle.value"
         :group-id="cn.selectedNote.value?.note_group_id ?? 0"
         :move-groups="moveGroups"
         :save-status="ed.saveStatus.value"
         :mobile="isMobile"
-        :can-export="canExportCurrentNote"
         :get-content="() => ed.currentNoteContent()"
         @open-sidebar="sidebarOpen = true"
         @create-note="onCreateNote"
         @update:title="(v) => (ed.editableTitle.value = v)"
         @save-title="ed.onSaveTitle"
+        @retry-save="onRetrySave"
         @move-group="onMoveGroup"
         @set-holder="(el) => (ed.editorHolder.value = el)"
         @duplicate="onDuplicateNote"
         @delete="onDeleteCurrentNote"
       />
 
-      <div v-if="cn.error.value" class="nw-error" @click="cn.error.value = ''">{{ cn.error.value }}</div>
+      <div v-if="cn.error.value" class="nw-error" role="alert" @click="cn.error.value = ''">{{ cn.error.value }}</div>
 
-      <PublicStorageBanner v-if="!publicStorageNoticeStore.acknowledged.value" />
+      <PublicStorageBanner v-if="showPublicStorageNotice" @dismiss="showPublicStorageNotice = false" />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-// Notion-style full-page Notes workspace. Data layer is unchanged
-// (useCloudNotes + useNoteEditor); chrome is standalone via route meta.fullPage.
+// The Notes workspace uses standalone chrome via route meta.fullPage.
 import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useCloudNotes } from '../../composables/notes/useCloudNotes'
 import { useNoteEditor } from '../../composables/notes/useNoteEditor'
-import { notesRefreshTick } from '../../stores/notesRefreshStore'
 import { authStore } from '../../stores/authStore'
-import { cloudStorageStore } from '../../stores/cloudStorageStore'
 import { dialogStore } from '../../stores/dialogStore'
-import { publicStorageNoticeStore } from '../../stores/publicStorageNoticeStore'
 import NotesSidebar from './NotesSidebar.vue'
 import NotesEditorCanvas from './NotesEditorCanvas.vue'
 import PublicStorageBanner from './PublicStorageBanner.vue'
@@ -140,15 +135,8 @@ const ed = useNoteEditor(cn, t)
 
 const sidebarOpen = ref(false)
 const isMobile = ref(false)
-
-/** True for notes outside ASnote (file export); false for ASnote (info tip only). */
-const canExportCurrentNote = computed(() => {
-  const note = cn.selectedNote.value
-  if (!note) return false
-  const mid = cloudStorageStore.managedGroupId.value
-  if (mid == null) return true
-  return Number(note.note_group_id ?? 0) !== Number(mid)
-})
+// Dismiss for this visit only. Demo images are fabricated and never uploaded.
+const showPublicStorageNotice = ref(!__DEMO__)
 
 // Desktop sidebar width (px). Persisted so a drag survives reloads.
 const SIDEBAR_DEFAULT = 248 // ~15.5rem
@@ -176,7 +164,6 @@ const sidebarStyle = computed(() =>
 const moveGroups = computed(() => cn.groups.value.filter((g) => g.id !== 0))
 
 let initialized = false
-let seenRefreshTick = notesRefreshTick.value
 /** Prevents route ↔ selection feedback loops while we replace URLs. */
 let syncingRoute = false
 
@@ -241,10 +228,10 @@ function routeToNote(id: number | null): void {
 }
 
 async function syncFromRoute(): Promise<void> {
-  if (cn.notSignedIn.value) return
+  if ((route.name !== 'notes' && route.name !== 'notes-detail') || cn.notSignedIn.value) return
   const id = parseRouteNoteId()
   if (id == null) {
-    if (cn.selectedNoteId.value != null) cn.closeNote()
+    await ed.closeNote(() => parseRouteNoteId() == null)
     return
   }
   if (cn.selectedNoteId.value === id) return
@@ -265,25 +252,17 @@ async function initOnce(): Promise<void> {
 onMounted(() => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
-  void initOnce()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
 })
 
-// KeepAlive re-activation: reload when the watch engine created a note since
-// the last visit, and re-init after a sign-in that happened elsewhere.
+// KeepAlive re-activation: the same workspace instance handles both Notes routes.
 onActivated(() => {
-  void initOnce()
-  if (notesRefreshTick.value !== seenRefreshTick) {
-    seenRefreshTick = notesRefreshTick.value
-    void cn.loadAll()
-  } else if (cn.notSignedIn.value && authStore.isLoggedIn.value) {
-    void cn.init().then(() => syncFromRoute())
-  } else {
-    void syncFromRoute()
-  }
+  showPublicStorageNotice.value = !__DEMO__
+  if (initialized) void syncFromRoute()
+  else void initOnce()
 })
 
 // Flush pending editor edits when the page is hidden (KeepAlive) or evicted.
@@ -324,6 +303,11 @@ function onKeyword(value: string): void {
   void cn.searchNotes()
 }
 
+function onRetrySave(): void {
+  const id = cn.selectedNoteId.value
+  if (id != null) void ed.flushSave(id)
+}
+
 function onSetGroup(id: number | ''): void {
   cn.setGroup(id)
 }
@@ -339,6 +323,7 @@ async function onOpenNote(id: number): Promise<void> {
     return
   }
   await ed.openNote(id)
+  if (cn.selectedNoteId.value !== id) return
   routeToNote(id)
   if (isMobile.value) sidebarOpen.value = false
 }
@@ -347,6 +332,7 @@ async function onCreateNote(): Promise<void> {
   const id = await cn.createNote()
   if (id != null) {
     await ed.openNote(id)
+    if (cn.selectedNoteId.value !== id) return
     routeToNote(id)
     if (isMobile.value) sidebarOpen.value = false
   }
@@ -364,8 +350,7 @@ async function onDeleteNote(id: number): Promise<void> {
   })
   if (!ok) return
   const wasOpen = cn.selectedNoteId.value === id
-  await cn.deleteNote(id)
-  if (wasOpen) routeToNote(null)
+  if (await cn.deleteNote(id) && wasOpen && cn.selectedNoteId.value == null) routeToNote(null)
 }
 
 async function onDeleteCurrentNote(): Promise<void> {
@@ -381,10 +366,18 @@ async function onDuplicateNote(): Promise<void> {
   const content = await ed.currentNoteContent()
   const title = (ed.editableTitle.value || src.title || t('cloudNotes.untitled')).trim()
   const copyTitle = `${title} ${t('cloudNotes.duplicateSuffix')}`
+  const token = authStore.token.value
   const newId = await cn.createNote()
   if (newId == null) return
-  await cn.renameNote(newId, copyTitle)
-  if (content) await cn.saveContent(newId, content)
+  const complete = await cn.renameNote(newId, copyTitle)
+    && (!content || await cn.saveContent(newId, content))
+  if (!complete) {
+    // Never leave a blank "copy" that looks like a real duplicate.
+    if (authStore.token.value !== token) return
+    const reason = cn.error.value
+    if (await cn.deleteNote(newId)) cn.error.value = reason
+    return
+  }
   // Preserve folder membership (create lands in Ungrouped by default).
   const groupId = Number(src.note_group_id ?? 0)
   if (groupId !== 0) {

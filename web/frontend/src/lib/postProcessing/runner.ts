@@ -6,8 +6,7 @@
 //  - runPostProcessing: the manual Post-process button (desktop gallery parity);
 //  - triggerAutoPostProcessing: the per-slide watch-mode trigger — if a pass is
 //    already in flight it queues a re-run instead of skipping, so slides that
-//    arrive mid-pass still get a completed pass behind them (the note-upload
-//    gate releases a buffered slide only once a pass reports it kept).
+//    arrive mid-pass still get processed.
 
 import { reactive } from 'vue'
 import { PostProcessingPipeline } from './pipeline'
@@ -43,60 +42,6 @@ export const postProcessingStatus = reactive<Record<string, PostProcessingRunSta
 const inFlight = new Set<string>()
 /** Folders where a new slide arrived while a pass was running → run again. */
 const pendingRerun = new Set<string>()
-/** Resolvers waiting for a folder to go fully idle (no pass, no queued re-run). */
-const idleWaiters = new Map<string, Array<() => void>>()
-
-export interface PassResult {
-  /** Files that survived the pass, in extraction order. */
-  kept: string[]
-  /** Files the pass moved to trash. */
-  removed: string[]
-}
-
-type PassCompletedListener = (folder: string, result: PassResult) => void
-const passListeners = new Set<PassCompletedListener>()
-
-/**
- * Subscribe to completed passes (manual and auto — every completed pass
- * reports). Returns an unsubscribe function. Consumed by the watch-notes
- * engine to release buffered slide uploads.
- */
-export function onPassCompleted(listener: PassCompletedListener): () => void {
-  passListeners.add(listener)
-  return () => passListeners.delete(listener)
-}
-
-function notifyPassCompleted(folder: string, result: PassResult): void {
-  for (const listener of passListeners) {
-    try {
-      listener(folder, result)
-    } catch (error) {
-      log.error('pass-completed listener failed:', error)
-    }
-  }
-}
-
-function notifyIdleIfSettled(folder: string): void {
-  if (inFlight.has(folder) || pendingRerun.has(folder)) return
-  const waiters = idleWaiters.get(folder)
-  if (!waiters) return
-  idleWaiters.delete(folder)
-  for (const resolve of waiters) resolve()
-}
-
-/**
- * Resolves once the folder has no pass in flight and no queued re-run. Used by
- * the watch-notes stop path: an in-flight pass still reports its kept slides
- * before this settles, so stopping never swallows a completed pass's result.
- */
-export function whenIdle(folder: string): Promise<void> {
-  if (!inFlight.has(folder) && !pendingRerun.has(folder)) return Promise.resolve()
-  return new Promise((resolve) => {
-    const waiters = idleWaiters.get(folder) ?? []
-    waiters.push(resolve)
-    idleWaiters.set(folder, waiters)
-  })
-}
 
 export type PostProcessingGalleryHooks = {
   /** Splice trashed slides out of the in-memory playback strip (optional). */
@@ -107,14 +52,13 @@ export type PostProcessingGalleryHooks = {
 
 /**
  * One full pipeline pass over the folder's active images. Caller must hold the
- * per-folder inFlight slot. Returns the kept/removed split (extraction order),
- * or null when the pipeline errored.
+ * per-folder inFlight slot.
  */
 async function runOnePass(
   folder: string,
   promptType: 'live' | 'recorded',
   gallery?: PostProcessingGalleryHooks,
-): Promise<PassResult | null> {
+): Promise<void> {
   postProcessingStatus[folder] = {
     state: 'running',
     progress: null,
@@ -128,7 +72,6 @@ async function runOnePass(
   try {
     const images = await listActiveImages(folder)
     const imageFiles = images.map((i) => i.name).sort(compareToolImages)
-    const removed = new Set<string>()
 
     const aiActive = isAIFilteringActive()
     // Files with a persisted verdict skip phase 3 — on every pass, including
@@ -175,10 +118,7 @@ async function runOnePass(
               status.progress = { ...snap, phase1: { ...snap.phase1 }, phase2: { ...snap.phase2 }, phase3: { ...snap.phase3 } }
             }
           },
-          onItemRemoved: (filename, reason) => {
-            removed.add(filename)
-            gallery?.onItemRemoved?.(filename, reason)
-          },
+          onItemRemoved: (filename, reason) => gallery?.onItemRemoved?.(filename, reason),
           classifier: aiActive ? createClassifier() : undefined,
           autoCrop: cropper ? (filename) => cropper.crop(filename) : undefined,
           onItemCropped: gallery?.onItemCropped
@@ -217,11 +157,6 @@ async function runOnePass(
       log.info(
         `Post-processing ${result.status} for ${folder}: ${result.duplicatesRemoved.length} duplicates, ${result.excludedRemoved.length} excluded, ${result.aiNotSlide.length + result.aiMaybeSlideEdit.length} AI-filtered (${aiFailed.length} failed)`,
       )
-      if (result.status !== 'completed') return null
-      return {
-        kept: imageFiles.filter((f) => !removed.has(f)),
-        removed: [...removed],
-      }
     } catch (error) {
       log.error(`Post-processing failed for ${folder}:`, error)
       const status = postProcessingStatus[folder]
@@ -234,7 +169,6 @@ async function runOnePass(
         aiFailedCount: status?.aiFailedCount ?? 0,
         aiErrorType: status?.aiErrorType ?? null,
       }
-      return null
     } finally {
       cropper?.destroy()
     }
@@ -251,7 +185,6 @@ async function runOnePass(
       aiFailedCount: status?.aiFailedCount ?? 0,
       aiErrorType: status?.aiErrorType ?? null,
     }
-    return null
   }
 }
 
@@ -267,21 +200,16 @@ export async function runPostProcessing(
   }
   inFlight.add(folder)
   try {
-    const result = await runOnePass(folder, promptType, gallery)
-    if (result) notifyPassCompleted(folder, result)
+    await runOnePass(folder, promptType, gallery)
   } finally {
     inFlight.delete(folder)
-    notifyIdleIfSettled(folder)
   }
 }
 
 /**
  * Per-slide auto trigger (watch mode). If a pass for the folder is already in
- * flight, queues a re-run instead of skipping — the just-saved slide needs a
- * completed pass behind it (dedup verdict + note-gate clearance). Re-runs are
- * full passes: re-reporting already-kept files is harmless (the note gate only
- * releases still-pending filenames), and phase 3 only classifies files without
- * a persisted verdict — i.e. exactly the newly saved slide(s).
+ * flight, queues a re-run so the just-saved slide is also processed. Re-runs
+ * are full passes, but phase 3 only classifies files without a persisted verdict.
  */
 export async function triggerAutoPostProcessing(
   folder: string,
@@ -296,11 +224,9 @@ export async function triggerAutoPostProcessing(
   try {
     do {
       pendingRerun.delete(folder)
-      const result = await runOnePass(folder, promptType, gallery)
-      if (result) notifyPassCompleted(folder, result)
+      await runOnePass(folder, promptType, gallery)
     } while (pendingRerun.has(folder))
   } finally {
     inFlight.delete(folder)
-    notifyIdleIfSettled(folder)
   }
 }

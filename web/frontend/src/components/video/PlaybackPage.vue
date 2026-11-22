@@ -599,18 +599,12 @@
           @close="showShareModal = false"
           @submit="onShareLinkSubmit"
         />
-
-        <ExtractionFeaturesModal
-          v-if="showExtractionFeaturesPrompt"
-          @continue="onExtractionFeaturesContinue"
-          @cancel="onExtractionFeaturesCancel"
-        />
       </div>
 
-      <!-- Right Column: Sessions / Notes sidebar (Hidden in cinema mode on desktop) -->
+      <!-- Recorded sessions sidebar (hidden in cinema mode) -->
       <div
         class="playback-sidebar-playlist"
-        v-if="!isCinemaMode && (props.mode === 'recorded' || notesTabAvailable)"
+        v-if="!isCinemaMode && props.mode === 'recorded'"
         :style="sidebarStyle"
       >
         <div
@@ -625,61 +619,39 @@
           :title="$t('playback.resizeSidebar')"
           @pointerdown="onResizeStart"
         />
-        <!-- Sessions | Notes toggle (recorded only — live has no sessions list) -->
-        <div v-if="props.mode === 'recorded' && notesTabAvailable" class="playlist-tabs">
-          <button
-            class="playlist-tab"
-            :class="{ active: activeSidebarView === 'sessions' }"
-            @click="sidebarTab = 'sessions'"
-          >
-            {{ $t('playback.sessionsTab') }}
-          </button>
-          <button
-            class="playlist-tab"
-            :class="{ active: activeSidebarView === 'notes' }"
-            @click="sidebarTab = 'notes'"
-          >
-            {{ $t('playback.notesTab') }}
-          </button>
+        <div class="playlist-header">
+          <h3 class="playlist-title">{{ courseDisplayTitle(course) }}</h3>
+          <span v-if="siblingSessions.length > 0" class="playlist-subtitle">{{ $t('playback.sessionsCount', { count: siblingSessions.length }) }}</span>
         </div>
 
-        <template v-if="activeSidebarView === 'sessions'">
-          <div class="playlist-header">
-            <h3 class="playlist-title">{{ courseDisplayTitle(course) }}</h3>
-            <span v-if="siblingSessions.length > 0" class="playlist-subtitle">{{ $t('playback.sessionsCount', { count: siblingSessions.length }) }}</span>
-          </div>
+        <div v-if="isLoadingSiblings" class="playlist-loading">
+          <div class="spinner spinner--sm"></div>
+        </div>
 
-          <div v-if="isLoadingSiblings" class="playlist-loading">
-            <div class="spinner spinner--sm"></div>
-          </div>
+        <p v-else-if="siblingSessions.length === 0" class="playlist-empty">{{ $t('playback.otherSessionsUnavailable') }}</p>
 
-          <p v-else-if="siblingSessions.length === 0" class="playlist-empty">{{ $t('playback.otherSessionsUnavailable') }}</p>
-
-          <div v-else class="playlist-items custom-scrollbar">
-            <div
-              v-for="(sib, idx) in siblingSessions"
-              :key="sib.session_id"
-              class="playlist-item-row"
-              :class="{ 'active-playing': sib.session_id === session?.session_id }"
-              @click="playSession(sib)"
-            >
-              <span class="row-index">
-                <span v-if="sib.session_id === session?.session_id">▶</span>
-                <span v-else>{{ idx + 1 }}</span>
-              </span>
-              <div class="row-thumb">
-                <img :src="resolveCourseCover(course?.imageUrl)" class="row-thumb-img" alt="" />
-                <span class="row-duration" v-if="sib.duration">{{ formatDurationBadge(sib.duration) }}</span>
-              </div>
-              <div class="row-info">
-                <h4 class="row-title" :title="sib.title">{{ sib.title }}</h4>
-                <span class="row-date">{{ formatDateShort(sib.started_at) }}</span>
-              </div>
+        <div v-else class="playlist-items custom-scrollbar">
+          <div
+            v-for="(sib, idx) in siblingSessions"
+            :key="sib.session_id"
+            class="playlist-item-row"
+            :class="{ 'active-playing': sib.session_id === session?.session_id }"
+            @click="playSession(sib)"
+          >
+            <span class="row-index">
+              <span v-if="sib.session_id === session?.session_id">▶</span>
+              <span v-else>{{ idx + 1 }}</span>
+            </span>
+            <div class="row-thumb">
+              <img :src="resolveCourseCover(course?.imageUrl)" class="row-thumb-img" alt="" />
+              <span class="row-duration" v-if="sib.duration">{{ formatDurationBadge(sib.duration) }}</span>
+            </div>
+            <div class="row-info">
+              <h4 class="row-title" :title="sib.title">{{ sib.title }}</h4>
+              <span class="row-date">{{ formatDateShort(sib.started_at) }}</span>
             </div>
           </div>
-        </template>
-
-        <WatchNotesPanel v-else class="playlist-notes" :folder="slideExtraction.currentFolder.value" />
+        </div>
       </div>
     </div>
   </div>
@@ -704,15 +676,10 @@ import ShareSlideModal from './ShareSlideModal.vue'
 import SlideChapterStrip from './SlideChapterStrip.vue'
 import SlideChapterSheet from './SlideChapterSheet.vue'
 import SlideChapterTrigger from './SlideChapterTrigger.vue'
-import ExtractionFeaturesModal from './ExtractionFeaturesModal.vue'
 import { useShareSlideOverlay, type ShareOverlayError } from '../../composables/video/useShareSlideOverlay'
-import { hasSeenExtractionFeaturesPrompt } from '../../stores/extractionFeaturesPromptStore'
-import WatchNotesPanel from '../notes/WatchNotesPanel.vue'
 import FeedbackModal from '../FeedbackModal.vue'
-import { configStore } from '../../stores/configStore'
 import { togglePlayerFullscreen } from '../../lib/fullscreen'
 import { runtimeConfigStore } from '../../stores/runtimeConfigStore'
-import { watchNotesStore } from '../../stores/watchNotesStore'
 import type { Course } from '../../composables/useCourseList'
 import { getCourseInfo, type SessionData } from '../../lib/api'
 import { authStore } from '../../stores/authStore'
@@ -733,21 +700,6 @@ const { t } = useI18n()
 const isPictureInPicture = ref(false)
 const isCinemaMode = playbackStore.cinema
 
-// Sessions | Notes sidebar. The Notes view is offered whenever watch-sync is
-// enabled; live mode has no sessions list, so its sidebar is Notes-only.
-const sidebarTab = ref<'sessions' | 'notes'>('sessions')
-const notesTabAvailable = computed(() => !!configStore.cloudWatchSyncEnabled)
-const activeSidebarView = computed<'sessions' | 'notes'>(() => {
-  if (props.mode === 'live') return 'notes'
-  return notesTabAvailable.value ? sidebarTab.value : 'sessions'
-})
-// Starting an extraction with watch-sync on flips the sidebar to Notes.
-watch(
-  () => watchNotesStore.notesTabRequest.value,
-  () => {
-    sidebarTab.value = 'notes'
-  },
-)
 const dualVideoContainer = ref<HTMLElement | null>(null)
 const isDualOrderSwapped = ref(false)
 const isDualFullscreen = ref(false)
@@ -769,8 +721,8 @@ const descriptionExpanded = ref(false)
 const siblingSessions = ref<SessionData[]>([])
 const isLoadingSiblings = ref(false)
 
-// Desktop sidebar width. Drag the gap handle to grow the Notes/Sessions
-// column up to a 50/50 split with the player. Persisted across reloads.
+// Drag the desktop sidebar handle to grow the sessions column up to a
+// 50/50 split with the player. Persisted across reloads.
 const SIDEBAR_DEFAULT = 400 // matches the previous 25rem fixed width
 const SIDEBAR_MIN = 280
 const SIDEBAR_STORAGE_KEY = 'autoslides.playback.sidebarWidth'
@@ -1119,40 +1071,10 @@ const extractionPostStatus = computed(() => {
   return folder ? postProcessingStatus[folder] ?? null : null
 })
 
-// First-time turn-on of slide extraction: offer AI filtering + watch-mode note
-// sync before the pipeline starts. localStorage-gated so it only appears once.
-const showExtractionFeaturesPrompt = ref(false)
-
-const startExtraction = () => {
-  slideExtraction.isSlideExtractionEnabled.value = true
-  void slideExtraction.toggleSlideExtraction()
-}
-
 const onExtractionToggle = (checked: boolean) => {
   if (shareOverlay.hasOverlay.value) return
-  if (!checked) {
-    slideExtraction.isSlideExtractionEnabled.value = false
-    void slideExtraction.toggleSlideExtraction()
-    return
-  }
-  if (!hasSeenExtractionFeaturesPrompt()) {
-    // Leave the toggle visually off until the user confirms the prompt.
-    showExtractionFeaturesPrompt.value = true
-    return
-  }
-  startExtraction()
-}
-
-const onExtractionFeaturesContinue = () => {
-  showExtractionFeaturesPrompt.value = false
-  startExtraction()
-}
-
-const onExtractionFeaturesCancel = () => {
-  showExtractionFeaturesPrompt.value = false
-  // Keep extraction off — the panel checkbox is controlled by this flag, so
-  // Cancel must leave it disabled (and never call startExtraction).
-  slideExtraction.isSlideExtractionEnabled.value = false
+  slideExtraction.isSlideExtractionEnabled.value = checked
+  void slideExtraction.toggleSlideExtraction()
 }
 
 // Switching to a camera-only view mid-extraction force-stops it (desktop parity).
@@ -2239,60 +2161,11 @@ onUnmounted(async () => {
   cursor: col-resize;
 }
 
-.playlist-tabs {
-  display: flex;
-  gap: 0.25rem;
-  padding: 0.5rem 0.5rem 0;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
-  border-radius: 0.75rem 0.75rem 0 0;
-  flex-shrink: 0;
-}
-
-.playlist-tab {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  background: none;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.playlist-tab:hover {
-  color: var(--text-primary);
-}
-
-.playlist-tab.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent);
-}
-
-/* The notes editor fills the sidebar (below the toggle when one is shown). */
-.playlist-notes {
-  flex: 1;
-  min-height: 0;
-  border-radius: 0.75rem;
-  overflow: hidden;
-}
-
-.playlist-tabs + .playlist-notes {
-  border-radius: 0 0 0.75rem 0.75rem;
-}
-
 .playlist-header {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-elevated);
   border-radius: 0.75rem 0.75rem 0 0;
-}
-
-/* When the toggle row sits above, the header loses its top rounding. */
-.playlist-tabs + .playlist-header {
-  border-radius: 0;
 }
 
 .playlist-header .playlist-title {

@@ -256,91 +256,6 @@
           </div>
         </div>
 
-        <div class="advanced-setting-section">
-          <h4>{{ $t('settings.cloudNotesSection') }}</h4>
-
-          <!-- Cloud storage status (ASnote + ASuser). Desktop CloudSettingsTab parity. -->
-          <div class="setting-item">
-            <div class="setting-description">{{ $t('settings.cloudStorageIntro') }}</div>
-
-            <div class="cloud-storage-cards">
-              <div class="cloud-storage-card">
-                <span class="cloud-storage-dot" :class="statusClass"></span>
-                <div class="cloud-storage-text">
-                  <span class="cloud-storage-title">{{ userGroupTitle }} {{ statusText }}</span>
-                  <span class="cloud-storage-subtitle">{{ $t('settings.cloudStorageGroupDescriptionUser') }}</span>
-                </div>
-                <span v-if="userIdText" class="cloud-storage-meta">{{ userIdText }}</span>
-              </div>
-
-              <div class="cloud-storage-card">
-                <span class="cloud-storage-dot" :class="statusClass"></span>
-                <div class="cloud-storage-text">
-                  <span class="cloud-storage-title">{{ noteGroupTitle }} {{ statusText }}</span>
-                  <span class="cloud-storage-subtitle">{{ $t('settings.cloudStorageGroupDescription') }}</span>
-                </div>
-                <span v-if="noteIdText" class="cloud-storage-meta">{{ noteIdText }}</span>
-              </div>
-            </div>
-
-            <div class="cloud-storage-footer">
-              <span v-if="lastCheckedText" class="cloud-storage-checked">{{ lastCheckedText }}</span>
-              <span class="cloud-storage-footer-spacer"></span>
-              <button
-                v-if="store.status.value === 'uninitialized'"
-                type="button"
-                class="btn btn--primary btn--sm"
-                :disabled="storageBusy"
-                @click="onInitialize"
-              >
-                {{ $t('settings.cloudStorageInit') }}
-              </button>
-              <button
-                type="button"
-                class="btn--icon"
-                :title="storageBusy ? $t('settings.cloudStorageRefreshing') : $t('settings.cloudStorageRefresh')"
-                :disabled="storageBusy"
-                @click="onRefreshStorage"
-              >
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  :class="{ spinning: storageBusy }"
-                >
-                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                  <path d="M21 3v5h-5"/>
-                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                  <path d="M3 21v-5h5"/>
-                </svg>
-              </button>
-            </div>
-
-            <p v-if="store.status.value === 'error' && store.lastError.value" class="cloud-storage-error">
-              {{ store.lastError.value }}
-            </p>
-          </div>
-
-          <div class="setting-item">
-            <label class="setting-toggle">
-              <input
-                type="checkbox"
-                :checked="configStore.cloudWatchSyncEnabled"
-                :disabled="watchSyncBusy"
-                @change="onWatchSyncChange"
-              />
-              <span>{{ $t('settings.enableCloudWatchSync') }}</span>
-            </label>
-            <div class="setting-description">{{ $t('settings.cloudWatchSyncDescription') }}</div>
-            <div v-if="watchSyncError" class="setting-hint setting-hint--error">
-              {{ watchSyncError }}
-            </div>
-          </div>
-        </div>
-
         <!-- Hidden debug section: reveal with Ctrl/Cmd+Shift+D while Settings is open.
              If a custom endpoint is already stored, show it so the user can reset. -->
         <div v-if="relaySectionVisible" class="advanced-setting-section">
@@ -388,7 +303,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   configStore,
@@ -405,9 +320,7 @@ import {
   resetRelayEndpoint,
   isMixedContentRelay,
 } from '../stores/settingsStore'
-import { cloudStorageStore } from '../stores/cloudStorageStore'
 import { authStore } from '../stores/authStore'
-import { formatGroupSettingsTitle, MANAGED_GROUP_NAME, USER_GROUP_NAME } from '../lib/notes/notesTypes'
 
 defineOptions({ name: 'SettingsPage' })
 
@@ -415,72 +328,6 @@ const { t } = useI18n()
 
 const themeMode = computed(() => configStore.themeMode)
 const languageMode = computed(() => configStore.languageMode)
-const store = cloudStorageStore
-
-const noteGroupTitle = computed(() => formatGroupSettingsTitle(MANAGED_GROUP_NAME, t))
-const userGroupTitle = computed(() => formatGroupSettingsTitle(USER_GROUP_NAME, t))
-
-const storageBusy = computed(
-  () => store.status.value === 'checking' || store.status.value === 'repairing',
-)
-
-const statusText = computed(() => {
-  switch (store.status.value) {
-    case 'ready':
-      return t('settings.cloudStorageStatusReady')
-    case 'uninitialized':
-      return t('settings.cloudStorageStatusUninitialized')
-    case 'not-signed-in':
-      return t('settings.cloudStorageStatusNotSignedIn')
-    case 'checking':
-      return t('settings.cloudStorageStatusChecking')
-    case 'repairing':
-      return t('settings.cloudStorageStatusRepairing')
-    case 'error':
-      return t('settings.cloudStorageStatusError')
-    default:
-      return t('settings.cloudStorageStatusChecking')
-  }
-})
-
-const statusClass = computed(() => {
-  switch (store.status.value) {
-    case 'ready':
-      return 'is-ready'
-    case 'uninitialized':
-    case 'not-signed-in':
-      return 'is-warning'
-    case 'error':
-      return 'is-error'
-    default:
-      return 'is-pending'
-  }
-})
-
-const noteIdText = computed(() =>
-  store.status.value === 'ready' && store.managedGroupId.value != null
-    ? `ID ${store.managedGroupId.value}`
-    : '',
-)
-const userIdText = computed(() =>
-  store.status.value === 'ready' && store.userGroupId.value != null
-    ? `ID ${store.userGroupId.value}`
-    : '',
-)
-
-const lastCheckedText = computed(() =>
-  store.lastCheckedAt.value
-    ? `${t('settings.cloudStorageLastChecked')} ${new Date(store.lastCheckedAt.value).toLocaleString()}`
-    : '',
-)
-
-const onRefreshStorage = () => {
-  void store.refresh({ force: true })
-}
-const onInitialize = () => {
-  void store.initialize()
-}
-
 const RELAY_UNLOCK_KEY = 'autoslides.relaySettingsUnlocked'
 
 function isCustomRelay(endpoint: string): boolean {
@@ -523,26 +370,6 @@ onMounted(() => {
   window.addEventListener('keydown', onDebugKeydown)
 })
 
-// This page is the one reader that shows cloud-storage status unprompted, so it
-// owns the soft check (the store no longer checks on sign-in). Only while the
-// page is shown, and not while a stored session is still verifying: the badge
-// that verification sets resets the store, which would throw a check away.
-let settingsShown = false
-const checkStorageIfUnknown = () => {
-  if (!settingsShown || authStore.isVerifyingToken.value) return
-  if (store.status.value === 'unknown') void store.refresh()
-}
-onActivated(() => {
-  settingsShown = true
-  // An earlier failure gets one retry per visit, never a loop.
-  if (store.status.value === 'error' && !authStore.isVerifyingToken.value) void store.refresh()
-  else checkStorageIfUnknown()
-})
-onDeactivated(() => {
-  settingsShown = false
-})
-// Sign-in, sign-out or an account switch while the page is open.
-watch([store.status, authStore.isVerifyingToken], checkStorageIfUnknown)
 onUnmounted(() => {
   window.removeEventListener('keydown', onDebugKeydown)
   // Abort an in-flight Copilot device flow; the user can restart it later.
@@ -670,55 +497,6 @@ const copyCopilotCode = async () => {
   }
 }
 
-// Hybrid: enabling watch-sync while signed in runs initialize() so first-time
-// accounts provision ASnote+ASuser+README here (not silently at extraction).
-// Preference is only kept on when storage ends ready; already-ready uses TTL 0-network.
-const watchSyncError = ref<string | null>(null)
-const watchSyncBusy = ref(false)
-
-const onWatchSyncChange = async (e: Event) => {
-  const enabled = (e.target as HTMLInputElement).checked
-  watchSyncError.value = null
-
-  if (!enabled) {
-    configStore.cloudWatchSyncEnabled = false
-    persistConfig()
-    return
-  }
-
-  if (!authStore.isLoggedIn.value) {
-    // Persist intent; provision happens after sign-in + re-enable or Init.
-    configStore.cloudWatchSyncEnabled = true
-    persistConfig()
-    return
-  }
-
-  watchSyncBusy.value = true
-  try {
-    // Soft check first: ready+TTL → 0 network; ready+stale → groupList only.
-    // Only call initialize() when not ready so we don't re-run the README scan
-    // on every enable after the TTL expires.
-    let st = await store.ensureReady()
-    if (st !== 'ready') {
-      const ok = await store.initialize()
-      st = ok ? 'ready' : store.status.value
-    }
-    if (st !== 'ready') {
-      configStore.cloudWatchSyncEnabled = false
-      persistConfig()
-      watchSyncError.value =
-        store.status.value === 'uninitialized'
-          ? t('settings.cloudWatchSyncNeedInit')
-          : t('settings.cloudWatchSyncProvisionFailed')
-      return
-    }
-    configStore.cloudWatchSyncEnabled = true
-    persistConfig()
-  } finally {
-    watchSyncBusy.value = false
-  }
-}
-
 const commitRelay = () => {
   relayError.value = null
   const raw = relayDraft.value.trim()
@@ -823,43 +601,6 @@ const onResetRelay = () => {
   cursor: pointer;
 }
 
-.setting-toggle input[type='checkbox']:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.cloud-storage-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cloud-storage-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-}
-
-.cloud-storage-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.cloud-storage-footer-spacer {
-  flex: 1;
-}
-
-.cloud-storage-checked {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
 .cloud-storage-dot {
   width: 8px;
   height: 8px;
@@ -873,73 +614,6 @@ const onResetRelay = () => {
 }
 .cloud-storage-dot.is-warning {
   background-color: var(--warning);
-}
-.cloud-storage-dot.is-error {
-  background-color: var(--danger);
-}
-.cloud-storage-dot.is-pending {
-  background-color: var(--text-muted);
-}
-
-.cloud-storage-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.cloud-storage-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.cloud-storage-subtitle {
-  font-size: 11px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-}
-
-.cloud-storage-meta {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-.cloud-storage-error {
-  margin: 6px 0 0;
-  font-size: 11px;
-  color: var(--danger);
-}
-
-.btn--icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-elevated);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.btn--icon:hover:not(:disabled) {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
-
-.btn--icon:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.btn--icon .spinning {
-  animation: cloud-spin 0.9s linear infinite;
 }
 
 @keyframes cloud-spin {

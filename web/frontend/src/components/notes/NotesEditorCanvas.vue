@@ -15,13 +15,21 @@
       <div class="nec-topbar-spacer" />
       <!-- Save status left of actions so Export/⋯ stay flush to the right edge. -->
       <span
-        v-if="hasNote && (saveStatus === 'saving' || saveStatus === 'saved')"
+        v-if="hasNote && saveStatus !== 'idle' && saveStatus !== 'failed'"
+        role="status"
         class="nec-save"
         :class="saveStatus"
       >
         <template v-if="saveStatus === 'saving'">{{ $t('cloudNotes.saving') }}</template>
         <template v-else>{{ $t('cloudNotes.saved') }}</template>
       </span>
+      <button
+        v-if="hasNote && saveStatus === 'failed'"
+        type="button"
+        class="nec-export-btn nec-retry-save"
+        :title="$t('cloudNotes.notSaved')"
+        @click="emit('retry-save')"
+      >{{ $t('cloudNotes.retrySave') }}</button>
       <!-- Mobile drops it: the topbar is already tight, and the sidebar's
            brand lockup goes home too. -->
       <RouterLink v-if="!mobile" class="nec-back" :to="{ name: 'home' }" :title="$t('cloudNotes.backToApp')">
@@ -107,20 +115,17 @@
           </p>
         </div>
       </div>
-      <!-- Export always shows for open notes. ASnote notes use an info icon + tip
-           (file export is desktop-only for that managed group). -->
       <div v-if="hasNote" ref="exportRoot" class="nec-export">
         <button
           type="button"
           class="nec-export-btn"
           :class="{ open: exportOpen }"
-          :disabled="exportInert || (canExport && exportBusy)"
+          :disabled="exportInert || exportBusy"
           :aria-expanded="exportOpen"
-          :title="canExport ? $t('cloudNotes.exportTip') : $t('cloudNotes.exportAsnoteTip')"
+          :title="$t('cloudNotes.exportTip')"
           @click="toggleExport"
         >
           <svg
-            v-if="canExport"
             width="15"
             height="15"
             viewBox="0 0 24 24"
@@ -134,21 +139,7 @@
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          <svg
-            v-else
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          <span>{{ canExport && exportBusy ? $t('cloudNotes.exportBusy') : $t('cloudNotes.exportButton') }}</span>
+          <span>{{ exportBusy ? $t('cloudNotes.exportBusy') : $t('cloudNotes.exportButton') }}</span>
           <svg class="nec-export-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="6 9 12 15 18 9" />
           </svg>
@@ -156,39 +147,30 @@
         <div
           v-if="exportOpen"
           class="nec-export-menu"
-          :class="{ 'nec-export-menu--asnote': !canExport }"
           role="menu"
         >
-          <template v-if="canExport">
-            <p class="nec-export-menu-label">{{ $t('cloudNotes.exportFormatLabel') }}</p>
-            <button
-              type="button"
-              class="nec-export-item"
-              role="menuitem"
-              :disabled="exportBusy"
-              @click="runExport('pdf')"
-            >
-              <span class="nec-export-item-name">{{ $t('cloudNotes.exportPdf') }}</span>
-              <span class="nec-export-item-desc">{{ $t('cloudNotes.exportPdfDesc') }}</span>
-            </button>
-            <button
-              type="button"
-              class="nec-export-item"
-              role="menuitem"
-              :disabled="exportBusy"
-              @click="runExport('markdown')"
-            >
-              <span class="nec-export-item-name">{{ $t('cloudNotes.exportMarkdown') }}</span>
-              <span class="nec-export-item-desc">{{ $t('cloudNotes.exportMarkdownDesc') }}</span>
-            </button>
-            <p v-if="exportError" class="nec-export-error">{{ exportError }}</p>
-          </template>
-          <p v-else class="nec-export-asnote-hint">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            <span>{{ $t('cloudNotes.exportAsnoteHint') }}</span>
-          </p>
+          <p class="nec-export-menu-label">{{ $t('cloudNotes.exportFormatLabel') }}</p>
+          <button
+            type="button"
+            class="nec-export-item"
+            role="menuitem"
+            :disabled="exportBusy"
+            @click="runExport('pdf')"
+          >
+            <span class="nec-export-item-name">{{ $t('cloudNotes.exportPdf') }}</span>
+            <span class="nec-export-item-desc">{{ $t('cloudNotes.exportPdfDesc') }}</span>
+          </button>
+          <button
+            type="button"
+            class="nec-export-item"
+            role="menuitem"
+            :disabled="exportBusy"
+            @click="runExport('markdown')"
+          >
+            <span class="nec-export-item-name">{{ $t('cloudNotes.exportMarkdown') }}</span>
+            <span class="nec-export-item-desc">{{ $t('cloudNotes.exportMarkdownDesc') }}</span>
+          </button>
+          <p v-if="exportError" class="nec-export-error">{{ exportError }}</p>
         </div>
       </div>
       <div v-if="hasNote" ref="menuRoot" class="nec-more">
@@ -336,7 +318,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import type { NoteGroup } from '../../lib/notes/notesTypes'
-import { formatNoteGroupLabel, managedNoteDisplayName, managedNoteIdentity } from '../../lib/notes/notesTypes'
+import { formatNoteGroupLabel } from '../../lib/notes/notesTypes'
 import {
   NOTES_FONT_FALLBACKS,
   NOTES_FONT_SETS,
@@ -344,20 +326,17 @@ import {
   isNotesFontSetId,
   type NotesFontSetId,
 } from '../../lib/notes/notesFontSets'
-import { noteImageUrls, readNoteMetadata } from '../../lib/notes/notesContent'
+import { createNoteImageShare } from '../../lib/notes/noteImageShare'
 import { exportNote, noteContentToMarkdown, type NoteExportFormat } from '../../lib/notes/noteExportWeb'
-import { buildSharePayload, buildShareUrl, parseCossImageUrl, timelineDeltaFromUnknown } from '../../lib/notes/shareLink'
 import { configStore, persistConfig } from '../../stores/configStore'
 
 const props = defineProps<{
-  hasNote: boolean
+  noteId: number | null
   title: string
   groupId: number
   moveGroups: NoteGroup[]
-  saveStatus: 'idle' | 'saving' | 'saved'
+  saveStatus: 'idle' | 'saving' | 'saved' | 'failed'
   mobile: boolean
-  /** When true, show PDF/Markdown export actions; when false (ASnote), show the desktop-export tip. */
-  canExport: boolean
   /** Live Editor.js document for export / copy / duplicate / share. */
   getContent: () => Promise<string>
 }>()
@@ -367,6 +346,7 @@ const emit = defineEmits<{
   'create-note': []
   'update:title': [value: string]
   'save-title': []
+  'retry-save': []
   'move-group': [groupId: number]
   'set-holder': [el: HTMLElement | null]
   duplicate: []
@@ -374,6 +354,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const hasNote = computed(() => props.noteId != null)
 
 function groupLabel(g: { id: number; name: string }): string {
   return formatNoteGroupLabel(g, t)
@@ -397,6 +378,7 @@ const shareCopied = ref(false)
 const copyFlash = ref(false)
 let copyFlashTimer: ReturnType<typeof setTimeout> | undefined
 let shareCopyTimer: ReturnType<typeof setTimeout> | undefined
+let shareRequest = 0
 
 const fontSetId = computed<NotesFontSetId>(() => {
   const v = configStore.notesFontSet
@@ -414,15 +396,22 @@ function fontSetLabel(id: NotesFontSetId): string {
   return t('cloudNotes.fontSetDefault')
 }
 
-function closeMenus(): void {
-  menuOpen.value = false
-  exportOpen.value = false
+function closeShare(): void {
+  shareRequest += 1
   shareOpen.value = false
 }
 
+function closeMenus(): void {
+  menuOpen.value = false
+  exportOpen.value = false
+  closeShare()
+}
+
+watch(() => props.noteId, closeMenus)
+
 function toggleMenu(): void {
   exportOpen.value = false
-  shareOpen.value = false
+  closeShare()
   menuOpen.value = !menuOpen.value
   if (menuOpen.value) {
     // Prefetch all three so the Ag tiles render in the real faces.
@@ -431,10 +420,9 @@ function toggleMenu(): void {
 }
 
 function toggleExport(): void {
-  // Only block while a real file export is in flight (ASnote tip still opens).
-  if (props.canExport && exportBusy.value) return
+  if (exportBusy.value) return
   menuOpen.value = false
-  shareOpen.value = false
+  closeShare()
   exportError.value = ''
   exportOpen.value = !exportOpen.value
 }
@@ -443,22 +431,22 @@ async function toggleShare(): Promise<void> {
   menuOpen.value = false
   exportOpen.value = false
   if (shareOpen.value) {
-    shareOpen.value = false
+    closeShare()
     return
   }
-  // Rebuild from live editor content each open (image eligibility is not pre-gated).
+  // Rebuild from live editor content, but never show a result for a note we left.
+  const request = ++shareRequest
+  const noteId = props.noteId
+  const title = props.title
+  let share = { imageCount: 0, url: '' }
   try {
-    const content = await props.getContent()
-    const urls = noteImageUrls(content)
-    const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
-    const t = timelineDeltaFromUnknown(readNoteMetadata(content)?.timeline, urls.length)
-    const payload = buildSharePayload(managedNoteIdentity(props.title || ''), urls, undefined, t ? { t } : undefined)
-    shareImageCount.value = cossCount
-    shareLongUrl.value = cossCount > 0 ? buildShareUrl(payload) : ''
+    share = createNoteImageShare(title, await props.getContent())
   } catch {
-    shareImageCount.value = 0
-    shareLongUrl.value = ''
+    // Leave the link field empty when the current content cannot be shared.
   }
+  if (request !== shareRequest || props.noteId !== noteId) return
+  shareImageCount.value = share.imageCount
+  shareLongUrl.value = share.url
   shareCopied.value = false
   shareOpen.value = true
 }
@@ -504,7 +492,7 @@ function toggleFullWidth(): void {
 async function onCopyContents(): Promise<void> {
   try {
     const content = await props.getContent()
-    const title = managedNoteDisplayName(props.title || t('cloudNotes.untitled'))
+    const title = props.title.trim() || t('cloudNotes.untitled')
     const md = noteContentToMarkdown(title, content)
     await navigator.clipboard.writeText(md)
     copyFlash.value = true
@@ -518,13 +506,12 @@ async function onCopyContents(): Promise<void> {
 }
 
 async function runExport(format: NoteExportFormat): Promise<void> {
-  // ASnote notes only show the desktop-export tip; never run file export there.
-  if (exportInert || !props.canExport || exportBusy.value) return
+  if (exportInert || exportBusy.value) return
   exportBusy.value = true
   exportError.value = ''
   try {
     const content = await props.getContent()
-    const title = managedNoteDisplayName(props.title || t('cloudNotes.untitled'))
+    const title = props.title.trim() || t('cloudNotes.untitled')
     const fontSet = isNotesFontSetId(configStore.notesFontSet)
       ? configStore.notesFontSet
       : 'default'
@@ -658,6 +645,11 @@ function onGroupChange(e: Event): void {
 .nec-export-btn.open {
   background: var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04));
   color: var(--nt-text, #37352f);
+}
+
+.nec-retry-save {
+  color: var(--danger);
+  white-space: nowrap;
 }
 
 .nec-export-btn:disabled {
@@ -823,10 +815,6 @@ function onGroupChange(e: Event): void {
   gap: 2px;
 }
 
-.nec-export-menu--asnote {
-  min-width: 320px;
-}
-
 .nec-export-menu-label {
   margin: 0 0 6px;
   padding: 0 2px;
@@ -878,23 +866,6 @@ function onGroupChange(e: Event): void {
   font-size: 11.5px;
   color: var(--danger, #d70015);
   line-height: 1.35;
-}
-
-.nec-export-asnote-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 0;
-  padding: 2px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--nt-text-muted, #787774);
-}
-
-.nec-export-asnote-hint svg {
-  flex-shrink: 0;
-  margin-top: 1px;
-  opacity: 0.85;
 }
 
 .nec-more {

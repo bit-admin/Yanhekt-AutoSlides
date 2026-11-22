@@ -41,15 +41,11 @@ function demoProfile(): Record<string, string> {
       sidebarCollapsed: false,
       relayEndpoint: "",
       autoPostProcessingLive: true,
-      cloudWatchSyncEnabled: true,
-      cloudStorageInitializedUsers: ["2022140137"],
       aiFilteringEnabled: true,
       aiServiceType: "builtin",
     }),
-    // Acknowledgements, so a tour never opens behind a modal.
+    // Skip the first-run modal in the tour.
     "autoslides.notice": "2",
-    "autoslides.publicStorageNotice": "1",
-    "autoslides.extractionFeaturesPrompt": "1",
   };
 }
 

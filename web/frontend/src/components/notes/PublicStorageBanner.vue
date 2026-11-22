@@ -34,7 +34,7 @@
       <button
         type="button"
         class="psb-dismiss"
-        @click="publicStorageNoticeStore.acknowledge()"
+        @click="emit('dismiss')"
       >
         {{ $t('cloudNotes.publicStorageBanner.dismiss') }}
       </button>
@@ -45,7 +45,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { publicStorageNoticeStore } from '../../stores/publicStorageNoticeStore'
+
+const emit = defineEmits<{ dismiss: [] }>()
 
 // Resolve via the router so a base path (if any) is honoured; open in a new
 // tab so the keep-alive Notes editor is not abandoned mid-session.

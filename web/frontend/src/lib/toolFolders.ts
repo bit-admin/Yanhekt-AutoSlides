@@ -151,7 +151,8 @@ export function formatLectureToken(identity: LectureIdentity): string {
   return '';
 }
 
-const LECTURE_TOKEN_PATTERN = /^(?:c(\d+)(?:s(\d+)|l(\d+))?|l(\d+))/;
+// Only a token followed by the ` · ` separator: `l2 regularization` is a title.
+const LECTURE_TOKEN_PATTERN = /^(?:c(\d+)(?:s(\d+)|l(\d+))?|l(\d+))(?=\s*·)/;
 
 export function parseLectureToken(text: string): ParsedLectureIds {
   const match = text.trim().match(LECTURE_TOKEN_PATTERN);

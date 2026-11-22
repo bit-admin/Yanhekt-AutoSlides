@@ -1,4 +1,4 @@
-/* Editor.js shared overrides — Notes page + watch-notes panel.
+/* Editor.js overrides for the Notes page.
 
    1) Narrow-mode toolbar placement: Editor.js latches `codex-editor--narrow`
       once at mount and parks the block toolbar in a RIGHT gutter. Our panes
