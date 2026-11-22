@@ -54,6 +54,9 @@ export interface DownloadItem {
   // it), while every other field is the same lecture's on Yanhekt, so the file,
   // dedupe and auto-extraction are exactly a Yanhekt download's.
   yanhe2?: Yanhe2DownloadSource
+  // A media URL pasted on the Developer page. It has no lecture, so no ids, no
+  // metadata and no extraction; `name` is the file stem main chose.
+  devMedia?: DevMediaSource
   // The Yanhekt session as it was queued: its stream URLs are what this service
   // downloads, and its course facts go into the extracted folder's
   // metadata.json. Absent on Yanhe 2.0 rows and on rows with their own runner.
@@ -90,11 +93,18 @@ export interface Yanhe2DownloadSource {
   subId: string
 }
 
+export interface DevMediaSource {
+  url: string
+  account: string
+  outputName: string
+}
+
 /**
  * Which lecture a row is, for dedupe: the Yanhekt session id, or for a Yanhe
  * 2.0 lecture Yanhekt has no session for, aita's own session id.
  */
-function lectureKeyOf(item: Pick<DownloadItem, 'sessionId' | 'yanhe2'>): string {
+function lectureKeyOf(item: Pick<DownloadItem, 'sessionId' | 'yanhe2' | 'devMedia'>): string {
+  if (item.devMedia) return item.devMedia.outputName
   if (item.sessionId) return String(item.sessionId)
   return item.yanhe2 ? `yanhe2-${item.yanhe2.subId}` : ''
 }
@@ -325,6 +335,14 @@ class DownloadServiceClass {
         // A runner that stands in for a download (an existing video, issue
         // #45) leads to extraction like a real one.
         this.notifyExtractionQueueChange()
+        return
+      }
+
+      const dev = item.devMedia
+      if (dev) {
+        // Plain strings only: the item is reactive.
+        const { url, account, outputName } = { url: String(dev.url), account: String(dev.account), outputName: String(dev.outputName) }
+        await this.startRealDownload(item, () => window.electronAPI.download.startDev(item.id, url, account, outputName))
         return
       }
 

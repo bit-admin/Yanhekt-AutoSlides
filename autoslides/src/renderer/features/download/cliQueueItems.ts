@@ -27,7 +27,7 @@ export type CliItem = DownloadItem & { videoType: CliQueueItem['kind'] }
  * are not listed, followed or changed from there. Clear Completed is the
  * panel's own button and clears every finished row.
  */
-export const isCliItem = (item: DownloadItem): item is CliItem => !item.yanhe2 && item.videoType !== 'subtitles'
+export const isCliItem = (item: DownloadItem): item is CliItem => !item.yanhe2 && !item.devMedia && item.videoType !== 'subtitles'
 
 // A whole row, again as primitives only.
 export function listed(item: CliItem): CliQueueItem {

@@ -18,7 +18,7 @@
 </template>
 
 <script lang="ts">
-export type DevTab = 'image' | 'api' | 'sso'
+export type DevTab = 'image' | 'api' | 'sso' | 'playback'
 </script>
 
 <script setup lang="ts">
@@ -29,6 +29,7 @@ const tabs: Array<{ id: DevTab; label: string }> = [
   { id: 'image', label: 'developer.tabs.imageLab' },
   { id: 'api', label: 'developer.tabs.api' },
   { id: 'sso', label: 'developer.tabs.sso' },
+  { id: 'playback', label: 'developer.tabs.playback' },
 ]
 
 const onKeydown = (event: KeyboardEvent, id: DevTab) => {

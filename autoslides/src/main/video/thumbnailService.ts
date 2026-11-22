@@ -104,7 +104,6 @@ export class ThumbnailService {
         target_vga: req.screenUrl,
         target_room: req.liveRoomUrl,
       },
-      req.token
     );
     // Keyed by the picture, so a live relabel still returns the screen. The
     // source is the server URL behind that label, so changing the relabel
@@ -113,7 +112,7 @@ export class ThumbnailService {
     if (!screen?.url) return { url: '', source: screen?.original_url || '' };
     // External mode hands back the server's HTTPS address; FFmpeg reads only
     // the local proxy (the bundled build has no TLS).
-    const url = isLocalProxyUrl(screen.url) ? screen.url : await this.videoProxyService.liveProxyUrl(screen.url, req.token);
+    const url = isLocalProxyUrl(screen.url) ? screen.url : await this.videoProxyService.liveProxyUrl(screen.url);
     return { url, source: screen.original_url || '' };
   }
 

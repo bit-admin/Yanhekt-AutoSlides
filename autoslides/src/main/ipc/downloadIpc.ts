@@ -1,10 +1,62 @@
 import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
+import type { DevDownloadPrepared } from '@common/devPlayback';
+import { devDownloadStem, isDevDownloadStem, parseDevPlaybackUrl, type DevPlaybackUrl } from '@main/video/videoProxy/devPlaybackUrl';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('DownloadIpc');
 
 export function registerDownloadIpcHandlers(services: IpcServices): void {
-  const { m3u8DownloadService, audioDownloadService, yanhe2DownloadService, configService } = services;
+  const { m3u8DownloadService, audioDownloadService, yanhe2DownloadService, configService, yanhe2Service } = services;
+
+  type DevRefusal = Exclude<DevDownloadPrepared, { kind: 'ok' }>['kind'];
+  /** The same access rules as playback: Yanhekt follows Anonymous API requests, Yanhe 2.0 needs its account. */
+  const checkDevDownload = (input: unknown, account: unknown): DevRefusal | { source: DevPlaybackUrl; badge: string; token: string } => {
+    if (!configService.getDeveloperMode()) return 'disabled';
+    const source = parseDevPlaybackUrl(input);
+    if (!source) return 'invalidUrl';
+    if (source.live) return 'liveUnsupported';
+    const badge = typeof account === 'string' && /^\d{1,12}$/.test(account) ? account : '';
+    if (source.platform === 'yanhe2') {
+      return badge && yanhe2Service.getPlayIdentity(badge) ? { source, badge, token: '' } : 'yanhe2SignIn';
+    }
+    const token = configService.getAuthToken() ?? '';
+    if (!token && !configService.getPreferAnonymousApiRequests()) return 'yanhektSignIn';
+    return { source, badge, token };
+  };
+
+  ipcMain.handle('download:prepareDev', async (_event, input: unknown, account: unknown): Promise<DevDownloadPrepared> => {
+    const checked = checkDevDownload(input, account);
+    if (typeof checked === 'string') return { kind: checked };
+    const { source, badge } = checked;
+    return { kind: 'ok', url: source.url, account: badge, outputName: devDownloadStem(source, new Date()), format: source.format };
+  });
+
+  ipcMain.handle('download:startDev', async (event, downloadId: string, input: unknown, account: unknown, outputName: unknown) => {
+    const progressCallback = (progress: { current: number; total: number; phase: number }) => {
+      if (!event.sender.isDestroyed()) event.sender.send('download:progress', downloadId, progress);
+    };
+    try {
+      const checked = checkDevDownload(input, account);
+      if (typeof checked === 'string') throw new Error(`Developer download refused (${checked})`);
+      if (!isDevDownloadStem(outputName)) throw new Error('Bad developer download name');
+      const { source, badge, token } = checked;
+      let filePath: string;
+      if (source.platform === 'yanhe2') {
+        filePath = await yanhe2DownloadService.startMedia(downloadId, badge, source.url, source.format, outputName, progressCallback);
+      } else if (source.format === 'aac') {
+        filePath = await audioDownloadService.startDownload(downloadId, source.url, outputName, progressCallback);
+      } else {
+        filePath = await m3u8DownloadService.startDownload(downloadId, source.url, outputName, progressCallback, token);
+      }
+      if (!event.sender.isDestroyed()) event.sender.send('download:completed', downloadId, filePath);
+    } catch (error) {
+      // The message only: a request error can carry a signed URL.
+      log.error(`Developer download failed for ${downloadId}:`, error instanceof Error ? error.message : 'Unknown error');
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('download:error', downloadId, error instanceof Error ? error.message : 'Unknown error');
+      }
+    }
+  });
 
   ipcMain.handle('download:start', async (event, downloadId: string, m3u8Url: string, outputName: string, loginToken?: string) => {
     const progressCallback = (progress: { current: number; total: number; phase: number }) => {

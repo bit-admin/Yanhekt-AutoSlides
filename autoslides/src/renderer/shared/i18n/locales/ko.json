@@ -1763,9 +1763,64 @@
       "duration": "소요 시간"
     },
     "tabs": {
-      "imageLab": "이미지 랩",
+      "imageLab": "이미지",
       "api": "API",
-      "sso": "SSO"
+      "sso": "SSO",
+      "playback": "재생 테스트"
+    },
+    "playback": {
+      "url": "미디어 URL",
+      "placeholder": "미디어 URL 붙여넣기…",
+      "play": "재생",
+      "stop": "정지",
+      "preview": "재생 미리보기",
+      "hint": "API가 반환한 직접 URL을 사용하세요. Yanhekt는 .m3u8, .aac, Yanhe 2.0은 .m3u8, .mp4, .aac를 지원합니다.",
+      "downloadArea": {
+        "title": "다운로드",
+        "hint": "개발자용 파일 이름으로 출력 폴더에 저장합니다. 슬라이드는 추출하지 않습니다.",
+        "action": "다운로드",
+        "reveal": "폴더에서 보기",
+        "liveUnsupported": "라이브 스트림은 다운로드할 수 없습니다.",
+        "alreadyDownloading": "이 URL은 이미 다운로드 중입니다.",
+        "failed": "다운로드를 시작할 수 없습니다. 다시 시도하세요.",
+        "revealFailed": "폴더에서 파일을 표시할 수 없습니다."
+      },
+      "diagnostics": "진단",
+      "eventLog": "이벤트 로그",
+      "copyLog": "로그 복사",
+      "copied": "복사됨",
+      "logEmpty": "재생하면 여기에 이벤트가 표시됩니다.",
+      "stats": {
+        "startup": "시작 시간",
+        "resolution": "해상도",
+        "bufferAhead": "선행 버퍼",
+        "latency": "라이브 지연",
+        "bitrate": "스트림 비트레이트",
+        "bandwidth": "대역폭",
+        "segments": "세그먼트",
+        "droppedFrames": "드롭된 프레임",
+        "stalls": "끊김 횟수"
+      },
+      "states": {
+        "loading": "불러오는 중…",
+        "ready": "재생 준비 완료",
+        "playing": "재생 중",
+        "buffering": "버퍼링 중…",
+        "paused": "일시 정지됨",
+        "ended": "재생이 끝났습니다"
+      },
+      "errors": {
+        "disabled": "설정에서 개발자 모드를 켠 후 재생을 테스트하세요.",
+        "invalidUrl": "강의 페이지나 서명된 Yanhekt 재생목록 대신 API에서 반환한 HTTPS 미디어 URL을 사용하세요.",
+        "yanhektSignIn": "Yanhekt에 로그인하거나 설정에서 '익명 API 요청'을(를) 켠 후 다시 시도하세요.",
+        "yanhe2SignIn": "현재 계정으로 Yanhe 2.0에 로그인한 후 다시 시도하세요.",
+        "proxyFailed": "재생 미리보기를 시작할 수 없습니다. 다시 시도하세요.",
+        "emptyRecording": "재생목록에 재생할 수 있는 미디어가 없습니다.",
+        "http": "미디어 요청에 실패했습니다(HTTP {status}).",
+        "hls": "스트림을 재생할 수 없습니다({detail}).",
+        "hlsUnsupported": "이 기기에서는 HLS 재생을 지원하지 않습니다.",
+        "media": "미디어를 재생할 수 없습니다(오류 {code}). URL을 확인하고 다시 시도하세요."
+      }
     },
     "api": {
       "filterPlaceholder": "요청 필터…",

@@ -75,7 +75,10 @@
           :inert="activeNav !== 'developer'"
           data-mode="developer"
         >
-          <DeveloperPage v-if="developerMounted" />
+          <DeveloperPage
+            v-if="developerMounted"
+            :active="configStore.developerMode && activeNav === 'developer' && tabStore.state.activeTabId === null"
+          />
         </div>
 
         <!-- Tools keep their guests mounted after first use, so a tab switch

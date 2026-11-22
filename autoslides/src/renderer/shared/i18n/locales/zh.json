@@ -1763,9 +1763,64 @@
       "duration": "耗时"
     },
     "tabs": {
-      "imageLab": "图像实验室",
+      "imageLab": "图像",
       "api": "API",
-      "sso": "SSO"
+      "sso": "SSO",
+      "playback": "播放测试"
+    },
+    "playback": {
+      "url": "媒体地址",
+      "placeholder": "粘贴媒体地址…",
+      "play": "播放",
+      "stop": "停止",
+      "preview": "播放预览",
+      "hint": "使用 API 返回的直链：延河课堂支持 .m3u8、.aac，延河 2.0 支持 .m3u8、.mp4、.aac。",
+      "downloadArea": {
+        "title": "下载",
+        "hint": "以开发者文件名保存到输出文件夹，不提取幻灯片。",
+        "action": "下载",
+        "reveal": "在文件夹中显示",
+        "liveUnsupported": "直播流无法下载。",
+        "alreadyDownloading": "此 URL 正在下载。",
+        "failed": "无法开始下载，请重试。",
+        "revealFailed": "无法在文件夹中显示此文件。"
+      },
+      "diagnostics": "诊断",
+      "eventLog": "事件日志",
+      "copyLog": "复制日志",
+      "copied": "已复制",
+      "logEmpty": "点击播放后，事件会显示在这里。",
+      "stats": {
+        "startup": "启动耗时",
+        "resolution": "分辨率",
+        "bufferAhead": "前向缓冲",
+        "latency": "直播延迟",
+        "bitrate": "流码率",
+        "bandwidth": "带宽",
+        "segments": "分片数",
+        "droppedFrames": "丢帧",
+        "stalls": "卡顿次数"
+      },
+      "states": {
+        "loading": "正在加载…",
+        "ready": "可以播放",
+        "playing": "正在播放",
+        "buffering": "正在缓冲…",
+        "paused": "已暂停",
+        "ended": "播放结束"
+      },
+      "errors": {
+        "disabled": "请在设置中启用开发者模式后再测试播放。",
+        "invalidUrl": "请使用 API 返回的 HTTPS 媒体直链，不要使用课程页面地址或已签名的延河课堂播放列表。",
+        "yanhektSignIn": "请登录延河课堂，或在设置中开启“匿名 API 请求”，然后重试。",
+        "yanhe2SignIn": "请为当前账号登录延河 2.0，然后重试。",
+        "proxyFailed": "无法启动播放预览，请重试。",
+        "emptyRecording": "播放列表没有可播放的媒体。",
+        "http": "媒体请求失败（HTTP {status}）。",
+        "hls": "无法播放此流（{detail}）。",
+        "hlsUnsupported": "此设备不支持 HLS 播放。",
+        "media": "无法播放媒体（错误 {code}）。请检查地址并重试。"
+      }
     },
     "api": {
       "filterPlaceholder": "筛选请求…",

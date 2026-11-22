@@ -15,7 +15,7 @@ import {
 import { ProxyAuth } from './videoProxy/proxyAuth';
 import { buildAxiosConfig, fetchRecordedWithResign, getAlongRoute } from './videoProxy/proxyRequest';
 import { abortableDelay, isAbortError, pipeToClient, requestLifetime } from './videoProxy/requestLifetime';
-import { isYanhektMediaUrl } from './videoProxy/urlHelpers';
+import { isYanhektMediaUrl, yanhektMediaProxyUrl } from './videoProxy/urlHelpers';
 import { applyNoStoreHeaders, shouldForwardUpstreamHeader } from './videoProxy/httpHeaders';
 import { handleYanhe2PlayRequest } from './videoProxy/yanhe2Play';
 import { handleYanhe2SlideImageRequest } from './videoProxy/yanhe2SlideImage';
@@ -187,10 +187,14 @@ export class VideoProxyService {
    * player reads external-mode live streams directly; FFmpeg thumbnails come
    * here so the bundled FFmpeg needs no TLS (the proxy speaks HTTPS upstream).
    */
-  async liveProxyUrl(originalUrl: string, token: string): Promise<string> {
-    const port = await this.startVideoProxy();
-    this.getAuth(token);
-    return `http://localhost:${port}/live?originalUrl=${encodeURIComponent(this.fixUrlEscaping(originalUrl))}&loginToken=${encodeURIComponent(token)}`;
+  async liveProxyUrl(originalUrl: string): Promise<string> {
+    return this.getYanhektPlayUrl('live', originalUrl);
+  }
+
+  /** A single Yanhekt media URL, without starting a recording's token warm-keeper. */
+  async getYanhektPlayUrl(route: 'recorded' | 'live' | 'audio', upstreamUrl: string, token?: string): Promise<string> {
+    await this.intranetMapping.ensureFresh();
+    return yanhektMediaProxyUrl(await this.startVideoProxy(), route, upstreamUrl, token);
   }
 
   registerClient(): string {
@@ -260,7 +264,7 @@ export class VideoProxyService {
       // Process main video (课堂摄像头) if available
       if (session.main_url) {
         const fixedMainUrl = this.fixUrlEscaping(session.main_url);
-        const proxyUrl = `http://localhost:${proxyPort}/recorded?originalUrl=${encodeURIComponent(fixedMainUrl)}&loginToken=${encodeURIComponent(token)}`;
+        const proxyUrl = yanhektMediaProxyUrl(proxyPort, 'recorded', fixedMainUrl, token);
 
         result.streams.main = {
           type: "camera",
@@ -273,7 +277,7 @@ export class VideoProxyService {
       // Process VGA video (屏幕录制) if available
       if (session.vga_url) {
         const fixedVgaUrl = this.fixUrlEscaping(session.vga_url);
-        const proxyUrl = `http://localhost:${proxyPort}/recorded?originalUrl=${encodeURIComponent(fixedVgaUrl)}&loginToken=${encodeURIComponent(token)}`;
+        const proxyUrl = yanhektMediaProxyUrl(proxyPort, 'recorded', fixedVgaUrl, token);
 
         result.streams.vga = {
           type: "screen",
@@ -287,7 +291,7 @@ export class VideoProxyService {
       // the proxy for the intranet rewrite.
       if (session.audio_url) {
         const fixedAudioUrl = this.fixUrlEscaping(session.audio_url);
-        result.audioUrl = `http://localhost:${proxyPort}/audio?originalUrl=${encodeURIComponent(fixedAudioUrl)}`;
+        result.audioUrl = yanhektMediaProxyUrl(proxyPort, 'audio', fixedAudioUrl);
       }
 
       return result;
@@ -304,11 +308,9 @@ export class VideoProxyService {
   /**
    * Get live stream playback URLs with proxy support
    */
-  async getLiveStreamUrls(stream: LiveStreamInput, token: string): Promise<VideoPlaybackUrls> {
+  async getLiveStreamUrls(stream: LiveStreamInput): Promise<VideoPlaybackUrls> {
     try {
       await this.intranetMapping.ensureFresh();
-      // Ensure this account's ProxyAuth exists (live needs no signature loop).
-      this.getAuth(token);
 
       const result: VideoPlaybackUrls = {
         stream_id: stream.id || stream.live_id,
@@ -326,7 +328,7 @@ export class VideoProxyService {
         // Process main camera stream (target) if available
         if (stream.target) {
           const fixedTarget = this.fixUrlEscaping(stream.target);
-          const proxyUrl = `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(fixedTarget)}&loginToken=${encodeURIComponent(token)}`;
+          const proxyUrl = yanhektMediaProxyUrl(proxyPort, 'live', fixedTarget);
 
           result.streams.camera = {
             type: "camera",
@@ -339,7 +341,7 @@ export class VideoProxyService {
         // Process screen recording stream (target_vga) if available
         if (stream.target_vga) {
           const fixedTargetVga = this.fixUrlEscaping(stream.target_vga);
-          const proxyUrl = `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(fixedTargetVga)}&loginToken=${encodeURIComponent(token)}`;
+          const proxyUrl = yanhektMediaProxyUrl(proxyPort, 'live', fixedTargetVga);
 
           result.streams.screen = {
             type: "screen",
@@ -353,7 +355,7 @@ export class VideoProxyService {
         // other live streams. The selector hides this unless developer mode is on.
         if (stream.target_room) {
           const fixedTargetRoom = this.fixUrlEscaping(stream.target_room);
-          const proxyUrl = `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(fixedTargetRoom)}&loginToken=${encodeURIComponent(token)}`;
+          const proxyUrl = yanhektMediaProxyUrl(proxyPort, 'live', fixedTargetRoom);
 
           result.streams.room = {
             type: "room",
@@ -746,37 +748,28 @@ export class VideoProxyService {
    * Handle live stream m3u8 requests
    */
   private async handleLiveM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery, signal: AbortSignal): Promise<void> {
-    const { originalUrl, loginToken } = parsedUrl.query;
+    const { originalUrl } = parsedUrl.query;
 
-    if (!originalUrl || !loginToken) {
-      log.error('Missing required parameters for live m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
+    if (typeof originalUrl !== 'string' || !originalUrl) {
       res.writeHead(400, { 'Content-Type': 'text/plain' });
-      res.end('Missing required parameters');
+      res.end('Missing originalUrl parameter for live m3u8');
       return;
     }
-    if (!isYanhektMediaUrl(originalUrl as string)) {
+    if (!isYanhektMediaUrl(originalUrl)) {
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Not a Yanhekt address');
       return;
     }
 
-    // Resolve this account's ProxyAuth (live needs no signing, but ensures the
-    // instance exists for lifecycle symmetry).
-    this.getAuth(loginToken as string);
-
-    // Set proper headers for live stream request. Under intranet mode the URL is
-    // rewritten to an IP, so Host must carry the original hostname.
+    // Yanhekt live is unsigned; the playlist and segments do not need a token.
     const liveHeaders: Record<string, string> = {
       ...this.BASE_HEADERS,
-      "Host": this.extractHostFromUrl(originalUrl as string)
+      "Host": new URL(originalUrl).hostname,
     };
-    if (this.intranetMapping.isEnabled()) {
-      liveHeaders['Host'] = new URL(originalUrl as string).hostname;
-    }
 
     let response: AxiosResponse;
     try {
-      response = await this.getLiveWithFailover(originalUrl as string, liveHeaders, {
+      response = await this.getLiveWithFailover(originalUrl, liveHeaders, {
         timeout: this.intranetMapping.isEnabled() ? 8000 : 30000, // 8s for intranet, 30s for external
         signal,
       });
@@ -798,9 +791,7 @@ export class VideoProxyService {
       return;
     }
 
-    // Process m3u8 content to rewrite TS URLs to point to our proxy (carrying the
-    // account's loginToken so each TS request signs with the right account).
-    const content = this.processLiveM3u8Content(response.data, originalUrl as string, loginToken as string);
+    const content = this.processLiveM3u8Content(response.data, originalUrl);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     applyNoStoreHeaders(res);
     res.writeHead(200);
@@ -811,10 +802,12 @@ export class VideoProxyService {
    * Handle m3u8 requests with query parameters (recorded videos)
    */
   private async handleM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery, signal: AbortSignal): Promise<void> {
-    const { originalUrl, loginToken } = parsedUrl.query;
+    const { originalUrl } = parsedUrl.query;
+    // Optional: it only keeps each account's cached video token separate.
+    const loginToken = typeof parsedUrl.query.loginToken === 'string' ? parsedUrl.query.loginToken : '';
 
-    if (!originalUrl || !loginToken) {
-      log.error('Missing required parameters for m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
+    if (!originalUrl) {
+      log.error('Missing originalUrl for m3u8');
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Missing required parameters');
       return;
@@ -827,7 +820,7 @@ export class VideoProxyService {
     }
 
     // Resolve this account's ProxyAuth so recorded signing uses its own token.
-    const auth = this.getAuth(loginToken as string);
+    const auth = this.getAuth(loginToken);
 
     let response: AxiosResponse;
     try {
@@ -852,7 +845,7 @@ export class VideoProxyService {
 
     // Process m3u8 content to rewrite TS URLs to point to our proxy (carrying the
     // account's loginToken so each TS request signs with the right account).
-    const content = this.processM3u8Content(response.data, originalUrl as string, loginToken as string);
+    const content = this.processM3u8Content(response.data, originalUrl as string, loginToken);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     applyNoStoreHeaders(res);
     res.writeHead(200);
@@ -929,7 +922,7 @@ export class VideoProxyService {
     // Recorded video (and the legacy fallback) — encrypt + sign with 403 re-sign,
     // using the ProxyAuth for the account that opened this stream (loginToken from
     // the TS URL). Missing token (legacy URL) falls back to a fresh instance.
-    const auth = this.getAuth((loginToken as string) ?? '');
+    const auth = this.getAuth(typeof loginToken === 'string' ? loginToken : '');
     let response: AxiosResponse;
     try {
       response = await this.getRecordedWithResign(tsUrl, { timeout: 30000, responseType: 'stream', signal }, auth);
@@ -945,8 +938,8 @@ export class VideoProxyService {
     this.pipeUpstream(res, response);
   }
 
-  private processLiveM3u8Content(content: string, baseUrl: string, loginToken: string): string {
-    return rewriteM3u8TsUrls(content, this.proxyPort, baseUrl, 'live', loginToken);
+  private processLiveM3u8Content(content: string, baseUrl: string): string {
+    return rewriteM3u8TsUrls(content, this.proxyPort, baseUrl, 'live');
   }
 
   private processM3u8Content(content: string, baseUrl: string, loginToken: string): string {

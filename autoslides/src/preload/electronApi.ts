@@ -14,6 +14,7 @@
 import type { GuestEvent, GuestKind, GuestMenuState, GuestRect } from '@common/guestView';
 import type { PinRequest } from '@common/pins';
 import type { DevApiRequest, DevApiResponse } from '@common/devApi';
+import type { DevDownloadPrepared, DevPlaybackResult } from '@common/devPlayback';
 import type { DevSsoControl, DevSsoSnapshot, DevSsoStartRequest } from '@common/devSso';
 import type { EnrolledRefreshResult } from '@common/types';
 import type { SlideVideoOptions } from '@common/slideVideo';
@@ -733,8 +734,9 @@ export interface ElectronAPI {
   };
 
   video: {
-    getLiveStreamUrls: (stream: LiveStreamInput, token: string) => Promise<VideoStreamResponse>;
+    getLiveStreamUrls: (stream: LiveStreamInput) => Promise<VideoStreamResponse>;
     getVideoPlaybackUrls: (session: RecordedSessionInput, token: string) => Promise<VideoStreamResponse>;
+    prepareDevPlayback: (url: string, account: string) => Promise<DevPlaybackResult>;
     getScreenThumbnail: (req: {
       kind: 'live' | 'recorded';
       screenUrl: string;
@@ -776,6 +778,10 @@ export interface ElectronAPI {
     startAudio: (downloadId: string, audioUrl: string, outputName: string) => Promise<void>;
     /** A Yanhe 2.0 recording's stream, signed and fetched in main. Reports on the same channels as `start`. */
     startYanhe2: (downloadId: string, account: string, query: Yanhe2DownloadQuery, kind: Yanhe2DownloadKind, outputName: string) => Promise<void>;
+    /** Developer page: check a pasted media URL and name its file. Writes nothing. */
+    prepareDev: (url: string, account: string) => Promise<DevDownloadPrepared>;
+    /** Developer page: download a pasted media URL. Reports on the same channels as `start`. */
+    startDev: (downloadId: string, url: string, account: string, outputName: string) => Promise<void>;
     cancel: (downloadId: string) => Promise<void>;
     cleanupTempFiles: (outputName: string) => Promise<void>;
     onProgress: (callback: (downloadId: string, progress: DownloadProgress) => void) => () => void;

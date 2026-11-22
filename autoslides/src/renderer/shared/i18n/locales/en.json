@@ -1763,9 +1763,64 @@
       "duration": "Duration"
     },
     "tabs": {
-      "imageLab": "Image Lab",
+      "imageLab": "Image",
       "api": "API",
-      "sso": "SSO"
+      "sso": "SSO",
+      "playback": "Playback"
+    },
+    "playback": {
+      "url": "Media URL",
+      "placeholder": "Paste a media URL…",
+      "play": "Play",
+      "stop": "Stop",
+      "preview": "Playback Preview",
+      "hint": "Use a direct URL from the API: .m3u8 or .aac for Yanhekt, .m3u8, .mp4 or .aac for Yanhe 2.0.",
+      "downloadArea": {
+        "title": "Download",
+        "hint": "Saves to your output folder with a developer file name. No slide extraction.",
+        "action": "Download",
+        "reveal": "Show in Folder",
+        "liveUnsupported": "Live streams cannot be downloaded.",
+        "alreadyDownloading": "This URL is already downloading.",
+        "failed": "Could not start the download. Try again.",
+        "revealFailed": "Could not show the file in its folder."
+      },
+      "diagnostics": "Diagnostics",
+      "eventLog": "Event Log",
+      "copyLog": "Copy Log",
+      "copied": "Copied",
+      "logEmpty": "Events appear here after you press Play.",
+      "stats": {
+        "startup": "Startup",
+        "resolution": "Resolution",
+        "bufferAhead": "Buffer Ahead",
+        "latency": "Live Latency",
+        "bitrate": "Stream Bitrate",
+        "bandwidth": "Bandwidth",
+        "segments": "Segments",
+        "droppedFrames": "Dropped Frames",
+        "stalls": "Stalls"
+      },
+      "states": {
+        "loading": "Loading…",
+        "ready": "Ready to play",
+        "playing": "Playing",
+        "buffering": "Buffering…",
+        "paused": "Paused",
+        "ended": "Playback ended"
+      },
+      "errors": {
+        "disabled": "Enable Developer Mode in Settings to test playback.",
+        "invalidUrl": "Use a direct HTTPS media URL from the API, not a lecture page or a signed Yanhekt playlist.",
+        "yanhektSignIn": "Sign in to Yanhekt or turn on Anonymous API requests in Settings, then try again.",
+        "yanhe2SignIn": "Sign in to Yanhe 2.0 for your active account, then try again.",
+        "proxyFailed": "Could not start the playback preview. Try again.",
+        "emptyRecording": "The playlist has no playable media.",
+        "http": "The media request failed (HTTP {status}).",
+        "hls": "The stream could not play ({detail}).",
+        "hlsUnsupported": "HLS playback is not supported on this device.",
+        "media": "The media could not play (media error {code}). Check the URL and try again."
+      }
     },
     "api": {
       "filterPlaceholder": "Filter requests…",

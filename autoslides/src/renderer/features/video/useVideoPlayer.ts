@@ -570,7 +570,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
           throw new Error('Stream data not found')
         }
         const serializableStreamData = createSerializableCopy(streamData)
-        result = await window.electronAPI.video.getLiveStreamUrls(serializableStreamData, token)
+        result = await window.electronAPI.video.getLiveStreamUrls(serializableStreamData)
       } else if (mode === 'recorded' && session.value) {
         const serializableSession = createSerializableCopy(session.value)
         // In flight while the proxy resolves the stream URLs — a resume must not

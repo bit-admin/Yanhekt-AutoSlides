@@ -163,6 +163,37 @@ export class Yanhe2DownloadService {
     }
   }
 
+  /**
+   * One pasted `/play/` URL (Developer page), with no lecture behind it: same
+   * signing, route, resume and cancel as `start`.
+   */
+  async startMedia(
+    downloadId: string,
+    account: string,
+    url: string,
+    format: 'hls' | 'mp4' | 'aac',
+    outputName: string,
+    progress: (progress: DownloadProgress) => void,
+  ): Promise<string> {
+    if (!isPlainStem(outputName) || !isYanhe2PlayUrl(url)) throw new Error('Bad Yanhe 2.0 download request');
+    if (this.active.has(downloadId)) throw new Error('Download already in progress');
+    const controller = new AbortController();
+    this.active.set(downloadId, controller);
+    try {
+      const identity = this.yanhe2Service.getPlayIdentity(account);
+      if (!identity) throw new Error('Your Yanhe 2.0 session has ended. Sign in again, then retry.');
+      if (format === 'aac') return await this.fetchFile(url, null, outputName, '.aac', AUDIO_PART_SUFFIX, controller.signal, progress);
+      if (format === 'mp4') return await this.fetchFile(url, identity, outputName, '.mp4', YANHE2_MP4_PART_SUFFIX, controller.signal, progress);
+      const filePath = await this.m3u8DownloadService.startSignedDownload(
+        downloadId, url, outputName, progress, new Yanhe2HlsSigner(identity),
+      );
+      if (controller.signal.aborted) throw new Error(CANCELLED);
+      return filePath;
+    } finally {
+      this.active.delete(downloadId);
+    }
+  }
+
   cancel(downloadId: string): void {
     const controller = this.active.get(downloadId);
     if (!controller) return;

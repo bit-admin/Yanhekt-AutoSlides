@@ -1763,9 +1763,64 @@
       "duration": "所要時間"
     },
     "tabs": {
-      "imageLab": "画像ラボ",
+      "imageLab": "画像",
       "api": "API",
-      "sso": "SSO"
+      "sso": "SSO",
+      "playback": "再生テスト"
+    },
+    "playback": {
+      "url": "メディア URL",
+      "placeholder": "メディア URL を貼り付け…",
+      "play": "再生",
+      "stop": "停止",
+      "preview": "再生プレビュー",
+      "hint": "API が返す直接 URL を使ってください。Yanhekt は .m3u8、.aac、Yanhe 2.0 は .m3u8、.mp4、.aac に対応しています。",
+      "downloadArea": {
+        "title": "ダウンロード",
+        "hint": "開発者用のファイル名で出力フォルダに保存します。スライドは抽出しません。",
+        "action": "ダウンロード",
+        "reveal": "フォルダに表示",
+        "liveUnsupported": "ライブ配信はダウンロードできません。",
+        "alreadyDownloading": "この URL はすでにダウンロード中です。",
+        "failed": "ダウンロードを開始できませんでした。もう一度お試しください。",
+        "revealFailed": "ファイルをフォルダに表示できませんでした。"
+      },
+      "diagnostics": "診断",
+      "eventLog": "イベントログ",
+      "copyLog": "ログをコピー",
+      "copied": "コピーしました",
+      "logEmpty": "再生すると、ここにイベントが表示されます。",
+      "stats": {
+        "startup": "起動時間",
+        "resolution": "解像度",
+        "bufferAhead": "先読みバッファ",
+        "latency": "ライブ遅延",
+        "bitrate": "ストリームビットレート",
+        "bandwidth": "帯域幅",
+        "segments": "セグメント数",
+        "droppedFrames": "ドロップフレーム",
+        "stalls": "停止回数"
+      },
+      "states": {
+        "loading": "読み込み中…",
+        "ready": "再生できます",
+        "playing": "再生中",
+        "buffering": "バッファリング中…",
+        "paused": "一時停止中",
+        "ended": "再生が終了しました"
+      },
+      "errors": {
+        "disabled": "設定で開発者モードを有効にしてから、再生をテストしてください。",
+        "invalidUrl": "講義ページや署名付きの Yanhekt プレイリストではなく、API が返す HTTPS のメディア URL を使ってください。",
+        "yanhektSignIn": "Yanhekt にサインインするか、設定で「匿名 API リクエスト」をオンにしてから再試行してください。",
+        "yanhe2SignIn": "現在のアカウントで Yanhe 2.0 にサインインしてから再試行してください。",
+        "proxyFailed": "再生プレビューを開始できませんでした。もう一度お試しください。",
+        "emptyRecording": "プレイリストに再生できるメディアがありません。",
+        "http": "メディアのリクエストに失敗しました（HTTP {status}）。",
+        "hls": "ストリームを再生できませんでした（{detail}）。",
+        "hlsUnsupported": "このデバイスは HLS の再生に対応していません。",
+        "media": "メディアを再生できませんでした（エラー {code}）。URL を確認して再試行してください。"
+      }
     },
     "api": {
       "filterPlaceholder": "リクエストを絞り込み…",

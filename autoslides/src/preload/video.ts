@@ -10,10 +10,11 @@ import type {
 } from './electronApi';
 
 export const video: ElectronAPI['video'] = {
-  getLiveStreamUrls: (stream: LiveStreamInput, token: string) =>
-    invoke('video:getLiveStreamUrls', stream, token),
+  getLiveStreamUrls: (stream: LiveStreamInput) =>
+    invoke('video:getLiveStreamUrls', stream),
   getVideoPlaybackUrls: (session: RecordedSessionInput, token: string) =>
     invoke('video:getVideoPlaybackUrls', session, token),
+  prepareDevPlayback: (url, account) => invoke('video:prepareDevPlayback', url, account),
   getScreenThumbnail: (req: {
     kind: 'live' | 'recorded';
     screenUrl: string;
@@ -46,6 +47,8 @@ export const download: ElectronAPI['download'] = {
     invoke('download:startAudio', downloadId, audioUrl, outputName),
   startYanhe2: (downloadId, account, query, kind, outputName) =>
     invoke('download:startYanhe2', downloadId, account, query, kind, outputName),
+  prepareDev: (url, account) => invoke('download:prepareDev', url, account),
+  startDev: (downloadId, url, account, outputName) => invoke('download:startDev', downloadId, url, account, outputName),
   cancel: (downloadId: string) => invoke('download:cancel', downloadId),
   cleanupTempFiles: (outputName: string) => invoke('download:cleanupTempFiles', outputName),
   onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) => {
