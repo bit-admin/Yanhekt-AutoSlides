@@ -161,9 +161,12 @@ onBeforeUnmount(() => {
   max-height: 90vh;
   overflow: hidden;
   box-shadow: 0 20px 40px var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
+  flex: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -207,7 +210,11 @@ onBeforeUnmount(() => {
   border-color: var(--border-strong);
 }
 
+/* The header stays put; a short window scrolls the image and its details. */
 .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   padding: 20px;
   display: flex;
   flex-direction: column;
