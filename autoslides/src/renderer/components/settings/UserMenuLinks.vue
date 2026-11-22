@@ -124,23 +124,9 @@
           </svg>
         </button>
         <button type="button" class="signin-option" @click="openPublicIndex">
-          <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <rect x="3" y="3" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="8.13" y="3" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="13.27" y="3" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="18.4" y="3" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="3" y="8.13" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="8.13" y="8.13" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="13.27" y="8.13" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="18.4" y="8.13" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="3" y="13.27" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="8.13" y="13.27" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="13.27" y="13.27" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="18.4" y="13.27" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="3" y="18.4" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="8.13" y="18.4" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="13.27" y="18.4" width="3.6" height="3.6" rx="0.7"/>
-            <rect x="18.4" y="18.4" width="3.6" height="3.6" rx="0.7"/>
+          <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 64 64" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="26" cy="26" r="15" stroke-width="8"/>
+            <path d="M37.5 37.5 54 54" stroke-width="9" stroke-linecap="round"/>
           </svg>
           <span>{{ $t('titlebar.publicIndex') }}</span>
           <svg class="menu-link-external" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
