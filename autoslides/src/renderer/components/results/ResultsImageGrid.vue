@@ -14,12 +14,13 @@
         <input
           type="checkbox"
           :checked="selectedIds.includes(item.id)"
+          :aria-label="formatImageName(item.name)"
           @click.stop
           @change="$emit('toggleSelection', item.id)"
         />
       </div>
 
-      <button class="item-preview-btn" @click.stop="$emit('preview', item)" :title="$t('trash.preview')">
+      <button class="item-preview-btn" @click.stop="$emit('preview', item)" :title="$t('trash.preview')" :aria-label="`${$t('trash.preview')}: ${formatImageName(item.name)}`">
         <svg width="14" height="14" viewBox="0 0 16 16">
           <path d="M2 2v5h2V4h3V2H2zm9 0v2h3v3h2V2h-5zM4 11H2v5h5v-2H4v-3zm10 0v3h-3v2h5v-5h-2z" fill="currentColor"/>
         </svg>

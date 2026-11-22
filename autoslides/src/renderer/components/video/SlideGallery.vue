@@ -3,13 +3,13 @@
     <div
       v-for="slide in slides"
       :key="slide.id"
-      v-press="slide.title"
       class="slide-thumbnail"
-      @click="$emit('preview', slide)"
     >
-      <img v-if="slide.dataUrl" :src="slide.dataUrl" :alt="slide.title" />
-      <div v-else-if="slide.failed" class="thumbnail-pending thumbnail-failed">{{ $t('playback.slideImageFailed') }}</div>
-      <div v-else class="thumbnail-pending"></div>
+      <button type="button" class="slide-open" :aria-label="slide.title" @click="$emit('preview', slide)">
+        <img v-if="slide.dataUrl" :src="slide.dataUrl" alt="" />
+        <span v-else-if="slide.failed" class="thumbnail-pending thumbnail-failed">{{ $t('playback.slideImageFailed') }}</span>
+        <span v-else class="thumbnail-pending"></span>
+      </button>
       <div class="thumbnail-overlay">
         <div class="slide-info">
           <span class="slide-title">{{ slide.title }}</span>
@@ -35,7 +35,6 @@
 </template>
 
 <script setup lang="ts" generic="T extends GallerySlide">
-import { vPress } from '@shared/ui/press'
 import type { GallerySlide } from '@features/video/gallerySlide'
 
 withDefaults(defineProps<{
@@ -74,6 +73,23 @@ defineEmits<{
   box-shadow: 0 4px 12px var(--shadow-md);
 }
 
+/* The whole tile opens the slide; the caption lets clicks through to it. */
+.slide-open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.slide-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .slide-thumbnail img,
 .thumbnail-pending {
   width: 100%;
@@ -106,6 +122,7 @@ defineEmits<{
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  pointer-events: none;
 }
 
 .slide-info {
@@ -132,6 +149,7 @@ defineEmits<{
 
 /* Quiet scrim button at rest; red only while the pointer is on it. */
 .delete-btn {
+  pointer-events: auto;
   padding: 4px;
   border: none;
   border-radius: 4px;
