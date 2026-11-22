@@ -48,6 +48,14 @@ describe('Clone Slides from Link', () => {
     expect(clone.item.value?.status).toBe('done')
   })
 
+  it('hands the short link it came from to metadata.json', async () => {
+    const { api } = bridge()
+    const clone = useShareLinkExport()
+    const sourceLink = { longUrl: 'https://example.test/v1#abc', shortUrl: 'https://example.test/v1/s/Test123' }
+    await clone.startExport({ title: 'Test', urls: [url], missing: 0, sourceLink })
+    expect(api.drive.recordClone).toHaveBeenCalledWith(stage, expect.objectContaining({ sourceLink }))
+  })
+
   it('leaves the old folder alone when an image fails', async () => {
     const { api, calls } = bridge(true)
     api.cloudNotes.downloadImageToFolder.mockResolvedValueOnce({ ok: false, error: 'network' })

@@ -1212,7 +1212,7 @@ export interface ElectronAPI {
     /** Take a link off the folder's list (not the last one, not the current one); the link keeps working. */
     removeShare: (folderPath: string, id: string) => Promise<import('@common/driveStatus').DriveResult<null>>;
     /** After Clone Slides from Link: metadata.json (`extractor: 'share'`) and upload records for the slides it downloaded. */
-    recordClone: (folderPath: string, input: { source: import('@common/sidecars/metadata').SlideMetadataSource; slides: Array<{ filename: string; url: string }> }) => Promise<import('@common/driveStatus').DriveResult<null>>;
+    recordClone: (folderPath: string, input: { source: import('@common/sidecars/metadata').SlideMetadataSource; slides: Array<{ filename: string; url: string }>; sourceLink?: import('@common/notesTypes').ShareSourceLink }) => Promise<import('@common/driveStatus').DriveResult<null>>;
     onProgress: (callback: (progress: import('@common/driveStatus').DriveUploadProgress) => void) => () => void;
   };
   /** What a lecture already has in the output folder, and moving it aside for a fresh run (issue #45). */

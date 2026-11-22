@@ -19,7 +19,8 @@ import { createLogger } from '@main/infra/logger';
 import { readOutputDir } from '@main/infra/outputDir';
 import { expandTilde } from '@main/infra/pathUtils';
 import type { ShareService } from '@main/platform/shareService';
-import { decodeSharePayload, parseCossImageUrl, payloadHasTimeline } from '@common/shareLink';
+import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseCossImageUrl, parseShareLink, payloadHasTimeline } from '@common/shareLink';
+import type { ShareSourceLink } from '@common/notesTypes';
 import { buildSlideShareLink, MAX_SHORTENABLE_FRAGMENT_BYTES } from '@common/shareCreation';
 import {
   driveFileState,
@@ -330,11 +331,13 @@ export class DriveService {
    * Record a folder made by Clone Slides from Link: metadata.json with
    * `extractor: 'share'` and the link's lecture facts, then an upload record
    * for every slide whose bytes are the ones its URL names (the images are on
-   * Drive already). `slides` pairs each written file with its source URL.
+   * Drive already). `slides` pairs each written file with its source URL. A
+   * clone from a short link keeps that link in `shares`; failing to save it
+   * does not fail the clone.
    */
   async recordClone(
     folderPath: string,
-    input: { source: SlideMetadata['source']; slides: Array<{ filename: string; url: string }> },
+    input: { source: SlideMetadata['source']; slides: Array<{ filename: string; url: string }>; sourceLink?: ShareSourceLink },
   ): Promise<DriveResult<null>> {
     const resolved = path.resolve(expandTilde(folderPath));
     const written = await this.metadata.writeExtraction(resolved, {
@@ -357,8 +360,28 @@ export class DriveService {
       } catch { /* missing file: no record */ }
     }
     await this.metadata.recordDriveUploads(resolved, records);
+    if (input.sourceLink && isShareSourceLink(input.sourceLink)) {
+      const saved = await this.metadata.saveShare(resolved, {
+        id: createHash('sha256').update(input.sourceLink.longUrl).digest('hex').slice(0, 16),
+        createdAt: now,
+        longUrl: input.sourceLink.longUrl,
+        shortUrl: input.sourceLink.shortUrl,
+        files: input.slides.map((s) => s.filename).filter((name) => isSlideFile(name) && path.basename(name) === name),
+        timeline: linkHasTimeline(input.sourceLink.longUrl),
+      });
+      if (saved === 'failed' || saved === 'blocked') log.warn('Clone source link was not recorded', resolved);
+    }
     return { ok: true, data: null };
   }
+}
+
+/** Only this app's share links go on a folder's record. */
+function isShareSourceLink({ longUrl, shortUrl }: ShareSourceLink): boolean {
+  const base = `${SHARE_ORIGIN}${SHARE_PATH}`;
+  return longUrl.startsWith(`${base}#`)
+    && decodeSharePayload(fragmentOf(longUrl)) !== null
+    && shortUrl.startsWith(`${base}/s/`)
+    && !!parseShareLink(shortUrl)?.shortId;
 }
 
 const fragmentOf = (longUrl: string): string => longUrl.slice(longUrl.indexOf('#') + 1);

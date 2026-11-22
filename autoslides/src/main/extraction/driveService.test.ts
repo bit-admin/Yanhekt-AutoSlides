@@ -1,3 +1,4 @@
+import { buildSlideShareLink } from '@common/shareCreation';
 import { mkdtemp, mkdir, rm, symlink, utimes, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
@@ -190,5 +191,19 @@ describe('DriveService', () => {
     expect(stored?.extraction.extractor).toBe('share');
     expect(Object.keys(stored?.drive?.files ?? {})).toEqual(['Slide_001.png']);
     expect((await service.folderSummary(folder)).counts).toMatchObject({ uploaded: 1, notUploaded: 1, status: 'partial' });
+  });
+
+  it('keeps the short link a clone came from, and refuses a foreign one', async () => {
+    const { folder, service, metadata } = await setup(false);
+    const one = md5Of(Buffer.from('one'));
+    const slides = [{ filename: 'Slide_001.png', url: `https://coss.yanhekt.cn/images/2026/10/${one}.png` }];
+    const longUrl = buildSlideShareLink({ courseId: '1', sessionId: '2' }, slides)?.longUrl ?? '';
+    const shortUrl = 'https://share.ruc.edu.kg/v1/s/Test123';
+
+    await service.recordClone(folder, { source: { courseId: '1', sessionId: '2' }, slides, sourceLink: { longUrl: longUrl.replace('share.ruc.edu.kg', 'example.test'), shortUrl } });
+    expect((await metadata.read(folder))?.shares).toBeUndefined();
+
+    await service.recordClone(folder, { source: { courseId: '1', sessionId: '2' }, slides, sourceLink: { longUrl, shortUrl } });
+    expect((await metadata.read(folder))?.shares).toMatchObject([{ longUrl, shortUrl, files: ['Slide_001.png'], timeline: false }]);
   });
 });

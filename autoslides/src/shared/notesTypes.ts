@@ -53,6 +53,13 @@ export interface ShareImportResult {
   lectureMeta?: ShareLectureMeta | null;
   /** Reconstructed timeline.json from a v3 share payload, if present. */
   timeline?: SlideTimeline | null;
+  /** The short link this came from, with the long link it stands for. */
+  sourceLink?: ShareSourceLink;
+}
+
+export interface ShareSourceLink {
+  longUrl: string;
+  shortUrl: string;
 }
 
 /** Uniform IPC envelope so the renderer can surface auth/network failures. */

@@ -148,6 +148,7 @@ describe('Share through the cloudNotes bridge', () => {
     expect(fetchMock.mock.calls).toEqual([
       [`${shareOrigin}/v1/api/get?id=Test123`, { headers: { 'User-Agent': expect.stringMatching(/^AutoSlides\//) } }],
     ]);
+    expect(result).toMatchObject({ ok: true, data: { sourceLink: { shortUrl: `${shareOrigin}/v1/s/Test123` } } });
     expect(send.mock.calls.map(([request]) => [request.method, request.url, request.responseType])).toEqual([
       ['GET', `${coss}?list-type=2&prefix=2026%2F1%2F&max-keys=1000`, 'text'],
       ['GET', `${coss}?list-type=2&prefix=2026%2F1%2F&max-keys=1000&continuation-token=page%2B2`, 'text'],
