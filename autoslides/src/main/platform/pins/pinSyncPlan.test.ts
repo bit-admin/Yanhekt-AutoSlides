@@ -115,6 +115,40 @@ describe('planPinSync', () => {
     expect(pushes(plan)).toEqual([]);
   });
 
+  it('removes a current-term pin that left Yanhekt\'s list', () => {
+    const plan = planPinSync(
+      [entry('1', { term: NOW })],
+      { yanhekt: site([], ['1']), yanhe2: off },
+      CURRENT,
+    );
+    expect(keys(plan)).toEqual([]);
+    expect(pushes(plan)).toEqual([]);
+  });
+
+  it('keeps a pin when its term ends and Yanhekt stops listing it', () => {
+    const plan = planPinSync(
+      [entry('5', { term: PAST })],
+      { yanhekt: site([], ['5']), yanhe2: off },
+      CURRENT,
+    );
+    expect(keys(plan)).toEqual(['5']);
+    expect(pushes(plan)).toEqual([]);
+  });
+
+  it('keeps a pin of unknown term that left Yanhekt\'s list', () => {
+    const plan = planPinSync([entry('7')], { yanhekt: site([], ['7']), yanhe2: off }, CURRENT);
+    expect(keys(plan)).toEqual(['7']);
+  });
+
+  it('removes nothing on Yanhekt\'s word when the current term is unknown', () => {
+    const plan = planPinSync(
+      [entry('1', { term: NOW })],
+      { yanhekt: site([], ['1']), yanhe2: off },
+      null,
+    );
+    expect(keys(plan)).toEqual(['1']);
+  });
+
   it('still covers an earlier-term course Yanhekt happens to list', () => {
     const plan = planPinSync(
       [entry('5', { term: PAST, local: false })],

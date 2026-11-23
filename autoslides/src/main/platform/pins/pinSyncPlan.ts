@@ -19,9 +19,9 @@
  *
  * Which site covers a course:
  * - Yanhe 2.0: every course it has an id for, any term.
- * - Yanhekt: a course it has an id for that is on its list now, was on it at
- *   the last sync, or is from the current term. Its list no longer returns
- *   earlier terms, so sending those would be retried forever.
+ * - Yanhekt: a course it has an id for that is on its list now, or is from the
+ *   current term. Its list does not return earlier terms, so a course of an
+ *   earlier (or unknown) term missing from it was not removed, and is not sent.
  * A site that was not reached this time (signed out, failed) covers nothing:
  * its pins stay as they are and its base is left alone.
  *
@@ -79,7 +79,7 @@ function covers(site: PinSource, state: PinSiteState | undefined, pin: PinnedCou
   const id = siteIdOf(site, pin);
   if (!id || !state?.remote) return false;
   if (site !== 'yanhekt') return true;
-  return state.remote.has(id) || !!state.base?.has(id) || (!!currentTerm && termOf(pin) === currentTerm);
+  return state.remote.has(id) || (!!currentTerm && termOf(pin) === currentTerm);
 }
 
 export function planPinSync(
