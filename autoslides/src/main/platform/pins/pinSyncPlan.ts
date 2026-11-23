@@ -25,6 +25,10 @@
  * A site that was not reached this time (signed out, failed) covers nothing:
  * its pins stay as they are and its base is left alone.
  *
+ * The account's course notes (`cloud`, optional) are a third list with the same
+ * signals. They cover every pin of every term, are keyed by the pin's key, and
+ * get no pushes: the service writes the final list to them after the merge.
+ *
  * Pure, so it can be tested without Electron.
  */
 import { termKeyOf } from '@common/searchSources';
@@ -32,6 +36,8 @@ import { yanhektIdOf } from '@common/pins';
 import type { PinnedCourse } from '@common/types';
 
 export type PinSite = 'yanhekt' | 'yanhe2';
+export type PinSource = PinSite | 'cloud';
+export type PinSites = Record<PinSite, PinSiteState> & { cloud?: PinSiteState };
 
 export interface PinSiteState {
   /** Course ids the site holds now; null when it was not reached this sync. */
@@ -64,25 +70,26 @@ export interface PinSyncPlan {
 const termOf = (pin: PinnedCourse): string | null =>
   pin.school_year && pin.semester ? termKeyOf(pin.school_year, pin.semester) : null;
 
-function siteIdOf(site: PinSite, pin: PinnedCourse): string {
+function siteIdOf(site: PinSource, pin: PinnedCourse): string {
+  if (site === 'cloud') return pin.id;
   return site === 'yanhekt' ? yanhektIdOf(pin) : (pin.yanhe2Id ?? '');
 }
 
-function covers(site: PinSite, state: PinSiteState, pin: PinnedCourse, currentTerm: string | null): boolean {
+function covers(site: PinSource, state: PinSiteState | undefined, pin: PinnedCourse, currentTerm: string | null): boolean {
   const id = siteIdOf(site, pin);
-  if (!id || !state.remote) return false;
-  if (site === 'yanhe2') return true;
+  if (!id || !state?.remote) return false;
+  if (site !== 'yanhekt') return true;
   return state.remote.has(id) || !!state.base?.has(id) || (!!currentTerm && termOf(pin) === currentTerm);
 }
 
 export function planPinSync(
   entries: PinEntry[],
-  sites: Record<PinSite, PinSiteState>,
+  sites: PinSites,
   currentTerm: string | null,
 ): PinSyncPlan {
   const kept: PinEntry[] = [];
   const pushes: PinPush[] = [];
-  const siteNames: PinSite[] = ['yanhekt', 'yanhe2'];
+  const siteNames: PinSource[] = ['yanhekt', 'yanhe2', 'cloud'];
 
   for (const entry of entries) {
     const covering = siteNames.filter((site) => covers(site, sites[site], entry.pin, currentTerm));
@@ -90,8 +97,9 @@ export function planPinSync(
     let removed = false;
     for (const site of covering) {
       const id = siteIdOf(site, entry.pin);
-      const onSite = sites[site].remote!.has(id);
-      const inBase = !!sites[site].base?.has(id);
+      const state = sites[site] as PinSiteState;
+      const onSite = state.remote!.has(id);
+      const inBase = !!state.base?.has(id);
       if (inBase && !onSite) removed = true;
       else if (inBase && onSite && !entry.local) removed = true;
       else if (!inBase && onSite) added = true;
@@ -100,6 +108,7 @@ export function planPinSync(
     if (keep) kept.push(entry);
 
     for (const site of covering) {
+      if (site === 'cloud') continue;
       const id = siteIdOf(site, entry.pin);
       const onSite = sites[site].remote!.has(id);
       if (keep !== onSite) pushes.push({ site, courseId: id, on: keep, key: entry.pin.id });

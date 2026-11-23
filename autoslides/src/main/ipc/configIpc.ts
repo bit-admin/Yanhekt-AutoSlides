@@ -399,6 +399,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setCourseCloudSync', async (_, enabled: boolean) => {
+    configService.setCourseCloudSync(enabled === true);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setAllowCliControl', async (_, enabled: boolean) => {
     configService.setAllowCliControl(enabled);
     services.cliControlServer.applyConfig();

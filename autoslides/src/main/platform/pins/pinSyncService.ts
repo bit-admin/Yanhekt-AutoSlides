@@ -12,6 +12,7 @@
  * next account that syncs.
  */
 import { belongsTo, yanhe2PinKey, yanhektIdOf, type PinRequest } from '@common/pins';
+import { cloudCourseOf, courseCloudKey, type CloudCourse } from '@common/courseCloud';
 import { termKeyOf } from '@common/searchSources';
 import type { PinnedCourse } from '@common/types';
 import type { CourseData, SubscriptionCourseRow } from '@common/apiTypes';
@@ -21,8 +22,9 @@ import type { ConfigService } from '../configService';
 import type { CourseLookup } from '../courseIndex/courseLookup';
 import type { Yanhe2Service } from '../yanhe2/yanhe2Service';
 import type { Yanhe2TwinResolver } from '../yanhe2/yanhe2TwinResolver';
+import type { CloudSnapshot, CourseCloudStore } from '../courseCloud/courseCloudStore';
 import { createLogger } from '@main/infra/logger';
-import { planPinSync, type PinEntry, type PinSite, type PinSiteState } from './pinSyncPlan';
+import { planPinSync, type PinEntry, type PinSite, type PinSites, type PinSiteState } from './pinSyncPlan';
 import { mergePin, pinFromCourseData, pinFromSubscriptionRow, pinFromYanhe2Course, plainPin } from './pinSnapshots';
 
 const log = createLogger('PinSync');
@@ -33,6 +35,8 @@ const MAX_SUBSCRIPTION_PAGES = 50;
 const MAX_TWIN_LOOKUPS = 12;
 /** A course the other site did not have is looked for again after this long. */
 const MISSING_RECHECK_MS = 7 * 24 * 60 * 60 * 1000;
+/** Courses from the account's notes without a title, filled in per sync. */
+const MAX_CLOUD_TITLE_LOOKUPS = 12;
 
 type Lookup<T> = { kind: 'found'; data: T } | { kind: 'missing' } | { kind: 'unknown' };
 
@@ -48,6 +52,8 @@ export class PinSyncService {
     private readonly courseLookup: CourseLookup,
     /** Called after the stored list changed, to broadcast config. */
     private readonly onChange: () => void,
+    /** The account's course notes; absent or switched off, pins sync without them. */
+    private readonly courseCloud?: CourseCloudStore,
   ) {}
 
   // ---------- local changes ----------
@@ -144,6 +150,7 @@ export class PinSyncService {
       yanhe2On ? this.fetchBookmarks(owner) : Promise.resolve(null),
       this.currentTerm(),
     ]);
+    const cloud = token && this.courseCloud?.enabled() ? await this.readCloud(token) : null;
 
     // Every course from here and from both lists, one entry each.
     const entries: PinEntry[] = startPins.map((pin) => ({ pin, local: true, originKeys: [pin.id] }));
@@ -169,13 +176,17 @@ export class PinSyncService {
       });
     }
 
+    for (const note of cloud?.notes ?? []) this.addCloudCourse(entries, note.course, owner);
+    if (token && cloud) await this.fillCloudTitles(entries, token);
+
     await this.findTwins(owner, entries, token, yanhe2On);
     const joined = this.joinTwins(entries);
 
-    const sites: Record<PinSite, PinSiteState> = {
+    const sites: PinSites = {
       yanhekt: this.siteState(yanhektRows?.map((r) => String(r.id)) ?? null, owner, 'yanhekt'),
       yanhe2: this.siteState(bookmarks?.map((b) => b.courseId) ?? null, owner, 'yanhe2'),
     };
+    if (cloud) sites.cloud = this.cloudState(cloud, joined, owner);
     const plan = planPinSync(joined, sites, currentTerm);
 
     // Write, keeping any pin or unpin made while this sync was reading.
@@ -225,9 +236,98 @@ export class PinSyncService {
       ok[site].off.forEach((id) => held.delete(id));
       return [...held];
     };
-    this.configService.setPinSyncBase(owner, { yanhekt: baseOf('yanhekt'), yanhe2: baseOf('yanhe2') });
+    // A pin changed meanwhile: the sync that follows writes the notes.
+    let cloudBase = stored.cloud;
+    if (cloud && token && !touched.size) {
+      try {
+        cloudBase = await this.courseCloud!.reconcile(token, 'subscribed', result.map(cloudCourseOf), cloud);
+      } catch (error) {
+        log.warn('Course notes not written:', error instanceof Error ? error.message : error);
+      }
+    }
+    this.configService.setPinSyncBase(owner, {
+      yanhekt: baseOf('yanhekt'),
+      yanhe2: baseOf('yanhe2'),
+      ...(cloudBase !== undefined ? { cloud: cloudBase } : {}),
+    });
 
     if (touched.size) void this.sync(owner);
+  }
+
+  // ---------- course notes ----------
+
+  private async readCloud(token: string): Promise<CloudSnapshot | null> {
+    try {
+      return await this.courseCloud!.read(token, 'subscribed');
+    } catch (error) {
+      log.warn('Course notes not read:', error instanceof Error ? error.message : error);
+      return null;
+    }
+  }
+
+  /** A note's course over the entries: what this computer knows wins. */
+  private addCloudCourse(entries: PinEntry[], course: CloudCourse, owner: string): void {
+    const fromNote = plainPin({
+      id: courseCloudKey(course),
+      yanhe2Id: course.yanhe2Id || undefined,
+      title: course.title,
+      number: course.number || undefined,
+      school_year: course.school_year || undefined,
+      semester: course.semester || undefined,
+      owner,
+    });
+    const found = entries.find((e) =>
+      (!!course.yanhektId && yanhektIdOf(e.pin) === course.yanhektId) ||
+      (!!course.yanhe2Id && e.pin.yanhe2Id === course.yanhe2Id));
+    if (found) {
+      const id = yanhektIdOf(found.pin) || course.yanhektId || found.pin.id;
+      found.pin = { ...mergePin(fromNote, found.pin), id };
+    } else {
+      entries.push({ pin: fromNote, local: false, originKeys: [] });
+    }
+  }
+
+  /** A title too long for its note comes from the course's own detail. */
+  private async fillCloudTitles(entries: PinEntry[], token: string): Promise<void> {
+    let budget = MAX_CLOUD_TITLE_LOOKUPS;
+    for (const entry of entries) {
+      const id = yanhektIdOf(entry.pin);
+      if (entry.pin.title || !id) continue;
+      if (budget-- <= 0) break;
+      try {
+        const detail = await this.apiClient.getCourseDetailOrIndex(id, token);
+        entry.pin = {
+          ...entry.pin,
+          title: detail.title || entry.pin.title,
+          professors: detail.professors ?? entry.pin.professors,
+          instructor: detail.professors?.join(', ') ?? entry.pin.instructor,
+        };
+      } catch {
+        // Stays id-only until the next sync or until it is opened.
+      }
+    }
+  }
+
+  /**
+   * The notes as a pin source, keyed by each pin's current key. A missing or
+   * empty group never counts as "removed everywhere": it merges like a first
+   * sync, so losing the group cannot unpin a student's courses.
+   */
+  private cloudState(cloud: CloudSnapshot, joined: PinEntry[], owner: string): PinSiteState {
+    const canon = (key: string): string => {
+      if (!key.startsWith('yanhe2:')) return key;
+      const yanhe2Id = key.slice('yanhe2:'.length);
+      return joined.find((e) => e.pin.yanhe2Id === yanhe2Id)?.pin.id ?? key;
+    };
+    const stored = this.configService.getPinSyncBase(owner)?.cloud ?? null;
+    const usable = cloud.groupId !== null && cloud.notes.length > 0;
+    return {
+      remote: new Set(cloud.notes.map((n) => {
+        const byYanhekt = n.course.yanhektId;
+        return byYanhekt || canon(courseCloudKey(n.course));
+      })),
+      base: usable && stored ? new Set(stored.map(canon)) : null,
+    };
   }
 
   // ---------- twins ----------

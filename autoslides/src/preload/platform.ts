@@ -160,6 +160,7 @@ export const config: ElectronAPI['config'] = {
   setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => invoke('config:setObsidian', patch),
   setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesChoice }) => invoke('config:setWatchNotes', patch),
   setShowToolsButton: (enabled: boolean) => invoke('config:setShowToolsButton', enabled),
+  setCourseCloudSync: (enabled: boolean) => invoke('config:setCourseCloudSync', enabled),
   setAllowCliControl: (enabled: boolean) => invoke('config:setAllowCliControl', enabled),
   setCloseToTray: (enabled: boolean) => invoke('config:setCloseToTray', enabled),
   setPreferAnonymousApiRequests: (enabled: boolean) => invoke('config:setPreferAnonymousApiRequests', enabled),

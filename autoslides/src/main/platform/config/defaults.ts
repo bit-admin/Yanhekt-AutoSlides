@@ -210,6 +210,7 @@ export const defaultConfig: AppConfig = {
   notionConnected: false,
   notionWorkspaceName: '',
   showToolsButton: false,
+  courseCloudSync: true,
   allowCliControl: true,
   closeToTray: true,
   preferAnonymousApiRequests: false,

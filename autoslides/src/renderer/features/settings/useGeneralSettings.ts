@@ -43,6 +43,7 @@ export interface UseGeneralSettingsOptions {
   currentTermSearchSource: Ref<CurrentTermSearchSource>
   earlierTermSearchSource: Ref<EarlierTermSearchSource>
   courseIndexAutoUpdate: Ref<boolean>
+  courseCloudSync: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
   closeToTray: Ref<boolean>
 }
@@ -78,6 +79,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     currentTermSearchSource,
     earlierTermSearchSource,
     courseIndexAutoUpdate,
+    courseCloudSync,
     yanhe2SignInWithMain,
     closeToTray
   } = options
@@ -111,6 +113,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempCurrentTermSearchSource = ref<CurrentTermSearchSource>('yanhekt')
   const tempEarlierTermSearchSource = ref<EarlierTermSearchSource>('local-then-online')
   const tempCourseIndexAutoUpdate = ref(true)
+  const tempCourseCloudSync = ref(true)
   const tempYanhe2SignInWithMain = ref(true)
   const tempCloseToTray = ref(true)
 
@@ -150,6 +153,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempCurrentTermSearchSource.value = currentTermSearchSource.value
     tempEarlierTermSearchSource.value = earlierTermSearchSource.value
     tempCourseIndexAutoUpdate.value = courseIndexAutoUpdate.value
+    tempCourseCloudSync.value = courseCloudSync.value
     tempYanhe2SignInWithMain.value = yanhe2SignInWithMain.value
     tempCloseToTray.value = closeToTray.value
   }
@@ -291,6 +295,11 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
       courseIndexAutoUpdate.value = searchResult.courseIndexAutoUpdate ?? true
     }
 
+    if (tempCourseCloudSync.value !== courseCloudSync.value) {
+      const courseSyncResult = await window.electronAPI.config.setCourseCloudSync(tempCourseCloudSync.value)
+      courseCloudSync.value = courseSyncResult.courseCloudSync ?? true
+    }
+
     if (tempAutoSignIn.value !== autoSignIn.value) {
       const autoSignInResult = await window.electronAPI.config.setAutoSignIn(tempAutoSignIn.value)
       autoSignIn.value = autoSignInResult.autoSignIn ?? true
@@ -343,6 +352,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempCurrentTermSearchSource,
     tempEarlierTermSearchSource,
     tempCourseIndexAutoUpdate,
+    tempCourseCloudSync,
     tempYanhe2SignInWithMain,
     tempCloseToTray,
 

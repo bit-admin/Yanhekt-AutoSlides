@@ -556,6 +556,7 @@ export interface ElectronAPI {
     setObsidian: (patch: { vaultPath?: string; subfolder?: string; autoCreateNote?: boolean }) => Promise<AppConfig>;
     setWatchNotes: (patch: { enabled?: boolean; provider?: WatchNotesChoice }) => Promise<AppConfig>;
     setShowToolsButton: (enabled: boolean) => Promise<AppConfig>;
+    setCourseCloudSync: (enabled: boolean) => Promise<AppConfig>;
     setAllowCliControl: (enabled: boolean) => Promise<AppConfig>;
     setCloseToTray: (enabled: boolean) => Promise<AppConfig>;
     setPreferAnonymousApiRequests: (enabled: boolean) => Promise<AppConfig>;

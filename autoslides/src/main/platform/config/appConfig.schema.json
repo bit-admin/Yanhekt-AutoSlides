@@ -181,6 +181,9 @@
     "showToolsButton": {
       "type": "boolean"
     },
+    "courseCloudSync": {
+      "type": "boolean"
+    },
     "allowCliControl": {
       "type": "boolean"
     },

@@ -300,6 +300,9 @@ export interface AppConfig {
   notionWorkspaceName: string;
   // Settings → Add-ons → Tools: show the Tools section in the sidebar. Default off.
   showToolsButton: boolean;
+  // Settings → General → Course Sync: keep enrolled and pinned courses in two
+  // Yanhekt note groups (`@common/courseCloud`). Default on.
+  courseCloudSync: boolean;
   // Settings → Add-ons → Command Line: let `autoslides` commands drive this app
   // over a local socket (main `cli/control`). Default on; off closes the socket
   // and the command refuses without starting the app. `yhdl` is unaffected.

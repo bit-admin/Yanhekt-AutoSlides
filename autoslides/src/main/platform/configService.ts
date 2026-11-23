@@ -145,6 +145,8 @@ function sanitizeYanhe2Sessions(stored: unknown): Record<string, StoredYanhe2Ses
 export interface PinSyncBase {
   yanhekt: string[] | null;
   yanhe2: string[] | null;
+  /** The account's course notes (`ASsubs`); absent until that sync first runs. */
+  cloud?: string[] | null;
 }
 
 /** What the enrolled list knows about one Yanhe 2.0 course's Yanhekt twin. */
@@ -369,6 +371,7 @@ export class ConfigService {
       notionConnected: this.getNotionToken() !== null,
       notionWorkspaceName: this.store.get('notionWorkspaceName') ?? '',
       showToolsButton: this.store.get('showToolsButton') ?? false,
+      courseCloudSync: this.getCourseCloudSync(),
       allowCliControl: this.store.get('allowCliControl') ?? true,
       closeToTray: this.getCloseToTray(),
       preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
@@ -431,6 +434,14 @@ export class ConfigService {
 
   setShowToolsButton(enabled: boolean): void {
     this.store.set('showToolsButton', enabled);
+  }
+
+  getCourseCloudSync(): boolean {
+    return this.store.get('courseCloudSync') !== false;
+  }
+
+  setCourseCloudSync(enabled: boolean): void {
+    this.store.set('courseCloudSync', enabled === true);
   }
 
   setAllowCliControl(enabled: boolean): void {
@@ -589,7 +600,11 @@ export class ConfigService {
     if (!raw || typeof raw !== 'object') return null;
     const ids = (value: unknown): string[] | null =>
       Array.isArray(value) ? value.map(String) : null;
-    return { yanhekt: ids(raw.yanhekt), yanhe2: ids(raw.yanhe2) };
+    return {
+      yanhekt: ids(raw.yanhekt),
+      yanhe2: ids(raw.yanhe2),
+      ...(raw.cloud !== undefined ? { cloud: ids(raw.cloud) } : {}),
+    };
   }
 
   setPinSyncBase(badge: string, base: PinSyncBase): void {

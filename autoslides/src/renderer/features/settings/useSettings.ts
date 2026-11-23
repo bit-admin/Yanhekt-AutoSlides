@@ -39,6 +39,7 @@ export interface UseSettingsReturn {
   currentTermSearchSource: Ref<CurrentTermSearchSource>
   earlierTermSearchSource: Ref<EarlierTermSearchSource>
   courseIndexAutoUpdate: Ref<boolean>
+  courseCloudSync: Ref<boolean>
   yanhe2SignInWithMain: Ref<boolean>
   closeToTray: Ref<boolean>
   enableAIFiltering: Ref<boolean>
@@ -105,6 +106,7 @@ export function useSettings(): UseSettingsReturn {
   const currentTermSearchSource = ref<CurrentTermSearchSource>('yanhekt')
   const earlierTermSearchSource = ref<EarlierTermSearchSource>('local-then-online')
   const courseIndexAutoUpdate = ref(true)
+  const courseCloudSync = ref(true)
   const yanhe2SignInWithMain = ref(true)
   const closeToTray = ref(true)
   const enableAIFiltering = ref(true)
@@ -156,6 +158,7 @@ export function useSettings(): UseSettingsReturn {
       currentTermSearchSource.value = normalizeCurrentTermSearchSource(config.currentTermSearchSource)
       earlierTermSearchSource.value = normalizeEarlierTermSearchSource(config.earlierTermSearchSource)
       courseIndexAutoUpdate.value = config.courseIndexAutoUpdate ?? true
+      courseCloudSync.value = config.courseCloudSync ?? true
       yanhe2SignInWithMain.value = config.yanhe2SignInWithMain ?? true
       closeToTray.value = config.closeToTray ?? true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
@@ -269,6 +272,7 @@ export function useSettings(): UseSettingsReturn {
     currentTermSearchSource,
     earlierTermSearchSource,
     courseIndexAutoUpdate,
+    courseCloudSync,
     yanhe2SignInWithMain,
     closeToTray,
     enableAIFiltering,

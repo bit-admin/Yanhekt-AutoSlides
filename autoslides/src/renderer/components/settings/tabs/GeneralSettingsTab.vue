@@ -131,6 +131,19 @@
   </div>
 
   <div class="advanced-setting-section">
+    <h4>{{ $t('advanced.courseSyncTitle') }}</h4>
+    <div class="setting-item">
+      <div class="setting-description">{{ $t('advanced.courseSyncDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempCourseCloudSync" />
+          {{ $t('advanced.courseSyncEnable') }}
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="advanced-setting-section">
     <h4>{{ $t('advanced.authentication') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.rememberPasswordDescription') }}</div>
@@ -470,6 +483,7 @@ const {
   tempCurrentTermSearchSource,
   tempEarlierTermSearchSource,
   tempCourseIndexAutoUpdate,
+  tempCourseCloudSync,
   tempYanhe2SignInWithMain,
 } = advanced.general
 

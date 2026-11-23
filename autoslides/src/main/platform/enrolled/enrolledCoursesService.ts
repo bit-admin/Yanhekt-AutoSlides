@@ -13,6 +13,7 @@
  * - My Courses is read at most once a day, and only courses not looked up yet
  *   (or found missing more than a month ago) cost a lookup.
  */
+import { cloudCourseOf, type CloudCourse } from '@common/courseCloud';
 import { termKeyOf } from '@common/searchSources';
 import type { CourseData } from '@common/apiTypes';
 import type { EnrolledCourse, EnrolledRefreshResult } from '@common/types';
@@ -21,6 +22,7 @@ import type { ApiClient } from '../apiClient';
 import type { ConfigService } from '../configService';
 import type { CourseLookup } from '../courseIndex/courseLookup';
 import type { Yanhe2Service } from '../yanhe2/yanhe2Service';
+import type { CourseCloudStore } from '../courseCloud/courseCloudStore';
 import { createLogger } from '@main/infra/logger';
 import { pinFromCourseData } from '../pins/pinSnapshots';
 
@@ -34,6 +36,10 @@ const AITA_REREAD_MS = 24 * 60 * 60 * 1000;
 const MISSING_RECHECK_MS = 30 * 24 * 60 * 60 * 1000;
 /** During a long fill, the list is written after this many new courses. */
 const WRITE_EVERY = 4;
+/** The account's course notes are read and written at most this often. */
+const CLOUD_INTERVAL_MS = 10 * 60 * 1000;
+/** Courses from the notes without a title, filled in per refresh. */
+const MAX_CLOUD_TITLE_LOOKUPS = 12;
 
 type Lookup = { kind: 'found'; course: CourseData } | { kind: 'missing' } | { kind: 'unknown' };
 
@@ -78,6 +84,11 @@ function enrolledOf(row: CourseData, owner: string, yanhe2Id?: string): Enrolled
 export class EnrolledCoursesService {
   /** The refresh running per account: its first phase (current term) and the whole run. */
   private running = new Map<string, { firstPhase: Promise<EnrolledRefreshResult>; done: Promise<void> }>();
+  private cloudAt = new Map<string, number>();
+  /** What the last read of the notes gave, reused within the interval. */
+  private cloudRows = new Map<string, EnrolledCourse[]>();
+  /** Accounts whose current term was read this run, with that term ('' = unknown). */
+  private cloudReady = new Map<string, string>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -86,6 +97,8 @@ export class EnrolledCoursesService {
     private readonly courseLookup: CourseLookup,
     /** Called after the stored list changed, to broadcast config. */
     private readonly onChange: () => void,
+    /** The account's course notes; absent or switched off, the list stays local. */
+    private readonly courseCloud?: CourseCloudStore,
   ) {}
 
   /**
@@ -102,6 +115,9 @@ export class EnrolledCoursesService {
     const done = (async () => {
       try {
         await this.run(owner, settleFirst);
+        const readTerm = this.cloudReady.get(owner);
+        this.cloudReady.delete(owner);
+        if (readTerm !== undefined) await this.writeCloud(owner, readTerm);
       } catch (error) {
         log.warn('Enrolled list refresh failed:', error instanceof Error ? error.message : error);
         settleFirst({ kind: 'failed', message: error instanceof Error ? error.message : String(error) });
@@ -143,8 +159,10 @@ export class EnrolledCoursesService {
     }
     const currentIds = new Set(current.map((c) => c.id));
     const isPast = (c: EnrolledCourse) => !currentIds.has(c.id) && (!currentTerm || termOf(c) !== currentTerm);
-    let past = stored.filter(isPast);
+    const fromCloud = (await this.readCloud(owner, token)).filter(isPast);
+    let past = [...stored.filter(isPast), ...fromCloud.filter((c) => !stored.some((s) => s.id === c.id))];
     this.write(owner, [...current, ...past]);
+    if (rows.kind === 'ok') this.cloudReady.set(owner, currentTerm);
 
     if (rows.kind !== 'ok' && !stored.length) settleFirst({ kind: 'failed', message: rows.message });
     else settleFirst({ kind: 'ok' });
@@ -192,6 +210,13 @@ export class EnrolledCoursesService {
           past.push(row);
         }
       }
+      // Earlier terms another computer saved stay, even if My Courses lacks them.
+      for (const row of fromCloud) {
+        if (!seen.has(row.id)) {
+          seen.add(row.id);
+          past.push(row);
+        }
+      }
       return [...current, ...past];
     };
     this.write(owner, assemble());
@@ -223,6 +248,82 @@ export class EnrolledCoursesService {
     if (!unknown) sync.aitaReadAt = now;
     this.configService.setEnrolledSync(owner, sync);
     if (queue.length) log.info(`Enrolled list: ${queue.length} looked up, ${unknown} unanswered`);
+  }
+
+  // ---------- course notes ----------
+
+  /** Enrolled rows from the account's notes, at most once per interval. */
+  private async readCloud(owner: string, token: string): Promise<EnrolledCourse[]> {
+    if (!this.courseCloud?.enabled()) return [];
+    if (Date.now() - (this.cloudAt.get(owner) ?? 0) < CLOUD_INTERVAL_MS) return this.cloudRows.get(owner) ?? [];
+    try {
+      const { notes } = await this.courseCloud.read(token, 'enrolled');
+      const known = new Map(this.own(owner).map((c) => [c.id, c]));
+      let budget = MAX_CLOUD_TITLE_LOOKUPS;
+      const rows: EnrolledCourse[] = [];
+      for (const { course } of notes) {
+        if (!course.yanhektId) continue;
+        const row = known.get(course.yanhektId);
+        if (row) {
+          rows.push(row);
+        } else if (course.title) {
+          rows.push(this.rowOf(course, owner));
+        } else if (budget-- > 0) {
+          const filled = await this.fillTitle(course, token);
+          if (filled) rows.push(this.rowOf(filled, owner));
+        }
+      }
+      this.cloudRows.set(owner, rows);
+      return rows;
+    } catch (error) {
+      log.warn('Course notes not read:', error instanceof Error ? error.message : error);
+      return this.cloudRows.get(owner) ?? [];
+    }
+  }
+
+  private rowOf(course: CloudCourse, owner: string): EnrolledCourse {
+    return plainEnrolled({
+      id: course.yanhektId,
+      yanhe2Id: course.yanhe2Id || undefined,
+      title: course.title,
+      number: course.number || undefined,
+      school_year: course.school_year || undefined,
+      semester: course.semester || undefined,
+      owner,
+    });
+  }
+
+  private async fillTitle(course: CloudCourse, token: string): Promise<CloudCourse | null> {
+    try {
+      const detail = await this.apiClient.getCourseDetailOrIndex(course.yanhektId, token);
+      return detail.title ? { ...course, title: detail.title } : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Add this computer's courses to the notes. Only a current-term note can be
+   * removed (the course was dropped): an earlier term's note stays even when
+   * this computer has not got that course.
+   */
+  private async writeCloud(owner: string, currentTerm: string): Promise<void> {
+    if (!this.courseCloud?.enabled()) return;
+    if (Date.now() - (this.cloudAt.get(owner) ?? 0) < CLOUD_INTERVAL_MS) return;
+    const token = this.configService.getAccountToken(owner);
+    if (!token) return;
+    try {
+      const snapshot = await this.courseCloud.read(token, 'enrolled');
+      const wanted = this.own(owner).map(cloudCourseOf);
+      for (const { course } of snapshot.notes) {
+        const term = termOf(course);
+        if (!currentTerm || term !== currentTerm) wanted.push(course);
+      }
+      await this.courseCloud.reconcile(token, 'enrolled', wanted, snapshot);
+      this.cloudAt.set(owner, Date.now());
+    } catch (error) {
+      log.warn('Course notes not written:', error instanceof Error ? error.message : error);
+    }
   }
 
   /** The Yanhekt course with this Yanhe 2.0 course's registrar number. */

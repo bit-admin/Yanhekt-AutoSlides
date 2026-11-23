@@ -1372,6 +1372,20 @@ Web `notesClient` via the Worker allowlist. The former desktop client is archive
 
 Write payloads come from `notesClient.ts` and the archived desktop client. A direct spot check on 2026-11-20 reproduced `12101114` for content writes, while the tested note reads, creation, title change, deletion and repeat image upload succeeded.
 
+**Title limit (`PUT /v1/note`, checked 2026-11-23).** The limit is **80 characters**, not bytes: 80 ASCII characters and 80 Chinese characters (240 bytes) both save and read back exactly. 81 of either is refused with **HTTP 200** and a non-zero envelope code, and the note keeps its previous title:
+
+```json
+{
+  "code": 61101210,
+  "message": "标题不能大于80字",
+  "displayable": true,
+  "data": { "title": ["标题不能大于80字"] },
+  "module": "user_regular_param"
+}
+```
+
+Check `code`, not the HTTP status. On this validation error `data` is an object keyed by the rejected field, each with a list of messages, unlike the empty `data: []` of the `12101114` runtime error.
+
 #### `POST /v1/minio/upload`
 
 Auth. `multipart/form-data`: `file` (image blob), `bucket=notes`. Response `{ host, path }` → public URL `host+path` on `coss.yanhekt.cn` (same bytes hash to the same URL). Worker forwards body + `Content-Type` verbatim.

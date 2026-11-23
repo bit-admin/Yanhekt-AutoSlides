@@ -125,3 +125,17 @@ describe('planPinSync', () => {
     expect(pushes(plan)).toEqual(['yanhekt:-5']);
   });
 });
+
+describe('planPinSync with course notes', () => {
+  const pin = (id: string) => ({ id, title: id }) as PinnedCourse;
+  const off = { remote: null, base: null };
+  it('brings in a pin from another computer, of any term', () => {
+    const plan = planPinSync([{ pin: pin('5'), local: false, originKeys: [] }], { yanhekt: off, yanhe2: off, cloud: { remote: new Set(['5']), base: new Set() } }, null);
+    expect(plan.kept.map((e) => e.pin.id)).toEqual(['5']);
+    expect(plan.pushes).toEqual([]);
+  });
+  it('unpins what another computer removed', () => {
+    const plan = planPinSync([{ pin: pin('5'), local: true, originKeys: ['5'] }], { yanhekt: off, yanhe2: off, cloud: { remote: new Set(['6']), base: new Set(['5', '6']) } }, null);
+    expect(plan.kept).toEqual([]);
+  });
+});

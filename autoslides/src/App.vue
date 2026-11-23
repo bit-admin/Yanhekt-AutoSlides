@@ -175,6 +175,7 @@ const advancedSettings = useAdvancedSettings(
     currentTermSearchSource: settings.currentTermSearchSource,
     earlierTermSearchSource: settings.earlierTermSearchSource,
     courseIndexAutoUpdate: settings.courseIndexAutoUpdate,
+    courseCloudSync: settings.courseCloudSync,
     yanhe2SignInWithMain: settings.yanhe2SignInWithMain,
     closeToTray: settings.closeToTray,
     enableAIFiltering: settings.enableAIFiltering,

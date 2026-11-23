@@ -51,6 +51,7 @@ import { slideExtractionService } from '@main/extraction/slideExtractionService'
 import { Yanhe2SlideImportService } from '@main/extraction/yanhe2SlideImportService';
 import { Yanhe2TwinResolver } from '@main/platform/yanhe2/yanhe2TwinResolver';
 import { PinSyncService } from '@main/platform/pins/pinSyncService';
+import { CourseCloudStore } from '@main/platform/courseCloud/courseCloudStore';
 import { EnrolledCoursesService } from '@main/platform/enrolled/enrolledCoursesService';
 import { broadcastConfig } from '@main/ipc/broadcastConfig';
 import { localCourseIndex } from '@main/platform/courseIndex/courseIndex';
@@ -437,6 +438,7 @@ const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService
 const audioDownloadService = new AudioDownloadService(configService, intranetMappingService);
 const yanhe2TwinResolver = new Yanhe2TwinResolver(yanhe2Service, apiClient, configService, courseLookup);
 const yanhe2SubtitleService = new Yanhe2SubtitleService(yanhe2Service, yanhe2TwinResolver, configService);
+const courseCloudStore = new CourseCloudStore(configService, apiTransport);
 const pinSyncService = new PinSyncService(
   configService,
   apiClient,
@@ -444,6 +446,7 @@ const pinSyncService = new PinSyncService(
   yanhe2TwinResolver,
   courseLookup,
   () => broadcastConfig(configService),
+  courseCloudStore,
 );
 const enrolledCoursesService = new EnrolledCoursesService(
   configService,
@@ -451,6 +454,7 @@ const enrolledCoursesService = new EnrolledCoursesService(
   yanhe2Service,
   courseLookup,
   () => broadcastConfig(configService),
+  courseCloudStore,
 );
 const yanhe2DownloadService = new Yanhe2DownloadService(
   yanhe2Service,
