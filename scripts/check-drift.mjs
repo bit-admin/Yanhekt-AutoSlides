@@ -63,6 +63,9 @@ const GROUPS = [
     ],
   },
   { name: 'academicTerm', sides: [['autoslides/src/shared/academicTerm.ts'], ['share/src/lib/term.ts']] },
+  pair('courseCloud', 'autoslides/src/shared/courseCloud.ts', 'web/frontend/src/lib/courseCloud.ts'),
+  pair('courseCloudPlan', 'autoslides/src/main/platform/courseCloud/courseCloudPlan.ts', 'web/frontend/src/lib/courseCloudPlan.ts'),
+  pair('courseCloudStore', 'autoslides/src/main/platform/courseCloud/courseCloudStore.ts', 'web/frontend/src/lib/courseCloudStore.ts'),
   pair('sanitizeFileName', 'autoslides/src/shared/sanitizeFileName.ts', 'web/frontend/src/lib/sanitizeFileName.ts'),
   // The desktop's slideMetadataTypes.ts is only a re-export of this file.
   pair('slideMetadataTypes', 'autoslides/src/shared/sidecars/metadata/types.ts', 'web/frontend/src/lib/slideMetadataTypes.ts'),

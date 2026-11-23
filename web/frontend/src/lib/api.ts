@@ -370,6 +370,9 @@ async function requestMethod<T>(
   return unwrapped;
 }
 
+/** An uncached call for one account's token (course notes). */
+export const sendYanhektRequest = requestMethod;
+
 export async function verifyToken(token: string): Promise<TokenVerificationResult> {
   try {
     const response = await fetch(`${PROXY_BASE}/v1/user`, {

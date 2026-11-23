@@ -2,14 +2,22 @@ import { ref, computed, type Ref, type ComputedRef } from "vue";
 import {
   getPersonalLiveList,
   getPersonalCourseList,
-  getSubscriptionList,
   type LiveStream,
   type CourseData,
-  type SubscriptionCourseRow,
 } from "../lib/api";
 import { authStore } from "../stores/authStore";
 import { openCourse } from "./courseSelection";
 import { localeTag } from "../i18n";
+import { getPastEnrolledCourses } from "./pastEnrolledCourses";
+import {
+  getSubscribedCourse,
+  subscribedListIsCurrent,
+  subscribedRecordedCourses,
+  syncSubscribedCoursesFromServer,
+} from "./subscribedCourses";
+
+/** A visit to Subscriptions re-syncs at most this often. */
+const SUBSCRIPTIONS_MAX_AGE_MS = 60 * 1000;
 
 // Ported from the desktop app's features/course/useCourseList.ts with the
 // Electron ApiClient/tokenManager swapped for the web data layer.
@@ -126,46 +134,6 @@ export const transformCourseDataToCourse = (courseData: CourseData): Course => {
   };
 };
 
-/** Map a subscription list row into the shared Course card shape. */
-export const transformSubscriptionRowToCourse = (row: SubscriptionCourseRow): Course => {
-  // Keep professor resolution inlined (same rules as subscribedCourses) so this
-  // module does not import that composable (it imports Course from here).
-  let professors: string[] = [];
-  if (Array.isArray(row.professor_names) && row.professor_names.length) {
-    professors = row.professor_names.map(String).map((s) => s.trim()).filter(Boolean);
-  } else if (Array.isArray(row.professors)) {
-    professors = row.professors
-      .map((p) => (typeof p === "string" ? p : (p?.name ?? "")))
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-
-  const schoolYear = row.school_year != null ? String(row.school_year) : undefined;
-  const semester = row.semester != null ? String(row.semester) : undefined;
-  const semesterText = semester === "1" ? "Fall" : semester === "2" ? "Spring" : "";
-  const timeInfo =
-    schoolYear && semesterText
-      ? `${schoolYear} ${semesterText}`
-      : schoolYear || semesterText || "";
-
-  return {
-    id: String(row.id),
-    title: row.name_zh || "Untitled",
-    titleEn: row.name_en,
-    instructor: professors.length ? professors.join(", ") : "Unknown",
-    time: timeInfo,
-    professors: professors.length ? professors : undefined,
-    classrooms: row.classrooms
-      ?.map((c) => ({ name: c.name }))
-      .filter((c) => !!c.name),
-    school_year: schoolYear,
-    semester,
-    college_name: row.college_name || row.college?.name,
-    participant_count: row.participant_count,
-    imageUrl: trimImageUrl(row.image_url || row.college?.image_url),
-  };
-};
-
 // Status helpers (shared by every surface that renders live course cards)
 export const getCourseStatusClass = (status?: number): string => {
   switch (status) {
@@ -258,18 +226,18 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
         totalPages.value = response.last_page;
         currentPage.value = response.current_page;
       } else if (mode.value === "subscriptions") {
-        // Same grid as Recordings; source is the Yanhekt subscription list.
-        // Pages are SUBSCRIPTION_PAGE_SIZE, not coursesPerPage, so page 1 is
-        // the very request the launch sync makes and comes from the cache.
-        const response = await getSubscriptionList(token, { page: currentPage.value });
-        const transformed = (response.data ?? []).map(transformSubscriptionRowToCourse);
-        if (resetPage) {
-          courses.value = transformed;
-        } else {
-          courses.value = [...courses.value, ...transformed];
-        }
-        totalPages.value = Number(response.last_page) || 1;
-        currentPage.value = Number(response.current_page) || currentPage.value;
+        // The merged list, which also holds earlier terms Yanhekt no longer lists.
+        const shown = () =>
+          subscribedRecordedCourses.value
+            .map((c) => getSubscribedCourse(c.id))
+            .filter((c): c is Course => !!c);
+        if (subscribedListIsCurrent()) courses.value = shown();
+        const ok = await syncSubscribedCoursesFromServer({ maxAgeMs: SUBSCRIPTIONS_MAX_AGE_MS });
+        if (authStore.token.value !== token) return;
+        courses.value = ok || subscribedListIsCurrent() ? shown() : [];
+        totalPages.value = 1;
+        currentPage.value = 1;
+        if (!ok && !courses.value.length) throw new Error("Failed to fetch subscriptions");
       } else {
         const response = await getPersonalCourseList(token, {
           page: currentPage.value,
@@ -283,6 +251,13 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
         }
         totalPages.value = response.last_page;
         currentPage.value = response.current_page;
+        // Earlier terms follow the last page of the current term.
+        if (currentPage.value >= totalPages.value) {
+          const past = await getPastEnrolledCourses(token);
+          if (authStore.token.value !== token || mode.value !== "recorded") return;
+          const seen = new Set(courses.value.map((c) => c.id));
+          courses.value = [...courses.value, ...past.filter((c) => !seen.has(c.id))];
+        }
       }
     } catch (error: unknown) {
       console.error("Failed to fetch personal courses:", error);
